@@ -83,7 +83,7 @@ func (c *Connector) Request(req *http.Request) (*http.Response, error) {
 	}
 
 	// Await and return the response
-	timeoutTimer := time.NewTimer(time.Second * 4)
+	timeoutTimer := time.NewTimer(time.Minute)
 	defer timeoutTimer.Stop()
 	select {
 	case response := <-awaitCh:
