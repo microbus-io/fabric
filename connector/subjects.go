@@ -24,19 +24,36 @@ func subjectOfReply(hostName string, id string) string {
 }
 
 // subjectOfSubscription is the NATS subject where a microserve subscribes to receive incoming requests for a given path.
-// For the URL http://example.com:80/PATH/file.html that subject looks like 80.com.example.|.PATH.file_html .
-// For a URL to that ends with a / such as https://example.com/dir/ the subject looks like 443.com.example.|.dir._
+// For the URL http://example.com:80/PATH/file.html that subject is 80.com.example.|.PATH.file_html .
+// For a URL to that ends with a / such as https://example.com/dir/ the subject is 443.com.example.|.dir.>
 func subjectOfSubscription(hostName string, port int, path string) string {
 	var b strings.Builder
 	b.WriteString(strconv.Itoa(port))
 	b.WriteRune('.')
 	b.WriteString(strings.ToLower(reverseHostName(hostName)))
 	b.WriteString(".|.")
-	b.WriteString(encodePath(strings.TrimPrefix(path, "/")))
-	if path == "" || strings.HasSuffix(path, "/") {
+	if path == "" {
+		// Exactly the home path
 		b.WriteRune('_')
+		return b.String()
+	}
+	b.WriteString(encodePath(strings.TrimPrefix(path, "/")))
+	if strings.HasSuffix(path, "/") {
+		b.WriteRune('>')
 	}
 	return b.String()
+}
+
+// subjectOfRequest is the NATS subject where a microserve published an outgoing requests for a given path.
+// For the URL http://example.com:80/PATH/file.html that subject looks like 80.com.example.|.PATH.file_html .
+// For a URL to that ends with a / such as https://example.com/dir/ the subject is 443.com.example.|.dir._
+// so that it is captured by the corresponding subscription 443.com.example.|.dir.>
+func subjectOfRequest(hostName string, port int, path string) string {
+	subject := subjectOfSubscription(hostName, port, path)
+	if strings.HasSuffix(subject, ">") {
+		subject = strings.TrimSuffix(subject, ">") + "_"
+	}
+	return subject
 }
 
 // escapePath escapes special characters in the path to make it suitable for appending to the subscription subject
