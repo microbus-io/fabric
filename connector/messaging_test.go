@@ -3,6 +3,7 @@ package connector
 import (
 	"io/ioutil"
 	"net/http"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,11 +52,11 @@ func TestDirectorySubscription(t *testing.T) {
 	alpha := NewConnector()
 	alpha.SetHostName("alpha.dir.test")
 
-	count := 0
+	var count int32
 	beta := NewConnector()
 	beta.SetHostName("beta.dir.test")
 	beta.Subscribe(443, "directory/", func(w http.ResponseWriter, r *http.Request) {
-		count++
+		atomic.AddInt32(&count, 1)
 	})
 
 	// Startup the microservices
@@ -74,7 +75,7 @@ func TestDirectorySubscription(t *testing.T) {
 	_, err = alpha.GET("https://beta.dir.test/directory/sub/3.html")
 	assert.NoError(t, err)
 
-	assert.Equal(t, 4, count)
+	assert.Equal(t, int32(4), count)
 
 	// Shutdown the microservices
 	err = alpha.Shutdown()

@@ -8,13 +8,13 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// OnStartup sets a function to be called during the starting up of the microservice
-func (c *Connector) OnStartup(f func(context.Context) error) {
+// SetOnStartup sets a function to be called during the starting up of the microservice
+func (c *Connector) SetOnStartup(f func(context.Context) error) {
 	c.onStartup = f
 }
 
-// OnShutdown sets a function to be called during the shutting down of the microservice
-func (c *Connector) OnShutdown(f func(context.Context) error) {
+// SetOnShutdown sets a function to be called during the shutting down of the microservice
+func (c *Connector) SetOnShutdown(f func(context.Context) error) {
 	c.onShutdown = f
 }
 
@@ -61,7 +61,7 @@ func (c *Connector) Startup() error {
 			return err
 		}
 	}
-	time.Sleep(50 * time.Microsecond) // Give time for subscription activation by NATS
+	time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 
 	return nil
 }
