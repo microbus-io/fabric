@@ -49,8 +49,9 @@ func (c *Connector) Request(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Microbus-From-Id", c.id)
 
 	// Create a channel to await on
+	awaitCh := make(chan *http.Response)
 	c.reqsLock.Lock()
-	c.reqs[msgID] = make(chan *http.Response)
+	c.reqs[msgID] = awaitCh
 	c.reqsLock.Unlock()
 	defer func() {
 		c.reqsLock.Lock()
@@ -64,25 +65,30 @@ func (c *Connector) Request(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	port, err := strconv.ParseInt(req.URL.Port(), 10, 32)
-	if err != nil {
-		if req.URL.Scheme == "http" {
-			port = 80
-		} else {
-			port = 443
-		}
+	port := 443
+	if req.URL.Scheme == "http" {
+		port = 80
 	}
-	subject := subjectOfRequest(req.URL.Hostname(), int(port), req.URL.Path)
+	if req.URL.Port() != "" {
+		port64, err := strconv.ParseInt(req.URL.Port(), 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		port = int(port64)
+	}
+	subject := subjectOfRequest(req.URL.Hostname(), port, req.URL.Path)
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
 	// Await and return the response
+	timeoutTimer := time.NewTimer(time.Second * 4)
+	defer timeoutTimer.Stop()
 	select {
-	case response := <-c.reqs[msgID]:
+	case response := <-awaitCh:
 		return response, nil
-	case <-time.After(time.Second * 10):
+	case <-timeoutTimer.C:
 		return nil, errors.New("timeout")
 	}
 }
@@ -165,7 +171,7 @@ func (c *Connector) Subscribe(port int, path string, handler func(w http.Respons
 		if err != nil {
 			return err
 		}
-		time.Sleep(50 * time.Microsecond) // Give time for subscription activation by NATS
+		time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 	}
 	c.subsLock.Lock()
 	c.subs = append(c.subs, newSub)

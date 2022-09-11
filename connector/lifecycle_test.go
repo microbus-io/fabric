@@ -15,11 +15,11 @@ func TestStartupShutdown(t *testing.T) {
 
 	alpha := NewConnector()
 	alpha.SetHostName("alpha.startupshutdown.test")
-	alpha.OnStartup(func(ctx context.Context) error {
+	alpha.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return nil
 	})
-	alpha.OnShutdown(func(ctx context.Context) error {
+	alpha.SetOnShutdown(func(ctx context.Context) error {
 		shutdownCalled = true
 		return nil
 	})
@@ -48,11 +48,11 @@ func TestStartupError(t *testing.T) {
 
 	alpha := NewConnector()
 	alpha.SetHostName("alpha.startuperror.test")
-	alpha.OnStartup(func(ctx context.Context) error {
+	alpha.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return errors.New("oops")
 	})
-	alpha.OnShutdown(func(ctx context.Context) error {
+	alpha.SetOnShutdown(func(ctx context.Context) error {
 		shutdownCalled = true
 		return nil
 	})
