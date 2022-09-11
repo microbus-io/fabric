@@ -3,9 +3,10 @@ package connector
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/microbus-io/fabric/rand"
 	"github.com/nats-io/nats.go"
@@ -20,16 +21,24 @@ type Connector struct {
 	hostName string
 	id       string
 
-	onStartUp  func(context.Context) error
-	onShutDown func(context.Context) error
+	onStartup  func(context.Context) error
+	onShutdown func(context.Context) error
 
-	natsConn *nats.Conn
+	natsConn     *nats.Conn
+	natsReplySub *nats.Subscription
+	subs         []*subscription
+	subsLock     sync.Mutex
+	started      bool
+
+	reqs     map[string]chan *http.Response
+	reqsLock sync.Mutex
 }
 
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id: strings.ToLower(rand.AlphaNum32(8)),
+		id:   strings.ToLower(rand.AlphaNum32(8)),
+		reqs: map[string]chan *http.Response{},
 	}
 	return c
 }
@@ -60,67 +69,4 @@ func (c *Connector) SetHostName(hostName string) error {
 // A microservice is addressable by its host name.
 func (c *Connector) HostName() string {
 	return c.hostName
-}
-
-// OnStartUp sets a function to be called during the starting up of the microservice
-func (c *Connector) OnStartUp(f func(context.Context) error) {
-	c.onStartUp = f
-}
-
-// OnShutDown sets a function to be called during the shutting down of the microservice
-func (c *Connector) OnShutDown(f func(context.Context) error) {
-	c.onShutDown = f
-}
-
-// StartUp the microservice by connecting to the NATS bus and activating the subscriptions
-func (c *Connector) StartUp() error {
-	// Connect to NATS
-	var err error
-	c.natsConn, err = nats.Connect("nats://127.0.0.1:4222")
-	if err != nil {
-		return err
-	}
-
-	// TODO: Subscribe to reply channel
-
-	// Call the callback function, if provided
-	if c.onStartUp != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		err := c.onStartUp(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO: Activate subscriptions
-
-	return nil
-}
-
-// ShutDown the microservice by deactivating subscriptions and disconnecting from the NATS bus
-func (c *Connector) ShutDown() error {
-	// TODO: Deactivate subscriptions
-
-	// Call the callback function, if provided
-	if c.onShutDown != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		err := c.onShutDown(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO: Deactivate reply channel
-
-	// TODO: Disconnect from NATS
-	c.natsConn.Close()
-
-	return nil
-}
-
-// Log a message to standard output
-func (c *Connector) Log(format string, args ...interface{}) {
-	fmt.Printf(format, args...)
 }
