@@ -11,7 +11,16 @@ import (
 	"github.com/microbus-io/fabric/services/httpingress"
 )
 
-// main runs the example microservices
+/*
+main runs the example microservices.
+
+Try the following links:
+
+	http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=8
+	http://localhost:8080/calculator.example/square?x=5
+	http://localhost:8080/echo.example/echo
+	http://localhost:8080/helloworld.example/hello?name=Gopher
+*/
 func main() {
 	// Create and startup the microservices
 	ingressSvc := httpingress.NewService()

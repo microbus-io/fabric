@@ -14,10 +14,10 @@ func TestEcho(t *testing.T) {
 
 	// Create the microservices
 	alpha := NewConnector()
-	alpha.SetHostName("alpha.echo.test")
+	alpha.SetHostName("alpha.echo.connector")
 
 	beta := NewConnector()
-	beta.SetHostName("beta.echo.test")
+	beta.SetHostName("beta.echo.connector")
 	beta.Subscribe(443, "echo", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		assert.NoError(t, err)
@@ -32,7 +32,7 @@ func TestEcho(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Send message and validate that it's echoed back
-	response, err := alpha.POST("https://beta.echo.test/echo", []byte("Hello"))
+	response, err := alpha.POST("https://beta.echo.connector/echo", []byte("Hello"))
 	assert.NoError(t, err)
 	body, err := ioutil.ReadAll(response.Body)
 	assert.NoError(t, err)
@@ -50,11 +50,11 @@ func TestDirectorySubscription(t *testing.T) {
 
 	// Create the microservices
 	alpha := NewConnector()
-	alpha.SetHostName("alpha.dir.test")
+	alpha.SetHostName("alpha.dir.connector")
 
 	var count int32
 	beta := NewConnector()
-	beta.SetHostName("beta.dir.test")
+	beta.SetHostName("beta.dir.connector")
 	beta.Subscribe(443, "directory/", func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&count, 1)
 	})
@@ -66,16 +66,90 @@ func TestDirectorySubscription(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Send messages to various locations under the directory
-	_, err = alpha.GET("https://beta.dir.test/directory/")
+	_, err = alpha.GET("https://beta.dir.connector/directory/")
 	assert.NoError(t, err)
-	_, err = alpha.GET("https://beta.dir.test/directory/1.html")
+	_, err = alpha.GET("https://beta.dir.connector/directory/1.html")
 	assert.NoError(t, err)
-	_, err = alpha.GET("https://beta.dir.test/directory/2.html")
+	_, err = alpha.GET("https://beta.dir.connector/directory/2.html")
 	assert.NoError(t, err)
-	_, err = alpha.GET("https://beta.dir.test/directory/sub/3.html")
+	_, err = alpha.GET("https://beta.dir.connector/directory/sub/3.html")
 	assert.NoError(t, err)
 
 	assert.Equal(t, int32(4), count)
+
+	// Shutdown the microservices
+	err = alpha.Shutdown()
+	assert.NoError(t, err)
+	err = beta.Shutdown()
+	assert.NoError(t, err)
+}
+
+func TestQueryArgs(t *testing.T) {
+	t.Parallel()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.queryargs.connector")
+
+	beta := NewConnector()
+	beta.SetHostName("beta.queryargs.connector")
+	beta.Subscribe(443, "arg", func(w http.ResponseWriter, r *http.Request) {
+		arg := r.URL.Query().Get("arg")
+		assert.Equal(t, "not_empty", arg)
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	err = beta.Startup()
+	assert.NoError(t, err)
+
+	// Send request with a query argument
+	_, err = alpha.GET("https://beta.queryargs.connector/arg?arg=not_empty")
+	assert.NoError(t, err)
+
+	// Shutdown the microservices
+	err = alpha.Shutdown()
+	assert.NoError(t, err)
+	err = beta.Shutdown()
+	assert.NoError(t, err)
+}
+
+func TestSubscribeBeforeAndAfterStartup(t *testing.T) {
+	t.Parallel()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.beforeafterstartup.connector")
+
+	var beforeCalled, afterCalled bool
+	beta := NewConnector()
+	beta.SetHostName("beta.beforeafterstartup.connector")
+
+	// Subscribe before beta is started
+	beta.Subscribe(443, "before", func(w http.ResponseWriter, r *http.Request) {
+		beforeCalled = true
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	err = beta.Startup()
+	assert.NoError(t, err)
+
+	// Subscribe after beta is started
+	beta.Subscribe(443, "after", func(w http.ResponseWriter, r *http.Request) {
+		afterCalled = true
+	})
+
+	// Send requests to both handlers
+	_, err = alpha.GET("https://beta.beforeafterstartup.connector/before")
+	assert.NoError(t, err)
+	_, err = alpha.GET("https://beta.beforeafterstartup.connector/after")
+	assert.NoError(t, err)
+
+	assert.True(t, beforeCalled)
+	assert.True(t, afterCalled)
 
 	// Shutdown the microservices
 	err = alpha.Shutdown()

@@ -35,8 +35,18 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) {
 		op = "+" // + is interpreted as a space in URLs
 	}
 
-	xx, _ := strconv.ParseInt(x, 10, 32)
+	xx, err := strconv.ParseInt(x, 10, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
 	yy, _ := strconv.ParseInt(y, 10, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
 	var rr int64
 
 	// Perform the arithmetic operation
@@ -49,6 +59,10 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) {
 		rr = xx - yy
 	case "/":
 		rr = xx / yy
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Invalid operator"))
+		return
 	}
 
 	// Print the result
@@ -60,7 +74,12 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) {
 func (s *Service) Square(w http.ResponseWriter, r *http.Request) {
 	// Read and parse query argument
 	x := r.URL.Query().Get("x")
-	xx, _ := strconv.ParseInt(x, 10, 32)
+	xx, err := strconv.ParseInt(x, 10, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 	// Print the result
 	w.Header().Set("Content-Type", "text/plain")
