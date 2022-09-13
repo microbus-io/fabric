@@ -1,7 +1,6 @@
 package connector
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -88,7 +87,7 @@ func (c *Connector) loadConfigs() error {
 		return err
 	}
 	for wd != "/" {
-		envFileData, err := ioutil.ReadFile(wd + "/env.yaml")
+		envFileData, err := os.ReadFile(wd + "/env.yaml")
 		if err == nil {
 			err = readEnvYamlFile(c.hostName, envFileData, c.configs)
 			if err != nil {
