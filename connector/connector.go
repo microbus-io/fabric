@@ -61,6 +61,10 @@ func (c *Connector) SetHostName(hostName string) error {
 	if err != nil {
 		return err
 	}
+	if hostName == "all" || strings.HasSuffix(hostName, ".all") {
+		// The hostname "all" is reserved to refer to all microservices
+		match = false
+	}
 	if !match {
 		return fmt.Errorf("invalid host name: %s", hostName)
 	}
