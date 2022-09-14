@@ -2,6 +2,7 @@ package helloworld
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/microbus-io/fabric/connector"
 )
@@ -29,7 +30,19 @@ func (s *Service) Hello(w http.ResponseWriter, r *http.Request) {
 		name = "World"
 	}
 
+	// Prepare the greeting
+	greeting, ok := s.Config("greeting")
+	if !ok {
+		greeting = "Hello"
+	}
+	hello := greeting + ", " + name + "!\n"
+	repeat, ok := s.ConfigInt("repeat")
+	if !ok {
+		repeat = 1
+	}
+	hello = strings.Repeat(hello, repeat)
+
 	// Print the greeting
 	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte("Hello, " + name + "!"))
+	w.Write([]byte(hello))
 }

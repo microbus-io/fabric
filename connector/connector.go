@@ -32,13 +32,16 @@ type Connector struct {
 
 	reqs     map[string]chan *http.Response
 	reqsLock sync.Mutex
+
+	configs map[string]string
 }
 
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:   strings.ToLower(rand.AlphaNum32(8)),
-		reqs: map[string]chan *http.Response{},
+		id:      strings.ToLower(rand.AlphaNum32(8)),
+		reqs:    map[string]chan *http.Response{},
+		configs: map[string]string{},
 	}
 	return c
 }
@@ -53,10 +56,14 @@ func (c *Connector) ID() string {
 // Segments are seprated by dots.
 // For example, this.is.a.valid.hostname.123.local
 func (c *Connector) SetHostName(hostName string) error {
-	hostName = strings.ToLower(hostName)
+	hostName = strings.TrimSpace(strings.ToLower(hostName))
 	match, err := regexp.MatchString(`^[a-z0-9]+(\.[a-z0-9]+)*$`, hostName)
 	if err != nil {
 		return err
+	}
+	if hostName == "all" || strings.HasSuffix(hostName, ".all") {
+		// The hostname "all" is reserved to refer to all microservices
+		match = false
 	}
 	if !match {
 		return fmt.Errorf("invalid host name: %s", hostName)

@@ -25,12 +25,19 @@ func (c *Connector) Startup() error {
 	if c.started {
 		return errors.New("already started")
 	}
+	if c.hostName == "" {
+		return errors.New("no hostname")
+	}
 	c.started = true
+
+	err = c.loadConfigs()
+	if err != nil {
+		return err
+	}
 
 	// Connect to NATS
 	c.natsConn, err = nats.Connect("nats://127.0.0.1:4222")
 	if err != nil {
-		_ = c.Shutdown()
 		return err
 	}
 
