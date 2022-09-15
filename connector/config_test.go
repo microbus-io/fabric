@@ -81,7 +81,9 @@ func TestSetConfig(t *testing.T) {
 
 	alpha := NewConnector()
 	alpha.SetHostName("alpha.setconfig.connector")
-	alpha.Startup()
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
 
 	_, ok := alpha.Config("s")
 	assert.False(t, ok)
@@ -113,8 +115,6 @@ func TestSetConfig(t *testing.T) {
 	if assert.True(t, ok) {
 		assert.Equal(t, time.Minute, dur)
 	}
-
-	alpha.Shutdown()
 }
 
 func TestEnvYaml(t *testing.T) {
@@ -149,6 +149,7 @@ all:
 	alpha.SetHostName("alpha.envyaml.connector")
 	err = alpha.Startup()
 	assert.NoError(t, err)
+	defer alpha.Shutdown()
 
 	v, ok := alpha.Config("aaa")
 	if assert.True(t, ok) {
@@ -166,8 +167,6 @@ all:
 	if assert.True(t, ok) {
 		assert.Equal(t, "444", v)
 	}
-
-	alpha.Shutdown()
 }
 
 func TestEnviron(t *testing.T) {
@@ -201,6 +200,7 @@ func TestEnviron(t *testing.T) {
 	alpha.SetHostName("alpha.environ.connector")
 	err := alpha.Startup()
 	assert.NoError(t, err)
+	defer alpha.Shutdown()
 
 	v, ok := alpha.Config("aaa")
 	if assert.True(t, ok) {
@@ -218,6 +218,4 @@ func TestEnviron(t *testing.T) {
 	if assert.True(t, ok) {
 		assert.Equal(t, "444", v)
 	}
-
-	alpha.Shutdown()
 }

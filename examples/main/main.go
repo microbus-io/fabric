@@ -29,15 +29,13 @@ func main() {
 	calculatorSvc := calculator.NewService()
 
 	ingressSvc.Startup()
+	defer calculatorSvc.Shutdown()
 	echoSvc.Startup()
+	defer echoSvc.Shutdown()
 	helloWorldSvc.Startup()
+	defer helloWorldSvc.Shutdown()
 	calculatorSvc.Startup()
-	defer func() {
-		calculatorSvc.Shutdown()
-		helloWorldSvc.Shutdown()
-		echoSvc.Shutdown()
-		ingressSvc.Shutdown()
-	}()
+	defer calculatorSvc.Shutdown()
 
 	// Wait for ctrl-C interrupt
 	sigChan := make(chan os.Signal, 1)

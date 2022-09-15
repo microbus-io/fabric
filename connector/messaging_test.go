@@ -28,8 +28,10 @@ func TestEcho(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	err = beta.Startup()
 	assert.NoError(t, err)
+	defer beta.Shutdown()
 
 	// Send message and validate that it's echoed back
 	response, err := alpha.POST("https://beta.echo.connector/echo", []byte("Hello"))
@@ -37,12 +39,6 @@ func TestEcho(t *testing.T) {
 	body, err := ioutil.ReadAll(response.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("Hello"), body)
-
-	// Shutdown the microservices
-	err = alpha.Shutdown()
-	assert.NoError(t, err)
-	err = beta.Shutdown()
-	assert.NoError(t, err)
 }
 
 func TestDirectorySubscription(t *testing.T) {
@@ -62,8 +58,10 @@ func TestDirectorySubscription(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	err = beta.Startup()
 	assert.NoError(t, err)
+	defer beta.Shutdown()
 
 	// Send messages to various locations under the directory
 	_, err = alpha.GET("https://beta.dir.connector/directory/")
@@ -76,12 +74,6 @@ func TestDirectorySubscription(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, int32(4), count)
-
-	// Shutdown the microservices
-	err = alpha.Shutdown()
-	assert.NoError(t, err)
-	err = beta.Shutdown()
-	assert.NoError(t, err)
 }
 
 func TestQueryArgs(t *testing.T) {
@@ -101,17 +93,13 @@ func TestQueryArgs(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	err = beta.Startup()
 	assert.NoError(t, err)
+	defer beta.Shutdown()
 
 	// Send request with a query argument
 	_, err = alpha.GET("https://beta.queryargs.connector/arg?arg=not_empty")
-	assert.NoError(t, err)
-
-	// Shutdown the microservices
-	err = alpha.Shutdown()
-	assert.NoError(t, err)
-	err = beta.Shutdown()
 	assert.NoError(t, err)
 }
 
@@ -134,8 +122,10 @@ func TestSubscribeBeforeAndAfterStartup(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	err = beta.Startup()
 	assert.NoError(t, err)
+	defer beta.Shutdown()
 
 	// Subscribe after beta is started
 	beta.Subscribe(443, "after", func(w http.ResponseWriter, r *http.Request) {
@@ -150,10 +140,4 @@ func TestSubscribeBeforeAndAfterStartup(t *testing.T) {
 
 	assert.True(t, beforeCalled)
 	assert.True(t, afterCalled)
-
-	// Shutdown the microservices
-	err = alpha.Shutdown()
-	assert.NoError(t, err)
-	err = beta.Shutdown()
-	assert.NoError(t, err)
 }
