@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-# fabric
-=======
 # Microbus.io : fabric
 
 `Microbus` is a framework for the development, deployment and operation of microservices in Go. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices.
@@ -220,4 +217,3 @@ A few suggestions for self-guided exploration:
 * Add an endpoint to the `calculator.example` microservice `/calculate` that operates on decimal numbers, not just integers
 * Create your own microservice from scratch and add it to `examples/main/main.go`
 * Modify `examples/main/env.yaml` and witness the impact on the `helloworld.example` microservice
->>>>>>> Stashed changes
