@@ -22,11 +22,11 @@ func Wrap(err error) ErrorsExtended {
 }
 
 // Unwrap is equivalent to the standard Go errors.Unwrap method.
-func Unwrap(err error) error {
+func Unwrap(err error) ErrorsExtended {
 	return stderrors.Unwrap(err)
 }
 
 // New is equivalent to the standard Go errors.New method.
-func New(text string) error {
+func New(text string) ErrorsExtended {
 	return stderrors.New(text)
 }
