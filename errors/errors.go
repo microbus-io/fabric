@@ -1,6 +1,7 @@
-package errext
+package errors
 
 import (
+	stderrors "errors"
 	"fmt"
 )
 
@@ -24,4 +25,14 @@ func Wrap(err error) ErrorsExtended {
 	// TODO: Get caller function name and line number
 	// for stack tracing
 	return fmt.Errorf("%w", err)
+}
+
+// Unwrap is equivalent to the standard Go errors.Unwrap method.
+func Unwrap(err error) error {
+	return stderrors.Unwrap(err)
+}
+
+// New is equivalent to the standard Go errors.New method.
+func New(text string) error {
+	return stderrors.New(text)
 }

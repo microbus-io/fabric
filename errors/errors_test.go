@@ -1,14 +1,13 @@
-package errext
+package errors
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWrapUnwrap(t *testing.T) {
-	err := errors.New("Example")
+	err := New("Example")
 	assert.Error(t, err)
 
 	// Wrap 2x
@@ -19,15 +18,15 @@ func TestWrapUnwrap(t *testing.T) {
 	assert.Error(t, err)
 
 	// Unwrap 2x
-	err = errors.Unwrap(err)
+	err = Unwrap(err)
 	assert.Error(t, err)
 
-	err = errors.Unwrap(err)
+	err = Unwrap(err)
 	assert.Error(t, err)
 
 	assert.Equal(t, "Example", err.Error())
 
 	// Unwrap one more time and get nil for error
-	err = errors.Unwrap(err)
+	err = Unwrap(err)
 	assert.NoError(t, err)
 }
