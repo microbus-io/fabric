@@ -3,6 +3,7 @@ package connector
 import (
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -140,4 +141,55 @@ func TestSubscribeBeforeAndAfterStartup(t *testing.T) {
 
 	assert.True(t, beforeCalled)
 	assert.True(t, afterCalled)
+}
+
+func TestLoadBalancing(t *testing.T) {
+	t.Parallel()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.loadbalancing.connector")
+
+	count1 := int32(0)
+	count2 := int32(0)
+
+	beta1 := NewConnector()
+	beta1.SetHostName("beta.loadbalancing.connector")
+	beta1.Subscribe(443, "lb", func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&count1, 1)
+	})
+
+	beta2 := NewConnector()
+	beta2.SetHostName("beta.loadbalancing.connector")
+	beta2.Subscribe(443, "lb", func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&count2, 1)
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta1.Startup()
+	assert.NoError(t, err)
+	defer beta1.Shutdown()
+	err = beta2.Startup()
+	assert.NoError(t, err)
+	defer beta2.Shutdown()
+
+	// Send messages
+	var wg sync.WaitGroup
+	for i := 0; i < 1024; i++ {
+		wg.Add(1)
+		go func() {
+			_, err := alpha.GET("https://beta.loadbalancing.connector/lb")
+			assert.NoError(t, err)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	// The requests should be more or less evenly distributed among the server microservices
+	assert.Equal(t, int32(1024), count1+count2)
+	assert.True(t, count1 > 256)
+	assert.True(t, count2 > 256)
 }

@@ -33,7 +33,8 @@ type Connector struct {
 	reqs     map[string]chan *http.Response
 	reqsLock sync.Mutex
 
-	configs map[string]string
+	configs    map[string]*config
+	configLock sync.Mutex
 }
 
 // NewConnector constructs a new Connector.
@@ -41,7 +42,7 @@ func NewConnector() *Connector {
 	c := &Connector{
 		id:      strings.ToLower(rand.AlphaNum32(10)),
 		reqs:    map[string]chan *http.Response{},
-		configs: map[string]string{},
+		configs: map[string]*config{},
 	}
 	return c
 }

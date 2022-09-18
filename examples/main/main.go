@@ -19,19 +19,23 @@ Try the following links:
 	http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=8
 	http://localhost:8080/calculator.example/square?x=5
 	http://localhost:8080/echo.example/echo
+	http://localhost:8080/echo.example/who
 	http://localhost:8080/helloworld.example/hello?name=Gopher
 */
 func main() {
 	// Create and startup the microservices
 	ingressSvc := httpingress.NewService()
-	echoSvc := echo.NewService()
+	echo1Svc := echo.NewService()
+	echo2Svc := echo.NewService()
 	helloWorldSvc := helloworld.NewService()
 	calculatorSvc := calculator.NewService()
 
 	ingressSvc.Startup()
 	defer calculatorSvc.Shutdown()
-	echoSvc.Startup()
-	defer echoSvc.Shutdown()
+	echo1Svc.Startup()
+	defer echo1Svc.Shutdown()
+	echo2Svc.Startup()
+	defer echo2Svc.Shutdown()
 	helloWorldSvc.Startup()
 	defer helloWorldSvc.Shutdown()
 	calculatorSvc.Startup()

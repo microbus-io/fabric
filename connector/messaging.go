@@ -181,7 +181,7 @@ func (c *Connector) Subscribe(port int, path string, handler func(w http.Respons
 
 func (c *Connector) activateSub(sub *subscription) error {
 	var err error
-	sub.natsSubscription, err = c.natsConn.Subscribe(subjectOfSubscription(c.hostName, sub.port, sub.path), func(msg *nats.Msg) {
+	sub.natsSubscription, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.hostName, sub.port, sub.path), c.hostName, func(msg *nats.Msg) {
 		go func() {
 			err := c.onRequest(msg, sub.handler)
 			if err != nil {

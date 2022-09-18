@@ -27,14 +27,40 @@ func TestReadEnvars(t *testing.T) {
 		"MICROBUS_EXAMPLECOM_OVERRIDE=2",
 	}
 
-	configs := map[string]string{}
+	configs := map[string]*config{}
 	readEnvars("www.example.com", environ, configs)
 	assert.Len(t, configs, 5)
-	assert.Equal(t, "111", configs["aaa"])
-	assert.Equal(t, "222", configs["bbb"])
-	assert.Equal(t, "333", configs["ccc"])
-	assert.Equal(t, "444", configs["ddd"])
-	assert.Equal(t, "2", configs["override"])
+
+	assert.Equal(t, &config{
+		source: "Environ",
+		scope:  "www.example.com",
+		name:   "AAA",
+		value:  "111",
+	}, configs["aaa"])
+	assert.Equal(t, &config{
+		source: "Environ",
+		scope:  "example.com",
+		name:   "BBB",
+		value:  "222",
+	}, configs["bbb"])
+	assert.Equal(t, &config{
+		source: "Environ",
+		scope:  "com",
+		name:   "ccc",
+		value:  "333",
+	}, configs["ccc"])
+	assert.Equal(t, &config{
+		source: "Environ",
+		scope:  "all",
+		name:   "DDD",
+		value:  "444",
+	}, configs["ddd"])
+	assert.Equal(t, &config{
+		source: "Environ",
+		scope:  "example.com",
+		name:   "OVERRIDE",
+		value:  "2",
+	}, configs["override"])
 }
 
 func TestReadEnvYaml(t *testing.T) {
@@ -53,7 +79,7 @@ example.com:
   override: 2
 
 com:
-  ccc: 333
+  CCC: 333
   override: 1
 
 www.another.com:
@@ -65,15 +91,40 @@ all:
   override: 0
 `)
 
-	configs := map[string]string{}
+	configs := map[string]*config{}
 	readEnvYamlFile("www.example.com", envYaml, configs)
 	assert.Len(t, configs, 6)
-	assert.Equal(t, "111", configs["aaa"])
-	assert.Equal(t, "222", configs["bbb"])
-	assert.Equal(t, "333", configs["ccc"])
-	assert.Equal(t, "444", configs["ddd"])
-	assert.Equal(t, "2", configs["override"])
-	assert.Equal(t, "Line1\nLine2", configs["multiline"])
+
+	assert.Equal(t, &config{
+		source: "Env.yaml",
+		scope:  "www.example.com",
+		name:   "aaa",
+		value:  "111",
+	}, configs["aaa"])
+	assert.Equal(t, &config{
+		source: "Env.yaml",
+		scope:  "example.com",
+		name:   "bbb",
+		value:  "222",
+	}, configs["bbb"])
+	assert.Equal(t, &config{
+		source: "Env.yaml",
+		scope:  "com",
+		name:   "CCC",
+		value:  "333",
+	}, configs["ccc"])
+	assert.Equal(t, &config{
+		source: "Env.yaml",
+		scope:  "all",
+		name:   "ddd",
+		value:  "444",
+	}, configs["ddd"])
+	assert.Equal(t, &config{
+		source: "Env.yaml",
+		scope:  "www.example.com",
+		name:   "multiline",
+		value:  "Line1\nLine2",
+	}, configs["multiline"])
 }
 
 func TestSetConfig(t *testing.T) {

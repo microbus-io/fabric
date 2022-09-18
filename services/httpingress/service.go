@@ -61,6 +61,13 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Use the first segment of the URI as the host name to contact
 	uri := r.URL.RequestURI()
 	internalURL := "https:/" + uri
+
+	// Skip favicon.ico to reduce noise
+	if uri == "/favicon.ico" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	s.LogInfo("Request received: %s", internalURL)
 
 	// Prepare the internal request

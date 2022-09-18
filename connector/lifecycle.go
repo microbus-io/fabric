@@ -30,10 +30,12 @@ func (c *Connector) Startup() error {
 	}
 	c.started = true
 
+	// Look for configs in the environment or file system
 	err = c.loadConfigs()
 	if err != nil {
 		return err
 	}
+	c.logConfigs()
 
 	// Connect to NATS
 	c.natsConn, err = nats.Connect("nats://127.0.0.1:4222")
@@ -42,7 +44,7 @@ func (c *Connector) Startup() error {
 	}
 
 	// Subscribe to the reply subject
-	c.natsReplySub, err = c.natsConn.Subscribe(subjectOfReply(c.hostName, c.id), c.onReply)
+	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.hostName, c.id), c.id, c.onReply)
 	if err != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
