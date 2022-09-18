@@ -39,7 +39,7 @@ type Connector struct {
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:      strings.ToLower(rand.AlphaNum32(8)),
+		id:      strings.ToLower(rand.AlphaNum32(10)),
 		reqs:    map[string]chan *http.Response{},
 		configs: map[string]string{},
 	}

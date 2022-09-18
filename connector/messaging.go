@@ -43,7 +43,7 @@ func (c *Connector) POST(url string, body []byte) (*http.Response, error) {
 // Request makes an HTTP request then awaits and returns the response
 func (c *Connector) Request(req *http.Request) (*http.Response, error) {
 	// Set a random message ID and the return address
-	msgID := rand.AlphaNum64(16)
+	msgID := rand.AlphaNum64(8)
 	req.Header.Set("Microbus-Msg-Id", msgID)
 	req.Header.Set("Microbus-From-Host", c.hostName)
 	req.Header.Set("Microbus-From-Id", c.id)
