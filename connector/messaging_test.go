@@ -3,9 +3,11 @@ package connector
 import (
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -192,4 +194,43 @@ func TestLoadBalancing(t *testing.T) {
 	assert.Equal(t, int32(1024), count1+count2)
 	assert.True(t, count1 > 256)
 	assert.True(t, count2 > 256)
+}
+
+func TestConcurrent(t *testing.T) {
+	t.Parallel()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.concurrent.connector")
+
+	beta := NewConnector()
+	beta.SetHostName("beta.concurrent.connector")
+	beta.Subscribe(443, "wait", func(w http.ResponseWriter, r *http.Request) {
+		ms, _ := strconv.Atoi(r.URL.Query().Get("ms"))
+		time.Sleep(time.Millisecond * time.Duration(ms))
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+
+	// Send messages
+	var wg sync.WaitGroup
+	for i := 50; i <= 500; i += 50 {
+		i := i
+		wg.Add(1)
+		go func() {
+			start := time.Now()
+			_, err := alpha.GET("https://beta.concurrent.connector/wait?ms=" + strconv.Itoa(i))
+			end := time.Now()
+			assert.NoError(t, err)
+			assert.WithinDuration(t, start.Add(time.Millisecond*time.Duration(i)), end, time.Millisecond*49)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
