@@ -108,9 +108,14 @@ func (c *Connector) onReply(msg *nats.Msg) {
 	ch, ok := c.reqs[msgID]
 	c.reqsLock.Unlock()
 	if !ok {
-		c.LogInfo("response received after timeout: %s", msgID)
+		c.LogInfo("Response received after timeout: %s", msgID)
+		return
 	}
-	ch <- response
+	select {
+	case ch <- response:
+	default:
+		c.LogInfo("No listener on channel: %s", msgID)
+	}
 }
 
 // onRequest is called when an incoming HTTP request is received.
