@@ -33,4 +33,4 @@ Try the following URLs in your browser:
 * http://localhost:8080/echo.example/who
 * http://localhost:8080/helloworld.example/hello?name=Gopher
 
-Feel free to play with the query argumnets.
+Feel free to play with the query arguments.
