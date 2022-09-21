@@ -37,6 +37,10 @@ func Test_TraceError(t *testing.T) {
 	assert.Len(t, tracedErr.Stack(), 2)
 	assert.NotEmpty(t, tracedErr.String())
 
+	tracedErr = TraceError(tracedErr, "annotation2", "annotation3")
+	assert.Len(t, tracedErr.Stack(), 3)
+	assert.NotEmpty(t, tracedErr.String())
+
 	err = TraceError(nil)
 	assert.NoError(t, err)
 	assert.Nil(t, err)
