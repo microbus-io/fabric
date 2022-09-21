@@ -12,6 +12,7 @@ type TracedError interface {
 
 	Stack() []Trace
 	Trace(trace Trace) TracedError
+	String() string
 
 	json.Marshaler
 	json.Unmarshaler
@@ -60,11 +61,13 @@ func (e *TracedErrorImpl) UnmarshalJSON(data []byte) error {
 }
 
 // String returns a string representation of the current stack trace of TracedError.
+// Traces written to the string follow the last in first out (LIFO) order.
 func (e *TracedErrorImpl) String() string {
 	var b strings.Builder
-	for _, t := range e.Stack() {
-		b.WriteString("\n")
-		b.WriteString(t.String())
+	stack := e.Stack()
+	for i := range stack {
+		trace := stack[len(stack)-i-1]
+		b.WriteString(trace.String())
 	}
 	return b.String()
 }
@@ -86,20 +89,16 @@ func New(text string, annotations ...string) TracedError {
 	})
 }
 
-// TraceError adds to existing stack trace of TracedError
-// or starts a new TracedError if needed.
+// TraceError adds a trace to an existing stack trace of TracedError.
+// If the error is not a TracedError, it is converted and starts a new stack trace
+// and establishes the current error as the root of the stack trace.
 func TraceError(err error, annotations ...string) TracedError {
 	if err == nil {
 		return nil
 	}
 	tracedErr := Convert(err)
 
-	level := 1
-	file, function, line := runtimeTrace(level)
-	for strings.HasPrefix(function, "runtime.") {
-		level++
-		file, function, line = runtimeTrace(level)
-	}
+	file, function, line := runtimeTrace(1)
 
 	return tracedErr.Trace(Trace{
 		File:        file,
@@ -109,7 +108,7 @@ func TraceError(err error, annotations ...string) TracedError {
 	})
 }
 
-// Convert converts an error into a TracedError.
+// Convert converts a Go error into a TracedError without stack tracing.
 // If the error is already a TracedError, it is returned as is.
 func Convert(err error) TracedError {
 	if err == nil {

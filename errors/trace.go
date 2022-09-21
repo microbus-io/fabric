@@ -11,6 +11,14 @@ type Trace struct {
 
 func (t *Trace) String() string {
 	// TODO: Modify to fit how we want the trace to look
+	if len(t.Annotations) == 0 {
+		return fmt.Sprintf(
+			"%s\n\t%s:%d\n",
+			t.File,
+			t.Function,
+			t.Line,
+		)
+	}
 	return fmt.Sprintf(
 		"%s\n\t%s:%d\n\t%v\n",
 		t.File,
