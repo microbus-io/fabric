@@ -70,7 +70,7 @@ func (e *TracedErrorImpl) String() string {
 }
 
 // New creates a new TracedError.
-func New(text string, annotation string) TracedError {
+func New(text string, annotations ...string) TracedError {
 	tracedErr := &TracedErrorImpl{
 		error: stderrors.New(text),
 		stack: []Trace{},
@@ -79,16 +79,16 @@ func New(text string, annotation string) TracedError {
 	file, function, line := runtimeTrace(1)
 
 	return tracedErr.Trace(Trace{
-		File:       file,
-		Function:   function,
-		Line:       line,
-		Annotation: annotation,
+		File:        file,
+		Function:    function,
+		Line:        line,
+		Annotations: annotations,
 	})
 }
 
 // TraceError adds to existing stack trace of TracedError
 // or starts a new TracedError if needed.
-func TraceError(err error, annotation string) TracedError {
+func TraceError(err error, annotations ...string) TracedError {
 	if err == nil {
 		return nil
 	}
@@ -102,10 +102,10 @@ func TraceError(err error, annotation string) TracedError {
 	}
 
 	return tracedErr.Trace(Trace{
-		File:       file,
-		Function:   function,
-		Line:       line,
-		Annotation: annotation,
+		File:        file,
+		Function:    function,
+		Line:        line,
+		Annotations: annotations,
 	})
 }
 
@@ -128,7 +128,7 @@ func Convert(err error) TracedError {
 }
 
 // runtimeTrace traces back by the amount of levels
-// to retrieve the runtime information for tracing.
+// to retrieve the runtime information used for tracing.
 func runtimeTrace(levels int) (file string, function string, line int) {
 	pc, file, line, ok := runtime.Caller(levels + 1)
 	function = "?"

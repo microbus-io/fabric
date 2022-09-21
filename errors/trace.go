@@ -3,20 +3,19 @@ package errors
 import "fmt"
 
 type Trace struct {
-	Location   string `json:"location"`
-	File       string `json:"file"`
-	Function   string `json:"function"`
-	Line       int    `json:"line"`
-	Annotation string `json:"annotation"`
+	File        string   `json:"file"`
+	Function    string   `json:"function"`
+	Line        int      `json:"line"`
+	Annotations []string `json:"annotations"`
 }
 
 func (t *Trace) String() string {
+	// TODO: Modify to fit how we want the trace to look
 	return fmt.Sprintf(
-		"%s/%s %s @ line %d \n\t %s",
-		t.Location,
+		"%s\n\t%s:%d\n\t%v\n",
 		t.File,
 		t.Function,
 		t.Line,
-		t.Annotation,
+		t.Annotations,
 	)
 }
