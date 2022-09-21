@@ -34,7 +34,7 @@ func (e *TracedErrorImpl) Trace(trace Trace) TracedError {
 	return e
 }
 
-// MarshalJSON returns JSON marshal of TracedError.
+// MarshalJSON returns a JSON encoding of a TracedError.
 func (e *TracedErrorImpl) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Error string  `json:"error"`
@@ -45,7 +45,7 @@ func (e *TracedErrorImpl) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON returns the TracedError from a JSON marshal.
+// UnmarshalJSON converts a TracedError from a JSON encoding.
 func (e *TracedErrorImpl) UnmarshalJSON(data []byte) error {
 	jsonStruct := &struct {
 		Error string  `json:"error"`
