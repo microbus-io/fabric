@@ -39,6 +39,8 @@ func (e *tracedErrorImpl) String() string {
 		trace := stack[len(stack)-i-1]
 		b.WriteString(trace.String())
 	}
+	b.WriteString("error: ")
+	b.WriteString(e.Error())
 	return b.String()
 }
 
