@@ -22,72 +22,75 @@ func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
 
-// New creates a new TracedError. It replaces Go's errors.New function,
-// to enable stack tracing and annotation of an error.
-func New(text string, annotations ...string) TracedError {
-	tracedErr := &tracedErrorImpl{
+// New creates a new error with tracing and annotation support.
+func New(text string, annotations ...string) error {
+	tracedErr := &tracedError{
 		error: stderrors.New(text),
 		stack: []trace{},
 	}
 
 	file, function, line := runtimeTrace(1)
 
-	return tracedErr.Push(trace{
+	tracedErr.Push(trace{
 		File:        file,
 		Function:    function,
 		Line:        line,
 		Annotations: annotations,
 	})
+	return tracedErr
 }
 
-// Newf creates a new TracedError. It replaces Go's fmt.Errorf function
-// but enables stack tracing of the error.
-func Newf(format string, a ...any) TracedError {
-	tracedErr := &tracedErrorImpl{
+// Newf formats, according to format specifiers, a new error with
+// tracing support.
+func Newf(format string, a ...any) error {
+	tracedErr := &tracedError{
 		error: fmt.Errorf(format, a...),
 		stack: []trace{},
 	}
 
 	file, function, line := runtimeTrace(1)
 
-	return tracedErr.Push(trace{
+	tracedErr.Push(trace{
 		File:     file,
 		Function: function,
 		Line:     line,
 	})
+	return tracedErr
 }
 
-// Trace adds a trace to an existing stack trace of TracedError.
-// If the error is not a TracedError, it is converted and starts a new stack trace
-// and establishes the current error as the root of the stack trace.
-func Trace(err error, annotations ...string) TracedError {
+// Trace adds a trace to an existing stack trace.
+// If the error does not support tracing, it first establishes
+// a new stack trace for the error before pushing the trace.
+func Trace(err error, annotations ...string) error {
 	if err == nil {
 		return nil
 	}
-	tracedErr := Convert(err).(*tracedErrorImpl)
+	tracedErr := Convert(err).(*tracedError)
 
 	file, function, line := runtimeTrace(1)
 
-	return tracedErr.Push(trace{
+	tracedErr.Push(trace{
 		File:        file,
 		Function:    function,
 		Line:        line,
 		Annotations: annotations,
 	})
+	return tracedErr
 }
 
-// Convert converts a Go error into a TracedError without stack tracing.
-// If the error is already a TracedError, it is returned as is.
-func Convert(err error) TracedError {
+// Convert converts an error to one that supports stack tracing.
+// If the error already supports this, it is returned as it is.
+// Note: Trace should be called to include the error's trace in the stack.
+func Convert(err error) error {
 	if err == nil {
 		return nil
 	}
 
-	if tracedErr, ok := err.(*tracedErrorImpl); ok {
+	if tracedErr, ok := err.(*tracedError); ok {
 		return tracedErr
 	}
 
-	return &tracedErrorImpl{
+	return &tracedError{
 		error: err,
 		stack: []trace{},
 	}

@@ -20,16 +20,16 @@ func TestErrors_New(t *testing.T) {
 	tracedErr := New("This is a new error!", "annotation1", "annotation2")
 	assert.Error(t, tracedErr)
 	assert.Equal(t, "This is a new error!", tracedErr.Error())
-	assert.Contains(t, tracedErr.(*tracedErrorImpl).Stack()[0].Annotations, "annotation1")
-	assert.Contains(t, tracedErr.(*tracedErrorImpl).Stack()[0].Annotations, "annotation1")
-	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 1)
+	assert.Contains(t, tracedErr.(*tracedError).Stack()[0].Annotations, "annotation1")
+	assert.Contains(t, tracedErr.(*tracedError).Stack()[0].Annotations, "annotation1")
+	assert.Len(t, tracedErr.(*tracedError).Stack(), 1)
 }
 
 func TestErrors_Newf(t *testing.T) {
 	tracedErr := Newf("Error %s", "Error")
 	assert.Error(t, tracedErr)
 	assert.Equal(t, "Error Error", tracedErr.Error())
-	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 1)
+	assert.Len(t, tracedErr.(*tracedError).Stack(), 1)
 }
 
 func TestErrors_TraceError(t *testing.T) {
@@ -38,15 +38,15 @@ func TestErrors_TraceError(t *testing.T) {
 
 	tracedErr := Trace(err, "annotation1")
 	assert.Error(t, tracedErr)
-	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 1)
+	assert.Len(t, tracedErr.(*tracedError).Stack(), 1)
 
 	tracedErr = Trace(tracedErr)
-	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 2)
-	assert.NotEmpty(t, tracedErr.String())
+	assert.Len(t, tracedErr.(*tracedError).Stack(), 2)
+	assert.NotEmpty(t, tracedErr.(*tracedError).String())
 
 	tracedErr = Trace(tracedErr, "annotation2", "annotation3")
-	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 3)
-	assert.NotEmpty(t, tracedErr.String())
+	assert.Len(t, tracedErr.(*tracedError).Stack(), 3)
+	assert.NotEmpty(t, tracedErr.(*tracedError).String())
 
 	err = Trace(nil)
 	assert.NoError(t, err)
@@ -59,11 +59,11 @@ func TestErrors_Convert(t *testing.T) {
 
 	tracedErr := Convert(err)
 	assert.Error(t, tracedErr)
-	assert.Empty(t, tracedErr.(*tracedErrorImpl).Stack())
+	assert.Empty(t, tracedErr.(*tracedError).Stack())
 
 	tracedErr = Trace(tracedErr, "annotate!")
 	assert.Error(t, tracedErr)
-	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 1)
+	assert.Len(t, tracedErr.(*tracedError).Stack(), 1)
 
 	err = Convert(nil)
 	assert.NoError(t, err)
@@ -73,13 +73,13 @@ func TestErrors_Convert(t *testing.T) {
 func TestErrors_JSON(t *testing.T) {
 	tracedErr := New("Error!")
 
-	b, err := tracedErr.MarshalJSON()
+	b, err := tracedErr.(*tracedError).MarshalJSON()
 	assert.NoError(t, err)
 
-	var unmarshal tracedErrorImpl
+	var unmarshal tracedError
 	err = unmarshal.UnmarshalJSON(b)
 	assert.NoError(t, err)
 
 	assert.Equal(t, tracedErr.Error(), unmarshal.Error())
-	assert.Equal(t, tracedErr.String(), unmarshal.String())
+	assert.Equal(t, tracedErr.(*tracedError).String(), unmarshal.String())
 }

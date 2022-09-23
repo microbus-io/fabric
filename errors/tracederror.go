@@ -6,32 +6,24 @@ import (
 	"strings"
 )
 
-type TracedError interface {
-	error
-	String() string
-	json.Marshaler
-	json.Unmarshaler
-}
-
-type tracedErrorImpl struct {
+type tracedError struct {
 	error
 	stack []trace
 }
 
-// Stack returns the current stack trace.
-func (e *tracedErrorImpl) Stack() []trace {
+// stacktrace returns the current stack trace.
+func (e *tracedError) Stack() []trace {
 	return e.stack
 }
 
-// Push adds a trace to the stack trace.
-func (e *tracedErrorImpl) Push(trace trace) TracedError {
+// push adds a trace to the stack trace.
+func (e *tracedError) Push(trace trace) {
 	e.stack = append(e.stack, trace)
-	return e
 }
 
-// String returns a string representation of the current stack trace of TracedError.
+// String returns a string representation of the current stack trace of the traced error.
 // Traces written to the string follow the last in first out (LIFO) order.
-func (e *tracedErrorImpl) String() string {
+func (e *tracedError) String() string {
 	var b strings.Builder
 	b.WriteString("\n")
 	stack := e.Stack()
@@ -44,8 +36,8 @@ func (e *tracedErrorImpl) String() string {
 	return b.String()
 }
 
-// MarshalJSON returns a JSON encoding of a TracedError.
-func (e *tracedErrorImpl) MarshalJSON() ([]byte, error) {
+// MarshalJSON returns a JSON encoding of a traced error.
+func (e *tracedError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Error string  `json:"error"`
 		Stack []trace `json:"stack"`
@@ -55,8 +47,8 @@ func (e *tracedErrorImpl) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON converts a TracedError from a JSON encoding.
-func (e *tracedErrorImpl) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON converts a traced error from a JSON encoding.
+func (e *tracedError) UnmarshalJSON(data []byte) error {
 	jsonStruct := &struct {
 		Error string  `json:"error"`
 		Stack []trace `json:"stack"`
