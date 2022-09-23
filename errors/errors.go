@@ -23,7 +23,7 @@ func Unwrap(err error) error {
 }
 
 // New creates a new TracedError. It replaces Go's errors.New function,
-// to enable stack tracing and annotation to the error.
+// to enable stack tracing and annotation of an error.
 func New(text string, annotations ...string) TracedError {
 	tracedErr := &tracedErrorImpl{
 		error: stderrors.New(text),
@@ -40,8 +40,8 @@ func New(text string, annotations ...string) TracedError {
 	})
 }
 
-// Newf creates a new TracedError. It is similar to New or Go's
-// fmt.Errorf function, but also enables tracing and annotation.
+// Newf creates a new TracedError. It replaces Go's fmt.Errorf function
+// and enable stack tracing of an error.
 func Newf(format string, a ...any) TracedError {
 	tracedErr := &tracedErrorImpl{
 		error: fmt.Errorf(format, a...),
