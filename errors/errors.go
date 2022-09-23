@@ -41,7 +41,7 @@ func New(text string, annotations ...string) TracedError {
 }
 
 // Newf creates a new TracedError. It replaces Go's fmt.Errorf function
-// and enable stack tracing of an error.
+// but enables stack tracing of the error.
 func Newf(format string, a ...any) TracedError {
 	tracedErr := &tracedErrorImpl{
 		error: fmt.Errorf(format, a...),
