@@ -197,7 +197,7 @@ func TestConnector_LoadBalancing(t *testing.T) {
 }
 
 func TestConnector_Concurrent(t *testing.T) {
-	t.Parallel()
+	// No parallel
 
 	// Create the microservices
 	alpha := NewConnector()
