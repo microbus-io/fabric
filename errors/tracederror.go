@@ -1,12 +1,16 @@
 package errors
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"strings"
 )
 
 type TracedError interface {
 	error
 	String() string
+	json.Marshaler
+	json.Unmarshaler
 }
 
 type tracedErrorImpl struct {
@@ -36,4 +40,30 @@ func (e *tracedErrorImpl) String() string {
 		b.WriteString(trace.String())
 	}
 	return b.String()
+}
+
+// MarshalJSON returns a JSON encoding of a TracedError.
+func (e *tracedErrorImpl) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Error string  `json:"error"`
+		Stack []trace `json:"stack"`
+	}{
+		Error: e.error.Error(),
+		Stack: e.stack,
+	})
+}
+
+// UnmarshalJSON converts a TracedError from a JSON encoding.
+func (e *tracedErrorImpl) UnmarshalJSON(data []byte) error {
+	jsonStruct := &struct {
+		Error string  `json:"error"`
+		Stack []trace `json:"stack"`
+	}{}
+	err := json.Unmarshal(data, &jsonStruct)
+	if err != nil {
+		return err
+	}
+	e.error = stderrors.New(jsonStruct.Error)
+	e.stack = jsonStruct.Stack
+	return nil
 }

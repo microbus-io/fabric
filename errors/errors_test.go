@@ -25,6 +25,13 @@ func TestErrors_New(t *testing.T) {
 	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 1)
 }
 
+func TestErrors_Newf(t *testing.T) {
+	tracedErr := Newf("Error %s", "Error")
+	assert.Error(t, tracedErr)
+	assert.Equal(t, "Error Error", tracedErr.Error())
+	assert.Len(t, tracedErr.(*tracedErrorImpl).Stack(), 1)
+}
+
 func TestErrors_TraceError(t *testing.T) {
 	err := stderrors.New("Standard Error")
 	assert.Error(t, err)
@@ -46,7 +53,7 @@ func TestErrors_TraceError(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func Test_Convert(t *testing.T) {
+func TestErrors_Convert(t *testing.T) {
 	err := fmt.Errorf("Other standard error")
 	assert.Error(t, err)
 
@@ -61,4 +68,18 @@ func Test_Convert(t *testing.T) {
 	err = Convert(nil)
 	assert.NoError(t, err)
 	assert.Nil(t, err)
+}
+
+func TestErrors_JSON(t *testing.T) {
+	tracedErr := New("Error!")
+
+	b, err := tracedErr.MarshalJSON()
+	assert.NoError(t, err)
+
+	var unmarshal tracedErrorImpl
+	err = unmarshal.UnmarshalJSON(b)
+	assert.NoError(t, err)
+
+	assert.Equal(t, tracedErr.Error(), unmarshal.Error())
+	assert.Equal(t, tracedErr.String(), unmarshal.String())
 }
