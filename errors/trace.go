@@ -1,29 +1,28 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-type Trace struct {
+type trace struct {
 	File        string   `json:"file"`
 	Function    string   `json:"function"`
 	Line        int      `json:"line"`
 	Annotations []string `json:"annotations"`
 }
 
-func (t *Trace) String() string {
-	// TODO: Modify to fit how we want the trace to look
-	if len(t.Annotations) == 0 {
-		return fmt.Sprintf(
-			"%s\n\t%s:%d\n",
-			t.File,
-			t.Function,
-			t.Line,
-		)
+func (t *trace) String() string {
+	var b strings.Builder
+	for _, a := range t.Annotations {
+		b.WriteString("\n\t")
+		b.WriteString(a)
 	}
 	return fmt.Sprintf(
-		"%s\n\t%s:%d\n\t%v\n",
-		t.File,
+		"%s\n\t%s:%d%v\n",
 		t.Function,
+		t.File,
 		t.Line,
-		t.Annotations,
+		b.String(),
 	)
 }
