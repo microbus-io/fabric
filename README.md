@@ -10,6 +10,6 @@
 
 The [Quick Start](docs/quick-start.md) will guide you through setting up your system and running the examples.
 
-[What's New](docs/whats-new.md) highlights the key changes in this milestone. This document provides a good orientation of the code structure.
+The [Code Overview](docs/whats-new.md) describes all packages in the project and is a good orientation of the code structure.
 
 A technical [Deep Dive](docs/deep-dive.md) discusses in depth the technical aspects of the system.

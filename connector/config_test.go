@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReadEnvars(t *testing.T) {
+func TestConnector_ReadEnvars(t *testing.T) {
 	t.Parallel()
 
 	environ := []string{
@@ -63,7 +63,7 @@ func TestReadEnvars(t *testing.T) {
 	}, configs["override"])
 }
 
-func TestReadEnvYaml(t *testing.T) {
+func TestConnector_ReadEnvYaml(t *testing.T) {
 	t.Parallel()
 
 	envYaml := []byte(`
@@ -127,7 +127,7 @@ all:
 	}, configs["multiline"])
 }
 
-func TestSetConfig(t *testing.T) {
+func TestConnector_SetConfig(t *testing.T) {
 	t.Parallel()
 
 	alpha := NewConnector()
@@ -168,7 +168,7 @@ func TestSetConfig(t *testing.T) {
 	}
 }
 
-func TestEnvYaml(t *testing.T) {
+func TestConnector_EnvYaml(t *testing.T) {
 	// No parallel
 
 	// Create an env file
@@ -220,7 +220,7 @@ all:
 	}
 }
 
-func TestEnviron(t *testing.T) {
+func TestConnector_Environ(t *testing.T) {
 	// No parallel
 
 	os.Setenv("MICROBUS_ALPHAENVIRONCONNECTOR_AAA", "111")

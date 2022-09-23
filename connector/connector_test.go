@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHostAndID(t *testing.T) {
+func TestConnector_HostAndID(t *testing.T) {
 	c := NewConnector()
 	assert.Empty(t, c.HostName())
 	assert.NotEmpty(t, c.ID())
@@ -14,7 +14,7 @@ func TestHostAndID(t *testing.T) {
 	assert.Equal(t, "example.com", c.HostName())
 }
 
-func TestBadHostName(t *testing.T) {
+func TestConnector_BadHostName(t *testing.T) {
 	c := NewConnector()
 	badHosts := []string{
 		"$.example.com",

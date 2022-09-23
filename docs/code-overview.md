@@ -1,8 +1,8 @@
-# What's New
+# Code Overview
 
 ## Connector
 
-The first milestone of `fabric` focuses on the core implementation of the `Connector` class. The `Connector` provides key capabilities (or _building blocks_) to microservices deployed on the `Microbus` and is the most fundamental construct of the framework. In this release, the `Connector` includes the following building blocks:
+The `Connector` provides key capabilities (or _building blocks_) to microservices deployed on the `Microbus` and is the most fundamental construct of the framework. In this release, the `Connector` includes the following building blocks:
 
 * Startup and shutdown with corresponding callbacks
 * Service host name and a random instance ID, both used to address the microservice
@@ -36,4 +36,4 @@ The `rand` package is a utility that combines `crypto.rand` and `math.rand` for 
 
 The `services` package is reserved for essential microservices, the first of which - the HTTP ingress proxy `services/httpingress` - is included in this release. More services will be added in the future.
 
-An HTTP ingress proxy is needed in order to bridge the gap between the browser and NATS because NATS is a closed network that requires a special type of connection. On one end the ingress proxy is listening to HTTP requests and on the other end it is connected to the NATS network. More on that later.
+An HTTP ingress proxy is needed in order to bridge the gap between the browser and NATS because NATS is a closed network that requires a special type of connection. On one end the ingress proxy is listening to HTTP requests and on the other end it is connected to the NATS network. More on that in the [Deep Dive](docs/deep-dive.md).

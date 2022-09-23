@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEcho(t *testing.T) {
+func TestConnector_Echo(t *testing.T) {
 	t.Parallel()
 
 	// Create the microservices
@@ -44,7 +44,7 @@ func TestEcho(t *testing.T) {
 	assert.Equal(t, []byte("Hello"), body)
 }
 
-func TestDirectorySubscription(t *testing.T) {
+func TestConnector_DirectorySubscription(t *testing.T) {
 	t.Parallel()
 
 	// Create the microservices
@@ -79,7 +79,7 @@ func TestDirectorySubscription(t *testing.T) {
 	assert.Equal(t, int32(4), count)
 }
 
-func TestQueryArgs(t *testing.T) {
+func TestConnector_QueryArgs(t *testing.T) {
 	t.Parallel()
 
 	// Create the microservices
@@ -106,7 +106,7 @@ func TestQueryArgs(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestSubscribeBeforeAndAfterStartup(t *testing.T) {
+func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	t.Parallel()
 
 	// Create the microservices
@@ -145,7 +145,7 @@ func TestSubscribeBeforeAndAfterStartup(t *testing.T) {
 	assert.True(t, afterCalled)
 }
 
-func TestLoadBalancing(t *testing.T) {
+func TestConnector_LoadBalancing(t *testing.T) {
 	t.Parallel()
 
 	// Create the microservices
@@ -196,7 +196,7 @@ func TestLoadBalancing(t *testing.T) {
 	assert.True(t, count2 > 256)
 }
 
-func TestConcurrent(t *testing.T) {
+func TestConnector_Concurrent(t *testing.T) {
 	t.Parallel()
 
 	// Create the microservices

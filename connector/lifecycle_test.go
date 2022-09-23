@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStartupShutdown(t *testing.T) {
+func TestConnector_StartupShutdown(t *testing.T) {
 	t.Parallel()
 
 	var startupCalled, shutdownCalled bool
@@ -41,7 +41,7 @@ func TestStartupShutdown(t *testing.T) {
 	assert.False(t, alpha.IsStarted())
 }
 
-func TestStartupError(t *testing.T) {
+func TestConnector_StartupError(t *testing.T) {
 	t.Parallel()
 
 	var startupCalled, shutdownCalled bool
