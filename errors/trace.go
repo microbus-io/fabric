@@ -1,10 +1,11 @@
 package errors
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 )
 
+// trace is a single stack trace location
 type trace struct {
 	File        string   `json:"file"`
 	Function    string   `json:"function"`
@@ -12,17 +13,17 @@ type trace struct {
 	Annotations []string `json:"annotations"`
 }
 
+// String returns a string representation of the trace
 func (t *trace) String() string {
 	var b strings.Builder
+	b.WriteString(t.Function)
+	b.WriteString("\n\t")
+	b.WriteString(t.File)
+	b.WriteString(":")
+	b.WriteString(strconv.Itoa(t.Line))
 	for _, a := range t.Annotations {
 		b.WriteString("\n\t")
 		b.WriteString(a)
 	}
-	return fmt.Sprintf(
-		"%s\n\t%s:%d%v\n",
-		t.Function,
-		t.File,
-		t.Line,
-		b.String(),
-	)
+	return b.String()
 }

@@ -7,31 +7,29 @@ import (
 	"strings"
 )
 
-// As delegates to the standard Go's errors.As function.
+// As delegates to the standard Go's errors.As function
 func As(err error, target any) bool {
 	return stderrors.As(err, target)
 }
 
-// Is delegates to the standard Go's errors.Is function.
+// Is delegates to the standard Go's errors.Is function
 func Is(err, target error) bool {
 	return stderrors.Is(err, target)
 }
 
-// Unwrap delegates to the standard Go's errors.Wrap function.
+// Unwrap delegates to the standard Go's errors.Wrap function
 func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
 
-// New creates a new error with tracing and annotation support.
+// New creates a new error, capturing the current stack location.
+// Optionally annotations may be attached
 func New(text string, annotations ...string) error {
-	tracedErr := &tracedError{
+	tracedErr := &TracedError{
 		error: stderrors.New(text),
-		stack: []trace{},
 	}
-
 	file, function, line := runtimeTrace(1)
-
-	tracedErr.Push(trace{
+	tracedErr.stack = append(tracedErr.stack, trace{
 		File:        file,
 		Function:    function,
 		Line:        line,
@@ -40,17 +38,13 @@ func New(text string, annotations ...string) error {
 	return tracedErr
 }
 
-// Newf formats, according to format specifiers, a new error with
-// tracing support.
+// Newf formats a new error, capturing the current stack location
 func Newf(format string, a ...any) error {
-	tracedErr := &tracedError{
+	tracedErr := &TracedError{
 		error: fmt.Errorf(format, a...),
-		stack: []trace{},
 	}
-
 	file, function, line := runtimeTrace(1)
-
-	tracedErr.Push(trace{
+	tracedErr.stack = append(tracedErr.stack, trace{
 		File:     file,
 		Function: function,
 		Line:     line,
@@ -58,18 +52,15 @@ func Newf(format string, a ...any) error {
 	return tracedErr
 }
 
-// Trace adds a trace to an existing stack trace.
-// If the error does not support tracing, it first establishes
-// a new stack trace for the error before pushing the trace.
+// Trace appends the current stack location to the error's stack trace.
+// Optionally annotations may be attached
 func Trace(err error, annotations ...string) error {
 	if err == nil {
 		return nil
 	}
-	tracedErr := Convert(err).(*tracedError)
-
+	tracedErr := Convert(err).(*TracedError)
 	file, function, line := runtimeTrace(1)
-
-	tracedErr.Push(trace{
+	tracedErr.stack = append(tracedErr.stack, trace{
 		File:        file,
 		Function:    function,
 		Line:        line,
@@ -85,12 +76,10 @@ func Convert(err error) error {
 	if err == nil {
 		return nil
 	}
-
-	if tracedErr, ok := err.(*tracedError); ok {
+	if tracedErr, ok := err.(*TracedError); ok {
 		return tracedErr
 	}
-
-	return &tracedError{
+	return &TracedError{
 		error: err,
 		stack: []trace{},
 	}

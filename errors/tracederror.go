@@ -6,58 +6,48 @@ import (
 	"strings"
 )
 
-type tracedError struct {
+// TracedError is a standard Go error augmented with a stack trace and annotations
+type TracedError struct {
 	error
 	stack []trace
 }
 
-// stacktrace returns the current stack trace.
-func (e *tracedError) Stack() []trace {
-	return e.stack
-}
-
-// push adds a trace to the stack trace.
-func (e *tracedError) Push(trace trace) {
-	e.stack = append(e.stack, trace)
-}
-
-// String returns a string representation of the current stack trace of the traced error.
-// Traces written to the string follow the last in first out (LIFO) order.
-func (e *tracedError) String() string {
+// String returns a string representation of the error.
+// The stack trace is writted in last in first out (LIFO) order
+func (e *TracedError) String() string {
 	var b strings.Builder
-	b.WriteString("\n")
-	stack := e.Stack()
-	for i := range stack {
-		trace := stack[len(stack)-i-1]
-		b.WriteString(trace.String())
-	}
-	b.WriteString("error: ")
 	b.WriteString(e.Error())
+	b.WriteString("\n")
+	for i := range e.stack {
+		trace := e.stack[len(e.stack)-i-1]
+		b.WriteString(trace.String())
+		b.WriteString("\n")
+	}
 	return b.String()
 }
 
-// MarshalJSON returns a JSON encoding of a traced error.
-func (e *tracedError) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the error to JSON
+func (e *TracedError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		Error string  `json:"error"`
-		Stack []trace `json:"stack"`
+		Error string  `json:"error,omitempty"`
+		Stack []trace `json:"stack,omitempty"`
 	}{
 		Error: e.error.Error(),
 		Stack: e.stack,
 	})
 }
 
-// UnmarshalJSON converts a traced error from a JSON encoding.
-func (e *tracedError) UnmarshalJSON(data []byte) error {
-	jsonStruct := &struct {
+// UnmarshalJSON unmarshals the erro from JSON
+func (e *TracedError) UnmarshalJSON(data []byte) error {
+	j := &struct {
 		Error string  `json:"error"`
 		Stack []trace `json:"stack"`
 	}{}
-	err := json.Unmarshal(data, &jsonStruct)
+	err := json.Unmarshal(data, &j)
 	if err != nil {
 		return err
 	}
-	e.error = stderrors.New(jsonStruct.Error)
-	e.stack = jsonStruct.Stack
+	e.error = stderrors.New(j.Error)
+	e.stack = j.Stack
 	return nil
 }
