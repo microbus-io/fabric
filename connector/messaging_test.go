@@ -1,7 +1,8 @@
 package connector
 
 import (
-	"io/ioutil"
+	"context"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -9,11 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/pub"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConnector_Echo(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	// Create the microservices
 	alpha := NewConnector()
@@ -22,7 +27,7 @@ func TestConnector_Echo(t *testing.T) {
 	beta := NewConnector()
 	beta.SetHostName("beta.echo.connector")
 	beta.Subscribe(443, "echo", func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)
 		_, err = w.Write(body)
 		assert.NoError(t, err)
@@ -37,15 +42,17 @@ func TestConnector_Echo(t *testing.T) {
 	defer beta.Shutdown()
 
 	// Send message and validate that it's echoed back
-	response, err := alpha.POST("https://beta.echo.connector/echo", []byte("Hello"))
+	response, err := alpha.POST(ctx, "https://beta.echo.connector/echo", []byte("Hello"))
 	assert.NoError(t, err)
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("Hello"), body)
 }
 
 func TestConnector_DirectorySubscription(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	// Create the microservices
 	alpha := NewConnector()
@@ -67,13 +74,13 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	defer beta.Shutdown()
 
 	// Send messages to various locations under the directory
-	_, err = alpha.GET("https://beta.dir.connector/directory/")
+	_, err = alpha.GET(ctx, "https://beta.dir.connector/directory/")
 	assert.NoError(t, err)
-	_, err = alpha.GET("https://beta.dir.connector/directory/1.html")
+	_, err = alpha.GET(ctx, "https://beta.dir.connector/directory/1.html")
 	assert.NoError(t, err)
-	_, err = alpha.GET("https://beta.dir.connector/directory/2.html")
+	_, err = alpha.GET(ctx, "https://beta.dir.connector/directory/2.html")
 	assert.NoError(t, err)
-	_, err = alpha.GET("https://beta.dir.connector/directory/sub/3.html")
+	_, err = alpha.GET(ctx, "https://beta.dir.connector/directory/sub/3.html")
 	assert.NoError(t, err)
 
 	assert.Equal(t, int32(4), count)
@@ -81,6 +88,8 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 
 func TestConnector_QueryArgs(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	// Create the microservices
 	alpha := NewConnector()
@@ -102,12 +111,14 @@ func TestConnector_QueryArgs(t *testing.T) {
 	defer beta.Shutdown()
 
 	// Send request with a query argument
-	_, err = alpha.GET("https://beta.queryargs.connector/arg?arg=not_empty")
+	_, err = alpha.GET(ctx, "https://beta.queryargs.connector/arg?arg=not_empty")
 	assert.NoError(t, err)
 }
 
 func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	// Create the microservices
 	alpha := NewConnector()
@@ -136,9 +147,9 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	})
 
 	// Send requests to both handlers
-	_, err = alpha.GET("https://beta.beforeafterstartup.connector/before")
+	_, err = alpha.GET(ctx, "https://beta.beforeafterstartup.connector/before")
 	assert.NoError(t, err)
-	_, err = alpha.GET("https://beta.beforeafterstartup.connector/after")
+	_, err = alpha.GET(ctx, "https://beta.beforeafterstartup.connector/after")
 	assert.NoError(t, err)
 
 	assert.True(t, beforeCalled)
@@ -147,6 +158,8 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 
 func TestConnector_LoadBalancing(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	// Create the microservices
 	alpha := NewConnector()
@@ -183,7 +196,7 @@ func TestConnector_LoadBalancing(t *testing.T) {
 	for i := 0; i < 1024; i++ {
 		wg.Add(1)
 		go func() {
-			_, err := alpha.GET("https://beta.loadbalancing.connector/lb")
+			_, err := alpha.GET(ctx, "https://beta.loadbalancing.connector/lb")
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -198,6 +211,8 @@ func TestConnector_LoadBalancing(t *testing.T) {
 
 func TestConnector_Concurrent(t *testing.T) {
 	// No parallel
+
+	ctx := context.Background()
 
 	// Create the microservices
 	alpha := NewConnector()
@@ -225,7 +240,7 @@ func TestConnector_Concurrent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			start := time.Now()
-			_, err := alpha.GET("https://beta.concurrent.connector/wait?ms=" + strconv.Itoa(i))
+			_, err := alpha.GET(ctx, "https://beta.concurrent.connector/wait?ms="+strconv.Itoa(i))
 			end := time.Now()
 			assert.NoError(t, err)
 			assert.WithinDuration(t, start.Add(time.Millisecond*time.Duration(i)), end, time.Millisecond*49)
@@ -233,4 +248,68 @@ func TestConnector_Concurrent(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestConnector_CallDepth(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	depth := 0
+
+	// Create the microservice
+	alpha := NewConnector()
+	alpha.maxCallDepth = 8
+	alpha.SetHostName("alpha.calldepth.connector")
+	alpha.Subscribe(443, "next", func(w http.ResponseWriter, r *http.Request) {
+		depth++
+
+		step, _ := strconv.Atoi(r.URL.Query().Get("step"))
+		assert.Equal(t, depth, step)
+		assert.Equal(t, depth, frame.Of(r).CallDepth())
+
+		lastCall := depth == alpha.maxCallDepth
+		_, err := alpha.GET(r.Context(), "https://alpha.calldepth.connector/next?step="+strconv.Itoa(step+1))
+		if lastCall {
+			assert.Error(t, err)
+		}
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	_, err = alpha.GET(ctx, "https://alpha.calldepth.connector/next?step=1")
+	assert.NoError(t, err)
+	assert.Equal(t, alpha.maxCallDepth, depth)
+}
+
+func TestConnector_Timeout(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	budget := 8 * time.Second
+	depth := 0
+
+	// Create the microservice
+	alpha := NewConnector()
+	alpha.networkHop = time.Second
+	alpha.SetHostName("alpha.timeout.connector")
+	alpha.Subscribe(443, "next", func(w http.ResponseWriter, r *http.Request) {
+		depth++
+		alpha.GET(r.Context(), "https://alpha.timeout.connector/next")
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	_, err = alpha.Publish(
+		ctx,
+		pub.GET("https://alpha.timeout.connector/next"),
+		pub.TimeBudget(budget),
+	)
+	assert.NoError(t, err)
+	assert.True(t, depth > 1 && depth <= int(budget/alpha.networkHop))
 }

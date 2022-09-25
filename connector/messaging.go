@@ -3,6 +3,7 @@ package connector
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/nats-io/nats.go"
 )
@@ -23,30 +26,70 @@ type subscription struct {
 }
 
 // GET makes a GET request
-func (c *Connector) GET(url string) (*http.Response, error) {
-	request, err := http.NewRequest("GET", url, nil)
+func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
+	return c.Publish(ctx, []pub.Option{
+		pub.GET(url),
+	}...)
+}
+
+// POST makes a POST request.
+// Body of type io.Reader, []byte and string is serialized in binary form.
+// All other types are serialized as JSON
+func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Response, error) {
+	return c.Publish(ctx, []pub.Option{
+		pub.POST(url),
+		pub.Body(body),
+	}...)
+}
+
+// Publish makes an HTTP request then awaits and returns the response
+func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.Response, error) {
+	// Restrict the time budget to the context deadline
+	deadline, ok := ctx.Deadline()
+	if ok {
+		budget := time.Until(deadline)
+		if budget <= c.networkHop {
+			return nil, errors.New("timeout")
+		}
+		options = append(options, pub.TimeBudget(budget-c.networkHop))
+	}
+
+	// Limit number of hops
+	depth := frame.Of(ctx).CallDepth()
+	if depth >= c.maxCallDepth {
+		return nil, errors.New("call depth overflow")
+	}
+
+	// Prepare the HTTP request
+	req, err := pub.NewRequest(options...)
 	if err != nil {
 		return nil, err
 	}
-	return c.Request(request)
-}
-
-// POST makes a POST request
-func (c *Connector) POST(url string, body []byte) (*http.Response, error) {
-	request, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	httpReq, err := req.ToHTTP()
 	if err != nil {
 		return nil, err
 	}
-	return c.Request(request)
+
+	// Check if there's enough time budget
+	budget, ok := frame.Of(httpReq).TimeBudget()
+	if ok && budget <= 0 {
+		return nil, errors.New("timeout")
+	}
+
+	// Increment the call depth
+	frame.Of(httpReq).SetCallDepth(depth + 1)
+
+	// Make the HTTP request
+	return c.makeHTTPRequest(httpReq)
 }
 
-// Request makes an HTTP request then awaits and returns the response
-func (c *Connector) Request(req *http.Request) (*http.Response, error) {
+// makeHTTPRequest makes an HTTP request then awaits and returns the response
+func (c *Connector) makeHTTPRequest(req *http.Request) (*http.Response, error) {
 	// Set a random message ID and the return address
 	msgID := rand.AlphaNum64(8)
-	req.Header.Set("Microbus-Msg-Id", msgID)
-	req.Header.Set("Microbus-From-Host", c.hostName)
-	req.Header.Set("Microbus-From-Id", c.id)
+	frame.Of(req).SetMessageID(msgID)
+	frame.Of(req).SetFromHost(c.hostName)
+	frame.Of(req).SetFromID(c.id)
 
 	// Create a channel to await on
 	awaitCh := make(chan *http.Response)
@@ -103,7 +146,7 @@ func (c *Connector) onReply(msg *nats.Msg) {
 	}
 
 	// Push it to the channel matching the message ID
-	msgID := response.Header.Get("Microbus-Msg-Id")
+	msgID := frame.Of(response).MessageID()
 	c.reqsLock.Lock()
 	ch, ok := c.reqs[msgID]
 	c.reqsLock.Unlock()
@@ -128,17 +171,32 @@ func (c *Connector) onRequest(msg *nats.Msg, handler func(w http.ResponseWriter,
 	}
 
 	// Get the sender host name and message ID
-	fromHost := httpReq.Header.Get("Microbus-From-Host")
-	fromId := httpReq.Header.Get("Microbus-From-Id")
-	msgID := httpReq.Header.Get("Microbus-Msg-Id")
+	fromHost := frame.Of(httpReq).FromHost()
+	fromId := frame.Of(httpReq).FromID()
+	msgID := frame.Of(httpReq).MessageID()
+	budget, budgetOK := frame.Of(httpReq).TimeBudget()
+
+	// Prepare the context
+	ctx := context.WithValue(context.Background(), frame.ContextKey, httpReq.Header)
+	var cancel context.CancelFunc
+	if budgetOK {
+		// Check if there's enough time budget
+		if budget <= 0 {
+			return errors.New("timeout")
+		}
+		// Set the time budget as the context's timeout
+		ctx, cancel = context.WithTimeout(ctx, budget)
+		defer cancel()
+	}
+	httpReq = httpReq.WithContext(ctx)
 
 	// Prepare an HTTP recorder
 	httpRecorder := httptest.NewRecorder()
 
 	// Echo the message ID in the reply
-	httpRecorder.Header().Set("Microbus-Msg-Id", msgID)
-	httpRecorder.Header().Set("Microbus-From-Host", c.hostName)
-	httpRecorder.Header().Set("Microbus-From-Id", c.id)
+	frame.Of(httpRecorder).SetMessageID(msgID)
+	frame.Of(httpRecorder).SetFromHost(c.hostName)
+	frame.Of(httpRecorder).SetFromID(c.id)
 
 	// Call the web handler
 	handler(httpRecorder, httpReq)

@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/microbus-io/fabric/rand"
 	"github.com/nats-io/nats.go"
@@ -30,8 +31,10 @@ type Connector struct {
 	subsLock     sync.Mutex
 	started      bool
 
-	reqs     map[string]chan *http.Response
-	reqsLock sync.Mutex
+	reqs         map[string]chan *http.Response
+	reqsLock     sync.Mutex
+	networkHop   time.Duration
+	maxCallDepth int
 
 	configs    map[string]*config
 	configLock sync.Mutex
@@ -40,9 +43,11 @@ type Connector struct {
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:      strings.ToLower(rand.AlphaNum32(10)),
-		reqs:    map[string]chan *http.Response{},
-		configs: map[string]*config{},
+		id:           strings.ToLower(rand.AlphaNum32(10)),
+		reqs:         map[string]chan *http.Response{},
+		configs:      map[string]*config{},
+		networkHop:   250 * time.Millisecond,
+		maxCallDepth: 64,
 	}
 	return c
 }
