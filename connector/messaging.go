@@ -4,24 +4,29 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"time"
 
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/nats-io/nats.go"
 )
 
+// WebHandler extends the standard Go's http.Handler with an error
+type WebHandler func(w http.ResponseWriter, r *http.Request) error
+
 // subscription holds the specs of the NATS subscription for a given port and path
 type subscription struct {
 	port             int
 	path             string
-	handler          func(w http.ResponseWriter, r *http.Request)
+	handler          WebHandler
 	natsSubscription *nats.Subscription
 }
 
@@ -63,11 +68,11 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.R
 	// Prepare the HTTP request
 	req, err := pub.NewRequest(options...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	httpReq, err := req.ToHTTP()
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	// Check if there's enough time budget
@@ -80,7 +85,26 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.R
 	frame.Of(httpReq).SetCallDepth(depth + 1)
 
 	// Make the HTTP request
-	return c.makeHTTPRequest(httpReq)
+	httpRes, err := c.makeHTTPRequest(httpReq)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	// Reconstitude the error if an error op code is returned
+	if frame.Of(httpRes).OpCode() == frame.OpCodeError {
+		var tracedError errors.TracedError
+		body, err := io.ReadAll(httpRes.Body)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		err = json.Unmarshal(body, &tracedError)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		return nil, errors.Trace(&tracedError, c.hostName+" -> "+httpReq.URL.Hostname())
+	}
+
+	return httpRes, nil
 }
 
 // makeHTTPRequest makes an HTTP request then awaits and returns the response
@@ -106,7 +130,7 @@ func (c *Connector) makeHTTPRequest(req *http.Request) (*http.Response, error) {
 	var buf bytes.Buffer
 	err := req.Write(&buf)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	port := 443
 	if req.URL.Scheme == "http" {
@@ -115,14 +139,14 @@ func (c *Connector) makeHTTPRequest(req *http.Request) (*http.Response, error) {
 	if req.URL.Port() != "" {
 		port64, err := strconv.ParseInt(req.URL.Port(), 10, 32)
 		if err != nil {
-			return nil, err
+			return nil, errors.Trace(err)
 		}
 		port = int(port64)
 	}
 	subject := subjectOfRequest(req.URL.Hostname(), port, req.URL.Path)
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	// Await and return the response
@@ -163,11 +187,11 @@ func (c *Connector) onReply(msg *nats.Msg) {
 
 // onRequest is called when an incoming HTTP request is received.
 // The message is dispatched to the appropriate web handler and the response is serialized and sent back to the reply channel of the sender
-func (c *Connector) onRequest(msg *nats.Msg, handler func(w http.ResponseWriter, r *http.Request)) error {
+func (c *Connector) onRequest(msg *nats.Msg, handler WebHandler) error {
 	// Parse the request
 	httpReq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(msg.Data)))
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	// Get the sender host name and message ID
@@ -199,20 +223,39 @@ func (c *Connector) onRequest(msg *nats.Msg, handler func(w http.ResponseWriter,
 	frame.Of(httpRecorder).SetFromID(c.id)
 
 	// Call the web handler
-	handler(httpRecorder, httpReq)
+	handlerErr := catchPanic(func() error {
+		return handler(httpRecorder, httpReq)
+	})
+
+	if handlerErr != nil {
+		handlerErr = errors.Trace(handlerErr)
+		// Prepare an error response instead
+		httpRecorder = httptest.NewRecorder()
+		frame.Of(httpRecorder).SetMessageID(msgID)
+		frame.Of(httpRecorder).SetFromHost(c.hostName)
+		frame.Of(httpRecorder).SetFromID(c.id)
+		frame.Of(httpRecorder).SetOpCode(frame.OpCodeError)
+		httpRecorder.Header().Set("Content-Type", "application/json")
+		body, err := json.Marshal(handlerErr)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		httpRecorder.WriteHeader(http.StatusInternalServerError)
+		httpRecorder.Write(body)
+	}
 
 	// Serialize the response
 	httpResponse := httpRecorder.Result()
 	var buf bytes.Buffer
 	err = httpResponse.Write(&buf)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	// Send back the reply
 	err = c.natsConn.Publish(subjectOfReply(fromHost, fromId), buf.Bytes())
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	return nil
@@ -220,7 +263,7 @@ func (c *Connector) onRequest(msg *nats.Msg, handler func(w http.ResponseWriter,
 
 // Subscribe assigns a function to handle web requests to the given port and path.
 // If the path ends with a / all sub-paths under the path are capture by the subscription
-func (c *Connector) Subscribe(port int, path string, handler func(w http.ResponseWriter, r *http.Request)) error {
+func (c *Connector) Subscribe(port int, path string, handler WebHandler) error {
 	if port < 0 || port > 65535 {
 		return fmt.Errorf("invalid port: %d", port)
 	}
@@ -232,7 +275,7 @@ func (c *Connector) Subscribe(port int, path string, handler func(w http.Respons
 	if c.IsStarted() {
 		err := c.activateSub(newSub)
 		if err != nil {
-			return err
+			return errors.Trace(err)
 		}
 		time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 	}
@@ -252,8 +295,5 @@ func (c *Connector) activateSub(sub *subscription) error {
 			}
 		}()
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return errors.Trace(err)
 }

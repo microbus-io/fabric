@@ -1,6 +1,10 @@
 package connector
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/microbus-io/fabric/errors"
+)
 
 // LogInfo logs a message to standard output
 func (c *Connector) LogInfo(format string, args ...interface{}) {
@@ -9,5 +13,5 @@ func (c *Connector) LogInfo(format string, args ...interface{}) {
 
 // LogError logs an error to standard output
 func (c *Connector) LogError(err error) {
-	fmt.Printf("%+v\n", err)
+	fmt.Printf("%+v\n", errors.TraceUp(err, 1))
 }

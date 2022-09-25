@@ -25,42 +25,29 @@ func Unwrap(err error) error {
 // New creates a new error, capturing the current stack location.
 // Optionally annotations may be attached
 func New(text string, annotations ...string) error {
-	tracedErr := &TracedError{
-		error: stderrors.New(text),
-	}
-	file, function, line := runtimeTrace(1)
-	tracedErr.stack = append(tracedErr.stack, trace{
-		File:        file,
-		Function:    function,
-		Line:        line,
-		Annotations: annotations,
-	})
-	return tracedErr
+	return TraceUp(stderrors.New(text), 1, annotations...)
 }
 
 // Newf formats a new error, capturing the current stack location
 func Newf(format string, a ...any) error {
-	tracedErr := &TracedError{
-		error: fmt.Errorf(format, a...),
-	}
-	file, function, line := runtimeTrace(1)
-	tracedErr.stack = append(tracedErr.stack, trace{
-		File:     file,
-		Function: function,
-		Line:     line,
-	})
-	return tracedErr
+	return TraceUp(fmt.Errorf(format, a...), 1)
 }
 
 // Trace appends the current stack location to the error's stack trace.
-// Optionally annotations may be attached
+// Optional annotations may be attached
 func Trace(err error, annotations ...string) error {
+	return TraceUp(err, 1, annotations...)
+}
+
+// TraceUp appends the levels above the current stack location to the error's stack trace.
+// Optional annotations may be attached
+func TraceUp(err error, levels int, annotations ...string) error {
 	if err == nil {
 		return nil
 	}
 	tracedErr := Convert(err).(*TracedError)
-	file, function, line := runtimeTrace(1)
-	tracedErr.stack = append(tracedErr.stack, trace{
+	file, function, line := runtimeTrace(1 + levels)
+	tracedErr.stack = append(tracedErr.stack, &trace{
 		File:        file,
 		Function:    function,
 		Line:        line,
@@ -81,7 +68,6 @@ func Convert(err error) error {
 	}
 	return &TracedError{
 		error: err,
-		stack: []trace{},
 	}
 }
 

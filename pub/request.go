@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 )
 
@@ -26,7 +27,7 @@ func NewRequest(options ...Option) (*Request, error) {
 	for _, opt := range options {
 		err := opt(req)
 		if err != nil {
-			return nil, err
+			return nil, errors.Trace(err)
 		}
 	}
 	return req, nil
@@ -36,7 +37,7 @@ func NewRequest(options ...Option) (*Request, error) {
 func (req *Request) ToHTTP() (*http.Request, error) {
 	httpReq, err := http.NewRequest(req.method, req.url, req.body)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	for name, value := range req.headers {
 		httpReq.Header[name] = value

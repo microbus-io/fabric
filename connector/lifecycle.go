@@ -2,9 +2,9 @@ package connector
 
 import (
 	"context"
-	"errors"
 	"time"
 
+	"github.com/microbus-io/fabric/errors"
 	"github.com/nats-io/nats.go"
 )
 
@@ -33,14 +33,14 @@ func (c *Connector) Startup() error {
 	// Look for configs in the environment or file system
 	err = c.loadConfigs()
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 	c.logConfigs()
 
 	// Connect to NATS
 	c.natsConn, err = nats.Connect("nats://127.0.0.1:4222")
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	// Subscribe to the reply subject
@@ -48,17 +48,19 @@ func (c *Connector) Startup() error {
 	if err != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
-		return err
+		return errors.Trace(err)
 	}
 
 	// Call the callback function, if provided
 	if c.onStartup != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), c.callbackTimeout)
 		defer cancel()
-		err := c.onStartup(ctx)
+		err := catchPanic(func() error {
+			return c.onStartup(ctx)
+		})
 		if err != nil {
 			_ = c.Shutdown()
-			return err
+			return errors.Trace(err)
 		}
 	}
 
@@ -67,7 +69,7 @@ func (c *Connector) Startup() error {
 		err = c.activateSub(sub)
 		if err != nil {
 			_ = c.Shutdown()
-			return err
+			return errors.Trace(err)
 		}
 	}
 	time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
@@ -96,9 +98,11 @@ func (c *Connector) Shutdown() error {
 
 	// Call the callback function, if provided
 	if c.onShutdown != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), c.callbackTimeout)
 		defer cancel()
-		err = c.onShutdown(ctx)
+		err := catchPanic(func() error {
+			return c.onShutdown(ctx)
+		})
 		if err != nil {
 			c.LogError(err)
 		}
@@ -119,7 +123,7 @@ func (c *Connector) Shutdown() error {
 		c.natsConn = nil
 	}
 
-	return err
+	return errors.Trace(err)
 }
 
 // IsStarted indicates if the microservice has been successfully started

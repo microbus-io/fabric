@@ -2,6 +2,7 @@ package httpingress
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 )
@@ -25,7 +27,6 @@ type Service struct {
 func NewService() *Service {
 	s := &Service{
 		Connector: connector.NewConnector(),
-		httpPort:  8080,
 	}
 	s.SetHostName("http.ingress.sys")
 	s.SetOnStartup(s.OnStartup)
@@ -41,6 +42,12 @@ func (s *Service) OnStartup(_ context.Context) error {
 	s.timeBudget, ok = s.ConfigDuration("TimeBudget")
 	if !ok {
 		s.timeBudget = time.Second * 20
+	}
+
+	// Incoming HTTP port
+	s.httpPort, ok = s.ConfigInt("Port")
+	if !ok {
+		s.httpPort = 8080
 	}
 
 	// Start HTTP server
@@ -61,7 +68,7 @@ func (s *Service) OnShutdown(_ context.Context) error {
 		s.LogInfo("Stopping HTTP listener on port %d", s.httpPort)
 		err := s.httpServer.Close() // Not a graceful shutdown
 		if err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 	return nil
@@ -114,7 +121,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	internalRes, err := s.Publish(ctx, options...)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
 		s.LogError(err)
 		return
 	}
@@ -141,7 +148,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, err = io.Copy(w, internalRes.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
 			s.LogError(err)
 			return
 		}

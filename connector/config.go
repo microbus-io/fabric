@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/microbus-io/fabric/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -109,14 +110,14 @@ func (c *Connector) loadConfigs() error {
 	// Scan the directory hierarchy for env.yaml files
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 	for wd != "/" {
 		envFileData, err := os.ReadFile(wd + "/env.yaml")
 		if err == nil {
 			err = readEnvYamlFile(c.hostName, envFileData, c.configs)
 			if err != nil {
-				return err
+				return errors.Trace(err)
 			}
 		}
 		wd = filepath.Dir(wd) // Get the parent path
@@ -125,7 +126,7 @@ func (c *Connector) loadConfigs() error {
 	// Scan envars
 	err = readEnvars(c.hostName, os.Environ(), c.configs)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	return nil
@@ -182,7 +183,7 @@ func readEnvYamlFile(hostName string, envFileData []byte, configs map[string]*co
 	var envFileMap map[string]map[string]string
 	err := yaml.Unmarshal(envFileData, &envFileMap)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	// Look for a property map for all microservices

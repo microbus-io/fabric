@@ -44,6 +44,12 @@ func TestFrame_GetSet(t *testing.T) {
 
 	f := Of(make(http.Header))
 
+	assert.Equal(t, "", f.OpCode())
+	f.SetOpCode(OpCodeError)
+	assert.Equal(t, OpCodeError, f.OpCode())
+	f.SetOpCode("")
+	assert.Equal(t, "", f.OpCode())
+
 	assert.Equal(t, 0, f.CallDepth())
 	f.SetCallDepth(123)
 	assert.Equal(t, 123, f.CallDepth())

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
 )
 
 // Service is a calculator microservice
@@ -26,7 +27,7 @@ func NewService() *Service {
 
 // Arithmetic perform an arithmetic operation between two integers x and y given an
 // operator op
-func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) {
+func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) error {
 	// Read and parse query arguments
 	x := r.URL.Query().Get("x")
 	y := r.URL.Query().Get("y")
@@ -37,15 +38,11 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) {
 
 	xx, err := strconv.ParseInt(x, 10, 32)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
+		return errors.Trace(err)
 	}
 	yy, _ := strconv.ParseInt(y, 10, 32)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
+		return errors.Trace(err)
 	}
 	var rr int64
 
@@ -60,28 +57,26 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) {
 	case "/":
 		rr = xx / yy
 	default:
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid operator"))
-		return
+		return errors.Newf("invalid operator %s", op)
 	}
 
 	// Print the result
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(fmt.Sprintf("%d %s %d = %d", xx, op, yy, rr)))
+	return nil
 }
 
 // Square prints the square of the integer x
-func (s *Service) Square(w http.ResponseWriter, r *http.Request) {
+func (s *Service) Square(w http.ResponseWriter, r *http.Request) error {
 	// Read and parse query argument
 	x := r.URL.Query().Get("x")
 	xx, err := strconv.ParseInt(x, 10, 32)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
+		return errors.Trace(err)
 	}
 
 	// Print the result
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(fmt.Sprintf("%d ^ 2 = %d", xx, xx*xx)))
+	return nil
 }

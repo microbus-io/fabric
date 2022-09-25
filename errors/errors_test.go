@@ -101,3 +101,25 @@ func TestErrors_JSON(t *testing.T) {
 	assert.Equal(t, tracedErr.Error(), unmarshal.Error())
 	assert.Equal(t, tracedErr.(*TracedError).String(), unmarshal.String())
 }
+
+func TestErrors_Format(t *testing.T) {
+	t.Parallel()
+
+	err := New("my error")
+
+	s := fmt.Sprintf("%s", err)
+	assert.Equal(t, "my error", s)
+
+	v := fmt.Sprintf("%v", err)
+	assert.Equal(t, "my error", v)
+
+	vPlus := fmt.Sprintf("%+v", err)
+	assert.Equal(t, err.(*TracedError).String(), vPlus)
+	assert.Contains(t, vPlus, "errors.TestErrors_Format")
+	assert.Contains(t, vPlus, "errors/errors_test.go:")
+
+	vSharp := fmt.Sprintf("%#v", err)
+	assert.Equal(t, err.(*TracedError).String(), vSharp)
+	assert.Contains(t, vSharp, "errors.TestErrors_Format")
+	assert.Contains(t, vSharp, "errors/errors_test.go:")
+}

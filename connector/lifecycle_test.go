@@ -2,9 +2,9 @@ package connector
 
 import (
 	"context"
-	"errors"
 	"testing"
 
+	"github.com/microbus-io/fabric/errors"
 	"github.com/stretchr/testify/assert"
 )
 
