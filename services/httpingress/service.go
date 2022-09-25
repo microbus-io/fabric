@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/pub"
 )
 
 // Service is an HTTP ingress microservice
@@ -15,6 +18,7 @@ type Service struct {
 	*connector.Connector
 	httpPort   int
 	httpServer *http.Server
+	timeBudget time.Duration
 }
 
 // NewService creates a new HTTP ingress microservice
@@ -32,6 +36,14 @@ func NewService() *Service {
 
 // OnStartup starts the web server
 func (s *Service) OnStartup(_ context.Context) error {
+	// Time budget for requests
+	var ok bool
+	s.timeBudget, ok = s.ConfigDuration("TimeBudget")
+	if !ok {
+		s.timeBudget = time.Second * 20
+	}
+
+	// Start HTTP server
 	s.httpServer = &http.Server{
 		Addr:    ":" + strconv.Itoa(s.httpPort),
 		Handler: s,
@@ -44,6 +56,7 @@ func (s *Service) OnStartup(_ context.Context) error {
 
 // OnShutdown stops the web server
 func (s *Service) OnShutdown(_ context.Context) error {
+	// Stop HTTP server
 	if s.httpServer != nil {
 		s.LogInfo("Stopping HTTP listener on port %d", s.httpPort)
 		err := s.httpServer.Close() // Not a graceful shutdown
@@ -56,7 +69,8 @@ func (s *Service) OnShutdown(_ context.Context) error {
 
 // ServeHTTP forwards incoming HTTP requests to the appropriate microservice on NATS.
 // An incoming request http://localhost:8080/echo.example/echo is forwarded to
-// the microservice at https://echo.example/echo
+// the microservice at https://echo.example/echo .
+// ServeHTTP implements the http.Handler interface
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Use the first segment of the URI as the host name to contact
 	uri := r.URL.RequestURI()
@@ -70,26 +84,34 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	s.LogInfo("Request received: %s", internalURL)
 
-	// Prepare the internal request
-	internalReq, err := http.NewRequest(r.Method, internalURL, r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		s.LogError(err)
-		return
+	// Prepare the internal request options
+	defer r.Body.Close()
+	options := []pub.Option{
+		pub.Method(r.Method),
+		pub.URL(internalURL),
+		pub.Body(r.Body),
+	}
+
+	// Add the time budget to the request headers and set it as the context's timeout
+	ctx := context.Background()
+	if s.timeBudget > 0 {
+		options = append(options, pub.TimeBudget(s.timeBudget))
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.timeBudget)
+		defer cancel()
 	}
 
 	// Copy non-internal headers
 	for hdrName, hdrVals := range r.Header {
-		if !strings.HasPrefix(hdrName, "Microbus-") {
+		if !strings.HasPrefix(hdrName, frame.HeaderPrefix) {
 			for _, val := range hdrVals {
-				internalReq.Header.Add(hdrName, val)
+				options = append(options, pub.Header(hdrName, val))
 			}
 		}
 	}
 
-	// Make the internal request over NATS
-	internalRes, err := s.Request(internalReq)
+	// Publish the internal request over NATS
+	internalRes, err := s.Publish(ctx, options...)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
@@ -99,7 +121,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Write back non-internal headers
 	for hdrName, hdrVals := range internalRes.Header {
-		if !strings.HasPrefix(hdrName, "Microbus-") {
+		if !strings.HasPrefix(hdrName, frame.HeaderPrefix) {
 			for _, val := range hdrVals {
 				w.Header().Add(hdrName, val)
 			}
