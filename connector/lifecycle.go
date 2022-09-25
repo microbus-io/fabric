@@ -87,12 +87,12 @@ func (c *Connector) Shutdown() error {
 
 	// Deactivate subscriptions
 	for _, sub := range c.subs {
-		if sub.natsSubscription != nil {
-			err = sub.natsSubscription.Unsubscribe()
+		if sub.NATSSub != nil {
+			err = sub.NATSSub.Unsubscribe()
 			if err != nil {
 				c.LogError(err)
 			}
-			sub.natsSubscription = nil
+			sub.NATSSub = nil
 		}
 	}
 

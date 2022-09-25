@@ -27,7 +27,7 @@ func TestConnector_Echo(t *testing.T) {
 
 	beta := NewConnector()
 	beta.SetHostName("beta.echo.connector")
-	beta.Subscribe(443, "echo", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)
 		_, err = w.Write(body)
@@ -63,7 +63,7 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	var count int32
 	beta := NewConnector()
 	beta.SetHostName("beta.dir.connector")
-	beta.Subscribe(443, "directory/", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("directory/", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count, 1)
 		return nil
 	})
@@ -100,7 +100,7 @@ func TestConnector_QueryArgs(t *testing.T) {
 
 	beta := NewConnector()
 	beta.SetHostName("beta.queryargs.connector")
-	beta.Subscribe(443, "arg", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("arg", func(w http.ResponseWriter, r *http.Request) error {
 		arg := r.URL.Query().Get("arg")
 		assert.Equal(t, "not_empty", arg)
 		return nil
@@ -133,7 +133,7 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	beta.SetHostName("beta.beforeafterstartup.connector")
 
 	// Subscribe before beta is started
-	beta.Subscribe(443, "before", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("before", func(w http.ResponseWriter, r *http.Request) error {
 		beforeCalled = true
 		return nil
 	})
@@ -147,7 +147,7 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	defer beta.Shutdown()
 
 	// Subscribe after beta is started
-	beta.Subscribe(443, "after", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("after", func(w http.ResponseWriter, r *http.Request) error {
 		afterCalled = true
 		return nil
 	})
@@ -176,14 +176,14 @@ func TestConnector_LoadBalancing(t *testing.T) {
 
 	beta1 := NewConnector()
 	beta1.SetHostName("beta.loadbalancing.connector")
-	beta1.Subscribe(443, "lb", func(w http.ResponseWriter, r *http.Request) error {
+	beta1.Subscribe("lb", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count1, 1)
 		return nil
 	})
 
 	beta2 := NewConnector()
 	beta2.SetHostName("beta.loadbalancing.connector")
-	beta2.Subscribe(443, "lb", func(w http.ResponseWriter, r *http.Request) error {
+	beta2.Subscribe("lb", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count2, 1)
 		return nil
 	})
@@ -228,7 +228,7 @@ func TestConnector_Concurrent(t *testing.T) {
 
 	beta := NewConnector()
 	beta.SetHostName("beta.concurrent.connector")
-	beta.Subscribe(443, "wait", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("wait", func(w http.ResponseWriter, r *http.Request) error {
 		ms, _ := strconv.Atoi(r.URL.Query().Get("ms"))
 		time.Sleep(time.Millisecond * time.Duration(ms))
 		return nil
@@ -269,7 +269,7 @@ func TestConnector_CallDepth(t *testing.T) {
 	alpha := NewConnector()
 	alpha.maxCallDepth = 8
 	alpha.SetHostName("alpha.calldepth.connector")
-	alpha.Subscribe(443, "next", func(w http.ResponseWriter, r *http.Request) error {
+	alpha.Subscribe("next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
 
 		step, _ := strconv.Atoi(r.URL.Query().Get("step"))
@@ -305,7 +305,7 @@ func TestConnector_Timeout(t *testing.T) {
 	alpha := NewConnector()
 	alpha.networkHop = time.Second
 	alpha.SetHostName("alpha.timeout.connector")
-	alpha.Subscribe(443, "next", func(w http.ResponseWriter, r *http.Request) error {
+	alpha.Subscribe("next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
 		_, err := alpha.GET(r.Context(), "https://alpha.timeout.connector/next")
 		return errors.Trace(err)

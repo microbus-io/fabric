@@ -67,7 +67,7 @@ func TestErrors_Trace(t *testing.T) {
 func TestErrors_Convert(t *testing.T) {
 	t.Parallel()
 
-	err := fmt.Errorf("Other standard error")
+	err := stderrors.New("Other standard error")
 	assert.Error(t, err)
 
 	tracedErr := Convert(err)

@@ -16,19 +16,9 @@ import (
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/sub"
 	"github.com/nats-io/nats.go"
 )
-
-// WebHandler extends the standard Go's http.Handler with an error
-type WebHandler func(w http.ResponseWriter, r *http.Request) error
-
-// subscription holds the specs of the NATS subscription for a given port and path
-type subscription struct {
-	port             int
-	path             string
-	handler          WebHandler
-	natsSubscription *nats.Subscription
-}
 
 // GET makes a GET request
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
@@ -187,12 +177,16 @@ func (c *Connector) onReply(msg *nats.Msg) {
 
 // onRequest is called when an incoming HTTP request is received.
 // The message is dispatched to the appropriate web handler and the response is serialized and sent back to the reply channel of the sender
-func (c *Connector) onRequest(msg *nats.Msg, handler WebHandler) error {
+func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Parse the request
 	httpReq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(msg.Data)))
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// Fill in the gaps
+	httpReq.URL.Host = fmt.Sprintf("%s:%d", s.Host, s.Port)
+	httpReq.URL.Scheme = "https"
 
 	// Get the sender host name and message ID
 	fromHost := frame.Of(httpReq).FromHost()
@@ -224,11 +218,11 @@ func (c *Connector) onRequest(msg *nats.Msg, handler WebHandler) error {
 
 	// Call the web handler
 	handlerErr := catchPanic(func() error {
-		return handler(httpRecorder, httpReq)
+		return s.Handler(httpRecorder, httpReq)
 	})
 
 	if handlerErr != nil {
-		handlerErr = errors.Trace(handlerErr)
+		handlerErr = errors.Trace(handlerErr, fmt.Sprintf("https://%s:%d%s", s.Host, s.Port, s.Path))
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()
 		frame.Of(httpRecorder).SetMessageID(msgID)
@@ -244,15 +238,12 @@ func (c *Connector) onRequest(msg *nats.Msg, handler WebHandler) error {
 		httpRecorder.Write(body)
 	}
 
-	// Serialize the response
-	httpResponse := httpRecorder.Result()
+	// Send back the reply
 	var buf bytes.Buffer
-	err = httpResponse.Write(&buf)
+	err = httpRecorder.Result().Write(&buf)
 	if err != nil {
 		return errors.Trace(err)
 	}
-
-	// Send back the reply
 	err = c.natsConn.Publish(subjectOfReply(fromHost, fromId), buf.Bytes())
 	if err != nil {
 		return errors.Trace(err)
@@ -261,17 +252,34 @@ func (c *Connector) onRequest(msg *nats.Msg, handler WebHandler) error {
 	return nil
 }
 
-// Subscribe assigns a function to handle web requests to the given port and path.
-// If the path ends with a / all sub-paths under the path are capture by the subscription
-func (c *Connector) Subscribe(port int, path string, handler WebHandler) error {
-	if port < 0 || port > 65535 {
-		return fmt.Errorf("invalid port: %d", port)
+/*
+Subscribe assigns a function to handle HTTP requests to the given path.
+If the path ends with a / all sub-paths under the path are capture by the subscription
+
+If the path does not include a host name, the default host is used.
+If a port is not specified, 443 is used by default.
+
+Examples of valid paths:
+
+	(empty)
+	/
+	:1080
+	:1080/
+	:1080/path
+	/path/with/slash
+	path/with/no/slash
+	https://www.example.com/path
+	https://www.example.com:1080/path
+*/
+func (c *Connector) Subscribe(path string, handler sub.HTTPHandler) error {
+	if c.hostName == "" {
+		return errors.New("host name is not set")
 	}
-	newSub := &subscription{
-		port:    port,
-		path:    path,
-		handler: handler,
+	newSub, err := sub.NewSub(c.hostName, path)
+	if err != nil {
+		return errors.Trace(err)
 	}
+	newSub.Handler = handler
 	if c.IsStarted() {
 		err := c.activateSub(newSub)
 		if err != nil {
@@ -285,11 +293,11 @@ func (c *Connector) Subscribe(port int, path string, handler WebHandler) error {
 	return nil
 }
 
-func (c *Connector) activateSub(sub *subscription) error {
+func (c *Connector) activateSub(s *sub.Subscription) error {
 	var err error
-	sub.natsSubscription, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.hostName, sub.port, sub.path), c.hostName, func(msg *nats.Msg) {
+	s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.hostName, s.Port, s.Path), c.hostName, func(msg *nats.Msg) {
 		go func() {
-			err := c.onRequest(msg, sub.handler)
+			err := c.onRequest(msg, s)
 			if err != nil {
 				c.LogError(err)
 			}

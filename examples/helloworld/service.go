@@ -18,7 +18,7 @@ func NewService() *Service {
 		Connector: connector.NewConnector(),
 	}
 	s.SetHostName("helloworld.example")
-	s.Subscribe(443, "/hello", s.Hello)
+	s.Subscribe("/hello", s.Hello)
 	return s
 }
 

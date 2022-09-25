@@ -20,8 +20,8 @@ func NewService() *Service {
 		Connector: connector.NewConnector(),
 	}
 	s.SetHostName("calculator.example")
-	s.Subscribe(443, "/arithmetic", s.Arithmetic)
-	s.Subscribe(443, "/square", s.Square)
+	s.Subscribe("/arithmetic", s.Arithmetic)
+	s.Subscribe("/square", s.Square)
 	return s
 }
 

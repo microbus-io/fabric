@@ -11,6 +11,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/sub"
 	"github.com/nats-io/nats.go"
 )
 
@@ -29,7 +30,7 @@ type Connector struct {
 
 	natsConn     *nats.Conn
 	natsReplySub *nats.Subscription
-	subs         []*subscription
+	subs         []*sub.Subscription
 	subsLock     sync.Mutex
 	started      bool
 
@@ -75,7 +76,7 @@ func (c *Connector) SetHostName(hostName string) error {
 		match = false
 	}
 	if !match {
-		return fmt.Errorf("invalid host name: %s", hostName)
+		return errors.Newf("invalid host name: %s", hostName)
 	}
 	c.hostName = hostName
 	return nil

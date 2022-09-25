@@ -20,8 +20,8 @@ func NewService() *Service {
 		Connector: connector.NewConnector(),
 	}
 	s.SetHostName("echo.example")
-	s.Subscribe(443, "/echo", s.Echo)
-	s.Subscribe(443, "/who", s.Who)
+	s.Subscribe("/echo", s.Echo)
+	s.Subscribe("/who", s.Who)
 	return s
 }
 
