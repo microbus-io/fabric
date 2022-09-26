@@ -14,6 +14,10 @@ const (
 	HeaderFromId     = HeaderPrefix + "From-Id"
 	HeaderTimeBudget = HeaderPrefix + "Time-Budget"
 	HeaderCallDepth  = HeaderPrefix + "Call-Depth"
+	HeaderOpCode     = HeaderPrefix + "Op-Code"
+	HeaderTimestamp  = HeaderPrefix + "Timestamp"
+
+	OpCodeError = "Err"
 )
 
 // Frame is a utility class that helps with manipulating the control headers
@@ -40,6 +44,20 @@ func Of(r any) Frame {
 		}
 	}
 	return Frame{h}
+}
+
+// OpCode indicates the type of the control message
+func (f Frame) OpCode() string {
+	return f.h.Get(HeaderOpCode)
+}
+
+// SetOpCode sets the type of the control message
+func (f Frame) SetOpCode(op string) {
+	if op == "" {
+		f.h.Del(HeaderOpCode)
+	} else {
+		f.h.Set(HeaderOpCode, op)
+	}
 }
 
 // FromHost is the host name of the microservice that made the request or reply

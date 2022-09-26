@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"github.com/microbus-io/fabric/errors"
 )
 
 // Option is used to construct a request
@@ -75,7 +77,7 @@ func Body(body any) Option {
 		default:
 			j, err := json.Marshal(body)
 			if err != nil {
-				return err
+				return errors.Trace(err)
 			}
 			req.body = bytes.NewReader(j)
 			req.headers.Set("Content-Type", "application/json")

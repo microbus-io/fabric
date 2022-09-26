@@ -18,12 +18,12 @@ func NewService() *Service {
 		Connector: connector.NewConnector(),
 	}
 	s.SetHostName("helloworld.example")
-	s.Subscribe(443, "/hello", s.Hello)
+	s.Subscribe("/hello", s.Hello)
 	return s
 }
 
 // Hello prints a greeting
-func (s *Service) Hello(w http.ResponseWriter, r *http.Request) {
+func (s *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 	// If a name is provided, add a personal touch
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -45,4 +45,5 @@ func (s *Service) Hello(w http.ResponseWriter, r *http.Request) {
 	// Print the greeting
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(hello))
+	return nil
 }

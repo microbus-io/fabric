@@ -9,7 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/sub"
 	"github.com/nats-io/nats.go"
 )
 
@@ -22,12 +24,13 @@ type Connector struct {
 	hostName string
 	id       string
 
-	onStartup  func(context.Context) error
-	onShutdown func(context.Context) error
+	onStartup       func(context.Context) error
+	onShutdown      func(context.Context) error
+	callbackTimeout time.Duration
 
 	natsConn     *nats.Conn
 	natsReplySub *nats.Subscription
-	subs         []*subscription
+	subs         []*sub.Subscription
 	subsLock     sync.Mutex
 	started      bool
 
@@ -43,11 +46,12 @@ type Connector struct {
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:           strings.ToLower(rand.AlphaNum32(10)),
-		reqs:         map[string]chan *http.Response{},
-		configs:      map[string]*config{},
-		networkHop:   250 * time.Millisecond,
-		maxCallDepth: 64,
+		id:              strings.ToLower(rand.AlphaNum32(10)),
+		reqs:            map[string]chan *http.Response{},
+		configs:         map[string]*config{},
+		networkHop:      250 * time.Millisecond,
+		maxCallDepth:    64,
+		callbackTimeout: time.Minute,
 	}
 	return c
 }
@@ -65,14 +69,14 @@ func (c *Connector) SetHostName(hostName string) error {
 	hostName = strings.TrimSpace(strings.ToLower(hostName))
 	match, err := regexp.MatchString(`^[a-z0-9]+(\.[a-z0-9]+)*$`, hostName)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 	if hostName == "all" || strings.HasSuffix(hostName, ".all") {
 		// The hostname "all" is reserved to refer to all microservices
 		match = false
 	}
 	if !match {
-		return fmt.Errorf("invalid host name: %s", hostName)
+		return errors.Newf("invalid host name: %s", hostName)
 	}
 	c.hostName = hostName
 	return nil
@@ -82,4 +86,20 @@ func (c *Connector) SetHostName(hostName string) error {
 // A microservice is addressable by its host name.
 func (c *Connector) HostName() string {
 	return c.hostName
+}
+
+// catchPanic calls the function and returns any panic as a standard error
+func catchPanic(f func() error) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				err = fmt.Errorf("%v", r)
+			}
+			err = errors.TraceUp(err, 2)
+		}
+	}()
+	err = f()
+	return
 }
