@@ -54,7 +54,8 @@ func (e *TracedError) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Format the error based on the verb and flag
+// Format the error based on the verb and flag.
+// Implements the fmt.Formatter interface
 func (e *TracedError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':

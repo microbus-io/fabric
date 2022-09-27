@@ -1,6 +1,4 @@
-# Deep Dive
-
-## Messaging
+# Messaging
 
 One of the challenges with messaging buses is that they have an unfamiliar pattern that doesn't map well to modern web standards. When it comes to microservices, most developers are accustomed to thinking in terms of HTTP.
 `Microbus` overcomes this gap by implementing the familiar request/response pattern of HTTP over the asynchronous messaging pattern of NATS.
@@ -96,53 +94,3 @@ The microservices shutdown and disconnect from NATS.
 [DBG] cid:2 - Client connection closed
 [DBG] cid:1 - Client connection closed
 ```
-
-## HTTP Ingress Proxy
-
-Think of NATS as a closed garden that requires a special key to access. In order to send and receive messages over NATS, it's necessary to use the NATS libraries to connect to NATS. This is basically what the `Connector` is facilitating for service-to-service calls.
-
-Practically all systems will require interaction from a source that is outside the NATS bus. The most common scenario is perhaps a request generated from a web browser to a public API endpoint. In this case, something needs to bridge the gap between the incoming real HTTP request and the HTTP messages that travel over the bus. This is exactly the role of the HTTP ingress proxy.
-
-
-```
-+---------+  Real HTTP  +---------+  HTTP/NATS  +---------+
-| Browser | ----------> | Ingress | ----------> | Micro-  |
-|         | <---------- |  Proxy  | <---------- | service |
-+---------+             +---------+             +---------+
-```
-
-On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP requests; on the other end it is conected to NATS. The ingress proxy converts real requests into requests on the bus; and vice versa, it converts responses from the bus to real responses. Because the bus messages in `Microbus` are formatted themselves as HTTP messages, this conversion is trivial, with two caveats:
-* The proxy filters out `Microbus-*` control headers from coming in or leaking out
-* The first segment of the path of the real HTTP request is treated as the host name of the microservice on the bus. So for example, `http://localhost:8080/echo.example/echo` is translated to the bus address `https://echo.example/echo` which is then mapped to the NATS subject `443.example.echo.|.echo`. Port 443 is assumed by default when a port is not explicitly specified
-
-## Encapsulaton Philosophy
-
-The `Microbus` framework aims to provide a consistent experience to developers, the users of the framework. It is opinionated about the interfaces (APIs) that are exposed to the developer and therefore opts to encapsulate underlying technologies behind its own interfaces.
-
-One examples of this approach in this milestone is the handling of the config. Rather than leave things up to each individual developer how to fetch config values, the framework defines an interface that encapsulates the underlying implementation. A similar approach was taken with the logger.
-
-In addition to the consistent developer experience, there are various technical reasons behind this philosophy:
-* Enforcing uniformity across all microservices brings familiarity when looking at someone else's code, lowers the learning curve, and ultimately increases velocity
-* The underlying technology can be changed with little impact to the microservices. For example, the source of the configs can be extended to include a remote config service in addition to the environment or the file system
-* Oftentimes the underlying technology is more extensive than the basic functionality that is needed by the framework. Encapsulating the underlying API enables exposing only certain functions to the developer. For example, the logger for now is limited to only `LogInfo` and `LogError`
-* The framework is in control of when and how the underlying technology is initialized. For example, future milestones will customize the logger based on the runtime environment (PROD, LAB, LOCAL, etc)
-* The framework is able to seamlessly integrate building blocks together. This will take shape as more building blocks are introduced. A simple example in this milestone is how the detected config keys are logged during startup
-* Bugs or CVEs in the underlying technologies are quicker to fix because there is only one source of truth. A bug such as Log4Shell (CVE-2021-44228) would require no code changes to the microservices, only to the framework
-
-## Shortcuts
-
-This milestone is taking several shortcuts that will be addressed in future releases:
-
-* The timeouts for the `OnStartup` and `OnShutdown` callbacks and for outgoing requests are hard-coded to `time.Minute`
-* The NATS server URL is hard-coded to localhost `nats://127.0.0.1:4222`
-* The logger is quite basic
-* The HTTP ingress proxy is hard-coded to listen on port `:8080`
-
-## More to Explore
-
-A few suggestions for self-guided exploration:
-
-* Start NATS in debug mode `./nats-server -D -V`, run unit tests individually and look at the messages going over the bus
-* Modify `examples/main/env.yaml` and witness the impact on the `helloworld.example` microservice
-* Add an endpoint `/calculate` to the `calculator.example` microservice that operates on decimal numbers, not just integers
-* Create your own microservice from scratch and add it to `examples/main/main.go`

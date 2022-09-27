@@ -8,8 +8,40 @@
 
 ## Documentation
 
-The [Quick Start](docs/quick-start.md) will guide you through setting up your system and running the examples.
+[Get started quickly](docs/quick-start.md) by setting up your system and running the examples.
 
-The [Code Overview](docs/code-overview.md) describes all packages in the project and is a good orientation of the code structure.
+Review each of the major project packages to get oriented in the code structure:
 
-A technical [Deep Dive](docs/deep-dive.md) discusses in depth the technical aspects of the system.
+* [connector](docs/structure/connector.md) - The primary construct of the framework and the basis for all microservices
+* [errors](docs/structure/errors.md) <sup style="color:yellow">new</sup> - An enhancement of the standard Go's `errors` package 
+* [examples](docs/structure/examples.md) - Demo microservices 
+* [frame](docs/structure/frame.md) <sup style="color:yellow">new</sup> - A utility for type-safe manipulation of the HTTP control headers used by the framework
+* [pub](docs/structure/pub.mdd) <sup style="color:yellow">new</sup> - Options for publishing requests
+* [rand](docs/structure/rand.mdd) - A utility for generating random numbers
+* [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy service
+* [sub](docs/structure/sub.mdd) <sup style="color:yellow">new</sup> - Options for subscribing to handle requests
+
+Go into the details with these technical deep dives:
+
+* [Messaging](docs/tech/messaging.md) - How HTTP-like request/response pattern is achieved over the messaging bus
+* [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
+* [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
+* [Error capture](docs/tech/errorcapture.md) <sup style="color:yellow">new</sup> - How and why errors are captured and propagated across microservices boundaries
+* [Time budget](docs/tech/timebudget.md) <sup style="color:yellow">new</sup> - The proper way to handle request timeouts
+
+## Shortcuts
+
+This milestone is taking several shortcuts that will be addressed in future releases:
+
+* The timeouts for the `OnStartup` and `OnShutdown` callbacks and for outgoing requests are hard-coded to `time.Minute`
+* The NATS server URL is hard-coded to localhost `nats://127.0.0.1:4222`
+* The logger is quite basic
+
+## More to Explore
+
+A few suggestions for self-guided exploration:
+
+* Start NATS in debug mode `./nats-server -D -V`, run unit tests individually and look at the messages going over the bus
+* Modify `examples/main/env.yaml` and witness the impact on the `helloworld.example` microservice
+* Add an endpoint `/calculate` to the `calculator.example` microservice that operates on decimal numbers, not just integers
+* Create your own microservice from scratch and add it to `examples/main/main.go`

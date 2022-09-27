@@ -9,7 +9,8 @@ import (
 	"github.com/microbus-io/fabric/frame"
 )
 
-// Request is used to construct an HTTP request that can be sent over the Microbus
+// Request is used to construct an HTTP request that can be sent over the bus.
+// Although technically public, it is used internally and should not be constructed by microservices directly
 type Request struct {
 	method     string
 	url        string

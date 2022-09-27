@@ -10,7 +10,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 )
 
-// Option is used to construct a request
+// Option is used to construct a request in connector.Publish
 type Option func(req *Request) error
 
 // Method sets the method of the request
