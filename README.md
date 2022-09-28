@@ -8,6 +8,19 @@
 
 `fabric` is the main project that provides the core capabilities that all `Microbus` microservices require. Every milestone of this project will be released separately in order to demonstrate the thinking process behind the building of this framework. This is the second milestone.
 
+[Milestone 1](https://github.com/microbus-io/fabric/tree/milestone/1):
+
+* `Connector` construct, including startup and shutdown logic
+* Config from environment or file
+* Basic logger
+* HTTP request/response messaging over NATS
+* HTTP ingress proxy
+
+Milestone 2 <sup style="color:orange">new</sup>:
+
+* Error capture and propagation
+* Time budget for requests
+
 ## Documentation
 
 [Get started quickly](docs/quick-start.md) by setting up your system and running the examples.

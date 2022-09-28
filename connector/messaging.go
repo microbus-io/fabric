@@ -232,7 +232,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		frame.Of(httpRecorder).SetFromID(c.id)
 		frame.Of(httpRecorder).SetOpCode(frame.OpCodeError)
 		httpRecorder.Header().Set("Content-Type", "application/json")
-		body, err := json.Marshal(handlerErr)
+		body, err := json.MarshalIndent(handlerErr, "", "\t")
 		if err != nil {
 			return errors.Trace(err)
 		}

@@ -3,6 +3,7 @@ package errors
 import (
 	stderrors "errors"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -122,4 +123,11 @@ func TestErrors_Format(t *testing.T) {
 	assert.Equal(t, err.(*TracedError).String(), vSharp)
 	assert.Contains(t, vSharp, "errors.TestErrors_Format")
 	assert.Contains(t, vSharp, "errors/errors_test.go:")
+}
+
+func TestErrors_Is(t *testing.T) {
+	t.Parallel()
+
+	err := Trace(os.ErrNotExist)
+	assert.True(t, Is(err, os.ErrNotExist))
 }

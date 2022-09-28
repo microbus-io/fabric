@@ -14,6 +14,11 @@ type TracedError struct {
 	stack []*trace
 }
 
+// Unwrap returns the underlying error
+func (e *TracedError) Unwrap() error {
+	return e.error
+}
+
 // String returns a string representation of the error
 func (e *TracedError) String() string {
 	var b strings.Builder

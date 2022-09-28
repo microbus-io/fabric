@@ -6,7 +6,9 @@ The `errors` package is an enhancement of Go's standard `errors` package. It aug
 import "github.com/microbus-io/errors"
 
 err := errors.New("my error")
+// err is augmented with the stack trace of this line
 err = errors.Newf("error in process %s", processName)
+// err is augmented with the stack trace of this line
 ```
 
 Note how it seamlessly replaces the standard `import "errors"` with `import "github.com/microbus-io/errors"`. That is made possible because `github.com/microbus-io/errors` redefines all the constructs in `errors`.

@@ -72,15 +72,15 @@ https://localhost:8080/calculator.example/quare?x=not-valid results in:
 strconv.ParseInt: parsing "not-valid": invalid syntax
 
 calculator.(*Service).Square
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/examples/calculator/service.go:75
+	/src/github.com/microbus-io/fabric/examples/calculator/service.go:75
 connector.(*Connector).onRequest
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/messaging.go:225
+	/src/github.com/microbus-io/fabric/connector/messaging.go:225
 	calculator.example:443/square
 connector.(*Connector).Publish
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/messaging.go:94
+	/src/github.com/microbus-io/fabric/connector/messaging.go:94
 	http.ingress.sys -> calculator.example
 httpingress.(*Service).ServeHTTP
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/services/httpingress/service.go:124
+	/src/github.com/microbus-io/fabric/services/httpingress/service.go:124
 ```
 
 ## Hello World
