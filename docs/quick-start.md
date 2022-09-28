@@ -1,10 +1,20 @@
 # Quick Start
 
+## Clone the Project
+
+Fetch the code:
+
+```cmd
+mkdir github.com/microbus-io
+cd github.com/microbus-io
+git clone https://github.com/microbus-io/fabric
+```
+
 ## Install and Run NATS
 
 From the root folder of this project:
 
-```
+```cmd
 go get github.com/nats-io/nats-server
 go build github.com/nats-io/nats-server
 ./nats-server -D -V
@@ -14,17 +24,9 @@ It's recommended to start the NATS server in a separate terminal window to bette
 
 ## Run the Examples
 
-Fetch the code:
-
-```
-mkdir github.com/microbus-io
-cd github.com/microbus-io
-git clone https://github.com/microbus-io/fabric
-```
-
 Run the examples:
 
-```
+```cmd
 cd examples/main
 go run main.go
 ```

@@ -1,10 +1,10 @@
-# Microbus.io fabric : Milestone 1
+# Microbus.io fabric : Milestone 2
 
 ## Introduction
 
 `Microbus` is a framework for the development, deployment and operation of microservices in Go. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices.
 
-`fabric` is the main project that provides the core capabilities that all `Microbus` microservices require. Every milestone of this project will be released separately in order to demonstrate the thinking process behind the building of this framework. This is the first milestone.
+`fabric` is the main project that provides the core capabilities that all `Microbus` microservices require. Every milestone of this project will be released separately in order to demonstrate the thinking process behind the building of this framework. This is the second milestone.
 
 ## Documentation
 
@@ -13,27 +13,27 @@
 Review each of the major project packages to get oriented in the code structure:
 
 * [connector](docs/structure/connector.md) - The primary construct of the framework and the basis for all microservices
-* [errors](docs/structure/errors.md) <sup style="color:yellow">new</sup> - An enhancement of the standard Go's `errors` package 
+* [errors](docs/structure/errors.md) <sup style="color:orange">new</sup> - An enhancement of the standard Go's `errors` package 
 * [examples](docs/structure/examples.md) - Demo microservices 
-* [frame](docs/structure/frame.md) <sup style="color:yellow">new</sup> - A utility for type-safe manipulation of the HTTP control headers used by the framework
-* [pub](docs/structure/pub.mdd) <sup style="color:yellow">new</sup> - Options for publishing requests
+* [frame](docs/structure/frame.md) <sup style="color:orange">new</sup> - A utility for type-safe manipulation of the HTTP control headers used by the framework
+* [pub](docs/structure/pub.mdd) <sup style="color:orange">new</sup> - Options for publishing requests
 * [rand](docs/structure/rand.mdd) - A utility for generating random numbers
 * [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy service
-* [sub](docs/structure/sub.mdd) <sup style="color:yellow">new</sup> - Options for subscribing to handle requests
+* [sub](docs/structure/sub.mdd) <sup style="color:orange">new</sup> - Options for subscribing to handle requests
 
 Go into the details with these technical deep dives:
 
 * [Messaging](docs/tech/messaging.md) - How HTTP-like request/response pattern is achieved over the messaging bus
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
-* [Error capture](docs/tech/errorcapture.md) <sup style="color:yellow">new</sup> - How and why errors are captured and propagated across microservices boundaries
-* [Time budget](docs/tech/timebudget.md) <sup style="color:yellow">new</sup> - The proper way to handle request timeouts
+* [Error capture](docs/tech/errorcapture.md) <sup style="color:orange">new</sup> - How and why errors are captured and propagated across microservices boundaries
+* [Time budget](docs/tech/timebudget.md) <sup style="color:orange">new</sup> - The proper way to handle request timeouts
 
 ## Shortcuts
 
 This milestone is taking several shortcuts that will be addressed in future releases:
 
-* The timeouts for the `OnStartup` and `OnShutdown` callbacks and for outgoing requests are hard-coded to `time.Minute`
+* The timeouts for the `OnStartup` and `OnShutdown` callbacks are hard-coded to `time.Minute`
 * The NATS server URL is hard-coded to localhost `nats://127.0.0.1:4222`
 * The logger is quite basic
 
