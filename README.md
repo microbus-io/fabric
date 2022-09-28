@@ -1,5 +1,7 @@
 # Microbus.io fabric : Milestone 2
 
+<img src="docs\gopher-on-bus.png" width=256>
+
 ## Introduction
 
 `Microbus` is a framework for the development, deployment and operation of microservices in Go. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices.
@@ -23,7 +25,7 @@ Review each of the major project packages to get oriented in the code structure:
 
 Go into the details with these technical deep dives:
 
-* [Messaging](docs/tech/messaging.md) - How HTTP-like request/response pattern is achieved over the messaging bus
+* [Messaging](docs/tech/messaging.md) - How HTTP-like request/response pattern is achieved over the NATS messaging bus
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) <sup style="color:orange">new</sup> - How and why errors are captured and propagated across microservices boundaries
@@ -34,6 +36,7 @@ Go into the details with these technical deep dives:
 This milestone is taking several shortcuts that will be addressed in future releases:
 
 * The timeouts for the `OnStartup` and `OnShutdown` callbacks are hard-coded to `time.Minute`
+* The network hop duration is hard-coded to `250 * time.Millisecond`
 * The NATS server URL is hard-coded to localhost `nats://127.0.0.1:4222`
 * The logger is quite basic
 
