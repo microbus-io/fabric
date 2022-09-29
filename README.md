@@ -31,10 +31,10 @@ Review each of the major project packages to get oriented in the code structure:
 * [errors](docs/structure/errors.md) <sup style="color:orange">new</sup> - An enhancement of the standard Go's `errors` package 
 * [examples](docs/structure/examples.md) - Demo microservices 
 * [frame](docs/structure/frame.md) <sup style="color:orange">new</sup> - A utility for type-safe manipulation of the HTTP control headers used by the framework
-* [pub](docs/structure/pub.mdd) <sup style="color:orange">new</sup> - Options for publishing requests
-* [rand](docs/structure/rand.mdd) - A utility for generating random numbers
+* [pub](docs/structure/pub.md) <sup style="color:orange">new</sup> - Options for publishing requests
+* [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy service
-* [sub](docs/structure/sub.mdd) <sup style="color:orange">new</sup> - Options for subscribing to handle requests
+* [sub](docs/structure/sub.md) <sup style="color:orange">new</sup> - Options for subscribing to handle requests
 
 Go into the details with these technical deep dives:
 

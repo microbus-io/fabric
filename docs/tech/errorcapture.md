@@ -37,18 +37,18 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-    return nil
+	return nil
 }
 
 func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-    err := UserCodeHandler(w, r)
-    if err != nil {
+	err := UserCodeHandler(w, r)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(fmt.Sprintf("%+v", err))
-        log.LogError(err)
-        metrics.IncrementErrorCount(1)
-        return
-    }
+		log.LogError(err)
+		metrics.IncrementErrorCount(1)
+		return
+	}
 }
 ```
 
@@ -62,10 +62,10 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-    err := catchPanic(func() error {return UserCodeHandler(w, r)})
-    if err != nil {
-        ...
-    }
+	err := catchPanic(func() error {return UserCodeHandler(w, r)})
+	if err != nil {
+		...
+	}
 }
 ```
 
@@ -78,17 +78,17 @@ import "github.com/microbus-io/errors"
 
 func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	err := doSomething()
-    if err != nil {
-        return errors.Trace(err)
-    }
-    return nil
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }
 
 func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-    err := catchPanic(func() error {return UserCodeHandler(w, r)})
-    if err != nil {
-        ...
-    }
+	err := catchPanic(func() error {return UserCodeHandler(w, r)})
+	if err != nil {
+		...
+	}
 }
 ```
 
@@ -115,10 +115,10 @@ Microservices run in different processes, often on different hardware or even ge
 
 ```go
 func (s *Service) MyEndpoint(w http.ResponseWriter, r *http.Request) error {
-    response, err := s.Request(GET("https://another.service/objects")) // Remote call
-    if err != nil {
-        return errors.Trace(err)
-    }
+	response, err := s.Request(GET("https://another.service/objects")) // Remote call
+	if err != nil {
+		return errors.Trace(err)
+	}
 }
 ```
 

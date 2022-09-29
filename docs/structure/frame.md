@@ -11,11 +11,11 @@ import "github.com/microbus-io/fabric/connector"
 import "github.com/microbus-io/fabric/frame"
 
 type Service struct {
-    *connector.Connector
+	*connector.Connector
 }
 
 func (s *Service) Foo(w http.ResponseWriter, r *http.Request) error {
-    callerHost := frame.Of(r).FromHost() // equivalent to r.Header.Get(frame.HeaderFromHost)
-    callerID := frame.Of(r).FromID()     // equivalent to r.Header.Get(frame.HeaderFromId)
+	callerHost := frame.Of(r).FromHost() // equivalent to r.Header.Get(frame.HeaderFromHost)
+	callerID := frame.Of(r).FromID()     // equivalent to r.Header.Get(frame.HeaderFromId)
 }
 ```

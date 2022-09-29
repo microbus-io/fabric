@@ -9,18 +9,18 @@ import "github.com/microbus-io/fabric/connector"
 import "github.com/microbus-io/fabric/pub"
 
 type Service struct {
-    *connector.Connector
+	*connector.Connector
 }
 
 func (s *Service) Foo(w http.ResponseWriter, r *http.Request) error {
-    barReply, err := s.Publish(
-        pub.GET("https://another.svc/bar"),
-        pub.Body("foo"),
-    )
-    if err!=nil {
-        return err
-    }
-    w.Write([]("bar"))
-    return nil
+	barReply, err := s.Publish(
+		pub.GET("https://another.svc/bar"),
+		pub.Body("foo"),
+	)
+	if err!=nil {
+		return err
+	}
+	w.Write([]("bar"))
+	return nil
 }
 ```

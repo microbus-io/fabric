@@ -33,7 +33,7 @@ import "fmt"
 import "github.com/microbus-io/errors"
 
 func main() {
-    a()
+	a()
 }
 
 func a() {
