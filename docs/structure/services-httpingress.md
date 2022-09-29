@@ -10,3 +10,5 @@ http.ingress.proxy:
 ```
 
 Learn more in the [technical deep dive](../tech/httpingress.md).
+
+The HTTP ingress proxy also sets the [time budget](../tech/timebudget.md) for incoming requests using the `TimeBudget` configuration property. The default budget is 20 secs.

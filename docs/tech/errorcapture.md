@@ -115,7 +115,7 @@ Microservices run in different processes, often on different hardware or even ge
 
 ```go
 func (s *Service) MyEndpoint(w http.ResponseWriter, r *http.Request) error {
-	response, err := s.Request(GET("https://another.service/objects")) // Remote call
+	response, err := s.Publish(pub.GET("https://another.service/objects")) // Remote call
 	if err != nil {
 		return errors.Trace(err)
 	}
