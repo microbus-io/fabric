@@ -16,7 +16,7 @@
 * HTTP request/response messaging over NATS
 * HTTP ingress proxy
 
-Milestone 2 <sup style="color:orange">new</sup>:
+[Milestone 2](https://github.com/microbus-io/fabric/tree/milestone/2) <sup style="color:orange">new</sup>:
 
 * Error capture and propagation
 * Time budget for requests
@@ -44,7 +44,7 @@ Go into the details with these technical deep dives:
 * [Error capture](docs/tech/errorcapture.md) <sup style="color:orange">new</sup> - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](docs/tech/timebudget.md) <sup style="color:orange">new</sup> - The proper way to handle request timeouts
 
-## Shortcuts
+## Cutting Some Corners
 
 This milestone is taking several shortcuts that will be addressed in future releases:
 
