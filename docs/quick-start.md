@@ -1,10 +1,20 @@
 # Quick Start
 
+## Clone the Project
+
+Fetch the code:
+
+```cmd
+mkdir github.com/microbus-io
+cd github.com/microbus-io
+git clone https://github.com/microbus-io/fabric
+```
+
 ## Install and Run NATS
 
 From the root folder of this project:
 
-```
+```cmd
 go get github.com/nats-io/nats-server
 go build github.com/nats-io/nats-server
 ./nats-server -D -V
@@ -14,23 +24,24 @@ It's recommended to start the NATS server in a separate terminal window to bette
 
 ## Run the Examples
 
-To run the examples:
+Run the examples:
 
-```
+```cmd
 cd examples/main
 go run main.go
 ```
 
-This sets the working directory to `examples/main` and makes sure that the `examples/main/env.yaml` file is located.
+It is important to set the working directory to `examples/main` so that the `examples/main/env.yaml` file is located.
 
-If you're using Visual Studio Code, you may alternatively open or focus on `examples/main/main.go` and press `F5`.
+If you're using Visual Studio Code, simply press `F5`. The `.vscode/launch.json` file includes a launch configuration for running `examples/main`.
 
 Try the following URLs in your browser:
 
 * http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=8
 * http://localhost:8080/calculator.example/square?x=5
+* http://localhost:8080/calculator.example/square?x=not-a-number
 * http://localhost:8080/echo.example/echo
 * http://localhost:8080/echo.example/who
 * http://localhost:8080/helloworld.example/hello?name=Gopher
 
-Feel free to play with the query arguments.
+Feel free to experiment with different values for the query arguments.

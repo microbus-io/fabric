@@ -14,6 +14,11 @@ type TracedError struct {
 	stack []*trace
 }
 
+// Unwrap returns the underlying error
+func (e *TracedError) Unwrap() error {
+	return e.error
+}
+
 // String returns a string representation of the error
 func (e *TracedError) String() string {
 	var b strings.Builder
@@ -54,7 +59,8 @@ func (e *TracedError) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Format the error based on the verb and flag
+// Format the error based on the verb and flag.
+// Implements the fmt.Formatter interface
 func (e *TracedError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':

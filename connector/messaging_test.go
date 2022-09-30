@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -323,4 +324,56 @@ func TestConnector_Timeout(t *testing.T) {
 	)
 	assert.Error(t, err)
 	assert.True(t, depth > 1 && depth <= int(budget/alpha.networkHop))
+}
+
+func TestConnector_ErrorAndPanic(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.error.connector")
+
+	beta := NewConnector()
+	beta.SetHostName("beta.error.connector")
+	beta.Subscribe("err", func(w http.ResponseWriter, r *http.Request) error {
+		return errors.New("it's bad")
+	})
+	beta.Subscribe("panic", func(w http.ResponseWriter, r *http.Request) error {
+		panic("it's really bad")
+	})
+	beta.Subscribe("oserr", func(w http.ResponseWriter, r *http.Request) error {
+		err := errors.Trace(os.ErrNotExist)
+		assert.True(t, errors.Is(err, os.ErrNotExist))
+		return err
+	})
+	beta.Subscribe("stillalive", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+
+	// Send messages
+	_, err = alpha.GET(ctx, "https://beta.error.connector/err")
+	assert.Error(t, err)
+	assert.Equal(t, "it's bad", err.Error())
+
+	_, err = alpha.GET(ctx, "https://beta.error.connector/panic")
+	assert.Error(t, err)
+	assert.Equal(t, "it's really bad", err.Error())
+
+	_, err = alpha.GET(ctx, "https://beta.error.connector/oserr")
+	assert.Error(t, err)
+	assert.Equal(t, "file does not exist", err.Error())
+	assert.False(t, errors.Is(err, os.ErrNotExist)) // Cannot reconstitute error type
+
+	_, err = alpha.GET(ctx, "https://beta.error.connector/stillalive")
+	assert.NoError(t, err)
 }

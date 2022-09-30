@@ -13,7 +13,8 @@ import (
 // HTTPHandler extends the standard Go's http.Handler with an error
 type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
 
-// Subscription handles incoming requests
+// Subscription handles incoming requests.
+// Although technically public, it is used internally and should not be constructed by microservices directly
 type Subscription struct {
 	Host    string
 	Port    int

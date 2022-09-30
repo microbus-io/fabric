@@ -14,10 +14,11 @@ import (
 /*
 main runs the example microservices.
 
-Try the following links:
+Try the following URLs:
 
 	http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=8
 	http://localhost:8080/calculator.example/square?x=5
+	http://localhost:8080/calculator.example/square?x=not-a-number
 	http://localhost:8080/echo.example/echo
 	http://localhost:8080/echo.example/who
 	http://localhost:8080/helloworld.example/hello?name=Gopher

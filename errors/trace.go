@@ -10,7 +10,7 @@ type trace struct {
 	File        string   `json:"file"`
 	Function    string   `json:"function"`
 	Line        int      `json:"line"`
-	Annotations []string `json:"annotations"`
+	Annotations []string `json:"annotations,omitempty"`
 }
 
 // String returns a string representation of the trace

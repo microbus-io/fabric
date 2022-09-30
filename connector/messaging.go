@@ -223,6 +223,8 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	if handlerErr != nil {
 		handlerErr = errors.Trace(handlerErr, fmt.Sprintf("%s:%d%s", s.Host, s.Port, s.Path))
+		c.LogError(handlerErr)
+
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()
 		frame.Of(httpRecorder).SetMessageID(msgID)
@@ -230,7 +232,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		frame.Of(httpRecorder).SetFromID(c.id)
 		frame.Of(httpRecorder).SetOpCode(frame.OpCodeError)
 		httpRecorder.Header().Set("Content-Type", "application/json")
-		body, err := json.Marshal(handlerErr)
+		body, err := json.MarshalIndent(handlerErr, "", "\t")
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -271,7 +273,7 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func (c *Connector) Subscribe(path string, handler sub.HTTPHandler) error {
+func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error {
 	if c.hostName == "" {
 		return errors.New("host name is not set")
 	}

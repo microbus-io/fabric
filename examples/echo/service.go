@@ -7,6 +7,7 @@ import (
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 )
 
 // Service is an echo microservice
@@ -40,7 +41,11 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) error {
 // Who prints the identity of this microservice
 func (s *Service) Who(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/plain")
-	msg := fmt.Sprintf("Handled by instance %s of host %s\n\nRefresh the page to try again", s.ID(), s.HostName())
+	msg := fmt.Sprintf(`
+Request from instance %s of host %s
+Handled by instance %s of host %s
+
+Refresh the page to try again`, frame.Of(r).FromID(), frame.Of(r).FromHost(), s.ID(), s.HostName())
 	w.Write([]byte(msg))
 	return nil
 }
