@@ -8,11 +8,11 @@ The common practice is to set a timeout on a point-to-point basis, between each 
 
 In this first example, microservice `X` is setting a shorter timeout than microservice `Y`, resulting in microservice `Z` performing work that is no longer needed.
 
-<img src="timebudget-1.svg">
+<img src="timebudget-1.svg" width="490">
 
 In the second example, all microservices set a 1 minute timeout. Nevertheless, microservice `W` times out while microservice `Z` is still working. There is no way to tell microservice `Z` to stop.
 
-<img src="timebudget-2.svg">
+<img src="timebudget-2.svg" width="490">
 
 In both cases the issue stems from the fact that upstream services do not have visibility into what's happening down stream.
 
@@ -24,7 +24,7 @@ The naive way to implement a time budget is to pass along a timestamp by which t
 
 In the following example, microservices `Y` will have completed its work at the 45 sec mark while microservices `Z`, `X` and `W` will have all timed out at the 60 sec mark.
 
-<img src="timebudget-3.svg">
+<img src="timebudget-3.svg" width="490">
 
 If you look closely at the code you'll notice that the budget is decreased somewhat with each hop. This compensates for the network latency.
 

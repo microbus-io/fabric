@@ -1,4 +1,4 @@
-# Encapsulaton Pattern
+# Encapsulation Pattern
 
 The `Microbus` framework aims to provide a consistent experience to developers, the users of the framework. It is opinionated about the interfaces (APIs) that are exposed to the developer and therefore opts to encapsulate underlying technologies behind its own interfaces.
 
