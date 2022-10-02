@@ -123,7 +123,7 @@ func (c *Connector) Shutdown() error {
 		if sub.NATSSub != nil {
 			err := sub.NATSSub.Unsubscribe()
 			if err != nil {
-				returnErr = err
+				returnErr = errors.Trace(err)
 				c.LogError(err)
 			}
 			sub.NATSSub = nil
@@ -138,7 +138,7 @@ func (c *Connector) Shutdown() error {
 			return c.onShutdown(ctx)
 		})
 		if err != nil {
-			returnErr = err
+			returnErr = errors.Trace(err)
 			c.LogError(err)
 		}
 	}
@@ -147,7 +147,7 @@ func (c *Connector) Shutdown() error {
 	if c.natsReplySub != nil {
 		err := c.natsReplySub.Unsubscribe()
 		if err != nil {
-			returnErr = err
+			returnErr = errors.Trace(err)
 			c.LogError(err)
 		}
 		c.natsReplySub = nil
@@ -159,7 +159,7 @@ func (c *Connector) Shutdown() error {
 		c.natsConn = nil
 	}
 
-	return errors.Trace(returnErr)
+	return returnErr
 }
 
 // IsStarted indicates if the microservice has been successfully started

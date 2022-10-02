@@ -97,7 +97,8 @@ func (c *Connector) HostName() string {
 // Valid values are:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine
+// LOCAL when developing on the local machine;
+// UNITTEST when running inside a testing app
 func (c *Connector) Deployment() string {
 	return c.deployment
 }
@@ -109,13 +110,14 @@ func (c *Connector) Deployment() string {
 // Valid values are:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine
+// LOCAL when developing on the local machine;
+// UNITTEST when running inside a testing app
 func (c *Connector) SetDeployment(deployment string) error {
 	if c.started {
 		return errors.New("already started")
 	}
 	deployment = strings.ToUpper(deployment)
-	if deployment != "" && deployment != "PROD" && deployment != "LAB" && deployment != "LOCAL" {
+	if deployment != "" && deployment != "PROD" && deployment != "LAB" && deployment != "LOCAL" && deployment != "UNITTEST" {
 		return errors.Newf("invalid deployment: %s", deployment)
 	}
 	c.deployment = deployment
