@@ -133,7 +133,7 @@ func (c *Connector) makeHTTPRequest(req *http.Request) (*http.Response, error) {
 		}
 		port = int(port64)
 	}
-	subject := subjectOfRequest(req.URL.Hostname(), port, req.URL.Path)
+	subject := subjectOfRequest(c.plane, req.URL.Hostname(), port, req.URL.Path)
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -246,7 +246,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.natsConn.Publish(subjectOfReply(fromHost, fromId), buf.Bytes())
+	err = c.natsConn.Publish(subjectOfReply(c.plane, fromHost, fromId), buf.Bytes())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -297,7 +297,7 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	var err error
-	s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.hostName, s.Port, s.Path), c.hostName, func(msg *nats.Msg) {
+	s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), c.hostName, func(msg *nats.Msg) {
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {

@@ -19,25 +19,25 @@ func TestConnector_EncodePath(t *testing.T) {
 }
 
 func TestConnector_SubjectOfSubscription(t *testing.T) {
-	assert.Equal(t, "80.com.example.|.PATH.to.file_html", subjectOfSubscription("EXAMPLE.com", 80, "PATH/to/file.html"))
-	assert.Equal(t, "123.com.example.|.DIR.>", subjectOfSubscription("example.com", 123, "DIR/"))
-	assert.Equal(t, "123.com.example.|.DIR.>", subjectOfSubscription("example.com", 123, "/DIR/"))
-	assert.Equal(t, "443.com.example.www.|.>", subjectOfSubscription("www.example.com", 443, "/"))
-	assert.Equal(t, "443.com.example.www.|._", subjectOfSubscription("www.example.com", 443, ""))
+	assert.Equal(t, "p0.80.com.example.|.PATH.to.file_html", subjectOfSubscription("p0", "EXAMPLE.com", 80, "PATH/to/file.html"))
+	assert.Equal(t, "p0.123.com.example.|.DIR.>", subjectOfSubscription("p0", "example.com", 123, "DIR/"))
+	assert.Equal(t, "p0.123.com.example.|.DIR.>", subjectOfSubscription("p0", "example.com", 123, "/DIR/"))
+	assert.Equal(t, "p0.443.com.example.www.|.>", subjectOfSubscription("p0", "www.example.com", 443, "/"))
+	assert.Equal(t, "p0.443.com.example.www.|._", subjectOfSubscription("p0", "www.example.com", 443, ""))
 }
 
 func TestConnector_SubjectOfRequest(t *testing.T) {
-	assert.Equal(t, "80.com.example.|.PATH.to.file_html", subjectOfRequest("EXAMPLE.com", 80, "PATH/to/file.html"))
-	assert.Equal(t, "123.com.example.|.DIR._", subjectOfRequest("example.com", 123, "DIR/"))
-	assert.Equal(t, "123.com.example.|.DIR._", subjectOfRequest("example.com", 123, "/DIR/"))
-	assert.Equal(t, "443.com.example.www.|._", subjectOfRequest("www.example.com", 443, "/"))
-	assert.Equal(t, "443.com.example.www.|._", subjectOfRequest("www.example.com", 443, ""))
+	assert.Equal(t, "p0.80.com.example.|.PATH.to.file_html", subjectOfRequest("p0", "EXAMPLE.com", 80, "PATH/to/file.html"))
+	assert.Equal(t, "p0.123.com.example.|.DIR._", subjectOfRequest("p0", "example.com", 123, "DIR/"))
+	assert.Equal(t, "p0.123.com.example.|.DIR._", subjectOfRequest("p0", "example.com", 123, "/DIR/"))
+	assert.Equal(t, "p0.443.com.example.www.|._", subjectOfRequest("p0", "www.example.com", 443, "/"))
+	assert.Equal(t, "p0.443.com.example.www.|._", subjectOfRequest("p0", "www.example.com", 443, ""))
 }
 
 func TestConnector_SubjectOfReply(t *testing.T) {
-	assert.Equal(t, "r.com.example.1234", subjectOfReply("example.com", "1234"))
-	assert.Equal(t, "r.com.example.www.abcd1234", subjectOfReply("www.example.com", "abcd1234"))
-	assert.Equal(t, "r.com.example.www.abcd1234", subjectOfReply("www.EXAMPLE.com", "ABCD1234"))
+	assert.Equal(t, "p0.r.com.example.1234", subjectOfReply("p0", "example.com", "1234"))
+	assert.Equal(t, "p0.r.com.example.www.abcd1234", subjectOfReply("p0", "www.example.com", "abcd1234"))
+	assert.Equal(t, "p0.r.com.example.www.abcd1234", subjectOfReply("p0", "www.EXAMPLE.com", "ABCD1234"))
 }
 
 func TestConnector_ReverseHostName(t *testing.T) {

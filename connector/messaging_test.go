@@ -377,3 +377,52 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 	_, err = alpha.GET(ctx, "https://beta.error.connector/stillalive")
 	assert.NoError(t, err)
 }
+
+func TestConnector_DifferentPlanes(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("diffplanes.connector")
+	alpha.SetPlane("alpha")
+	alpha.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("alpha"))
+		return nil
+	})
+
+	beta := NewConnector()
+	beta.SetHostName("diffplanes.connector")
+	beta.SetPlane("beta")
+	beta.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("beta"))
+		return nil
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+
+	// Alpha should never see beta
+	for i := 0; i < 32; i++ {
+		response, err := alpha.GET(ctx, "https://diffplanes.connector/id")
+		assert.NoError(t, err)
+		body, err := io.ReadAll(response.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte("alpha"), body)
+	}
+
+	// Beta should never see alpha
+	for i := 0; i < 32; i++ {
+		response, err := beta.GET(ctx, "https://diffplanes.connector/id")
+		assert.NoError(t, err)
+		body, err := io.ReadAll(response.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte("beta"), body)
+	}
+}

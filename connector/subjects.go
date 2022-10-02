@@ -18,16 +18,18 @@ func reverseHostName(hostName string) string {
 }
 
 // subjectOfReply is the NATS subject where a microservice subscribes to receive replies.
-// For the host example.com with ID a1b2c3d4 that subject looks like r.com.example.a1b2c3d4
-func subjectOfReply(hostName string, id string) string {
-	return "r." + strings.ToLower(reverseHostName(hostName)) + "." + strings.ToLower(id)
+// For the host example.com with ID a1b2c3d4 that subject looks like microbus.r.com.example.a1b2c3d4
+func subjectOfReply(plane string, hostName string, id string) string {
+	return plane + ".r." + strings.ToLower(reverseHostName(hostName)) + "." + strings.ToLower(id)
 }
 
-// subjectOfSubscription is the NATS subject where a microserve subscribes to receive incoming requests for a given path.
-// For the URL http://example.com:80/PATH/file.html that subject is 80.com.example.|.PATH.file_html .
-// For a URL to that ends with a / such as https://example.com/dir/ the subject is 443.com.example.|.dir.>
-func subjectOfSubscription(hostName string, port int, path string) string {
+// subjectOfSubscription is the NATS subject where a microservice subscribes to receive incoming requests for a given path.
+// For the URL http://example.com:80/PATH/file.html that subject is microbus.80.com.example.|.PATH.file_html .
+// For a URL to that ends with a / such as https://example.com/dir/ the subject is microbus.443.com.example.|.dir.>
+func subjectOfSubscription(plane string, hostName string, port int, path string) string {
 	var b strings.Builder
+	b.WriteString(plane)
+	b.WriteRune('.')
 	b.WriteString(strconv.Itoa(port))
 	b.WriteRune('.')
 	b.WriteString(strings.ToLower(reverseHostName(hostName)))
@@ -44,12 +46,12 @@ func subjectOfSubscription(hostName string, port int, path string) string {
 	return b.String()
 }
 
-// subjectOfRequest is the NATS subject where a microserve published an outgoing requests for a given path.
-// For the URL http://example.com:80/PATH/file.html that subject looks like 80.com.example.|.PATH.file_html .
-// For a URL to that ends with a / such as https://example.com/dir/ the subject is 443.com.example.|.dir._
-// so that it is captured by the corresponding subscription 443.com.example.|.dir.>
-func subjectOfRequest(hostName string, port int, path string) string {
-	subject := subjectOfSubscription(hostName, port, path)
+// subjectOfRequest is the NATS subject where a microservice published an outgoing requests for a given path.
+// For the URL http://example.com:80/PATH/file.html that subject looks like microbus.80.com.example.|.PATH.file_html .
+// For a URL to that ends with a / such as https://example.com/dir/ the subject is microbus.443.com.example.|.dir._
+// so that it is captured by the corresponding subscription microbus.443.com.example.|.dir.>
+func subjectOfRequest(plane string, hostName string, port int, path string) string {
+	subject := subjectOfSubscription(plane, hostName, port, path)
 	if strings.HasSuffix(subject, ">") {
 		subject = strings.TrimSuffix(subject, ">") + "_"
 	}
