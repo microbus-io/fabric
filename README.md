@@ -1,4 +1,4 @@
-# Microbus.io fabric : Milestone 2
+# Microbus.io fabric : Milestone 3
 
 <img src="docs\gopher-on-bus.png" width=256>
 
@@ -6,7 +6,7 @@
 
 `Microbus` is a framework for the development, deployment and operation of microservices in Go. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices.
 
-`fabric` is the main project that provides the core capabilities that all `Microbus` microservices require. Every milestone of this project will be released separately in order to demonstrate the thinking process behind the building of this framework. This is the second milestone.
+`fabric` is the main project that provides the core capabilities that all `Microbus` microservices require. Every milestone of this project will be released separately in order to demonstrate the thinking process behind the building of this framework. This is the third milestone.
 
 [Milestone 1](https://github.com/microbus-io/fabric/tree/milestone/1):
 
@@ -16,10 +16,17 @@
 * HTTP request/response messaging over NATS
 * HTTP ingress proxy
 
-[Milestone 2](https://github.com/microbus-io/fabric/tree/milestone/2) <sup style="color:orange">new</sup>:
+[Milestone 2](https://github.com/microbus-io/fabric/tree/milestone/2):
 
 * Error capture and propagation
 * Time budget for requests
+
+[Milestone 3](https://github.com/microbus-io/fabric/tree/milestone/2) <sup style="color:orange">new</sup>:
+
+* `Application` construct to group microservices
+* NATS connection settings
+* Deployment environment indicator (PROD, LAB, LOCAL, UNITTEST)
+* Plane of communication
 
 ## Documentation
 
@@ -27,22 +34,25 @@
 
 Review each of the major project packages to get oriented in the code structure:
 
-* [connector](docs/structure/connector.md) - The primary construct of the framework and the basis for all microservices
-* [errors](docs/structure/errors.md) <sup style="color:orange">new</sup> - An enhancement of the standard Go's `errors` package 
+* [application](docs/structure/application.md) <sup style="color:orange">new</sup> - A collector of microservices that run in a single process and share the same lifecycle
+* [connector](docs/structure/connector.md) <sup style="color:orange">updated</sup> - The primary construct of the framework and the basis for all microservices
+* [errors](docs/structure/errors.md) - An enhancement of the standard Go's `errors` package 
 * [examples](docs/structure/examples.md) - Demo microservices 
-* [frame](docs/structure/frame.md) <sup style="color:orange">new</sup> - A utility for type-safe manipulation of the HTTP control headers used by the framework
-* [pub](docs/structure/pub.md) <sup style="color:orange">new</sup> - Options for publishing requests
+* [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
+* [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy service
-* [sub](docs/structure/sub.md) <sup style="color:orange">new</sup> - Options for subscribing to handle requests
+* [sub](docs/structure/sub.md) - Options for subscribing to handle requests
 
 Go into the details with these technical deep dives:
 
-* [Messaging](docs/tech/messaging.md) - How HTTP-like request/response pattern is achieved over the NATS messaging bus
+* [Messaging](docs/tech/messaging.md) <sup style="color:orange">updated</sup> - How HTTP-like request/response pattern is achieved over the NATS messaging bus
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
-* [Error capture](docs/tech/errorcapture.md) <sup style="color:orange">new</sup> - How and why errors are captured and propagated across microservices boundaries
-* [Time budget](docs/tech/timebudget.md) <sup style="color:orange">new</sup> - The proper way to handle request timeouts
+* [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
+* [Time budget](docs/tech/timebudget.md) - The proper way to handle request timeouts
+* [Environment variables](docs/tech/envars.md) <sup style="color:orange">new</sup> - A catalog of the environment variables used by the framework
+* [NATS connection settings](docs/tech/natsconnection.md) <sup style="color:orange">new</sup> - How to configure microservices to connect to NATS
 
 ## Cutting Some Corners
 
@@ -50,8 +60,7 @@ This milestone is taking several shortcuts that will be addressed in future rele
 
 * The timeouts for the `OnStartup` and `OnShutdown` callbacks are hard-coded to `time.Minute`
 * The network hop duration is hard-coded to `250 * time.Millisecond`
-* The NATS server URL is hard-coded to localhost `nats://127.0.0.1:4222`
-* The logger is quite basic
+* The logger is rudimentary
 
 ## More to Explore
 
@@ -61,3 +70,4 @@ A few suggestions for self-guided exploration:
 * Modify `examples/main/env.yaml` and witness the impact on the `helloworld.example` microservice
 * Add an endpoint `/calculate` to the `calculator.example` microservice that operates on decimal numbers, not just integers
 * Create your own microservice from scratch and add it to `examples/main/main.go`
+* Put a breakpoint in any of the microservices of the example application and try debugging
