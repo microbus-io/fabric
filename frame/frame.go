@@ -18,6 +18,7 @@ const (
 	HeaderTimestamp  = HeaderPrefix + "Timestamp"
 
 	OpCodeError = "Err"
+	OpCodeAck   = "Ack"
 )
 
 // Frame is a utility class that helps with manipulating the control headers

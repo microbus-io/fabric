@@ -80,7 +80,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.R
 		return nil, errors.Trace(err)
 	}
 
-	// Reconstitude the error if an error op code is returned
+	// Reconstitute the error if an error op code is returned
 	if frame.Of(httpRes).OpCode() == frame.OpCodeError {
 		var tracedError errors.TracedError
 		body, err := io.ReadAll(httpRes.Body)
@@ -156,6 +156,12 @@ func (c *Connector) onReply(msg *nats.Msg) {
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
 		c.LogError(err)
+		return
+	}
+
+	// TEMP: Ignore acks
+	opCode := frame.Of(response).OpCode()
+	if opCode == frame.OpCodeAck {
 		return
 	}
 
@@ -298,6 +304,10 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	var err error
 	s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), c.hostName, func(msg *nats.Msg) {
+		err := c.ackRequest(msg, s)
+		if err != nil {
+			c.LogError(err)
+		}
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {
@@ -306,4 +316,42 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 		}()
 	})
 	return errors.Trace(err)
+}
+
+// ackRequest sends an ack response back to the caller.
+// Acks are sent as soon as a request is received to let the caller know it is
+// being processed
+func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
+	// Parse only the headers of the request
+	headerData := msg.Data
+	eoh := bytes.Index(headerData, []byte("\r\n\r\n"))
+	if eoh >= 0 {
+		headerData = headerData[:eoh+4]
+	}
+	httpReq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(headerData)))
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Get return address
+	fromHost := frame.Of(httpReq).FromHost()
+	fromID := frame.Of(httpReq).FromID()
+	msgID := frame.Of(httpReq).MessageID()
+
+	// Prepare and send the reply
+	var buf bytes.Buffer
+	buf.WriteString("HTTP/1.1 202 Accepted\r\n")
+	buf.WriteString("Connection: close\r\n")
+	buf.WriteString("Microbus-Op-Code: " + frame.OpCodeAck + "\r\n")
+	buf.WriteString("Microbus-From-Host: " + c.hostName + "\r\n")
+	buf.WriteString("Microbus-From-Id: " + c.id + "\r\n")
+	buf.WriteString("Microbus-Msg-Id: " + msgID + "\r\n")
+	buf.WriteString("\r\n")
+
+	err = c.natsConn.Publish(subjectOfReply(c.plane, fromHost, fromID), buf.Bytes())
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
 }
