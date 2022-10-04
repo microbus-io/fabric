@@ -34,6 +34,13 @@ func (c *Connector) Startup() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// Create logger
+	err = c.createLogger()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	c.logConfigs()
 
 	// Communication plane default
@@ -153,6 +160,9 @@ func (c *Connector) Shutdown() error {
 		}
 		c.natsReplySub = nil
 	}
+
+	// Remove logger
+	err = c.removeLogger()
 
 	// Disconnect from NATS
 	if c.natsConn != nil {

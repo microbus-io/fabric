@@ -15,6 +15,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
@@ -161,7 +162,7 @@ func (c *Connector) onReply(msg *nats.Msg) {
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
-		c.LogError(err)
+		c.LogError(context.Background(), "Failed to parse response", err)
 		return
 	}
 
@@ -171,13 +172,13 @@ func (c *Connector) onReply(msg *nats.Msg) {
 	ch, ok := c.reqs[msgID]
 	c.reqsLock.Unlock()
 	if !ok {
-		c.LogInfo("Response received after timeout: %s", msgID)
+		c.LogInfo(context.Background(), "Response received after timeout", log.String("messageId", msgID))
 		return
 	}
 	select {
 	case ch <- response:
 	default:
-		c.LogInfo("No listener on channel: %s", msgID)
+		c.LogInfo(context.Background(), "No listener on channel", log.String("messageId", msgID))
 	}
 }
 
@@ -228,7 +229,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	if handlerErr != nil {
 		handlerErr = errors.Trace(handlerErr, fmt.Sprintf("%s:%d%s", s.Host, s.Port, s.Path))
-		c.LogError(handlerErr)
+		c.LogError(context.Background(), "Handler error", handlerErr)
 
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()
@@ -306,7 +307,7 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {
-				c.LogError(err)
+				c.LogError(context.Background(), "Failed request", err)
 			}
 		}()
 	})

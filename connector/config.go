@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"context"
 	"os"
 	"sort"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -219,6 +221,12 @@ func (c *Connector) logConfigs() {
 
 	for _, k := range keys {
 		cfg := c.configs[k]
-		c.LogInfo("Config %s/%s defined in %s", cfg.scope, cfg.name, cfg.source)
+		c.LogInfo(
+			context.Background(),
+			"Config scope defined",
+			log.String("scope", cfg.scope),
+			log.String("name", cfg.name),
+			log.String("source", cfg.source),
+		)
 	}
 }

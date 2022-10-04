@@ -14,6 +14,7 @@ import (
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 )
 
 /*
@@ -45,6 +46,8 @@ type Connector struct {
 
 	configs    map[string]*config
 	configLock sync.Mutex
+
+	logger *zap.Logger
 }
 
 // NewConnector constructs a new Connector.
