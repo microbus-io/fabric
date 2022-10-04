@@ -99,8 +99,8 @@ func TestApplication_NoConflict(t *testing.T) {
 
 	// Assert different planes of communication
 	assert.NotEqual(t, alpha.Plane(), beta.Plane())
-	assert.Equal(t, "UNITTEST", alpha.Deployment())
-	assert.Equal(t, "UNITTEST", beta.Deployment())
+	assert.Equal(t, "LOCAL", alpha.Deployment())
+	assert.Equal(t, "LOCAL", beta.Deployment())
 
 	// Alpha should never see beta
 	for i := 0; i < 32; i++ {
