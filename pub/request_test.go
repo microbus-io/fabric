@@ -129,7 +129,6 @@ func TestPub_TimeBudget(t *testing.T) {
 	assert.NoError(t, err)
 	httpReq, err := req.ToHTTP()
 	assert.NoError(t, err)
-	budget, ok := frame.Of(httpReq).TimeBudget()
-	assert.True(t, ok)
-	assert.Equal(t, 20*time.Second, budget)
+	budget := frame.Of(httpReq).TimeBudget()
+	assert.True(t, budget <= 20*time.Second && budget >= 19*time.Second)
 }

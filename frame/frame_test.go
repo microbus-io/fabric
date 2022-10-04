@@ -74,15 +74,12 @@ func TestFrame_GetSet(t *testing.T) {
 	f.SetMessageID("")
 	assert.Equal(t, "", f.MessageID())
 
-	budget, ok := f.TimeBudget()
-	assert.False(t, ok)
+	budget := f.TimeBudget()
 	assert.Equal(t, time.Duration(0), budget)
 	f.SetTimeBudget(123 * time.Second)
-	budget, ok = f.TimeBudget()
-	assert.True(t, ok)
+	budget = f.TimeBudget()
 	assert.Equal(t, 123*time.Second, budget)
 	f.SetTimeBudget(0)
-	budget, ok = f.TimeBudget()
-	assert.False(t, ok)
+	budget = f.TimeBudget()
 	assert.Equal(t, time.Duration(0), budget)
 }

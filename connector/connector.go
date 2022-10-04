@@ -37,10 +37,11 @@ type Connector struct {
 	started      bool
 	plane        string
 
-	reqs         map[string]chan *http.Response
-	reqsLock     sync.Mutex
-	networkHop   time.Duration
-	maxCallDepth int
+	reqs              map[string]chan *http.Response
+	reqsLock          sync.Mutex
+	networkHop        time.Duration
+	maxCallDepth      int
+	defaultTimeBudget time.Duration
 
 	configs    map[string]*config
 	configLock sync.Mutex
@@ -49,12 +50,13 @@ type Connector struct {
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:              strings.ToLower(rand.AlphaNum32(10)),
-		reqs:            map[string]chan *http.Response{},
-		configs:         map[string]*config{},
-		networkHop:      250 * time.Millisecond,
-		maxCallDepth:    64,
-		callbackTimeout: time.Minute,
+		id:                strings.ToLower(rand.AlphaNum32(10)),
+		reqs:              map[string]chan *http.Response{},
+		configs:           map[string]*config{},
+		networkHop:        250 * time.Millisecond,
+		maxCallDepth:      64,
+		callbackTimeout:   time.Minute,
+		defaultTimeBudget: 20 * time.Second,
 	}
 	return c
 }

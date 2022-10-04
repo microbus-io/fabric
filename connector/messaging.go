@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -39,14 +40,23 @@ func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Respo
 
 // Publish makes an HTTP request then awaits and returns the response
 func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.Response, error) {
+	// Build the request
+	req, err := pub.NewRequest(options...)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
 	// Restrict the time budget to the context deadline
 	deadline, ok := ctx.Deadline()
 	if ok {
-		budget := time.Until(deadline)
-		if budget <= c.networkHop {
-			return nil, errors.New("timeout")
-		}
-		options = append(options, pub.TimeBudget(budget-c.networkHop))
+		req.Apply(pub.Deadline(deadline))
+	} else if req.Deadline.IsZero() {
+		// If no budget is set, use the default
+		req.Apply(pub.TimeBudget(c.defaultTimeBudget))
+	}
+	// Check if there's enough time budget
+	if !req.Deadline.After(time.Now().Add(-c.networkHop)) {
+		return nil, errors.New("timeout")
 	}
 
 	// Limit number of hops
@@ -54,36 +64,26 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.R
 	if depth >= c.maxCallDepth {
 		return nil, errors.New("call depth overflow")
 	}
+	frame.Of(req.Header).SetCallDepth(depth + 1)
 
-	// Prepare the HTTP request
-	req, err := pub.NewRequest(options...)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-	httpReq, err := req.ToHTTP()
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+	// Set return address
+	frame.Of(req.Header).SetFromHost(c.hostName)
+	frame.Of(req.Header).SetFromID(c.id)
 
-	// Check if there's enough time budget
-	budget, ok := frame.Of(httpReq).TimeBudget()
-	if ok && budget <= 0 {
-		return nil, errors.New("timeout")
-	}
-
-	// Increment the call depth
-	frame.Of(httpReq).SetCallDepth(depth + 1)
-
-	// Make the HTTP request
-	httpRes, err := c.makeHTTPRequest(httpReq)
+	// Make the request
+	httpRes, err := c.makeHTTPRequest(req)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	// Reconstitude the error if an error op code is returned
+	// Reconstitute the error if an error op code is returned
 	if frame.Of(httpRes).OpCode() == frame.OpCodeError {
 		var tracedError errors.TracedError
 		body, err := io.ReadAll(httpRes.Body)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		u, err := url.Parse(req.URL)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
@@ -91,19 +91,23 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.R
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
-		return nil, errors.Trace(&tracedError, c.hostName+" -> "+httpReq.URL.Hostname())
+		return nil, errors.Trace(&tracedError, c.hostName+" -> "+u.Hostname())
 	}
 
 	return httpRes, nil
 }
 
 // makeHTTPRequest makes an HTTP request then awaits and returns the response
-func (c *Connector) makeHTTPRequest(req *http.Request) (*http.Response, error) {
-	// Set a random message ID and the return address
+func (c *Connector) makeHTTPRequest(req *pub.Request) (*http.Response, error) {
+	// Set a random message ID
 	msgID := rand.AlphaNum64(8)
-	frame.Of(req).SetMessageID(msgID)
-	frame.Of(req).SetFromHost(c.hostName)
-	frame.Of(req).SetFromID(c.id)
+	frame.Of(req.Header).SetMessageID(msgID)
+
+	// Prepare the HTTP request
+	httpReq, err := req.ToHTTP()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 
 	// Create a channel to await on
 	awaitCh := make(chan *http.Response)
@@ -117,30 +121,32 @@ func (c *Connector) makeHTTPRequest(req *http.Request) (*http.Response, error) {
 	}()
 
 	// Send the message
-	var buf bytes.Buffer
-	err := req.Write(&buf)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
 	port := 443
-	if req.URL.Scheme == "http" {
+	if httpReq.URL.Scheme == "http" {
 		port = 80
 	}
-	if req.URL.Port() != "" {
-		port64, err := strconv.ParseInt(req.URL.Port(), 10, 32)
+	if httpReq.URL.Port() != "" {
+		port64, err := strconv.ParseInt(httpReq.URL.Port(), 10, 32)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 		port = int(port64)
 	}
-	subject := subjectOfRequest(c.plane, req.URL.Hostname(), port, req.URL.Path)
+	subject := subjectOfRequest(c.plane, httpReq.URL.Hostname(), port, httpReq.URL.Path)
+
+	var buf bytes.Buffer
+	err = httpReq.Write(&buf)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	// Await and return the response
-	timeoutTimer := time.NewTimer(time.Minute)
+	budget := time.Until(req.Deadline)
+	timeoutTimer := time.NewTimer(budget)
 	defer timeoutTimer.Stop()
 	select {
 	case response := <-awaitCh:
@@ -192,20 +198,19 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	fromHost := frame.Of(httpReq).FromHost()
 	fromId := frame.Of(httpReq).FromID()
 	msgID := frame.Of(httpReq).MessageID()
-	budget, budgetOK := frame.Of(httpReq).TimeBudget()
+
+	// Time budget
+	budget := frame.Of(httpReq).TimeBudget()
+	if budget <= c.networkHop {
+		return errors.New("timeout")
+	}
 
 	// Prepare the context
-	ctx := context.WithValue(context.Background(), frame.ContextKey, httpReq.Header)
+	// Set the context's timeout to the time budget reduced by a network hop
 	var cancel context.CancelFunc
-	if budgetOK {
-		// Check if there's enough time budget
-		if budget <= 0 {
-			return errors.New("timeout")
-		}
-		// Set the time budget as the context's timeout
-		ctx, cancel = context.WithTimeout(ctx, budget)
-		defer cancel()
-	}
+	ctx := context.WithValue(context.Background(), frame.ContextKey, httpReq.Header)
+	ctx, cancel = context.WithTimeout(ctx, budget-c.networkHop)
+	defer cancel()
 	httpReq = httpReq.WithContext(ctx)
 
 	// Prepare an HTTP recorder
