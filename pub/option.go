@@ -17,7 +17,7 @@ type Option func(req *Request) error
 func Method(method string) Option {
 	method = strings.ToUpper(method)
 	return func(req *Request) error {
-		req.method = method
+		req.Method = method
 		return nil
 	}
 }
@@ -25,7 +25,7 @@ func Method(method string) Option {
 // URL sets the URL of the request
 func URL(url string) Option {
 	return func(req *Request) error {
-		req.url = url
+		req.URL = url
 		return nil
 	}
 }
@@ -33,8 +33,8 @@ func URL(url string) Option {
 // GET sets the method and URL of the request
 func GET(url string) Option {
 	return func(req *Request) error {
-		req.method = "GET"
-		req.url = url
+		req.Method = "GET"
+		req.URL = url
 		return nil
 	}
 }
@@ -42,8 +42,8 @@ func GET(url string) Option {
 // POST sets the method and URL of the request
 func POST(url string) Option {
 	return func(req *Request) error {
-		req.method = "POST"
-		req.url = url
+		req.Method = "POST"
+		req.URL = url
 		return nil
 	}
 }
@@ -53,7 +53,7 @@ func POST(url string) Option {
 func Header(name, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
-			req.headers.Add(name, value)
+			req.Header.Add(name, value)
 		}
 		return nil
 	}
@@ -69,34 +69,36 @@ func Body(body any) Option {
 		}
 		switch v := body.(type) {
 		case io.Reader:
-			req.body = v
+			req.Body = v
 		case []byte:
-			req.body = bytes.NewReader(v)
+			req.Body = bytes.NewReader(v)
 		case string:
-			req.body = strings.NewReader(v)
+			req.Body = strings.NewReader(v)
 		default:
 			j, err := json.Marshal(body)
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.body = bytes.NewReader(j)
-			req.headers.Set("Content-Type", "application/json")
+			req.Body = bytes.NewReader(j)
+			req.Header.Set("Content-Type", "application/json")
 		}
 		return nil
 	}
 }
 
-// TimeBudget sets the time budget of the request.
-// Once a time budget is set, it is only possible to shorten it, not extend it
-func TimeBudget(budget time.Duration) Option {
-	if budget < 0 {
-		budget = 0
-	}
+// Deadline sets the deadline of the request.
+// Once a deadline is set, it is only possible to shorten it, not extend it
+func Deadline(deadline time.Time) Option {
 	return func(req *Request) error {
-		if !req.hasBudget || req.timeBudget > budget {
-			req.hasBudget = true
-			req.timeBudget = budget
+		if req.Deadline.IsZero() || req.Deadline.After(deadline) {
+			req.Deadline = deadline
 		}
 		return nil
 	}
+}
+
+// TimeBudget sets the deadline of the request to a time in the future.
+// Once a deadline is set, it is only possible to shorten it, not extend it
+func TimeBudget(timeout time.Duration) Option {
+	return Deadline(time.Now().Add(timeout))
 }
