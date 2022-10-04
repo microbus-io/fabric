@@ -124,22 +124,20 @@ func (f Frame) SetCallDepth(depth int) {
 	}
 }
 
-// TimeBudget is the duration budgeted for the request to complete.
-// !ok indicates no time budget is specified
-func (f Frame) TimeBudget() (budget time.Duration, ok bool) {
+// TimeBudget is the duration budgeted for the request to complete
+func (f Frame) TimeBudget() time.Duration {
 	v := f.h.Get(HeaderTimeBudget)
 	if v == "" {
-		return 0, false
+		return 0
 	}
 	ms, err := strconv.Atoi(v)
 	if err != nil {
-		return 0, false
+		return 0
 	}
-	return time.Millisecond * time.Duration(ms), true
+	return time.Millisecond * time.Duration(ms)
 }
 
-// SetTimeBudget budgets a duration for the request to complete.
-// A value of zero or less is interpreted as no time budget
+// SetTimeBudget budgets a duration for the request to complete
 func (f Frame) SetTimeBudget(budget time.Duration) {
 	ms := int(budget.Milliseconds())
 	if ms <= 0 {
