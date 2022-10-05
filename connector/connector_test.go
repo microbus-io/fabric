@@ -128,14 +128,14 @@ func TestConnector_PlaneEnv(t *testing.T) {
 	c.SetHostName("planeenv.connector")
 
 	// Bad plane name
-	defer os.Setenv("MICROBUS_PLANE", "")
-	os.Setenv("MICROBUS_PLANE", "bad.plane.name")
+	defer os.Setenv("MICROBUS_ALL_PLANE", "")
+	os.Setenv("MICROBUS_ALL_PLANE", "bad.plane.name")
 
 	err := c.Startup()
 	assert.Error(t, err)
 
 	// Good plane name
-	os.Setenv("MICROBUS_PLANE", "goodone")
+	os.Setenv("MICROBUS_ALL_PLANE", "goodone")
 
 	err = c.Startup()
 	assert.NoError(t, err)
@@ -179,8 +179,8 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 	c.SetHostName("deploymentenv.connector")
 
 	// Bad plane name
-	defer os.Setenv("MICROBUS_DEPLOYMENT", "")
-	os.Setenv("MICROBUS_DEPLOYMENT", "lAb")
+	defer os.Setenv("MICROBUS_ALL_DEPLOYMENT", "")
+	os.Setenv("MICROBUS_ALL_DEPLOYMENT", "lAb")
 
 	err := c.Startup()
 	assert.NoError(t, err)

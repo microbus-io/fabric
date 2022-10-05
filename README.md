@@ -51,7 +51,7 @@ Go into the details with these technical deep dives:
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](docs/tech/timebudget.md) - The proper way to handle request timeouts
-* [Environment variables](docs/tech/envars.md) <sup style="color:orange">new</sup> - A catalog of the environment variables used by the framework
+* [Configuration](docs/tech/configuration.md) <sup style="color:orange">new</sup> - How to configure microservices via environment variables or an `env.yaml` file
 * [NATS connection settings](docs/tech/natsconnection.md) <sup style="color:orange">new</sup> - How to configure microservices to connect to NATS
 
 ## Cutting Some Corners
