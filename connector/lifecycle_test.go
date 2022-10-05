@@ -73,3 +73,31 @@ func TestConnector_StartupError(t *testing.T) {
 	assert.True(t, shutdownCalled)
 	assert.False(t, alpha.IsStarted())
 }
+
+func TestConnector_StartupPanic(t *testing.T) {
+	t.Parallel()
+
+	alpha := NewConnector()
+	alpha.SetHostName("startuppanic.connector")
+	alpha.SetOnStartup(func(ctx context.Context) error {
+		panic("really bad")
+	})
+	err := alpha.Startup()
+	assert.Error(t, err)
+	assert.Equal(t, "really bad", err.Error())
+}
+
+func TestConnector_ShutdownPanic(t *testing.T) {
+	t.Parallel()
+
+	alpha := NewConnector()
+	alpha.SetHostName("shutdownpanic.connector")
+	alpha.SetOnShutdown(func(ctx context.Context) error {
+		panic("really bad")
+	})
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	err = alpha.Shutdown()
+	assert.Error(t, err)
+	assert.Equal(t, "really bad", err.Error())
+}

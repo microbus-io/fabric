@@ -2,10 +2,12 @@ package connector
 
 import (
 	"context"
+	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/nats-io/nats.go"
 )
 
 // SetOnStartup sets a function to be called during the starting up of the microservice
@@ -28,7 +30,6 @@ func (c *Connector) Startup() error {
 	if c.hostName == "" {
 		return errors.New("no hostname")
 	}
-	c.started = true
 
 	// Look for configs in the environment or file system
 	err = c.loadConfigs()
@@ -37,17 +38,49 @@ func (c *Connector) Startup() error {
 	}
 	c.logConfigs()
 
+	// Communication plane default
+	if c.plane == "" {
+		envar := os.Getenv("MICROBUS_PLANE")
+		if match, _ := regexp.MatchString(`^[0-9a-zA-Z]*$`, envar); !match {
+			return errors.New("invalid plane specified by MICROBUS_PLANE envar: %s", envar)
+		}
+		c.plane = envar
+		if c.plane == "" {
+			c.plane = "microbus"
+		}
+	}
+
 	// Connect to NATS
-	c.natsConn, err = nats.Connect("nats://127.0.0.1:4222")
+	err = c.connectToNATS()
 	if err != nil {
 		return errors.Trace(err)
 	}
+	c.started = true
+
+	// Deployment default
+	if c.deployment == "" {
+		envar := strings.ToUpper(os.Getenv("MICROBUS_DEPLOYMENT"))
+		if envar == "PROD" || envar == "LAB" || envar == "LOCAL" {
+			c.deployment = envar
+		}
+	}
+	if c.deployment == "" {
+		u := c.natsConn.ConnectedUrl()
+		if strings.Contains(u, "/127.0.0.1:") ||
+			strings.Contains(u, "/0.0.0.0:") ||
+			strings.Contains(u, "/localhost:") {
+			c.deployment = "LOCAL"
+		} else {
+			c.deployment = "PROD"
+		}
+	}
 
 	// Subscribe to the reply subject
-	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.hostName, c.id), c.id, c.onReply)
+	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.plane, c.hostName, c.id), c.id, c.onReply)
 	if err != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
+		c.started = false
 		return errors.Trace(err)
 	}
 
@@ -79,7 +112,7 @@ func (c *Connector) Startup() error {
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus
 func (c *Connector) Shutdown() error {
-	var err error
+	var returnErr error
 	if !c.started {
 		return errors.New("not started")
 	}
@@ -88,8 +121,9 @@ func (c *Connector) Shutdown() error {
 	// Deactivate subscriptions
 	for _, sub := range c.subs {
 		if sub.NATSSub != nil {
-			err = sub.NATSSub.Unsubscribe()
+			err := sub.NATSSub.Unsubscribe()
 			if err != nil {
+				returnErr = errors.Trace(err)
 				c.LogError(err)
 			}
 			sub.NATSSub = nil
@@ -104,14 +138,16 @@ func (c *Connector) Shutdown() error {
 			return c.onShutdown(ctx)
 		})
 		if err != nil {
+			returnErr = errors.Trace(err)
 			c.LogError(err)
 		}
 	}
 
 	// Unsubscribe from the reply subject
 	if c.natsReplySub != nil {
-		err = c.natsReplySub.Unsubscribe()
+		err := c.natsReplySub.Unsubscribe()
 		if err != nil {
+			returnErr = errors.Trace(err)
 			c.LogError(err)
 		}
 		c.natsReplySub = nil
@@ -123,7 +159,7 @@ func (c *Connector) Shutdown() error {
 		c.natsConn = nil
 	}
 
-	return errors.Trace(err)
+	return returnErr
 }
 
 // IsStarted indicates if the microservice has been successfully started
