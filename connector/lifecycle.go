@@ -58,14 +58,6 @@ func (c *Connector) Startup() error {
 		}
 	}
 
-	// Initialize logger
-	err = c.initLogger()
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	c.logConfigs()
-
 	// Communication plane default
 	if c.plane == "" {
 		if plane, ok := c.Config("Plane"); ok {
@@ -78,6 +70,14 @@ func (c *Connector) Startup() error {
 			c.plane = "microbus"
 		}
 	}
+
+	// Initialize logger
+	err = c.initLogger()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	c.logConfigs()
 
 	// Connect to NATS
 	err = c.connectToNATS(ctx)
