@@ -76,7 +76,7 @@ func (c *Connector) Startup() error {
 	}
 
 	// Subscribe to the reply subject
-	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.plane, c.hostName, c.id), c.id, c.onReply)
+	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.plane, c.hostName, c.id), c.id, c.onResponse)
 	if err != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
