@@ -94,25 +94,22 @@ func (c *Connector) HostName() string {
 	return c.hostName
 }
 
-// Deployment indicates what deployment environment the microservice is running in.
-// If not explicitly set, the value is pulled from the MICROBUS_DEPLOYMENT environment variable.
-//
-// Valid values are:
+// Deployment indicates what deployment environment the microservice is running in:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine or running inside a testing app
+// LOCAL when developing on the local machine or running unit tests
 func (c *Connector) Deployment() string {
 	return c.deployment
 }
 
 // SetDeployment sets what deployment environment the microservice is running in.
-// Explicitly setting a deployment will override any value specified by the MICROBUS_DEPLOYMENT environment variable.
+// Explicitly setting a deployment will override any value specified by the Deployment config property.
 // Setting an empty value will clear this override.
 //
 // Valid values are:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine or running inside a testing app
+// LOCAL when developing on the local machine or running unit tests
 func (c *Connector) SetDeployment(deployment string) error {
 	if c.started {
 		return errors.New("already started")
@@ -128,8 +125,7 @@ func (c *Connector) SetDeployment(deployment string) error {
 // Plane is a unique prefix set for all communications sent or received by this microservice.
 // It is used to isolate communication among a group of microservices over a NATS cluster
 // that is shared with other microservices.
-// If not explicitly set, the value is pulled from the MICROBUS_PLANE environment variable
-// or the default "microbus" is used
+// If not explicitly set, the value is pulled from the Plane config, or the default "microbus" is used
 func (c *Connector) Plane() string {
 	return c.plane
 }
@@ -137,7 +133,7 @@ func (c *Connector) Plane() string {
 // SetPlane sets a unique prefix for all communications sent or received by this microservice.
 // A plane is used to isolate communication among a group of microservices over a NATS cluster
 // that is shared with other microservices.
-// Explicitly setting a deployment will override any value specified by the MICROBUS_PLANE environment variable.
+// Explicitly setting a plane overrides any value specified by the Plane config.
 // The plane can only contain alphanumeric case-sensitive characters.
 // Setting an empty value will clear this override
 func (c *Connector) SetPlane(plane string) error {
@@ -175,15 +171,15 @@ func (c *Connector) connectToNATS() error {
 	opts = append(opts, nats.Name(c.id+"."+c.hostName))
 
 	// URL
-	u := os.Getenv("NATS_URL")
+	u, _ := c.Config("NATS")
 	if u == "" {
 		u = "nats://127.0.0.1:4222"
 	}
 
 	// Credentials
-	user := os.Getenv("NATS_USER")
-	pw := os.Getenv("NATS_PASSWORD")
-	token := os.Getenv("NATS_TOKEN")
+	user, _ := c.Config("NATSUser")
+	pw, _ := c.Config("NATSPassword")
+	token, _ := c.Config("NATSToken")
 	if user != "" && pw != "" {
 		opts = append(opts, nats.UserInfo(user, pw))
 	}
@@ -196,11 +192,22 @@ func (c *Connector) connectToNATS() error {
 		_, err := os.Stat(fileName)
 		return err == nil
 	}
-	if exists("ca.pem") {
-		opts = append(opts, nats.RootCAs("ca.pem"))
-	}
-	if exists("cert.pem") && exists("key.pem") {
-		opts = append(opts, nats.ClientCert("cert.pem", "key.pem"))
+	hostSegments := strings.Split(c.hostName, ".")
+	var foundCA, foundCertKey bool
+	for i := 0; i <= len(hostSegments); i++ {
+		host := strings.Join(hostSegments[i:], ".")
+		if host == "" {
+			host = "all"
+		}
+		host += "-"
+		if !foundCA && exists(host+"ca.pem") {
+			opts = append(opts, nats.RootCAs(host+"ca.pem"))
+			foundCA = true
+		}
+		if !foundCertKey && exists(host+"cert.pem") && exists(host+"key.pem") {
+			opts = append(opts, nats.ClientCert(host+"cert.pem", host+"key.pem"))
+			foundCertKey = true
+		}
 	}
 
 	// Connect

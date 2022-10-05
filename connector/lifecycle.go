@@ -2,8 +2,6 @@ package connector
 
 import (
 	"context"
-	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -40,13 +38,34 @@ func (c *Connector) Startup() error {
 
 	// Communication plane default
 	if c.plane == "" {
-		envar := os.Getenv("MICROBUS_PLANE")
-		if match, _ := regexp.MatchString(`^[0-9a-zA-Z]*$`, envar); !match {
-			return errors.New("invalid plane specified by MICROBUS_PLANE envar: %s", envar)
+		if plane, ok := c.Config("Plane"); ok {
+			err := c.SetPlane(plane)
+			if err != nil {
+				return errors.Trace(err)
+			}
 		}
-		c.plane = envar
 		if c.plane == "" {
 			c.plane = "microbus"
+		}
+	}
+
+	// Deployment default
+	if c.deployment == "" {
+		if deployment, ok := c.Config("Deployment"); ok {
+			err := c.SetDeployment(deployment)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+		if c.deployment == "" {
+			c.deployment = "LOCAL"
+			if nats, ok := c.Config("NATS"); ok {
+				if !strings.Contains(nats, "/127.0.0.1:") &&
+					!strings.Contains(nats, "/0.0.0.0:") &&
+					!strings.Contains(nats, "/localhost:") {
+					c.deployment = "PROD"
+				}
+			}
 		}
 	}
 
@@ -56,24 +75,6 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 	c.started = true
-
-	// Deployment default
-	if c.deployment == "" {
-		envar := strings.ToUpper(os.Getenv("MICROBUS_DEPLOYMENT"))
-		if envar == "PROD" || envar == "LAB" || envar == "LOCAL" {
-			c.deployment = envar
-		}
-	}
-	if c.deployment == "" {
-		u := c.natsConn.ConnectedUrl()
-		if strings.Contains(u, "/127.0.0.1:") ||
-			strings.Contains(u, "/0.0.0.0:") ||
-			strings.Contains(u, "/localhost:") {
-			c.deployment = "LOCAL"
-		} else {
-			c.deployment = "PROD"
-		}
-	}
 
 	// Subscribe to the reply subject
 	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.plane, c.hostName, c.id), c.id, c.onResponse)
