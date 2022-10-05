@@ -9,56 +9,66 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// LogDebug logs a message at debug level. The message should be concise and fixed,
+// optional fields can be added.
+func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Field) {
+	if c.logger == nil {
+		_ = c.initLogger()
+	}
+	c.logger.Debug(msg, fields...)
+}
+
 // LogInfo logs a message at info level. The message should be concise and fixed,
 // optional fields can be added.
 func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
-		_ = c.createLogger()
+		_ = c.initLogger()
 	}
-	// TODO: Context is added but make use of this
 	c.logger.Info(msg, fields...)
+}
+
+// LogWarn logs a message and error at warn level. The message should be concise and fixed,
+// optional fields can be added.
+func (c *Connector) LogWarn(ctx context.Context, msg string, err error, fields ...log.Field) {
+	if c.logger == nil {
+		_ = c.initLogger()
+	}
+	fields = append(fields, log.Error(err))
+	c.logger.Warn(msg, fields...)
 }
 
 // LogError logs a message and error at error level. The message should be concise and fixed,
 // optional fields can be added.
 func (c *Connector) LogError(ctx context.Context, msg string, err error, fields ...log.Field) {
 	if c.logger == nil {
-		_ = c.createLogger()
+		_ = c.initLogger()
 	}
-	// TODO: Context is added but make use of this
 	fields = append(fields, log.Error(err))
 	c.logger.Error(msg, fields...)
 }
 
-// createLogger creates a new logger.
-func (c *Connector) createLogger() (err error) {
+// initLogger initializes a logger for the connector.
+func (c *Connector) initLogger() (err error) {
 	if c.logger != nil {
 		return nil
 	}
 
-	// TODO: Remove hardcoded env
-	const (
-		LOCAL       = "LOCAL"
-		DEVELOPMENT = "DEVELOPMENT"
-		PRODUCTION  = "PRODUCTION"
-	)
-	env := LOCAL
+	env := c.Deployment()
 
 	var config zap.Config
-	if env == LOCAL || env == DEVELOPMENT {
+	if env == LOCAL || env == LAB {
 		config = zap.NewDevelopmentConfig()
 		config.Level.SetLevel(zapcore.DebugLevel)
-	} else if env == PRODUCTION {
+	} else if env == PROD {
 		config = zap.NewProductionConfig()
 	} else {
 		return errors.New("invalid environment", env)
 	}
 
 	c.logger, err = config.Build(zap.AddCallerSkip(1))
-	// TODO: Add version
 	if c.HostName() != "" {
 		c.logger = c.logger.With(
-			log.String("serviceName", c.HostName()),
+			log.String("serviceHostName", c.HostName()),
 			log.String("serviceID", c.ID()),
 		)
 	}
@@ -66,7 +76,7 @@ func (c *Connector) createLogger() (err error) {
 	return err
 }
 
-// removeLogger removes the logger.
+// removeLogger removes the logger from the connector.
 func (c *Connector) removeLogger() error {
 	if c.logger == nil {
 		return nil

@@ -36,8 +36,8 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 
-	// Create logger
-	err = c.createLogger()
+	// Initialize logger
+	err = c.initLogger()
 	if err != nil {
 		return errors.Trace(err)
 	}

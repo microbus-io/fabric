@@ -118,7 +118,7 @@ func (c *Connector) SetDeployment(deployment string) error {
 		return errors.New("already started")
 	}
 	deployment = strings.ToUpper(deployment)
-	if deployment != "" && deployment != "PROD" && deployment != "LAB" && deployment != "LOCAL" {
+	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL {
 		return errors.Newf("invalid deployment: %s", deployment)
 	}
 	c.deployment = deployment
