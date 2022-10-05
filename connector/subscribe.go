@@ -51,10 +51,48 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 		}
 		time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 	}
+	key := fmt.Sprintf("%s:%d%s", newSub.Host, newSub.Port, newSub.Path)
 	c.subsLock.Lock()
-	c.subs = append(c.subs, newSub)
+	c.subs[key] = newSub
 	c.subsLock.Unlock()
 	return nil
+}
+
+// Unsubscribe removes the handler for the specified path
+func (c *Connector) Unsubscribe(path string) error {
+	newSub, err := sub.NewSub(c.hostName, path)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	key := fmt.Sprintf("%s:%d%s", newSub.Host, newSub.Port, newSub.Path)
+	c.subsLock.Lock()
+	if sub, ok := c.subs[key]; ok {
+		if sub.NATSSub != nil {
+			err = errors.Trace(sub.NATSSub.Unsubscribe())
+		}
+		delete(c.subs, key)
+	}
+	c.subsLock.Unlock()
+	return err
+}
+
+// UnsubscribeAll removes all handlers
+func (c *Connector) UnsubscribeAll() error {
+	c.subsLock.Lock()
+	defer c.subsLock.Unlock()
+
+	var lastErr error
+	for _, sub := range c.subs {
+		if sub.NATSSub != nil {
+			err := sub.NATSSub.Unsubscribe()
+			if err != nil {
+				lastErr = errors.Trace(err)
+				c.LogError(err)
+			}
+		}
+	}
+	c.subs = map[string]*sub.Subscription{}
+	return lastErr
 }
 
 func (c *Connector) activateSub(s *sub.Subscription) error {

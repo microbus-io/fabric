@@ -32,7 +32,7 @@ type Connector struct {
 
 	natsConn     *nats.Conn
 	natsReplySub *nats.Subscription
-	subs         []*sub.Subscription
+	subs         map[string]*sub.Subscription
 	subsLock     sync.Mutex
 	started      bool
 	plane        string
@@ -57,6 +57,7 @@ func NewConnector() *Connector {
 		maxCallDepth:      64,
 		callbackTimeout:   time.Minute,
 		defaultTimeBudget: 20 * time.Second,
+		subs:              map[string]*sub.Subscription{},
 	}
 	return c
 }

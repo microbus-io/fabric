@@ -11,17 +11,17 @@ import (
 func TestConnector_HostAndID(t *testing.T) {
 	t.Parallel()
 
-	c := NewConnector()
-	assert.Empty(t, c.HostName())
-	assert.NotEmpty(t, c.ID())
-	c.SetHostName("example.com")
-	assert.Equal(t, "example.com", c.HostName())
+	con := NewConnector()
+	assert.Empty(t, con.HostName())
+	assert.NotEmpty(t, con.ID())
+	con.SetHostName("example.com")
+	assert.Equal(t, "example.com", con.HostName())
 }
 
 func TestConnector_BadHostName(t *testing.T) {
 	t.Parallel()
 
-	c := NewConnector()
+	con := NewConnector()
 	badHosts := []string{
 		"$.example.com",
 		"my-example.com",
@@ -33,7 +33,7 @@ func TestConnector_BadHostName(t *testing.T) {
 		"",
 	}
 	for _, s := range badHosts {
-		err := c.SetHostName(s)
+		err := con.SetHostName(s)
 		assert.Error(t, err)
 	}
 }
@@ -96,95 +96,95 @@ func TestConnector_CatchPanic(t *testing.T) {
 func TestConnector_Plane(t *testing.T) {
 	t.Parallel()
 
-	c := NewConnector()
-	c.SetHostName("plane.connector")
+	con := NewConnector()
+	con.SetHostName("plane.connector")
 
 	// Before starting
-	assert.Empty(t, c.Plane())
-	err := c.SetPlane("bad.plane.name")
+	assert.Empty(t, con.Plane())
+	err := con.SetPlane("bad.plane.name")
 	assert.Error(t, err)
-	err = c.SetPlane("123plane456")
+	err = con.SetPlane("123plane456")
 	assert.NoError(t, err)
-	assert.Equal(t, "123plane456", c.Plane())
-	err = c.SetPlane("")
+	assert.Equal(t, "123plane456", con.Plane())
+	err = con.SetPlane("")
 	assert.NoError(t, err)
-	assert.Equal(t, "", c.Plane())
+	assert.Equal(t, "", con.Plane())
 
 	// Start connector
-	err = c.Startup()
+	err = con.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown()
+	defer con.Shutdown()
 
 	// After starting
-	assert.NotEmpty(t, c.Plane())
-	err = c.SetPlane("123plane456")
+	assert.NotEmpty(t, con.Plane())
+	err = con.SetPlane("123plane456")
 	assert.Error(t, err)
 }
 
 func TestConnector_PlaneEnv(t *testing.T) {
 	// No parallel
 
-	c := NewConnector()
-	c.SetHostName("planeenv.connector")
+	con := NewConnector()
+	con.SetHostName("planeenv.connector")
 
 	// Bad plane name
 	defer os.Setenv("MICROBUS_PLANE", "")
 	os.Setenv("MICROBUS_PLANE", "bad.plane.name")
 
-	err := c.Startup()
+	err := con.Startup()
 	assert.Error(t, err)
 
 	// Good plane name
 	os.Setenv("MICROBUS_PLANE", "goodone")
 
-	err = c.Startup()
+	err = con.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown()
+	defer con.Shutdown()
 
-	assert.Equal(t, "goodone", c.Plane())
+	assert.Equal(t, "goodone", con.Plane())
 }
 
 func TestConnector_Deployment(t *testing.T) {
 	t.Parallel()
 
-	c := NewConnector()
-	c.SetHostName("deployment.connector")
+	con := NewConnector()
+	con.SetHostName("deployment.connector")
 
 	// Before starting
-	assert.Empty(t, c.Deployment())
-	err := c.SetDeployment("NOGOOD")
+	assert.Empty(t, con.Deployment())
+	err := con.SetDeployment("NOGOOD")
 	assert.Error(t, err)
-	err = c.SetDeployment("lAb")
+	err = con.SetDeployment("lAb")
 	assert.NoError(t, err)
-	assert.Equal(t, "LAB", c.Deployment())
-	err = c.SetDeployment("")
+	assert.Equal(t, "LAB", con.Deployment())
+	err = con.SetDeployment("")
 	assert.NoError(t, err)
-	assert.Equal(t, "", c.Deployment())
+	assert.Equal(t, "", con.Deployment())
 
 	// Start connector
-	err = c.Startup()
+	err = con.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown()
+	defer con.Shutdown()
 
 	// After starting
-	assert.Equal(t, "LOCAL", c.Deployment())
-	err = c.SetDeployment("LAB")
+	assert.Equal(t, "LOCAL", con.Deployment())
+	err = con.SetDeployment("LAB")
 	assert.Error(t, err)
 }
 
 func TestConnector_DeploymentEnv(t *testing.T) {
 	// No parallel
 
-	c := NewConnector()
-	c.SetHostName("deploymentenv.connector")
+	con := NewConnector()
+	con.SetHostName("deploymentenv.connector")
 
 	// Bad plane name
 	defer os.Setenv("MICROBUS_DEPLOYMENT", "")
 	os.Setenv("MICROBUS_DEPLOYMENT", "lAb")
 
-	err := c.Startup()
+	err := con.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown()
+	defer con.Shutdown()
 
-	assert.Equal(t, "LAB", c.Deployment())
+	assert.Equal(t, "LAB", con.Deployment())
 }

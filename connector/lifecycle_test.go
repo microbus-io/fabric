@@ -13,32 +13,32 @@ func TestConnector_StartupShutdown(t *testing.T) {
 
 	var startupCalled, shutdownCalled bool
 
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.startupshutdown.connector")
-	alpha.SetOnStartup(func(ctx context.Context) error {
+	con := NewConnector()
+	con.SetHostName("startup.shutdown.connector")
+	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return nil
 	})
-	alpha.SetOnShutdown(func(ctx context.Context) error {
+	con.SetOnShutdown(func(ctx context.Context) error {
 		shutdownCalled = true
 		return nil
 	})
 
 	assert.False(t, startupCalled)
 	assert.False(t, shutdownCalled)
-	assert.False(t, alpha.IsStarted())
+	assert.False(t, con.IsStarted())
 
-	err := alpha.Startup()
+	err := con.Startup()
 	assert.NoError(t, err)
 	assert.True(t, startupCalled)
 	assert.False(t, shutdownCalled)
-	assert.True(t, alpha.IsStarted())
+	assert.True(t, con.IsStarted())
 
-	err = alpha.Shutdown()
+	err = con.Shutdown()
 	assert.NoError(t, err)
 	assert.True(t, startupCalled)
 	assert.True(t, shutdownCalled)
-	assert.False(t, alpha.IsStarted())
+	assert.False(t, con.IsStarted())
 }
 
 func TestConnector_StartupError(t *testing.T) {
@@ -46,43 +46,43 @@ func TestConnector_StartupError(t *testing.T) {
 
 	var startupCalled, shutdownCalled bool
 
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.startuperror.connector")
-	alpha.SetOnStartup(func(ctx context.Context) error {
+	con := NewConnector()
+	con.SetHostName("startup.error.connector")
+	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return errors.New("oops")
 	})
-	alpha.SetOnShutdown(func(ctx context.Context) error {
+	con.SetOnShutdown(func(ctx context.Context) error {
 		shutdownCalled = true
 		return nil
 	})
 
 	assert.False(t, startupCalled)
 	assert.False(t, shutdownCalled)
-	assert.False(t, alpha.IsStarted())
+	assert.False(t, con.IsStarted())
 
-	err := alpha.Startup()
+	err := con.Startup()
 	assert.Error(t, err)
 	assert.True(t, startupCalled)
 	assert.True(t, shutdownCalled)
-	assert.False(t, alpha.IsStarted())
+	assert.False(t, con.IsStarted())
 
-	err = alpha.Shutdown()
+	err = con.Shutdown()
 	assert.Error(t, err)
 	assert.True(t, startupCalled)
 	assert.True(t, shutdownCalled)
-	assert.False(t, alpha.IsStarted())
+	assert.False(t, con.IsStarted())
 }
 
 func TestConnector_StartupPanic(t *testing.T) {
 	t.Parallel()
 
-	alpha := NewConnector()
-	alpha.SetHostName("startuppanic.connector")
-	alpha.SetOnStartup(func(ctx context.Context) error {
+	con := NewConnector()
+	con.SetHostName("startup.panic.connector")
+	con.SetOnStartup(func(ctx context.Context) error {
 		panic("really bad")
 	})
-	err := alpha.Startup()
+	err := con.Startup()
 	assert.Error(t, err)
 	assert.Equal(t, "really bad", err.Error())
 }
@@ -90,14 +90,14 @@ func TestConnector_StartupPanic(t *testing.T) {
 func TestConnector_ShutdownPanic(t *testing.T) {
 	t.Parallel()
 
-	alpha := NewConnector()
-	alpha.SetHostName("shutdownpanic.connector")
-	alpha.SetOnShutdown(func(ctx context.Context) error {
+	con := NewConnector()
+	con.SetHostName("shutdown.panic.connector")
+	con.SetOnShutdown(func(ctx context.Context) error {
 		panic("really bad")
 	})
-	err := alpha.Startup()
+	err := con.Startup()
 	assert.NoError(t, err)
-	err = alpha.Shutdown()
+	err = con.Shutdown()
 	assert.Error(t, err)
 	assert.Equal(t, "really bad", err.Error())
 }
