@@ -21,6 +21,8 @@ func (c *Connector) SetOnShutdown(f func(context.Context) error) {
 
 // Startup the microservice by connecting to the NATS bus and activating the subscriptions
 func (c *Connector) Startup() error {
+	ctx := context.Background()
+
 	var err error
 
 	if c.started {
@@ -78,7 +80,7 @@ func (c *Connector) Startup() error {
 	}
 
 	// Connect to NATS
-	err = c.connectToNATS()
+	err = c.connectToNATS(ctx)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -95,13 +97,13 @@ func (c *Connector) Startup() error {
 
 	// Call the callback function, if provided
 	if c.onStartup != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), c.callbackTimeout)
+		subCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
 		err := catchPanic(func() error {
-			return c.onStartup(ctx)
+			return c.onStartup(subCtx)
 		})
 		if err != nil {
-			_ = c.Shutdown()
+			_ = c.Shutdown(ctx)
 			return errors.Trace(err)
 		}
 	}
@@ -110,7 +112,7 @@ func (c *Connector) Startup() error {
 	for _, sub := range c.subs {
 		err = c.activateSub(sub)
 		if err != nil {
-			_ = c.Shutdown()
+			_ = c.Shutdown(ctx)
 			return errors.Trace(err)
 		}
 	}
@@ -120,9 +122,7 @@ func (c *Connector) Startup() error {
 }
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus
-func (c *Connector) Shutdown() error {
-	ctx := context.Background()
-
+func (c *Connector) Shutdown(ctx context.Context) error {
 	var returnErr error
 	if !c.started {
 		return errors.New("not started")
