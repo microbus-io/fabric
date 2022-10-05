@@ -66,14 +66,16 @@ func (c *Connector) initLogger() (err error) {
 	}
 
 	c.logger, err = config.Build(zap.AddCallerSkip(1))
+	if err != nil {
+		return errors.Trace(err)
+	}
 	if c.HostName() != "" {
 		c.logger = c.logger.With(
 			log.String("serviceHostName", c.HostName()),
 			log.String("serviceID", c.ID()),
 		)
 	}
-
-	return err
+	return nil
 }
 
 // removeLogger removes the logger from the connector.
