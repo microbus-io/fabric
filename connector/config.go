@@ -2,7 +2,6 @@ package connector
 
 import (
 	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,7 +21,7 @@ type config struct {
 
 // Config returns the value of the config as a string.
 // Configs are available only after the microservice is started.
-// They are read from environment variables and/or from an env.yaml file in the current or ancestor directory.
+// They are read from environment variables and/or from an env.yaml file in the current directory.
 // Config names are case-insensitive
 func (c *Connector) Config(name string) (value string, ok bool) {
 	c.configLock.Lock()
@@ -107,20 +106,13 @@ func (c *Connector) SetConfigDuration(name string, value time.Duration) {
 }
 
 func (c *Connector) loadConfigs() error {
-	// Scan the directory hierarchy for env.yaml files
-	wd, err := os.Getwd()
-	if err != nil {
-		return errors.Trace(err)
-	}
-	for wd != "/" {
-		envFileData, err := os.ReadFile(wd + "/env.yaml")
-		if err == nil {
-			err = readEnvYamlFile(c.hostName, envFileData, c.configs)
-			if err != nil {
-				return errors.Trace(err)
-			}
+	// Look for env.yaml file in current directory
+	envFileData, err := os.ReadFile("./env.yaml")
+	if err == nil {
+		err = readEnvYamlFile(c.hostName, envFileData, c.configs)
+		if err != nil {
+			return errors.Trace(err)
 		}
-		wd = filepath.Dir(wd) // Get the parent path
 	}
 
 	// Scan envars

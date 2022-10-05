@@ -5,7 +5,7 @@ An HTTP ingress proxy is needed in order to bridge the gap between the browser (
 By default, the HTTP ingress proxy listens on port `:8080`. The port can be changed using the `Port` configuration property by either setting the environment variable `MICROBUS_HTTPINGRESSSYS_PORT` or by adding a section to the `env.yaml` file.
 
 ```yaml
-http.ingress.proxy:
+http.ingress.sys:
   Port: 9090
 ```
 
