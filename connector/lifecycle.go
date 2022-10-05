@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/log"
 )
 
 // SetOnStartup sets a function to be called during the starting up of the microservice
@@ -120,6 +121,8 @@ func (c *Connector) Startup() error {
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus
 func (c *Connector) Shutdown() error {
+	ctx := context.Background()
+
 	var returnErr error
 	if !c.started {
 		return errors.New("not started")
@@ -132,7 +135,12 @@ func (c *Connector) Shutdown() error {
 			err := sub.NATSSub.Unsubscribe()
 			if err != nil {
 				returnErr = errors.Trace(err)
-				c.LogError(err)
+				c.LogError(
+					ctx,
+					"Failed to deactivate subscription",
+					err,
+					log.Any("sub", sub),
+				)
 			}
 			sub.NATSSub = nil
 		}
@@ -140,14 +148,14 @@ func (c *Connector) Shutdown() error {
 
 	// Call the callback function, if provided
 	if c.onShutdown != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), c.callbackTimeout)
+		subCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
 		err := catchPanic(func() error {
-			return c.onShutdown(ctx)
+			return c.onShutdown(subCtx)
 		})
 		if err != nil {
 			returnErr = errors.Trace(err)
-			c.LogError(err)
+			c.LogError(ctx, "Failed onShutdown", err)
 		}
 	}
 
@@ -156,13 +164,24 @@ func (c *Connector) Shutdown() error {
 		err := c.natsReplySub.Unsubscribe()
 		if err != nil {
 			returnErr = errors.Trace(err)
-			c.LogError(err)
+			c.LogError(
+				ctx,
+				"Failed to unsubscribe from the reply subject",
+				err,
+			)
 		}
 		c.natsReplySub = nil
 	}
 
 	// Remove logger
-	err = c.removeLogger()
+	err := c.removeLogger()
+	if err != nil {
+		c.LogError(
+			ctx,
+			"Failed to remove logger",
+			err,
+		)
+	}
 
 	// Disconnect from NATS
 	if c.natsConn != nil {
