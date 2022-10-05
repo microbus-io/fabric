@@ -1,7 +1,6 @@
 package connector
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -130,13 +129,12 @@ all:
 
 func TestConnector_SetConfig(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	alpha := NewConnector()
 	alpha.SetHostName("alpha.setconfig.connector")
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown(ctx)
+	defer alpha.Shutdown()
 
 	_, ok := alpha.Config("s")
 	assert.False(t, ok)
@@ -172,7 +170,6 @@ func TestConnector_SetConfig(t *testing.T) {
 
 func TestConnector_EnvYaml(t *testing.T) {
 	// No parallel
-	ctx := context.Background()
 
 	// Create an env file
 	_, err := os.Stat("env.yaml")
@@ -203,7 +200,7 @@ all:
 	alpha.SetHostName("alpha.envyaml.connector")
 	err = alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown(ctx)
+	defer alpha.Shutdown()
 
 	v, ok := alpha.Config("aaa")
 	if assert.True(t, ok) {
@@ -225,7 +222,6 @@ all:
 
 func TestConnector_Environ(t *testing.T) {
 	// No parallel
-	ctx := context.Background()
 
 	os.Setenv("MICROBUS_ALPHAENVIRONCONNECTOR_AAA", "111")
 	os.Setenv("MICROBUS_ENVIRONCONNECTOR_AAA", "222")
@@ -255,7 +251,7 @@ func TestConnector_Environ(t *testing.T) {
 	alpha.SetHostName("alpha.environ.connector")
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown(ctx)
+	defer alpha.Shutdown()
 
 	v, ok := alpha.Config("aaa")
 	if assert.True(t, ok) {

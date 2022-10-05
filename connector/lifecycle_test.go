@@ -10,7 +10,6 @@ import (
 
 func TestConnector_StartupShutdown(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	var startupCalled, shutdownCalled bool
 
@@ -35,7 +34,7 @@ func TestConnector_StartupShutdown(t *testing.T) {
 	assert.False(t, shutdownCalled)
 	assert.True(t, alpha.IsStarted())
 
-	err = alpha.Shutdown(ctx)
+	err = alpha.Shutdown()
 	assert.NoError(t, err)
 	assert.True(t, startupCalled)
 	assert.True(t, shutdownCalled)
@@ -44,7 +43,6 @@ func TestConnector_StartupShutdown(t *testing.T) {
 
 func TestConnector_StartupError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	var startupCalled, shutdownCalled bool
 
@@ -69,7 +67,7 @@ func TestConnector_StartupError(t *testing.T) {
 	assert.True(t, shutdownCalled)
 	assert.False(t, alpha.IsStarted())
 
-	err = alpha.Shutdown(ctx)
+	err = alpha.Shutdown()
 	assert.Error(t, err)
 	assert.True(t, startupCalled)
 	assert.True(t, shutdownCalled)
@@ -91,7 +89,6 @@ func TestConnector_StartupPanic(t *testing.T) {
 
 func TestConnector_ShutdownPanic(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	alpha := NewConnector()
 	alpha.SetHostName("shutdownpanic.connector")
@@ -100,7 +97,7 @@ func TestConnector_ShutdownPanic(t *testing.T) {
 	})
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	err = alpha.Shutdown(ctx)
+	err = alpha.Shutdown()
 	assert.Error(t, err)
 	assert.Equal(t, "really bad", err.Error())
 }

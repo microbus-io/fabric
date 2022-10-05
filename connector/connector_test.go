@@ -1,7 +1,6 @@
 package connector
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -96,7 +95,6 @@ func TestConnector_CatchPanic(t *testing.T) {
 
 func TestConnector_Plane(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	c := NewConnector()
 	c.SetHostName("plane.connector")
@@ -115,7 +113,7 @@ func TestConnector_Plane(t *testing.T) {
 	// Start connector
 	err = c.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown(ctx)
+	defer c.Shutdown()
 
 	// After starting
 	assert.NotEmpty(t, c.Plane())
@@ -125,7 +123,6 @@ func TestConnector_Plane(t *testing.T) {
 
 func TestConnector_PlaneEnv(t *testing.T) {
 	// No parallel
-	ctx := context.Background()
 
 	c := NewConnector()
 	c.SetHostName("planeenv.connector")
@@ -142,14 +139,13 @@ func TestConnector_PlaneEnv(t *testing.T) {
 
 	err = c.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown(ctx)
+	defer c.Shutdown()
 
 	assert.Equal(t, "goodone", c.Plane())
 }
 
 func TestConnector_Deployment(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	c := NewConnector()
 	c.SetHostName("deployment.connector")
@@ -168,7 +164,7 @@ func TestConnector_Deployment(t *testing.T) {
 	// Start connector
 	err = c.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown(ctx)
+	defer c.Shutdown()
 
 	// After starting
 	assert.Equal(t, "LOCAL", c.Deployment())
@@ -177,7 +173,6 @@ func TestConnector_Deployment(t *testing.T) {
 }
 
 func TestConnector_DeploymentEnv(t *testing.T) {
-	ctx := context.Background()
 	// No parallel
 
 	c := NewConnector()
@@ -189,7 +184,7 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 
 	err := c.Startup()
 	assert.NoError(t, err)
-	defer c.Shutdown(ctx)
+	defer c.Shutdown()
 
 	assert.Equal(t, "LAB", c.Deployment())
 }

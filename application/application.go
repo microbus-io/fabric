@@ -1,7 +1,6 @@
 package application
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -41,7 +40,6 @@ func NewTesting(services ...connector.Service) *Application {
 
 // Startup all microservices included in this app (in order)
 func (a *Application) Startup() error {
-	ctx := context.Background()
 	if a.started {
 		return errors.New("already started")
 	}
@@ -53,7 +51,7 @@ func (a *Application) Startup() error {
 		if err != nil {
 			// Shutdown all services in reverse order
 			for j := i - 1; j >= 0; j-- {
-				a.services[j].Shutdown(ctx)
+				a.services[j].Shutdown()
 			}
 			return errors.Trace(err)
 		}
@@ -64,14 +62,14 @@ func (a *Application) Startup() error {
 }
 
 // Shutdown all microservices included in this app (in reverse order)
-func (a *Application) Shutdown(ctx context.Context) error {
+func (a *Application) Shutdown() error {
 	if !a.started {
 		return errors.New("not started")
 	}
 
 	var returnErr error
 	for j := len(a.services) - 1; j >= 0; j-- {
-		err := a.services[j].Shutdown(ctx)
+		err := a.services[j].Shutdown()
 		if err != nil {
 			returnErr = errors.Trace(err)
 		}
@@ -105,6 +103,6 @@ func (a *Application) Run() error {
 		return errors.Trace(err)
 	}
 	a.WaitForInterrupt()
-	err = a.Shutdown(context.Background())
+	err = a.Shutdown()
 	return errors.Trace(err)
 }

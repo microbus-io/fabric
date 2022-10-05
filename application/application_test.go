@@ -13,7 +13,6 @@ import (
 
 func TestApplication_StartStop(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	alpha := connector.NewConnector()
 	alpha.SetHostName("alpha.startstop.application")
@@ -32,7 +31,7 @@ func TestApplication_StartStop(t *testing.T) {
 	assert.True(t, beta.IsStarted())
 	assert.True(t, app.IsStarted())
 
-	err = app.Shutdown(ctx)
+	err = app.Shutdown()
 	assert.NoError(t, err)
 
 	assert.False(t, alpha.IsStarted())
@@ -93,10 +92,10 @@ func TestApplication_NoConflict(t *testing.T) {
 	// Start the apps
 	err := appAlpha.Startup()
 	assert.NoError(t, err)
-	defer appAlpha.Shutdown(ctx)
+	defer appAlpha.Shutdown()
 	err = appBeta.Startup()
 	assert.NoError(t, err)
-	defer appBeta.Shutdown(ctx)
+	defer appBeta.Shutdown()
 
 	// Assert different planes of communication
 	assert.NotEqual(t, alpha.Plane(), beta.Plane())
