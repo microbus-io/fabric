@@ -13,7 +13,7 @@ import (
 // optional fields can be added.
 func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
-		_ = c.initLogger()
+		return
 	}
 	c.logger.Debug(msg, fields...)
 }
@@ -22,7 +22,7 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 // optional fields can be added.
 func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
-		_ = c.initLogger()
+		return
 	}
 	c.logger.Info(msg, fields...)
 }
@@ -31,7 +31,7 @@ func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field
 // optional fields can be added.
 func (c *Connector) LogWarn(ctx context.Context, msg string, err error, fields ...log.Field) {
 	if c.logger == nil {
-		_ = c.initLogger()
+		return
 	}
 	fields = append(fields, log.Error(err))
 	c.logger.Warn(msg, fields...)
@@ -41,7 +41,7 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, err error, fields .
 // optional fields can be added.
 func (c *Connector) LogError(ctx context.Context, msg string, err error, fields ...log.Field) {
 	if c.logger == nil {
-		_ = c.initLogger()
+		return
 	}
 	fields = append(fields, log.Error(err))
 	c.logger.Error(msg, fields...)
