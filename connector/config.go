@@ -209,7 +209,7 @@ func readEnvYamlFile(hostName string, envFileData []byte, configs map[string]*co
 }
 
 // logConfigs prints the known configs to the log.
-func (c *Connector) logConfigs() {
+func (c *Connector) logConfigs(ctx context.Context) {
 	c.configLock.Lock()
 	defer c.configLock.Unlock()
 
@@ -222,7 +222,7 @@ func (c *Connector) logConfigs() {
 	for _, k := range keys {
 		cfg := c.configs[k]
 		c.LogInfo(
-			context.Background(),
+			ctx,
 			"Config scope defined",
 			log.String("scope", cfg.scope),
 			log.String("name", cfg.name),

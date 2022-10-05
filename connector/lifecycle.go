@@ -60,12 +60,12 @@ func (c *Connector) Startup() error {
 			}
 		}
 		if c.deployment == "" {
-			c.deployment = "LOCAL"
+			c.deployment = LOCAL
 			if nats, ok := c.Config("NATS"); ok {
 				if !strings.Contains(nats, "/127.0.0.1:") &&
 					!strings.Contains(nats, "/0.0.0.0:") &&
 					!strings.Contains(nats, "/localhost:") {
-					c.deployment = "PROD"
+					c.deployment = PROD
 				}
 			}
 		}
@@ -77,7 +77,7 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 
-	c.logConfigs()
+	c.logConfigs(ctx)
 
 	// Connect to NATS
 	err = c.connectToNATS(ctx)
