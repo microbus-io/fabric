@@ -8,7 +8,7 @@ The `Connector` provides key capabilities (or _building blocks_) to microservice
 * HTTP request/response model over NATS, both incoming (server) and outgoing (client)
 * Rudimentary logger
 * Configuration
-* Deployment environment indicator (PROD, LAB, LOCAL, UNITTEST)
+* Deployment environment indicator (`PROD`, `LAB`, `LOCAL`)
 * Plane of communications
 
 The `connector` package has multiple files for each functional area of the microservice but they all implement the same `Connector` class.

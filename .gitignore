@@ -17,3 +17,6 @@ nats-server
 
 # Ignore GoLand specific folders
 .idea/
+
+# Other
+.DS_Store

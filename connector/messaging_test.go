@@ -295,7 +295,7 @@ func TestConnector_CallDepth(t *testing.T) {
 	assert.Equal(t, alpha.maxCallDepth, depth)
 }
 
-func TestConnector_Timeout(t *testing.T) {
+func TestConnector_TimeoutDrawdown(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -305,25 +305,88 @@ func TestConnector_Timeout(t *testing.T) {
 	// Create the microservice
 	alpha := NewConnector()
 	alpha.networkHop = time.Second
-	alpha.SetHostName("alpha.timeout.connector")
+	alpha.SetHostName("alpha.timeoutdrawdown.connector")
 	alpha.Subscribe("next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
-		_, err := alpha.GET(r.Context(), "https://alpha.timeout.connector/next")
+		_, err := alpha.GET(r.Context(), "https://alpha.timeoutdrawdown.connector/next")
 		return errors.Trace(err)
 	})
 
-	// Startup the microservices
+	// Startup the microservice
 	err := alpha.Startup()
 	assert.NoError(t, err)
 	defer alpha.Shutdown()
 
 	_, err = alpha.Publish(
 		ctx,
-		pub.GET("https://alpha.timeout.connector/next"),
+		pub.GET("https://alpha.timeoutdrawdown.connector/next"),
 		pub.TimeBudget(budget),
 	)
 	assert.Error(t, err)
 	assert.True(t, depth > 1 && depth <= int(budget/alpha.networkHop))
+}
+
+func TestConnector_TimeoutNotFound(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.timeoutnotfound.connector")
+
+	// Startup the microservice
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	// Set a time budget
+	t0 := time.Now()
+	_, err = alpha.Publish(
+		ctx,
+		pub.GET("https://alpha.timeoutnotfound.connector/nowhere"),
+		pub.TimeBudget(500*time.Millisecond),
+	)
+	assert.Error(t, err)
+	assert.True(t, time.Since(t0) >= 500*time.Millisecond && time.Since(t0) < 600*time.Millisecond)
+
+	// Use the default time budget
+	alpha.defaultTimeBudget = 500 * time.Millisecond
+	t0 = time.Now()
+	_, err = alpha.Publish(
+		ctx,
+		pub.GET("https://alpha.timeoutnotfound.connector/nowhere"),
+	)
+	assert.Error(t, err)
+	assert.True(t, time.Since(t0) >= 500*time.Millisecond && time.Since(t0) < 600*time.Millisecond)
+}
+
+func TestConnector_TimeoutSlow(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.timeoutslow.connector")
+	alpha.Subscribe("slow", func(w http.ResponseWriter, r *http.Request) error {
+		time.Sleep(time.Second)
+		return nil
+	})
+
+	// Startup the microservice
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	t0 := time.Now()
+	_, err = alpha.Publish(
+		ctx,
+		pub.GET("https://alpha.timeoutslow.connector/slow"),
+		pub.TimeBudget(time.Millisecond*500),
+	)
+	assert.Error(t, err)
+	assert.True(t, time.Since(t0) >= 500*time.Millisecond && time.Since(t0) < 600*time.Millisecond)
 }
 
 func TestConnector_ErrorAndPanic(t *testing.T) {

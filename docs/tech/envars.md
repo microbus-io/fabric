@@ -4,7 +4,7 @@
 
 * Values of user-defined configuration properties of microservices
 * Customizing the [NATS connection settings](./natsconnection.md)
-* Determining the deployment environment (PROD, LAB, LOCAL, UNITTEST)
+* Determining the deployment environment (`PROD`, `LAB`, `LOCAL`)
 * Altering the plane of communication
 
 ## Microservice Configuration
@@ -46,12 +46,11 @@ Learn more about [NATS connection settings](./natsconnection.md).
 
 * `PROD` for production deployments
 * `LAB` for fully-functional non-production deployments such as dev integration, testing, staging, etc.
-* `LOCAL` for when developing locally
-* `UNITTEST` for when running applications inside unit tests
+* `LOCAL` for when developing locally or when running applications inside a testing application
 
 The deployment environment impacts certain aspects of the framework such as the log format and log level.
 
-The deployment environment is set according to the value of the `MICROBUS_DEPLOYMENT` environment variable. If it is empty, `PROD` is assumed, unless connecting to NATS on `localhost:4222`, in which case `LOCAL` is assumed.
+The deployment environment is set according to the value of the `MICROBUS_DEPLOYMENT` environment variable. If it is empty, `PROD` is assumed, unless connecting to NATS on `localhost:4222`, in which case `LOCAL` is assumed. `LOCAL` is also used when unit tests are running an application created with `application.NewTesting`.
 
 ## Plane of Communication
 
@@ -60,5 +59,7 @@ It is used to isolate communication among a group of microservices over a NATS c
 that is shared with other microservices.
 
 If not explicitly set via the `SetPlane(plane string)` method of the `Connector`, the value is pulled from the `MICROBUS_PLANE` environment variable. The plane must include only alphanumeric characters and is case-sensitive.
+
+Applications created with `application.NewTesting` set a random plane to eliminate the chance of collision when tests are executed in parallel in the same NATS cluster, e.g. using `go test ./... -p=8`.
 
 This is an advanced feature and in most cases there is no need to customize the plane of communications.

@@ -25,7 +25,7 @@
 
 * `Application` construct to group microservices
 * NATS connection settings
-* Deployment environment indicator (PROD, LAB, LOCAL, UNITTEST)
+* Deployment environment indicator (`PROD`, `LAB`, `LOCAL`)
 * Plane of communication
 
 ## Documentation

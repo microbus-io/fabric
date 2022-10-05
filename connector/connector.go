@@ -37,10 +37,11 @@ type Connector struct {
 	started      bool
 	plane        string
 
-	reqs         map[string]chan *http.Response
-	reqsLock     sync.Mutex
-	networkHop   time.Duration
-	maxCallDepth int
+	reqs              map[string]chan *http.Response
+	reqsLock          sync.Mutex
+	networkHop        time.Duration
+	maxCallDepth      int
+	defaultTimeBudget time.Duration
 
 	configs    map[string]*config
 	configLock sync.Mutex
@@ -49,12 +50,13 @@ type Connector struct {
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:              strings.ToLower(rand.AlphaNum32(10)),
-		reqs:            map[string]chan *http.Response{},
-		configs:         map[string]*config{},
-		networkHop:      250 * time.Millisecond,
-		maxCallDepth:    64,
-		callbackTimeout: time.Minute,
+		id:                strings.ToLower(rand.AlphaNum32(10)),
+		reqs:              map[string]chan *http.Response{},
+		configs:           map[string]*config{},
+		networkHop:        250 * time.Millisecond,
+		maxCallDepth:      64,
+		callbackTimeout:   time.Minute,
+		defaultTimeBudget: 20 * time.Second,
 	}
 	return c
 }
@@ -97,8 +99,7 @@ func (c *Connector) HostName() string {
 // Valid values are:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine;
-// UNITTEST when running inside a testing app
+// LOCAL when developing on the local machine or running inside a testing app
 func (c *Connector) Deployment() string {
 	return c.deployment
 }
@@ -110,14 +111,13 @@ func (c *Connector) Deployment() string {
 // Valid values are:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine;
-// UNITTEST when running inside a testing app
+// LOCAL when developing on the local machine or running inside a testing app
 func (c *Connector) SetDeployment(deployment string) error {
 	if c.started {
 		return errors.New("already started")
 	}
 	deployment = strings.ToUpper(deployment)
-	if deployment != "" && deployment != "PROD" && deployment != "LAB" && deployment != "LOCAL" && deployment != "UNITTEST" {
+	if deployment != "" && deployment != "PROD" && deployment != "LAB" && deployment != "LOCAL" {
 		return errors.Newf("invalid deployment: %s", deployment)
 	}
 	c.deployment = deployment

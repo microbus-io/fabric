@@ -34,7 +34,7 @@ func NewTesting(services ...connector.Service) *Application {
 		services:   services,
 		sig:        make(chan os.Signal, 1),
 		plane:      rand.AlphaNum64(8),
-		deployment: "UNITTEST",
+		deployment: "LOCAL",
 	}
 }
 
