@@ -39,7 +39,7 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 	if c.hostName == "" {
 		return errors.New("host name is not set")
 	}
-	newSub, err := sub.NewSub(c.hostName, path)
+	newSub, err := sub.NewSub(c.hostName, path, options...)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -51,7 +51,7 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 		}
 		time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 	}
-	key := fmt.Sprintf("%s:%d%s", newSub.Host, newSub.Port, newSub.Path)
+	key := newSub.Canonical()
 	c.subsLock.Lock()
 	c.subs[key] = newSub
 	c.subsLock.Unlock()
@@ -64,7 +64,7 @@ func (c *Connector) Unsubscribe(path string) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	key := fmt.Sprintf("%s:%d%s", newSub.Host, newSub.Port, newSub.Path)
+	key := newSub.Canonical()
 	c.subsLock.Lock()
 	if sub, ok := c.subs[key]; ok {
 		if sub.NATSSub != nil {
@@ -96,11 +96,11 @@ func (c *Connector) UnsubscribeAll() error {
 }
 
 func (c *Connector) activateSub(s *sub.Subscription) error {
-	var err error
-	s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), c.hostName, func(msg *nats.Msg) {
+	handler := func(msg *nats.Msg) {
 		err := c.ackRequest(msg, s)
 		if err != nil {
 			c.LogError(err)
+			return
 		}
 		go func() {
 			err := c.onRequest(msg, s)
@@ -108,7 +108,13 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 				c.LogError(err)
 			}
 		}()
-	})
+	}
+	var err error
+	if s.Queue != "" {
+		s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), s.Queue, handler)
+	} else {
+		s.NATSSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), handler)
+	}
 	return errors.Trace(err)
 }
 
@@ -131,16 +137,28 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 	fromHost := frame.Of(httpReq).FromHost()
 	fromID := frame.Of(httpReq).FromID()
 	msgID := frame.Of(httpReq).MessageID()
+	queue := s.Queue
+	if queue == "" {
+		queue = c.id + "." + c.hostName
+	}
 
-	// Prepare and send the reply
+	// Prepare and send the ack
 	var buf bytes.Buffer
-	buf.WriteString("HTTP/1.1 202 Accepted\r\n")
-	buf.WriteString("Connection: close\r\n")
-	buf.WriteString("Microbus-Op-Code: " + frame.OpCodeAck + "\r\n")
-	buf.WriteString("Microbus-From-Host: " + c.hostName + "\r\n")
-	buf.WriteString("Microbus-From-Id: " + c.id + "\r\n")
-	buf.WriteString("Microbus-Msg-Id: " + msgID + "\r\n")
-	buf.WriteString("\r\n")
+	buf.WriteString("HTTP/1.1 202 Accepted\r\nConnection: close")
+	header := map[string]string{
+		frame.HeaderOpCode:   frame.OpCodeAck,
+		frame.HeaderFromHost: c.hostName,
+		frame.HeaderFromId:   c.id,
+		frame.HeaderMsgId:    msgID,
+		frame.HeaderQueue:    queue,
+	}
+	for k, v := range header {
+		buf.WriteString("\r\n")
+		buf.WriteString(k)
+		buf.WriteString(": ")
+		buf.WriteString(v)
+	}
+	buf.WriteString("\r\n\r\n")
 
 	err = c.natsConn.Publish(subjectOfReply(c.plane, fromHost, fromID), buf.Bytes())
 	if err != nil {
@@ -167,6 +185,10 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	fromHost := frame.Of(httpReq).FromHost()
 	fromId := frame.Of(httpReq).FromID()
 	msgID := frame.Of(httpReq).MessageID()
+	queue := s.Queue
+	if queue == "" {
+		queue = c.id + "." + c.hostName
+	}
 
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
@@ -190,6 +212,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	frame.Of(httpRecorder).SetFromHost(c.hostName)
 	frame.Of(httpRecorder).SetFromID(c.id)
 	frame.Of(httpRecorder).SetOpCode(frame.OpCodeResponse)
+	frame.Of(httpRecorder).SetQueue(queue)
 
 	// Call the web handler
 	handlerErr := catchPanic(func() error {
@@ -206,6 +229,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		frame.Of(httpRecorder).SetFromHost(c.hostName)
 		frame.Of(httpRecorder).SetFromID(c.id)
 		frame.Of(httpRecorder).SetOpCode(frame.OpCodeError)
+		frame.Of(httpRecorder).SetQueue(queue)
 		httpRecorder.Header().Set("Content-Type", "application/json")
 		body, err := json.MarshalIndent(handlerErr, "", "\t")
 		if err != nil {

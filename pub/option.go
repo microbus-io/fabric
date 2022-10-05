@@ -102,3 +102,19 @@ func Deadline(deadline time.Time) Option {
 func TimeBudget(timeout time.Duration) Option {
 	return Deadline(time.Now().Add(timeout))
 }
+
+// Unicast indicates that a single response is expected from this request
+func Unicast() Option {
+	return func(req *Request) error {
+		req.Multicast = false
+		return nil
+	}
+}
+
+// Multicast indicates that a multiple responses are expected from this request
+func Multicast() Option {
+	return func(req *Request) error {
+		req.Multicast = true
+		return nil
+	}
+}

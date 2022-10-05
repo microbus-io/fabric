@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -19,6 +20,7 @@ type Subscription struct {
 	Host    string
 	Port    int
 	Path    string
+	Queue   string
 	Handler HTTPHandler
 	NATSSub *nats.Subscription
 }
@@ -40,7 +42,7 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func NewSub(defaultHost string, path string) (*Subscription, error) {
+func NewSub(defaultHost string, path string, options ...Option) (*Subscription, error) {
 	spec := path
 	if path == "" {
 		// (empty)
@@ -73,9 +75,31 @@ func NewSub(defaultHost string, path string) (*Subscription, error) {
 		return nil, errors.Newf("invalid port: %d", port)
 	}
 
-	return &Subscription{
-		Host: u.Hostname(),
-		Port: port,
-		Path: u.Path,
-	}, nil
+	sub := &Subscription{
+		Host:  u.Hostname(),
+		Port:  port,
+		Path:  u.Path,
+		Queue: u.Hostname(),
+	}
+	err = sub.Apply(options...)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	return sub, nil
+}
+
+// Apply the provided options to the subscription
+func (sub *Subscription) Apply(options ...Option) error {
+	for _, opt := range options {
+		err := opt(sub)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+// Canonical returns the fully-qualified canonical path of the subscription
+func (sub *Subscription) Canonical() string {
+	return fmt.Sprintf("https://%s:%d%s", sub.Host, sub.Port, sub.Path)
 }

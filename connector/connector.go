@@ -43,6 +43,9 @@ type Connector struct {
 	maxCallDepth      int
 	defaultTimeBudget time.Duration
 
+	knownResponders     map[string]map[string]bool
+	knownRespondersLock sync.Mutex
+
 	configs    map[string]*config
 	configLock sync.Mutex
 }
@@ -58,6 +61,7 @@ func NewConnector() *Connector {
 		callbackTimeout:   time.Minute,
 		defaultTimeBudget: 20 * time.Second,
 		subs:              map[string]*sub.Subscription{},
+		knownResponders:   map[string]map[string]bool{},
 	}
 	return c
 }

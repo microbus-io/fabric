@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -20,8 +19,9 @@ import (
 
 // GET makes a GET request
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
-	return c.Publish(ctx, []pub.Option{
+	return c.Request(ctx, []pub.Option{
 		pub.GET(url),
+		pub.Unicast(),
 	}...)
 }
 
@@ -29,18 +29,30 @@ func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error)
 // Body of type io.Reader, []byte and string is serialized in binary form.
 // All other types are serialized as JSON
 func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Response, error) {
-	return c.Publish(ctx, []pub.Option{
+	return c.Request(ctx, []pub.Option{
 		pub.POST(url),
 		pub.Body(body),
+		pub.Unicast(),
 	}...)
 }
 
-// Publish makes an HTTP request then awaits and returns the response
-func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.Response, error) {
+// Request makes an HTTP request then awaits and returns a single response synchronously
+func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.Response, error) {
+	options = append(options, pub.Unicast())
+	ch := c.Publish(ctx, options...)
+	return (<-ch).Get()
+}
+
+// Publish makes an HTTP request then awaits and returns the responses asynchronously
+func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	errOutput := make(chan *pub.Response, 1)
+	defer close(errOutput)
+
 	// Build the request
 	req, err := pub.NewRequest(options...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		errOutput <- pub.NewErrorResponse(errors.Trace(err))
+		return errOutput
 	}
 
 	// Restrict the time budget to the context deadline
@@ -53,13 +65,15 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.R
 	}
 	// Check if there's enough time budget
 	if !req.Deadline.After(time.Now().Add(-c.networkHop)) {
-		return nil, errors.New("timeout")
+		errOutput <- pub.NewErrorResponse(errors.New("timeout"))
+		return errOutput
 	}
 
 	// Limit number of hops
 	depth := frame.Of(ctx).CallDepth()
 	if depth >= c.maxCallDepth {
-		return nil, errors.New("call depth overflow")
+		errOutput <- pub.NewErrorResponse(errors.New("call depth overflow"))
+		return errOutput
 	}
 	frame.Of(req.Header).SetCallDepth(depth + 1)
 
@@ -69,34 +83,21 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) (*http.R
 	frame.Of(req.Header).SetOpCode(frame.OpCodeRequest)
 
 	// Make the request
-	httpRes, err := c.makeHTTPRequest(req)
-	if err != nil {
-		return nil, errors.Trace(err)
+	var output chan *pub.Response
+	if req.Multicast {
+		output = make(chan *pub.Response, 64)
+	} else {
+		output = make(chan *pub.Response, 2)
 	}
-
-	// Reconstitute the error if an error op code is returned
-	if frame.Of(httpRes).OpCode() == frame.OpCodeError {
-		var tracedError errors.TracedError
-		body, err := io.ReadAll(httpRes.Body)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		u, err := url.Parse(req.URL)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		err = json.Unmarshal(body, &tracedError)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		return nil, errors.Trace(&tracedError, c.hostName+" -> "+u.Hostname())
-	}
-
-	return httpRes, nil
+	go func() {
+		c.makeHTTPRequest(req, output)
+		close(output)
+	}()
+	return output
 }
 
-// makeHTTPRequest makes an HTTP request then awaits and returns the response
-func (c *Connector) makeHTTPRequest(req *pub.Request) (*http.Response, error) {
+// makeHTTPRequest makes an HTTP request then awaits and pushes the responses to the output channel
+func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response) {
 	// Set a random message ID
 	msgID := rand.AlphaNum64(8)
 	frame.Of(req.Header).SetMessageID(msgID)
@@ -104,11 +105,12 @@ func (c *Connector) makeHTTPRequest(req *pub.Request) (*http.Response, error) {
 	// Prepare the HTTP request
 	httpReq, err := req.ToHTTP()
 	if err != nil {
-		return nil, errors.Trace(err)
+		output <- pub.NewErrorResponse(errors.Trace(err))
+		return
 	}
 
 	// Create a channel to await on
-	awaitCh := make(chan *http.Response, 2)
+	awaitCh := make(chan *http.Response, 64)
 	c.reqsLock.Lock()
 	c.reqs[msgID] = awaitCh
 	c.reqsLock.Unlock()
@@ -126,7 +128,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request) (*http.Response, error) {
 	if httpReq.URL.Port() != "" {
 		port64, err := strconv.ParseInt(httpReq.URL.Port(), 10, 32)
 		if err != nil {
-			return nil, errors.Trace(err)
+			output <- pub.NewErrorResponse(errors.Trace(err))
+			return
 		}
 		port = int(port64)
 	}
@@ -135,15 +138,26 @@ func (c *Connector) makeHTTPRequest(req *pub.Request) (*http.Response, error) {
 	var buf bytes.Buffer
 	err = httpReq.Write(&buf)
 	if err != nil {
-		return nil, errors.Trace(err)
+		output <- pub.NewErrorResponse(errors.Trace(err))
+		return
 	}
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
-		return nil, errors.Trace(err)
+		output <- pub.NewErrorResponse(errors.Trace(err))
+		return
 	}
 
-	// Await and return the response
-	acked := false
+	// Await and return the responses
+	var expectedResponders map[string]bool
+	if req.Multicast {
+		c.knownRespondersLock.Lock()
+		expectedResponders = c.knownResponders[subject]
+		c.knownRespondersLock.Unlock()
+	}
+	countResponses := 0
+	seenIDs := map[string]string{} // FromID -> OpCode
+	seenQueues := map[string]bool{}
+	doneWaitingForAcks := false
 	budget := time.Until(req.Deadline)
 	timeoutTimer := time.NewTimer(budget)
 	defer timeoutTimer.Stop()
@@ -153,19 +167,112 @@ func (c *Connector) makeHTTPRequest(req *pub.Request) (*http.Response, error) {
 		select {
 		case response := <-awaitCh:
 			opCode := frame.Of(response).OpCode()
+			fromID := frame.Of(response).FromID()
+			queue := frame.Of(response).Queue()
 
+			// Known responders optimization
+			if req.Multicast {
+				seenQueues[queue] = true
+				if !doneWaitingForAcks && len(seenQueues) == len(expectedResponders) {
+					match := true
+					for k := range seenQueues {
+						if !expectedResponders[k] {
+							match = false
+							break
+						}
+					}
+					if match {
+						doneWaitingForAcks = true
+					}
+				}
+			}
+
+			// Ack
 			if opCode == frame.OpCodeAck {
-				acked = true
+				if seenIDs[fromID] == "" {
+					seenIDs[fromID] = frame.OpCodeAck
+				}
 			}
 
-			if opCode == frame.OpCodeResponse || opCode == frame.OpCodeError {
-				return response, nil
+			// Response
+			if opCode == frame.OpCodeResponse {
+				seenIDs[fromID] = frame.OpCodeResponse
+				countResponses++
+				output <- pub.NewHTTPResponse(response)
+				if !req.Multicast {
+					// Return the first result found
+					return
+				}
+				if doneWaitingForAcks && countResponses == len(seenIDs) {
+					// All responses have been received
+					c.knownRespondersLock.Lock()
+					c.knownResponders[subject] = seenQueues
+					c.knownRespondersLock.Unlock()
+					return
+				}
 			}
+
+			// Error
+			if opCode == frame.OpCodeError {
+				// Reconstitute the error if an error op code is returned
+				var tracedError *errors.TracedError
+				body, err := io.ReadAll(response.Body)
+				if err == nil {
+					json.Unmarshal(body, &tracedError)
+				}
+				if tracedError == nil {
+					tracedError = errors.New("unparsable error response").(*errors.TracedError)
+				}
+
+				seenIDs[fromID] = frame.OpCodeError
+				countResponses++
+				output <- pub.NewErrorResponse(errors.Trace(tracedError, c.hostName+" -> "+httpReq.URL.Hostname()))
+				if !req.Multicast {
+					// Return the first result found
+					return
+				}
+				if doneWaitingForAcks && countResponses == len(seenIDs) {
+					// All responses have been received
+					c.knownRespondersLock.Lock()
+					c.knownResponders[subject] = seenQueues
+					c.knownRespondersLock.Unlock()
+					return
+				}
+			}
+
+		// Timeout timer
 		case <-timeoutTimer.C:
-			return nil, errors.New("timeout")
+			output <- pub.NewErrorResponse(errors.New("timeout"))
+			// Known responders optimization
+			if req.Multicast {
+				c.knownRespondersLock.Lock()
+				delete(c.knownResponders, subject)
+				c.knownRespondersLock.Unlock()
+			}
+			return
+
+		// Ack timer
 		case <-ackTimer.C:
-			if !acked {
-				return nil, errors.New("ack timeout")
+			doneWaitingForAcks = true
+			if len(seenIDs) == 0 {
+				output <- pub.NewErrorResponse(errors.New("ack timeout"))
+				// Known responders optimization
+				if req.Multicast {
+					c.knownRespondersLock.Lock()
+					delete(c.knownResponders, subject)
+					c.knownRespondersLock.Unlock()
+				}
+				return
+			}
+			if countResponses == len(seenIDs) {
+				// All responses have been received
+				// Known responders optimization
+				if req.Multicast {
+					c.knownRespondersLock.Lock()
+					c.knownResponders[subject] = seenQueues
+					c.knownRespondersLock.Unlock()
+				}
+				return
 			}
 		}
 	}

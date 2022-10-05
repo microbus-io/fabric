@@ -13,6 +13,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/sub"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -229,7 +230,7 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	_, err = con.Publish(
+	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.drawdown.connector/next"),
 		pub.TimeBudget(budget),
@@ -254,7 +255,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 
 	// Set a time budget in the request
 	t0 := time.Now()
-	_, err = con.Publish(
+	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.not.found.connector/nowhere"),
 		pub.TimeBudget(2*time.Second),
@@ -265,7 +266,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 
 	// Use the default time budget
 	t0 = time.Now()
-	_, err = con.Publish(
+	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.not.found.connector/nowhere"),
 	)
@@ -293,11 +294,112 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 	defer con.Shutdown()
 
 	t0 := time.Now()
-	_, err = con.Publish(
+	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.slow.connector/slow"),
 		pub.TimeBudget(time.Millisecond*500),
 	)
 	assert.Error(t, err)
 	assert.True(t, time.Since(t0) >= 500*time.Millisecond && time.Since(t0) < 600*time.Millisecond)
+}
+
+func TestConnector_Multicast(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	noqueue1 := NewConnector()
+	noqueue1.SetHostName("multicast.connector")
+	noqueue1.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("noqueue1"))
+		return nil
+	}, sub.NoQueue())
+
+	noqueue2 := NewConnector()
+	noqueue2.SetHostName("multicast.connector")
+	noqueue2.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("noqueue2"))
+		return nil
+	}, sub.NoQueue())
+
+	named1 := NewConnector()
+	named1.SetHostName("multicast.connector")
+	named1.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("named1"))
+		return nil
+	}, sub.Queue("MyQueue"))
+
+	named2 := NewConnector()
+	named2.SetHostName("multicast.connector")
+	named2.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("named2"))
+		return nil
+	}, sub.Queue("MyQueue"))
+
+	def1 := NewConnector()
+	def1.SetHostName("multicast.connector")
+	def1.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("def1"))
+		return nil
+	}, sub.DefaultQueue())
+
+	def2 := NewConnector()
+	def2.SetHostName("multicast.connector")
+	def2.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("def2"))
+		return nil
+	}, sub.DefaultQueue())
+
+	// Startup the microservice
+	for _, i := range []*Connector{noqueue1, noqueue2, named1, named2, def1, def2} {
+		err := i.Startup()
+		assert.NoError(t, err)
+		defer i.Shutdown()
+	}
+
+	// Make the first request
+	client := named1
+	t0 := time.Now()
+	responded := map[string]bool{}
+	ch := client.Publish(ctx, pub.GET("https://multicast.connector/cast"), pub.Multicast())
+	for i := range ch {
+		res, err := i.Get()
+		if assert.NoError(t, err) {
+			body, err := io.ReadAll(res.Body)
+			assert.NoError(t, err)
+			responded[string(body)] = true
+		}
+	}
+	dur := time.Since(t0)
+	assert.True(t, dur >= client.networkHop && dur < client.networkHop*2)
+	assert.Len(t, responded, 4)
+	assert.True(t, responded["noqueue1"])
+	assert.True(t, responded["noqueue2"])
+	assert.True(t, responded["named1"] || responded["named2"])
+	assert.False(t, responded["named1"] && responded["named2"])
+	assert.True(t, responded["def1"] || responded["def2"])
+	assert.False(t, responded["def1"] && responded["def2"])
+
+	// Make the second request, should be quicker due to known responders optimization
+	t0 = time.Now()
+	responded = map[string]bool{}
+	ch = client.Publish(ctx, pub.GET("https://multicast.connector/cast"), pub.Multicast())
+	for i := range ch {
+		res, err := i.Get()
+		if assert.NoError(t, err) {
+			body, err := io.ReadAll(res.Body)
+			assert.NoError(t, err)
+			responded[string(body)] = true
+		}
+	}
+	dur = time.Since(t0)
+	assert.True(t, dur < client.networkHop)
+	assert.Len(t, responded, 4)
+	assert.True(t, responded["noqueue1"])
+	assert.True(t, responded["noqueue2"])
+	assert.True(t, responded["named1"] || responded["named2"])
+	assert.False(t, responded["named1"] && responded["named2"])
+	assert.True(t, responded["def1"] || responded["def2"])
+	assert.False(t, responded["def1"] && responded["def2"])
 }
