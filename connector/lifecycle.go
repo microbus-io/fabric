@@ -38,6 +38,26 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 
+	// Load environment deployment config or use default
+	if c.deployment == "" {
+		if deployment, ok := c.Config("Deployment"); ok {
+			err := c.SetDeployment(deployment)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+		if c.deployment == "" {
+			c.deployment = "LOCAL"
+			if nats, ok := c.Config("NATS"); ok {
+				if !strings.Contains(nats, "/127.0.0.1:") &&
+					!strings.Contains(nats, "/0.0.0.0:") &&
+					!strings.Contains(nats, "/localhost:") {
+					c.deployment = "PROD"
+				}
+			}
+		}
+	}
+
 	// Initialize logger
 	err = c.initLogger()
 	if err != nil {
@@ -56,26 +76,6 @@ func (c *Connector) Startup() error {
 		}
 		if c.plane == "" {
 			c.plane = "microbus"
-		}
-	}
-
-	// Deployment default
-	if c.deployment == "" {
-		if deployment, ok := c.Config("Deployment"); ok {
-			err := c.SetDeployment(deployment)
-			if err != nil {
-				return errors.Trace(err)
-			}
-		}
-		if c.deployment == "" {
-			c.deployment = "LOCAL"
-			if nats, ok := c.Config("NATS"); ok {
-				if !strings.Contains(nats, "/127.0.0.1:") &&
-					!strings.Contains(nats, "/0.0.0.0:") &&
-					!strings.Contains(nats, "/localhost:") {
-					c.deployment = "PROD"
-				}
-			}
 		}
 	}
 
