@@ -39,10 +39,10 @@ func TestConnector_Echo(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer beta.Shutdown()
+	defer beta.Shutdown(ctx)
 
 	// Send message and validate that it's echoed back
 	response, err := alpha.POST(ctx, "https://beta.echo.connector/echo", []byte("Hello"))
@@ -72,10 +72,10 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer beta.Shutdown()
+	defer beta.Shutdown(ctx)
 
 	// Send messages to various locations under the directory
 	_, err = alpha.GET(ctx, "https://beta.dir.connector/directory/")
@@ -110,10 +110,10 @@ func TestConnector_QueryArgs(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer beta.Shutdown()
+	defer beta.Shutdown(ctx)
 
 	// Send request with a query argument
 	_, err = alpha.GET(ctx, "https://beta.queryargs.connector/arg?arg=not_empty")
@@ -142,10 +142,10 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer beta.Shutdown()
+	defer beta.Shutdown(ctx)
 
 	// Subscribe after beta is started
 	beta.Subscribe("after", func(w http.ResponseWriter, r *http.Request) error {
@@ -192,13 +192,13 @@ func TestConnector_LoadBalancing(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta1.Startup()
 	assert.NoError(t, err)
-	defer beta1.Shutdown()
+	defer beta1.Shutdown(ctx)
 	err = beta2.Startup()
 	assert.NoError(t, err)
-	defer beta2.Shutdown()
+	defer beta2.Shutdown(ctx)
 
 	// Send messages
 	var wg sync.WaitGroup
@@ -238,10 +238,10 @@ func TestConnector_Concurrent(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer beta.Shutdown()
+	defer beta.Shutdown(ctx)
 
 	// Send messages
 	var wg sync.WaitGroup
@@ -288,7 +288,7 @@ func TestConnector_CallDepth(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 
 	_, err = alpha.GET(ctx, "https://alpha.calldepth.connector/next?step=1")
 	assert.Error(t, err)
@@ -315,7 +315,7 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 	// Startup the microservice
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 
 	_, err = alpha.Publish(
 		ctx,
@@ -338,7 +338,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	// Startup the microservice
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 
 	// Set a time budget
 	t0 := time.Now()
@@ -377,7 +377,7 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 	// Startup the microservice
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 
 	t0 := time.Now()
 	_, err = alpha.Publish(
@@ -418,10 +418,10 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer beta.Shutdown()
+	defer beta.Shutdown(ctx)
 
 	// Send messages
 	_, err = alpha.GET(ctx, "https://beta.error.connector/err")
@@ -466,10 +466,10 @@ func TestConnector_DifferentPlanes(t *testing.T) {
 	// Startup the microservices
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer alpha.Shutdown(ctx)
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer beta.Shutdown()
+	defer beta.Shutdown(ctx)
 
 	// Alpha should never see beta
 	for i := 0; i < 32; i++ {

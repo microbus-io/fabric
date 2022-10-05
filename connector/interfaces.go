@@ -1,10 +1,12 @@
 package connector
 
+import "context"
+
 // Service is the interface that all microservices must support.
 // It is implemented by the connector
 type Service interface {
 	Startup() error
-	Shutdown() error
+	Shutdown(ctx context.Context) error
 	IsStarted() bool
 
 	HostName() string
