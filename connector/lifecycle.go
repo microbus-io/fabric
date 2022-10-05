@@ -38,6 +38,19 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 
+	// Communication plane default
+	if c.plane == "" {
+		if plane, ok := c.Config("Plane"); ok {
+			err := c.SetPlane(plane)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+		if c.plane == "" {
+			c.plane = "microbus"
+		}
+	}
+
 	// Load environment deployment config or use default
 	if c.deployment == "" {
 		if deployment, ok := c.Config("Deployment"); ok {
@@ -55,19 +68,6 @@ func (c *Connector) Startup() error {
 					c.deployment = "PROD"
 				}
 			}
-		}
-	}
-
-	// Communication plane default
-	if c.plane == "" {
-		if plane, ok := c.Config("Plane"); ok {
-			err := c.SetPlane(plane)
-			if err != nil {
-				return errors.Trace(err)
-			}
-		}
-		if c.plane == "" {
-			c.plane = "microbus"
 		}
 	}
 
