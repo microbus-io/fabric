@@ -97,6 +97,13 @@ func (c *Connector) HostName() string {
 	return c.hostName
 }
 
+// Deployment environment values the microservice can run in.
+const (
+	PROD  string = "PROD"  // PROD for a production environment
+	LAB   string = "LAB"   // LAB for all non-production environments such as dev integration, test, staging, etc.
+	LOCAL string = "LOCAL" // LOCAL when developing on the local machine or running inside a testing app
+)
+
 // Deployment indicates what deployment environment the microservice is running in:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
