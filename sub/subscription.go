@@ -10,7 +10,7 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// HTTPHandler extends the standard Go's http.Handler with an error
+// HTTPHandler extends the standard http.Handler to also return an error
 type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
 
 // Subscription handles incoming requests.
