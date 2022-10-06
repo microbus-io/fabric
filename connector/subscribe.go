@@ -104,19 +104,29 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 			}
 		}()
 	}
+
 	var err error
-	if s.Queue != "" {
-		s.HostSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), s.Queue, handler)
-		if err == nil {
-			s.DirectSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), s.Queue, handler)
+	if s.HostSub == nil {
+		if s.Queue != "" {
+			s.HostSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), s.Queue, handler)
+		} else {
+			s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), handler)
 		}
-	} else {
-		s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), handler)
-		if err == nil {
-			s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), handler)
+		if err != nil {
+			return errors.Trace(err)
 		}
 	}
-	return errors.Trace(err)
+	if s.DirectSub == nil {
+		if s.Queue != "" {
+			s.DirectSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), s.Queue, handler)
+		} else {
+			s.DirectSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), handler)
+		}
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
 }
 
 // deactivateSub will unsubscribe from NATS
@@ -160,8 +170,17 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Get return address
 	fromHost := frame.Of(httpReq).FromHost()
+	if fromHost == "" {
+		return errors.New("empty " + frame.HeaderFromHost + " header")
+	}
 	fromID := frame.Of(httpReq).FromID()
+	if fromID == "" {
+		return errors.New("empty " + frame.HeaderFromId + " header")
+	}
 	msgID := frame.Of(httpReq).MessageID()
+	if msgID == "" {
+		return errors.New("empty " + frame.HeaderMsgId + " header")
+	}
 	queue := s.Queue
 	if queue == "" {
 		queue = c.id + "." + c.hostName
@@ -245,7 +264,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	})
 
 	if handlerErr != nil {
-		handlerErr = errors.Trace(handlerErr, fmt.Sprintf("%s:%d%s", s.Host, s.Port, s.Path))
+		handlerErr = errors.Trace(handlerErr, s.Canonical())
 		c.LogError(handlerErr)
 
 		// Prepare an error response instead

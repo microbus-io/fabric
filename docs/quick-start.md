@@ -42,6 +42,7 @@ Try the following URLs in your browser:
 * http://localhost:8080/calculator.example/square?x=not-a-number
 * http://localhost:8080/echo.example/echo
 * http://localhost:8080/echo.example/who
+* http://localhost:8080/echo.example/ping
 * http://localhost:8080/helloworld.example/hello?name=Gopher
 
 Feel free to experiment with different values for the query arguments.

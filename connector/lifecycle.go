@@ -69,6 +69,12 @@ func (c *Connector) Startup() error {
 		}
 	}
 
+	// Subscribe to :888 control messages
+	err = c.subscribeControl()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	// Connect to NATS
 	err = c.connectToNATS()
 	if err != nil {

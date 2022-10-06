@@ -293,7 +293,10 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	ch, ok := c.reqs[msgID]
 	c.reqsLock.Unlock()
 	if !ok {
-		c.LogInfo("Response received after timeout: %s", msgID)
+		opCode := frame.Of(response).OpCode()
+		if opCode != frame.OpCodeAck {
+			c.LogInfo("Response received after timeout: %s", msgID)
+		}
 		return
 	}
 	ch <- response

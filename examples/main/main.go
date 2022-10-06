@@ -18,6 +18,7 @@ Try the following URLs:
 	http://localhost:8080/calculator.example/square?x=not-a-number
 	http://localhost:8080/echo.example/echo
 	http://localhost:8080/echo.example/who
+	http://localhost:8080/echo.example/ping
 	http://localhost:8080/helloworld.example/hello?name=Gopher
 */
 func main() {

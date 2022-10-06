@@ -8,6 +8,7 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/pub"
 )
 
 // Service is an echo microservice
@@ -23,6 +24,7 @@ func NewService() *Service {
 	s.SetHostName("echo.example")
 	s.Subscribe("/echo", s.Echo)
 	s.Subscribe("/who", s.Who)
+	s.Subscribe("/ping", s.Ping)
 	return s
 }
 
@@ -47,5 +49,30 @@ Handled by instance %s of host %s
 
 Refresh the page to try again`, frame.Of(r).FromID(), frame.Of(r).FromHost(), s.ID(), s.HostName())
 	w.Write([]byte(msg))
+	return nil
+}
+
+// Ping all microservices and list them
+func (s *Service) Ping(w http.ResponseWriter, r *http.Request) error {
+	var buf bytes.Buffer
+	ch := s.Publish(
+		r.Context(),
+		pub.GET("https://all:888/ping"),
+		pub.Multicast(),
+	)
+	for i := range ch {
+		res, err := i.Get()
+		if err == nil {
+			fromHost := frame.Of(res).FromHost()
+			fromID := frame.Of(res).FromID()
+			buf.WriteString(fromID)
+			buf.WriteString(".")
+			buf.WriteString(fromHost)
+			buf.WriteString("\r\n")
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write(buf.Bytes())
 	return nil
 }
