@@ -23,7 +23,8 @@ type Request struct {
 // NewRequest constructs a new request from the provided options
 func NewRequest(options ...Option) (*Request, error) {
 	req := &Request{
-		Header: make(http.Header),
+		Header:    make(http.Header),
+		Multicast: true,
 	}
 	err := req.Apply(options...)
 	if err != nil {

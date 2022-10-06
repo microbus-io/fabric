@@ -43,7 +43,9 @@ func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.R
 	return (<-ch).Get()
 }
 
-// Publish makes an HTTP request then awaits and returns the responses asynchronously
+// Publish makes an HTTP request then awaits and returns the responses asynchronously.
+// By default, publish performs a multicast and multiple responses may be returned.
+// Use the Request method or pass in pub.Unicast() to Publish to perform a unicast.
 func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	errOutput := make(chan *pub.Response, 1)
 	defer close(errOutput)
