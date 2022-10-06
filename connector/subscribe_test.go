@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/pub"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -223,4 +224,51 @@ func TestConnector_Unsubscribe(t *testing.T) {
 	assert.Error(t, err)
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub2")
 	assert.Error(t, err)
+}
+
+func TestConnector_AnotherHost(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("alpha.another.host.connector")
+	alpha.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+
+	beta1 := NewConnector()
+	beta1.SetHostName("beta.another.host.connector")
+	beta1.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+
+	beta2 := NewConnector()
+	beta2.SetHostName("beta.another.host.connector")
+	beta2.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta1.Startup()
+	assert.NoError(t, err)
+	defer beta1.Shutdown()
+	err = beta2.Startup()
+	assert.NoError(t, err)
+	defer beta2.Shutdown()
+
+	// Send message
+	responded := 0
+	ch := alpha.Publish(ctx, pub.GET("https://alternative.host.connector/empty"), pub.Multicast())
+	for i := range ch {
+		_, err := i.Get()
+		assert.NoError(t, err)
+		responded++
+	}
+	// Even though the microservices subscribe to the same alternative host, their queues should be different
+	assert.Equal(t, 2, responded)
 }

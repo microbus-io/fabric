@@ -52,6 +52,70 @@ func TestConnector_Echo(t *testing.T) {
 	assert.Equal(t, []byte("Hello"), body)
 }
 
+func BenchmarkConnector_EchoSerial(b *testing.B) {
+	ctx := context.Background()
+
+	// Create the microservice
+	con := NewConnector()
+	con.SetHostName("echoserial.connector")
+	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
+		body, _ := io.ReadAll(r.Body)
+		w.Write(body)
+		return nil
+	})
+
+	// Startup the microservice
+	con.Startup()
+	defer con.Shutdown()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		con.POST(ctx, "https://echoserial.connector/echo", []byte("Hello"))
+	}
+	b.StopTimer()
+
+	// On 2021 MacBook Pro M1 15":
+	// 78851 ns/op
+	// 32869 B/op
+	// 210 allocs/op
+}
+
+func BenchmarkConnector_EchoParallel(b *testing.B) {
+	ctx := context.Background()
+
+	// Create the microservice
+	con := NewConnector()
+	con.networkHop = 4 * time.Second // to avoid timeouts
+	con.SetHostName("echoparallel.connector")
+	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
+		body, _ := io.ReadAll(r.Body)
+		w.Write(body)
+		return nil
+	})
+
+	// Startup the microservice
+	con.Startup()
+	defer con.Shutdown()
+
+	var wg sync.WaitGroup
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			con.POST(ctx, "https://echoparallel.connector/echo", []byte("Hello"))
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	b.StopTimer()
+
+	// On 2021 MacBook Pro M1 15":
+	// N=71256 concurrent
+	// 17594 ns/op
+	// 34113 B/op
+	// 216 allocs/op
+}
+
 func TestConnector_QueryArgs(t *testing.T) {
 	t.Parallel()
 
@@ -190,11 +254,9 @@ func TestConnector_CallDepth(t *testing.T) {
 		assert.Equal(t, depth, step)
 		assert.Equal(t, depth, frame.Of(r).CallDepth())
 
-		lastCall := depth == con.maxCallDepth
 		_, err := con.GET(r.Context(), "https://call.depth.connector/next?step="+strconv.Itoa(step+1))
-		if lastCall {
-			assert.Error(t, err)
-		}
+		assert.Error(t, err)
+		assert.Contains(t, "call depth overflow", err.Error())
 		return errors.Trace(err)
 	})
 
@@ -205,6 +267,7 @@ func TestConnector_CallDepth(t *testing.T) {
 
 	_, err = con.GET(ctx, "https://call.depth.connector/next?step=1")
 	assert.Error(t, err)
+	assert.Contains(t, "call depth overflow", err.Error())
 	assert.Equal(t, con.maxCallDepth, depth)
 }
 
@@ -236,6 +299,7 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 		pub.TimeBudget(budget),
 	)
 	assert.Error(t, err)
+	assert.Contains(t, "ack timeout", err.Error())
 	assert.True(t, depth > 1 && depth <= int(budget/con.networkHop))
 }
 
@@ -272,6 +336,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	)
 	dur = time.Since(t0)
 	assert.Error(t, err)
+	assert.Contains(t, "ack timeout", err.Error())
 	assert.True(t, dur >= con.networkHop && dur <= con.networkHop*2)
 }
 
@@ -351,7 +416,7 @@ func TestConnector_Multicast(t *testing.T) {
 		return nil
 	}, sub.DefaultQueue())
 
-	// Startup the microservice
+	// Startup the microservices
 	for _, i := range []*Connector{noqueue1, noqueue2, named1, named2, def1, def2} {
 		err := i.Startup()
 		assert.NoError(t, err)
@@ -402,4 +467,217 @@ func TestConnector_Multicast(t *testing.T) {
 	assert.False(t, responded["named1"] && responded["named2"])
 	assert.True(t, responded["def1"] || responded["def2"])
 	assert.False(t, responded["def1"] && responded["def2"])
+}
+
+func TestConnector_MulticastDelay(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	slow := NewConnector()
+	slow.SetHostName("multicast.delay.connector")
+	delay := slow.networkHop
+	slow.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		time.Sleep(delay * 2)
+		w.Write([]byte("slow"))
+		return nil
+	}, sub.NoQueue())
+
+	fast := NewConnector()
+	fast.SetHostName("multicast.delay.connector")
+	fast.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("fast"))
+		return nil
+	}, sub.NoQueue())
+
+	tooSlow := NewConnector()
+	tooSlow.SetHostName("multicast.delay.connector")
+	tooSlow.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		time.Sleep(delay * 4)
+		w.Write([]byte("too slow"))
+		return nil
+	}, sub.NoQueue())
+
+	// Startup the microservice
+	err := slow.Startup()
+	assert.NoError(t, err)
+	defer slow.Shutdown()
+	err = fast.Startup()
+	assert.NoError(t, err)
+	defer fast.Shutdown()
+	err = tooSlow.Startup()
+	assert.NoError(t, err)
+	defer tooSlow.Shutdown()
+
+	// Send the message
+	var respondedOK, respondedErr int
+	t0 := time.Now()
+	ch := slow.Publish(
+		ctx,
+		pub.GET("https://multicast.delay.connector/cast"),
+		pub.Multicast(),
+		pub.TimeBudget(delay*3),
+	)
+	for i := range ch {
+		res, err := i.Get()
+		if err == nil {
+			body, err := io.ReadAll(res.Body)
+			assert.NoError(t, err)
+			dur := time.Since(t0)
+			if string(body) == "fast" {
+				assert.True(t, dur < delay)
+			} else if string(body) == "slow" {
+				assert.True(t, dur >= 2*delay && dur < 3*delay)
+			}
+			respondedOK++
+		} else {
+			assert.Contains(t, err.Error(), "timeout")
+			respondedErr++
+			assert.Equal(t, 2, respondedOK)
+			dur := time.Since(t0)
+			assert.True(t, dur >= 3*delay && dur < 4*delay)
+		}
+	}
+	assert.Equal(t, 2, respondedOK)
+	assert.Equal(t, 1, respondedErr)
+}
+
+func TestConnector_MulticastError(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	bad := NewConnector()
+	bad.SetHostName("multicast.error.connector")
+	bad.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		return errors.New("bad situation")
+	}, sub.NoQueue())
+
+	good := NewConnector()
+	good.SetHostName("multicast.error.connector")
+	good.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("good situation"))
+		return nil
+	}, sub.NoQueue())
+
+	// Startup the microservice
+	err := bad.Startup()
+	assert.NoError(t, err)
+	defer bad.Shutdown()
+	err = good.Startup()
+	assert.NoError(t, err)
+	defer good.Shutdown()
+
+	// Send the message
+	var countErrs, countOKs int
+	t0 := time.Now()
+	ch := bad.Publish(ctx, pub.GET("https://multicast.error.connector/cast"), pub.Multicast())
+	for i := range ch {
+		_, err := i.Get()
+		if err != nil {
+			countErrs++
+		} else {
+			countOKs++
+		}
+	}
+	dur := time.Since(t0)
+	assert.True(t, dur >= bad.networkHop && dur <= 2*bad.networkHop)
+	assert.Equal(t, 1, countErrs)
+	assert.Equal(t, 1, countOKs)
+}
+
+func TestConnector_MassMulticast(t *testing.T) {
+	// No parallel
+
+	ctx := context.Background()
+	N := 128
+
+	// Create the client microservice
+	client := NewConnector()
+	client.SetHostName("client.mass.multicast.connector")
+
+	err := client.Startup()
+	assert.NoError(t, err)
+	defer client.Shutdown()
+
+	// Create the server microservices in parallel
+	var wg sync.WaitGroup
+	cons := make([]*Connector, N)
+	for i := 0; i < N; i++ {
+		i := i
+		wg.Add(1)
+		go func() {
+			cons[i] = NewConnector()
+			cons[i].SetHostName("mass.multicast.connector")
+			cons[i].Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+				w.Write([]byte("ok"))
+				return nil
+			}, sub.NoQueue())
+
+			err := cons[i].Startup()
+			assert.NoError(t, err)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	defer func() {
+		var wg sync.WaitGroup
+		for i := 0; i < N; i++ {
+			i := i
+			wg.Add(1)
+			go func() {
+				err := cons[i].Shutdown()
+				assert.NoError(t, err)
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+	}()
+
+	// Send the message
+	var countOKs int
+	t0 := time.Now()
+	ch := client.Publish(ctx, pub.GET("https://mass.multicast.connector/cast"), pub.Multicast())
+	for i := range ch {
+		_, err := i.Get()
+		if assert.NoError(t, err) {
+			countOKs++
+		}
+	}
+	dur := time.Since(t0)
+	assert.True(t, dur >= client.networkHop && dur <= 2*client.networkHop)
+	assert.Equal(t, N, countOKs)
+}
+
+func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
+	con := NewConnector()
+	con.SetHostName("nats.direct.connector")
+
+	err := con.Startup()
+	assert.NoError(b, err)
+	defer con.Shutdown()
+
+	body := make([]byte, 512*1024)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		con.natsConn.Publish("somewhere", body)
+	}
+	b.StopTimer()
+
+	// On 2021 MacBook Pro M1 15"::
+	// 128B: 82 ns/op
+	// 256B: 104 ns/op
+	// 512B: 153 ns/op
+	// 1KB: 247 ns/op
+	// 2KB: 410 ns/op
+	// 4KB: 746 ns/op
+	// 8KB: 1480 ns/op
+	// 16KB: 2666 ns/op
+	// 32KB: 5474 ns/op
+	// 64KB: 9173 ns/op
+	// 128KB: 16307 ns/op
+	// 256KB: 32700 ns/op
+	// 512KB: 63429 ns/op
 }

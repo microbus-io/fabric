@@ -79,7 +79,7 @@ func NewSub(defaultHost string, path string, options ...Option) (*Subscription, 
 		Host:  u.Hostname(),
 		Port:  port,
 		Path:  u.Path,
-		Queue: u.Hostname(),
+		Queue: defaultHost,
 	}
 	err = sub.Apply(options...)
 	if err != nil {

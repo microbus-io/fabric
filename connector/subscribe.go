@@ -111,9 +111,9 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 	}
 	var err error
 	if s.Queue != "" {
-		s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), s.Queue, handler)
+		s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), s.Queue, handler)
 	} else {
-		s.NATSSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), handler)
+		s.NATSSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), handler)
 	}
 	return errors.Trace(err)
 }
