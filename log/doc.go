@@ -1,9 +1,10 @@
 /*
-Package log provides the ability for microservices to log at different levels
-(DEBUG, INFO, WARN, and ERROR). It allows passing of optional fields to the logs.
-
-The package currently makes use of the Zap logger (https://pkg.go.dev/go.uber.org/zap).
-This is abstracted so the scope of use is controlled, allowing the underlying technology
+Package log provides the ability to create log fields. These fields are passed along in the logs.
+The package currently makes use of the Zap logger (https://pkg.go.dev/go.uber.org/zap), although
+abstracts this away so the scope of use is controlled. Abstracting this also allows the underlying technology
 to be replaced whenever necessary.
+
+The connector implements the loggers so that microservices can log at DEBUG, INFO, WARN, and ERROR levels,
+and optionally pass along these log fields.
 */
 package log
