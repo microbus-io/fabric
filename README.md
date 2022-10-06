@@ -28,6 +28,14 @@
 * Deployment environment indicator (`PROD`, `LAB`, `LOCAL`)
 * Plane of communication
 
+[Milestone 5](https://github.com/microbus-io/fabric/tree/milestone/5) <sup style="color:orange">new</sup>:
+
+* Use [Zap logger under the hood](log/doc.go), an upgrade from the basic logger
+* Introduce `LogDebug`, `LogInfo`, `LogWarn`, and `LogError`
+* Allow optional fields to be passed along in every log
+* Log hostname and ID of the microservice in every log
+* Set visibility level of logs based on the deployment environment (`PROD`, `LAB`, `LOCAL`)
+
 ## Documentation
 
 [Get started quickly](docs/quick-start.md) by setting up your system and running the examples.

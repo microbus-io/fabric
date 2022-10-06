@@ -15,6 +15,6 @@ The `connector` package has multiple files for each functional area of the micro
 * `connector.go` defines the `Connector` struct and provides a few getters and setters
 * `interfaces.go` defines various interfaces of the microservice
 * `lifecycle.go` implements the `Startup` and `Shutdown` logic
-* `logger.go` implements a rudimentary logger
+* `logger.go` provides the ability for microservices to log at DEBUG, INFO, WARN, and ERROR levels. It also allows passing of optional fields along the logs
 * `messaging.go` is perhaps the most interesting area of the connector. It implements an HTTP request/response model over NATS
 * `subjects.go` crafts the NATS subjects (topics) that a microservice subscribes to or publishes to
