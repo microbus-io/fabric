@@ -30,12 +30,12 @@ type Connector struct {
 	onShutdown      func(context.Context) error
 	callbackTimeout time.Duration
 
-	natsConn     *nats.Conn
-	natsReplySub *nats.Subscription
-	subs         map[string]*sub.Subscription
-	subsLock     sync.Mutex
-	started      bool
-	plane        string
+	natsConn        *nats.Conn
+	natsResponseSub *nats.Subscription
+	subs            map[string]*sub.Subscription
+	subsLock        sync.Mutex
+	started         bool
+	plane           string
 
 	reqs              map[string]chan *http.Response
 	reqsLock          sync.Mutex

@@ -69,12 +69,12 @@ func (f Frame) SetOpCode(op string) {
 	}
 }
 
-// FromHost is the host name of the microservice that made the request or reply
+// FromHost is the host name of the microservice that made the request or response
 func (f Frame) FromHost() string {
 	return f.h.Get(HeaderFromHost)
 }
 
-// SetFromHost sets the host name of the microservice that is making the request or reply
+// SetFromHost sets the host name of the microservice that is making the request or response
 func (f Frame) SetFromHost(host string) {
 	if host == "" {
 		f.h.Del(HeaderFromHost)
@@ -83,12 +83,12 @@ func (f Frame) SetFromHost(host string) {
 	}
 }
 
-// FromID is the unique ID of the instance of the microservice that made the request or reply
+// FromID is the unique ID of the instance of the microservice that made the request or response
 func (f Frame) FromID() string {
 	return f.h.Get(HeaderFromId)
 }
 
-// SetFromID sets the unique ID of the instance of the microservice that is making the request or reply
+// SetFromID sets the unique ID of the instance of the microservice that is making the request or response
 func (f Frame) SetFromID(id string) {
 	if id == "" {
 		f.h.Del(HeaderFromId)
@@ -97,12 +97,12 @@ func (f Frame) SetFromID(id string) {
 	}
 }
 
-// MessageID is the unique ID given to each HTTP message and its reply
+// MessageID is the unique ID given to each HTTP message and its response
 func (f Frame) MessageID() string {
 	return f.h.Get(HeaderMsgId)
 }
 
-// SetMessageID sets the unique ID given to each HTTP message or reply
+// SetMessageID sets the unique ID given to each HTTP message or response
 func (f Frame) SetMessageID(id string) {
 	if id == "" {
 		f.h.Del(HeaderMsgId)

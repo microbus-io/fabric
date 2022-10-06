@@ -17,9 +17,9 @@ For starters, while NATS supports a purely arbitrary binary message format, `Mic
 
 Request/response is achieved by utilizing carefully crafted subjects (topics) as means of delivering messages to their destination. Each endpoint of a microservice is assigned a dedicated subject based on the path it wants to handle. For example, the URL `https://www.example.com:443/path/func` is mapped to the NATS subject `microbus.443.com.example.www.|.path.func`. With that, when a microservice wants to handle calls to any given endpoint (identified by a URL path) it will subscribe to the appropriate NATS subject and when a microservice wants to make a call to another microservice's endpoint (path), all it has to do is publish a message to the same subject.
 
-In addition to any subscriptions that a microservice makes to handle incoming calls, it also creates a subscription at which it expects to receive replies. The format of this subject is `microbus.r.com.example.zzz.up7cjo7pok`. The `r` prefix can be thought of as designating the reply port. The `up7cjo7pok` is the unique instance ID of the microservice. So now, when a serving microservice wants to respond to a call from a client microservice, all it has to do is publish the response to the reply subject of the client.
+In addition to any subscriptions that a microservice makes to handle incoming calls, it also creates a subscription at which it expects to receive replies. The format of this subject is `microbus.r.com.example.zzz.up7cjo7pok`. The `r` prefix can be thought of as designating the `r`esponse port. The `up7cjo7pok` is the unique instance ID of the microservice. So now, when a serving microservice wants to respond to a call from a client microservice, all it has to do is publish the response to the response subject of the client.
 
-It is necessary for the client to provide a return address in order for the server to know where to respond to. To facilitate that, each request made over the bus must include two special HTTP headers, `Microbus-From-Host` and `Microbus-From-Id`, that enable the server to construct the reply subject.
+It is necessary for the client to provide a return address in order for the server to know where to respond to. To facilitate that, each request made over the bus must include two special HTTP headers, `Microbus-From-Host` and `Microbus-From-Id`, that enable the server to construct the response subject.
 
 Another important header included by the client in each request is `Microbus-Msg-Id` which the server is required to echo back in the response. The client can be making thousands of requests in parallel whose responses can return in no particular order and the message ID in needed to map each response to the corresponding request. In the code, a `chan *http.Response` is created for each outgoing request and indexed by the message ID in a `map[string]chan *http.Response`. Requests awaits on the channel until a response comes back or a timeout occurs.
 
@@ -38,7 +38,7 @@ NATS server starting
 [INF] Server is ready
 ```
 
-The microservices `alpha.echo.connector` starts up and subscribes to the reply subject `microbus.r.connector.echo.alpha.s6gerdf3o5`.
+The microservices `alpha.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.alpha.s6gerdf3o5`.
 
 ```
 [DBG] cid:1 - Client connection created
@@ -48,7 +48,7 @@ The microservices `alpha.echo.connector` starts up and subscribes to the reply s
 [TRC] cid:1 - ->> [SUB microbus.r.connector.echo.alpha.s6gerdf3o5 s6gerdf3o5 1]
 ```
 
-The microservices `beta.echo.connector` starts up and subscribes to the reply subject `microbus.r.connector.echo.beta.o6cfdjocuq` and to the endpoint subject `microbus.443.connector.echo.beta.|.echo`. If you look closely at `[SUB microbus.443.connector.echo.beta.|.echo beta.echo.connector 2]` you'll note that the host name `beta.echo.connector` is set as the queue name of the subscription. In NATS, messages delivered on a queue are delivered to a random consumer rather than to all consumers. Queues allows us to achieve load-balancing between multiple instances of the same microservice.
+The microservices `beta.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.beta.o6cfdjocuq` and to the endpoint subject `microbus.443.connector.echo.beta.|.echo`. If you look closely at `[SUB microbus.443.connector.echo.beta.|.echo beta.echo.connector 2]` you'll note that the host name `beta.echo.connector` is set as the queue name of the subscription. In NATS, messages delivered on a queue are delivered to a random consumer rather than to all consumers. Queues allows us to achieve load-balancing between multiple instances of the same microservice.
 
 ```
 [DBG] cid:2 - Client connection created
@@ -75,7 +75,7 @@ Hello]
 [TRC] cid:2 - <<- [MSG microbus.443.connector.echo.beta.|.echo 2 205]
 ```
 
-The microservices `beta.echo.connector` responds to the request by publishing a message to the reply channel of `alpha.echo.connector`, making sure to echo back the message ID in `Microbus-Msg-Id` and to include its identity in `Microbus-From-Host` and `Microbus-From-Id`. The binary format of the message is that of the standard HTTP/1.1 response.
+The microservices `beta.echo.connector` responds to the request by publishing a message to the response channel of `alpha.echo.connector`, making sure to echo back the message ID in `Microbus-Msg-Id` and to include its identity in `Microbus-From-Host` and `Microbus-From-Id`. The binary format of the message is that of the standard HTTP/1.1 response.
 
 ```
 [TRC] cid:2 - ->> [PUB microbus.r.connector.echo.alpha.s6gerdf3o5 182]

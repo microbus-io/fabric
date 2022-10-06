@@ -34,10 +34,10 @@ func TestConnector_SubjectOfRequest(t *testing.T) {
 	assert.Equal(t, "p0.443.com.example.www.|._", subjectOfRequest("p0", "www.example.com", 443, ""))
 }
 
-func TestConnector_SubjectOfReply(t *testing.T) {
-	assert.Equal(t, "p0.r.com.example.1234", subjectOfReply("p0", "example.com", "1234"))
-	assert.Equal(t, "p0.r.com.example.www.abcd1234", subjectOfReply("p0", "www.example.com", "abcd1234"))
-	assert.Equal(t, "p0.r.com.example.www.abcd1234", subjectOfReply("p0", "www.EXAMPLE.com", "ABCD1234"))
+func TestConnector_subjectOfResponses(t *testing.T) {
+	assert.Equal(t, "p0.r.com.example.1234", subjectOfResponses("p0", "example.com", "1234"))
+	assert.Equal(t, "p0.r.com.example.www.abcd1234", subjectOfResponses("p0", "www.example.com", "abcd1234"))
+	assert.Equal(t, "p0.r.com.example.www.abcd1234", subjectOfResponses("p0", "www.EXAMPLE.com", "ABCD1234"))
 }
 
 func TestConnector_ReverseHostName(t *testing.T) {

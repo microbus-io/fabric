@@ -76,8 +76,8 @@ func (c *Connector) Startup() error {
 	}
 	c.started = true
 
-	// Subscribe to the reply subject
-	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.plane, c.hostName, c.id), c.id, c.onResponse)
+	// Subscribe to the response subject
+	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostName, c.id), c.id, c.onResponse)
 	if err != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
@@ -139,14 +139,14 @@ func (c *Connector) Shutdown() error {
 		}
 	}
 
-	// Unsubscribe from the reply subject
-	if c.natsReplySub != nil {
-		err := c.natsReplySub.Unsubscribe()
+	// Unsubscribe from the response subject
+	if c.natsResponseSub != nil {
+		err := c.natsResponseSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
 			c.LogError(err)
 		}
-		c.natsReplySub = nil
+		c.natsResponseSub = nil
 	}
 
 	// Disconnect from NATS

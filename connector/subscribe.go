@@ -160,7 +160,7 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 	}
 	buf.WriteString("\r\n\r\n")
 
-	err = c.natsConn.Publish(subjectOfReply(c.plane, fromHost, fromID), buf.Bytes())
+	err = c.natsConn.Publish(subjectOfResponses(c.plane, fromHost, fromID), buf.Bytes())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -169,7 +169,7 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 }
 
 // onRequest is called when an incoming HTTP request is received.
-// The message is dispatched to the appropriate web handler and the response is serialized and sent back to the reply channel of the sender
+// The message is dispatched to the appropriate web handler and the response is serialized and sent back to the response channel of the sender
 func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Parse the request
 	httpReq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(msg.Data)))
@@ -207,7 +207,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Prepare an HTTP recorder
 	httpRecorder := httptest.NewRecorder()
 
-	// Echo the message ID in the reply
+	// Echo the message ID in the response
 	frame.Of(httpRecorder).SetMessageID(msgID)
 	frame.Of(httpRecorder).SetFromHost(c.hostName)
 	frame.Of(httpRecorder).SetFromID(c.id)
@@ -239,13 +239,13 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpRecorder.Write(body)
 	}
 
-	// Send back the reply
+	// Send back the response
 	var buf bytes.Buffer
 	err = httpRecorder.Result().Write(&buf)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.natsConn.Publish(subjectOfReply(c.plane, fromHost, fromId), buf.Bytes())
+	err = c.natsConn.Publish(subjectOfResponses(c.plane, fromHost, fromId), buf.Bytes())
 	if err != nil {
 		return errors.Trace(err)
 	}
