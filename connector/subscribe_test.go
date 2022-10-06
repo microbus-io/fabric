@@ -272,3 +272,37 @@ func TestConnector_AnotherHost(t *testing.T) {
 	// Even though the microservices subscribe to the same alternative host, their queues should be different
 	assert.Equal(t, 2, responded)
 }
+
+func TestConnector_DirectAddressing(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	con := NewConnector()
+	con.SetHostName("direct.addressing.connector")
+	con.Subscribe("/hello", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("Hello"))
+		return nil
+	})
+
+	// Startup the microservice
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send messages
+	_, err = con.GET(ctx, "https://direct.addressing.connector/hello")
+	assert.NoError(t, err)
+	_, err = con.GET(ctx, "https://"+con.id+".direct.addressing.connector/hello")
+	assert.NoError(t, err)
+
+	err = con.Unsubscribe("/hello")
+	assert.NoError(t, err)
+
+	// Both subscriptions should be deactivated
+	_, err = con.GET(ctx, "https://direct.addressing.connector/hello")
+	assert.Error(t, err)
+	_, err = con.GET(ctx, "https://"+con.id+".direct.addressing.connector/hello")
+	assert.Error(t, err)
+}

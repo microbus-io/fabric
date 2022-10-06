@@ -67,13 +67,13 @@ func (c *Connector) Unsubscribe(path string) error {
 	key := newSub.Canonical()
 	c.subsLock.Lock()
 	if sub, ok := c.subs[key]; ok {
-		if sub.NATSSub != nil {
-			err = errors.Trace(sub.NATSSub.Unsubscribe())
+		err = c.deactivateSub(sub)
+		if err == nil {
+			delete(c.subs, key)
 		}
-		delete(c.subs, key)
 	}
 	c.subsLock.Unlock()
-	return err
+	return errors.Trace(err)
 }
 
 // UnsubscribeAll removes all handlers
@@ -83,18 +83,13 @@ func (c *Connector) UnsubscribeAll() error {
 
 	var lastErr error
 	for _, sub := range c.subs {
-		if sub.NATSSub != nil {
-			err := sub.NATSSub.Unsubscribe()
-			if err != nil {
-				lastErr = errors.Trace(err)
-				c.LogError(err)
-			}
-		}
+		lastErr = c.deactivateSub(sub)
 	}
 	c.subs = map[string]*sub.Subscription{}
-	return lastErr
+	return errors.Trace(lastErr)
 }
 
+// activateSub will subscribe to NATS
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	handler := func(msg *nats.Msg) {
 		err := c.ackRequest(msg, s)
@@ -111,11 +106,41 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 	}
 	var err error
 	if s.Queue != "" {
-		s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), s.Queue, handler)
+		s.HostSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), s.Queue, handler)
+		if err == nil {
+			s.DirectSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), s.Queue, handler)
+		}
 	} else {
-		s.NATSSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), handler)
+		s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), handler)
+		if err == nil {
+			s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), handler)
+		}
 	}
 	return errors.Trace(err)
+}
+
+// deactivateSub will unsubscribe from NATS
+func (c *Connector) deactivateSub(s *sub.Subscription) error {
+	var lastErr error
+	if s.HostSub != nil {
+		err := s.HostSub.Unsubscribe()
+		if err != nil {
+			lastErr = errors.Trace(err, s.Canonical())
+			c.LogError(err)
+		} else {
+			s.HostSub = nil
+		}
+	}
+	if s.DirectSub != nil {
+		err := s.DirectSub.Unsubscribe()
+		if err != nil {
+			lastErr = errors.Trace(err, s.Canonical())
+			c.LogError(err)
+		} else {
+			s.DirectSub = nil
+		}
+	}
+	return lastErr
 }
 
 // ackRequest sends an ack response back to the caller.
