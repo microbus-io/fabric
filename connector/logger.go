@@ -56,25 +56,24 @@ func (c *Connector) initLogger() (err error) {
 	env := c.Deployment()
 
 	var config zap.Config
-	if env == LOCAL || env == LAB {
+	if env == LOCAL {
 		config = zap.NewDevelopmentConfig()
-		config.Level.SetLevel(zapcore.DebugLevel)
-	} else if env == PROD {
+	} else if env == LAB {
 		config = zap.NewProductionConfig()
+		config.Level.SetLevel(zapcore.DebugLevel)
 	} else {
-		return errors.New("invalid environment", env)
+		// Default PROD config
+		config = zap.NewProductionConfig()
 	}
 
 	c.logger, err = config.Build(zap.AddCallerSkip(1))
 	if err != nil {
 		return errors.Trace(err)
 	}
-	if c.HostName() != "" {
-		c.logger = c.logger.With(
-			log.String("serviceHostName", c.HostName()),
-			log.String("serviceID", c.ID()),
-		)
-	}
+	c.logger = c.logger.With(
+		log.String("host", c.HostName()),
+		log.String("id", c.ID()),
+	)
 	return nil
 }
 

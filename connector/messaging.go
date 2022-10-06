@@ -162,7 +162,7 @@ func (c *Connector) onReply(msg *nats.Msg) {
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
-		c.LogError(context.Background(), "Failed to parse response", err)
+		c.LogError(context.Background(), "Parsing response", err)
 		return
 	}
 
@@ -229,7 +229,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	if handlerErr != nil {
 		handlerErr = errors.Trace(handlerErr, fmt.Sprintf("%s:%d%s", s.Host, s.Port, s.Path))
-		c.LogError(context.Background(), "Handler error", handlerErr)
+		c.LogError(ctx, "Handler error", handlerErr)
 
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()
@@ -289,7 +289,7 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 	}
 	newSub.Handler = handler
 	if c.IsStarted() {
-		err := c.activateSub(newSub)
+		err := c.activateSub(context.Background(), newSub)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -301,13 +301,13 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 	return nil
 }
 
-func (c *Connector) activateSub(s *sub.Subscription) error {
+func (c *Connector) activateSub(ctx context.Context, s *sub.Subscription) error {
 	var err error
 	s.NATSSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.hostName, s.Port, s.Path), c.hostName, func(msg *nats.Msg) {
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {
-				c.LogError(context.Background(), "Failed request", err)
+				c.LogError(ctx, "Failed request", err)
 			}
 		}()
 	})

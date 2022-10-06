@@ -45,7 +45,7 @@ func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(fmt.Sprintf("%+v", err))
-		log.LogError(r.Context(), "Failed to handle request", err)
+		log.LogError(r.Context(), "Handling request", err)
 		metrics.IncrementErrorCount(1)
 		return
 	}

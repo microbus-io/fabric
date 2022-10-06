@@ -223,7 +223,7 @@ func (c *Connector) logConfigs(ctx context.Context) {
 		cfg := c.configs[k]
 		c.LogInfo(
 			ctx,
-			"Config scope defined",
+			"Config value detected",
 			log.String("scope", cfg.scope),
 			log.String("name", cfg.name),
 			log.String("source", cfg.source),

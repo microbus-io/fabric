@@ -97,10 +97,10 @@ func (c *Connector) Startup() error {
 
 	// Call the callback function, if provided
 	if c.onStartup != nil {
-		subCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
+		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
 		err := catchPanic(func() error {
-			return c.onStartup(subCtx)
+			return c.onStartup(callbackCtx)
 		})
 		if err != nil {
 			_ = c.Shutdown()
@@ -110,7 +110,7 @@ func (c *Connector) Startup() error {
 
 	// Activate subscriptions
 	for _, sub := range c.subs {
-		err = c.activateSub(sub)
+		err = c.activateSub(ctx, sub)
 		if err != nil {
 			_ = c.Shutdown()
 			return errors.Trace(err)
@@ -138,7 +138,7 @@ func (c *Connector) Shutdown() error {
 				returnErr = errors.Trace(err)
 				c.LogError(
 					ctx,
-					"Failed to deactivate subscription",
+					"Deactivating subscription",
 					err,
 					log.Any("sub", sub),
 				)
@@ -149,14 +149,14 @@ func (c *Connector) Shutdown() error {
 
 	// Call the callback function, if provided
 	if c.onShutdown != nil {
-		subCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
+		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
 		err := catchPanic(func() error {
-			return c.onShutdown(subCtx)
+			return c.onShutdown(callbackCtx)
 		})
 		if err != nil {
 			returnErr = errors.Trace(err)
-			c.LogError(ctx, "Failed onShutdown", err)
+			c.LogError(ctx, "Shutdown callback", err)
 		}
 	}
 
@@ -165,11 +165,7 @@ func (c *Connector) Shutdown() error {
 		err := c.natsReplySub.Unsubscribe()
 		if err != nil {
 			returnErr = errors.Trace(err)
-			c.LogError(
-				ctx,
-				"Failed to unsubscribe from the reply subject",
-				err,
-			)
+			c.LogError(ctx, "Unsubscribing from subject", err)
 		}
 		c.natsReplySub = nil
 	}
@@ -177,11 +173,7 @@ func (c *Connector) Shutdown() error {
 	// Remove logger
 	err := c.removeLogger()
 	if err != nil {
-		c.LogError(
-			ctx,
-			"Failed to remove logger",
-			err,
-		)
+		c.LogError(ctx, "Removing logger", err)
 	}
 
 	// Disconnect from NATS

@@ -66,7 +66,7 @@ func (s *Service) OnStartup(ctx context.Context) error {
 func (s *Service) OnShutdown(ctx context.Context) error {
 	// Stop HTTP server
 	if s.httpServer != nil {
-		s.LogInfo(ctx, "Stopping HTTP listener on port %d", log.Int("port", s.httpPort))
+		s.LogInfo(ctx, "Stopping HTTP listener", log.Int("port", s.httpPort))
 		err := s.httpServer.Close() // Not a graceful shutdown
 		if err != nil {
 			return errors.Trace(err)
@@ -90,7 +90,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.LogInfo(r.Context(), "Request received", log.String("internalUrl", internalURL))
+	s.LogInfo(context.Background(), "Request received", log.String("url", internalURL))
 
 	// Prepare the internal request options
 	defer r.Body.Close()
@@ -123,7 +123,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
-		s.LogError(ctx, "Failed to publish request to NATS", err)
+		s.LogError(ctx, "Publishing to NATS", err)
 		return
 	}
 
@@ -150,7 +150,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
-			s.LogError(ctx, "Failed to copy response body", err)
+			s.LogError(ctx, "Copying response body", err)
 			return
 		}
 	}
