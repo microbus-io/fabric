@@ -229,7 +229,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	if handlerErr != nil {
 		handlerErr = errors.Trace(handlerErr, fmt.Sprintf("%s:%d%s", s.Host, s.Port, s.Path))
-		c.LogError(ctx, "Handler error", log.Error(err))
+		c.LogError(ctx, "Handler error", log.Error(handlerErr))
 
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()
