@@ -1,7 +1,7 @@
 package calculator
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -25,8 +25,7 @@ func NewService() *Service {
 	return s
 }
 
-// Arithmetic perform an arithmetic operation between two integers x and y given an
-// operator op
+// Arithmetic perform an arithmetic operation between two integers x and y given an operator op
 func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) error {
 	// Read and parse query arguments
 	x := r.URL.Query().Get("x")
@@ -61,9 +60,19 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Print the result
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(fmt.Sprintf("%d %s %d = %d", xx, op, yy, rr)))
-	return nil
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(struct {
+		X      int64  `json:"x"`
+		Op     string `json:"op"`
+		Y      int64  `json:"y"`
+		Result int64  `json:"result"`
+	}{
+		xx,
+		op,
+		yy,
+		rr,
+	})
+	return errors.Trace(err)
 }
 
 // Square prints the square of the integer x
@@ -76,7 +85,17 @@ func (s *Service) Square(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Print the result
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(fmt.Sprintf("%d ^ 2 = %d", xx, xx*xx)))
-	return nil
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(struct {
+		X      int64  `json:"x"`
+		Op     string `json:"op"`
+		Y      int64  `json:"y"`
+		Result int64  `json:"result"`
+	}{
+		xx,
+		"*",
+		xx,
+		xx * xx,
+	})
+	return errors.Trace(err)
 }

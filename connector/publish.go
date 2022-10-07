@@ -40,7 +40,8 @@ func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Respo
 func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.Response, error) {
 	options = append(options, pub.Unicast())
 	ch := c.Publish(ctx, options...)
-	return (<-ch).Get()
+	res, err := (<-ch).Get()
+	return res, errors.Trace(err)
 }
 
 // Publish makes an HTTP request then awaits and returns the responses asynchronously.

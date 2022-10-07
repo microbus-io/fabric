@@ -54,20 +54,15 @@ Go into the details with these technical deep dives:
 * [Configuration](docs/tech/configuration.md) <sup style="color:orange">new</sup> - How to configure microservices via environment variables or an `env.yaml` file
 * [NATS connection settings](docs/tech/natsconnection.md) <sup style="color:orange">new</sup> - How to configure microservices to connect to NATS
 
-## Cutting Some Corners
+Note the [shortcuts](docs/shortcuts.md) taken by this milestone. These will be addressed in future releases.
 
-This milestone is taking several shortcuts that will be addressed in future releases:
-
-* The timeouts for the `OnStartup` and `OnShutdown` callbacks are hard-coded to `time.Minute`
-* The network hop duration is hard-coded to `250 * time.Millisecond`
-* The logger is rudimentary
-
-## More to Explore
+## Explore On Your Own
 
 A few suggestions for self-guided exploration:
 
 * Start NATS in debug mode `./nats-server -D -V`, run unit tests individually and look at the messages going over the bus
-* Modify `examples/main/env.yaml` and witness the impact on the `helloworld.example` microservice
+* Modify `examples/main/env.yaml` and witness the impact on the `hello.example` microservice
+* Add an endpoint `/increment` to the `calculator.example` microservice that returns the value of an input integer x plus 1
 * Add an endpoint `/calculate` to the `calculator.example` microservice that operates on decimal numbers, not just integers
 * Create your own microservice from scratch and add it to `examples/main/main.go`
 * Put a breakpoint in any of the microservices of the example application and try debugging
