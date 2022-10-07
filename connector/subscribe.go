@@ -248,17 +248,8 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	defer cancel()
 	httpReq = httpReq.WithContext(ctx)
 
-	// Prepare an HTTP recorder
-	httpRecorder := httptest.NewRecorder()
-
-	// Echo the message ID in the response
-	frame.Of(httpRecorder).SetMessageID(msgID)
-	frame.Of(httpRecorder).SetFromHost(c.hostName)
-	frame.Of(httpRecorder).SetFromID(c.id)
-	frame.Of(httpRecorder).SetOpCode(frame.OpCodeResponse)
-	frame.Of(httpRecorder).SetQueue(queue)
-
 	// Call the web handler
+	httpRecorder := httptest.NewRecorder()
 	handlerErr := catchPanic(func() error {
 		return s.Handler(httpRecorder, httpReq)
 	})
@@ -269,11 +260,6 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()
-		frame.Of(httpRecorder).SetMessageID(msgID)
-		frame.Of(httpRecorder).SetFromHost(c.hostName)
-		frame.Of(httpRecorder).SetFromID(c.id)
-		frame.Of(httpRecorder).SetOpCode(frame.OpCodeError)
-		frame.Of(httpRecorder).SetQueue(queue)
 		httpRecorder.Header().Set("Content-Type", "application/json")
 		body, err := json.MarshalIndent(handlerErr, "", "\t")
 		if err != nil {
@@ -283,9 +269,20 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpRecorder.Write(body)
 	}
 
+	// Set control headers on the response
+	httpResponse := httpRecorder.Result()
+	frame.Of(httpResponse).SetMessageID(msgID)
+	frame.Of(httpResponse).SetFromHost(c.hostName)
+	frame.Of(httpResponse).SetFromID(c.id)
+	frame.Of(httpResponse).SetQueue(queue)
+	frame.Of(httpResponse).SetOpCode(frame.OpCodeResponse)
+	if handlerErr != nil {
+		frame.Of(httpResponse).SetOpCode(frame.OpCodeError)
+	}
+
 	// Send back the response
 	var buf bytes.Buffer
-	err = httpRecorder.Result().Write(&buf)
+	err = httpResponse.Write(&buf)
 	if err != nil {
 		return errors.Trace(err)
 	}
