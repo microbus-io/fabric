@@ -162,7 +162,7 @@ func (c *Connector) onReply(msg *nats.Msg) {
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
-		c.LogError(context.Background(), "Parsing response", err)
+		c.LogError(context.Background(), "Parsing response", log.Error(err))
 		return
 	}
 
@@ -229,7 +229,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	if handlerErr != nil {
 		handlerErr = errors.Trace(handlerErr, fmt.Sprintf("%s:%d%s", s.Host, s.Port, s.Path))
-		c.LogError(ctx, "Handler error", handlerErr)
+		c.LogError(ctx, "Handler error", log.Error(err))
 
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()
@@ -307,7 +307,7 @@ func (c *Connector) activateSub(ctx context.Context, s *sub.Subscription) error 
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {
-				c.LogError(ctx, "Failed request", err)
+				c.LogError(ctx, "Failed request", log.Error(err))
 			}
 		}()
 	})

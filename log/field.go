@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/microbus-io/fabric/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -89,5 +90,5 @@ func Any(key string, val interface{}) Field {
 
 // Error creates an error log field.
 func Error(err error) Field {
-	return zap.Error(err)
+	return zap.Error(errors.TraceUp(err, 1))
 }

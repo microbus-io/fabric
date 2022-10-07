@@ -139,7 +139,7 @@ func (c *Connector) Shutdown() error {
 				c.LogError(
 					ctx,
 					"Deactivating subscription",
-					err,
+					log.Error(err),
 					log.Any("sub", sub),
 				)
 			}
@@ -156,7 +156,7 @@ func (c *Connector) Shutdown() error {
 		})
 		if err != nil {
 			returnErr = errors.Trace(err)
-			c.LogError(ctx, "Shutdown callback", err)
+			c.LogError(ctx, "Shutdown callback", log.Error(err))
 		}
 	}
 
@@ -165,21 +165,21 @@ func (c *Connector) Shutdown() error {
 		err := c.natsReplySub.Unsubscribe()
 		if err != nil {
 			returnErr = errors.Trace(err)
-			c.LogError(ctx, "Unsubscribing from subject", err)
+			c.LogError(ctx, "Unsubscribing from subject", log.Error(err))
 		}
 		c.natsReplySub = nil
-	}
-
-	// Remove logger
-	err := c.removeLogger()
-	if err != nil {
-		c.LogError(ctx, "Removing logger", err)
 	}
 
 	// Disconnect from NATS
 	if c.natsConn != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
+	}
+
+	// Remove logger
+	err := c.removeLogger()
+	if err != nil {
+		c.LogError(ctx, "Removing logger", log.Error(err))
 	}
 
 	return returnErr

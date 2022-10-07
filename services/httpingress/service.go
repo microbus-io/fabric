@@ -123,7 +123,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
-		s.LogError(ctx, "Publishing to NATS", err)
+		s.LogError(ctx, "Publishing to NATS", log.Error(err))
 		return
 	}
 
@@ -150,7 +150,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
-			s.LogError(ctx, "Copying response body", err)
+			s.LogError(ctx, "Copying response body", log.Error(err))
 			return
 		}
 	}
