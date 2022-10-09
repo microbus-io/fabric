@@ -5,7 +5,7 @@
 * `Connector` construct, including startup and shutdown logic
 * Config from environment or file
 * Rudimentary logger
-* HTTP request/response messaging over NATS
+* Bi-directional (request/response) HTTP-like unicast messaging over NATS
 * HTTP ingress proxy
 
 [Milestone 2](https://github.com/microbus-io/fabric/tree/milestone/2):
@@ -22,7 +22,7 @@
 
 [Milestone 4](https://github.com/microbus-io/fabric/tree/milestone/4):
 
-* Request acks and quick timeouts
-* HTTP pub/sub messaging over NATS
-* Direct addressing subscriptions
+* Acks and quick timeouts
+* Bi-directional (request/response) HTTP-like *multicast* messaging over NATS
+* Direct addressing
 * Control messages on port `:888`

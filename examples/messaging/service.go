@@ -30,7 +30,7 @@ func NewService() *Service {
 }
 
 // NoQueue demonstrates how the NoQueue subscription option is used to create
-// a pub/sub communication pattern.
+// a multicast request/response communication pattern.
 // All instances of this microservice will respond to each request
 func (s *Service) NoQueue(w http.ResponseWriter, r *http.Request) error {
 	w.Write([]byte("NoQueue " + s.ID()))
@@ -38,14 +38,14 @@ func (s *Service) NoQueue(w http.ResponseWriter, r *http.Request) error {
 }
 
 // DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
-// a request/response communication pattern.
+// a unicast request/response communication pattern.
 // Only one of the instances of this microservice will respond to each request
 func (s *Service) DefaultQueue(w http.ResponseWriter, r *http.Request) error {
 	w.Write([]byte("DefaultQueue " + s.ID()))
 	return nil
 }
 
-// Home demonstrates making requests using multicast pub/sub and request/response patterns
+// Home demonstrates making requests using multicast and unicast request/response patterns
 func (s *Service) Home(w http.ResponseWriter, r *http.Request) error {
 	var buf bytes.Buffer
 
@@ -55,13 +55,15 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) error {
 	buf.WriteString(s.ID())
 	buf.WriteString("\r\n\r\n")
 
-	// Make a standard unicast request/response call to the /default-queue endpoint
-	// A random instance of this microservice will reply
+	// Make a standard unicast request to the /default-queue endpoint
+	// A random instance of this microservice will respond, effectively load balancing among the instances
 	res, err := s.Request(r.Context(), pub.GET("https://messaging.example/default-queue"))
 	if err != nil {
 		return errors.Trace(err)
 	}
-	buf.WriteString("Request/response (unicast):\r\n")
+	responderID := frame.Of(res).FromID()
+	buf.WriteString("Unicast\r\n")
+	buf.WriteString("GET https://messaging.example/default-queue\r\n")
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return errors.Trace(err)
@@ -70,10 +72,27 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) error {
 	buf.Write(b)
 	buf.WriteString("\r\n\r\n")
 
-	// Make a multicast pub/sub call to the /no-queue endpoint
-	// All instances of this microservice will reply
+	// Make a direct addressing unicast request to the /default-queue endpoint
+	// The specific instance will always respond, circumventing load balancing
+	res, err = s.Request(r.Context(), pub.GET("https://"+responderID+".messaging.example/default-queue"))
+	if err != nil {
+		return errors.Trace(err)
+	}
+	buf.WriteString("Direct addressing unicast\r\n")
+	buf.WriteString("GET https://" + responderID + ".messaging.example/default-queue\r\n")
+	b, err = io.ReadAll(res.Body)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	buf.WriteString("> ")
+	buf.Write(b)
+	buf.WriteString("\r\n\r\n")
+
+	// Make a multicast request call to the /no-queue endpoint
+	// All instances of this microservice will respond
 	ch := s.Publish(r.Context(), pub.GET("https://messaging.example/no-queue"))
-	buf.WriteString("Pub/sub (multicast):\r\n")
+	buf.WriteString("Multicast\r\n")
+	buf.WriteString("GET https://messaging.example/no-queue\r\n")
 	lastResponderID := ""
 	for i := range ch {
 		res, err := i.Get()
@@ -92,12 +111,14 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) error {
 	}
 	buf.WriteString("\r\n")
 
-	// Make a direct request to a specific instance
+	// Make a direct addressing request to the /no-queue endpoint
+	// Only the specific instance will respond
 	ch = s.Publish(r.Context(), pub.GET("https://"+lastResponderID+".messaging.example/no-queue"))
 	if err != nil {
 		return errors.Trace(err)
 	}
-	buf.WriteString("Direct addressing (unicast):\r\n")
+	buf.WriteString("Direct addressing multicast\r\n")
+	buf.WriteString("GET https://" + lastResponderID + ".messaging.example/no-queue\r\n")
 	for i := range ch {
 		res, err := i.Get()
 		if err != nil {

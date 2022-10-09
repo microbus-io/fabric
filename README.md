@@ -30,14 +30,16 @@ Review each of the major project packages to get oriented in the code structure:
 
 Go into the details with these technical guides:
 
-* [Messaging](docs/tech/messaging.md) - How HTTP-like request/response pattern is achieved over the NATS messaging bus
+* [Unicast messaging](docs/tech/unicast.md) <sup color="orange">updated</sup> - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
-* [Time budget](docs/tech/timebudget.md) - The proper way to handle request timeouts
+* [Time budget](docs/tech/timebudget.md) - The proper way to manage request timeouts
 * [Configuration](docs/tech/configuration.md) - How to configure microservices via environment variables or an `env.yaml` file
-* [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect to NATS
+* [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
+* [Multicast messaging](docs/tech/multicast.md) <sup color="orange">new</sup> - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
+* [Control subscriptions](docs/tech/controlsubs.md) <sup color="orange">new</sup> - Subscriptions that all microservices implement out of the box on port `:888`
 
-Note the [shortcuts](docs/shortcuts.md) taken by this milestone. These will be addressed in future releases.
+Note the [shortcuts](docs/shortcuts.md) <sup color="orange">updated</sup> taken by this milestone. These will be addressed in future releases.
 
-Get your hands dirty and [explore more on your own](docs/self-explore.md).
+Get your hands dirty and [explore more on your own](docs/self-explore.md) <sup color="orange">updated</sup>.

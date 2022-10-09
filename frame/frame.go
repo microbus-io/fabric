@@ -157,13 +157,13 @@ func (f Frame) SetTimeBudget(budget time.Duration) {
 }
 
 // Queue indicates the queue of the subscription that handled the request.
-// It is used to optimize pub/sub requests
+// It is used by the client to optimize multicast requests
 func (f Frame) Queue() string {
 	return f.h.Get(HeaderQueue)
 }
 
 // SetQueue sets the queue of the subscription that handled the request.
-// It is used to optimize pub/sub requests
+// It is used by the client to optimize multicast requests
 func (f Frame) SetQueue(queue string) {
 	if queue == "" {
 		f.h.Del(HeaderQueue)

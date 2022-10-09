@@ -93,30 +93,35 @@ httpingress.(*Service).ServeHTTP
 
 ## Messaging
 
-This mic
-
-The `/home` endpoint of the `messaging.example` microservice demonstrates the two messaging patterns: load-balanced request/response (unicast), and pub/sub (multicast).
+The `/home` endpoint of the `messaging.example` microservice demonstrates three messaging patterns: load-balanced unicast, multicast and direct addressing.
 
 The output of http://localhost:8080/messaging.example/home looks like this:
 
 ```
-Processed by: t76uebedrq
+Processed by: 4l284tgjfk
 
-Request/response (unicast):
-> DefaultQueue t76uebedrq
+Unicast
+GET https://messaging.example/default-queue
+> DefaultQueue 4l284tgjfk
 
-Pub/sub (multicast):
-> NoQueue p6ftpg98cc
-> NoQueue 9t64gvbdk1
-> NoQueue t76uebedrq
+Direct addressing unicast
+GET https://4l284tgjfk.messaging.example/default-queue
+> DefaultQueue 4l284tgjfk
 
-Direct addressing (unicast):
-> NoQueue t76uebedrq
+Multicast
+GET https://messaging.example/no-queue
+> NoQueue 4kfei93btu
+> NoQueue ba62j2gjjp
+> NoQueue 4l284tgjfk
+
+Direct addressing multicast
+GET https://4l284tgjfk.messaging.example/no-queue
+> NoQueue 4l284tgjfk
 
 Refresh the page to try again
 ```
 
-The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because there are 3 instances added to the app that are load-balanced, this ID changes.
+The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because there are 3 instances added to the app that are load-balanced, this ID is likely to change on each request.
 
 ```go
 func main() {
@@ -132,11 +137,13 @@ func main() {
 }
 ```
 
-The second paragraph is showing the result of making a unicast request to the `/default-queue` endpoint. Only one of the 3 instances responds. A random instance is chosen by NATS, effectively load-balancing between the instances.
+The second paragraph is showing the result of making a standard unicast request to the `/default-queue` endpoint. Only one of the 3 instances responds. A random instance is chosen by NATS, effectively load-balancing between the instances.
 
-The third paragraph is showing the result of making a multicast request to the `/no-queue` endpoint. All 3 of the instances respond. The order of arrival of the responses is random.
+The third paragraph is showing the result of making a direct addressing unicast request. Even though there are 3 instances that may serve `/default-queue`, only the one specific instance responds.
 
-The fourth paragraph is showing the result of making a direct addressing request. Even though the `/no-queue` endpoint is a pub/sub endpoint, only the one specific instance responds.
+The fourth paragraph is showing the result of making a multicast request to the `/no-queue` endpoint. All 3 of the instances respond. The order of arrival of the responses is random.
+
+The fifth paragraph is showing the result of making a direct addressing multicast request. Even though there are 3 instances that serve `/no-queue`, only the one specific instance responds. This effectively transforms the request to a unicast.
 
 Refresh the page to see the IDs change:
 
