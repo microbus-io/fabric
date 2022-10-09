@@ -28,17 +28,6 @@ Another important header included by the client in each request is `Microbus-Msg
 
 To look at an example that puts this all together, start NATS in debug mode in another window using `./nats-server -D -V` and then run the `TestEcho` unit test located in `connector/messaging.go`. The output below was edited for brevity.
 
-NATS server starting
-
-```
-[INF] Starting nats-server version 1.4.1
-[DBG] Go build version go1.17.3
-[INF] Git commit [not set]
-[INF] Listening for client connections on 0.0.0.0:4222
-[DBG] Server id is 5eBkFRs9kHYJlrAib3Nrlp
-[INF] Server is ready
-```
-
 The microservices `alpha.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.alpha.dvm0oofeb5`.
 
 ```
@@ -112,21 +101,6 @@ Microbus-Queue: beta.echo.connector
 
 Hello]
 [TRC] cid:1 - <<- [MSG microbus.r.connector.echo.alpha.dvm0oofeb5 1 242]
-```
-
-The microservices shutdown and disconnect from NATS.
-
-```
-[TRC] cid:2 - ->> [UNSUB 6 ]
-[TRC] cid:2 - <-> [DELSUB 6]
-[TRC] cid:1 - ->> [UNSUB 1 ]
-[TRC] cid:1 - <-> [DELSUB 1]
-[DBG] cid:1 - Client connection closed
-[TRC] cid:2 - ->> [UNSUB 7 ]
-[TRC] cid:2 - <-> [DELSUB 7]
-[TRC] cid:2 - ->> [UNSUB 1 ]
-[TRC] cid:2 - <-> [DELSUB 1]
-[DBG] cid:2 - Client connection closed
 ```
 
 ## Notes on Subscription Subjects

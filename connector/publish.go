@@ -21,7 +21,6 @@ import (
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{
 		pub.GET(url),
-		pub.Unicast(),
 	}...)
 }
 
@@ -32,7 +31,6 @@ func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Respo
 	return c.Request(ctx, []pub.Option{
 		pub.POST(url),
 		pub.Body(body),
-		pub.Unicast(),
 	}...)
 }
 
@@ -199,41 +197,33 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 
 			// Response
 			if opCode == frame.OpCodeResponse {
-				seenIDs[fromID] = frame.OpCodeResponse
-				countResponses++
 				output <- pub.NewHTTPResponse(response)
-				if !req.Multicast {
-					// Return the first result found
-					return
-				}
-				if doneWaitingForAcks && countResponses == len(seenIDs) {
-					// All responses have been received
-					c.knownRespondersLock.Lock()
-					c.knownResponders[subject] = seenQueues
-					c.knownRespondersLock.Unlock()
-					return
-				}
 			}
 
 			// Error
 			if opCode == frame.OpCodeError {
-				// Reconstitute the error if an error op code is returned
-				var tracedError *errors.TracedError
+				// Reconstitute the error
+				var reconstitutedError *errors.TracedError
 				body, err := io.ReadAll(response.Body)
 				if err == nil {
-					json.Unmarshal(body, &tracedError)
+					json.Unmarshal(body, &reconstitutedError)
 				}
-				if tracedError == nil {
-					tracedError = errors.New("unparsable error response").(*errors.TracedError)
+				if reconstitutedError == nil {
+					err = errors.New("unparsable error response", c.hostName+" -> "+httpReq.URL.Hostname())
+				} else {
+					err = errors.Trace(reconstitutedError, c.hostName+" -> "+httpReq.URL.Hostname())
 				}
+				output <- pub.NewErrorResponse(err)
+			}
 
-				seenIDs[fromID] = frame.OpCodeError
-				countResponses++
-				output <- pub.NewErrorResponse(errors.Trace(tracedError, c.hostName+" -> "+httpReq.URL.Hostname()))
+			// Response or error (i.e. not an ack)
+			if opCode == frame.OpCodeResponse || opCode == frame.OpCodeError {
 				if !req.Multicast {
-					// Return the first result found
+					// Return the first result found immediately
 					return
 				}
+				seenIDs[fromID] = opCode
+				countResponses++
 				if doneWaitingForAcks && countResponses == len(seenIDs) {
 					// All responses have been received
 					c.knownRespondersLock.Lock()

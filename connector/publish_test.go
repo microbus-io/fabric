@@ -179,7 +179,7 @@ func TestConnector_LoadBalancing(t *testing.T) {
 
 	// Send messages
 	var wg sync.WaitGroup
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 256; i++ {
 		wg.Add(1)
 		go func() {
 			_, err := alpha.GET(ctx, "https://beta.load.balancing.connector/lb")
@@ -190,9 +190,9 @@ func TestConnector_LoadBalancing(t *testing.T) {
 	wg.Wait()
 
 	// The requests should be more or less evenly distributed among the server microservices
-	assert.Equal(t, int32(1024), count1+count2)
-	assert.True(t, count1 > 256)
-	assert.True(t, count2 > 256)
+	assert.Equal(t, int32(256), count1+count2)
+	assert.True(t, count1 > 64)
+	assert.True(t, count2 > 64)
 }
 
 func TestConnector_Concurrent(t *testing.T) {
@@ -680,4 +680,96 @@ func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
 	// 128KB: 16307 ns/op
 	// 256KB: 32700 ns/op
 	// 512KB: 63429 ns/op
+}
+
+func TestConnector_KnownResponders(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := NewConnector()
+	alpha.SetHostName("known.responders.connector")
+	alpha.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}, sub.NoQueue())
+
+	beta := NewConnector()
+	beta.SetHostName("known.responders.connector")
+	beta.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}, sub.NoQueue())
+
+	gamma := NewConnector()
+	gamma.SetHostName("known.responders.connector")
+	gamma.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}, sub.NoQueue())
+
+	delta := NewConnector()
+	delta.SetHostName("known.responders.connector")
+	delta.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}, sub.NoQueue())
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	defer gamma.Shutdown()
+
+	check := func() (count int, quick bool) {
+		responded := map[string]bool{}
+		t0 := time.Now()
+		ch := alpha.Publish(ctx, pub.GET("https://known.responders.connector/cast"), pub.Multicast())
+		for i := range ch {
+			res, err := i.Get()
+			if assert.NoError(t, err) {
+				responded[frame.Of(res).FromID()] = true
+			}
+		}
+		dur := time.Since(t0)
+		alpha.LogInfo("dur = %v", dur)
+		return len(responded), dur < alpha.networkHop
+	}
+
+	// First request should be slower, consecutive requests should be quick
+	count, quick := check()
+	assert.Equal(t, 3, count)
+	assert.False(t, quick)
+	count, quick = check()
+	assert.Equal(t, 3, count)
+	assert.True(t, quick)
+	count, quick = check()
+	assert.Equal(t, 3, count)
+	assert.True(t, quick)
+
+	// Add a new microservice
+	err = delta.Startup()
+	assert.NoError(t, err)
+
+	// Should most likely get slow again once the new instance is discovered,
+	// consecutive requests should be quick
+	for count != 4 || !quick {
+		count, quick = check()
+	}
+	count, quick = check()
+	assert.Equal(t, 4, count)
+	assert.True(t, quick)
+
+	// Remove a microservice
+	delta.Shutdown()
+
+	// Should get slow again, consecutive requests should be quick
+	count, quick = check()
+	assert.Equal(t, 3, count)
+	assert.False(t, quick)
+	count, quick = check()
+	assert.Equal(t, 3, count)
+	assert.True(t, quick)
 }

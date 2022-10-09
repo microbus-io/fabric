@@ -26,7 +26,7 @@ func Queue(queue string) Option {
 }
 
 // NoQueue sets no queue for this subscription.
-// Requests will be not be load-balanced
+// Requests will be not be load-balanced, all instances of this microservice will receive the request
 func NoQueue() Option {
 	return func(sub *Subscription) error {
 		sub.Queue = ""
@@ -34,11 +34,23 @@ func NoQueue() Option {
 	}
 }
 
+// Pervasive is synonymous with NoQueue.
+// Requests will be not be load-balanced, all instances of this microservice will receive the request
+func Pervasive() Option {
+	return NoQueue()
+}
+
 // DefaultQueue names the queue of this subscription to the host name of the service.
-// Requests will be load-balanced among all instances of this microservice
+// Requests will be load-balanced among all instances of this microservice.
 func DefaultQueue() Option {
 	return func(sub *Subscription) error {
 		sub.Queue = sub.Host
 		return nil
 	}
+}
+
+// LoadBalanced is synonymous with DefaultQueue.
+// Requests will be load-balanced among all instances of this microservice
+func LoadBalanced() Option {
+	return DefaultQueue()
 }
