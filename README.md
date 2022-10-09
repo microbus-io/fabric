@@ -17,9 +17,9 @@
 Review each of the major project packages to get oriented in the code structure:
 
 * [application](docs/structure/application.md) - A collector of microservices that run in a single process and share the same lifecycle
-* [connector](docs/structure/connector.md) - The primary construct of the framework and the basis for all microservices
+* [connector](docs/structure/connector.md) <sup color="orange">updated</sup> - The primary construct of the framework and the basis for all microservices
 * [errors](docs/structure/errors.md) - An enhancement of the standard Go's `errors` package 
-* [examples](docs/structure/examples.md) - Demo microservices 
+* [examples](docs/structure/examples.md) <sup color="orange">updated</sup> - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
