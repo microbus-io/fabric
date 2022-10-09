@@ -3,6 +3,7 @@ package pub
 import (
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
@@ -42,6 +43,15 @@ func (req *Request) Apply(options ...Option) error {
 		}
 	}
 	return nil
+}
+
+// Canonical returns the fully-qualified canonical path of the request, without the query arguments
+func (req *Request) Canonical() string {
+	qm := strings.Index(req.URL, "?")
+	if qm >= 0 {
+		return req.URL[:qm]
+	}
+	return req.URL
 }
 
 // ToHTTP constructs an HTTP request given the properties set for this request

@@ -68,14 +68,14 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	}
 	// Check if there's enough time budget
 	if !req.Deadline.After(time.Now().Add(-c.networkHop)) {
-		errOutput <- pub.NewErrorResponse(errors.New("timeout"))
+		errOutput <- pub.NewErrorResponse(errors.New("timeout", req.Canonical()))
 		return errOutput
 	}
 
 	// Limit number of hops
 	depth := frame.Of(ctx).CallDepth()
 	if depth >= c.maxCallDepth {
-		errOutput <- pub.NewErrorResponse(errors.New("call depth overflow"))
+		errOutput <- pub.NewErrorResponse(errors.New("call depth overflow", req.Canonical()))
 		return errOutput
 	}
 	frame.Of(req.Header).SetCallDepth(depth + 1)
@@ -108,7 +108,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	// Prepare the HTTP request
 	httpReq, err := req.ToHTTP()
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err))
+		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
 		return
 	}
 
@@ -131,7 +131,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	if httpReq.URL.Port() != "" {
 		port64, err := strconv.ParseInt(httpReq.URL.Port(), 10, 32)
 		if err != nil {
-			output <- pub.NewErrorResponse(errors.Trace(err))
+			output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
 			return
 		}
 		port = int(port64)
@@ -141,12 +141,12 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	var buf bytes.Buffer
 	err = httpReq.Write(&buf)
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err))
+		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
 		return
 	}
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err))
+		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
 		return
 	}
 
@@ -245,7 +245,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 
 		// Timeout timer
 		case <-timeoutTimer.C:
-			output <- pub.NewErrorResponse(errors.New("timeout"))
+			output <- pub.NewErrorResponse(errors.New("timeout", req.Canonical()))
 			// Known responders optimization
 			if req.Multicast {
 				c.knownRespondersLock.Lock()
@@ -258,7 +258,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 		case <-ackTimer.C:
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
-				output <- pub.NewErrorResponse(errors.New("ack timeout"))
+				output <- pub.NewErrorResponse(errors.New("ack timeout", req.Canonical()))
 				// Known responders optimization
 				if req.Multicast {
 					c.knownRespondersLock.Lock()
