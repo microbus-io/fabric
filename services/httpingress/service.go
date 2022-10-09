@@ -97,6 +97,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		pub.Method(r.Method),
 		pub.URL(internalURL),
 		pub.Body(r.Body),
+		pub.Unicast(),
 	}
 
 	// Add the time budget to the request headers and set it as the context's timeout
@@ -118,7 +119,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Publish the internal request over NATS
-	internalRes, err := s.Publish(ctx, options...)
+	internalRes, err := s.Request(ctx, options...)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))

@@ -2,22 +2,21 @@
 
 The `examples` package holds several examples that demonstrate how the `Connector` can be used to create microservices.
 
-## Echo
+## Hello
 
-The `echo.example` microservice implements two endpoints, `/echo` and `/who`.
+The `hello.example` microservice demonstrates some of the key capabilities of the framework using various endpoints.
 
 `/echo` echos the incoming HTTP request in text format. This is a useful tool for looking at the HTTP control headers `Microbus-` added by the framework.
 
-https://localhost:8080/echo.example/echo produces:
+http://localhost:8080/hello.example/echo produces:
+
 ```http
 GET /echo HTTP/1.1
-Host: echo.example
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.126 Safari/537.36
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Host: hello.example
+User-Agent: Mozilla/5.0
 Accept-Encoding: gzip, deflate, br
 Accept-Language: en-US,en;q=0.9
 Connection: keep-alive
-Dnt: 1
 Microbus-Call-Depth: 1
 Microbus-From-Host: http.ingress.sys
 Microbus-From-Id: tg190vjj3j
@@ -33,64 +32,121 @@ Sec-Fetch-User: ?1
 Upgrade-Insecure-Requests: 1
 ```
 
-The `/who` endpoint prints the ID of the particular instance of `echo.example` that processed the request, out of the two instances that are created in `examples/main/main.go`.
+The `/ping` endpoint broadcasts a ping to discover the identity of all microservices running on the cluster.
 
-https://localhost:8080/echo.example/who results in:
+The `/hello` endpoint renders a simple greeting. It demonstrates the use of configs as well as taking in arguments from the URL. The single endpoint `/hello` takes in a query argument `name` and prints the greeting specified in the `Greeting` config, repeated as many times as indicate by the `Repeat` config. The values of these configs are set in `examples/main/env.yaml`.
+
+http://localhost:8080/hello.example/hello?name=Bella prints:
 
 ```
-Request from instance tg190vjj3j of host http.ingress.sys
-Handled by instance qi3v3tjpbn of host echo.example
-
-Refresh the page to try again
+Ciao, Bella!
+Ciao, Bella!
+Ciao, Bella!
 ```
+
+The `/calculator` endpoint renders a rudimentary UI of a calculator. Behind the scenes, this endpoint calls the `calculator.example/arithmetic` endpoint to perform the calculation itself, demonstrating service-to-service calls. The `calculator.example` microservice is discussed next.
+
+<img src="examples-1.png" width=315>
 
 ## Calculator
 
 The `calculator.example` microservice implement two endpoints, `/arithmetic` and `/square` in order to demonstrate parsing of query arguments and error handling.
 
-The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, and one of four operators in the `op` argument: `+`, `-`, `/` and `*`.
+The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, and one of four operators in the `op` argument: `+`, `-`, `/` and `*`. The response is a JSON structure.
 
-https://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=-8 produces:
+http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=-8 produces:
 
 ```
-5 * -8 = -40
+{"x":5,"op":"*","y":-8,"result":-40}
 ```
 
 The `/square` endpoint takes a single integer `x` and prints its square.
 
-https://localhost:8080/calculator.example/quare?x=55 produces:
+http://localhost:8080/calculator.example/square?x=55 produces:
 
 ```
-55 ^ 2 = 3025
+{"x":55,"result":3025}
 ```
 
 If the arguments cannot be parsed, an error is returned.
 
-https://localhost:8080/calculator.example/quare?x=not-valid results in:
+http://localhost:8080/calculator.example/square?x=not-valid results in:
 
 ```
 strconv.ParseInt: parsing "not-valid": invalid syntax
 
 calculator.(*Service).Square
-	/src/github.com/microbus-io/fabric/examples/calculator/service.go:75
+	/src/github.com/microbus-io/fabric/examples/calculator/service.go:84
 connector.(*Connector).onRequest
-	/src/github.com/microbus-io/fabric/connector/messaging.go:225
-	calculator.example:443/square
-connector.(*Connector).Publish
-	/src/github.com/microbus-io/fabric/connector/messaging.go:94
+	/src/github.com/microbus-io/fabric/connector/subscribe.go:258
+	https://calculator.example:443/square
+connector.(*Connector).onRequest
+	/src/github.com/microbus-io/fabric/connector/subscribe.go:259
+connector.(*Connector).makeHTTPRequest
+	/src/github.com/microbus-io/fabric/connector/publish.go:232
 	http.ingress.sys -> calculator.example
+connector.(*Connector).Request
+	/src/github.com/microbus-io/fabric/connector/publish.go:44
 httpingress.(*Service).ServeHTTP
-	/src/github.com/microbus-io/fabric/services/httpingress/service.go:124
+	/src/github.com/microbus-io/fabric/services/httpingress/service.go:125
 ```
 
-## Hello World
+## Messaging
 
-The `helloworld.example` microservice prints a simple greeting. It demonstrates the use of configs as well as taking in arguments from the URL. The single endpoint `/hello` takes in a query argument `name` and prints the greeting specified in the `Greeting` config, repeated as many times as indicate by the `Repeat` config. The values of these configs are set in `examples/main/env.yaml`.
+The `/home` endpoint of the `messaging.example` microservice demonstrates three messaging patterns: load-balanced unicast, multicast and direct addressing.
 
-https://localhost:8080/helloworld.example/hello?name=John prints:
+The output of http://localhost:8080/messaging.example/home looks like this:
 
 ```
-Ciao, John!
-Ciao, John!
-Ciao, John!
+Processed by: 4l284tgjfk
+
+Unicast
+GET https://messaging.example/default-queue
+> DefaultQueue 4l284tgjfk
+
+Direct addressing unicast
+GET https://4l284tgjfk.messaging.example/default-queue
+> DefaultQueue 4l284tgjfk
+
+Multicast
+GET https://messaging.example/no-queue
+> NoQueue 4kfei93btu
+> NoQueue ba62j2gjjp
+> NoQueue 4l284tgjfk
+
+Direct addressing multicast
+GET https://4l284tgjfk.messaging.example/no-queue
+> NoQueue 4l284tgjfk
+
+Refresh the page to try again
 ```
+
+The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because there are 3 instances added to the app that are load-balanced, this ID is likely to change on each request.
+
+```go
+func main() {
+	app := application.New(
+		httpingress.NewService(),
+		hello.NewService(),
+		messaging.NewService(),
+		messaging.NewService(),
+		messaging.NewService(),
+		calculator.NewService(),
+	)
+	app.Run()
+}
+```
+
+The second paragraph is showing the result of making a standard unicast request to the `/default-queue` endpoint. Only one of the 3 instances responds. A random instance is chosen by NATS, effectively load-balancing between the instances.
+
+The third paragraph is showing the result of making a direct addressing unicast request. Even though there are 3 instances that may serve `/default-queue`, only the one specific instance responds.
+
+The fourth paragraph is showing the result of making a multicast request to the `/no-queue` endpoint. All 3 of the instances respond. The order of arrival of the responses is random.
+
+The fifth paragraph is showing the result of making a direct addressing multicast request. Even though there are 3 instances that serve `/no-queue`, only the one specific instance responds. This effectively transforms the request to a unicast.
+
+Refresh the page to see the IDs change:
+
+* The processor ID may change
+* The responder to the unicast request may change
+* The order of the responses to the multicast may change

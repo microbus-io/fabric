@@ -40,8 +40,10 @@ Try the following URLs in your browser:
 * http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=8
 * http://localhost:8080/calculator.example/square?x=5
 * http://localhost:8080/calculator.example/square?x=not-a-number
-* http://localhost:8080/echo.example/echo
-* http://localhost:8080/echo.example/who
-* http://localhost:8080/helloworld.example/hello?name=Gopher
+* http://localhost:8080/hello.example/echo
+* http://localhost:8080/hello.example/ping
+* http://localhost:8080/hello.example/hello?name=Bella
+* http://localhost:8080/hello.example/calculator
+* http://localhost:8080/messaging.example/home
 
 Feel free to experiment with different values for the query arguments.

@@ -17,9 +17,9 @@ func reverseHostName(hostName string) string {
 	return strings.Join(segments, ".")
 }
 
-// subjectOfReply is the NATS subject where a microservice subscribes to receive replies.
+// subjectOfResponse is the NATS subject where a microservice subscribes to receive responses.
 // For the host example.com with ID a1b2c3d4 that subject looks like microbus.r.com.example.a1b2c3d4
-func subjectOfReply(plane string, hostName string, id string) string {
+func subjectOfResponses(plane string, hostName string, id string) string {
 	return plane + ".r." + strings.ToLower(reverseHostName(hostName)) + "." + strings.ToLower(id)
 }
 

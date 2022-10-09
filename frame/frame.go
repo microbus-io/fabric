@@ -16,9 +16,18 @@ const (
 	HeaderCallDepth  = HeaderPrefix + "Call-Depth"
 	HeaderOpCode     = HeaderPrefix + "Op-Code"
 	HeaderTimestamp  = HeaderPrefix + "Timestamp"
+	HeaderQueue      = HeaderPrefix + "Queue"
 
-	OpCodeError = "Err"
+	OpCodeError    = "Err"
+	OpCodeAck      = "Ack"
+	OpCodeRequest  = "Req"
+	OpCodeResponse = "Res"
 )
+
+type contextKeyType struct{}
+
+// ContextKey is used to store the request headers in a context
+var ContextKey = contextKeyType{}
 
 // Frame is a utility class that helps with manipulating the control headers
 type Frame struct {
@@ -60,12 +69,12 @@ func (f Frame) SetOpCode(op string) {
 	}
 }
 
-// FromHost is the host name of the microservice that made the request or reply
+// FromHost is the host name of the microservice that made the request or response
 func (f Frame) FromHost() string {
 	return f.h.Get(HeaderFromHost)
 }
 
-// SetFromHost sets the host name of the microservice that is making the request or reply
+// SetFromHost sets the host name of the microservice that is making the request or response
 func (f Frame) SetFromHost(host string) {
 	if host == "" {
 		f.h.Del(HeaderFromHost)
@@ -74,12 +83,12 @@ func (f Frame) SetFromHost(host string) {
 	}
 }
 
-// FromID is the unique ID of the instance of the microservice that made the request or reply
+// FromID is the unique ID of the instance of the microservice that made the request or response
 func (f Frame) FromID() string {
 	return f.h.Get(HeaderFromId)
 }
 
-// SetFromID sets the unique ID of the instance of the microservice that is making the request or reply
+// SetFromID sets the unique ID of the instance of the microservice that is making the request or response
 func (f Frame) SetFromID(id string) {
 	if id == "" {
 		f.h.Del(HeaderFromId)
@@ -88,12 +97,12 @@ func (f Frame) SetFromID(id string) {
 	}
 }
 
-// MessageID is the unique ID given to each HTTP message and its reply
+// MessageID is the unique ID given to each HTTP message and its response
 func (f Frame) MessageID() string {
 	return f.h.Get(HeaderMsgId)
 }
 
-// SetMessageID sets the unique ID given to each HTTP message or reply
+// SetMessageID sets the unique ID given to each HTTP message or response
 func (f Frame) SetMessageID(id string) {
 	if id == "" {
 		f.h.Del(HeaderMsgId)
@@ -147,7 +156,18 @@ func (f Frame) SetTimeBudget(budget time.Duration) {
 	}
 }
 
-type contextKeyType struct{}
+// Queue indicates the queue of the subscription that handled the request.
+// It is used by the client to optimize multicast requests
+func (f Frame) Queue() string {
+	return f.h.Get(HeaderQueue)
+}
 
-// ContextKey is used to store the request headers in a context
-var ContextKey = contextKeyType{}
+// SetQueue sets the queue of the subscription that handled the request.
+// It is used by the client to optimize multicast requests
+func (f Frame) SetQueue(queue string) {
+	if queue == "" {
+		f.h.Del(HeaderQueue)
+	} else {
+		f.h.Set(HeaderQueue, queue)
+	}
+}

@@ -69,6 +69,12 @@ func (c *Connector) Startup() error {
 		}
 	}
 
+	// Subscribe to :888 control messages
+	err = c.subscribeControl()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	// Connect to NATS
 	err = c.connectToNATS()
 	if err != nil {
@@ -76,8 +82,8 @@ func (c *Connector) Startup() error {
 	}
 	c.started = true
 
-	// Subscribe to the reply subject
-	c.natsReplySub, err = c.natsConn.QueueSubscribe(subjectOfReply(c.plane, c.hostName, c.id), c.id, c.onReply)
+	// Subscribe to the response subject
+	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostName, c.id), c.id, c.onResponse)
 	if err != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
@@ -113,22 +119,17 @@ func (c *Connector) Startup() error {
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus
 func (c *Connector) Shutdown() error {
-	var returnErr error
+	var lastErr error
 	if !c.started {
 		return errors.New("not started")
 	}
 	c.started = false
 
-	// Deactivate subscriptions
-	for _, sub := range c.subs {
-		if sub.NATSSub != nil {
-			err := sub.NATSSub.Unsubscribe()
-			if err != nil {
-				returnErr = errors.Trace(err)
-				c.LogError(err)
-			}
-			sub.NATSSub = nil
-		}
+	// Unsubscribe all handlers
+	err := c.UnsubscribeAll()
+	if err != nil {
+		lastErr = errors.Trace(err)
+		c.LogError(err)
 	}
 
 	// Call the callback function, if provided
@@ -139,19 +140,19 @@ func (c *Connector) Shutdown() error {
 			return c.onShutdown(ctx)
 		})
 		if err != nil {
-			returnErr = errors.Trace(err)
+			lastErr = errors.Trace(err)
 			c.LogError(err)
 		}
 	}
 
-	// Unsubscribe from the reply subject
-	if c.natsReplySub != nil {
-		err := c.natsReplySub.Unsubscribe()
+	// Unsubscribe from the response subject
+	if c.natsResponseSub != nil {
+		err := c.natsResponseSub.Unsubscribe()
 		if err != nil {
-			returnErr = errors.Trace(err)
+			lastErr = errors.Trace(err)
 			c.LogError(err)
 		}
-		c.natsReplySub = nil
+		c.natsResponseSub = nil
 	}
 
 	// Disconnect from NATS
@@ -160,7 +161,7 @@ func (c *Connector) Shutdown() error {
 		c.natsConn = nil
 	}
 
-	return returnErr
+	return lastErr
 }
 
 // IsStarted indicates if the microservice has been successfully started
