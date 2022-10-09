@@ -6,11 +6,11 @@
 
 `Microbus` is a framework for the development, deployment and operation of microservices in Go. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices.
 
-`fabric` is the main project that provides the core capabilities that all `Microbus` microservices require. The [milestones](docs/milestones.md) of this project will be maintained in separate branches in order to demonstrate the thinking process behind the building of this framework.
+`fabric` is the main project that provides the core capabilities that all `Microbus` microservices require. The [milestones](docs/milestones.md) of this project are maintained in separate branches in order to demonstrate the thinking process behind the building of this framework.
 
 ## Quick Start
 
-[Get started quickly](docs/quick-start.md) by setting up your system and running the examples.
+[Get started quickly](docs/quick-start.md) <sup color="orange">updated</sup> by setting up your system and running the examples.
 
 ## Code Structure
 
