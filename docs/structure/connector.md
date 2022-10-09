@@ -13,8 +13,10 @@ The `connector` package has multiple files for each functional area of the micro
 
 * `config.go` is responsible for fetching config values from environment variables or an `env.yaml` file
 * `connector.go` defines the `Connector` struct and provides a few getters and setters
+* `control.go` deals with subscribing and handling the control messages on the reserved port `:888`
 * `interfaces.go` defines various interfaces of the microservice
 * `lifecycle.go` implements the `Startup` and `Shutdown` logic
-* `logger.go` provides the ability for microservices to log at DEBUG, INFO, WARN, and ERROR levels. It also allows passing of optional fields along the logs
-* `messaging.go` is perhaps the most interesting area of the connector. It implements an HTTP request/response model over NATS
+* `logger.go` provides a JSON-based logger for microservices
+* `publish.go` deals with outbound messaging
 * `subjects.go` crafts the NATS subjects (topics) that a microservice subscribes to or publishes to
+* `subscribe.go` deals with inbound message handling

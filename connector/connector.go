@@ -32,18 +32,21 @@ type Connector struct {
 	onShutdown      func(context.Context) error
 	callbackTimeout time.Duration
 
-	natsConn     *nats.Conn
-	natsReplySub *nats.Subscription
-	subs         []*sub.Subscription
-	subsLock     sync.Mutex
-	started      bool
-	plane        string
+	natsConn        *nats.Conn
+	natsResponseSub *nats.Subscription
+	subs            map[string]*sub.Subscription
+	subsLock        sync.Mutex
+	started         bool
+	plane           string
 
 	reqs              map[string]chan *http.Response
 	reqsLock          sync.Mutex
 	networkHop        time.Duration
 	maxCallDepth      int
 	defaultTimeBudget time.Duration
+
+	knownResponders     map[string]map[string]bool
+	knownRespondersLock sync.Mutex
 
 	configs    map[string]*config
 	configLock sync.Mutex
@@ -61,6 +64,8 @@ func NewConnector() *Connector {
 		maxCallDepth:      64,
 		callbackTimeout:   time.Minute,
 		defaultTimeBudget: 20 * time.Second,
+		subs:              map[string]*sub.Subscription{},
+		knownResponders:   map[string]map[string]bool{},
 	}
 	return c
 }

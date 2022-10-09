@@ -7,14 +7,7 @@ A `frame.Frame` is first created `Of` an `*http.Request`, `*http.Response`, `htt
 For example:
 
 ```go
-import "github.com/microbus-io/fabric/connector"
-import "github.com/microbus-io/fabric/frame"
-
-type Service struct {
-	*connector.Connector
-}
-
-func (s *Service) Foo(w http.ResponseWriter, r *http.Request) error {
+func Foo(w http.ResponseWriter, r *http.Request) error {
 	callerHost := frame.Of(r).FromHost() // equivalent to r.Header.Get(frame.HeaderFromHost)
 	callerID := frame.Of(r).FromID()     // equivalent to r.Header.Get(frame.HeaderFromId)
 }
