@@ -87,13 +87,9 @@ func (s *Service) Square(w http.ResponseWriter, r *http.Request) error {
 	// Print the result
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(struct {
-		X      int64  `json:"x"`
-		Op     string `json:"op"`
-		Y      int64  `json:"y"`
-		Result int64  `json:"result"`
+		X      int64 `json:"x"`
+		Result int64 `json:"result"`
 	}{
-		xx,
-		"*",
 		xx,
 		xx * xx,
 	})

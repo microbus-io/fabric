@@ -65,7 +65,7 @@ The `/square` endpoint takes a single integer `x` and prints its square.
 http://localhost:8080/calculator.example/square?x=55 produces:
 
 ```
-{"x":55,"op":"*","y":55,"result":3025}
+{"x":55,"result":3025}
 ```
 
 If the arguments cannot be parsed, an error is returned.
