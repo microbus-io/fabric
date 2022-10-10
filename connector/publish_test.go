@@ -734,7 +734,6 @@ func TestConnector_KnownResponders(t *testing.T) {
 			}
 		}
 		dur := time.Since(t0)
-		alpha.LogInfo("dur = %v", dur)
 		return len(responded), dur < alpha.networkHop
 	}
 

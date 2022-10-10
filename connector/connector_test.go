@@ -156,8 +156,8 @@ func TestConnector_Deployment(t *testing.T) {
 	assert.Error(t, err)
 	err = con.SetDeployment("lAb")
 	assert.NoError(t, err)
-	assert.Equal(t, LAB, c.Deployment())
-	err = c.SetDeployment("")
+	assert.Equal(t, LAB, con.Deployment())
+	err = con.SetDeployment("")
 	assert.NoError(t, err)
 	assert.Equal(t, "", con.Deployment())
 
@@ -167,8 +167,8 @@ func TestConnector_Deployment(t *testing.T) {
 	defer con.Shutdown()
 
 	// After starting
-	assert.Equal(t, LOCAL, c.Deployment())
-	err = c.SetDeployment(LAB)
+	assert.Equal(t, LOCAL, con.Deployment())
+	err = con.SetDeployment(LAB)
 	assert.Error(t, err)
 }
 
@@ -186,5 +186,5 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	assert.Equal(t, LAB, c.Deployment())
+	assert.Equal(t, LAB, con.Deployment())
 }

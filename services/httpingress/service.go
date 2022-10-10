@@ -90,7 +90,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.LogInfo(context.Background(), "Request received", log.String("url", internalURL))
+	ctx := context.Background()
+
+	s.LogInfo(ctx, "Request received", log.String("url", internalURL))
 
 	// Prepare the internal request options
 	defer r.Body.Close()
@@ -102,11 +104,11 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the time budget to the request headers and set it as the context's timeout
-	ctx := context.Background()
+	delegateCtx := ctx
 	if s.timeBudget > 0 {
 		options = append(options, pub.TimeBudget(s.timeBudget))
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.timeBudget)
+		delegateCtx, cancel = context.WithTimeout(ctx, s.timeBudget)
 		defer cancel()
 	}
 
@@ -119,12 +121,12 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Publish the internal request over NATS
-	internalRes, err := s.Request(ctx, options...)
+	// Delegate the request over NATS
+	internalRes, err := s.Request(delegateCtx, options...)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
-		s.LogError(ctx, "Publishing to NATS", log.Error(err))
+		s.LogError(ctx, "Delegating request", log.Error(err))
 		return
 	}
 

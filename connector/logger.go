@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
@@ -10,8 +9,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// LogDebug logs a message at debug level. The message should be static and concise,
-// optional fields can be added.
+// LogDebug logs a message at DEBUG level.
+// The message should be static and concise, optional fields can be added
 func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -19,8 +18,8 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 	c.logger.Debug(msg, fields...)
 }
 
-// LogInfo logs a message at info level. The message should be static and concise,
-// optional fields can be added.
+// LogInfo logs a message at INFO level.
+// The message should be static and concise, optional fields can be added
 func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -28,8 +27,8 @@ func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field
 	c.logger.Info(msg, fields...)
 }
 
-// LogWarn logs a message and error at warn level. The message should be static and concise,
-// optional fields can be added.
+// LogWarn logs a message at WARN level.
+// The message should be static and concise, optional fields can be added
 func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -37,8 +36,9 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 	c.logger.Warn(msg, fields...)
 }
 
-// LogError logs a message and error at error level. The message should be static and concise,
-// optional fields can be added.
+// LogError logs a message at ERROR level.
+// The message should be static and concise, optional fields can be added.
+// To log an error object use the log.Error field
 func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -46,7 +46,7 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 	c.logger.Error(msg, fields...)
 }
 
-// initLogger initializes a logger for the connector.
+// initLogger initializes a logger to match the deployment environment
 func (c *Connector) initLogger() (err error) {
 	if c.logger != nil {
 		return nil
@@ -57,6 +57,8 @@ func (c *Connector) initLogger() (err error) {
 	var config zap.Config
 	if env == LOCAL {
 		config = zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05.000")
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else if env == LAB {
 		config = zap.NewProductionConfig()
 		config.Level.SetLevel(zapcore.DebugLevel)
@@ -64,8 +66,6 @@ func (c *Connector) initLogger() (err error) {
 		// Default PROD config
 		config = zap.NewProductionConfig()
 	}
-
-	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
 
 	c.logger, err = config.Build(zap.AddCallerSkip(1))
 	if err != nil {
@@ -78,8 +78,8 @@ func (c *Connector) initLogger() (err error) {
 	return nil
 }
 
-// removeLogger removes the logger from the connector.
-func (c *Connector) removeLogger() error {
+// terminateLogger flushes and terminates the logger
+func (c *Connector) terminateLogger() error {
 	if c.logger == nil {
 		return nil
 	}

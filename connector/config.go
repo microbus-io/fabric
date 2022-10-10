@@ -208,7 +208,7 @@ func readEnvYamlFile(hostName string, envFileData []byte, configs map[string]*co
 	return nil
 }
 
-// logConfigs prints the known configs to the log.
+// logConfigs prints the known configs to the log
 func (c *Connector) logConfigs(ctx context.Context) {
 	c.configLock.Lock()
 	defer c.configLock.Unlock()

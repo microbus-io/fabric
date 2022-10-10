@@ -179,7 +179,7 @@ func catchPanic(f func() error) (err error) {
 }
 
 // connectToNATS connects to the NATS cluster based on settings in environment variables
-func (c *Connector) connectToNATS(ctx context.Context) error {
+func (c *Connector) connectToNATS() error {
 	opts := []nats.Option{}
 
 	// Unique name to identify this connection
@@ -232,6 +232,7 @@ func (c *Connector) connectToNATS(ctx context.Context) error {
 	}
 
 	// Log connection events
+	ctx := context.Background()
 	c.LogInfo(ctx, "Connected to NATS", log.String("url", cn.ConnectedUrl()))
 	cn.SetDisconnectHandler(func(n *nats.Conn) {
 		c.LogInfo(ctx, "Disconnected from NATS", log.String("url", cn.ConnectedUrl()))

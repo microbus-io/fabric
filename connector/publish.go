@@ -12,6 +12,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/nats-io/nats.go"
@@ -273,10 +274,12 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 
 // onResponse is called when a response to an outgoing request is received
 func (c *Connector) onResponse(msg *nats.Msg) {
+	ctx := context.Background()
+
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
-		c.LogError(err)
+		c.LogError(ctx, "Parsing response", log.Error(err))
 		return
 	}
 
@@ -288,7 +291,11 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	if !ok {
 		opCode := frame.Of(response).OpCode()
 		if opCode != frame.OpCodeAck {
-			c.LogInfo("Response received after timeout: %s", msgID)
+			c.LogInfo(
+				ctx,
+				"Response received after timeout",
+				log.String("msg", msgID),
+			)
 		}
 		return
 	}

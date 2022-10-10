@@ -12,6 +12,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/nats-io/nats.go"
 )
@@ -92,15 +93,16 @@ func (c *Connector) UnsubscribeAll() error {
 // activateSub will subscribe to NATS
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	handler := func(msg *nats.Msg) {
+		ctx := context.Background()
 		err := c.ackRequest(msg, s)
 		if err != nil {
-			c.LogError(err)
+			c.LogError(ctx, "Acking request", log.Error(err))
 			return
 		}
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {
-				c.LogError(err)
+				c.LogError(ctx, "Processing request", log.Error(err))
 			}
 		}()
 	}
@@ -131,12 +133,13 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 
 // deactivateSub will unsubscribe from NATS
 func (c *Connector) deactivateSub(s *sub.Subscription) error {
+	ctx := context.Background()
 	var lastErr error
 	if s.HostSub != nil {
 		err := s.HostSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(err)
+			c.LogError(ctx, "Unsubscribing host sub", log.Error(err), log.String("sub", s.Canonical()))
 		} else {
 			s.HostSub = nil
 		}
@@ -145,7 +148,7 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 		err := s.DirectSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(err)
+			c.LogError(ctx, "Unsubscribing direct sub", log.Error(err), log.String("sub", s.Canonical()))
 		} else {
 			s.DirectSub = nil
 		}
@@ -242,9 +245,8 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Prepare the context
 	// Set the context's timeout to the time budget reduced by a network hop
-	var cancel context.CancelFunc
-	ctx := context.WithValue(context.Background(), frame.ContextKey, httpReq.Header)
-	ctx, cancel = context.WithTimeout(ctx, budget-c.networkHop)
+	frameCtx := context.WithValue(context.Background(), frame.ContextKey, httpReq.Header)
+	ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
 	defer cancel()
 	httpReq = httpReq.WithContext(ctx)
 
@@ -256,7 +258,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	if handlerErr != nil {
 		handlerErr = errors.Trace(handlerErr, s.Canonical())
-		c.LogError(handlerErr)
+		c.LogError(frameCtx, "Handling request", log.Error(handlerErr))
 
 		// Prepare an error response instead
 		httpRecorder = httptest.NewRecorder()

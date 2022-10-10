@@ -14,6 +14,7 @@ import (
 
 func TestConnector_Log(t *testing.T) {
 	t.Parallel()
+
 	ctx := context.Background()
 	stderror := stderrors.New("error")
 
@@ -54,6 +55,8 @@ func TestConnector_Log(t *testing.T) {
 	assert.Equal(t, "This is a log info message", logs[1].Message)
 	assert.Equal(t, zap.WarnLevel, logs[2].Level)
 	assert.Equal(t, "This is a log warn message", logs[2].Message)
+	assert.Contains(t, logs[2].ContextMap()["errorVerbose"], "connector.TestConnector_Log")
 	assert.Equal(t, zap.ErrorLevel, logs[3].Level)
 	assert.Equal(t, "This is a log error message", logs[3].Message)
+	assert.Contains(t, logs[3].ContextMap()["errorVerbose"], "connector.TestConnector_Log")
 }

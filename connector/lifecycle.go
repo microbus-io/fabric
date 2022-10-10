@@ -23,8 +23,6 @@ func (c *Connector) SetOnShutdown(f func(context.Context) error) {
 func (c *Connector) Startup() error {
 	ctx := context.Background()
 
-	var err error
-
 	if c.started {
 		return errors.New("already started")
 	}
@@ -33,7 +31,7 @@ func (c *Connector) Startup() error {
 	}
 
 	// Look for configs in the environment or file system
-	err = c.loadConfigs()
+	err := c.loadConfigs()
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -76,6 +74,8 @@ func (c *Connector) Startup() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// Log configs
 	c.logConfigs(ctx)
 
 	// Subscribe to :888 control messages
@@ -85,7 +85,7 @@ func (c *Connector) Startup() error {
 	}
 
 	// Connect to NATS
-	err = c.connectToNATS(ctx)
+	err = c.connectToNATS()
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -115,7 +115,7 @@ func (c *Connector) Startup() error {
 
 	// Activate subscriptions
 	for _, sub := range c.subs {
-		err = c.activateSub(ctx, sub)
+		err = c.activateSub(sub)
 		if err != nil {
 			_ = c.Shutdown()
 			return errors.Trace(err)
@@ -128,12 +128,13 @@ func (c *Connector) Startup() error {
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus
 func (c *Connector) Shutdown() error {
-	ctx := context.Background()
-	var lastErr error
 	if !c.started {
 		return errors.New("not started")
 	}
 	c.started = false
+
+	ctx := context.Background()
+	var lastErr error
 
 	// Unsubscribe all handlers
 	err := c.UnsubscribeAll()
@@ -164,7 +165,7 @@ func (c *Connector) Shutdown() error {
 		err := c.natsResponseSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(ctx, "Unsubscribing response subject", log.Error(err))
+			c.LogError(ctx, "Unsubscribing response sub", log.Error(err))
 		}
 		c.natsResponseSub = nil
 	}
@@ -175,8 +176,9 @@ func (c *Connector) Shutdown() error {
 		c.natsConn = nil
 	}
 
-	// Remove logger
-	_ = c.removeLogger()
+	// Terminate logger
+	_ = c.terminateLogger()
+	// No point trying to log the error at this point
 
 	return lastErr
 }
