@@ -36,7 +36,7 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 
-	// Communication plane default
+	// Determine the communication plane
 	if c.plane == "" {
 		if plane, ok := c.Config("Plane"); ok {
 			err := c.SetPlane(plane)
@@ -49,7 +49,7 @@ func (c *Connector) Startup() error {
 		}
 	}
 
-	// Load environment deployment config or use default
+	// Identify the environment deployment
 	if c.deployment == "" {
 		if deployment, ok := c.Config("Deployment"); ok {
 			err := c.SetDeployment(deployment)

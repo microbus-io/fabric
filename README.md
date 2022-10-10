@@ -33,7 +33,7 @@ Go into the details with these technical guides:
 
 * [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
-* [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
+* [Encapsulation pattern](docs/tech/encapsulation.md) <sup color="orange">updated</sup> - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](docs/tech/timebudget.md) - The proper way to manage request timeouts
 * [Configuration](docs/tech/configuration.md) - How to configure microservices via environment variables or an `env.yaml` file

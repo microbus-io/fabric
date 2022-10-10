@@ -9,8 +9,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// LogDebug logs a message at DEBUG level.
-// The message should be static and concise, optional fields can be added
+/*
+LogDebug logs a message at DEBUG level.
+DEBUG level messages are ignored in PROD environments.
+The message should be static and concise. Optional fields can be added for variable data.
+
+Example:
+
+	c.LogDebug(ctx, "Tight loop", log.String("index", i))
+*/
 func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -18,8 +25,14 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 	c.logger.Debug(msg, fields...)
 }
 
-// LogInfo logs a message at INFO level.
-// The message should be static and concise, optional fields can be added
+/*
+LogInfo logs a message at INFO level.
+The message should be static and concise. Optional fields can be added for variable data.
+
+Example:
+
+	c.LogInfo(ctx, "File uploaded", log.String("gb", sizeGB))
+*/
 func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -27,8 +40,14 @@ func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field
 	c.logger.Info(msg, fields...)
 }
 
-// LogWarn logs a message at WARN level.
-// The message should be static and concise, optional fields can be added
+/*
+LogWarn logs a message at WARN level.
+The message should be static and concise. Optional fields can be added for variable data.
+
+Example:
+
+	c.LogWarn(ctx, "Dropping job", log.String("job", jobID))
+*/
 func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -36,9 +55,15 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 	c.logger.Warn(msg, fields...)
 }
 
-// LogError logs a message at ERROR level.
-// The message should be static and concise, optional fields can be added.
-// To log an error object use the log.Error field
+/*
+LogError logs a message at ERROR level.
+The message should be static and concise. Optional fields can be added for variable data.
+To log an error object use the log.Error field.
+
+Example:
+
+	c.LogError(ctx, "Opening file", log.Error(err), log.String("file", fileName))
+*/
 func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
@@ -58,7 +83,7 @@ func (c *Connector) initLogger() (err error) {
 	if env == LOCAL {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05.000")
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		// config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else if env == LAB {
 		config = zap.NewProductionConfig()
 		config.Level.SetLevel(zapcore.DebugLevel)
