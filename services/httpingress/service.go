@@ -12,6 +12,7 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 )
 
@@ -36,7 +37,7 @@ func NewService() *Service {
 }
 
 // OnStartup starts the web server
-func (s *Service) OnStartup(_ context.Context) error {
+func (s *Service) OnStartup(ctx context.Context) error {
 	// Time budget for requests
 	var ok bool
 	s.timeBudget, ok = s.ConfigDuration("TimeBudget")
@@ -55,17 +56,17 @@ func (s *Service) OnStartup(_ context.Context) error {
 		Addr:    ":" + strconv.Itoa(s.httpPort),
 		Handler: s,
 	}
-	s.LogInfo("Starting HTTP listener on port %d", s.httpPort)
+	s.LogInfo(ctx, "Starting HTTP listener", log.Int("port", s.httpPort))
 	go s.httpServer.ListenAndServe()
 
 	return nil
 }
 
 // OnShutdown stops the web server
-func (s *Service) OnShutdown(_ context.Context) error {
+func (s *Service) OnShutdown(ctx context.Context) error {
 	// Stop HTTP server
 	if s.httpServer != nil {
-		s.LogInfo("Stopping HTTP listener on port %d", s.httpPort)
+		s.LogInfo(ctx, "Stopping HTTP listener", log.Int("port", s.httpPort))
 		err := s.httpServer.Close() // Not a graceful shutdown
 		if err != nil {
 			return errors.Trace(err)
@@ -89,7 +90,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.LogInfo("Request received: %s", internalURL)
+	ctx := context.Background()
+
+	s.LogInfo(ctx, "Request received", log.String("url", internalURL))
 
 	// Prepare the internal request options
 	defer r.Body.Close()
@@ -101,11 +104,11 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the time budget to the request headers and set it as the context's timeout
-	ctx := context.Background()
+	delegateCtx := ctx
 	if s.timeBudget > 0 {
 		options = append(options, pub.TimeBudget(s.timeBudget))
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.timeBudget)
+		delegateCtx, cancel = context.WithTimeout(ctx, s.timeBudget)
 		defer cancel()
 	}
 
@@ -118,12 +121,12 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Publish the internal request over NATS
-	internalRes, err := s.Request(ctx, options...)
+	// Delegate the request over NATS
+	internalRes, err := s.Request(delegateCtx, options...)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
-		s.LogError(err)
+		s.LogError(ctx, "Delegating request", log.Error(err))
 		return
 	}
 
@@ -150,7 +153,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
-			s.LogError(err)
+			s.LogError(ctx, "Copying response body", log.Error(err))
 			return
 		}
 	}

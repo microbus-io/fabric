@@ -11,9 +11,11 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 )
 
 /*
@@ -48,6 +50,8 @@ type Connector struct {
 
 	configs    map[string]*config
 	configLock sync.Mutex
+
+	logger *zap.Logger
 }
 
 // NewConnector constructs a new Connector.
@@ -98,6 +102,13 @@ func (c *Connector) HostName() string {
 	return c.hostName
 }
 
+// Deployment environments
+const (
+	PROD  string = "PROD"  // PROD for a production environment
+	LAB   string = "LAB"   // LAB for all non-production environments such as dev integration, test, staging, etc.
+	LOCAL string = "LOCAL" // LOCAL when developing on the local machine or running inside a testing app
+)
+
 // Deployment indicates what deployment environment the microservice is running in:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
@@ -119,7 +130,7 @@ func (c *Connector) SetDeployment(deployment string) error {
 		return errors.New("already started")
 	}
 	deployment = strings.ToUpper(deployment)
-	if deployment != "" && deployment != "PROD" && deployment != "LAB" && deployment != "LOCAL" {
+	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL {
 		return errors.Newf("invalid deployment: %s", deployment)
 	}
 	c.deployment = deployment
@@ -221,12 +232,13 @@ func (c *Connector) connectToNATS() error {
 	}
 
 	// Log connection events
-	c.LogInfo("Connected to NATS at %s", cn.ConnectedUrl())
+	ctx := context.Background()
+	c.LogInfo(ctx, "Connected to NATS", log.String("url", cn.ConnectedUrl()))
 	cn.SetDisconnectHandler(func(n *nats.Conn) {
-		c.LogInfo("Disconnected from NATS at %s", cn.ConnectedUrl())
+		c.LogInfo(ctx, "Disconnected from NATS", log.String("url", cn.ConnectedUrl()))
 	})
 	cn.SetReconnectHandler(func(n *nats.Conn) {
-		c.LogInfo("Reconnected to NATS at %s", cn.ConnectedUrl())
+		c.LogInfo(ctx, "Reconnected to NATS", log.String("url", cn.ConnectedUrl()))
 	})
 
 	c.natsConn = cn

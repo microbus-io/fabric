@@ -26,3 +26,7 @@
 * Bi-directional (request/response) HTTP-like *multicast* messaging over NATS
 * Direct addressing
 * Control messages on port `:888`
+
+[Milestone 5](https://github.com/microbus-io/fabric/tree/milestone/5):
+
+* Advanced logger with JSON output

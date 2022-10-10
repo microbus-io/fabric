@@ -9,4 +9,5 @@ func TestConnector_Implements(t *testing.T) {
 
 	c := NewConnector()
 	_ = Service(c)
+	_ = Logger(c)
 }

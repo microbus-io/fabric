@@ -16,7 +16,7 @@ The `connector` package has multiple files for each functional area of the micro
 * `control.go` deals with subscribing and handling the control messages on the reserved port `:888`
 * `interfaces.go` defines various interfaces of the microservice
 * `lifecycle.go` implements the `Startup` and `Shutdown` logic
-* `logger.go` implements a rudimentary logger
+* `logger.go` provides a JSON logger for the microservice
 * `publish.go` deals with outbound messaging
 * `subjects.go` crafts the NATS subjects (topics) that a microservice subscribes to or publishes to
 * `subscribe.go` deals with inbound message handling

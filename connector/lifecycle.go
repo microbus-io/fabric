@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/log"
 )
 
 // SetOnStartup sets a function to be called during the starting up of the microservice
@@ -20,7 +21,7 @@ func (c *Connector) SetOnShutdown(f func(context.Context) error) {
 
 // Startup the microservice by connecting to the NATS bus and activating the subscriptions
 func (c *Connector) Startup() error {
-	var err error
+	ctx := context.Background()
 
 	if c.started {
 		return errors.New("already started")
@@ -30,13 +31,12 @@ func (c *Connector) Startup() error {
 	}
 
 	// Look for configs in the environment or file system
-	err = c.loadConfigs()
+	err := c.loadConfigs()
 	if err != nil {
 		return errors.Trace(err)
 	}
-	c.logConfigs()
 
-	// Communication plane default
+	// Determine the communication plane
 	if c.plane == "" {
 		if plane, ok := c.Config("Plane"); ok {
 			err := c.SetPlane(plane)
@@ -49,7 +49,7 @@ func (c *Connector) Startup() error {
 		}
 	}
 
-	// Deployment default
+	// Identify the environment deployment
 	if c.deployment == "" {
 		if deployment, ok := c.Config("Deployment"); ok {
 			err := c.SetDeployment(deployment)
@@ -58,16 +58,25 @@ func (c *Connector) Startup() error {
 			}
 		}
 		if c.deployment == "" {
-			c.deployment = "LOCAL"
+			c.deployment = LOCAL
 			if nats, ok := c.Config("NATS"); ok {
 				if !strings.Contains(nats, "/127.0.0.1:") &&
 					!strings.Contains(nats, "/0.0.0.0:") &&
 					!strings.Contains(nats, "/localhost:") {
-					c.deployment = "PROD"
+					c.deployment = PROD
 				}
 			}
 		}
 	}
+
+	// Initialize logger
+	err = c.initLogger()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Log configs
+	c.logConfigs(ctx)
 
 	// Subscribe to :888 control messages
 	err = c.subscribeControl()
@@ -93,10 +102,10 @@ func (c *Connector) Startup() error {
 
 	// Call the callback function, if provided
 	if c.onStartup != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), c.callbackTimeout)
+		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
 		err := catchPanic(func() error {
-			return c.onStartup(ctx)
+			return c.onStartup(callbackCtx)
 		})
 		if err != nil {
 			_ = c.Shutdown()
@@ -119,29 +128,35 @@ func (c *Connector) Startup() error {
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus
 func (c *Connector) Shutdown() error {
-	var lastErr error
 	if !c.started {
 		return errors.New("not started")
 	}
 	c.started = false
 
+	ctx := context.Background()
+	var lastErr error
+
 	// Unsubscribe all handlers
 	err := c.UnsubscribeAll()
 	if err != nil {
 		lastErr = errors.Trace(err)
-		c.LogError(err)
+		c.LogError(
+			ctx,
+			"Deactivating subscriptions",
+			log.Error(err),
+		)
 	}
 
 	// Call the callback function, if provided
 	if c.onShutdown != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), c.callbackTimeout)
+		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
 		err := catchPanic(func() error {
-			return c.onShutdown(ctx)
+			return c.onShutdown(callbackCtx)
 		})
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(err)
+			c.LogError(ctx, "Shutdown callback", log.Error(err))
 		}
 	}
 
@@ -150,7 +165,7 @@ func (c *Connector) Shutdown() error {
 		err := c.natsResponseSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(err)
+			c.LogError(ctx, "Unsubscribing response sub", log.Error(err))
 		}
 		c.natsResponseSub = nil
 	}
@@ -160,6 +175,10 @@ func (c *Connector) Shutdown() error {
 		c.natsConn.Close()
 		c.natsConn = nil
 	}
+
+	// Terminate logger
+	_ = c.terminateLogger()
+	// No point trying to log the error at this point
 
 	return lastErr
 }
