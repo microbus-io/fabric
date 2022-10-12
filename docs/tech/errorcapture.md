@@ -62,7 +62,7 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-	err := catchPanic(func() error {return UserCodeHandler(w, r)})
+	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
 	if err != nil {
 		...
 	}

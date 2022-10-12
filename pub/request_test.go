@@ -3,9 +3,11 @@ package pub
 import (
 	"bytes"
 	"io"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +20,7 @@ func TestPub_MethodAndURL(t *testing.T) {
 		GET("https://www.example.com"),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err := req.ToHTTP()
+	httpReq, err := toHTTP(req)
 	assert.NoError(t, err)
 	assert.Equal(t, "GET", httpReq.Method)
 	assert.Equal(t, "www.example.com", httpReq.URL.Hostname())
@@ -28,7 +30,7 @@ func TestPub_MethodAndURL(t *testing.T) {
 		POST("https://www.example.com/path"),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err = req.ToHTTP()
+	httpReq, err = toHTTP(req)
 	assert.NoError(t, err)
 	assert.Equal(t, "POST", httpReq.Method)
 	assert.Equal(t, "www.example.com", httpReq.URL.Hostname())
@@ -40,7 +42,7 @@ func TestPub_MethodAndURL(t *testing.T) {
 		URL("https://www.example.com"),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err = req.ToHTTP()
+	httpReq, err = toHTTP(req)
 	assert.NoError(t, err)
 	assert.Equal(t, "DELETE", httpReq.Method)
 	assert.Equal(t, "www.example.com", httpReq.URL.Hostname())
@@ -55,7 +57,7 @@ func TestPub_Header(t *testing.T) {
 		Header("X-SOMETHING", "Else"), // Uppercase
 	}...)
 	assert.NoError(t, err)
-	httpReq, err := req.ToHTTP()
+	httpReq, err := toHTTP(req)
 	assert.NoError(t, err)
 	assert.Equal(t, "text/html", httpReq.Header.Get("Content-Type"))
 	assert.Equal(t, "Else", httpReq.Header.Get("X-Something"))
@@ -70,7 +72,7 @@ func TestPub_Body(t *testing.T) {
 		Body("Hello World"),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err := req.ToHTTP()
+	httpReq, err := toHTTP(req)
 	assert.NoError(t, err)
 	body, err := io.ReadAll(httpReq.Body)
 	assert.NoError(t, err)
@@ -82,7 +84,7 @@ func TestPub_Body(t *testing.T) {
 		Body([]byte("Hello World")),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err = req.ToHTTP()
+	httpReq, err = toHTTP(req)
 	assert.NoError(t, err)
 	body, err = io.ReadAll(httpReq.Body)
 	assert.NoError(t, err)
@@ -94,7 +96,7 @@ func TestPub_Body(t *testing.T) {
 		Body(bytes.NewReader([]byte("Hello World"))),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err = req.ToHTTP()
+	httpReq, err = toHTTP(req)
 	assert.NoError(t, err)
 	body, err = io.ReadAll(httpReq.Body)
 	assert.NoError(t, err)
@@ -110,7 +112,7 @@ func TestPub_Body(t *testing.T) {
 		Body(j),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err = req.ToHTTP()
+	httpReq, err = toHTTP(req)
 	assert.NoError(t, err)
 	body, err = io.ReadAll(httpReq.Body)
 	assert.NoError(t, err)
@@ -127,8 +129,22 @@ func TestPub_TimeBudget(t *testing.T) {
 		TimeBudget(40 * time.Second),
 	}...)
 	assert.NoError(t, err)
-	httpReq, err := req.ToHTTP()
+	httpReq, err := toHTTP(req)
 	assert.NoError(t, err)
 	budget := frame.Of(httpReq).TimeBudget()
 	assert.True(t, budget <= 20*time.Second && budget >= 19*time.Second)
+}
+
+func toHTTP(req *Request) (*http.Request, error) {
+	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	for name, value := range req.Header {
+		httpReq.Header[name] = value
+	}
+	if !req.Deadline.IsZero() {
+		frame.Of(httpReq).SetTimeBudget(time.Until(req.Deadline))
+	}
+	return httpReq, nil
 }

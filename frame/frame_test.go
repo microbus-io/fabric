@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +25,13 @@ func TestFrame_Of(t *testing.T) {
 	httpRecorder.Header().Set(HeaderMsgId, "123")
 	assert.Equal(t, "123", Of(httpRecorder).MessageID())
 	httpResponse := httpRecorder.Result()
+	assert.Equal(t, "123", Of(httpResponse).MessageID())
+
+	// utils.ResponseRecorder and http.Response
+	utilsRecorder := utils.NewResponseRecorder()
+	utilsRecorder.Header().Set(HeaderMsgId, "123")
+	assert.Equal(t, "123", Of(utilsRecorder).MessageID())
+	httpResponse = utilsRecorder.Result()
 	assert.Equal(t, "123", Of(httpResponse).MessageID())
 
 	// http.Header

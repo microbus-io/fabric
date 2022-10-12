@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
 
@@ -171,6 +172,12 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 		return errors.Trace(err)
 	}
 
+	// Ack only the first fragment which will have index 0 (if it's a sole fragment) or 1
+	fragmentIndex, _ := frame.Of(httpReq).Fragment()
+	if fragmentIndex > 1 {
+		return nil
+	}
+
 	// Get return address
 	fromHost := frame.Of(httpReq).FromHost()
 	if fromHost == "" {
@@ -191,7 +198,13 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Prepare and send the ack
 	var buf bytes.Buffer
-	buf.WriteString("HTTP/1.1 202 Accepted\r\nConnection: close")
+	buf.WriteString("HTTP/1.1 ")
+	if fragmentIndex > 0 {
+		buf.WriteString("100 Continue")
+	} else {
+		buf.WriteString("202 Accepted")
+	}
+	buf.WriteString("\r\nConnection: close")
 	header := map[string]string{
 		frame.HeaderOpCode:   frame.OpCodeAck,
 		frame.HeaderFromHost: c.hostName,
@@ -243,6 +256,16 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		return errors.New("timeout")
 	}
 
+	// Integrate fragments together
+	httpReq, err = c.defragRequest(httpReq)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if httpReq == nil {
+		// Not all fragments arrived yet
+		return nil
+	}
+
 	// Prepare the context
 	// Set the context's timeout to the time budget reduced by a network hop
 	frameCtx := context.WithValue(context.Background(), frame.ContextKey, httpReq.Header)
@@ -251,8 +274,8 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	httpReq = httpReq.WithContext(ctx)
 
 	// Call the web handler
-	httpRecorder := httptest.NewRecorder()
-	handlerErr := catchPanic(func() error {
+	httpRecorder := utils.NewResponseRecorder()
+	handlerErr := utils.CatchPanic(func() error {
 		return s.Handler(httpRecorder, httpReq)
 	})
 
@@ -261,7 +284,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		c.LogError(frameCtx, "Handling request", log.Error(handlerErr))
 
 		// Prepare an error response instead
-		httpRecorder = httptest.NewRecorder()
+		httpRecorder = utils.NewResponseRecorder()
 		httpRecorder.Header().Set("Content-Type", "application/json")
 		body, err := json.MarshalIndent(handlerErr, "", "\t")
 		if err != nil {
@@ -282,15 +305,25 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		frame.Of(httpResponse).SetOpCode(frame.OpCodeError)
 	}
 
-	// Send back the response
-	var buf bytes.Buffer
-	err = httpResponse.Write(&buf)
+	// Send back the response, in fragments if needed
+	fragger, err := frag.NewFragResponse(httpResponse, c.maxFragmentSize)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.natsConn.Publish(subjectOfResponses(c.plane, fromHost, fromId), buf.Bytes())
-	if err != nil {
-		return errors.Trace(err)
+	for f := 1; f <= fragger.N(); f++ {
+		fragment, err := fragger.Fragment(f)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		var buf bytes.Buffer
+		err = fragment.Write(&buf)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = c.natsConn.Publish(subjectOfResponses(c.plane, fromHost, fromId), buf.Bytes())
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	return nil
