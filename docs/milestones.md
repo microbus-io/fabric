@@ -1,5 +1,7 @@
 # Milestones
 
+Note: These milestones are maintained in separate branches in order to demonstrate the thinking process behind the building of this framework. Milestone are not releases and they are not production-ready.
+
 [Milestone 1](https://github.com/microbus-io/fabric/tree/milestone/1):
 
 * `Connector` construct, including startup and shutdown logic

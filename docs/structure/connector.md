@@ -1,15 +1,15 @@
 # Package `connector`
 
-The `Connector` provides key capabilities (or _building blocks_) to microservices deployed on the `Microbus` and is the most fundamental construct of the framework. In this release, the `Connector` includes the following building blocks:
+The `Connector` provides key capabilities (or _building blocks_) to microservices deployed on the `Microbus` and is the most fundamental construct of the framework. It includes the following building blocks:
 
 * Startup and shutdown with corresponding callbacks
 * Service host name and a random instance ID, both used to address the microservice
 * [Connectivity to NATS](../tech/natsconnection.md)
-* HTTP request/response model over NATS, both incoming (server) and outgoing (client)
-* Rudimentary logger
+* HTTP-like communication over NATS, unicast (request/response) and multicast (pub/sub)
+* JSON logger
 * [Configuration](../tech/configuration.md)
 
-The `connector` package has multiple files for each functional area of the microservice but they all implement the same `Connector` class.
+The `connector` package includes a separate source file for each functional area of the microservice. All these source files implement the same `Connector` class.
 
 * `config.go` is responsible for fetching config values from environment variables or an `env.yaml` file
 * `connector.go` defines the `Connector` struct and provides a few getters and setters
