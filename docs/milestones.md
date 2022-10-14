@@ -34,3 +34,4 @@
 [Milestone 6](https://github.com/microbus-io/fabric/tree/milestone/6):
 
 * Fragmentation of large messages
+* Optimized HTTP utilities (`BodyReader` and `ResponseRecorder`)
