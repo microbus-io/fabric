@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"regexp"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
@@ -44,6 +44,12 @@ type Connector struct {
 	networkHop        time.Duration
 	maxCallDepth      int
 	defaultTimeBudget time.Duration
+	maxFragmentSize   int64
+
+	requestDefrags      map[string]*frag.DefragRequest
+	requestDefragsLock  sync.Mutex
+	responseDefrags     map[string]*frag.DefragResponse
+	responseDefragsLock sync.Mutex
 
 	knownResponders     map[string]map[string]bool
 	knownRespondersLock sync.Mutex
@@ -66,6 +72,8 @@ func NewConnector() *Connector {
 		defaultTimeBudget: 20 * time.Second,
 		subs:              map[string]*sub.Subscription{},
 		knownResponders:   map[string]map[string]bool{},
+		requestDefrags:    map[string]*frag.DefragRequest{},
+		responseDefrags:   map[string]*frag.DefragResponse{},
 	}
 	return c
 }
@@ -160,22 +168,6 @@ func (c *Connector) SetPlane(plane string) error {
 	}
 	c.plane = plane
 	return nil
-}
-
-// catchPanic calls the function and returns any panic as a standard error
-func catchPanic(f func() error) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(error); ok {
-				err = e
-			} else {
-				err = fmt.Errorf("%v", r)
-			}
-			err = errors.TraceUp(err, 2)
-		}
-	}()
-	err = f()
-	return
 }
 
 // connectToNATS connects to the NATS cluster based on settings in environment variables

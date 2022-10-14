@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,6 +18,7 @@ const (
 	HeaderOpCode     = HeaderPrefix + "Op-Code"
 	HeaderTimestamp  = HeaderPrefix + "Timestamp"
 	HeaderQueue      = HeaderPrefix + "Queue"
+	HeaderFragment   = HeaderPrefix + "Fragment"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -169,5 +171,37 @@ func (f Frame) SetQueue(queue string) {
 		f.h.Del(HeaderQueue)
 	} else {
 		f.h.Set(HeaderQueue, queue)
+	}
+}
+
+// Fragment returns the index of the fragment of large messages out of the total number of fragments.
+// Fragments are indexed starting at 1
+func (f Frame) Fragment() (index int, max int) {
+	v := f.h.Get(HeaderFragment)
+	if v == "" {
+		return 1, 1
+	}
+	parts := strings.Split(v, "/")
+	if len(parts) != 2 {
+		return 1, 1
+	}
+	index, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 1, 1
+	}
+	max, err = strconv.Atoi(parts[1])
+	if err != nil {
+		return 1, 1
+	}
+	return index, max
+}
+
+// Fragment sets the index of the fragment of large messages out of the total number of fragments.
+// Fragments are indexed starting at 1
+func (f Frame) SetFragment(index int, max int) {
+	if index < 1 || max < 1 || (index == 1 && max == 1) {
+		f.h.Del(HeaderFragment)
+	} else {
+		f.h.Set(HeaderFragment, strconv.Itoa(index)+"/"+strconv.Itoa(max))
 	}
 }

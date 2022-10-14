@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frame"
 )
 
 // Request is used to construct an HTTP request that can be sent over the bus.
@@ -52,19 +51,4 @@ func (req *Request) Canonical() string {
 		return req.URL[:qm]
 	}
 	return req.URL
-}
-
-// ToHTTP constructs an HTTP request given the properties set for this request
-func (req *Request) ToHTTP() (*http.Request, error) {
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	if !req.Deadline.IsZero() {
-		frame.Of(httpReq).SetTimeBudget(time.Until(req.Deadline))
-	}
-	return httpReq, nil
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // SetOnStartup sets a function to be called during the starting up of the microservice
@@ -90,6 +91,13 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 	c.started = true
+	c.maxFragmentSize = c.natsConn.MaxPayload() - 32*1024 // Up to 32K for headers
+	if c.maxFragmentSize < 32*1024 {
+		c.natsConn.Close()
+		c.natsConn = nil
+		c.started = false
+		return errors.New("message size limit is too restrictive")
+	}
 
 	// Subscribe to the response subject
 	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostName, c.id), c.id, c.onResponse)
@@ -104,7 +112,7 @@ func (c *Connector) Startup() error {
 	if c.onStartup != nil {
 		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
-		err := catchPanic(func() error {
+		err := utils.CatchPanic(func() error {
 			return c.onStartup(callbackCtx)
 		})
 		if err != nil {
@@ -151,7 +159,7 @@ func (c *Connector) Shutdown() error {
 	if c.onShutdown != nil {
 		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
 		defer cancel()
-		err := catchPanic(func() error {
+		err := utils.CatchPanic(func() error {
 			return c.onShutdown(callbackCtx)
 		})
 		if err != nil {

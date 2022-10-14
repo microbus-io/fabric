@@ -30,3 +30,7 @@
 [Milestone 5](https://github.com/microbus-io/fabric/tree/milestone/5):
 
 * Advanced logger with JSON output
+
+[Milestone 6](https://github.com/microbus-io/fabric/tree/milestone/6):
+
+* Fragmentation of large messages

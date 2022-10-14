@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
@@ -104,8 +105,26 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	msgID := rand.AlphaNum64(8)
 	frame.Of(req.Header).SetMessageID(msgID)
 
-	// Prepare the HTTP request
-	httpReq, err := req.ToHTTP()
+	// Prepare the HTTP request (first fragment only)
+	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	if err != nil {
+		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+		return
+	}
+	for name, value := range req.Header {
+		httpReq.Header[name] = value
+	}
+	if !req.Deadline.IsZero() {
+		frame.Of(httpReq).SetTimeBudget(time.Until(req.Deadline))
+	}
+
+	// Fragment large requests
+	fragger, err := frag.NewFragRequest(httpReq, c.maxFragmentSize)
+	if err != nil {
+		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+		return
+	}
+	httpReq, err = fragger.Fragment(1)
 	if err != nil {
 		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
 		return
@@ -194,6 +213,34 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				if seenIDs[fromID] == "" {
 					seenIDs[fromID] = frame.OpCodeAck
 				}
+
+				// Send additional fragments (if there are any) in a goroutine
+				if fragger.N() > 1 {
+					go func() {
+						for f := 2; f <= fragger.N(); f++ {
+							fragment, err := fragger.Fragment(f)
+							if err != nil {
+								output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+								break
+							}
+
+							// Direct addressing
+							subject := subjectOfRequest(c.plane, fromID+"."+fragment.URL.Hostname(), port, fragment.URL.Path)
+
+							var buf bytes.Buffer
+							err = fragment.Write(&buf)
+							if err != nil {
+								output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+								break
+							}
+							err = c.natsConn.Publish(subject, buf.Bytes())
+							if err != nil {
+								output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+								break
+							}
+						}
+					}()
+				}
 			}
 
 			// Response
@@ -280,6 +327,17 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
 		c.LogError(ctx, "Parsing response", log.Error(err))
+		return
+	}
+
+	// Integrate fragments together
+	response, err = c.defragResponse(response)
+	if err != nil {
+		c.LogError(ctx, "Defragging response", log.Error(err))
+		return
+	}
+	if response == nil {
+		// Not all fragments arrived yet
 		return
 	}
 

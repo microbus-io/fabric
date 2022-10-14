@@ -1,13 +1,13 @@
 package pub
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
 	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // Option is used to construct a request in Connector.Publish
@@ -71,15 +71,15 @@ func Body(body any) Option {
 		case io.Reader:
 			req.Body = v
 		case []byte:
-			req.Body = bytes.NewReader(v)
+			req.Body = utils.NewBodyReader(v)
 		case string:
-			req.Body = strings.NewReader(v)
+			req.Body = utils.NewBodyReader([]byte(v))
 		default:
 			j, err := json.Marshal(body)
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.Body = bytes.NewReader(j)
+			req.Body = utils.NewBodyReader(j)
 			req.Header.Set("Content-Type", "application/json")
 		}
 		return nil

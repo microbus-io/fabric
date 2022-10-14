@@ -14,6 +14,7 @@ The `connector` package has multiple files for each functional area of the micro
 * `config.go` is responsible for fetching config values from environment variables or an `env.yaml` file
 * `connector.go` defines the `Connector` struct and provides a few getters and setters
 * `control.go` deals with subscribing and handling the control messages on the reserved port `:888`
+* `frag.go` orchestrates the fragmentation and defragmentation of large requests and responses
 * `interfaces.go` defines various interfaces of the microservice
 * `lifecycle.go` implements the `Startup` and `Shutdown` logic
 * `logger.go` provides a JSON logger for the microservice
