@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
@@ -13,16 +14,26 @@ import (
 
 // DefragResponse merges together multiple fragments back into a single HTTP response
 type DefragResponse struct {
-	fragments map[int]*http.Response
-	maxIndex  int32
-	lock      sync.Mutex
+	fragments    map[int]*http.Response
+	maxIndex     int32
+	lock         sync.Mutex
+	lastActivity time.Time
 }
 
 // NewDefragResponse creates a new response integrator
 func NewDefragResponse() *DefragResponse {
 	return &DefragResponse{
-		fragments: map[int]*http.Response{},
+		fragments:    map[int]*http.Response{},
+		lastActivity: time.Now(),
 	}
+}
+
+// LastActivity indicates how long ago was the last fragment added
+func (st *DefragResponse) LastActivity() time.Duration {
+	st.lock.Lock()
+	d := time.Since(st.lastActivity)
+	st.lock.Unlock()
+	return d
 }
 
 // Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP response
@@ -75,6 +86,7 @@ func (st *DefragResponse) Add(r *http.Response) error {
 	index, max := frame.Of(r).Fragment()
 	st.fragments[index] = r
 	atomic.StoreInt32(&st.maxIndex, int32(max))
+	st.lastActivity = time.Now()
 	st.lock.Unlock()
 	return nil
 }

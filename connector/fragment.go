@@ -23,13 +23,19 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 	if !ok {
 		defragger = frag.NewDefragRequest()
 		c.requestDefrags[msgID] = defragger
-		// Maximum 8 seconds for all fragments to arrive
+		// Timeout if fragments stop arriving
 		go func() {
-			time.Sleep(8 * time.Second)
-			c.requestDefragsLock.Lock()
-			delete(c.requestDefrags, msgID)
-			c.requestDefragsLock.Unlock()
+			for {
+				time.Sleep(c.networkHop / 2)
+				if defragger.LastActivity() > c.networkHop {
+					c.requestDefragsLock.Lock()
+					delete(c.requestDefrags, msgID)
+					c.requestDefragsLock.Unlock()
+					break
+				}
+			}
 		}()
+
 	}
 	c.requestDefragsLock.Unlock()
 
@@ -67,12 +73,17 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 	if !ok {
 		defragger = frag.NewDefragResponse()
 		c.responseDefrags[msgID] = defragger
-		// Maximum 8 seconds for all fragments to arrive
+		// Timeout if fragments stop arriving
 		go func() {
-			time.Sleep(8 * time.Second)
-			c.responseDefragsLock.Lock()
-			delete(c.responseDefrags, msgID)
-			c.responseDefragsLock.Unlock()
+			for {
+				time.Sleep(c.networkHop / 2)
+				if defragger.LastActivity() > c.networkHop {
+					c.responseDefragsLock.Lock()
+					delete(c.responseDefrags, msgID)
+					c.responseDefragsLock.Unlock()
+					break
+				}
+			}
 		}()
 	}
 	c.responseDefragsLock.Unlock()

@@ -189,7 +189,7 @@ func BenchmarkConnector_Frag(b *testing.B) {
 	defer con.Shutdown()
 
 	// Prepare the body to send
-	payload := []byte(rand.AlphaNum64(32 * 1024 * 1024))
+	payload := []byte(rand.AlphaNum64(16 * 1024 * 1024))
 
 	b.ResetTimer()
 
@@ -204,11 +204,9 @@ func BenchmarkConnector_Frag(b *testing.B) {
 	b.StopTimer()
 
 	// On 2021 MacBook Pro M1 15":
-	// 16MB payload: 28 ms/op
-	// 32MB payload: 50 ms/op
-	// 64MB payload: 91 ms/op
-	// 128MB payload: 168 ms/op
-	// 256MB payload: 318 ms/op
-	// 512MB payload: 1.3 s/op
-	// 1GB payload: 6.4 s/op
+	// 16MB payload: 20 ms/op
+	// 32MB payload: 38 ms/op
+	// 64MB payload: 75 ms/op
+	// 128MB payload: 145 ms/op
+	// 256MB payload: 300 ms/op
 }
