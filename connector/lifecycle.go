@@ -46,7 +46,7 @@ func (c *Connector) SetOnShutdown(f cb.CallbackHandler, options ...cb.Option) er
 }
 
 // Startup the microservice by connecting to the NATS bus and activating the subscriptions.
-func (c *Connector) Startup() error {
+func (c *Connector) Startup() (err error) {
 	if c.started {
 		return errors.New("already started")
 	}
@@ -55,7 +55,7 @@ func (c *Connector) Startup() error {
 	}
 
 	// Look for configs in the environment or file system
-	err := c.loadConfigs()
+	err = c.loadConfigs()
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -93,6 +93,14 @@ func (c *Connector) Startup() error {
 		}
 	}
 
+	// Call shutdown to clean up, if there's an error
+	defer func() {
+		if err != nil {
+			c.Shutdown()
+		}
+	}()
+	c.onStartupCalled = false
+
 	// Initialize logger
 	err = c.initLogger()
 	if err != nil {
@@ -102,7 +110,8 @@ func (c *Connector) Startup() error {
 
 	// Validate clock
 	if _, ok := c.clock.Get().(*clock.Mock); ok && c.Deployment() == PROD {
-		return errors.New("mock clock not allowed in PROD deployment environment")
+		err = errors.New("mock clock not allowed in PROD deployment environment")
+		return err
 	}
 
 	// Log configs
@@ -122,22 +131,18 @@ func (c *Connector) Startup() error {
 	c.started = true
 	c.maxFragmentSize = c.natsConn.MaxPayload() - 64*1024 // Up to 64K for headers
 	if c.maxFragmentSize < 64*1024 {
-		c.natsConn.Close()
-		c.natsConn = nil
-		c.started = false
-		return errors.New("message size limit is too restrictive")
+		err = errors.New("message size limit is too restrictive")
+		return err
 	}
 
 	// Subscribe to the response subject
 	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostName, c.id), c.id, c.onResponse)
 	if err != nil {
-		c.natsConn.Close()
-		c.natsConn = nil
-		c.started = false
 		return errors.Trace(err)
 	}
 
 	// Call the callback function, if provided
+	c.onStartupCalled = true
 	if c.onStartup != nil {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
@@ -149,7 +154,6 @@ func (c *Connector) Startup() error {
 		})
 		cancel()
 		if err != nil {
-			_ = c.Shutdown()
 			return errors.Trace(err)
 		}
 	}
@@ -161,7 +165,6 @@ func (c *Connector) Startup() error {
 	for _, sub := range c.subs {
 		err = c.activateSub(sub)
 		if err != nil {
-			_ = c.Shutdown()
 			return errors.Trace(err)
 		}
 	}
@@ -226,7 +229,7 @@ func (c *Connector) Shutdown() error {
 	}
 
 	// Call the callback function, if provided
-	if c.onShutdown != nil {
+	if c.onShutdown != nil && c.onStartupCalled {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
 		if c.onShutdown.Timeout > 0 {

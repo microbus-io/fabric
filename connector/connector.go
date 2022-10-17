@@ -30,11 +30,12 @@ type Connector struct {
 	id         string
 	deployment string
 
-	onStartup   *cb.Callback
-	onShutdown  *cb.Callback
-	lifetimeCtx context.Context
-	ctxCancel   context.CancelFunc
-	pendingOps  int32
+	onStartup       *cb.Callback
+	onShutdown      *cb.Callback
+	lifetimeCtx     context.Context
+	ctxCancel       context.CancelFunc
+	pendingOps      int32
+	onStartupCalled bool
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription
