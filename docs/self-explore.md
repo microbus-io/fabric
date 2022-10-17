@@ -6,3 +6,4 @@
 * Add an endpoint `/calculate` to the `calculator.example` microservice that operates on decimal numbers, not just integers
 * Create your own microservice from scratch and add it to `examples/main/main.go`
 * Put a breakpoint in any of the microservices of the example application and try debugging
+* Write unit tests that require mocking the microservice's clock

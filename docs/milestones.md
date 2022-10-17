@@ -37,3 +37,11 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Fragmentation of large messages
 * Optimized HTTP utilities (`BodyReader` and `ResponseRecorder`)
+
+[Milestone 7](https://github.com/microbus-io/fabric/tree/milestone/7):
+
+* Tickers
+* Mockable clock
+* Context for the `Lifetime` of the microservice
+* Customizable time budget for callbacks
+* Drain pending operations during shutdown
