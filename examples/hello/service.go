@@ -2,12 +2,14 @@ package hello
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"html"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
@@ -15,12 +17,12 @@ import (
 	"github.com/microbus-io/fabric/pub"
 )
 
-// Service is the hello.example microservice
+// Service is the hello.example microservice.
 type Service struct {
 	*connector.Connector
 }
 
-// NewService creates a new hello.example microservice
+// NewService creates a new hello.example microservice.
 func NewService() *Service {
 	s := &Service{
 		Connector: connector.NewConnector(),
@@ -30,10 +32,11 @@ func NewService() *Service {
 	s.Subscribe("/echo", s.Echo)
 	s.Subscribe("/ping", s.Ping)
 	s.Subscribe("/calculator", s.Calculator)
+	s.StartTicker("TickTock", 10*time.Second, s.TickTock)
 	return s
 }
 
-// Hello prints a greeting
+// Hello prints a greeting.
 func (s *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 	// If a name is provided, add a personal touch
 	name := r.URL.Query().Get("name")
@@ -59,7 +62,7 @@ func (s *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 	return errors.Trace(err)
 }
 
-// Echo back the incoming request in wire format
+// Echo back the incoming request in wire format.
 func (s *Service) Echo(w http.ResponseWriter, r *http.Request) error {
 	var buf bytes.Buffer
 	err := r.Write(&buf)
@@ -71,7 +74,7 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) error {
 	return errors.Trace(err)
 }
 
-// Ping all microservices and list them
+// Ping all microservices and list them.
 func (s *Service) Ping(w http.ResponseWriter, r *http.Request) error {
 	var buf bytes.Buffer
 	ch := s.Publish(
@@ -161,4 +164,16 @@ func (s *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/html")
 	_, err := w.Write(buf.Bytes())
 	return errors.Trace(err)
+}
+
+// TickTock is executed every 10 seconds using a ticker.
+func (s *Service) TickTock(ctx context.Context) error {
+	s.LogInfo(ctx, "Ticktock")
+	timer := s.Clock().Timer(5 * time.Second)
+	select {
+	case <-timer.C:
+	case <-s.Lifetime().Done():
+	}
+	timer.Stop()
+	return nil
 }

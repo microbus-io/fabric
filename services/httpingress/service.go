@@ -90,7 +90,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := s.Lifetime()
 
 	s.LogInfo(ctx, "Request received", log.String("url", internalURL))
 

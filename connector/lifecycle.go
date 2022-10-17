@@ -3,27 +3,49 @@ package connector
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/utils"
 )
 
-// SetOnStartup sets a function to be called during the starting up of the microservice
-func (c *Connector) SetOnStartup(f func(context.Context) error) {
-	c.onStartup = f
+// SetOnStartup sets a function to be called during the starting up of the microservice.
+// The default one minute timeout can be overridden by the appropriate option.
+func (c *Connector) SetOnStartup(f cb.CallbackHandler, options ...cb.Option) error {
+	callback := cb.NewCallback("onstartup")
+	callback.Handler = f
+	callback.Timeout = time.Minute
+	for _, o := range options {
+		err := o(callback)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	c.onStartup = callback
+	return nil
 }
 
-// SetOnShutdown sets a function to be called during the shutting down of the microservice
-func (c *Connector) SetOnShutdown(f func(context.Context) error) {
-	c.onShutdown = f
+// SetOnShutdown sets a function to be called during the shutting down of the microservice.
+// The default one minute timeout can be overridden by the appropriate option.
+func (c *Connector) SetOnShutdown(f cb.CallbackHandler, options ...cb.Option) error {
+	callback := cb.NewCallback("onshutdown")
+	callback.Handler = f
+	callback.Timeout = time.Minute
+	for _, o := range options {
+		err := o(callback)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	c.onShutdown = callback
+	return nil
 }
 
-// Startup the microservice by connecting to the NATS bus and activating the subscriptions
+// Startup the microservice by connecting to the NATS bus and activating the subscriptions.
 func (c *Connector) Startup() error {
-	ctx := context.Background()
-
 	if c.started {
 		return errors.New("already started")
 	}
@@ -75,9 +97,10 @@ func (c *Connector) Startup() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	c.LogInfo(c.lifetimeCtx, "Startup")
 
 	// Log configs
-	c.logConfigs(ctx)
+	c.logConfigs(c.lifetimeCtx)
 
 	// Subscribe to :888 control messages
 	err = c.subscribeControl()
@@ -91,8 +114,8 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 	c.started = true
-	c.maxFragmentSize = c.natsConn.MaxPayload() - 32*1024 // Up to 32K for headers
-	if c.maxFragmentSize < 32*1024 {
+	c.maxFragmentSize = c.natsConn.MaxPayload() - 64*1024 // Up to 64K for headers
+	if c.maxFragmentSize < 64*1024 {
 		c.natsConn.Close()
 		c.natsConn = nil
 		c.started = false
@@ -110,16 +133,23 @@ func (c *Connector) Startup() error {
 
 	// Call the callback function, if provided
 	if c.onStartup != nil {
-		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
-		defer cancel()
-		err := utils.CatchPanic(func() error {
-			return c.onStartup(callbackCtx)
+		callbackCtx := c.lifetimeCtx
+		cancel := func() {}
+		if c.onStartup.Timeout > 0 {
+			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onStartup.Timeout)
+		}
+		err = utils.CatchPanic(func() error {
+			return c.onStartup.Handler(callbackCtx)
 		})
+		cancel()
 		if err != nil {
 			_ = c.Shutdown()
 			return errors.Trace(err)
 		}
 	}
+
+	// Prepare the connector's root context
+	c.lifetimeCtx, c.ctxCancel = context.WithCancel(context.Background())
 
 	// Activate subscriptions
 	for _, sub := range c.subs {
@@ -131,40 +161,78 @@ func (c *Connector) Startup() error {
 	}
 	time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 
+	// Run all tickers
+	c.runAllTickers()
+
 	return nil
 }
 
-// Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus
+// Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus.
 func (c *Connector) Shutdown() error {
 	if !c.started {
 		return errors.New("not started")
 	}
 	c.started = false
 
-	ctx := context.Background()
 	var lastErr error
 
-	// Unsubscribe all handlers
-	err := c.UnsubscribeAll()
+	// Stop all tickers
+	err := c.StopAllTickers()
 	if err != nil {
 		lastErr = errors.Trace(err)
-		c.LogError(
-			ctx,
-			"Deactivating subscriptions",
-			log.Error(err),
-		)
+		c.LogError(c.lifetimeCtx, "Stopping tickers", log.Error(err))
+	}
+
+	// Unsubscribe all handlers
+	err = c.UnsubscribeAll()
+	if err != nil {
+		lastErr = errors.Trace(err)
+		c.LogError(c.lifetimeCtx, "Deactivating subscriptions", log.Error(err))
+	}
+
+	// Drain pending operations (incoming requests and running tickers)
+	totalDrainTime := time.Duration(0)
+	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 4*time.Second {
+		time.Sleep(10 * time.Millisecond)
+		totalDrainTime += 20 * time.Millisecond
+	}
+	undrained := atomic.LoadInt32(&c.pendingOps)
+	if undrained > 0 {
+		c.LogInfo(c.lifetimeCtx, "Stubborn pending operations", log.Int32("ops", undrained))
+	}
+
+	// Cancel the root context
+	if c.ctxCancel != nil {
+		c.ctxCancel()
+		c.ctxCancel = nil
+		c.lifetimeCtx = context.Background()
+	}
+
+	// Drain pending operations again after cancelling the context
+	totalDrainTime = time.Duration(0)
+	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 4*time.Second {
+		time.Sleep(10 * time.Millisecond)
+		totalDrainTime += 20 * time.Millisecond
+	}
+	undrained = atomic.LoadInt32(&c.pendingOps)
+	if undrained > 0 {
+		c.LogWarn(c.lifetimeCtx, "Unable to drain pending operations", log.Int32("ops", undrained))
 	}
 
 	// Call the callback function, if provided
 	if c.onShutdown != nil {
-		callbackCtx, cancel := context.WithTimeout(ctx, c.callbackTimeout)
-		defer cancel()
-		err := utils.CatchPanic(func() error {
-			return c.onShutdown(callbackCtx)
+		callbackCtx := c.lifetimeCtx
+		cancel := func() {}
+		if c.onShutdown.Timeout > 0 {
+			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onShutdown.Timeout)
+		}
+		err = utils.CatchPanic(func() error {
+			return c.onShutdown.Handler(callbackCtx)
 		})
+		cancel()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(ctx, "Shutdown callback", log.Error(err))
+			c.LogError(c.lifetimeCtx, "Shutdown callback", log.Error(err))
 		}
 	}
 
@@ -173,7 +241,7 @@ func (c *Connector) Shutdown() error {
 		err := c.natsResponseSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(ctx, "Unsubscribing response sub", log.Error(err))
+			c.LogError(c.lifetimeCtx, "Unsubscribing response sub", log.Error(err))
 		}
 		c.natsResponseSub = nil
 	}
@@ -185,13 +253,21 @@ func (c *Connector) Shutdown() error {
 	}
 
 	// Terminate logger
+	c.LogInfo(c.lifetimeCtx, "Shutdown")
 	_ = c.terminateLogger()
 	// No point trying to log the error at this point
 
 	return lastErr
 }
 
-// IsStarted indicates if the microservice has been successfully started
+// IsStarted indicates if the microservice has been successfully started.
 func (c *Connector) IsStarted() bool {
 	return c.started
+}
+
+// Lifetime returns a context that gets cancelled when the microservice is shutdown.
+// The Done() channel can be used to detect when the microservice is shutting down.
+// In most cases the lifetime context should be used instead of the background context.
+func (c *Connector) Lifetime() context.Context {
+	return c.lifetimeCtx
 }

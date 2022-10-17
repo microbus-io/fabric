@@ -321,19 +321,17 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 
 // onResponse is called when a response to an outgoing request is received
 func (c *Connector) onResponse(msg *nats.Msg) {
-	ctx := context.Background()
-
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
-		c.LogError(ctx, "Parsing response", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Parsing response", log.Error(err))
 		return
 	}
 
 	// Integrate fragments together
 	response, err = c.defragResponse(response)
 	if err != nil {
-		c.LogError(ctx, "Defragging response", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Defragging response", log.Error(err))
 		return
 	}
 	if response == nil {
@@ -350,7 +348,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 		opCode := frame.Of(response).OpCode()
 		if opCode != frame.OpCodeAck {
 			c.LogInfo(
-				ctx,
+				c.lifetimeCtx,
 				"Response received after timeout",
 				log.String("msg", msgID),
 			)

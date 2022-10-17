@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/microbus-io/fabric/cb"
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/log"
@@ -28,9 +30,11 @@ type Connector struct {
 	id         string
 	deployment string
 
-	onStartup       func(context.Context) error
-	onShutdown      func(context.Context) error
-	callbackTimeout time.Duration
+	onStartup   *cb.Callback
+	onShutdown  *cb.Callback
+	lifetimeCtx context.Context
+	ctxCancel   context.CancelFunc
+	pendingOps  int32
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription
@@ -58,6 +62,10 @@ type Connector struct {
 	configLock sync.Mutex
 
 	logger *zap.Logger
+
+	clock       *clock.ClockReference
+	tickers     map[string]*tickerCallback
+	tickersLock sync.Mutex
 }
 
 // NewConnector constructs a new Connector.
@@ -68,13 +76,16 @@ func NewConnector() *Connector {
 		configs:           map[string]*config{},
 		networkHop:        250 * time.Millisecond,
 		maxCallDepth:      64,
-		callbackTimeout:   time.Minute,
 		defaultTimeBudget: 20 * time.Second,
 		subs:              map[string]*sub.Subscription{},
 		knownResponders:   map[string]map[string]bool{},
 		requestDefrags:    map[string]*frag.DefragRequest{},
 		responseDefrags:   map[string]*frag.DefragResponse{},
+		clock:             clock.NewClockReference(clock.New()),
+		tickers:           map[string]*tickerCallback{},
+		lifetimeCtx:       context.Background(),
 	}
+
 	return c
 }
 
