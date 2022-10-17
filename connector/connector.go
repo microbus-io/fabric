@@ -64,6 +64,7 @@ type Connector struct {
 	logger *zap.Logger
 
 	clock       *clock.ClockReference
+	clockSet    bool
 	tickers     map[string]*tickerCallback
 	tickersLock sync.Mutex
 }

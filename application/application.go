@@ -44,7 +44,15 @@ func NewTesting(services ...connector.Service) *Application {
 // primarily to be used to inject a mock clock for testing.
 func (a *Application) SetClock(clock clock.Clock) error {
 	if a.started {
-		return errors.New("already started")
+		for i := range a.services {
+			err := a.services[i].SetClock(clock)
+			if err != nil {
+				for j := 0; j < i; j++ {
+					a.services[j].SetClock(a.clock)
+				}
+				return errors.Trace(err)
+			}
+		}
 	}
 	a.clock = clock
 	return nil

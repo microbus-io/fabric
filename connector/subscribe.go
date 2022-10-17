@@ -273,7 +273,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Prepare the context
 	// Set the context's timeout to the time budget reduced by a network hop
 	frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
-	ctx, cancel := c.clock.WithTimeout(frameCtx, budget-c.networkHop)
+	ctx, cancel := c.Clock().WithTimeout(frameCtx, budget-c.networkHop)
 	defer cancel()
 	httpReq = httpReq.WithContext(ctx)
 

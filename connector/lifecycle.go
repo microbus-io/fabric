@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/utils"
@@ -83,7 +82,8 @@ func (c *Connector) Startup() (err error) {
 		}
 	}
 
-	// Call shutdown to clean up, if there's an error
+	// Call shutdown to clean up, if there's an error.
+	// All errors must be assigned to err.
 	defer func() {
 		if err != nil {
 			c.Shutdown()
@@ -98,9 +98,9 @@ func (c *Connector) Startup() (err error) {
 	}
 	c.LogInfo(c.lifetimeCtx, "Startup")
 
-	// Validate clock
-	if _, ok := c.clock.Get().(*clock.Mock); ok && c.Deployment() == PROD {
-		err = errors.New("mock clock not allowed in PROD deployment environment")
+	// Validate that clock is not changed in PROD
+	if c.Deployment() == PROD && c.clockSet {
+		err = errors.Newf("clock can't be changed in %s deployment", PROD)
 		return err
 	}
 
@@ -137,7 +137,7 @@ func (c *Connector) Startup() (err error) {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
 		if c.onStartup.TimeBudget > 0 {
-			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
+			callbackCtx, cancel = c.Clock().WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
 			return c.onStartup.Handler(callbackCtx)
@@ -223,7 +223,7 @@ func (c *Connector) Shutdown() error {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
 		if c.onShutdown.TimeBudget > 0 {
-			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
+			callbackCtx, cancel = c.Clock().WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
 			return c.onShutdown.Handler(callbackCtx)

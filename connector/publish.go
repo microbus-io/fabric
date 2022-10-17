@@ -60,7 +60,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	// Restrict the time budget to the context deadline
 	deadline, ok := ctx.Deadline()
 	if ok {
-		ctxBudget := c.clock.Until(deadline)
+		ctxBudget := c.Clock().Until(deadline)
 		if ctxBudget < req.TimeBudget {
 			req.Apply(pub.TimeBudget(ctxBudget))
 		}
@@ -176,9 +176,9 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	seenIDs := map[string]string{} // FromID -> OpCode
 	seenQueues := map[string]bool{}
 	doneWaitingForAcks := false
-	timeoutTimer := c.clock.Timer(req.TimeBudget)
+	timeoutTimer := c.Clock().Timer(req.TimeBudget)
 	defer timeoutTimer.Stop()
-	ackTimer := c.clock.Timer(c.networkHop)
+	ackTimer := c.Clock().Timer(c.networkHop)
 	defer ackTimer.Stop()
 	for {
 		select {

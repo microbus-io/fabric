@@ -91,7 +91,7 @@ func (c *Connector) runAllTickers() {
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *tickerCallback) {
 	if job.Ticker == nil {
-		job.Ticker = c.clock.Ticker(job.Interval)
+		job.Ticker = c.Clock().Ticker(job.Interval)
 	} else {
 		// Already running
 		return
@@ -105,11 +105,11 @@ func (c *Connector) runTicker(job *tickerCallback) {
 
 			// Call the callback
 			atomic.AddInt32(&c.pendingOps, 1)
-			started := c.clock.Now()
+			started := c.Now()
 			callbackCtx := c.lifetimeCtx
 			cancel := func() {}
 			if job.TimeBudget > 0 {
-				callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, job.TimeBudget)
+				callbackCtx, cancel = c.Clock().WithTimeout(c.lifetimeCtx, job.TimeBudget)
 			}
 			err := utils.CatchPanic(func() error {
 				return job.Handler(callbackCtx)
@@ -118,7 +118,7 @@ func (c *Connector) runTicker(job *tickerCallback) {
 			if err != nil {
 				c.LogError(c.Lifetime(), "Ticker callback", log.Error(err))
 			}
-			dur := c.clock.Since(started)
+			dur := c.Clock().Since(started)
 			atomic.AddInt32(&c.pendingOps, -1)
 
 			// Drain ticker, in case of a long-running job that spans multiple intervals
@@ -153,8 +153,8 @@ func (c *Connector) Now() time.Time {
 // SetClock sets an alternative clock for this connector,
 // primarily to be used to inject a mock clock for testing.
 func (c *Connector) SetClock(newClock clock.Clock) error {
-	if _, ok := newClock.(*clock.Mock); ok && c.Deployment() == PROD {
-		return errors.New("mock clock not allowed in PROD deployment environment")
+	if c.Deployment() == PROD {
+		return errors.Newf("clock can't be changed in %s deployment", PROD)
 	}
 
 	c.tickersLock.Lock()
@@ -168,6 +168,7 @@ func (c *Connector) SetClock(newClock clock.Clock) error {
 		}
 	}
 	c.clock.Set(newClock)
+	c.clockSet = true
 	for _, job := range c.tickers {
 		if c.started {
 			c.runTicker(job)
