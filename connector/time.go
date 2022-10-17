@@ -15,13 +15,13 @@ import (
 )
 
 type tickerCallback struct {
-	cb.Callback
+	*cb.Callback
 	Interval time.Duration
 	Ticker   *clock.Ticker
 }
 
 // StartTicker initiates a recurring job at a set interval.
-func (c *Connector) StartTicker(name string, interval time.Duration, handler func(context.Context) error) error {
+func (c *Connector) StartTicker(name string, interval time.Duration, handler func(context.Context) error, options ...cb.Option) error {
 	match, err := regexp.MatchString(`^[a-zA-Z]+[a-zA-Z0-9]*$`, name)
 	if err != nil {
 		return errors.Trace(err)
@@ -37,11 +37,12 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler fun
 		return errors.Newf("ticker name already in use: %s", name)
 	}
 
+	cb, err := cb.NewCallback(name, handler, options...)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	job := &tickerCallback{
-		Callback: cb.Callback{
-			Name:    name,
-			Handler: handler,
-		},
+		Callback: cb,
 		Interval: interval,
 	}
 	c.tickers[strings.ToLower(name)] = job
@@ -107,8 +108,8 @@ func (c *Connector) runTicker(job *tickerCallback) {
 			started := c.clock.Now()
 			callbackCtx := c.lifetimeCtx
 			cancel := func() {}
-			if job.Timeout > 0 {
-				callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, job.Timeout)
+			if job.TimeBudget > 0 {
+				callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, job.TimeBudget)
 			}
 			err := utils.CatchPanic(func() error {
 				return job.Handler(callbackCtx)

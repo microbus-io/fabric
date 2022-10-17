@@ -20,7 +20,7 @@ type DefragResponse struct {
 	lastActivity time.Time
 }
 
-// NewDefragResponse creates a new response integrator
+// NewDefragResponse creates a new response integrator.
 func NewDefragResponse() *DefragResponse {
 	return &DefragResponse{
 		fragments:    map[int]*http.Response{},
@@ -28,7 +28,7 @@ func NewDefragResponse() *DefragResponse {
 	}
 }
 
-// LastActivity indicates how long ago was the last fragment added
+// LastActivity indicates how long ago was the last fragment added.
 func (st *DefragResponse) LastActivity() time.Duration {
 	st.lock.Lock()
 	d := time.Since(st.lastActivity)
@@ -36,7 +36,7 @@ func (st *DefragResponse) LastActivity() time.Duration {
 	return d
 }
 
-// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP response
+// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP response.
 func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
 	maxIndex := int(atomic.LoadInt32(&st.maxIndex))
 	if maxIndex == 1 {
@@ -80,7 +80,7 @@ func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
 	return firstFragment, nil
 }
 
-// Add a fragment to be integrated
+// Add a fragment to be integrated.
 func (st *DefragResponse) Add(r *http.Response) error {
 	st.lock.Lock()
 	index, max := frame.Of(r).Fragment()

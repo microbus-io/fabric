@@ -16,14 +16,9 @@ import (
 // SetOnStartup sets a function to be called during the starting up of the microservice.
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnStartup(f cb.CallbackHandler, options ...cb.Option) error {
-	callback := cb.NewCallback("onstartup")
-	callback.Handler = f
-	callback.Timeout = time.Minute
-	for _, o := range options {
-		err := o(callback)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	callback, err := cb.NewCallback("onstartup", f, options...)
+	if err != nil {
+		return errors.Trace(err)
 	}
 	c.onStartup = callback
 	return nil
@@ -32,14 +27,9 @@ func (c *Connector) SetOnStartup(f cb.CallbackHandler, options ...cb.Option) err
 // SetOnShutdown sets a function to be called during the shutting down of the microservice.
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnShutdown(f cb.CallbackHandler, options ...cb.Option) error {
-	callback := cb.NewCallback("onshutdown")
-	callback.Handler = f
-	callback.Timeout = time.Minute
-	for _, o := range options {
-		err := o(callback)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	callback, err := cb.NewCallback("onshutdown", f, options...)
+	if err != nil {
+		return errors.Trace(err)
 	}
 	c.onShutdown = callback
 	return nil
@@ -146,8 +136,8 @@ func (c *Connector) Startup() (err error) {
 	if c.onStartup != nil {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
-		if c.onStartup.Timeout > 0 {
-			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onStartup.Timeout)
+		if c.onStartup.TimeBudget > 0 {
+			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
 			return c.onStartup.Handler(callbackCtx)
@@ -232,8 +222,8 @@ func (c *Connector) Shutdown() error {
 	if c.onShutdown != nil && c.onStartupCalled {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
-		if c.onShutdown.Timeout > 0 {
-			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onShutdown.Timeout)
+		if c.onShutdown.TimeBudget > 0 {
+			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
 			return c.onShutdown.Handler(callbackCtx)

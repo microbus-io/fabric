@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/clock"
 	"github.com/stretchr/testify/assert"
 )
@@ -193,4 +194,67 @@ func TestConnector_StopTicker(t *testing.T) {
 	mockClock.Add(time.Hour) // 1:03:01
 	assert.Equal(t, 2, countAfter)
 	assert.Zero(t, countBefore)
+}
+
+func TestConnector_TickerTimeout(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMock()
+
+	con := NewConnector()
+	con.SetHostName("ticker.timeout.connector")
+	con.SetClock(mockClock)
+
+	var top, bottom bool
+	con.StartTicker("ticker", time.Minute, func(ctx context.Context) error {
+		top = true
+		<-ctx.Done()
+		bottom = true
+		return nil
+	}, cb.TimeBudget(time.Second*10))
+
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	mockClock.Add(time.Minute + 5*time.Second)
+	assert.True(t, top)
+	assert.False(t, bottom)
+	mockClock.Add(10 * time.Second)
+	assert.True(t, top)
+	assert.True(t, bottom)
+}
+
+func TestConnector_TickerLifetimeCancellation(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMock()
+
+	con := NewConnector()
+	con.SetHostName("ticker.lifetime.cancellation.connector")
+	con.SetClock(mockClock)
+
+	var top, bottom bool
+	step := make(chan bool)
+	con.StartTicker("ticker", time.Minute, func(ctx context.Context) error {
+		top = true
+		step <- true
+		<-ctx.Done()
+		bottom = true
+		step <- true
+		return nil
+	}, cb.TimeBudget(time.Minute))
+
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	mockClock.Add(time.Minute + 5*time.Second)
+	assert.True(t, top)
+	assert.False(t, bottom)
+	<-step
+	con.ctxCancel()
+	<-step
+	assert.True(t, top)
+	assert.True(t, bottom)
 }

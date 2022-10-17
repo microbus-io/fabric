@@ -20,7 +20,7 @@ type DefragRequest struct {
 	lastActivity time.Time
 }
 
-// NewDefragRequest creates a new request integrator
+// NewDefragRequest creates a new request integrator.
 func NewDefragRequest() *DefragRequest {
 	return &DefragRequest{
 		fragments:    map[int]*http.Request{},
@@ -28,7 +28,7 @@ func NewDefragRequest() *DefragRequest {
 	}
 }
 
-// LastActivity indicates how long ago was the last fragment added
+// LastActivity indicates how long ago was the last fragment added.
 func (st *DefragRequest) LastActivity() time.Duration {
 	st.lock.Lock()
 	d := time.Since(st.lastActivity)
@@ -36,7 +36,7 @@ func (st *DefragRequest) LastActivity() time.Duration {
 	return d
 }
 
-// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP request
+// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP request.
 func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 	maxIndex := int(atomic.LoadInt32(&st.maxIndex))
 	if maxIndex == 1 {
@@ -49,7 +49,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 		return nil, nil
 	}
 
-	// Serialize the bodies of all fragments
+	// Serialize the bodies of all fragments.
 	bodies := []io.Reader{}
 	var contentLength int64
 	for i := 1; i <= maxIndex; i++ {
@@ -80,7 +80,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 	return firstFragment, nil
 }
 
-// Add a fragment to be integrated
+// Add a fragment to be integrated.
 func (st *DefragRequest) Add(r *http.Request) error {
 	st.lock.Lock()
 	index, max := frame.Of(r).Fragment()

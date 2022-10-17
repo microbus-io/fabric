@@ -7,12 +7,15 @@ import (
 // Option is used to set options for a callback.
 type Option func(cb *Callback) error
 
-// Timeout sets a timeout for the callback.
+// TimeBudget sets a timeout for the callback.
 // The timeout is applied as a context deadline.
-// A zero or negative timeout is considered no timeout at all.
-func Timeout(timeout time.Duration) Option {
+// The default time budget is 1 minute.
+func TimeBudget(timeout time.Duration) Option {
+	if timeout < 0 {
+		timeout = 0
+	}
 	return func(cb *Callback) error {
-		cb.Timeout = timeout
+		cb.TimeBudget = timeout
 		return nil
 	}
 }

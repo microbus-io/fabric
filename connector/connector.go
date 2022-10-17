@@ -44,12 +44,11 @@ type Connector struct {
 	started         bool
 	plane           string
 
-	reqs              map[string]chan *http.Response
-	reqsLock          sync.Mutex
-	networkHop        time.Duration
-	maxCallDepth      int
-	defaultTimeBudget time.Duration
-	maxFragmentSize   int64
+	reqs            map[string]chan *http.Response
+	reqsLock        sync.Mutex
+	networkHop      time.Duration
+	maxCallDepth    int
+	maxFragmentSize int64
 
 	requestDefrags      map[string]*frag.DefragRequest
 	requestDefragsLock  sync.Mutex
@@ -72,19 +71,18 @@ type Connector struct {
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:                strings.ToLower(rand.AlphaNum32(10)),
-		reqs:              map[string]chan *http.Response{},
-		configs:           map[string]*config{},
-		networkHop:        250 * time.Millisecond,
-		maxCallDepth:      64,
-		defaultTimeBudget: 20 * time.Second,
-		subs:              map[string]*sub.Subscription{},
-		knownResponders:   map[string]map[string]bool{},
-		requestDefrags:    map[string]*frag.DefragRequest{},
-		responseDefrags:   map[string]*frag.DefragResponse{},
-		clock:             clock.NewClockReference(clock.New()),
-		tickers:           map[string]*tickerCallback{},
-		lifetimeCtx:       context.Background(),
+		id:              strings.ToLower(rand.AlphaNum32(10)),
+		reqs:            map[string]chan *http.Response{},
+		configs:         map[string]*config{},
+		networkHop:      250 * time.Millisecond,
+		maxCallDepth:    64,
+		subs:            map[string]*sub.Subscription{},
+		knownResponders: map[string]map[string]bool{},
+		requestDefrags:  map[string]*frag.DefragRequest{},
+		responseDefrags: map[string]*frag.DefragResponse{},
+		clock:           clock.NewClockReference(clock.New()),
+		tickers:         map[string]*tickerCallback{},
+		lifetimeCtx:     context.Background(),
 	}
 
 	return c

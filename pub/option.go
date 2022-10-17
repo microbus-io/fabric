@@ -86,21 +86,16 @@ func Body(body any) Option {
 	}
 }
 
-// Deadline sets the deadline of the request.
-// Once a deadline is set, it is only possible to shorten it, not extend it
-func Deadline(deadline time.Time) Option {
+// TimeBudget sets a timeout for the request.
+// The default time budget is 20 seconds.
+func TimeBudget(timeout time.Duration) Option {
+	if timeout < 0 {
+		timeout = 0
+	}
 	return func(req *Request) error {
-		if req.Deadline.IsZero() || req.Deadline.After(deadline) {
-			req.Deadline = deadline
-		}
+		req.TimeBudget = timeout
 		return nil
 	}
-}
-
-// TimeBudget sets the deadline of the request to a time in the future.
-// Once a deadline is set, it is only possible to shorten it, not extend it
-func TimeBudget(timeout time.Duration) Option {
-	return Deadline(time.Now().Add(timeout))
 }
 
 // Unicast indicates that a single response is expected from this request

@@ -125,14 +125,14 @@ func TestPub_TimeBudget(t *testing.T) {
 	req, err := NewRequest([]Option{
 		GET("https://www.example.com"),
 		TimeBudget(30 * time.Second),
-		TimeBudget(20 * time.Second), // Shortest
-		TimeBudget(40 * time.Second),
+		TimeBudget(20 * time.Second),
+		TimeBudget(40 * time.Second), // Last
 	}...)
 	assert.NoError(t, err)
 	httpReq, err := toHTTP(req)
 	assert.NoError(t, err)
 	budget := frame.Of(httpReq).TimeBudget()
-	assert.True(t, budget <= 20*time.Second && budget >= 19*time.Second)
+	assert.Equal(t, 40*time.Second, budget)
 }
 
 func toHTTP(req *Request) (*http.Request, error) {
@@ -143,8 +143,6 @@ func toHTTP(req *Request) (*http.Request, error) {
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
 	}
-	if !req.Deadline.IsZero() {
-		frame.Of(httpReq).SetTimeBudget(time.Until(req.Deadline))
-	}
+	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
 	return httpReq, nil
 }

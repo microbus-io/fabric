@@ -10,21 +10,22 @@ import (
 )
 
 // Request is used to construct an HTTP request that can be sent over the bus.
-// Although technically public, it is used internally and should not be constructed by microservices directly
+// Although technically public, it is used internally and should not be constructed by microservices directly.
 type Request struct {
-	Method    string
-	URL       string
-	Header    http.Header
-	Body      io.Reader
-	Deadline  time.Time
-	Multicast bool
+	Method     string
+	URL        string
+	Header     http.Header
+	Body       io.Reader
+	TimeBudget time.Duration
+	Multicast  bool
 }
 
-// NewRequest constructs a new request from the provided options
+// NewRequest constructs a new request from the provided options.
 func NewRequest(options ...Option) (*Request, error) {
 	req := &Request{
-		Header:    make(http.Header),
-		Multicast: true,
+		Header:     make(http.Header),
+		Multicast:  true,
+		TimeBudget: 20 * time.Second,
 	}
 	err := req.Apply(options...)
 	if err != nil {
