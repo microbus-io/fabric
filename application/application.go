@@ -130,7 +130,13 @@ func (a *Application) Run() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	a.WaitForInterrupt()
+	err = a.WaitForInterrupt()
+	if err != nil {
+		return errors.Trace(err)
+	}
 	err = a.Shutdown()
-	return errors.Trace(err)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }

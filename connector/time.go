@@ -155,21 +155,22 @@ func (c *Connector) SetClock(newClock clock.Clock) error {
 	if _, ok := newClock.(*clock.Mock); ok && c.Deployment() == PROD {
 		return errors.New("mock clock not allowed in PROD deployment environment")
 	}
-	if !c.started {
-		return nil
-	}
 
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 
 	// All tickers must be stopped and restarted using the new clock
 	for _, job := range c.tickers {
-		job.Ticker.Stop()
-		job.Ticker = nil
+		if job.Ticker != nil {
+			job.Ticker.Stop()
+			job.Ticker = nil
+		}
 	}
 	c.clock.Set(newClock)
 	for _, job := range c.tickers {
-		c.runTicker(job)
+		if c.started {
+			c.runTicker(job)
+		}
 	}
 
 	return nil

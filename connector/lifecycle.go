@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/utils"
@@ -98,6 +99,11 @@ func (c *Connector) Startup() error {
 		return errors.Trace(err)
 	}
 	c.LogInfo(c.lifetimeCtx, "Startup")
+
+	// Validate clock
+	if _, ok := c.clock.Get().(*clock.Mock); ok && c.Deployment() == PROD {
+		return errors.New("mock clock not allowed in PROD deployment environment")
+	}
 
 	// Log configs
 	c.logConfigs(c.lifetimeCtx)

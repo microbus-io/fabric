@@ -169,11 +169,5 @@ func (s *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 // TickTock is executed every 10 seconds using a ticker.
 func (s *Service) TickTock(ctx context.Context) error {
 	s.LogInfo(ctx, "Ticktock")
-	timer := s.Clock().Timer(5 * time.Second)
-	select {
-	case <-timer.C:
-	case <-s.Lifetime().Done():
-	}
-	timer.Stop()
 	return nil
 }
