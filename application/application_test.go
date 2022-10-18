@@ -161,17 +161,18 @@ func TestApplication_Clock(t *testing.T) {
 	con.SetHostName("clock.application")
 	app := New(con)
 
-	mockClock := clock.NewMockAtNow()
-	err := app.SetClock(mockClock)
+	mockClock1 := clock.NewMockAtNow()
+	err := app.SetClock(mockClock1)
 	assert.NoError(t, err)
 
 	err = app.Startup()
 	assert.NoError(t, err)
 
-	err = app.SetClock(mockClock)
-	assert.Error(t, err)
+	mockClock2 := clock.NewMockAtNow()
+	err = app.SetClock(mockClock2)
+	assert.NoError(t, err)
 
-	assert.Equal(t, mockClock, con.Clock().(*clock.ClockReference).Get())
+	assert.Equal(t, mockClock2, con.Clock().(*clock.ClockReference).Get())
 
 	err = app.Shutdown()
 	assert.NoError(t, err)
