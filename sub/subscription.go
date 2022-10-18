@@ -69,11 +69,11 @@ func NewSub(defaultHost string, path string, options ...Option) (*Subscription, 
 	if u.Port() != "" {
 		port, err = strconv.Atoi(u.Port())
 		if err != nil {
-			return nil, errors.Newf("invalid port: %s", u.Port())
+			return nil, errors.Newf("invalid port '%s'", u.Port())
 		}
 	}
 	if port < 0 || port > 65535 {
-		return nil, errors.Newf("invalid port: %d", port)
+		return nil, errors.Newf("invalid port '%d'", port)
 	}
 
 	sub := &Subscription{

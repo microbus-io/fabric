@@ -27,14 +27,14 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler fun
 		return errors.Trace(err)
 	}
 	if !match {
-		return errors.Newf("invalid ticker name: %s", name)
+		return errors.Newf("invalid ticker name '%s'", name)
 	}
 
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 
 	if _, ok := c.tickers[strings.ToLower(name)]; ok {
-		return errors.Newf("ticker name already in use: %s", name)
+		return errors.Newf("ticker name '%s' is already in use", name)
 	}
 
 	cb, err := cb.NewCallback(name, handler, options...)

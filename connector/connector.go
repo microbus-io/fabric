@@ -109,7 +109,7 @@ func (c *Connector) SetHostName(hostName string) error {
 		match = false
 	}
 	if !match {
-		return errors.Newf("invalid host name: %s", hostName)
+		return errors.Newf("invalid host name '%s'", hostName)
 	}
 	c.hostName = hostName
 	return nil
@@ -150,7 +150,7 @@ func (c *Connector) SetDeployment(deployment string) error {
 	}
 	deployment = strings.ToUpper(deployment)
 	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL {
-		return errors.Newf("invalid deployment: %s", deployment)
+		return errors.Newf("invalid deployment '%s'", deployment)
 	}
 	c.deployment = deployment
 	return nil

@@ -7,7 +7,7 @@ import "github.com/microbus-io/errors"
 
 err := errors.New("my error")
 // err is augmented with the stack trace of this line
-err = errors.Newf("error in process %s", processName)
+err = errors.Newf("error in process '%s'", processName)
 // err is augmented with the stack trace of this line
 ```
 

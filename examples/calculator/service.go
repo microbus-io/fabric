@@ -56,7 +56,7 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) error {
 	case "/":
 		rr = xx / yy
 	default:
-		return errors.Newf("invalid operator %s", op)
+		return errors.Newf("invalid operator '%s'", op)
 	}
 
 	// Print the result

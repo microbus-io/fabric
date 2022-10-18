@@ -66,7 +66,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 		bodies = append(bodies, fragment.Body)
 		len, err := strconv.ParseInt(fragment.Header.Get("Content-Length"), 10, 64)
 		if err != nil {
-			return nil, errors.Newf("invalid or missing Content-Length header")
+			return nil, errors.New("invalid or missing Content-Length header")
 		}
 		contentLength += len
 	}
