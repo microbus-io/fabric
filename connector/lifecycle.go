@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"os"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -51,7 +52,7 @@ func (c *Connector) Startup() (err error) {
 
 	// Determine the communication plane
 	if c.plane == "" {
-		if plane, ok := c.Config("Plane"); ok {
+		if plane := os.Getenv("MICROBUS_PLANE"); plane != "" {
 			err := c.SetPlane(plane)
 			if err != nil {
 				return errors.Trace(err)
@@ -64,7 +65,7 @@ func (c *Connector) Startup() (err error) {
 
 	// Identify the environment deployment
 	if c.deployment == "" {
-		if deployment, ok := c.Config("Deployment"); ok {
+		if deployment := os.Getenv("MICROBUS_DEPLOYMENT"); deployment != "" {
 			err := c.SetDeployment(deployment)
 			if err != nil {
 				return errors.Trace(err)
@@ -72,7 +73,7 @@ func (c *Connector) Startup() (err error) {
 		}
 		if c.deployment == "" {
 			c.deployment = LOCAL
-			if nats, ok := c.Config("NATS"); ok {
+			if nats := os.Getenv("MICROBUS_NATS"); nats != "" {
 				if !strings.Contains(nats, "/127.0.0.1:") &&
 					!strings.Contains(nats, "/0.0.0.0:") &&
 					!strings.Contains(nats, "/localhost:") {

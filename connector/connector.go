@@ -189,15 +189,15 @@ func (c *Connector) connectToNATS() error {
 	opts = append(opts, nats.Name(c.id+"."+c.hostName))
 
 	// URL
-	u, _ := c.Config("NATS")
+	u := os.Getenv("MICROBUS_NATS")
 	if u == "" {
 		u = "nats://127.0.0.1:4222"
 	}
 
 	// Credentials
-	user, _ := c.Config("NATSUser")
-	pw, _ := c.Config("NATSPassword")
-	token, _ := c.Config("NATSToken")
+	user := os.Getenv("MICROBUS_NATS_USER")
+	pw := os.Getenv("MICROBUS_NATS_PASSWORD")
+	token := os.Getenv("MICROBUS_NATS_TOKEN")
 	if user != "" && pw != "" {
 		opts = append(opts, nats.UserInfo(user, pw))
 	}
@@ -210,22 +210,11 @@ func (c *Connector) connectToNATS() error {
 		_, err := os.Stat(fileName)
 		return err == nil
 	}
-	hostSegments := strings.Split(c.hostName, ".")
-	var foundCA, foundCertKey bool
-	for i := 0; i <= len(hostSegments); i++ {
-		host := strings.Join(hostSegments[i:], ".")
-		if host == "" {
-			host = "all"
-		}
-		host += "-"
-		if !foundCA && exists(host+"ca.pem") {
-			opts = append(opts, nats.RootCAs(host+"ca.pem"))
-			foundCA = true
-		}
-		if !foundCertKey && exists(host+"cert.pem") && exists(host+"key.pem") {
-			opts = append(opts, nats.ClientCert(host+"cert.pem", host+"key.pem"))
-			foundCertKey = true
-		}
+	if exists("ca.pem") {
+		opts = append(opts, nats.RootCAs("ca.pem"))
+	}
+	if exists("cert.pem") && exists("key.pem") {
+		opts = append(opts, nats.ClientCert("cert.pem", "key.pem"))
 	}
 
 	// Connect
@@ -235,7 +224,7 @@ func (c *Connector) connectToNATS() error {
 	}
 
 	// Log connection events
-	ctx := context.Background()
+	ctx := c.Lifetime()
 	c.LogInfo(ctx, "Connected to NATS", log.String("url", cn.ConnectedUrl()))
 	cn.SetDisconnectHandler(func(n *nats.Conn) {
 		c.LogInfo(ctx, "Disconnected from NATS", log.String("url", cn.ConnectedUrl()))
