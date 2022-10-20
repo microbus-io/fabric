@@ -1,4 +1,4 @@
-# Microbus.io fabric : Milestone 6
+# Microbus.io fabric : Milestone 7
 
 <img src="docs\gopher-on-bus.png" width=256>
 
