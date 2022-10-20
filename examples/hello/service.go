@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
@@ -33,6 +34,8 @@ func NewService() *Service {
 	s.Subscribe("/ping", s.Ping)
 	s.Subscribe("/calculator", s.Calculator)
 	s.StartTicker("TickTock", 10*time.Second, s.TickTock)
+	s.DefineConfig("greeting", cfg.DefaultValue("Hello"))
+	s.DefineConfig("repeat", cfg.DefaultValue("1"), cfg.Validation("int [0,100]"))
 	return s
 }
 
@@ -45,21 +48,18 @@ func (s *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Prepare the greeting
-	greeting, ok := s.Config("greeting")
-	if !ok {
-		greeting = "Hello"
-	}
+	greeting := s.Config("greeting")
 	hello := greeting + ", " + name + "!\n"
-	repeat, ok := s.ConfigInt("repeat")
-	if !ok {
-		repeat = 1
+	repeat, err := strconv.Atoi(s.Config("repeat"))
+	if err != nil {
+		return errors.Trace(err)
 	}
 	hello = strings.Repeat(hello, repeat)
 
 	// Print the greeting
 	w.Header().Set("Content-Type", "text/plain")
-	_, err := w.Write([]byte(hello))
-	return errors.Trace(err)
+	w.Write([]byte(hello))
+	return nil
 }
 
 // Echo back the incoming request in wire format.
@@ -70,8 +70,8 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) error {
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "text/plain")
-	_, err = w.Write(buf.Bytes())
-	return errors.Trace(err)
+	w.Write(buf.Bytes())
+	return nil
 }
 
 // Ping all microservices and list them.
@@ -95,8 +95,8 @@ func (s *Service) Ping(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	_, err := w.Write(buf.Bytes())
-	return errors.Trace(err)
+	w.Write(buf.Bytes())
+	return nil
 }
 
 // Calculator renders a UI for a calculator.
@@ -162,8 +162,8 @@ func (s *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	buf.WriteString(`</form></body></html>`)
 
 	w.Header().Set("Content-Type", "text/html")
-	_, err := w.Write(buf.Bytes())
-	return errors.Trace(err)
+	w.Write(buf.Bytes())
+	return nil
 }
 
 // TickTock is executed every 10 seconds using a ticker.

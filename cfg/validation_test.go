@@ -95,10 +95,10 @@ func TestCfg_ValidateValue(t *testing.T) {
 	}
 
 	for i := 0; i < len(good); i += 2 {
-		assert.True(t, validateValue(good[i], good[i+1]), "%v %v", good[i], good[i+1])
+		assert.True(t, Validate(good[i], good[i+1]), "%v %v", good[i], good[i+1])
 	}
 	for i := 0; i < len(bad); i += 2 {
-		assert.False(t, validateValue(bad[i], bad[i+1]), "%v %v", bad[i], bad[i+1])
+		assert.False(t, Validate(bad[i], bad[i+1]), "%v %v", bad[i], bad[i+1])
 	}
 }
 

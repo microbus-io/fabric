@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
@@ -373,37 +372,26 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 func TestConnector_ContextTimeout(t *testing.T) {
 	t.Parallel()
 
-	mockClock := clock.NewMock()
-
 	con := NewConnector()
 	con.SetHostName("context.timeout.connector")
-	con.SetClock(mockClock)
 
 	done := false
-	step := make(chan bool)
 	con.Subscribe("timeout", func(w http.ResponseWriter, r *http.Request) error {
-		step <- true
 		<-r.Context().Done()
 		done = true
-		step <- true
-		return nil
+		return r.Context().Err()
 	})
 
 	err := con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	go func() {
-		_, err = con.Request(
-			con.Lifetime(),
-			pub.GET("https://context.timeout.connector/timeout"),
-			pub.TimeBudget(time.Minute),
-		)
-		assert.Error(t, err)
-	}()
-	<-step
-	mockClock.Add(time.Second + time.Minute)
-	<-step
+	_, err = con.Request(
+		con.Lifetime(),
+		pub.GET("https://context.timeout.connector/timeout"),
+		pub.TimeBudget(time.Second),
+	)
+	assert.Error(t, err)
 	assert.True(t, done)
 }
 

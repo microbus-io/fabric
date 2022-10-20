@@ -129,7 +129,7 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 			return errors.Trace(err)
 		}
 	}
-	c.LogDebug(c.lifetimeCtx, "Sub activated", log.String("name", s.Canonical()))
+	// c.LogDebug(c.lifetimeCtx, "Sub activated", log.String("name", s.Canonical()))
 	return nil
 }
 
@@ -154,7 +154,7 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 			s.DirectSub = nil
 		}
 	}
-	c.LogDebug(c.Lifetime(), "Sub deactivated", log.String("name", s.Canonical()))
+	// c.LogDebug(c.Lifetime(), "Sub deactivated", log.String("name", s.Canonical()))
 	return lastErr
 }
 
@@ -173,8 +173,8 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 		return errors.Trace(err)
 	}
 
-	// Ack only the first fragment which will have index 0 (if it's a sole fragment) or 1
-	fragmentIndex, _ := frame.Of(httpReq).Fragment()
+	// Ack only the first fragment which will have index 1
+	fragmentIndex, fragmentMax := frame.Of(httpReq).Fragment()
 	if fragmentIndex > 1 {
 		return nil
 	}
@@ -200,7 +200,7 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Prepare and send the ack
 	var buf bytes.Buffer
 	buf.WriteString("HTTP/1.1 ")
-	if fragmentIndex > 0 {
+	if fragmentMax > 1 {
 		buf.WriteString("100 Continue")
 	} else {
 		buf.WriteString("202 Accepted")

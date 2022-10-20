@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// validateValue validates that the value matches the rule.
+// Validate validates that the value matches the rule.
 // The rule itself is assumed to be valid.
-func validateValue(rule string, value string) (ok bool) {
+func Validate(rule string, value string) (ok bool) {
 	// Type
 	typ, _ := normalizedType(rule)
 

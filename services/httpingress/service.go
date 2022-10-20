@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
@@ -32,23 +33,24 @@ func NewService() *Service {
 	s.SetHostName("http.ingress.sys")
 	s.SetOnStartup(s.OnStartup)
 	s.SetOnShutdown(s.OnShutdown)
-
+	s.DefineConfig("TimeBudget", cfg.DefaultValue("20s"), cfg.Validation("dur [1s,5m]"))
+	s.DefineConfig("Port", cfg.DefaultValue("8080"), cfg.Validation("int [1,65535]"))
 	return s
 }
 
 // OnStartup starts the web server
 func (s *Service) OnStartup(ctx context.Context) error {
 	// Time budget for requests
-	var ok bool
-	s.timeBudget, ok = s.ConfigDuration("TimeBudget")
-	if !ok {
-		s.timeBudget = time.Second * 20
+	var err error
+	s.timeBudget, err = time.ParseDuration(s.Config("TimeBudget"))
+	if err != nil {
+		return errors.Trace(err)
 	}
 
 	// Incoming HTTP port
-	s.httpPort, ok = s.ConfigInt("Port")
-	if !ok {
-		s.httpPort = 8080
+	s.httpPort, err = strconv.Atoi(s.Config("Port"))
+	if err != nil {
+		return errors.Trace(err)
 	}
 
 	// Start HTTP server

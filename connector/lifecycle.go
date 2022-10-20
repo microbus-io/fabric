@@ -44,12 +44,6 @@ func (c *Connector) Startup() (err error) {
 		return errors.New("no hostname")
 	}
 
-	// Look for configs in the environment or file system
-	err = c.loadConfigs()
-	if err != nil {
-		return errors.Trace(err)
-	}
-
 	// Determine the communication plane
 	if c.plane == "" {
 		if plane := os.Getenv("MICROBUS_PLANE"); plane != "" {
@@ -105,15 +99,6 @@ func (c *Connector) Startup() (err error) {
 		return err
 	}
 
-	// Log configs
-	c.logConfigs(c.lifetimeCtx)
-
-	// Subscribe to :888 control messages
-	err = c.subscribeControl()
-	if err != nil {
-		return errors.Trace(err)
-	}
-
 	// Connect to NATS
 	err = c.connectToNATS()
 	if err != nil {
@@ -131,6 +116,19 @@ func (c *Connector) Startup() (err error) {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// Subscribe to :888 control messages
+	err = c.subscribeControl()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Fetch configs
+	err = c.refreshConfig(c.lifetimeCtx)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	c.logConfigs()
 
 	// Call the callback function, if provided
 	c.onStartupCalled = true

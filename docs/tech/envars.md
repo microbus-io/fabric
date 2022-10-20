@@ -4,7 +4,7 @@ Several environment variables are used to initialize `Microbus` microservices.
 
 ## NATS Connection
 
-Before [connecting to NATS](./natsconnection.md), a microservice can't communicate and therefore can't reach the `config.sys` microservice to fetch its config values. Customizing the NATS connection itself is therefore not possible using the standard configuration pattern and is done instead with environment variables: `MICROBUS_NATS`, `MICROBUS_NATS_USER`, `MICROBUS_NATS_PASSWORD` and `MICROBUS_NATS_TOKEN`.
+Before [connecting to NATS](./natsconnection.md), a microservice can't communicate and therefore can't reach the configurator microservice to fetch its config values. Customizing the NATS connection itself is therefore not possible using the standard configuration pattern and is done instead with environment variables: `MICROBUS_NATS`, `MICROBUS_NATS_USER`, `MICROBUS_NATS_PASSWORD` and `MICROBUS_NATS_TOKEN`.
 
 ## Deployment
 

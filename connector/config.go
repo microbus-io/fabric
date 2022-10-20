@@ -2,231 +2,146 @@ package connector
 
 import (
 	"context"
-	"os"
-	"sort"
-	"strconv"
+	"encoding/json"
 	"strings"
-	"time"
 
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
-	"gopkg.in/yaml.v2"
+	"github.com/microbus-io/fabric/pub"
 )
 
-// config is a single config property
-type config struct {
-	scope  string
-	name   string
-	source string // Environ or env.yaml or code
-	value  string
+// DefineConfig defines a property used to configure the microservice.
+// Properties must be defined before the service starts.
+// Property names are case-insensitive.
+func (c *Connector) DefineConfig(name string, options ...cfg.Option) error {
+	if c.started {
+		return errors.New("already started")
+	}
+
+	config, err := cfg.NewConfig(name, options...)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	config.Value = config.DefaultValue
+
+	c.configLock.Lock()
+	c.configs[strings.ToLower(name)] = config
+	c.configLock.Unlock()
+	return nil
 }
 
-// Config returns the value of the config as a string.
-// Configs are available only after the microservice is started.
-// They are read from environment variables and/or from an env.yaml file in the current directory.
-// Config names are case-insensitive
-func (c *Connector) Config(name string) (value string, ok bool) {
+// Config returns the value of a previously defined property.
+// The value of the property is available after the microservice has started
+// after being obtained from the configurator microservice.
+// Property names are case-insensitive.
+func (c *Connector) Config(name string) (value string) {
 	c.configLock.Lock()
-	cfg, ok := c.configs[strings.ToLower(name)]
+	defer c.configLock.Unlock()
+	config, ok := c.configs[strings.ToLower(name)]
 	if ok {
-		value = cfg.value
+		return config.Value
 	}
-	c.configLock.Unlock()
-	return value, ok
+	return ""
 }
 
-// SetConfig sets the value of the named config.
-// If done before the microservice is started, this value may be overriden.
-// Setting configs in code should generally be avoided except when testing
-func (c *Connector) SetConfig(name string, value string) {
-	c.configLock.Lock()
-	cfg, ok := c.configs[strings.ToLower(name)]
-	if !ok {
-		cfg = &config{
-			name:   name,
-			source: "Code",
-			scope:  c.hostName,
-		}
-		c.configs[strings.ToLower(name)] = cfg
-	}
-	cfg.value = value
-	c.configLock.Unlock()
-}
-
-// ConfigInt returns the value of the config as an integer
-func (c *Connector) ConfigInt(name string) (value int, ok bool) {
-	v, ok := c.Config(name)
-	if !ok {
-		return 0, false
-	}
-	i, err := strconv.ParseInt(v, 10, 64)
-	if err != nil {
-		return 0, false
-	}
-	return int(i), true
-}
-
-// SetConfigInt sets the value of an integer config
-func (c *Connector) SetConfigInt(name string, value int) {
-	c.SetConfig(name, strconv.FormatInt(int64(value), 10))
-}
-
-// ConfigBool returns the value of the config as a boolean
-func (c *Connector) ConfigBool(name string) (value bool, ok bool) {
-	v, ok := c.Config(name)
-	if !ok {
-		return false, false
-	}
-	b, err := strconv.ParseBool(v)
-	if err != nil {
-		return false, false
-	}
-	return b, true
-}
-
-// SetConfigBool sets the value of a boolean config
-func (c *Connector) SetConfigBool(name string, value bool) {
-	c.SetConfig(name, strconv.FormatBool(value))
-}
-
-// ConfigDuration returns the value of the config as a duration
-func (c *Connector) ConfigDuration(name string) (value time.Duration, ok bool) {
-	v, ok := c.Config(name)
-	if !ok {
-		return 0, false
-	}
-	dur, err := time.ParseDuration(v)
-	if err != nil {
-		return 0, false
-	}
-	return dur, true
-}
-
-// SetConfigBool sets the value of a duration config
-func (c *Connector) SetConfigDuration(name string, value time.Duration) {
-	c.SetConfig(name, value.String())
-}
-
-func (c *Connector) loadConfigs() error {
-	// Look for env.yaml file in current directory
-	envFileData, err := os.ReadFile("./env.yaml")
-	if err == nil {
-		err = readEnvYamlFile(c.hostName, envFileData, c.configs)
-		if err != nil {
-			return errors.Trace(err)
-		}
+// InitConfig sets the default value of a previously defined property.
+// Properties can be initialized only before the microservice starts
+// and therefore before values are fetched from the configurator microservice.
+// Property names are case-insensitive.
+func (c *Connector) InitConfig(name string, value string) error {
+	if c.started {
+		return errors.New("already started")
 	}
 
-	// Scan envars
-	err = readEnvars(c.hostName, os.Environ(), c.configs)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	return nil
-}
-
-func readEnvars(hostName string, environ []string, configs map[string]*config) error {
-	envarsMap := map[string]string{}
-	for _, kv := range environ {
-		p := strings.Index(kv, "=")
-		if p > 0 {
-			envarsMap[kv[:p]] = kv[p+1:]
-		}
-	}
-
-	// Look for envars for all microservices
-	for k, v := range envarsMap {
-		if strings.HasPrefix(strings.ToUpper(k), "MICROBUS_ALL_") {
-			n := k[len("MICROBUS_ALL_"):]
-			if v != "" {
-				configs[strings.ToLower(n)] = &config{
-					scope:  "all",
-					name:   n,
-					source: "Environ",
-					value:  v,
-				}
-			}
-		}
-	}
-
-	// Look for envars for each suffix of the host name.
-	// For example, if the host name is www.example.com this will scan for envars named
-	// MICROBUS_WWWEXAMPLECOM_*, MICROBUS_EXAMPLECOM_* and MICROBUS_COM_*.
-	segments := strings.Split(hostName, ".")
-	for i := len(segments) - 1; i >= 0; i-- {
-		h := strings.ToUpper(strings.Join(segments[i:], ""))
-		for k, v := range envarsMap {
-			if strings.HasPrefix(strings.ToUpper(k), "MICROBUS_"+h+"_") {
-				n := k[len("MICROBUS_"+h+"_"):]
-				if v != "" {
-					configs[strings.ToLower(n)] = &config{
-						scope:  strings.Join(segments[i:], "."),
-						name:   n,
-						source: "Environ",
-						value:  v,
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func readEnvYamlFile(hostName string, envFileData []byte, configs map[string]*config) error {
-	var envFileMap map[string]map[string]string
-	err := yaml.Unmarshal(envFileData, &envFileMap)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	// Look for a property map for all microservices
-	for n, v := range envFileMap["all"] {
-		configs[strings.ToLower(n)] = &config{
-			scope:  "all",
-			name:   n,
-			source: "Env.yaml",
-			value:  v,
-		}
-	}
-
-	// Look for a property map for each suffix of the host name.
-	// For example, if the host name is www.example.com this will scan for config maps for
-	// www.example.com, example.com and com in this order
-	segments := strings.Split(hostName, ".")
-	for i := len(segments) - 1; i >= 0; i-- {
-		h := strings.Join(segments[i:], ".")
-		for n, v := range envFileMap[h] {
-			configs[strings.ToLower(n)] = &config{
-				scope:  h,
-				name:   n,
-				source: "Env.yaml",
-				value:  v,
-			}
-		}
-	}
-	return nil
-}
-
-// logConfigs prints the known configs to the log
-func (c *Connector) logConfigs(ctx context.Context) {
 	c.configLock.Lock()
 	defer c.configLock.Unlock()
 
-	keys := []string{}
-	for k := range c.configs {
-		keys = append(keys, k)
+	config, ok := c.configs[strings.ToLower(name)]
+	if !ok {
+		return nil
 	}
-	sort.Strings(keys)
+	if !cfg.Validate(config.Validation, value) {
+		return errors.Newf("invalid value '%s' for config property '%s'", value, name)
+	}
+	config.DefaultValue = value
+	config.Value = value
+	return nil
+}
 
-	for _, k := range keys {
-		cfg := c.configs[k]
+// logConfigs prints the config properties to the log.
+func (c *Connector) logConfigs() {
+	c.configLock.Lock()
+	defer c.configLock.Unlock()
+
+	for _, config := range c.configs {
+		value := config.Value
+		if config.Secret {
+			value = strings.Repeat("*", len(value))
+		}
+		if len([]rune(value)) > 40 {
+			value = string([]rune(value)[:40]) + "..."
+		}
 		c.LogInfo(
-			ctx,
-			"Config value detected",
-			log.String("scope", cfg.scope),
-			log.String("name", cfg.name),
-			log.String("source", cfg.source),
+			c.Lifetime(),
+			"Config",
+			log.String("name", config.Name),
+			log.String("value", value),
 		)
 	}
+}
+
+// refreshConfig contacts the configurator microservices to fetch values for the config properties.
+func (c *Connector) refreshConfig(ctx context.Context) error {
+	if len(c.configs) == 0 {
+		return nil
+	}
+	if !c.started {
+		return errors.New("not started")
+	}
+
+	var req struct {
+		Names []string `json:"names"`
+	}
+	c.configLock.Lock()
+	for _, config := range c.configs {
+		req.Names = append(req.Names, config.Name)
+	}
+	c.configLock.Unlock()
+	response, err := c.Request(
+		ctx,
+		pub.POST("https://configurator.sys/values"),
+		pub.Body(req),
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	var res struct {
+		Values map[string]string `json:"values"`
+	}
+	err = json.NewDecoder(response.Body).Decode(&res)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	c.configLock.Lock()
+	for _, config := range c.configs {
+		setValue := config.DefaultValue
+		if value, ok := res.Values[config.Name]; ok {
+			if cfg.Validate(config.Validation, value) {
+				setValue = value
+			} else {
+				c.LogWarn(ctx, "Invalid config value", log.String("name", config.Name), log.String("value", value))
+			}
+		}
+		if setValue != config.Value {
+			config.Value = setValue
+			if config.Secret {
+				setValue = strings.Repeat("*", len(setValue))
+			}
+			c.LogInfo(ctx, "Config value updated", log.String("name", config.Name), log.String("value", setValue))
+		}
+	}
+	c.configLock.Unlock()
+
+	return nil
 }

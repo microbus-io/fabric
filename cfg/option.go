@@ -19,7 +19,7 @@ func Description(description string) Option {
 // If validation is set, the default value must pass validation.
 func DefaultValue(defaultValue string) Option {
 	return func(c *Config) error {
-		if c.Validation != "" && !validateValue(c.Validation, defaultValue) {
+		if c.Validation != "" && !Validate(c.Validation, defaultValue) {
 			return errors.Newf("default value '%s' doesn't validate against rule '%s'", defaultValue, c.Validation)
 		}
 		c.DefaultValue = defaultValue
@@ -55,7 +55,7 @@ func Validation(validation string) Option {
 		if !checkRule(validation) {
 			return errors.Newf("invalid validation rule '%s'", validation)
 		}
-		if c.DefaultValue != "" && !validateValue(validation, c.DefaultValue) {
+		if c.DefaultValue != "" && !Validate(validation, c.DefaultValue) {
 			return errors.Newf("default value '%s' doesn't validate against rule '%s'", c.DefaultValue, validation)
 		}
 		c.Validation = validation

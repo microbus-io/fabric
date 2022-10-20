@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
@@ -58,7 +59,7 @@ type Connector struct {
 	knownResponders     map[string]map[string]bool
 	knownRespondersLock sync.Mutex
 
-	configs    map[string]*config
+	configs    map[string]*cfg.Config
 	configLock sync.Mutex
 
 	logger *zap.Logger
@@ -74,7 +75,7 @@ func NewConnector() *Connector {
 	c := &Connector{
 		id:              strings.ToLower(rand.AlphaNum32(10)),
 		reqs:            map[string]chan *http.Response{},
-		configs:         map[string]*config{},
+		configs:         map[string]*cfg.Config{},
 		networkHop:      250 * time.Millisecond,
 		maxCallDepth:    64,
 		subs:            map[string]*sub.Subscription{},

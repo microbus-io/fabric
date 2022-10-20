@@ -10,6 +10,8 @@ type Config struct {
 	DefaultValue string
 	Validation   string
 	Secret       bool
+
+	Value string
 }
 
 // NewConfig creates a new config property.
