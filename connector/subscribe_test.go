@@ -7,7 +7,9 @@ import (
 	"os"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/stretchr/testify/assert"
@@ -305,4 +307,41 @@ func TestConnector_DirectAddressing(t *testing.T) {
 	assert.Error(t, err)
 	_, err = con.GET(ctx, "https://"+con.id+".direct.addressing.connector/hello")
 	assert.Error(t, err)
+}
+
+func TestConnector_SubPendingOps(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockAtNow()
+
+	con := NewConnector()
+	con.SetHostName("sub.pending.ops.connector")
+	con.SetClock(mockClock)
+
+	ch := make(chan bool)
+	con.Subscribe("/op", func(w http.ResponseWriter, r *http.Request) error {
+		ch <- true
+		mockClock.Sleep(10 * time.Second)
+		return nil
+	})
+
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	assert.Zero(t, con.pendingOps)
+	// First call should run from 0:00 to 0:10
+	go con.GET(con.Lifetime(), "https://sub.pending.ops.connector/op")
+	<-ch
+	assert.Equal(t, int32(1), con.pendingOps)
+	mockClock.Add(6 * time.Second) // 0:06
+	assert.Equal(t, int32(1), con.pendingOps)
+	// Second call should run from 0:06 to 0:16
+	go con.GET(con.Lifetime(), "https://sub.pending.ops.connector/op")
+	<-ch
+	assert.Equal(t, int32(2), con.pendingOps)
+	mockClock.Add(6 * time.Second) // 0:12
+	assert.Equal(t, int32(1), con.pendingOps)
+	mockClock.Add(6 * time.Second) // 0:18
+	assert.Zero(t, con.pendingOps)
 }

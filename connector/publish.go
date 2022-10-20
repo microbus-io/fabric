@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
@@ -61,13 +60,13 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	// Restrict the time budget to the context deadline
 	deadline, ok := ctx.Deadline()
 	if ok {
-		req.Apply(pub.Deadline(deadline))
-	} else if req.Deadline.IsZero() {
-		// If no budget is set, use the default
-		req.Apply(pub.TimeBudget(c.defaultTimeBudget))
+		ctxBudget := c.clock.Until(deadline)
+		if ctxBudget < req.TimeBudget {
+			req.Apply(pub.TimeBudget(ctxBudget))
+		}
 	}
 	// Check if there's enough time budget
-	if !req.Deadline.After(time.Now().Add(-c.networkHop)) {
+	if req.TimeBudget <= c.networkHop {
 		errOutput <- pub.NewErrorResponse(errors.New("timeout", req.Canonical()))
 		return errOutput
 	}
@@ -114,9 +113,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
 	}
-	if !req.Deadline.IsZero() {
-		frame.Of(httpReq).SetTimeBudget(time.Until(req.Deadline))
-	}
+	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
 
 	// Fragment large requests
 	fragger, err := frag.NewFragRequest(httpReq, c.maxFragmentSize)
@@ -179,10 +176,9 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	seenIDs := map[string]string{} // FromID -> OpCode
 	seenQueues := map[string]bool{}
 	doneWaitingForAcks := false
-	budget := time.Until(req.Deadline)
-	timeoutTimer := time.NewTimer(budget)
+	timeoutTimer := c.clock.Timer(req.TimeBudget)
 	defer timeoutTimer.Stop()
-	ackTimer := time.NewTimer(c.networkHop)
+	ackTimer := c.clock.Timer(c.networkHop)
 	defer ackTimer.Stop()
 	for {
 		select {
@@ -321,19 +317,17 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 
 // onResponse is called when a response to an outgoing request is received
 func (c *Connector) onResponse(msg *nats.Msg) {
-	ctx := context.Background()
-
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
-		c.LogError(ctx, "Parsing response", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Parsing response", log.Error(err))
 		return
 	}
 
 	// Integrate fragments together
 	response, err = c.defragResponse(response)
 	if err != nil {
-		c.LogError(ctx, "Defragging response", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Defragging response", log.Error(err))
 		return
 	}
 	if response == nil {
@@ -350,7 +344,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 		opCode := frame.Of(response).OpCode()
 		if opCode != frame.OpCodeAck {
 			c.LogInfo(
-				ctx,
+				c.lifetimeCtx,
 				"Response received after timeout",
 				log.String("msg", msgID),
 			)

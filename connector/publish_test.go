@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
@@ -226,9 +227,9 @@ func TestConnector_Concurrent(t *testing.T) {
 		i := i
 		wg.Add(1)
 		go func() {
-			start := time.Now()
+			start := alpha.Now()
 			_, err := alpha.GET(ctx, "https://beta.concurrent.connector/wait?ms="+strconv.Itoa(i))
-			end := time.Now()
+			end := alpha.Now()
 			assert.NoError(t, err)
 			assert.WithinDuration(t, start.Add(time.Millisecond*time.Duration(i)), end, time.Millisecond*49)
 			wg.Done()
@@ -318,23 +319,23 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	defer con.Shutdown()
 
 	// Set a time budget in the request
-	t0 := time.Now()
+	t0 := con.Now()
 	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.not.found.connector/nowhere"),
 		pub.TimeBudget(2*time.Second),
 	)
-	dur := time.Since(t0)
+	dur := con.Clock().Since(t0)
 	assert.Error(t, err)
 	assert.True(t, dur >= con.networkHop && dur <= con.networkHop*2)
 
 	// Use the default time budget
-	t0 = time.Now()
+	t0 = con.Now()
 	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.not.found.connector/nowhere"),
 	)
-	dur = time.Since(t0)
+	dur = con.Clock().Since(t0)
 	assert.Error(t, err)
 	assert.Contains(t, "ack timeout", err.Error())
 	assert.True(t, dur >= con.networkHop && dur <= con.networkHop*2)
@@ -358,14 +359,52 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	t0 := time.Now()
+	t0 := con.Now()
 	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.slow.connector/slow"),
 		pub.TimeBudget(time.Millisecond*500),
 	)
 	assert.Error(t, err)
-	assert.True(t, time.Since(t0) >= 500*time.Millisecond && time.Since(t0) < 600*time.Millisecond)
+	dur := con.Clock().Since(t0)
+	assert.True(t, dur >= 500*time.Millisecond && dur < 600*time.Millisecond)
+}
+
+func TestConnector_ContextTimeout(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMock()
+
+	con := NewConnector()
+	con.SetHostName("context.timeout.connector")
+	con.SetClock(mockClock)
+
+	done := false
+	step := make(chan bool)
+	con.Subscribe("timeout", func(w http.ResponseWriter, r *http.Request) error {
+		step <- true
+		<-r.Context().Done()
+		done = true
+		step <- true
+		return nil
+	})
+
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	go func() {
+		_, err = con.Request(
+			con.Lifetime(),
+			pub.GET("https://context.timeout.connector/timeout"),
+			pub.TimeBudget(time.Minute),
+		)
+		assert.Error(t, err)
+	}()
+	<-step
+	mockClock.Add(time.Second + time.Minute)
+	<-step
+	assert.True(t, done)
 }
 
 func TestConnector_Multicast(t *testing.T) {
@@ -425,7 +464,7 @@ func TestConnector_Multicast(t *testing.T) {
 
 	// Make the first request
 	client := named1
-	t0 := time.Now()
+	t0 := client.Now()
 	responded := map[string]bool{}
 	ch := client.Publish(ctx, pub.GET("https://multicast.connector/cast"), pub.Multicast())
 	for i := range ch {
@@ -436,7 +475,7 @@ func TestConnector_Multicast(t *testing.T) {
 			responded[string(body)] = true
 		}
 	}
-	dur := time.Since(t0)
+	dur := client.Clock().Since(t0)
 	assert.True(t, dur >= client.networkHop && dur < client.networkHop*2)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
@@ -447,7 +486,7 @@ func TestConnector_Multicast(t *testing.T) {
 	assert.False(t, responded["def1"] && responded["def2"])
 
 	// Make the second request, should be quicker due to known responders optimization
-	t0 = time.Now()
+	t0 = client.Now()
 	responded = map[string]bool{}
 	ch = client.Publish(ctx, pub.GET("https://multicast.connector/cast"), pub.Multicast())
 	for i := range ch {
@@ -458,7 +497,7 @@ func TestConnector_Multicast(t *testing.T) {
 			responded[string(body)] = true
 		}
 	}
-	dur = time.Since(t0)
+	dur = client.Clock().Since(t0)
 	assert.True(t, dur < client.networkHop)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
@@ -512,7 +551,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 
 	// Send the message
 	var respondedOK, respondedErr int
-	t0 := time.Now()
+	t0 := slow.Now()
 	ch := slow.Publish(
 		ctx,
 		pub.GET("https://multicast.delay.connector/cast"),
@@ -524,7 +563,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 		if err == nil {
 			body, err := io.ReadAll(res.Body)
 			assert.NoError(t, err)
-			dur := time.Since(t0)
+			dur := slow.Clock().Since(t0)
 			if string(body) == "fast" {
 				assert.True(t, dur < delay)
 			} else if string(body) == "slow" {
@@ -535,7 +574,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 			assert.Contains(t, err.Error(), "timeout")
 			respondedErr++
 			assert.Equal(t, 2, respondedOK)
-			dur := time.Since(t0)
+			dur := slow.Clock().Since(t0)
 			assert.True(t, dur >= 3*delay && dur < 4*delay)
 		}
 	}
@@ -572,7 +611,7 @@ func TestConnector_MulticastError(t *testing.T) {
 
 	// Send the message
 	var countErrs, countOKs int
-	t0 := time.Now()
+	t0 := bad.Now()
 	ch := bad.Publish(ctx, pub.GET("https://multicast.error.connector/cast"), pub.Multicast())
 	for i := range ch {
 		_, err := i.Get()
@@ -582,7 +621,7 @@ func TestConnector_MulticastError(t *testing.T) {
 			countOKs++
 		}
 	}
-	dur := time.Since(t0)
+	dur := bad.Clock().Since(t0)
 	assert.True(t, dur >= bad.networkHop && dur <= 2*bad.networkHop)
 	assert.Equal(t, 1, countErrs)
 	assert.Equal(t, 1, countOKs)
@@ -638,7 +677,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 
 	// Send the message
 	var countOKs int
-	t0 := time.Now()
+	t0 := client.Now()
 	ch := client.Publish(ctx, pub.GET("https://mass.multicast.connector/cast"), pub.Multicast())
 	for i := range ch {
 		_, err := i.Get()
@@ -646,7 +685,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 			countOKs++
 		}
 	}
-	dur := time.Since(t0)
+	dur := client.Clock().Since(t0)
 	assert.True(t, dur >= client.networkHop && dur <= 2*client.networkHop)
 	assert.Equal(t, N, countOKs)
 }
@@ -666,7 +705,7 @@ func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15"::
+	// On 2021 MacBook Pro M1 15":
 	// 128B: 82 ns/op
 	// 256B: 104 ns/op
 	// 512B: 153 ns/op
@@ -725,7 +764,7 @@ func TestConnector_KnownResponders(t *testing.T) {
 
 	check := func() (count int, quick bool) {
 		responded := map[string]bool{}
-		t0 := time.Now()
+		t0 := alpha.Now()
 		ch := alpha.Publish(ctx, pub.GET("https://known.responders.connector/cast"), pub.Multicast())
 		for i := range ch {
 			res, err := i.Get()
@@ -733,7 +772,7 @@ func TestConnector_KnownResponders(t *testing.T) {
 				responded[frame.Of(res).FromID()] = true
 			}
 		}
-		dur := time.Since(t0)
+		dur := alpha.Clock().Since(t0)
 		return len(responded), dur < alpha.networkHop
 	}
 
@@ -771,4 +810,40 @@ func TestConnector_KnownResponders(t *testing.T) {
 	count, quick = check()
 	assert.Equal(t, 3, count)
 	assert.True(t, quick)
+}
+
+func TestConnector_LifetimeCancellation(t *testing.T) {
+	t.Parallel()
+
+	con := NewConnector()
+	con.SetHostName("lifetime.cancellation.connector")
+
+	done := false
+	step := make(chan bool)
+	con.Subscribe("something", func(w http.ResponseWriter, r *http.Request) error {
+		step <- true
+		<-r.Context().Done()
+		done = true
+		step <- true
+		return nil
+	})
+
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	t0 := con.Now()
+	go func() {
+		_, err = con.Request(
+			con.Lifetime(),
+			pub.GET("https://lifetime.cancellation.connector/something"),
+		)
+		assert.Error(t, err)
+	}()
+	<-step
+	con.ctxCancel()
+	<-step
+	assert.True(t, done)
+	dur := con.Clock().Since(t0)
+	assert.True(t, dur < time.Second)
 }

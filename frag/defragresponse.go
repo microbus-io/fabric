@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 )
@@ -18,25 +19,27 @@ type DefragResponse struct {
 	maxIndex     int32
 	lock         sync.Mutex
 	lastActivity time.Time
+	clock        clock.Clock
 }
 
-// NewDefragResponse creates a new response integrator
-func NewDefragResponse() *DefragResponse {
+// NewDefragResponse creates a new response integrator.
+func NewDefragResponse(clock clock.Clock) *DefragResponse {
 	return &DefragResponse{
 		fragments:    map[int]*http.Response{},
-		lastActivity: time.Now(),
+		clock:        clock,
+		lastActivity: clock.Now(),
 	}
 }
 
-// LastActivity indicates how long ago was the last fragment added
+// LastActivity indicates how long ago was the last fragment added.
 func (st *DefragResponse) LastActivity() time.Duration {
 	st.lock.Lock()
-	d := time.Since(st.lastActivity)
+	d := st.clock.Since(st.lastActivity)
 	st.lock.Unlock()
 	return d
 }
 
-// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP response
+// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP response.
 func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
 	maxIndex := int(atomic.LoadInt32(&st.maxIndex))
 	if maxIndex == 1 {
@@ -80,13 +83,13 @@ func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
 	return firstFragment, nil
 }
 
-// Add a fragment to be integrated
+// Add a fragment to be integrated.
 func (st *DefragResponse) Add(r *http.Response) error {
 	st.lock.Lock()
 	index, max := frame.Of(r).Fragment()
 	st.fragments[index] = r
 	atomic.StoreInt32(&st.maxIndex, int32(max))
-	st.lastActivity = time.Now()
+	st.lastActivity = st.clock.Now()
 	st.lock.Unlock()
 	return nil
 }

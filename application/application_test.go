@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,9 +43,9 @@ func TestApplication_StartStop(t *testing.T) {
 func TestApplication_Interrupt(t *testing.T) {
 	t.Parallel()
 
-	alpha := connector.NewConnector()
-	alpha.SetHostName("alpha.interrupt.application")
-	app := New(alpha)
+	con := connector.NewConnector()
+	con.SetHostName("interrupt.application")
+	app := New(con)
 
 	ch := make(chan bool)
 	go func() {
@@ -64,6 +65,38 @@ func TestApplication_Interrupt(t *testing.T) {
 		time.Sleep(50 * time.Microsecond)
 	}
 	assert.False(t, app.IsStarted())
+}
+
+func TestApplication_NotStartedInterrupt(t *testing.T) {
+	t.Parallel()
+
+	con := connector.NewConnector()
+	con.SetHostName("not.started.interrupt.application")
+	app := New(con)
+
+	err := app.WaitForInterrupt()
+	assert.Error(t, err)
+	err = app.Interrupt()
+	assert.Error(t, err)
+
+	err = app.Startup()
+	assert.NoError(t, err)
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		err := app.Interrupt()
+		assert.NoError(t, err)
+	}()
+	err = app.WaitForInterrupt()
+	assert.NoError(t, err)
+
+	err = app.Shutdown()
+	assert.NoError(t, err)
+
+	err = app.WaitForInterrupt()
+	assert.Error(t, err)
+	err = app.Interrupt()
+	assert.Error(t, err)
 }
 
 func TestApplication_NoConflict(t *testing.T) {
@@ -119,4 +152,28 @@ func TestApplication_NoConflict(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []byte("beta"), body)
 	}
+}
+
+func TestApplication_Clock(t *testing.T) {
+	t.Parallel()
+
+	con := connector.NewConnector()
+	con.SetHostName("clock.application")
+	app := New(con)
+
+	mockClock1 := clock.NewMockAtNow()
+	err := app.SetClock(mockClock1)
+	assert.NoError(t, err)
+
+	err = app.Startup()
+	assert.NoError(t, err)
+
+	mockClock2 := clock.NewMockAtNow()
+	err = app.SetClock(mockClock2)
+	assert.NoError(t, err)
+
+	assert.Equal(t, mockClock2, con.Clock().(*clock.ClockReference).Get())
+
+	err = app.Shutdown()
+	assert.NoError(t, err)
 }

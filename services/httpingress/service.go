@@ -90,7 +90,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := s.Lifetime()
 
 	s.LogInfo(ctx, "Request received", log.String("url", internalURL))
 
@@ -108,7 +108,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s.timeBudget > 0 {
 		options = append(options, pub.TimeBudget(s.timeBudget))
 		var cancel context.CancelFunc
-		delegateCtx, cancel = context.WithTimeout(ctx, s.timeBudget)
+		delegateCtx, cancel = s.Clock().WithTimeout(ctx, s.timeBudget)
 		defer cancel()
 	}
 

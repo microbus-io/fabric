@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
@@ -94,16 +95,15 @@ func (c *Connector) UnsubscribeAll() error {
 // activateSub will subscribe to NATS
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	handler := func(msg *nats.Msg) {
-		ctx := context.Background()
 		err := c.ackRequest(msg, s)
 		if err != nil {
-			c.LogError(ctx, "Acking request", log.Error(err))
+			c.LogError(c.lifetimeCtx, "Acking request", log.Error(err))
 			return
 		}
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {
-				c.LogError(ctx, "Processing request", log.Error(err))
+				c.LogError(c.lifetimeCtx, "Processing request", log.Error(err))
 			}
 		}()
 	}
@@ -129,18 +129,18 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 			return errors.Trace(err)
 		}
 	}
+	c.LogDebug(c.lifetimeCtx, "Sub activated", log.String("name", s.Canonical()))
 	return nil
 }
 
 // deactivateSub will unsubscribe from NATS
 func (c *Connector) deactivateSub(s *sub.Subscription) error {
-	ctx := context.Background()
 	var lastErr error
 	if s.HostSub != nil {
 		err := s.HostSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(ctx, "Unsubscribing host sub", log.Error(err), log.String("sub", s.Canonical()))
+			c.LogError(c.lifetimeCtx, "Unsubscribing host sub", log.Error(err), log.String("sub", s.Canonical()))
 		} else {
 			s.HostSub = nil
 		}
@@ -149,11 +149,12 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 		err := s.DirectSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(ctx, "Unsubscribing direct sub", log.Error(err), log.String("sub", s.Canonical()))
+			c.LogError(c.lifetimeCtx, "Unsubscribing direct sub", log.Error(err), log.String("sub", s.Canonical()))
 		} else {
 			s.DirectSub = nil
 		}
 	}
+	c.LogDebug(c.Lifetime(), "Sub deactivated", log.String("name", s.Canonical()))
 	return lastErr
 }
 
@@ -231,6 +232,9 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 // onRequest is called when an incoming HTTP request is received.
 // The message is dispatched to the appropriate web handler and the response is serialized and sent back to the response channel of the sender
 func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
+	atomic.AddInt32(&c.pendingOps, 1)
+	defer atomic.AddInt32(&c.pendingOps, -1)
+
 	// Parse the request
 	httpReq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(msg.Data)))
 	if err != nil {
@@ -268,8 +272,8 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Prepare the context
 	// Set the context's timeout to the time budget reduced by a network hop
-	frameCtx := context.WithValue(context.Background(), frame.ContextKey, httpReq.Header)
-	ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
+	frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
+	ctx, cancel := c.clock.WithTimeout(frameCtx, budget-c.networkHop)
 	defer cancel()
 	httpReq = httpReq.WithContext(ctx)
 

@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/microbus-io/fabric/cb"
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/log"
@@ -28,9 +30,12 @@ type Connector struct {
 	id         string
 	deployment string
 
-	onStartup       func(context.Context) error
-	onShutdown      func(context.Context) error
-	callbackTimeout time.Duration
+	onStartup       *cb.Callback
+	onShutdown      *cb.Callback
+	lifetimeCtx     context.Context
+	ctxCancel       context.CancelFunc
+	pendingOps      int32
+	onStartupCalled bool
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription
@@ -39,12 +44,11 @@ type Connector struct {
 	started         bool
 	plane           string
 
-	reqs              map[string]chan *http.Response
-	reqsLock          sync.Mutex
-	networkHop        time.Duration
-	maxCallDepth      int
-	defaultTimeBudget time.Duration
-	maxFragmentSize   int64
+	reqs            map[string]chan *http.Response
+	reqsLock        sync.Mutex
+	networkHop      time.Duration
+	maxCallDepth    int
+	maxFragmentSize int64
 
 	requestDefrags      map[string]*frag.DefragRequest
 	requestDefragsLock  sync.Mutex
@@ -58,23 +62,30 @@ type Connector struct {
 	configLock sync.Mutex
 
 	logger *zap.Logger
+
+	clock       *clock.ClockReference
+	clockSet    bool
+	tickers     map[string]*tickerCallback
+	tickersLock sync.Mutex
 }
 
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:                strings.ToLower(rand.AlphaNum32(10)),
-		reqs:              map[string]chan *http.Response{},
-		configs:           map[string]*config{},
-		networkHop:        250 * time.Millisecond,
-		maxCallDepth:      64,
-		callbackTimeout:   time.Minute,
-		defaultTimeBudget: 20 * time.Second,
-		subs:              map[string]*sub.Subscription{},
-		knownResponders:   map[string]map[string]bool{},
-		requestDefrags:    map[string]*frag.DefragRequest{},
-		responseDefrags:   map[string]*frag.DefragResponse{},
+		id:              strings.ToLower(rand.AlphaNum32(10)),
+		reqs:            map[string]chan *http.Response{},
+		configs:         map[string]*config{},
+		networkHop:      250 * time.Millisecond,
+		maxCallDepth:    64,
+		subs:            map[string]*sub.Subscription{},
+		knownResponders: map[string]map[string]bool{},
+		requestDefrags:  map[string]*frag.DefragRequest{},
+		responseDefrags: map[string]*frag.DefragResponse{},
+		clock:           clock.NewClockReference(clock.New()),
+		tickers:         map[string]*tickerCallback{},
+		lifetimeCtx:     context.Background(),
 	}
+
 	return c
 }
 

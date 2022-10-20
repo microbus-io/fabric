@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 )
@@ -18,25 +19,27 @@ type DefragRequest struct {
 	maxIndex     int32
 	lock         sync.Mutex
 	lastActivity time.Time
+	clock        clock.Clock
 }
 
-// NewDefragRequest creates a new request integrator
-func NewDefragRequest() *DefragRequest {
+// NewDefragRequest creates a new request integrator.
+func NewDefragRequest(clock clock.Clock) *DefragRequest {
 	return &DefragRequest{
 		fragments:    map[int]*http.Request{},
-		lastActivity: time.Now(),
+		clock:        clock,
+		lastActivity: clock.Now(),
 	}
 }
 
-// LastActivity indicates how long ago was the last fragment added
+// LastActivity indicates how long ago was the last fragment added.
 func (st *DefragRequest) LastActivity() time.Duration {
 	st.lock.Lock()
-	d := time.Since(st.lastActivity)
+	d := st.clock.Since(st.lastActivity)
 	st.lock.Unlock()
 	return d
 }
 
-// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP request
+// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP request.
 func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 	maxIndex := int(atomic.LoadInt32(&st.maxIndex))
 	if maxIndex == 1 {
@@ -49,7 +52,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 		return nil, nil
 	}
 
-	// Serialize the bodies of all fragments
+	// Serialize the bodies of all fragments.
 	bodies := []io.Reader{}
 	var contentLength int64
 	for i := 1; i <= maxIndex; i++ {
@@ -80,13 +83,13 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 	return firstFragment, nil
 }
 
-// Add a fragment to be integrated
+// Add a fragment to be integrated.
 func (st *DefragRequest) Add(r *http.Request) error {
 	st.lock.Lock()
 	index, max := frame.Of(r).Fragment()
 	st.fragments[index] = r
 	atomic.StoreInt32(&st.maxIndex, int32(max))
-	st.lastActivity = time.Now()
+	st.lastActivity = st.clock.Now()
 	st.lock.Unlock()
 	return nil
 }
