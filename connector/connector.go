@@ -17,6 +17,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 )
@@ -108,17 +109,16 @@ func (c *Connector) ID() string {
 // Segments are separated by dots.
 // For example, this.is.a.valid.hostname.123.local
 func (c *Connector) SetHostName(hostName string) error {
-	hostName = strings.TrimSpace(strings.ToLower(hostName))
-	match, err := regexp.MatchString(`^[a-z0-9]+(\.[a-z0-9]+)*$`, hostName)
-	if err != nil {
+	if c.started {
+		return errors.New("already started")
+	}
+	hostName = strings.TrimSpace(hostName)
+	if err := utils.ValidateHostName(hostName); err != nil {
 		return errors.Trace(err)
 	}
-	if hostName == "all" || strings.HasSuffix(hostName, ".all") {
-		// The hostname "all" is reserved to refer to all microservices
-		match = false
-	}
-	if !match {
-		return errors.Newf("invalid host name '%s'", hostName)
+	hn := strings.ToLower(hostName)
+	if hn == "all" || strings.HasSuffix(hn, ".all") {
+		return errors.Newf("disallowed host name '%s'", hostName)
 	}
 	c.hostName = hostName
 	return nil

@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -22,19 +21,15 @@ type tickerCallback struct {
 
 // StartTicker initiates a recurring job at a set interval.
 func (c *Connector) StartTicker(name string, interval time.Duration, handler func(context.Context) error, options ...cb.Option) error {
-	match, err := regexp.MatchString(`^[a-zA-Z]+[a-zA-Z0-9]*$`, name)
-	if err != nil {
+	if err := utils.ValidateTickerName(name); err != nil {
 		return errors.Trace(err)
-	}
-	if !match {
-		return errors.Newf("invalid ticker name '%s'", name)
 	}
 
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 
 	if _, ok := c.tickers[strings.ToLower(name)]; ok {
-		return errors.Newf("ticker name '%s' is already in use", name)
+		return errors.Newf("ticker '%s' is already started", name)
 	}
 
 	cb, err := cb.NewCallback(name, handler, options...)

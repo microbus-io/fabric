@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
 
@@ -59,21 +60,15 @@ func NewSub(defaultHost string, path string, options ...Option) (*Subscription, 
 		spec = "https://" + defaultHost + ":443/" + path
 	}
 
-	u, err := url.Parse(spec)
-	if err != nil {
+	if err := utils.ValidateURL(spec); err != nil {
 		return nil, errors.Trace(err)
 	}
+	u, _ := url.Parse(spec)
 
 	// Port
 	port := 443
 	if u.Port() != "" {
-		port, err = strconv.Atoi(u.Port())
-		if err != nil {
-			return nil, errors.Newf("invalid port '%s'", u.Port())
-		}
-	}
-	if port < 0 || port > 65535 {
-		return nil, errors.Newf("invalid port '%d'", port)
+		port, _ = strconv.Atoi(u.Port())
 	}
 
 	sub := &Subscription{
@@ -82,7 +77,7 @@ func NewSub(defaultHost string, path string, options ...Option) (*Subscription, 
 		Path:  u.Path,
 		Queue: defaultHost,
 	}
-	err = sub.Apply(options...)
+	err := sub.Apply(options...)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

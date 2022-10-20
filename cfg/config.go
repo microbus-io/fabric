@@ -1,6 +1,9 @@
 package cfg
 
-import "github.com/microbus-io/fabric/errors"
+import (
+	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
+)
 
 // Config is a property used to configure a microservice.
 // Although technically public, it is used internally and should not be constructed by microservices directly.
@@ -16,6 +19,10 @@ type Config struct {
 
 // NewConfig creates a new config property.
 func NewConfig(name string, options ...Option) (*Config, error) {
+	if err := utils.ValidateConfigName(name); err != nil {
+		return nil, errors.Trace(err)
+	}
+
 	c := &Config{
 		Name:       name,
 		Validation: "str",

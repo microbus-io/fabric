@@ -22,8 +22,7 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 
 	// Create the microservice
 	var count int32
-	con := New("")
-	con.SetHostName("directory.subscription.connector")
+	con := New("directory.subscription.connector")
 	con.Subscribe("directory/", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count, 1)
 		return nil
@@ -53,8 +52,7 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := New("")
-	con.SetHostName("error.and.panic.connector")
+	con := New("error.and.panic.connector")
 	con.Subscribe("err", func(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("it's bad")
 	})

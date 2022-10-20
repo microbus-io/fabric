@@ -26,8 +26,12 @@ func (c *Connector) DefineConfig(name string, options ...cfg.Option) error {
 	config.Value = config.DefaultValue
 
 	c.configLock.Lock()
+	defer c.configLock.Unlock()
+
+	if _, ok := c.configs[strings.ToLower(name)]; ok {
+		return errors.Newf("config '%s' is already defined", name)
+	}
 	c.configs[strings.ToLower(name)] = config
-	c.configLock.Unlock()
 	return nil
 }
 
