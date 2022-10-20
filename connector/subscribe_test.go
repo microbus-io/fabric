@@ -22,7 +22,7 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 
 	// Create the microservice
 	var count int32
-	con := NewConnector()
+	con := New("")
 	con.SetHostName("directory.subscription.connector")
 	con.Subscribe("directory/", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count, 1)
@@ -53,7 +53,7 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
+	con := New("")
 	con.SetHostName("error.and.panic.connector")
 	con.Subscribe("err", func(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("it's bad")
@@ -99,16 +99,14 @@ func TestConnector_DifferentPlanes(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	alpha := NewConnector()
-	alpha.SetHostName("different.planes.connector")
+	alpha := New("different.planes.connector")
 	alpha.SetPlane("alpha")
 	alpha.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("alpha"))
 		return nil
 	})
 
-	beta := NewConnector()
-	beta.SetHostName("different.planes.connector")
+	beta := New("different.planes.connector")
 	beta.SetPlane("beta")
 	beta.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("beta"))
@@ -149,8 +147,7 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 
 	// Create the microservices
 	var beforeCalled, afterCalled bool
-	con := NewConnector()
-	con.SetHostName("subscribe.before.and.after.startup.connector")
+	con := New("subscribe.before.and.after.startup.connector")
 
 	// Subscribe before beta is started
 	con.Subscribe("before", func(w http.ResponseWriter, r *http.Request) error {
@@ -185,8 +182,7 @@ func TestConnector_Unsubscribe(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
-	con.SetHostName("unsubscribe.connector")
+	con := New("unsubscribe.connector")
 
 	// Subscribe
 	con.Subscribe("sub1", func(w http.ResponseWriter, r *http.Request) error {
@@ -234,20 +230,17 @@ func TestConnector_AnotherHost(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.another.host.connector")
+	alpha := New("alpha.another.host.connector")
 	alpha.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
-	beta1 := NewConnector()
-	beta1.SetHostName("beta.another.host.connector")
+	beta1 := New("beta.another.host.connector")
 	beta1.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
-	beta2 := NewConnector()
-	beta2.SetHostName("beta.another.host.connector")
+	beta2 := New("beta.another.host.connector")
 	beta2.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
@@ -281,8 +274,7 @@ func TestConnector_DirectAddressing(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
-	con.SetHostName("direct.addressing.connector")
+	con := New("direct.addressing.connector")
 	con.Subscribe("/hello", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("Hello"))
 		return nil
@@ -314,8 +306,7 @@ func TestConnector_SubPendingOps(t *testing.T) {
 
 	mockClock := clock.NewMockAtNow()
 
-	con := NewConnector()
-	con.SetHostName("sub.pending.ops.connector")
+	con := New("sub.pending.ops.connector")
 	con.SetClock(mockClock)
 
 	ch := make(chan bool)

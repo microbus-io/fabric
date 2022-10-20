@@ -16,8 +16,7 @@ func TestConnector_StartupShutdown(t *testing.T) {
 
 	var startupCalled, shutdownCalled bool
 
-	con := NewConnector()
-	con.SetHostName("startup.shutdown.connector")
+	con := New("startup.shutdown.connector")
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return nil
@@ -49,8 +48,7 @@ func TestConnector_StartupError(t *testing.T) {
 
 	var startupCalled, shutdownCalled bool
 
-	con := NewConnector()
-	con.SetHostName("startup.error.connector")
+	con := New("startup.error.connector")
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return errors.New("oops")
@@ -80,8 +78,7 @@ func TestConnector_StartupError(t *testing.T) {
 func TestConnector_StartupPanic(t *testing.T) {
 	t.Parallel()
 
-	con := NewConnector()
-	con.SetHostName("startup.panic.connector")
+	con := New("startup.panic.connector")
 	con.SetOnStartup(func(ctx context.Context) error {
 		panic("really bad")
 	})
@@ -93,8 +90,7 @@ func TestConnector_StartupPanic(t *testing.T) {
 func TestConnector_ShutdownPanic(t *testing.T) {
 	t.Parallel()
 
-	con := NewConnector()
-	con.SetHostName("shutdown.panic.connector")
+	con := New("shutdown.panic.connector")
 	con.SetOnShutdown(func(ctx context.Context) error {
 		panic("really bad")
 	})
@@ -110,8 +106,7 @@ func TestConnector_StartupTimeout(t *testing.T) {
 
 	mockClock := clock.NewMock()
 
-	con := NewConnector()
-	con.SetHostName("startup.timeout.connector")
+	con := New("startup.timeout.connector")
 	con.SetClock(mockClock)
 
 	step := make(chan bool)
@@ -139,8 +134,7 @@ func TestConnector_ShutdownTimeout(t *testing.T) {
 
 	mockClock := clock.NewMock()
 
-	con := NewConnector()
-	con.SetHostName("shutdown.timeout.connector")
+	con := New("shutdown.timeout.connector")
 	con.SetClock(mockClock)
 
 	step := make(chan bool)

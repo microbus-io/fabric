@@ -6,8 +6,7 @@ The `log` package defines type-safe log fields that can be attached to log messa
 Example:
 
 ```go
-con := NewConnector()
-con.SetHostName("logger.example")
+con := connector.New("logger.example")
 con.Subscribe("/foo", func(w http.ResponseWriter, r *http.Request) error {
 	// Log level debug
 	con.LogDebug(r.Context(), "Foo request", log.String("method", r.Method))

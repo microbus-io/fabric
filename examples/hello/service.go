@@ -26,9 +26,8 @@ type Service struct {
 // NewService creates a new hello.example microservice.
 func NewService() *Service {
 	s := &Service{
-		Connector: connector.NewConnector(),
+		Connector: connector.New("hello.example"),
 	}
-	s.SetHostName("hello.example")
 	s.Subscribe("/hello", s.Hello)
 	s.Subscribe("/echo", s.Echo)
 	s.Subscribe("/ping", s.Ping)

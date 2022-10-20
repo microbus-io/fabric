@@ -19,8 +19,7 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 		configSvc,
 	}
 	for i := 0; i < 16; i++ {
-		con := connector.NewConnector()
-		con.SetHostName("many.microservices.configurator")
+		con := connector.New("many.microservices.configurator")
 		con.DefineConfig("foo", cfg.DefaultValue("bar"))
 		con.DefineConfig("moo")
 		services = append(services, con)
@@ -100,8 +99,7 @@ import.configurator:
   foo3: baz3
 `)
 
-	con := connector.NewConnector()
-	con.SetHostName("import.configurator")
+	con := connector.New("import.configurator")
 	con.DefineConfig("foo1", cfg.DefaultValue("bar1"))
 	con.DefineConfig("foo2", cfg.DefaultValue("bar2"))
 	con.DefineConfig("foo3", cfg.DefaultValue("bar3"))
@@ -122,8 +120,7 @@ func TestConfigurator_Ticker(t *testing.T) {
 	mockClock := clock.NewMockAtNow()
 	configSvc := NewService()
 
-	con := connector.NewConnector()
-	con.SetHostName("ticker.configurator")
+	con := connector.New("ticker.configurator")
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
 
 	app := application.NewTesting(configSvc, con)

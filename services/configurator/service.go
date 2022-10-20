@@ -32,9 +32,8 @@ type Service struct {
 // NewService creates a new configurator microservice
 func NewService() *Service {
 	s := &Service{
-		Connector: connector.NewConnector(),
+		Connector: connector.New("configurator.sys"),
 	}
-	s.SetHostName("configurator.sys")
 	s.SetOnStartup(s.OnStartup)
 	s.Subscribe("/values", s.Values)
 	s.StartTicker("FetchValues", 20*time.Minute, s.fetchValues)

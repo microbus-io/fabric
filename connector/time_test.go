@@ -15,8 +15,7 @@ func TestConnector_MockClockInProd(t *testing.T) {
 
 	mockClock := clock.NewMockAtNow()
 
-	con := NewConnector()
-	con.SetHostName("mock.clock.in.prod.connector")
+	con := New("mock.clock.in.prod.connector")
 
 	// OK before a deployment was set to PROD
 	err := con.SetClock(mockClock)
@@ -38,8 +37,7 @@ func TestConnector_Ticker(t *testing.T) {
 	mockClock1 := clock.NewMockAtNow()
 	mockClock2 := clock.NewMockAtNow()
 
-	con := NewConnector()
-	con.SetHostName("ticker.connector")
+	con := New("ticker.connector")
 	con.SetClock(mockClock1)
 
 	count := 0
@@ -68,8 +66,7 @@ func TestConnector_TickerSkippingBeats(t *testing.T) {
 
 	mockClock := clock.NewMockAtNow()
 
-	con := NewConnector()
-	con.SetHostName("ticker.skipping.beats.connector")
+	con := New("ticker.skipping.beats.connector")
 	con.SetClock(mockClock)
 
 	count := 0
@@ -108,8 +105,7 @@ func TestConnector_Now(t *testing.T) {
 
 	mockClock := clock.NewMockAtNow()
 
-	con := NewConnector()
-	con.SetHostName("now.connector")
+	con := New("now.connector")
 	con.SetClock(mockClock)
 
 	assert.Equal(t, mockClock.Now(), con.Now())
@@ -121,8 +117,7 @@ func TestConnector_TickerPendingOps(t *testing.T) {
 
 	mockClock := clock.NewMockAtNow()
 
-	con := NewConnector()
-	con.SetHostName("ticker.pending.ops.connector")
+	con := New("ticker.pending.ops.connector")
 	con.SetClock(mockClock)
 
 	con.StartTicker("myticker1", time.Minute, func(ctx context.Context) error {
@@ -154,8 +149,7 @@ func TestConnector_StopTicker(t *testing.T) {
 
 	mockClock := clock.NewMockAtNow()
 
-	con := NewConnector()
-	con.SetHostName("stop.ticker.connector")
+	con := New("stop.ticker.connector")
 	con.SetClock(mockClock)
 
 	countAfter := 0
@@ -201,8 +195,7 @@ func TestConnector_TickerTimeout(t *testing.T) {
 
 	mockClock := clock.NewMock()
 
-	con := NewConnector()
-	con.SetHostName("ticker.timeout.connector")
+	con := New("ticker.timeout.connector")
 	con.SetClock(mockClock)
 
 	var top, bottom bool
@@ -230,8 +223,7 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 
 	mockClock := clock.NewMock()
 
-	con := NewConnector()
-	con.SetHostName("ticker.lifetime.cancellation.connector")
+	con := New("ticker.lifetime.cancellation.connector")
 	con.SetClock(mockClock)
 
 	var top, bottom bool

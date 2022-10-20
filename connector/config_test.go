@@ -15,8 +15,7 @@ func TestConnector_InitConfig(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Mock config service
-	mockCfg := NewConnector()
-	mockCfg.SetHostName("configurator.sys")
+	mockCfg := New("configurator.sys")
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
@@ -29,8 +28,7 @@ func TestConnector_InitConfig(t *testing.T) {
 	defer mockCfg.Shutdown()
 
 	// Connector
-	con := NewConnector()
-	con.SetHostName("init.config.connector")
+	con := New("init.config.connector")
 	con.SetPlane(plane)
 
 	err = con.DefineConfig("s")
@@ -59,8 +57,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Mock config service
-	mockCfg := NewConnector()
-	mockCfg.SetHostName("configurator.sys")
+	mockCfg := New("configurator.sys")
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
@@ -73,8 +70,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 	defer mockCfg.Shutdown()
 
 	// Connector
-	con := NewConnector()
-	con.SetHostName("fetch.config.connector")
+	con := New("fetch.config.connector")
 	con.SetPlane(plane)
 	err = con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	assert.NoError(t, err)

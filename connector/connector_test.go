@@ -40,8 +40,7 @@ func TestConnector_BadHostName(t *testing.T) {
 func TestConnector_Plane(t *testing.T) {
 	t.Parallel()
 
-	con := NewConnector()
-	con.SetHostName("plane.connector")
+	con := New("plane.connector")
 
 	// Before starting
 	assert.Empty(t, con.Plane())
@@ -68,8 +67,7 @@ func TestConnector_Plane(t *testing.T) {
 func TestConnector_PlaneEnv(t *testing.T) {
 	// No parallel
 
-	con := NewConnector()
-	con.SetHostName("planeenv.connector")
+	con := New("plane.env.connector")
 
 	// Bad plane name
 	defer os.Setenv("MICROBUS_PLANE", "")
@@ -91,8 +89,7 @@ func TestConnector_PlaneEnv(t *testing.T) {
 func TestConnector_Deployment(t *testing.T) {
 	t.Parallel()
 
-	con := NewConnector()
-	con.SetHostName("deployment.connector")
+	con := New("deployment.connector")
 
 	// Before starting
 	assert.Empty(t, con.Deployment())
@@ -119,8 +116,7 @@ func TestConnector_Deployment(t *testing.T) {
 func TestConnector_DeploymentEnv(t *testing.T) {
 	// No parallel
 
-	con := NewConnector()
-	con.SetHostName("deploymentenv.connector")
+	con := New("deployment.env.connector")
 
 	// Bad plane name
 	defer os.Setenv("MICROBUS_DEPLOYMENT", "")

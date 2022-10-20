@@ -17,9 +17,8 @@ type Service struct {
 // NewService creates a new calculator microservice
 func NewService() *Service {
 	s := &Service{
-		Connector: connector.NewConnector(),
+		Connector: connector.New("calculator.example"),
 	}
-	s.SetHostName("calculator.example")
 	s.Subscribe("/arithmetic", s.Arithmetic)
 	s.Subscribe("/square", s.Square)
 	return s

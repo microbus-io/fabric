@@ -17,8 +17,7 @@ import (
 )
 
 func main() {
-	hello := connector.NewConnector()
-	hello.SetHostName("helloworld")
+	hello := connector.New("helloworld")
 	hello.Subscribe("/", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("Hello, World!"))
 		return nil

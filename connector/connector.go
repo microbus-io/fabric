@@ -90,6 +90,13 @@ func NewConnector() *Connector {
 	return c
 }
 
+// New constructs a new Connector with the given host name.
+func New(hostName string) *Connector {
+	c := NewConnector()
+	c.SetHostName(hostName)
+	return c
+}
+
 // ID is a unique identifier of a particular instance of the microservice
 func (c *Connector) ID() string {
 	return c.id

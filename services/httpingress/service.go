@@ -28,9 +28,8 @@ type Service struct {
 // NewService creates a new HTTP ingress microservice
 func NewService() *Service {
 	s := &Service{
-		Connector: connector.NewConnector(),
+		Connector: connector.New("http.ingress.sys"),
 	}
-	s.SetHostName("http.ingress.sys")
 	s.SetOnStartup(s.OnStartup)
 	s.SetOnShutdown(s.OnShutdown)
 	s.DefineConfig("TimeBudget", cfg.DefaultValue("20s"), cfg.Validation("dur [1s,5m]"))

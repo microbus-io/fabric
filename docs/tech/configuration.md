@@ -14,8 +14,7 @@ It's quite common for microservices to define configuration properties whose val
 In the code, configs are fetched using the `Config(name string) (value string)` method of the `Connector`. Behind the scenes, this method is looking for environment variables that match the name of the config and the host name of the microservice. 
 
 ```go
-c := NewConnector()
-c.SetHostName("www.example.com")
+c := connector.New("www.example.com")
 foo := c.Config("Foo")
 ```
 

@@ -20,9 +20,8 @@ type Service struct {
 // NewService creates a new messaging.example microservice
 func NewService() *Service {
 	s := &Service{
-		Connector: connector.NewConnector(),
+		Connector: connector.New("messaging.example"),
 	}
-	s.SetHostName("messaging.example")
 	s.Subscribe("/no-queue", s.NoQueue, sub.NoQueue())
 	s.Subscribe("/default-queue", s.DefaultQueue)
 	s.Subscribe("/home", s.Home)
