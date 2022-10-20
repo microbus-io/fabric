@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
@@ -176,9 +177,9 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	seenIDs := map[string]string{} // FromID -> OpCode
 	seenQueues := map[string]bool{}
 	doneWaitingForAcks := false
-	timeoutTimer := c.clock.Timer(req.TimeBudget)
+	timeoutTimer := time.NewTimer(req.TimeBudget)
 	defer timeoutTimer.Stop()
-	ackTimer := c.clock.Timer(c.networkHop)
+	ackTimer := time.NewTimer(c.networkHop)
 	defer ackTimer.Stop()
 	for {
 		select {

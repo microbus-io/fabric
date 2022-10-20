@@ -118,13 +118,13 @@ func TestConnector_StartupTimeout(t *testing.T) {
 	con.SetOnStartup(func(ctx context.Context) error {
 		step <- true
 		<-ctx.Done()
-		step <- true
 		return nil
 	}, cb.TimeBudget(time.Second*10))
 
 	go func() {
 		err := con.Startup()
 		assert.NoError(t, err)
+		step <- true
 	}()
 	<-step
 	mockClock.Add(time.Second * 15)
@@ -147,7 +147,6 @@ func TestConnector_ShutdownTimeout(t *testing.T) {
 	con.SetOnShutdown(func(ctx context.Context) error {
 		step <- true
 		<-ctx.Done()
-		step <- true
 		return nil
 	}, cb.TimeBudget(time.Second*10))
 
@@ -158,6 +157,7 @@ func TestConnector_ShutdownTimeout(t *testing.T) {
 	go func() {
 		err := con.Shutdown()
 		assert.NoError(t, err)
+		step <- true
 	}()
 	<-step
 	mockClock.Add(time.Second * 15)
