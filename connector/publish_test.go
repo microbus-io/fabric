@@ -812,8 +812,7 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 		step <- true
 		<-r.Context().Done()
 		done = true
-		step <- true
-		return nil
+		return r.Context().Err()
 	})
 
 	err := con.Startup()
@@ -827,6 +826,7 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 			pub.GET("https://lifetime.cancellation.connector/something"),
 		)
 		assert.Error(t, err)
+		step <- true
 	}()
 	<-step
 	con.ctxCancel()
