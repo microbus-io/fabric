@@ -22,6 +22,7 @@ func NewService() *Service {
 	s := &Service{
 		Connector: connector.New("messaging.example"),
 	}
+	s.SetDescription("The Messaging microservice demonstrates service-to-service communication patterns.")
 	s.Subscribe("/no-queue", s.NoQueue, sub.NoQueue())
 	s.Subscribe("/default-queue", s.DefaultQueue)
 	s.Subscribe("/home", s.Home)

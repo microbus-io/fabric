@@ -30,6 +30,7 @@ func NewService() *Service {
 	s := &Service{
 		Connector: connector.New("http.ingress.sys"),
 	}
+	s.SetDescription("The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.")
 	s.SetOnStartup(s.OnStartup)
 	s.SetOnShutdown(s.OnShutdown)
 	s.DefineConfig("TimeBudget", cfg.DefaultValue("20s"), cfg.Validation("dur [1s,5m]"))

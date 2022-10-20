@@ -34,6 +34,7 @@ func NewService() *Service {
 	s := &Service{
 		Connector: connector.New("configurator.sys"),
 	}
+	s.SetDescription("The Configurator is a system microservice that centralizes the dissemination of configuration values to other microservices.")
 	s.SetOnStartup(s.OnStartup)
 	s.Subscribe("/values", s.Values)
 	s.StartTicker("FetchValues", 20*time.Minute, s.fetchValues)

@@ -28,6 +28,7 @@ func NewService() *Service {
 	s := &Service{
 		Connector: connector.New("hello.example"),
 	}
+	s.SetDescription("The Hello microservice demonstrates the various capabilities of a microservice.")
 	s.Subscribe("/hello", s.Hello)
 	s.Subscribe("/echo", s.Echo)
 	s.Subscribe("/ping", s.Ping)

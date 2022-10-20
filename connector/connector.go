@@ -27,9 +27,10 @@ It provides the microservice such functions as connecting to the NATS messaging 
 communications with other microservices, logging, config, etc.
 */
 type Connector struct {
-	hostName   string
-	id         string
-	deployment string
+	hostName    string
+	id          string
+	deployment  string
+	description string
 
 	onStartup       *cb.Callback
 	onShutdown      *cb.Callback
@@ -127,6 +128,17 @@ func (c *Connector) SetHostName(hostName string) error {
 // A microservice is addressable by its host name.
 func (c *Connector) HostName() string {
 	return c.hostName
+}
+
+// SetDescription sets a human-friendly description of the microservice.
+func (c *Connector) SetDescription(description string) error {
+	c.description = description
+	return nil
+}
+
+// Description returns the human-friendly description of the microservice.
+func (c *Connector) Description() string {
+	return c.description
 }
 
 // Deployment environments

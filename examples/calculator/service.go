@@ -19,6 +19,7 @@ func NewService() *Service {
 	s := &Service{
 		Connector: connector.New("calculator.example"),
 	}
+	s.SetDescription("The Calculator microservice performs simple mathematical operations.")
 	s.Subscribe("/arithmetic", s.Arithmetic)
 	s.Subscribe("/square", s.Square)
 	return s
