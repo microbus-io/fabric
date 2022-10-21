@@ -21,7 +21,7 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 	c.requestDefragsLock.Lock()
 	defragger, ok := c.requestDefrags[msgID]
 	if !ok {
-		defragger = frag.NewDefragRequest(c.clock)
+		defragger = frag.NewDefragRequest()
 		c.requestDefrags[msgID] = defragger
 		// Timeout if fragments stop arriving
 		go func() {
@@ -71,7 +71,7 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 	c.responseDefragsLock.Lock()
 	defragger, ok := c.responseDefrags[msgID]
 	if !ok {
-		defragger = frag.NewDefragResponse(c.clock)
+		defragger = frag.NewDefragResponse()
 		c.responseDefrags[msgID] = defragger
 		// Timeout if fragments stop arriving
 		go func() {

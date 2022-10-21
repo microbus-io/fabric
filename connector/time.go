@@ -17,7 +17,7 @@ import (
 type tickerCallback struct {
 	*cb.Callback
 	Interval time.Duration
-	Ticker   *clock.Ticker
+	Ticker   *time.Ticker
 }
 
 // StartTicker initiates a recurring job at a set interval.
@@ -91,7 +91,7 @@ func (c *Connector) runAllTickers() {
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *tickerCallback) {
 	if job.Ticker == nil {
-		job.Ticker = c.clock.Ticker(job.Interval)
+		job.Ticker = time.NewTicker(job.Interval)
 	} else {
 		// Already running
 		return
@@ -109,7 +109,7 @@ func (c *Connector) runTicker(job *tickerCallback) {
 			callbackCtx := c.lifetimeCtx
 			cancel := func() {}
 			if job.TimeBudget > 0 {
-				callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, job.TimeBudget)
+				callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, job.TimeBudget)
 			}
 			err := utils.CatchPanic(func() error {
 				return job.Handler(callbackCtx)
@@ -118,7 +118,7 @@ func (c *Connector) runTicker(job *tickerCallback) {
 			if err != nil {
 				c.LogError(c.Lifetime(), "Ticker callback", log.Error(err))
 			}
-			dur := c.clock.Since(started)
+			dur := time.Since(started)
 			atomic.AddInt32(&c.pendingOps, -1)
 
 			// Drain ticker, in case of a long-running job that spans multiple intervals

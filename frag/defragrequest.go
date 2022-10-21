@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 )
@@ -19,22 +18,20 @@ type DefragRequest struct {
 	maxIndex     int32
 	lock         sync.Mutex
 	lastActivity time.Time
-	clock        clock.Clock
 }
 
 // NewDefragRequest creates a new request integrator.
-func NewDefragRequest(clock clock.Clock) *DefragRequest {
+func NewDefragRequest() *DefragRequest {
 	return &DefragRequest{
 		fragments:    map[int]*http.Request{},
-		clock:        clock,
-		lastActivity: clock.Now(),
+		lastActivity: time.Now(),
 	}
 }
 
 // LastActivity indicates how long ago was the last fragment added.
 func (st *DefragRequest) LastActivity() time.Duration {
 	st.lock.Lock()
-	d := st.clock.Since(st.lastActivity)
+	d := time.Since(st.lastActivity)
 	st.lock.Unlock()
 	return d
 }
@@ -89,7 +86,7 @@ func (st *DefragRequest) Add(r *http.Request) error {
 	index, max := frame.Of(r).Fragment()
 	st.fragments[index] = r
 	atomic.StoreInt32(&st.maxIndex, int32(max))
-	st.lastActivity = st.clock.Now()
+	st.lastActivity = time.Now()
 	st.lock.Unlock()
 	return nil
 }

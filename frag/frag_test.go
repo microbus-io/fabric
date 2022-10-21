@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
 	"github.com/stretchr/testify/assert"
@@ -62,7 +61,7 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	}
 
 	// Defragment
-	defrag := NewDefragRequest(clock.New())
+	defrag := NewDefragRequest()
 	for _, r := range fragReqs {
 		err := defrag.Add(r)
 		assert.NoError(t, err)
@@ -137,7 +136,7 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 	}
 
 	// Defragment
-	defrag := NewDefragResponse(clock.New())
+	defrag := NewDefragResponse()
 	for _, r := range fragRess {
 		err := defrag.Add(r)
 		assert.NoError(t, err)

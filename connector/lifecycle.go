@@ -137,7 +137,7 @@ func (c *Connector) Startup() (err error) {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
 		if c.onStartup.TimeBudget > 0 {
-			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
+			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
 			return c.onStartup.Handler(callbackCtx)
@@ -223,7 +223,7 @@ func (c *Connector) Shutdown() error {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
 		if c.onShutdown.TimeBudget > 0 {
-			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
+			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
 			return c.onShutdown.Handler(callbackCtx)

@@ -61,7 +61,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	// Restrict the time budget to the context deadline
 	deadline, ok := ctx.Deadline()
 	if ok {
-		ctxBudget := c.clock.Until(deadline)
+		ctxBudget := time.Until(deadline)
 		if ctxBudget < req.TimeBudget {
 			req.Apply(pub.TimeBudget(ctxBudget))
 		}
