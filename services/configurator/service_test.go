@@ -7,7 +7,6 @@ import (
 
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/cfg"
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/stretchr/testify/assert"
 )
@@ -49,7 +48,7 @@ many.microservices.configurator:
 
 	// Known responders optimization might cause some of the microservices to be missed
 	// and not return synchronously, but they still get the request
-	time.Sleep(time.Second)
+	time.Sleep(200 * time.Millisecond)
 
 	for i := 1; i < len(services); i++ {
 		assert.Equal(t, "baz", services[i].(*connector.Connector).Config("foo"))
@@ -68,7 +67,7 @@ many.microservices.configurator:
 
 	// Known responders optimization might cause some of the microservices to be missed
 	// and not return synchronously, but they still get the request
-	time.Sleep(time.Second)
+	time.Sleep(200 * time.Millisecond)
 
 	for i := 1; i < len(services); i++ {
 		assert.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
@@ -115,13 +114,12 @@ import.configurator:
 	assert.Equal(t, "bar3", con.Config("foo3"))
 }
 
-func TestConfigurator_Ticker(t *testing.T) {
+func TestConfigurator_Callback(t *testing.T) {
 	t.Parallel()
 
-	mockClock := clock.NewMock()
 	configSvc := NewService()
 
-	con := connector.New("ticker.configurator")
+	con := connector.New("callback.configurator")
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	callbackCalled := false
 	err := con.SetOnConfigChanged(func(ctx context.Context, changed map[string]bool) error {
@@ -132,8 +130,6 @@ func TestConfigurator_Ticker(t *testing.T) {
 	assert.NoError(t, err)
 
 	app := application.NewTesting(configSvc, con)
-	err = app.SetClock(mockClock)
-	assert.NoError(t, err)
 	err = app.Startup()
 	assert.NoError(t, err)
 	defer app.Shutdown()
@@ -141,16 +137,17 @@ func TestConfigurator_Ticker(t *testing.T) {
 	assert.Equal(t, "bar", con.Config("foo"))
 
 	configSvc.mockConfigYAML(`
-ticker.configurator:
+callback.configurator:
   foo: baz
 `)
 
-	// Should trigger a refresh
-	mockClock.Add(21 * time.Minute)
+	// Force a refresh
+	err = configSvc.fetchValues(configSvc.Lifetime())
+	assert.NoError(t, err)
 
 	// Known responders optimization might cause some of the microservices to be missed
 	// and not return synchronously, but they still get the request
-	time.Sleep(time.Second)
+	time.Sleep(200 * time.Millisecond)
 
 	assert.Equal(t, "baz", con.Config("foo"))
 	assert.True(t, callbackCalled)

@@ -3,7 +3,6 @@ package cb
 import (
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 )
 
@@ -15,7 +14,7 @@ type Callback struct {
 	Handler    any
 
 	Interval time.Duration
-	Ticker   *clock.Ticker
+	Ticker   *time.Ticker
 }
 
 // NewCallback creates a new callback.

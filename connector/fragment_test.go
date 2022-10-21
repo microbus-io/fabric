@@ -80,8 +80,8 @@ func TestConnector_FragMulticast(t *testing.T) {
 	assert.NoError(t, err)
 	defer beta.Shutdown()
 
-	alpha.maxFragmentSize = 128
-	beta.maxFragmentSize = 128
+	alpha.maxFragmentSize = 1024
+	beta.maxFragmentSize = 1024
 
 	// Prepare the body to send
 	bodySent := []byte(rand.AlphaNum64(int(alpha.maxFragmentSize)*2 + 16))

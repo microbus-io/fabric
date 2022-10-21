@@ -80,7 +80,7 @@ func (c *Connector) runAllTickers() {
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *cb.Callback) {
 	if job.Ticker == nil {
-		job.Ticker = c.clock.Ticker(job.Interval)
+		job.Ticker = time.NewTicker(job.Interval)
 	} else {
 		// Already running
 		return
@@ -98,7 +98,7 @@ func (c *Connector) runTicker(job *cb.Callback) {
 			callbackCtx := c.lifetimeCtx
 			cancel := func() {}
 			if job.TimeBudget > 0 {
-				callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, job.TimeBudget)
+				callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, job.TimeBudget)
 			}
 			err := utils.CatchPanic(func() error {
 				return job.Handler.(TickerHandler)(callbackCtx)
@@ -108,7 +108,7 @@ func (c *Connector) runTicker(job *cb.Callback) {
 				err = errors.Trace(err, c.hostName, job.Name)
 				c.LogError(c.Lifetime(), "Ticker callback", log.Error(err), log.String("ticker", job.Name))
 			}
-			dur := c.clock.Since(started)
+			dur := time.Since(started)
 			atomic.AddInt32(&c.pendingOps, -1)
 
 			// Drain ticker, in case of a long-running job that spans multiple intervals

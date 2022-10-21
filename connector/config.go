@@ -174,7 +174,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 		callbackCtx := c.lifetimeCtx
 		cancel := func() {}
 		if c.onConfigChanged.TimeBudget > 0 {
-			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onConfigChanged.TimeBudget)
+			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onConfigChanged.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
 			return c.onConfigChanged.Handler.(ConfigChangedHandler)(callbackCtx, changed)
