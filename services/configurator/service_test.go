@@ -1,6 +1,7 @@
 package configurator
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -48,7 +49,7 @@ many.microservices.configurator:
 
 	// Known responders optimization might cause some of the microservices to be missed
 	// and not return synchronously, but they still get the request
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	for i := 1; i < len(services); i++ {
 		assert.Equal(t, "baz", services[i].(*connector.Connector).Config("foo"))
@@ -67,7 +68,7 @@ many.microservices.configurator:
 
 	// Known responders optimization might cause some of the microservices to be missed
 	// and not return synchronously, but they still get the request
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	for i := 1; i < len(services); i++ {
 		assert.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
@@ -117,14 +118,21 @@ import.configurator:
 func TestConfigurator_Ticker(t *testing.T) {
 	t.Parallel()
 
-	mockClock := clock.NewMockAtNow()
+	mockClock := clock.NewMock()
 	configSvc := NewService()
 
 	con := connector.New("ticker.configurator")
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
+	callbackCalled := false
+	err := con.SetOnConfigChanged(func(ctx context.Context, changed map[string]bool) error {
+		assert.True(t, changed["foo"])
+		callbackCalled = true
+		return nil
+	})
+	assert.NoError(t, err)
 
 	app := application.NewTesting(configSvc, con)
-	err := app.SetClock(mockClock)
+	err = app.SetClock(mockClock)
 	assert.NoError(t, err)
 	err = app.Startup()
 	assert.NoError(t, err)
@@ -142,7 +150,8 @@ ticker.configurator:
 
 	// Known responders optimization might cause some of the microservices to be missed
 	// and not return synchronously, but they still get the request
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	assert.Equal(t, "baz", con.Config("foo"))
+	assert.True(t, callbackCalled)
 }

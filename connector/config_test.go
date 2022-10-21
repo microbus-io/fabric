@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -76,6 +77,14 @@ func TestConnector_FetchConfig(t *testing.T) {
 	assert.NoError(t, err)
 	err = con.DefineConfig("int", cfg.Validation("int"), cfg.DefaultValue("5"))
 	assert.NoError(t, err)
+	callbackCalled := false
+	err = con.SetOnConfigChanged(func(ctx context.Context, changed map[string]bool) error {
+		assert.True(t, changed["foo"])
+		assert.False(t, changed["int"])
+		callbackCalled = true
+		return nil
+	})
+	assert.NoError(t, err)
 
 	assert.Equal(t, "bar", con.Config("foo"))
 	assert.Equal(t, "5", con.Config("int"))
@@ -86,4 +95,5 @@ func TestConnector_FetchConfig(t *testing.T) {
 
 	assert.Equal(t, "baz", con.Config("foo"), "New value should be read from configurator")
 	assert.Equal(t, "5", con.Config("int"), "Invalid value should not be accepted")
+	assert.True(t, callbackCalled)
 }

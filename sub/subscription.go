@@ -2,7 +2,6 @@ package sub
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,9 +11,6 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// HTTPHandler extends the standard http.Handler to also return an error
-type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
-
 // Subscription handles incoming requests.
 // Although technically public, it is used internally and should not be constructed by microservices directly
 type Subscription struct {
@@ -22,7 +18,7 @@ type Subscription struct {
 	Port      int
 	Path      string
 	Queue     string
-	Handler   HTTPHandler
+	Handler   any
 	HostSub   *nats.Subscription
 	DirectSub *nats.Subscription
 }
@@ -44,7 +40,7 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func NewSub(defaultHost string, path string, options ...Option) (*Subscription, error) {
+func NewSub(defaultHost string, path string, handler any, options ...Option) (*Subscription, error) {
 	spec := path
 	if path == "" {
 		// (empty)
@@ -72,10 +68,11 @@ func NewSub(defaultHost string, path string, options ...Option) (*Subscription, 
 	}
 
 	sub := &Subscription{
-		Host:  u.Hostname(),
-		Port:  port,
-		Path:  u.Path,
-		Queue: defaultHost,
+		Host:    u.Hostname(),
+		Port:    port,
+		Path:    u.Path,
+		Queue:   defaultHost,
+		Handler: handler,
 	}
 	err := sub.Apply(options...)
 	if err != nil {

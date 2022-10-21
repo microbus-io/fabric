@@ -2,6 +2,9 @@ package connector
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"strings"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
@@ -53,6 +56,16 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 		return
 	}
 	c.logger.Warn(msg, fields...)
+
+	if c.deployment == LOCAL {
+		for _, f := range fields {
+			if f.Type == zapcore.ErrorType && f.Key == "error" {
+				sep := strings.Repeat("~", 120)
+				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep, f.Interface, "\u25b2"+sep)
+				break
+			}
+		}
+	}
 }
 
 /*
@@ -69,6 +82,16 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 		return
 	}
 	c.logger.Error(msg, fields...)
+
+	if c.deployment == LOCAL {
+		for _, f := range fields {
+			if f.Type == zapcore.ErrorType && f.Key == "error" {
+				sep := strings.Repeat("~", 120)
+				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep, f.Interface, "\u25b2"+sep)
+				break
+			}
+		}
+	}
 }
 
 // initLogger initializes a logger to match the deployment environment

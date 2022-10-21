@@ -13,14 +13,11 @@ import (
 	"github.com/microbus-io/fabric/utils"
 )
 
-type tickerCallback struct {
-	*cb.Callback
-	Interval time.Duration
-	Ticker   *clock.Ticker
-}
+// TickerHandler handles the ticker callbacks.
+type TickerHandler func(ctx context.Context) error
 
 // StartTicker initiates a recurring job at a set interval.
-func (c *Connector) StartTicker(name string, interval time.Duration, handler func(context.Context) error, options ...cb.Option) error {
+func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler, options ...cb.Option) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return errors.Trace(err)
 	}
@@ -36,13 +33,10 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler fun
 	if err != nil {
 		return errors.Trace(err)
 	}
-	job := &tickerCallback{
-		Callback: cb,
-		Interval: interval,
-	}
-	c.tickers[strings.ToLower(name)] = job
+	cb.Interval = interval
+	c.tickers[strings.ToLower(name)] = cb
 	if c.started {
-		c.runTicker(job)
+		c.runTicker(cb)
 	}
 
 	return nil
@@ -72,7 +66,7 @@ func (c *Connector) StopAllTickers() error {
 			job.Ticker.Stop()
 		}
 	}
-	c.tickers = map[string]*tickerCallback{}
+	c.tickers = map[string]*cb.Callback{}
 	return nil
 }
 
@@ -84,7 +78,7 @@ func (c *Connector) runAllTickers() {
 }
 
 // runTicker starts a goroutine to run the ticker.
-func (c *Connector) runTicker(job *tickerCallback) {
+func (c *Connector) runTicker(job *cb.Callback) {
 	if job.Ticker == nil {
 		job.Ticker = c.clock.Ticker(job.Interval)
 	} else {
@@ -107,11 +101,12 @@ func (c *Connector) runTicker(job *tickerCallback) {
 				callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, job.TimeBudget)
 			}
 			err := utils.CatchPanic(func() error {
-				return job.Handler(callbackCtx)
+				return job.Handler.(TickerHandler)(callbackCtx)
 			})
 			cancel()
 			if err != nil {
-				c.LogError(c.Lifetime(), "Ticker callback", log.Error(err))
+				err = errors.Trace(err, c.hostName, job.Name)
+				c.LogError(c.Lifetime(), "Ticker callback", log.Error(err), log.String("ticker", job.Name))
 			}
 			dur := c.clock.Since(started)
 			atomic.AddInt32(&c.pendingOps, -1)

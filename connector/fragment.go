@@ -35,7 +35,6 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 				}
 			}
 		}()
-
 	}
 	c.requestDefragsLock.Unlock()
 

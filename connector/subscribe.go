@@ -19,6 +19,9 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+// HTTPHandler extends the standard http.Handler to also return an error
+type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
+
 /*
 Subscribe assigns a function to handle HTTP requests to the given path.
 If the path ends with a / all sub-paths under the path are capture by the subscription
@@ -38,15 +41,14 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error {
+func (c *Connector) Subscribe(path string, handler HTTPHandler, options ...sub.Option) error {
 	if c.hostName == "" {
 		return errors.New("host name is not set")
 	}
-	newSub, err := sub.NewSub(c.hostName, path, options...)
+	newSub, err := sub.NewSub(c.hostName, path, handler, options...)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	newSub.Handler = handler
 	if c.IsStarted() {
 		err := c.activateSub(newSub)
 		if err != nil {
@@ -63,7 +65,7 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 
 // Unsubscribe removes the handler for the specified path
 func (c *Connector) Unsubscribe(path string) error {
-	newSub, err := sub.NewSub(c.hostName, path)
+	newSub, err := sub.NewSub(c.hostName, path, nil)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -97,12 +99,14 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 	handler := func(msg *nats.Msg) {
 		err := c.ackRequest(msg, s)
 		if err != nil {
+			err = errors.Trace(err)
 			c.LogError(c.lifetimeCtx, "Acking request", log.Error(err))
 			return
 		}
 		go func() {
 			err := c.onRequest(msg, s)
 			if err != nil {
+				err = errors.Trace(err)
 				c.LogError(c.lifetimeCtx, "Processing request", log.Error(err))
 			}
 		}()
@@ -140,7 +144,7 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 		err := s.HostSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(c.lifetimeCtx, "Unsubscribing host sub", log.Error(err), log.String("sub", s.Canonical()))
+			c.LogError(c.lifetimeCtx, "Unsubscribing host sub", log.Error(lastErr), log.String("sub", s.Canonical()))
 		} else {
 			s.HostSub = nil
 		}
@@ -149,7 +153,7 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 		err := s.DirectSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(c.lifetimeCtx, "Unsubscribing direct sub", log.Error(err), log.String("sub", s.Canonical()))
+			c.LogError(c.lifetimeCtx, "Unsubscribing direct sub", log.Error(lastErr), log.String("sub", s.Canonical()))
 		} else {
 			s.DirectSub = nil
 		}
@@ -254,6 +258,8 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		queue = c.id + "." + c.hostName
 	}
 
+	c.LogDebug(c.lifetimeCtx, "Handling", log.String("msg", msgID), log.String("sub", s.Canonical()))
+
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
 	if budget <= c.networkHop {
@@ -280,7 +286,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Call the web handler
 	httpRecorder := utils.NewResponseRecorder()
 	handlerErr := utils.CatchPanic(func() error {
-		return s.Handler(httpRecorder, httpReq)
+		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
 	})
 
 	if handlerErr != nil {

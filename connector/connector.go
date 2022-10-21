@@ -61,14 +61,15 @@ type Connector struct {
 	knownResponders     map[string]map[string]bool
 	knownRespondersLock sync.Mutex
 
-	configs    map[string]*cfg.Config
-	configLock sync.Mutex
+	configs         map[string]*cfg.Config
+	configLock      sync.Mutex
+	onConfigChanged *cb.Callback
 
 	logger *zap.Logger
 
 	clock       *clock.ClockReference
 	clockSet    bool
-	tickers     map[string]*tickerCallback
+	tickers     map[string]*cb.Callback
 	tickersLock sync.Mutex
 }
 
@@ -85,7 +86,7 @@ func NewConnector() *Connector {
 		requestDefrags:  map[string]*frag.DefragRequest{},
 		responseDefrags: map[string]*frag.DefragResponse{},
 		clock:           clock.NewClockReference(clock.New()),
-		tickers:         map[string]*tickerCallback{},
+		tickers:         map[string]*cb.Callback{},
 		lifetimeCtx:     context.Background(),
 	}
 

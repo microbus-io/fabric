@@ -305,7 +305,6 @@ func TestConnector_SubPendingOps(t *testing.T) {
 	mockClock := clock.NewMockAtNow()
 
 	con := New("sub.pending.ops.connector")
-	con.SetClock(mockClock)
 
 	ch := make(chan bool)
 	con.Subscribe("/op", func(w http.ResponseWriter, r *http.Request) error {

@@ -69,10 +69,10 @@ func (s *Service) forceRefresh(ctx context.Context) error {
 	var lastErr error
 	ch := s.Publish(ctx, pub.GET("https://all:888/config/refresh"))
 	for i := range ch {
-		res, err := i.Get()
+		_, err := i.Get()
 		if err != nil && err.Error() != "ack timeout" {
 			lastErr = errors.Trace(err)
-			s.LogError(ctx, "Updating config", log.Error(err), log.String("host", frame.Of(res).FromHost()))
+			s.LogError(ctx, "Updating config", log.Error(lastErr))
 		}
 	}
 	return lastErr
@@ -131,15 +131,17 @@ func (s *Service) fetchValues(ctx context.Context) error {
 	var localRepo repository
 
 	// Download remote config.yaml files
-	if exists("configimport.yaml") || s.mockedConfigImportYAML != "" {
-		var err error
-		y := []byte(s.mockedConfigImportYAML)
-		if len(y) == 0 {
-			y, err = os.ReadFile("configimport.yaml")
-			if err != nil {
-				return errors.Trace(err)
-			}
+	var err error
+	var y []byte
+	if s.mockedConfigImportYAML != "" {
+		y = []byte(s.mockedConfigImportYAML)
+	} else if exists("configimport.yaml") {
+		y, err = os.ReadFile("configimport.yaml")
+		if err != nil {
+			return errors.Trace(err)
 		}
+	}
+	if len(y) > 0 {
 		var remotes []*struct {
 			From   string `json:"from"`
 			Import string `json:"import"`
@@ -176,15 +178,16 @@ func (s *Service) fetchValues(ctx context.Context) error {
 	}
 
 	// Look for explicit values in local config.yaml file
-	if exists("config.yaml") || s.mockedConfigYAML != "" {
-		var err error
-		y := []byte(s.mockedConfigYAML)
-		if len(y) == 0 {
-			y, err = os.ReadFile("config.yaml")
-			if err != nil {
-				return errors.Trace(err)
-			}
+	y = nil
+	if s.mockedConfigYAML != "" {
+		y = []byte(s.mockedConfigYAML)
+	} else if exists("config.yaml") {
+		y, err = os.ReadFile("config.yaml")
+		if err != nil {
+			return errors.Trace(err)
 		}
+	}
+	if len(y) > 0 {
 		err = localRepo.LoadYAML(y, "")
 		if err != nil {
 			return errors.Trace(err)
@@ -197,7 +200,7 @@ func (s *Service) fetchValues(ctx context.Context) error {
 	s.repoLock.Unlock()
 
 	// Tell all microservices to refresh their configs even if there was no change in values
-	err := s.forceRefresh(ctx)
+	err = s.forceRefresh(ctx)
 	if err != nil {
 		return errors.Trace(err)
 	}

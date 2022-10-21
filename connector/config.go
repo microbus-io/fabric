@@ -5,11 +5,30 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/utils"
 )
+
+// StartupHandler handles the OnStartup callback.
+type ConfigChangedHandler func(ctx context.Context, changed map[string]bool) error
+
+// SetOnConfigChanged sets a function to be called when a new config was received from the configurator.
+func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...cb.Option) error {
+	if c.started {
+		return errors.New("already started")
+	}
+
+	callback, err := cb.NewCallback("onconfigchanged", handler, options...)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	c.onConfigChanged = callback
+	return nil
+}
 
 // DefineConfig defines a property used to configure the microservice.
 // Properties must be defined before the service starts.
@@ -111,6 +130,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 	for _, config := range c.configs {
 		req.Names = append(req.Names, config.Name)
 	}
+	c.LogDebug(ctx, "Requesting config values", log.Any("names", req.Names))
 	c.configLock.Unlock()
 	response, err := c.Request(
 		ctx,
@@ -128,6 +148,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 	c.configLock.Lock()
+	changed := map[string]bool{}
 	for _, config := range c.configs {
 		setValue := config.DefaultValue
 		if value, ok := res.Values[config.Name]; ok {
@@ -139,6 +160,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 		}
 		if setValue != config.Value {
 			config.Value = setValue
+			changed[config.Name] = true
 			if config.Secret {
 				setValue = strings.Repeat("*", len(setValue))
 			}
@@ -146,6 +168,22 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 		}
 	}
 	c.configLock.Unlock()
+
+	// Call the callback function, if provided
+	if c.onConfigChanged != nil && len(changed) > 0 {
+		callbackCtx := c.lifetimeCtx
+		cancel := func() {}
+		if c.onConfigChanged.TimeBudget > 0 {
+			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onConfigChanged.TimeBudget)
+		}
+		err = utils.CatchPanic(func() error {
+			return c.onConfigChanged.Handler.(ConfigChangedHandler)(callbackCtx, changed)
+		})
+		cancel()
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 
 	return nil
 }

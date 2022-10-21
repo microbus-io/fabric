@@ -11,27 +11,27 @@ import (
 func (c *Connector) subscribeControl() error {
 	type ctrlSub struct {
 		path    string
-		f       sub.HTTPHandler
+		handler HTTPHandler
 		options []sub.Option
 	}
 	subs := []*ctrlSub{
 		{
 			path:    "ping",
-			f:       c.handleControlPing,
+			handler: c.handleControlPing,
 			options: []sub.Option{sub.NoQueue()},
 		},
 		{
 			path:    "config/refresh",
-			f:       c.handleControlConfigRefresh,
+			handler: c.handleControlConfigRefresh,
 			options: []sub.Option{sub.NoQueue()},
 		},
 	}
-	for _, sub := range subs {
-		err := c.Subscribe(":888/"+sub.path, sub.f, sub.options...)
+	for _, s := range subs {
+		err := c.Subscribe(":888/"+s.path, s.handler, s.options...)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = c.Subscribe("https://all:888/"+sub.path, sub.f, sub.options...)
+		err = c.Subscribe("https://all:888/"+s.path, s.handler, s.options...)
 		if err != nil {
 			return errors.Trace(err)
 		}

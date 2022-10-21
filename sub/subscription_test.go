@@ -30,7 +30,7 @@ func TestSub_NewSub(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		s, err := NewSub("www.example.com", tc.spec)
+		s, err := NewSub("www.example.com", tc.spec, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.expectedHost, s.Host)
 		assert.Equal(t, tc.expectedPort, s.Port)
@@ -48,7 +48,7 @@ func TestSub_InvalidPort(t *testing.T) {
 		"https://bad.example.com:1000000/path",
 	}
 	for _, s := range badSpecs {
-		_, err := NewSub("www.example.com", s)
+		_, err := NewSub("www.example.com", s, nil)
 		assert.Error(t, err)
 	}
 }

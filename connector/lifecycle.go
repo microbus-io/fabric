@@ -13,10 +13,20 @@ import (
 	"github.com/microbus-io/fabric/utils"
 )
 
+// StartupHandler handles the OnStartup callback.
+type StartupHandler func(ctx context.Context) error
+
+// StartupHandler handles the OnShutdown callback.
+type ShutdownHandler func(ctx context.Context) error
+
 // SetOnStartup sets a function to be called during the starting up of the microservice.
 // The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnStartup(f cb.CallbackHandler, options ...cb.Option) error {
-	callback, err := cb.NewCallback("onstartup", f, options...)
+func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) error {
+	if c.started {
+		return errors.New("already started")
+	}
+
+	callback, err := cb.NewCallback("onstartup", handler, options...)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -26,8 +36,12 @@ func (c *Connector) SetOnStartup(f cb.CallbackHandler, options ...cb.Option) err
 
 // SetOnShutdown sets a function to be called during the shutting down of the microservice.
 // The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnShutdown(f cb.CallbackHandler, options ...cb.Option) error {
-	callback, err := cb.NewCallback("onshutdown", f, options...)
+func (c *Connector) SetOnShutdown(handler ShutdownHandler, options ...cb.Option) error {
+	if c.started {
+		return errors.New("already started")
+	}
+
+	callback, err := cb.NewCallback("onshutdown", handler, options...)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -105,6 +119,7 @@ func (c *Connector) Startup() (err error) {
 		return errors.Trace(err)
 	}
 	c.started = true
+
 	c.maxFragmentSize = c.natsConn.MaxPayload() - 64*1024 // Up to 64K for headers
 	if c.maxFragmentSize < 64*1024 {
 		err = errors.New("message size limit is too restrictive")
@@ -113,12 +128,6 @@ func (c *Connector) Startup() (err error) {
 
 	// Subscribe to the response subject
 	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostName, c.id), c.id, c.onResponse)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	// Subscribe to :888 control messages
-	err = c.subscribeControl()
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -139,7 +148,7 @@ func (c *Connector) Startup() (err error) {
 			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
-			return c.onStartup.Handler(callbackCtx)
+			return c.onStartup.Handler.(StartupHandler)(callbackCtx)
 		})
 		cancel()
 		if err != nil {
@@ -149,6 +158,12 @@ func (c *Connector) Startup() (err error) {
 
 	// Prepare the connector's root context
 	c.lifetimeCtx, c.ctxCancel = context.WithCancel(context.Background())
+
+	// Subscribe to :888 control messages
+	err = c.subscribeControl()
+	if err != nil {
+		return errors.Trace(err)
+	}
 
 	// Activate subscriptions
 	for _, sub := range c.subs {
@@ -178,20 +193,20 @@ func (c *Connector) Shutdown() error {
 	err := c.StopAllTickers()
 	if err != nil {
 		lastErr = errors.Trace(err)
-		c.LogError(c.lifetimeCtx, "Stopping tickers", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Stopping tickers", log.Error(lastErr))
 	}
 
 	// Unsubscribe all handlers
 	err = c.UnsubscribeAll()
 	if err != nil {
 		lastErr = errors.Trace(err)
-		c.LogError(c.lifetimeCtx, "Deactivating subscriptions", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Deactivating subscriptions", log.Error(lastErr))
 	}
 
 	// Drain pending operations (incoming requests and running tickers)
 	totalDrainTime := time.Duration(0)
 	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 4*time.Second {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
 		totalDrainTime += 20 * time.Millisecond
 	}
 	undrained := atomic.LoadInt32(&c.pendingOps)
@@ -209,7 +224,7 @@ func (c *Connector) Shutdown() error {
 	// Drain pending operations again after cancelling the context
 	totalDrainTime = time.Duration(0)
 	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 4*time.Second {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
 		totalDrainTime += 20 * time.Millisecond
 	}
 	undrained = atomic.LoadInt32(&c.pendingOps)
@@ -225,12 +240,12 @@ func (c *Connector) Shutdown() error {
 			callbackCtx, cancel = c.clock.WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
-			return c.onShutdown.Handler(callbackCtx)
+			return c.onShutdown.Handler.(ShutdownHandler)(callbackCtx)
 		})
 		cancel()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Shutdown callback", log.Error(err))
+			c.LogError(c.lifetimeCtx, "Shutdown callback", log.Error(lastErr))
 		}
 	}
 
@@ -239,7 +254,7 @@ func (c *Connector) Shutdown() error {
 		err := c.natsResponseSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Unsubscribing response sub", log.Error(err))
+			c.LogError(c.lifetimeCtx, "Unsubscribing response sub", log.Error(lastErr))
 		}
 		c.natsResponseSub = nil
 	}

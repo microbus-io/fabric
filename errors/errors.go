@@ -46,13 +46,15 @@ func TraceUp(err error, levels int, annotations ...string) error {
 		return nil
 	}
 	tracedErr := Convert(err).(*TracedError)
-	file, function, line := runtimeTrace(1 + levels)
-	tracedErr.stack = append(tracedErr.stack, &trace{
-		File:        file,
-		Function:    function,
-		Line:        line,
-		Annotations: annotations,
-	})
+	file, function, line, ok := RuntimeTrace(1 + levels)
+	if ok {
+		tracedErr.stack = append(tracedErr.stack, &trace{
+			File:        file,
+			Function:    function,
+			Line:        line,
+			Annotations: annotations,
+		})
+	}
 	return tracedErr
 }
 
@@ -71,18 +73,21 @@ func Convert(err error) error {
 	}
 }
 
-// runtimeTrace traces back by the amount of levels
+// RuntimeTrace traces back by the amount of levels
 // to retrieve the runtime information used for tracing.
-func runtimeTrace(levels int) (file string, function string, line int) {
+func RuntimeTrace(levels int) (file string, function string, line int, ok bool) {
 	pc, file, line, ok := runtime.Caller(levels + 1)
+	if !ok {
+		return "", "", 0, false
+	}
 	function = "?"
 	runtimeFunc := runtime.FuncForPC(pc)
-	if ok && runtimeFunc != nil {
+	if runtimeFunc != nil {
 		function = runtimeFunc.Name()
 		p := strings.LastIndex(function, "/")
 		if p >= 0 {
 			function = function[p+1:]
 		}
 	}
-	return file, function, line
+	return file, function, line, ok
 }

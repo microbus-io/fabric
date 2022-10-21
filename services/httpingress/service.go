@@ -126,8 +126,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Delegate the request over NATS
 	internalRes, err := s.Request(delegateCtx, options...)
 	if err != nil {
+		err = errors.Trace(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
+		w.Write([]byte(fmt.Sprintf("%+v", err)))
 		s.LogError(ctx, "Delegating request", log.Error(err))
 		return
 	}
@@ -153,8 +154,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if internalRes.Body != nil {
 		_, err = io.Copy(w, internalRes.Body)
 		if err != nil {
+			err = errors.Trace(err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
+			w.Write([]byte(fmt.Sprintf("%+v", err)))
 			s.LogError(ctx, "Copying response body", log.Error(err))
 			return
 		}
