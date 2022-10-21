@@ -1,10 +1,14 @@
 # Environment Variables
 
-Several environment variables are used to initialize `Microbus` microservices.
+The `Microbus` framework uses environment variables for various purposes:
+
+* Initializing the connection to NATS
+* Identifying the deployment environment (`PROD`, `LAB`, `LOCAL`)
+* Designating a plane of communication
 
 ## NATS Connection
 
-Before [connecting to NATS](./natsconnection.md), a microservice can't communicate and therefore can't reach the configurator microservice to fetch its config values. Customizing the NATS connection itself is therefore not possible using the standard configuration pattern and is done instead with environment variables: `MICROBUS_NATS`, `MICROBUS_NATS_USER`, `MICROBUS_NATS_PASSWORD` and `MICROBUS_NATS_TOKEN`.
+Before connecting to NATS, a microservice can't communicate with other microservices and therefore it can't reach the configurator microservice to fetch the values of its config properties. Connecting to NATS therefore must precede configuration which means that initializing the NATS connection itself can't be done using the standard configuration pattern. Instead, the [NATS connection is initialized using environment variables](./natsconnection.md): `MICROBUS_NATS`, `MICROBUS_NATS_USER`, `MICROBUS_NATS_PASSWORD` and `MICROBUS_NATS_TOKEN`.
 
 ## Deployment
 

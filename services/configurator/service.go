@@ -27,6 +27,8 @@ type Service struct {
 	mockedConfigYAML       string
 	mockedConfigImportYAML string
 	mockedURLs             map[string]string
+
+	lastPush time.Time
 }
 
 // NewService creates a new configurator microservice
@@ -37,7 +39,8 @@ func NewService() *Service {
 	s.SetDescription("The Configurator is a system microservice that centralizes the dissemination of configuration values to other microservices.")
 	s.SetOnStartup(s.OnStartup)
 	s.Subscribe("/values", s.Values)
-	s.StartTicker("FetchValues", 20*time.Minute, s.fetchValues)
+	s.Subscribe("/refresh", s.Refresh)
+	s.StartTicker("FetchValues", 5*time.Minute, s.fetchValues)
 	// Must not define configs of its own
 	return s
 }
@@ -51,10 +54,10 @@ func (s *Service) OnStartup(ctx context.Context) error {
 	return nil
 }
 
-// ForceRefresh tells all microservices to contact the configurator and refresh their configs.
+// Refresh tells all microservices to contact the configurator and refresh their configs.
 // An error is returned if any of the values sent to the microservices fails validation.
-func (s *Service) ForceRefresh(w http.ResponseWriter, r *http.Request) error {
-	err := s.forceRefresh(r.Context())
+func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) error {
+	err := s.pushRefresh(r.Context())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -63,9 +66,9 @@ func (s *Service) ForceRefresh(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// forceRefresh tells all microservices to contact the configurator and refresh their configs.
+// pushRefresh tells all microservices to contact the configurator and refresh their configs.
 // An error is returned if any of the values sent to the microservices fails validation.
-func (s *Service) forceRefresh(ctx context.Context) error {
+func (s *Service) pushRefresh(ctx context.Context) error {
 	var lastErr error
 	ch := s.Publish(ctx, pub.GET("https://all:888/config/refresh"))
 	for i := range ch {
@@ -196,13 +199,19 @@ func (s *Service) fetchValues(ctx context.Context) error {
 
 	// Replace the old repo with the new repo
 	s.repoLock.Lock()
-	s.repo = &localRepo
+	push := s.lastPush.IsZero() || time.Since(s.lastPush) >= 20*time.Minute || !s.repo.Equals(&localRepo)
+	if push {
+		s.repo = &localRepo
+		s.lastPush = time.Now()
+	}
 	s.repoLock.Unlock()
 
-	// Tell all microservices to refresh their configs even if there was no change in values
-	err = s.forceRefresh(ctx)
-	if err != nil {
-		return errors.Trace(err)
+	// Tell all microservices to refresh their configs
+	if push {
+		err = s.pushRefresh(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	return nil

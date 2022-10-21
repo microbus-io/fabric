@@ -45,3 +45,11 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Context for the `Lifetime` of the microservice
 * Customizable time budget for callbacks
 * Drain pending operations during shutdown
+
+[Milestone 8](https://github.com/microbus-io/fabric/tree/milestone/8):
+
+* Configurator microservice to centralize the dissemination of configuration values to other microservices
+* Config property definition with value validation
+* `Connector` description
+* Update of NATS connection environment variable names
+* Update of deployment and plane environment variable names

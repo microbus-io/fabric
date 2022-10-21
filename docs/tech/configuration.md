@@ -1,47 +1,33 @@
 # Configuration
 
-`Microbus` microservices are configured using environment variables and/or an `env.yaml` file.
+It's quite common for microservices to want to define properties whose values can be configured without code changes, often by non-engineers. Connection strings to a database, number of rows to display in a table, a timeout value, are all examples of configuration properties.
 
-* Values of user-defined configuration properties of microservices
-* Customizing the [NATS connection settings](./natsconnection.md)
-* Identifying the deployment environment (`PROD`, `LAB`, `LOCAL`)
-* Designating a plane of communication
+In `Microbus`, the microservice owns the definition of its config properties, while [the configurator system microservice owns their values](../structure/services-configurator.md). The former means that microservices are self-descriptive and independent, which is important in a distributed development environment. The latter means that managing configuration values and pushing them to a live system are centrally controlled, which is important because configs can contain secrets and because pushing the wrong config values can destabilize a deployment.
 
-## User-Defined Properties
-
-It's quite common for microservices to define configuration properties whose values can be set without code changes, possibly by non-engineers. Connection strings to a database, number of rows to display in a table, a timeout value, are all examples of configuration properties.
-
-In the code, configs are fetched using the `Config(name string) (value string)` method of the `Connector`. Behind the scenes, this method is looking for environment variables that match the name of the config and the host name of the microservice. 
+Configuration properties must first be defined by the microservice using `DefineConfig`. In the following example, the property is named `Foo` and given the default value `Bar` and a regexp requirement that the value is comprised of at least one letter and only letters.
 
 ```go
-c := connector.New("www.example.com")
-foo := c.Config("Foo")
+con.New("www.example.com")
+con.DefineConfig("Foo", cfg.DefaultValue("Bar"), cfg.Validation("str [A-Za-z]+"))
 ```
 
-In this example, the value of `Foo` is fetched from the following environment variables, whichever is located first.
-The hierarchical approach allows for the sharing of config values among microservices. A database connection string is an example of a config that makes sense to share among most if not all microservices.
+Immediately upon startup, the microservice contacts the configurator microservice to ask for the values of its configuration properties. If an override value is available at the configurator, it is set as the new value of the config property; otherwise, the default value of the config property is set instead.
 
-* `MICROBUS_WWWEXAMPLECOM_FOO`
-* `MICROBUS_EXAMPLECOM_FOO`
-* `MICROBUS_COM_FOO`
-* `MICROBUS_ALL_FOO`
+Configs are accessed using the `Config(name string) (value string)` method of the `Connector`. 
 
-If not defined by an environment variable, the value of `Foo` is fetched from an `env.yaml` file that must be located in the current working directory. Here too a hierarchical structure is leveraged to enable sharing configs by looking for the value under `www.example.com`, `example.com`, `com` and `all` sections, whichever is located first. 
-
-```yaml
-# env.yaml
-
-www.example.com:
-  Foo: Bar
-
-example.com:
-  Foo: Baz
-
-com:
-  Foo: Bag
-
-all:
-  Foo: Bam
+```go
+foo := con.Config("Foo")
 ```
 
-Note: Host names, configuration property names and environment variable names are all case-insensitive.
+Note that configuration property names are case-insensitive.
+
+The microservice keeps listening for a command on the control subscription `:888/config/refresh` and will respond by refetching config values from the configurator upon. The configurator issues this command on a periodic basis to ensure that all microservices always have the latest config. If new values are received, they will be set appropriately and the `OnConfigChanged` callback will be invoked.
+
+```go
+con.SetOnConfigChanged(func (ctx context.Context, changed map[string]bool) error {
+	if changed["Foo"] {
+		con.LogInfo(ctx, "Foo changed", log.String("to", con.Config("Foo")))
+	}
+	return nil
+})
+```

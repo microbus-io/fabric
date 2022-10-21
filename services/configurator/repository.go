@@ -75,3 +75,30 @@ func (r *repository) Value(host string, name string) (value string, ok bool) {
 	}
 	return value, ok
 }
+
+// Equals checks for equality of two repos.
+func (r *repository) Equals(rr *repository) bool {
+	if len(r.values) != len(rr.values) {
+		return false
+	}
+
+	for k, v := range r.values {
+		vv, ok := rr.values[k]
+		if !ok {
+			return false
+		}
+		if len(v) != len(vv) {
+			return false
+		}
+		for x, y := range v {
+			yy, ok := vv[x]
+			if !ok {
+				return false
+			}
+			if y != yy {
+				return false
+			}
+		}
+	}
+	return true
+}

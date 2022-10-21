@@ -157,3 +157,56 @@ all:
 		assert.Equal(t, cases[name], ok)
 	}
 }
+
+func TestRepository_Quals(t *testing.T) {
+	t.Parallel()
+
+	var r repository
+	err := r.LoadYAML([]byte(`
+www.example.com:
+  aaa: 111
+example.com:
+  bbb: 222
+  bbbb: 2222
+com:
+  ccc: 333
+all:
+  ddd: 444
+`), "")
+	assert.NoError(t, err)
+
+	var rr repository
+	err = rr.LoadYAML([]byte(`
+# Comment
+example.com:
+  bbbb: 2222
+  bbb: 222
+com:
+  CCC: 333
+all:
+  ddd: 444
+www.example.com:
+  aaa: 111
+`), "")
+	assert.NoError(t, err)
+
+	assert.True(t, r.Equals(&rr))
+	assert.True(t, rr.Equals(&r))
+
+	var rrr repository
+	err = rrr.LoadYAML([]byte(`
+example.com:
+  b: 2
+  bbb: 222
+com:
+  CCC: 333
+all:
+  ddd: 444
+www.example.com:
+  aaa: 111
+`), "")
+	assert.NoError(t, err)
+
+	assert.False(t, r.Equals(&rrr))
+	assert.False(t, rrr.Equals(&r))
+}
