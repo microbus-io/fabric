@@ -15,18 +15,7 @@ func CatchPanic(f func() error) (err error) {
 			} else {
 				err = fmt.Errorf("%v", r)
 			}
-
-			// Capture the stack trace
-			annotations := []string{}
-			for i := 4; ; i++ {
-				_, function, line, ok := errors.RuntimeTrace(i)
-				if !ok {
-					break
-				}
-				annotations = append(annotations, fmt.Sprintf("%v:%d", function, line))
-			}
-
-			err = errors.TraceUp(err, 4, annotations...)
+			err = errors.TraceUp(err, 2)
 		}
 	}()
 	err = f()

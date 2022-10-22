@@ -61,7 +61,7 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 		for _, f := range fields {
 			if f.Type == zapcore.ErrorType && f.Key == "error" {
 				sep := strings.Repeat("~", 120)
-				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep, f.Interface, "\u25b2"+sep)
+				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", f.Interface, "\u25b2"+sep+"\u25b2")
 				break
 			}
 		}
@@ -87,7 +87,7 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 		for _, f := range fields {
 			if f.Type == zapcore.ErrorType && f.Key == "error" {
 				sep := strings.Repeat("~", 120)
-				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep, f.Interface, "\u25b2"+sep)
+				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", f.Interface, "\u25b2"+sep+"\u25b2")
 				break
 			}
 		}

@@ -95,6 +95,7 @@ func (c *Connector) Startup() (err error) {
 	// All errors must be assigned to err.
 	defer func() {
 		if err != nil {
+			c.LogError(c.lifetimeCtx, "Starting up", log.Error(err))
 			c.Shutdown()
 		}
 	}()
@@ -188,19 +189,22 @@ func (c *Connector) Shutdown() error {
 	c.started = false
 
 	var lastErr error
+	defer func() {
+		if lastErr != nil {
+			c.LogError(c.lifetimeCtx, "Shutting down", log.Error(lastErr))
+		}
+	}()
 
 	// Stop all tickers
 	err := c.StopAllTickers()
 	if err != nil {
 		lastErr = errors.Trace(err)
-		c.LogError(c.lifetimeCtx, "Stopping tickers", log.Error(lastErr))
 	}
 
 	// Unsubscribe all handlers
 	err = c.UnsubscribeAll()
 	if err != nil {
 		lastErr = errors.Trace(err)
-		c.LogError(c.lifetimeCtx, "Deactivating subscriptions", log.Error(lastErr))
 	}
 
 	// Drain pending operations (incoming requests and running tickers)
@@ -245,7 +249,6 @@ func (c *Connector) Shutdown() error {
 		cancel()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Shutdown callback", log.Error(lastErr))
 		}
 	}
 
@@ -254,7 +257,6 @@ func (c *Connector) Shutdown() error {
 		err := c.natsResponseSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Unsubscribing response sub", log.Error(lastErr))
 		}
 		c.natsResponseSub = nil
 	}
