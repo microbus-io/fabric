@@ -4,13 +4,13 @@
 
 ## Introduction
 
-`Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices.
+`Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices. Microservices over bus = microbus.
 
-The framework gets involved in three conceptual areas:
+The framework involves itself in three conceptual areas:
 
-* Common runtime - The framework specifies rules that all microservices need to adhere to in runtime. This includes things like how microservices communicate, how they report metrics, where they pull config values from, how they get deployed, etc. A common set of rules is important for proper interoperability and the stability of the system as a whole.
-* RAD tools - The framework introduces tools for the rapid development of microservices. The intent is for application developers to be able to focus on application business logic rather than boilerplate code. Developer productivity is directly correlated to customer value.
-* Building blocks - Certain capabilities that are the building blocks of microservices are standardized and provided by the framework. These serve to facilitate both of the above.
+* Common runtime - The framework specifies rules that all microservices need to comply with during runtime. This includes things like how microservices [communicate](docs/tech/unicast.md), how they report metrics, where they [pull config values](docs/tech/configuration.md) from, how they get deployed, etc. A common set of rules is important for proper interoperability and the stability of the system as a whole
+* RAD tools - The framework introduces tools for the rapid development of microservices with the intent that application developers focus on application business logic rather than boilerplate code. Developer productivity is directly correlated to customer value
+* Building blocks - Certain capabilities that are the building blocks of microservices are standardized and provided by the framework. These serve to facilitate both of the above
 
 `fabric` is the main project that provides the core capabilities that all `Microbus` microservices are built on. The [milestones](docs/milestones.md) of this project are maintained in separate branches in order to demonstrate the thinking process behind the building of this framework.
 
