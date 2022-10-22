@@ -16,20 +16,22 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 	if fragmentMax <= 1 {
 		return r, nil
 	}
+	fromID := frame.Of(r).FromID()
 	msgID := frame.Of(r).MessageID()
+	fragKey := fromID + "|" + msgID
 
 	c.requestDefragsLock.Lock()
-	defragger, ok := c.requestDefrags[msgID]
+	defragger, ok := c.requestDefrags[fragKey]
 	if !ok {
 		defragger = frag.NewDefragRequest()
-		c.requestDefrags[msgID] = defragger
+		c.requestDefrags[fragKey] = defragger
 		// Timeout if fragments stop arriving
 		go func() {
 			for {
 				time.Sleep(c.networkHop / 2)
 				if defragger.LastActivity() > c.networkHop {
 					c.requestDefragsLock.Lock()
-					delete(c.requestDefrags, msgID)
+					delete(c.requestDefrags, fragKey)
 					c.requestDefragsLock.Unlock()
 					break
 				}
@@ -52,7 +54,7 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 	}
 
 	c.requestDefragsLock.Lock()
-	delete(c.requestDefrags, msgID)
+	delete(c.requestDefrags, fragKey)
 	c.requestDefragsLock.Unlock()
 
 	return integrated, nil
@@ -65,20 +67,22 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 	if fragmentMax <= 1 {
 		return r, nil
 	}
+	fromID := frame.Of(r).FromID()
 	msgID := frame.Of(r).MessageID()
+	fragKey := fromID + "|" + msgID
 
 	c.responseDefragsLock.Lock()
-	defragger, ok := c.responseDefrags[msgID]
+	defragger, ok := c.responseDefrags[fragKey]
 	if !ok {
 		defragger = frag.NewDefragResponse()
-		c.responseDefrags[msgID] = defragger
+		c.responseDefrags[fragKey] = defragger
 		// Timeout if fragments stop arriving
 		go func() {
 			for {
 				time.Sleep(c.networkHop / 2)
 				if defragger.LastActivity() > c.networkHop {
 					c.responseDefragsLock.Lock()
-					delete(c.responseDefrags, msgID)
+					delete(c.responseDefrags, fragKey)
 					c.responseDefragsLock.Unlock()
 					break
 				}
@@ -101,7 +105,7 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 	}
 
 	c.responseDefragsLock.Lock()
-	delete(c.responseDefrags, msgID)
+	delete(c.responseDefrags, fragKey)
 	c.responseDefragsLock.Unlock()
 
 	return integrated, nil
