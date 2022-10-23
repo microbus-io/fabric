@@ -34,6 +34,16 @@ Upgrade-Insecure-Requests: 1
 
 The `/ping` endpoint broadcasts a ping to discover the identity of all microservices running on the cluster.
 
+```
+bvtgii68r8.messaging.example
+mv2pcoockl.messaging.example
+r52l78kha4.messaging.example
+pa6r5ohm5h.hello.example
+0iij3m5fhf.http.ingress.sys
+7k9f82n45f.configurator.sys
+n89hmtb9iq.calculator.example
+```
+
 The `/hello` endpoint renders a simple greeting. It demonstrates the use of configs as well as taking in arguments from the URL. The single endpoint `/hello` takes in a query argument `name` and prints the greeting specified in the `Greeting` config, repeated as many times as indicate by the `Repeat` config. The values of these configs are set in `examples/main/env.yaml`.
 
 http://localhost:8080/hello.example/hello?name=Bella prints:

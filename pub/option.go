@@ -25,7 +25,11 @@ func Method(method string) Option {
 // URL sets the URL of the request
 func URL(url string) Option {
 	return func(req *Request) error {
-		req.URL = url
+		u, err := utils.ParseURL(url)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		req.URL = u.String()
 		return nil
 	}
 }
@@ -33,8 +37,11 @@ func URL(url string) Option {
 // GET sets the method and URL of the request
 func GET(url string) Option {
 	return func(req *Request) error {
+		err := req.Apply(URL(url))
+		if err != nil {
+			return errors.Trace(err)
+		}
 		req.Method = "GET"
-		req.URL = url
 		return nil
 	}
 }
@@ -42,8 +49,11 @@ func GET(url string) Option {
 // POST sets the method and URL of the request
 func POST(url string) Option {
 	return func(req *Request) error {
+		err := req.Apply(URL(url))
+		if err != nil {
+			return errors.Trace(err)
+		}
 		req.Method = "POST"
-		req.URL = url
 		return nil
 	}
 }

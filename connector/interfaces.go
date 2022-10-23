@@ -48,7 +48,7 @@ type Publisher interface {
 
 // Subscriber is the interface that the connector supports for subscribing to handle incoming requests
 type Subscriber interface {
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Subscribe(path string, handler HTTPHandler, options ...sub.Option) error
 	Unsubscribe(path string) error
 	UnsubscribeAll() error
 }

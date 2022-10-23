@@ -64,7 +64,7 @@ func AlphaNum32(length int) string {
 	return string(bytes)
 }
 
-// Intn generates a random number between 0 and n
+// Intn generates a random number in the range [0,n).
 func Intn(n int) int {
 	r := pool.Get().(*mathrand.Rand)
 	reseed(r)

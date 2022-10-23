@@ -2,17 +2,13 @@ package sub
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
-
-// HTTPHandler extends the standard http.Handler to also return an error
-type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
 
 // Subscription handles incoming requests.
 // Although technically public, it is used internally and should not be constructed by microservices directly
@@ -21,7 +17,7 @@ type Subscription struct {
 	Port      int
 	Path      string
 	Queue     string
-	Handler   HTTPHandler
+	Handler   any
 	HostSub   *nats.Subscription
 	DirectSub *nats.Subscription
 }
@@ -43,7 +39,7 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func NewSub(defaultHost string, path string, options ...Option) (*Subscription, error) {
+func NewSub(defaultHost string, path string, handler any, options ...Option) (*Subscription, error) {
 	spec := path
 	if path == "" {
 		// (empty)
@@ -59,28 +55,21 @@ func NewSub(defaultHost string, path string, options ...Option) (*Subscription, 
 		spec = "https://" + defaultHost + ":443/" + path
 	}
 
-	u, err := url.Parse(spec)
+	u, err := utils.ParseURL(spec)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	// Port
 	port := 443
-	if u.Port() != "" {
-		port, err = strconv.Atoi(u.Port())
-		if err != nil {
-			return nil, errors.Newf("invalid port: %s", u.Port())
-		}
-	}
-	if port < 0 || port > 65535 {
-		return nil, errors.Newf("invalid port: %d", port)
-	}
+	port, _ = strconv.Atoi(u.Port())
 
 	sub := &Subscription{
-		Host:  u.Hostname(),
-		Port:  port,
-		Path:  u.Path,
-		Queue: defaultHost,
+		Host:    u.Hostname(),
+		Port:    port,
+		Path:    u.Path,
+		Queue:   defaultHost,
+		Handler: handler,
 	}
 	err = sub.Apply(options...)
 	if err != nil {
@@ -102,5 +91,5 @@ func (sub *Subscription) Apply(options ...Option) error {
 
 // Canonical returns the fully-qualified canonical path of the subscription
 func (sub *Subscription) Canonical() string {
-	return fmt.Sprintf("https://%s:%d%s", sub.Host, sub.Port, sub.Path)
+	return fmt.Sprintf("%s:%d%s", sub.Host, sub.Port, sub.Path)
 }

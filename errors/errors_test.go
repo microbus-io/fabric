@@ -12,8 +12,8 @@ import (
 func TestErrors_RuntimeTrace(t *testing.T) {
 	t.Parallel()
 
-	file, function, line1 := runtimeTrace(0)
-	_, _, line2 := runtimeTrace(0)
+	file, function, line1, _ := RuntimeTrace(0)
+	_, _, line2, _ := RuntimeTrace(0)
 	assert.Contains(t, file, "errors_test.go")
 	assert.Equal(t, "errors.TestErrors_RuntimeTrace", function)
 	assert.Equal(t, line1+1, line2)

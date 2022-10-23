@@ -90,4 +90,22 @@ func TestFrame_GetSet(t *testing.T) {
 	f.SetTimeBudget(0)
 	budget = f.TimeBudget()
 	assert.Equal(t, time.Duration(0), budget)
+
+	assert.Equal(t, "", f.Queue())
+	f.SetQueue("1234567890")
+	assert.Equal(t, "1234567890", f.Queue())
+	f.SetQueue("")
+	assert.Equal(t, "", f.Queue())
+
+	fi, fm := f.Fragment()
+	assert.Equal(t, 1, fi)
+	assert.Equal(t, 1, fm)
+	f.SetFragment(2, 5)
+	fi, fm = f.Fragment()
+	assert.Equal(t, fi, 2)
+	assert.Equal(t, fm, 5)
+	f.SetFragment(0, 0)
+	fi, fm = f.Fragment()
+	assert.Equal(t, fi, 1)
+	assert.Equal(t, fm, 1)
 }

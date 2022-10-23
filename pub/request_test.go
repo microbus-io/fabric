@@ -146,3 +146,19 @@ func toHTTP(req *Request) (*http.Request, error) {
 	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
 	return httpReq, nil
 }
+
+func TestPub_Canonical(t *testing.T) {
+	t.Parallel()
+
+	r, err := NewRequest(GET("https://www.example.com:334/path?a=5&b=6")) // https
+	assert.NoError(t, err)
+	assert.Equal(t, "https://www.example.com:334/path", r.Canonical())
+
+	r, err = NewRequest(GET("http://www.example.com/path")) // http
+	assert.NoError(t, err)
+	assert.Equal(t, "http://www.example.com:80/path", r.Canonical())
+
+	r, err = NewRequest(GET("//www.example.com/path")) // no scheme
+	assert.NoError(t, err)
+	assert.Equal(t, "https://www.example.com:443/path", r.Canonical())
+}

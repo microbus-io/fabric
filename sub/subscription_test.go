@@ -30,7 +30,7 @@ func TestSub_NewSub(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		s, err := NewSub("www.example.com", tc.spec)
+		s, err := NewSub("www.example.com", tc.spec, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.expectedHost, s.Host)
 		assert.Equal(t, tc.expectedPort, s.Port)
@@ -48,7 +48,45 @@ func TestSub_InvalidPort(t *testing.T) {
 		"https://bad.example.com:1000000/path",
 	}
 	for _, s := range badSpecs {
-		_, err := NewSub("www.example.com", s)
+		_, err := NewSub("www.example.com", s, nil)
 		assert.Error(t, err)
 	}
+}
+
+func TestSub_Apply(t *testing.T) {
+	t.Parallel()
+
+	s, err := NewSub("www.example.com", "/path", nil)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "www.example.com", s.Queue)
+	s.Apply(NoQueue())
+	assert.Equal(t, "", s.Queue)
+	s.Apply(Queue("foo"))
+	assert.Equal(t, "foo", s.Queue)
+	s.Apply(DefaultQueue())
+	assert.Equal(t, "www.example.com", s.Queue)
+	s.Apply(Pervasive())
+	assert.Equal(t, "", s.Queue)
+	s.Apply(LoadBalanced())
+	assert.Equal(t, "www.example.com", s.Queue)
+
+	err = s.Apply(Queue("$$$"))
+	assert.Error(t, err)
+}
+
+func TestSub_Canonical(t *testing.T) {
+	t.Parallel()
+
+	s, err := NewSub("www.example.com", ":334/path", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "www.example.com:334/path", s.Canonical())
+
+	s, err = NewSub("www.example.com", "/path", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "www.example.com:443/path", s.Canonical()) // default port 443
+
+	s, err = NewSub("www.example.com", "http://zzz.example.com/path", nil) // http
+	assert.NoError(t, err)
+	assert.Equal(t, "zzz.example.com:80/path", s.Canonical()) // default port 80 for http
 }

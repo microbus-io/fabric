@@ -13,8 +13,7 @@ func TestConnector_Ping(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
-	con.SetHostName("ping.connector")
+	con := New("ping.connector")
 
 	// Startup the microservice
 	err := con.Startup()

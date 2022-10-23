@@ -1,272 +1,99 @@
 package connector
 
 import (
-	"os"
+	"context"
+	"net/http"
 	"testing"
-	"time"
 
+	"github.com/microbus-io/fabric/cfg"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnector_ReadEnvars(t *testing.T) {
+func TestConnector_InitConfig(t *testing.T) {
 	t.Parallel()
 
-	environ := []string{
-		"Path=...",
-		"MICROBUS_WWWEXAMPLECOM_AAA=111",
-		"MICROBUS_EXAMPLECOM_AAA=XXX",    // Less specific key, should not override
-		"MICROBUS_WWWANOTHERCOM_AAA=XXX", // Property of another service, should not override
-		"WWWEXAMPLECOM_AAA=XXX",          // Must have microbus prefix
-		"MICROBUS_EXAMPLECOM_BBB=222",
-		"microbus_com_ccc=333", // Lowercase should work
-		"MICROBUS_all_DDD=444",
-		"MICROBUS_XXX=XXX",
-		"MICROBUS=XXX",
-		"MICROBUS_ALL_OVERRIDE=0",
-		"MICROBUS_COM_OVERRIDE=1",
-		"MICROBUS_EXAMPLECOM_OVERRIDE=2",
-	}
+	plane := rand.AlphaNum64(12)
 
-	configs := map[string]*config{}
-	readEnvars("www.example.com", environ, configs)
-	assert.Len(t, configs, 5)
+	// Mock config service
+	mockCfg := New("configurator.sys")
+	mockCfg.SetPlane(plane)
+	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{}"))
+		return nil
+	})
 
-	assert.Equal(t, &config{
-		source: "Environ",
-		scope:  "www.example.com",
-		name:   "AAA",
-		value:  "111",
-	}, configs["aaa"])
-	assert.Equal(t, &config{
-		source: "Environ",
-		scope:  "example.com",
-		name:   "BBB",
-		value:  "222",
-	}, configs["bbb"])
-	assert.Equal(t, &config{
-		source: "Environ",
-		scope:  "com",
-		name:   "ccc",
-		value:  "333",
-	}, configs["ccc"])
-	assert.Equal(t, &config{
-		source: "Environ",
-		scope:  "all",
-		name:   "DDD",
-		value:  "444",
-	}, configs["ddd"])
-	assert.Equal(t, &config{
-		source: "Environ",
-		scope:  "example.com",
-		name:   "OVERRIDE",
-		value:  "2",
-	}, configs["override"])
+	err := mockCfg.Startup()
+	assert.NoError(t, err)
+	defer mockCfg.Shutdown()
+
+	// Connector
+	con := New("init.config.connector")
+	con.SetPlane(plane)
+
+	err = con.DefineConfig("s")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", con.Config("s"))
+	err = con.InitConfig("s", "string")
+	assert.NoError(t, err)
+	assert.Equal(t, "string", con.Config("s"))
+
+	err = con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	assert.Equal(t, "string", con.Config("s"))
+
+	err = con.InitConfig("s", "something")
+	assert.Error(t, err)
+
+	assert.Equal(t, "string", con.Config("s"))
 }
 
-func TestConnector_ReadEnvYaml(t *testing.T) {
+func TestConnector_FetchConfig(t *testing.T) {
 	t.Parallel()
 
-	envYaml := []byte(`
-# Comments should be ok
-www.example.com:
-  aaa: 111
-  multiline: |-
-    Line1
-    Line2
-example.com:
-  aaa: xxx
-  bbb: 222
-  override: 2
+	plane := rand.AlphaNum64(12)
 
-com:
-  CCC: 333
-  override: 1
+	// Mock a config service
+	mockCfg := New("configurator.sys")
+	mockCfg.SetPlane(plane)
+	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"values":{"foo":"baz","int":"$$$"}}`))
+		return nil
+	})
 
-www.another.com:
-  aaa: xxx
-empty:
-
-all:
-  ddd: 444
-  override: 0
-`)
-
-	configs := map[string]*config{}
-	readEnvYamlFile("www.example.com", envYaml, configs)
-	assert.Len(t, configs, 6)
-
-	assert.Equal(t, &config{
-		source: "Env.yaml",
-		scope:  "www.example.com",
-		name:   "aaa",
-		value:  "111",
-	}, configs["aaa"])
-	assert.Equal(t, &config{
-		source: "Env.yaml",
-		scope:  "example.com",
-		name:   "bbb",
-		value:  "222",
-	}, configs["bbb"])
-	assert.Equal(t, &config{
-		source: "Env.yaml",
-		scope:  "com",
-		name:   "CCC",
-		value:  "333",
-	}, configs["ccc"])
-	assert.Equal(t, &config{
-		source: "Env.yaml",
-		scope:  "all",
-		name:   "ddd",
-		value:  "444",
-	}, configs["ddd"])
-	assert.Equal(t, &config{
-		source: "Env.yaml",
-		scope:  "www.example.com",
-		name:   "multiline",
-		value:  "Line1\nLine2",
-	}, configs["multiline"])
-}
-
-func TestConnector_SetConfig(t *testing.T) {
-	t.Parallel()
-
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.setconfig.connector")
-	err := alpha.Startup()
+	err := mockCfg.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer mockCfg.Shutdown()
 
-	_, ok := alpha.Config("s")
-	assert.False(t, ok)
-	_, ok = alpha.Config("i")
-	assert.False(t, ok)
-	_, ok = alpha.Config("b")
-	assert.False(t, ok)
-	_, ok = alpha.Config("dur")
-	assert.False(t, ok)
-
-	alpha.SetConfig("s", "string")
-	alpha.SetConfigInt("i", 123)
-	alpha.SetConfigBool("b", true)
-	alpha.SetConfigDuration("dur", time.Minute)
-
-	s, ok := alpha.Config("s")
-	if assert.True(t, ok) {
-		assert.Equal(t, "string", s)
-	}
-	i, ok := alpha.ConfigInt("i")
-	if assert.True(t, ok) {
-		assert.Equal(t, 123, i)
-	}
-	b, ok := alpha.ConfigBool("b")
-	if assert.True(t, ok) {
-		assert.Equal(t, true, b)
-	}
-	dur, ok := alpha.ConfigDuration("dur")
-	if assert.True(t, ok) {
-		assert.Equal(t, time.Minute, dur)
-	}
-}
-
-func TestConnector_EnvYaml(t *testing.T) {
-	// No parallel
-
-	// Create an env file
-	_, err := os.Stat("env.yaml")
-	if err == nil {
-		// Do not overwrite if a file already exists
-		t.Skip()
-	}
-	err = os.WriteFile("env.yaml", []byte(`
-alpha.envyaml.connector:
-  aaa: 111
-envyaml.connector:
-  aaa: 222
-  bbb: 222
-connector:
-  aaa: 333
-  bbb: 333
-  ccc: 333
-all:
-  aaa: 444
-  bbb: 444
-  ccc: 444
-  ddd: 444
-`), 0666)
+	// Connector
+	con := New("fetch.config.connector")
+	con.SetPlane(plane)
+	err = con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	assert.NoError(t, err)
-	defer os.Remove("env.yaml")
-
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.envyaml.connector")
-	err = alpha.Startup()
+	err = con.DefineConfig("int", cfg.Validation("int"), cfg.DefaultValue("5"))
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
-
-	v, ok := alpha.Config("aaa")
-	if assert.True(t, ok) {
-		assert.Equal(t, "111", v)
-	}
-	v, ok = alpha.Config("bbb")
-	if assert.True(t, ok) {
-		assert.Equal(t, "222", v)
-	}
-	v, ok = alpha.Config("ccc")
-	if assert.True(t, ok) {
-		assert.Equal(t, "333", v)
-	}
-	v, ok = alpha.Config("ddd")
-	if assert.True(t, ok) {
-		assert.Equal(t, "444", v)
-	}
-}
-
-func TestConnector_Environ(t *testing.T) {
-	// No parallel
-
-	os.Setenv("MICROBUS_ALPHAENVIRONCONNECTOR_AAA", "111")
-	os.Setenv("MICROBUS_ENVIRONCONNECTOR_AAA", "222")
-	os.Setenv("MICROBUS_ENVIRONCONNECTOR_BBB", "222")
-	os.Setenv("MICROBUS_CONNECTOR_AAA", "333")
-	os.Setenv("MICROBUS_CONNECTOR_BBB", "333")
-	os.Setenv("MICROBUS_CONNECTOR_CCC", "333")
-	os.Setenv("MICROBUS_ALL_AAA", "444")
-	os.Setenv("MICROBUS_ALL_BBB", "444")
-	os.Setenv("MICROBUS_ALL_CCC", "444")
-	os.Setenv("MICROBUS_ALL_DDD", "444")
-
-	defer func() {
-		os.Setenv("MICROBUS_ALPHAENVIRONCONNECTOR_AAA", "")
-		os.Setenv("MICROBUS_ENVIRONCONNECTOR_AAA", "")
-		os.Setenv("MICROBUS_ENVIRONCONNECTOR_BBB", "")
-		os.Setenv("MICROBUS_CONNECTOR_AAA", "")
-		os.Setenv("MICROBUS_CONNECTOR_BBB", "")
-		os.Setenv("MICROBUS_CONNECTOR_CCC", "")
-		os.Setenv("MICROBUS_ALL_AAA", "")
-		os.Setenv("MICROBUS_ALL_BBB", "")
-		os.Setenv("MICROBUS_ALL_CCC", "")
-		os.Setenv("MICROBUS_ALL_DDD", "")
-	}()
-
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.environ.connector")
-	err := alpha.Startup()
+	callbackCalled := false
+	err = con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
+		assert.True(t, changed("FOO"))
+		assert.False(t, changed("int"))
+		callbackCalled = true
+		return nil
+	})
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
 
-	v, ok := alpha.Config("aaa")
-	if assert.True(t, ok) {
-		assert.Equal(t, "111", v)
-	}
-	v, ok = alpha.Config("bbb")
-	if assert.True(t, ok) {
-		assert.Equal(t, "222", v)
-	}
-	v, ok = alpha.Config("ccc")
-	if assert.True(t, ok) {
-		assert.Equal(t, "333", v)
-	}
-	v, ok = alpha.Config("ddd")
-	if assert.True(t, ok) {
-		assert.Equal(t, "444", v)
-	}
+	assert.Equal(t, "bar", con.Config("foo"))
+	assert.Equal(t, "5", con.Config("int"))
+
+	err = con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	assert.Equal(t, "baz", con.Config("foo"), "New value should be read from configurator")
+	assert.Equal(t, "5", con.Config("int"), "Invalid value should not be accepted")
+	assert.True(t, callbackCalled)
 }

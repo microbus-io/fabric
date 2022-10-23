@@ -17,9 +17,9 @@ type Service struct {
 // NewService creates a new calculator microservice
 func NewService() *Service {
 	s := &Service{
-		Connector: connector.NewConnector(),
+		Connector: connector.New("calculator.example"),
 	}
-	s.SetHostName("calculator.example")
+	s.SetDescription("The Calculator microservice performs simple mathematical operations.")
 	s.Subscribe("/arithmetic", s.Arithmetic)
 	s.Subscribe("/square", s.Square)
 	return s
@@ -56,7 +56,7 @@ func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) error {
 	case "/":
 		rr = xx / yy
 	default:
-		return errors.Newf("invalid operator %s", op)
+		return errors.Newf("invalid operator '%s'", op)
 	}
 
 	// Print the result

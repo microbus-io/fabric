@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,8 +15,7 @@ func TestConnector_StartupShutdown(t *testing.T) {
 
 	var startupCalled, shutdownCalled bool
 
-	con := NewConnector()
-	con.SetHostName("startup.shutdown.connector")
+	con := New("startup.shutdown.connector")
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return nil
@@ -49,8 +47,7 @@ func TestConnector_StartupError(t *testing.T) {
 
 	var startupCalled, shutdownCalled bool
 
-	con := NewConnector()
-	con.SetHostName("startup.error.connector")
+	con := New("startup.error.connector")
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return errors.New("oops")
@@ -80,8 +77,7 @@ func TestConnector_StartupError(t *testing.T) {
 func TestConnector_StartupPanic(t *testing.T) {
 	t.Parallel()
 
-	con := NewConnector()
-	con.SetHostName("startup.panic.connector")
+	con := New("startup.panic.connector")
 	con.SetOnStartup(func(ctx context.Context) error {
 		panic("really bad")
 	})
@@ -93,8 +89,7 @@ func TestConnector_StartupPanic(t *testing.T) {
 func TestConnector_ShutdownPanic(t *testing.T) {
 	t.Parallel()
 
-	con := NewConnector()
-	con.SetHostName("shutdown.panic.connector")
+	con := New("shutdown.panic.connector")
 	con.SetOnShutdown(func(ctx context.Context) error {
 		panic("really bad")
 	})
@@ -108,48 +103,34 @@ func TestConnector_ShutdownPanic(t *testing.T) {
 func TestConnector_StartupTimeout(t *testing.T) {
 	t.Parallel()
 
-	mockClock := clock.NewMock()
+	con := New("startup.timeout.connector")
 
-	con := NewConnector()
-	con.SetHostName("startup.timeout.connector")
-	con.SetClock(mockClock)
-
-	step := make(chan bool)
+	done := make(chan bool)
 	con.SetOnStartup(func(ctx context.Context) error {
-		step <- true
 		<-ctx.Done()
-		step <- true
-		return nil
-	}, cb.TimeBudget(time.Second*10))
+		return ctx.Err()
+	}, cb.TimeBudget(500*time.Millisecond))
 
 	go func() {
 		err := con.Startup()
-		assert.NoError(t, err)
+		assert.Error(t, err)
+		done <- true
 	}()
-	<-step
-	mockClock.Add(time.Second * 15)
-	<-step
-	assert.True(t, con.IsStarted())
-
-	con.Shutdown()
+	time.Sleep(600 * time.Millisecond)
+	<-done
+	assert.False(t, con.IsStarted())
 }
 
 func TestConnector_ShutdownTimeout(t *testing.T) {
 	t.Parallel()
 
-	mockClock := clock.NewMock()
+	con := New("shutdown.timeout.connector")
 
-	con := NewConnector()
-	con.SetHostName("shutdown.timeout.connector")
-	con.SetClock(mockClock)
-
-	step := make(chan bool)
+	done := make(chan bool)
 	con.SetOnShutdown(func(ctx context.Context) error {
-		step <- true
 		<-ctx.Done()
-		step <- true
-		return nil
-	}, cb.TimeBudget(time.Second*10))
+		return ctx.Err()
+	}, cb.TimeBudget(500*time.Millisecond))
 
 	err := con.Startup()
 	assert.NoError(t, err)
@@ -157,10 +138,10 @@ func TestConnector_ShutdownTimeout(t *testing.T) {
 
 	go func() {
 		err := con.Shutdown()
-		assert.NoError(t, err)
+		assert.Error(t, err)
+		done <- true
 	}()
-	<-step
-	mockClock.Add(time.Second * 15)
-	<-step
+	time.Sleep(600 * time.Millisecond)
+	<-done
 	assert.False(t, con.IsStarted())
 }

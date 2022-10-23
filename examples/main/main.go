@@ -5,6 +5,7 @@ import (
 	"github.com/microbus-io/fabric/examples/calculator"
 	"github.com/microbus-io/fabric/examples/hello"
 	"github.com/microbus-io/fabric/examples/messaging"
+	"github.com/microbus-io/fabric/services/configurator"
 	"github.com/microbus-io/fabric/services/httpingress"
 )
 
@@ -24,6 +25,7 @@ Try the following URLs:
 */
 func main() {
 	app := application.New(
+		configurator.NewService(),
 		httpingress.NewService(),
 		hello.NewService(),
 		messaging.NewService(),

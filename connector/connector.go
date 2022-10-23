@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 )
@@ -26,9 +28,10 @@ It provides the microservice such functions as connecting to the NATS messaging 
 communications with other microservices, logging, config, etc.
 */
 type Connector struct {
-	hostName   string
-	id         string
-	deployment string
+	hostName    string
+	id          string
+	deployment  string
+	description string
 
 	onStartup       *cb.Callback
 	onShutdown      *cb.Callback
@@ -58,14 +61,15 @@ type Connector struct {
 	knownResponders     map[string]map[string]bool
 	knownRespondersLock sync.Mutex
 
-	configs    map[string]*config
-	configLock sync.Mutex
+	configs         map[string]*cfg.Config
+	configLock      sync.Mutex
+	onConfigChanged *cb.Callback
 
 	logger *zap.Logger
 
 	clock       *clock.ClockReference
 	clockSet    bool
-	tickers     map[string]*tickerCallback
+	tickers     map[string]*cb.Callback
 	tickersLock sync.Mutex
 }
 
@@ -74,7 +78,7 @@ func NewConnector() *Connector {
 	c := &Connector{
 		id:              strings.ToLower(rand.AlphaNum32(10)),
 		reqs:            map[string]chan *http.Response{},
-		configs:         map[string]*config{},
+		configs:         map[string]*cfg.Config{},
 		networkHop:      250 * time.Millisecond,
 		maxCallDepth:    64,
 		subs:            map[string]*sub.Subscription{},
@@ -82,10 +86,17 @@ func NewConnector() *Connector {
 		requestDefrags:  map[string]*frag.DefragRequest{},
 		responseDefrags: map[string]*frag.DefragResponse{},
 		clock:           clock.NewClockReference(clock.New()),
-		tickers:         map[string]*tickerCallback{},
+		tickers:         map[string]*cb.Callback{},
 		lifetimeCtx:     context.Background(),
 	}
 
+	return c
+}
+
+// New constructs a new Connector with the given host name.
+func New(hostName string) *Connector {
+	c := NewConnector()
+	c.SetHostName(hostName)
 	return c
 }
 
@@ -99,17 +110,16 @@ func (c *Connector) ID() string {
 // Segments are separated by dots.
 // For example, this.is.a.valid.hostname.123.local
 func (c *Connector) SetHostName(hostName string) error {
-	hostName = strings.TrimSpace(strings.ToLower(hostName))
-	match, err := regexp.MatchString(`^[a-z0-9]+(\.[a-z0-9]+)*$`, hostName)
-	if err != nil {
+	if c.started {
+		return errors.New("already started")
+	}
+	hostName = strings.TrimSpace(hostName)
+	if err := utils.ValidateHostName(hostName); err != nil {
 		return errors.Trace(err)
 	}
-	if hostName == "all" || strings.HasSuffix(hostName, ".all") {
-		// The hostname "all" is reserved to refer to all microservices
-		match = false
-	}
-	if !match {
-		return errors.Newf("invalid host name: %s", hostName)
+	hn := strings.ToLower(hostName)
+	if hn == "all" || strings.HasSuffix(hn, ".all") {
+		return errors.Newf("disallowed host name '%s'", hostName)
 	}
 	c.hostName = hostName
 	return nil
@@ -119,6 +129,17 @@ func (c *Connector) SetHostName(hostName string) error {
 // A microservice is addressable by its host name.
 func (c *Connector) HostName() string {
 	return c.hostName
+}
+
+// SetDescription sets a human-friendly description of the microservice.
+func (c *Connector) SetDescription(description string) error {
+	c.description = description
+	return nil
+}
+
+// Description returns the human-friendly description of the microservice.
+func (c *Connector) Description() string {
+	return c.description
 }
 
 // Deployment environments
@@ -150,7 +171,7 @@ func (c *Connector) SetDeployment(deployment string) error {
 	}
 	deployment = strings.ToUpper(deployment)
 	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL {
-		return errors.Newf("invalid deployment: %s", deployment)
+		return errors.Newf("invalid deployment '%s'", deployment)
 	}
 	c.deployment = deployment
 	return nil
@@ -189,15 +210,15 @@ func (c *Connector) connectToNATS() error {
 	opts = append(opts, nats.Name(c.id+"."+c.hostName))
 
 	// URL
-	u, _ := c.Config("NATS")
+	u := os.Getenv("MICROBUS_NATS")
 	if u == "" {
 		u = "nats://127.0.0.1:4222"
 	}
 
 	// Credentials
-	user, _ := c.Config("NATSUser")
-	pw, _ := c.Config("NATSPassword")
-	token, _ := c.Config("NATSToken")
+	user := os.Getenv("MICROBUS_NATS_USER")
+	pw := os.Getenv("MICROBUS_NATS_PASSWORD")
+	token := os.Getenv("MICROBUS_NATS_TOKEN")
 	if user != "" && pw != "" {
 		opts = append(opts, nats.UserInfo(user, pw))
 	}
@@ -210,22 +231,11 @@ func (c *Connector) connectToNATS() error {
 		_, err := os.Stat(fileName)
 		return err == nil
 	}
-	hostSegments := strings.Split(c.hostName, ".")
-	var foundCA, foundCertKey bool
-	for i := 0; i <= len(hostSegments); i++ {
-		host := strings.Join(hostSegments[i:], ".")
-		if host == "" {
-			host = "all"
-		}
-		host += "-"
-		if !foundCA && exists(host+"ca.pem") {
-			opts = append(opts, nats.RootCAs(host+"ca.pem"))
-			foundCA = true
-		}
-		if !foundCertKey && exists(host+"cert.pem") && exists(host+"key.pem") {
-			opts = append(opts, nats.ClientCert(host+"cert.pem", host+"key.pem"))
-			foundCertKey = true
-		}
+	if exists("ca.pem") {
+		opts = append(opts, nats.RootCAs("ca.pem"))
+	}
+	if exists("cert.pem") && exists("key.pem") {
+		opts = append(opts, nats.ClientCert("cert.pem", "key.pem"))
 	}
 
 	// Connect
@@ -235,7 +245,7 @@ func (c *Connector) connectToNATS() error {
 	}
 
 	// Log connection events
-	ctx := context.Background()
+	ctx := c.Lifetime()
 	c.LogInfo(ctx, "Connected to NATS", log.String("url", cn.ConnectedUrl()))
 	cn.SetDisconnectHandler(func(n *nats.Conn) {
 		c.LogInfo(ctx, "Disconnected from NATS", log.String("url", cn.ConnectedUrl()))

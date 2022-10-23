@@ -19,8 +19,7 @@ func TestConnector_Frag(t *testing.T) {
 
 	// Create the microservice
 	var bodyReceived []byte
-	con := NewConnector()
-	con.SetHostName("frag.connector")
+	con := New("frag.connector")
 	con.Subscribe("big", func(w http.ResponseWriter, r *http.Request) error {
 		var err error
 		bodyReceived, err = io.ReadAll(r.Body)
@@ -54,8 +53,7 @@ func TestConnector_FragMulticast(t *testing.T) {
 
 	// Create the microservices
 	var alphaBodyReceived []byte
-	alpha := NewConnector()
-	alpha.SetHostName("frag.multicast.connector")
+	alpha := New("frag.multicast.connector")
 	alpha.Subscribe("big", func(w http.ResponseWriter, r *http.Request) error {
 		var err error
 		alphaBodyReceived, err = io.ReadAll(r.Body)
@@ -65,8 +63,7 @@ func TestConnector_FragMulticast(t *testing.T) {
 	}, sub.NoQueue())
 
 	var betaBodyReceived []byte
-	beta := NewConnector()
-	beta.SetHostName("frag.multicast.connector")
+	beta := New("frag.multicast.connector")
 	beta.Subscribe("big", func(w http.ResponseWriter, r *http.Request) error {
 		var err error
 		betaBodyReceived, err = io.ReadAll(r.Body)
@@ -83,8 +80,8 @@ func TestConnector_FragMulticast(t *testing.T) {
 	assert.NoError(t, err)
 	defer beta.Shutdown()
 
-	alpha.maxFragmentSize = 128
-	beta.maxFragmentSize = 128
+	alpha.maxFragmentSize = 1024
+	beta.maxFragmentSize = 1024
 
 	// Prepare the body to send
 	bodySent := []byte(rand.AlphaNum64(int(alpha.maxFragmentSize)*2 + 16))
@@ -113,8 +110,7 @@ func TestConnector_FragLoadBalanced(t *testing.T) {
 
 	// Create the microservices
 	var alphaBodyReceived []byte
-	alpha := NewConnector()
-	alpha.SetHostName("frag.load.balanced.connector")
+	alpha := New("frag.load.balanced.connector")
 	alpha.Subscribe("big", func(w http.ResponseWriter, r *http.Request) error {
 		var err error
 		alphaBodyReceived, err = io.ReadAll(r.Body)
@@ -124,8 +120,7 @@ func TestConnector_FragLoadBalanced(t *testing.T) {
 	}, sub.LoadBalanced())
 
 	var betaBodyReceived []byte
-	beta := NewConnector()
-	beta.SetHostName("frag.load.balanced.connector")
+	beta := New("frag.load.balanced.connector")
 	beta.Subscribe("big", func(w http.ResponseWriter, r *http.Request) error {
 		var err error
 		betaBodyReceived, err = io.ReadAll(r.Body)
@@ -174,8 +169,7 @@ func BenchmarkConnector_Frag(b *testing.B) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
-	con.SetHostName("frag.benchmark.connector")
+	con := New("frag.benchmark.connector")
 	con.Subscribe("big", func(w http.ResponseWriter, r *http.Request) error {
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(b, err)

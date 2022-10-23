@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
@@ -27,28 +28,29 @@ type Service struct {
 // NewService creates a new HTTP ingress microservice
 func NewService() *Service {
 	s := &Service{
-		Connector: connector.NewConnector(),
+		Connector: connector.New("http.ingress.sys"),
 	}
-	s.SetHostName("http.ingress.sys")
+	s.SetDescription("The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.")
 	s.SetOnStartup(s.OnStartup)
 	s.SetOnShutdown(s.OnShutdown)
-
+	s.DefineConfig("TimeBudget", cfg.DefaultValue("20s"), cfg.Validation("dur [1s,5m]"))
+	s.DefineConfig("Port", cfg.DefaultValue("8080"), cfg.Validation("int [1,65535]"))
 	return s
 }
 
 // OnStartup starts the web server
 func (s *Service) OnStartup(ctx context.Context) error {
 	// Time budget for requests
-	var ok bool
-	s.timeBudget, ok = s.ConfigDuration("TimeBudget")
-	if !ok {
-		s.timeBudget = time.Second * 20
+	var err error
+	s.timeBudget, err = time.ParseDuration(s.Config("TimeBudget"))
+	if err != nil {
+		return errors.Trace(err)
 	}
 
 	// Incoming HTTP port
-	s.httpPort, ok = s.ConfigInt("Port")
-	if !ok {
-		s.httpPort = 8080
+	s.httpPort, err = strconv.Atoi(s.Config("Port"))
+	if err != nil {
+		return errors.Trace(err)
 	}
 
 	// Start HTTP server
@@ -124,8 +126,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Delegate the request over NATS
 	internalRes, err := s.Request(delegateCtx, options...)
 	if err != nil {
+		err = errors.Trace(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
+		w.Write([]byte(fmt.Sprintf("%+v", err)))
 		s.LogError(ctx, "Delegating request", log.Error(err))
 		return
 	}
@@ -151,8 +154,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if internalRes.Body != nil {
 		_, err = io.Copy(w, internalRes.Body)
 		if err != nil {
+			err = errors.Trace(err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("%+v", errors.Trace(err))))
+			w.Write([]byte(fmt.Sprintf("%+v", err)))
 			s.LogError(ctx, "Copying response body", log.Error(err))
 			return
 		}

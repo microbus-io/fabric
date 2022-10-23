@@ -1,83 +1,31 @@
 # Configuration
 
-`Microbus` microservices are configured using environment variables and/or an `env.yaml` file.
+It's quite common for microservices to want to define properties whose values can be configured without code changes, often by non-engineers. Connection strings to a database, number of rows to display in a table, a timeout value, are all examples of configuration properties.
 
-* Values of user-defined configuration properties of microservices
-* Customizing the [NATS connection settings](./natsconnection.md)
-* Identifying the deployment environment (`PROD`, `LAB`, `LOCAL`)
-* Designating a plane of communication
+In `Microbus`, the microservice owns the definition of its config properties, while [the configurator system microservice owns their values](../structure/services-configurator.md). The former means that microservices are self-descriptive and independent, which is important in a distributed development environment. The latter means that managing configuration values and pushing them to a live system are centrally controlled, which is important because configs can contain secrets and because pushing the wrong config values can destabilize a deployment.
 
-## User-Defined Properties
-
-It's quite common for microservices to define configuration properties whose values can be set without code changes, possibly by non-engineers. Connection strings to a database, number of rows to display in a table, a timeout value, are all examples of configuration properties.
-
-In the code, configs are fetched using the `Config(name string) (value string)` method of the `Connector`. Behind the scenes, this method is looking for environment variables that match the name of the config and the host name of the microservice. 
+Configuration properties must first be defined by the microservice using `DefineConfig`. In the following example, the property is named `Foo` and given the default value `Bar` and a regexp requirement that the value is comprised of at least one letter and only letters. The case-insensitive property name is required. Various [options](../structure/cfg.md) allow setting a default value, enforcing validation, and more.
 
 ```go
-c := NewConnector()
-c.SetHostName("www.example.com")
-foo := c.Config("Foo")
+con.New("www.example.com")
+con.DefineConfig("Foo", cfg.DefaultValue("Bar"), cfg.Validation("str [A-Za-z]+"))
 ```
 
-In this example, the value of `Foo` is fetched from the following environment variables, whichever is located first.
-The hierarchical approach allows for the sharing of config values among microservices. A database connection string is an example of a config that makes sense to share among most if not all microservices.
+Immediately upon startup, the microservice contacts the configurator microservice to ask for the values of its configuration properties. If an override value is available at the configurator, it is set as the new value of the config property; otherwise, the default value of the config property is set instead.
 
-* `MICROBUS_WWWEXAMPLECOM_FOO`
-* `MICROBUS_EXAMPLECOM_FOO`
-* `MICROBUS_COM_FOO`
-* `MICROBUS_ALL_FOO`
+Configs are accessed using the `Config` method of the `Connector`. 
 
-If not defined by an environment variable, the value of `Foo` is fetched from an `env.yaml` file that must be located in the current working directory. Here too a hierarchical structure is leveraged to enable sharing configs by looking for the value under `www.example.com`, `example.com`, `com` and `all` sections, whichever is located first. 
-
-```yaml
-# env.yaml
-
-www.example.com:
-  Foo: Bar
-
-example.com:
-  Foo: Baz
-
-com:
-  Foo: Bag
-
-all:
-  Foo: Bam
+```go
+foo := con.Config("Foo")
 ```
 
-Note: Host names, configuration property names and environment variable names are all case-insensitive.
+The microservice keeps listening for a command on the control subscription `:888/config/refresh` and will respond by refetching config values from the configurator. The configurator issues this command on startup and on a periodic basis (every 20 minutes) to ensure that all microservices always have the latest config. If new values are received by the microservice, they will be set appropriately and the `OnConfigChanged` callback will be invoked.
 
-## NATS Configuration Properties
-
-All microservices must connect to NATS in order to run. These configuration properties are used to [customize the connection to NATS](./natsconnection.md).
-
-* `NATS` - The location of the NATS cluster
-* `NATSUser` - Credentials
-* `NATSPassword` - Credentials
-* `NATSToken` - Credentials
-
-These are standard configuration properties and their values can be set by either environment variables or an `env.yaml` file as described earlier.
-
-## Deployment
-
-`Microbus` recognizes three deployment environments:
-
-* `PROD` for production deployments
-* `LAB` for fully-functional non-production deployments such as dev integration, testing, staging, etc.
-* `LOCAL` for when developing locally or when running applications inside a testing application
-
-The deployment environment impacts certain aspects of the framework such as the log format and log verbosity level.
-
-The deployment environment is set according to the value of the `Deployment` configuration property. If not specified, `PROD` is assumed, unless connecting to NATS on `localhost` in which case `LOCAL` is assumed.
-
-## Plane of Communication
-
-The plane of communication is a unique prefix set for all communications sent or received over NATS.
-It is used to isolate communication among a group of microservices over a NATS cluster
-that is shared with other microservices.
-
-If not explicitly set via the `SetPlane` method of the `Connector`, the value is pulled from the `Plane` configuration property. The plane must include only alphanumeric characters and is case-sensitive.
-
-Applications created with `application.NewTesting` set a random plane to eliminate the chance of collision when tests are executed in parallel in the same NATS cluster, e.g. using `go test ./... -p=8`.
-
-This is an advanced feature and in most cases there is no need to customize the plane of communications.
+```go
+con.SetOnConfigChanged(func (ctx context.Context, changed func(string) bool) error {
+	if changed("Foo") {
+		con.LogInfo(ctx, "Foo changed", log.String("to", con.Config("Foo")))
+	}
+	return nil
+})
+```

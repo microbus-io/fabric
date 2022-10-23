@@ -15,10 +15,8 @@ import (
 func TestApplication_StartStop(t *testing.T) {
 	t.Parallel()
 
-	alpha := connector.NewConnector()
-	alpha.SetHostName("alpha.startstop.application")
-	beta := connector.NewConnector()
-	beta.SetHostName("beta.startstop.application")
+	alpha := connector.New("alpha.startstop.application")
+	beta := connector.New("beta.startstop.application")
 	app := New(alpha, beta)
 
 	assert.False(t, alpha.IsStarted())
@@ -43,8 +41,7 @@ func TestApplication_StartStop(t *testing.T) {
 func TestApplication_Interrupt(t *testing.T) {
 	t.Parallel()
 
-	con := connector.NewConnector()
-	con.SetHostName("interrupt.application")
+	con := connector.New("interrupt.application")
 	app := New(con)
 
 	ch := make(chan bool)
@@ -70,8 +67,7 @@ func TestApplication_Interrupt(t *testing.T) {
 func TestApplication_NotStartedInterrupt(t *testing.T) {
 	t.Parallel()
 
-	con := connector.NewConnector()
-	con.SetHostName("not.started.interrupt.application")
+	con := connector.New("not.started.interrupt.application")
 	app := New(con)
 
 	err := app.WaitForInterrupt()
@@ -105,8 +101,7 @@ func TestApplication_NoConflict(t *testing.T) {
 	ctx := context.Background()
 
 	// Create first testing app
-	alpha := connector.NewConnector()
-	alpha.SetHostName("noconflict.application")
+	alpha := connector.New("noconflict.application")
 	alpha.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("alpha"))
 		return nil
@@ -114,8 +109,7 @@ func TestApplication_NoConflict(t *testing.T) {
 	appAlpha := NewTesting(alpha)
 
 	// Create second testing app
-	beta := connector.NewConnector()
-	beta.SetHostName("noconflict.application")
+	beta := connector.New("noconflict.application")
 	beta.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("beta"))
 		return nil
@@ -157,8 +151,7 @@ func TestApplication_NoConflict(t *testing.T) {
 func TestApplication_Clock(t *testing.T) {
 	t.Parallel()
 
-	con := connector.NewConnector()
-	con.SetHostName("clock.application")
+	con := connector.New("clock.application")
 	app := New(con)
 
 	mockClock1 := clock.NewMockAtNow()

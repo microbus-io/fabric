@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
@@ -60,7 +61,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	// Restrict the time budget to the context deadline
 	deadline, ok := ctx.Deadline()
 	if ok {
-		ctxBudget := c.clock.Until(deadline)
+		ctxBudget := time.Until(deadline)
 		if ctxBudget < req.TimeBudget {
 			req.Apply(pub.TimeBudget(ctxBudget))
 		}
@@ -114,6 +115,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 		httpReq.Header[name] = value
 	}
 	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
+
+	c.LogDebug(c.lifetimeCtx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
 
 	// Fragment large requests
 	fragger, err := frag.NewFragRequest(httpReq, c.maxFragmentSize)
@@ -171,14 +174,18 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 		c.knownRespondersLock.Lock()
 		expectedResponders = c.knownResponders[subject]
 		c.knownRespondersLock.Unlock()
+		if len(expectedResponders) > 0 {
+			c.LogDebug(c.lifetimeCtx, "Expecting responders", log.String("subject", subject), log.Any("responders", expectedResponders))
+		}
 	}
 	countResponses := 0
 	seenIDs := map[string]string{} // FromID -> OpCode
 	seenQueues := map[string]bool{}
 	doneWaitingForAcks := false
-	timeoutTimer := c.clock.Timer(req.TimeBudget)
+	// Must not use mocked timers for request timeouts
+	timeoutTimer := time.NewTimer(req.TimeBudget)
 	defer timeoutTimer.Stop()
-	ackTimer := c.clock.Timer(c.networkHop)
+	ackTimer := time.NewTimer(c.networkHop)
 	defer ackTimer.Stop()
 	for {
 		select {
@@ -273,6 +280,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 					c.knownRespondersLock.Lock()
 					c.knownResponders[subject] = seenQueues
 					c.knownRespondersLock.Unlock()
+					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("subject", subject), log.Any("responders", seenQueues))
 					return
 				}
 			}
@@ -285,6 +293,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				c.knownRespondersLock.Lock()
 				delete(c.knownResponders, subject)
 				c.knownRespondersLock.Unlock()
+				c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("subject", subject))
 			}
 			return
 
@@ -298,6 +307,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 					c.knownRespondersLock.Lock()
 					delete(c.knownResponders, subject)
 					c.knownRespondersLock.Unlock()
+					c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("subject", subject))
 				}
 				return
 			}
@@ -308,6 +318,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 					c.knownRespondersLock.Lock()
 					c.knownResponders[subject] = seenQueues
 					c.knownRespondersLock.Unlock()
+					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("subject", subject), log.Any("responders", seenQueues))
 				}
 				return
 			}
@@ -320,6 +331,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
+		err = errors.Trace(err)
 		c.LogError(c.lifetimeCtx, "Parsing response", log.Error(err))
 		return
 	}
@@ -327,6 +339,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	// Integrate fragments together
 	response, err = c.defragResponse(response)
 	if err != nil {
+		err = errors.Trace(err)
 		c.LogError(c.lifetimeCtx, "Defragging response", log.Error(err))
 		return
 	}

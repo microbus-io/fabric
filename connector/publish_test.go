@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
@@ -24,11 +23,9 @@ func TestConnector_Echo(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.echo.connector")
+	alpha := New("alpha.echo.connector")
 
-	beta := NewConnector()
-	beta.SetHostName("beta.echo.connector")
+	beta := New("beta.echo.connector")
 	beta.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)
@@ -57,8 +54,7 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
-	con.SetHostName("echoserial.connector")
+	con := New("echoserial.connector")
 	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, _ := io.ReadAll(r.Body)
 		w.Write(body)
@@ -85,9 +81,8 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
+	con := New("echo.parallel.connector")
 	con.networkHop = 4 * time.Second // to avoid timeouts
-	con.SetHostName("echoparallel.connector")
 	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, _ := io.ReadAll(r.Body)
 		w.Write(body)
@@ -103,7 +98,7 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func() {
-			con.POST(ctx, "https://echoparallel.connector/echo", []byte("Hello"))
+			con.POST(ctx, "https://echo.parallel.connector/echo", []byte("Hello"))
 			wg.Done()
 		}()
 	}
@@ -123,8 +118,7 @@ func TestConnector_QueryArgs(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	con := NewConnector()
-	con.SetHostName("queryargs.connector")
+	con := New("query.args.connector")
 	con.Subscribe("arg", func(w http.ResponseWriter, r *http.Request) error {
 		arg := r.URL.Query().Get("arg")
 		assert.Equal(t, "not_empty", arg)
@@ -137,7 +131,7 @@ func TestConnector_QueryArgs(t *testing.T) {
 	defer con.Shutdown()
 
 	// Send request with a query argument
-	_, err = con.GET(ctx, "https://queryargs.connector/arg?arg=not_empty")
+	_, err = con.GET(ctx, "https://query.args.connector/arg?arg=not_empty")
 	assert.NoError(t, err)
 }
 
@@ -147,21 +141,18 @@ func TestConnector_LoadBalancing(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.load.balancing.connector")
+	alpha := New("alpha.load.balancing.connector")
 
 	count1 := int32(0)
 	count2 := int32(0)
 
-	beta1 := NewConnector()
-	beta1.SetHostName("beta.load.balancing.connector")
+	beta1 := New("beta.load.balancing.connector")
 	beta1.Subscribe("lb", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count1, 1)
 		return nil
 	})
 
-	beta2 := NewConnector()
-	beta2.SetHostName("beta.load.balancing.connector")
+	beta2 := New("beta.load.balancing.connector")
 	beta2.Subscribe("lb", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count2, 1)
 		return nil
@@ -202,11 +193,9 @@ func TestConnector_Concurrent(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	alpha := NewConnector()
-	alpha.SetHostName("alpha.concurrent.connector")
+	alpha := New("alpha.concurrent.connector")
 
-	beta := NewConnector()
-	beta.SetHostName("beta.concurrent.connector")
+	beta := New("beta.concurrent.connector")
 	beta.Subscribe("wait", func(w http.ResponseWriter, r *http.Request) error {
 		ms, _ := strconv.Atoi(r.URL.Query().Get("ms"))
 		time.Sleep(time.Millisecond * time.Duration(ms))
@@ -245,9 +234,8 @@ func TestConnector_CallDepth(t *testing.T) {
 	depth := 0
 
 	// Create the microservice
-	con := NewConnector()
+	con := New("call.depth.connector")
 	con.maxCallDepth = 8
-	con.SetHostName("call.depth.connector")
 	con.Subscribe("next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
 
@@ -280,9 +268,8 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 	depth := 0
 
 	// Create the microservice
-	con := NewConnector()
+	con := New("timeout.drawdown.connector")
 	con.networkHop = time.Second
-	con.SetHostName("timeout.drawdown.connector")
 	con.Subscribe("next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
 		_, err := con.GET(r.Context(), "https://timeout.drawdown.connector/next")
@@ -310,8 +297,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
-	con.SetHostName("timeout.not.found.connector")
+	con := New("timeout.not.found.connector")
 
 	// Startup the microservice
 	err := con.Startup()
@@ -347,8 +333,7 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := NewConnector()
-	con.SetHostName("timeout.slow.connector")
+	con := New("timeout.slow.connector")
 	con.Subscribe("slow", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(time.Second)
 		return nil
@@ -373,37 +358,25 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 func TestConnector_ContextTimeout(t *testing.T) {
 	t.Parallel()
 
-	mockClock := clock.NewMock()
-
-	con := NewConnector()
-	con.SetHostName("context.timeout.connector")
-	con.SetClock(mockClock)
+	con := New("context.timeout.connector")
 
 	done := false
-	step := make(chan bool)
 	con.Subscribe("timeout", func(w http.ResponseWriter, r *http.Request) error {
-		step <- true
 		<-r.Context().Done()
 		done = true
-		step <- true
-		return nil
+		return r.Context().Err()
 	})
 
 	err := con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	go func() {
-		_, err = con.Request(
-			con.Lifetime(),
-			pub.GET("https://context.timeout.connector/timeout"),
-			pub.TimeBudget(time.Minute),
-		)
-		assert.Error(t, err)
-	}()
-	<-step
-	mockClock.Add(time.Second + time.Minute)
-	<-step
+	_, err = con.Request(
+		con.Lifetime(),
+		pub.GET("https://context.timeout.connector/timeout"),
+		pub.TimeBudget(time.Second),
+	)
+	assert.Error(t, err)
 	assert.True(t, done)
 }
 
@@ -413,43 +386,37 @@ func TestConnector_Multicast(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	noqueue1 := NewConnector()
-	noqueue1.SetHostName("multicast.connector")
+	noqueue1 := New("multicast.connector")
 	noqueue1.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("noqueue1"))
 		return nil
 	}, sub.NoQueue())
 
-	noqueue2 := NewConnector()
-	noqueue2.SetHostName("multicast.connector")
+	noqueue2 := New("multicast.connector")
 	noqueue2.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("noqueue2"))
 		return nil
 	}, sub.NoQueue())
 
-	named1 := NewConnector()
-	named1.SetHostName("multicast.connector")
+	named1 := New("multicast.connector")
 	named1.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("named1"))
 		return nil
 	}, sub.Queue("MyQueue"))
 
-	named2 := NewConnector()
-	named2.SetHostName("multicast.connector")
+	named2 := New("multicast.connector")
 	named2.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("named2"))
 		return nil
 	}, sub.Queue("MyQueue"))
 
-	def1 := NewConnector()
-	def1.SetHostName("multicast.connector")
+	def1 := New("multicast.connector")
 	def1.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("def1"))
 		return nil
 	}, sub.DefaultQueue())
 
-	def2 := NewConnector()
-	def2.SetHostName("multicast.connector")
+	def2 := New("multicast.connector")
 	def2.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("def2"))
 		return nil
@@ -514,8 +481,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	slow := NewConnector()
-	slow.SetHostName("multicast.delay.connector")
+	slow := New("multicast.delay.connector")
 	delay := slow.networkHop
 	slow.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(delay * 2)
@@ -523,15 +489,13 @@ func TestConnector_MulticastDelay(t *testing.T) {
 		return nil
 	}, sub.NoQueue())
 
-	fast := NewConnector()
-	fast.SetHostName("multicast.delay.connector")
+	fast := New("multicast.delay.connector")
 	fast.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("fast"))
 		return nil
 	}, sub.NoQueue())
 
-	tooSlow := NewConnector()
-	tooSlow.SetHostName("multicast.delay.connector")
+	tooSlow := New("multicast.delay.connector")
 	tooSlow.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(delay * 4)
 		w.Write([]byte("too slow"))
@@ -588,14 +552,12 @@ func TestConnector_MulticastError(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	bad := NewConnector()
-	bad.SetHostName("multicast.error.connector")
+	bad := New("multicast.error.connector")
 	bad.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("bad situation")
 	}, sub.NoQueue())
 
-	good := NewConnector()
-	good.SetHostName("multicast.error.connector")
+	good := New("multicast.error.connector")
 	good.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("good situation"))
 		return nil
@@ -634,8 +596,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 	N := 128
 
 	// Create the client microservice
-	client := NewConnector()
-	client.SetHostName("client.mass.multicast.connector")
+	client := New("client.mass.multicast.connector")
 
 	err := client.Startup()
 	assert.NoError(t, err)
@@ -648,8 +609,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 		i := i
 		wg.Add(1)
 		go func() {
-			cons[i] = NewConnector()
-			cons[i].SetHostName("mass.multicast.connector")
+			cons[i] = New("mass.multicast.connector")
 			cons[i].Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 				w.Write([]byte("ok"))
 				return nil
@@ -691,8 +651,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 }
 
 func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
-	con := NewConnector()
-	con.SetHostName("nats.direct.connector")
+	con := New("nats.direct.connector")
 
 	err := con.Startup()
 	assert.NoError(b, err)
@@ -727,26 +686,22 @@ func TestConnector_KnownResponders(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservices
-	alpha := NewConnector()
-	alpha.SetHostName("known.responders.connector")
+	alpha := New("known.responders.connector")
 	alpha.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
 
-	beta := NewConnector()
-	beta.SetHostName("known.responders.connector")
+	beta := New("known.responders.connector")
 	beta.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
 
-	gamma := NewConnector()
-	gamma.SetHostName("known.responders.connector")
+	gamma := New("known.responders.connector")
 	gamma.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
 
-	delta := NewConnector()
-	delta.SetHostName("known.responders.connector")
+	delta := New("known.responders.connector")
 	delta.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
@@ -815,8 +770,7 @@ func TestConnector_KnownResponders(t *testing.T) {
 func TestConnector_LifetimeCancellation(t *testing.T) {
 	t.Parallel()
 
-	con := NewConnector()
-	con.SetHostName("lifetime.cancellation.connector")
+	con := New("lifetime.cancellation.connector")
 
 	done := false
 	step := make(chan bool)
@@ -824,8 +778,7 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 		step <- true
 		<-r.Context().Done()
 		done = true
-		step <- true
-		return nil
+		return r.Context().Err()
 	})
 
 	err := con.Startup()
@@ -839,6 +792,7 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 			pub.GET("https://lifetime.cancellation.connector/something"),
 		)
 		assert.Error(t, err)
+		step <- true
 	}()
 	<-step
 	con.ctxCancel()
