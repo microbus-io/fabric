@@ -156,21 +156,29 @@ func (s *Service) Sync(w http.ResponseWriter, r *http.Request) error {
 
 // publishSync syncs the current repo with peers.
 func (s *Service) publishSync(ctx context.Context) error {
+	// Prep the payload
+	s.lock.RLock()
 	var req struct {
 		Timestamp time.Time                    `json:"timestamp"`
 		Values    map[string]map[string]string `json:"values"`
 	}
-	s.lock.RLock()
 	req.Timestamp = s.repoTimestamp
 	req.Values = s.repo.values
+	body, err := json.Marshal(req)
+	s.lock.RUnlock()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Broadcast to peers
 	ch := s.Publish(
 		ctx,
 		pub.POST("https://"+s.HostName()+"/sync"),
-		pub.Body(req))
+		pub.Header("Content-Type", "application/json"),
+		pub.Body(body))
 	for range ch {
 		// Ignore results
 	}
-	s.lock.RUnlock()
 	return nil
 }
 
