@@ -22,17 +22,13 @@ The expected format of the YAML is:
 	  port: 9090
 	all:
 	  sql: sql.host
-
-The scope argument will load only properties that are listed under that domain or a subdomain thereof.
-An empty value of scope or the magic keyword "all" will load values of all domains.
 */
-func (r *repository) LoadYAML(data []byte, scope string) error {
+func (r *repository) LoadYAML(data []byte) error {
 	var values map[string]map[string]string
 	err := yaml.Unmarshal(data, &values)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	scope = strings.TrimSpace(strings.ToLower(scope))
 
 	if r.values == nil {
 		r.values = map[string]map[string]string{}
@@ -42,9 +38,11 @@ func (r *repository) LoadYAML(data []byte, scope string) error {
 		if r.values[domain] == nil {
 			r.values[domain] = map[string]string{}
 		}
-		if scope == "" || scope == "all" || scope == domain || strings.HasSuffix(domain, "."+scope) {
-			for name, val := range valmap {
-				name = strings.TrimSpace(strings.ToLower(name))
+		for name, val := range valmap {
+			name = strings.TrimSpace(strings.ToLower(name))
+			if val == "" {
+				delete(r.values[domain], name)
+			} else {
 				r.values[domain][name] = val
 			}
 		}

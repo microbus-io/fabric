@@ -8,6 +8,7 @@ import (
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,15 +36,15 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 		assert.Equal(t, "", services[i].(*connector.Connector).Config("moo"))
 	}
 
-	// Inject a new values
-	err = configSvc.mockConfigYAML(`
+	// Load new values
+	err = configSvc.loadYAML(`
 many.microservices.configurator:
   foo: baz
   moo: cow
 `)
 	assert.NoError(t, err)
 
-	err = configSvc.fetchValues(configSvc.Lifetime())
+	err = configSvc.PublishRefresh(configSvc.Lifetime())
 	assert.NoError(t, err)
 
 	// Known responders optimization might cause some of the microservices to be missed
@@ -56,13 +57,14 @@ many.microservices.configurator:
 	}
 
 	// Restore foo to use the default value
-	err = configSvc.mockConfigYAML(`
+	err = configSvc.loadYAML(`
 many.microservices.configurator:
+  foo:
   moo: cow
 `)
 	assert.NoError(t, err)
 
-	err = configSvc.fetchValues(configSvc.Lifetime())
+	err = configSvc.PublishRefresh(configSvc.Lifetime())
 	assert.NoError(t, err)
 
 	// Known responders optimization might cause some of the microservices to be missed
@@ -73,45 +75,6 @@ many.microservices.configurator:
 		assert.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
 		assert.Equal(t, "cow", services[i].(*connector.Connector).Config("moo"))
 	}
-}
-
-func TestConfigurator_Import(t *testing.T) {
-	t.Parallel()
-
-	// Mock the config service
-	configSvc := NewService()
-	configSvc.mockConfigYAML(`
-import.configurator:
-  foo1: baz1
-`)
-	configSvc.mockConfigImportYAML(`
-- from: https://www.example.com/allowed/config.yaml
-  import: configurator
-- from: https://www.example.com/disallowed/config.yaml
-  import: xxx
-`)
-	configSvc.mockRemoteConfigYAML("https://www.example.com/allowed/config.yaml", `
-import.configurator:
-  foo2: baz2
-`)
-	configSvc.mockRemoteConfigYAML("https://www.example.com/disallowed/config.yaml", `
-import.configurator:
-  foo3: baz3
-`)
-
-	con := connector.New("import.configurator")
-	con.DefineConfig("foo1", cfg.DefaultValue("bar1"))
-	con.DefineConfig("foo2", cfg.DefaultValue("bar2"))
-	con.DefineConfig("foo3", cfg.DefaultValue("bar3"))
-
-	app := application.NewTesting(configSvc, con)
-	err := app.Startup()
-	assert.NoError(t, err)
-	defer app.Shutdown()
-
-	assert.Equal(t, "baz1", con.Config("foo1"))
-	assert.Equal(t, "baz2", con.Config("foo2"))
-	assert.Equal(t, "bar3", con.Config("foo3"))
 }
 
 func TestConfigurator_Callback(t *testing.T) {
@@ -136,13 +99,13 @@ func TestConfigurator_Callback(t *testing.T) {
 
 	assert.Equal(t, "bar", con.Config("foo"))
 
-	configSvc.mockConfigYAML(`
+	configSvc.loadYAML(`
 callback.configurator:
   foo: baz
 `)
 
 	// Force a refresh
-	err = configSvc.fetchValues(configSvc.Lifetime())
+	err = configSvc.PublishRefresh(configSvc.Lifetime())
 	assert.NoError(t, err)
 
 	// Known responders optimization might cause some of the microservices to be missed
@@ -151,4 +114,57 @@ callback.configurator:
 
 	assert.Equal(t, "baz", con.Config("foo"))
 	assert.True(t, callbackCalled)
+}
+
+func TestConfigurator_PeerSync(t *testing.T) {
+	t.Parallel()
+
+	plane := rand.AlphaNum64(12)
+
+	// Start the first peer
+	config1 := NewService()
+	config1.SetPlane(plane)
+	config1.loadYAML(`
+www.example.com:
+  Foo: Bar
+`)
+	err := config1.Startup()
+	assert.NoError(t, err)
+	defer config1.Shutdown()
+
+	val, ok := config1.repo.Value("www.example.com", "Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Bar", val)
+
+	// Start the microservice
+	con := connector.New("www.example.com")
+	con.SetPlane(plane)
+	con.DefineConfig("Foo")
+
+	err = con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	assert.Equal(t, "Bar", con.Config("Foo"))
+
+	// Start the second peer
+	config2 := NewService()
+	config2.SetPlane(plane)
+	config2.loadYAML(`
+www.example.com:
+  Foo: Baz
+`)
+	err = config2.Startup()
+	assert.NoError(t, err)
+	defer config2.Shutdown()
+
+	val, ok = config2.repo.Value("www.example.com", "Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Baz", val)
+
+	val, ok = config1.repo.Value("www.example.com", "Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Baz", val, "First peer should have been updated")
+
+	assert.Equal(t, "Baz", con.Config("Foo"), "Microservice should have been updated")
 }

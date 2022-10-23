@@ -32,7 +32,7 @@ all:
 `
 
 	var r repository
-	err := r.LoadYAML([]byte(y), "")
+	err := r.LoadYAML([]byte(y))
 	assert.NoError(t, err)
 
 	cases := map[string]string{
@@ -68,97 +68,7 @@ all:
 	assert.False(t, ok)
 }
 
-func TestRepository_LoadYAMLWithScope(t *testing.T) {
-	t.Parallel()
-
-	y := `
-www.example.com:
-  aaa: 111
-example.com:
-  bbb: 222
-com:
-  ccc: 333
-all:
-  ddd: 444
-`
-
-	// Load only www.example.com
-	r := &repository{}
-	err := r.LoadYAML([]byte(y), "www.example.com")
-	assert.NoError(t, err)
-	cases := map[string]bool{
-		"aaa": true,
-		"bbb": false,
-		"ccc": false,
-		"ddd": false,
-	}
-	for name := range cases {
-		_, ok := r.Value("www.example.com", name)
-		assert.Equal(t, cases[name], ok)
-	}
-
-	// Load only example.com and subdomains
-	r = &repository{}
-	err = r.LoadYAML([]byte(y), "example.com")
-	assert.NoError(t, err)
-	cases = map[string]bool{
-		"aaa": true,
-		"bbb": true,
-		"ccc": false,
-		"ddd": false,
-	}
-	for name := range cases {
-		_, ok := r.Value("www.example.com", name)
-		assert.Equal(t, cases[name], ok)
-	}
-
-	// Load only com and subdomains
-	r = &repository{}
-	err = r.LoadYAML([]byte(y), "com")
-	assert.NoError(t, err)
-	cases = map[string]bool{
-		"aaa": true,
-		"bbb": true,
-		"ccc": true,
-		"ddd": false,
-	}
-	for name := range cases {
-		_, ok := r.Value("www.example.com", name)
-		assert.Equal(t, cases[name], ok)
-	}
-
-	// Load all
-	r = &repository{}
-	err = r.LoadYAML([]byte(y), "")
-	assert.NoError(t, err)
-	cases = map[string]bool{
-		"aaa": true,
-		"bbb": true,
-		"ccc": true,
-		"ddd": true,
-	}
-	for name := range cases {
-		_, ok := r.Value("www.example.com", name)
-		assert.Equal(t, cases[name], ok)
-	}
-
-	// Load all
-	r = &repository{}
-	err = r.LoadYAML([]byte(y), "all")
-	assert.NoError(t, err)
-	cases = map[string]bool{
-		"aaa": true,
-		"bbb": true,
-		"ccc": true,
-		"ddd": true,
-	}
-	for name := range cases {
-		_, ok := r.Value("www.example.com", name)
-		assert.Equal(t, cases[name], ok)
-	}
-}
-
-func TestRepository_Quals(t *testing.T) {
+func TestRepository_Equals(t *testing.T) {
 	t.Parallel()
 
 	var r repository
@@ -172,7 +82,7 @@ com:
   ccc: 333
 all:
   ddd: 444
-`), "")
+`))
 	assert.NoError(t, err)
 
 	var rr repository
@@ -187,7 +97,7 @@ all:
   ddd: 444
 www.example.com:
   aaa: 111
-`), "")
+`))
 	assert.NoError(t, err)
 
 	assert.True(t, r.Equals(&rr))
@@ -204,7 +114,7 @@ all:
   ddd: 444
 www.example.com:
   aaa: 111
-`), "")
+`))
 	assert.NoError(t, err)
 
 	assert.False(t, r.Equals(&rrr))

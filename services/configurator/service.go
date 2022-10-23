@@ -3,10 +3,8 @@ package configurator
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -15,49 +13,73 @@ import (
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
-	"gopkg.in/yaml.v2"
+	"github.com/microbus-io/fabric/sub"
 )
 
 // Service is a configurator  microservice
 type Service struct {
 	*connector.Connector
-	repo     *repository
-	repoLock sync.Mutex
-
-	mockedConfigYAML       string
-	mockedConfigImportYAML string
-	mockedURLs             map[string]string
-
-	lastPush time.Time
+	repo          *repository
+	repoTimestamp time.Time
+	lock          sync.RWMutex
 }
 
 // NewService creates a new configurator microservice
 func NewService() *Service {
 	s := &Service{
 		Connector: connector.New("configurator.sys"),
+		repo:      &repository{},
 	}
 	s.SetDescription("The Configurator is a system microservice that centralizes the dissemination of configuration values to other microservices.")
 	s.SetOnStartup(s.OnStartup)
 	s.Subscribe("/values", s.Values)
 	s.Subscribe("/refresh", s.Refresh)
-	s.StartTicker("FetchValues", 5*time.Minute, s.fetchValues)
+	s.Subscribe("/sync", s.Sync, sub.NoQueue())
+	s.StartTicker("PublishRefresh", 20*time.Minute, s.PublishRefresh)
 	// Must not define configs of its own
 	return s
 }
 
 // OnStartup reads the config values from file.
 func (s *Service) OnStartup(ctx context.Context) error {
-	err := s.fetchValues(ctx)
+	// Load values from config.yaml if present in current working directory
+	exists := func(fileName string) bool {
+		_, err := os.Stat(fileName)
+		return err == nil
+	}
+	if exists("config.yaml") {
+		y, err := os.ReadFile("config.yaml")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		s.lock.Lock()
+		err = s.repo.LoadYAML(y)
+		s.repoTimestamp = time.Now()
+		s.lock.Unlock()
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// Sync the current repo to peers before microservices pull the new config
+	err := s.publishSync(ctx)
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// Tell all microservices to refresh their config
+	err = s.PublishRefresh(ctx)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	return nil
 }
 
 // Refresh tells all microservices to contact the configurator and refresh their configs.
 // An error is returned if any of the values sent to the microservices fails validation.
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) error {
-	err := s.pushRefresh(r.Context())
+	err := s.PublishRefresh(r.Context())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -66,9 +88,9 @@ func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// pushRefresh tells all microservices to contact the configurator and refresh their configs.
+// PublishRefresh tells all microservices to contact the configurator and refresh their configs.
 // An error is returned if any of the values sent to the microservices fails validation.
-func (s *Service) pushRefresh(ctx context.Context) error {
+func (s *Service) PublishRefresh(ctx context.Context) error {
 	var lastErr error
 	ch := s.Publish(ctx, pub.GET("https://all:888/config/refresh"))
 	for i := range ch {
@@ -79,6 +101,77 @@ func (s *Service) pushRefresh(ctx context.Context) error {
 		}
 	}
 	return lastErr
+}
+
+// Sync is used to synchronize values among peers.
+func (s *Service) Sync(w http.ResponseWriter, r *http.Request) error {
+	// Only respond to peers, and not to self
+	if frame.Of(r).FromHost() != s.HostName() || frame.Of(r).FromID() == s.ID() {
+		return nil
+	}
+
+	// Read input: list of names
+	var req struct {
+		Timestamp time.Time                    `json:"timestamp"`
+		Values    map[string]map[string]string `json:"values"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Compare incoming and current repos
+	localRepo := &repository{
+		values: req.Values,
+	}
+	s.lock.RLock()
+	same := localRepo.Equals(s.repo)
+	newness := s.repoTimestamp.Sub(req.Timestamp)
+	s.lock.RUnlock()
+
+	// If repos are the same, do nothing
+	if same {
+		return nil
+	}
+
+	// If incoming repo is newer, override the current one
+	if newness <= 0 {
+		s.lock.Lock()
+		s.repo = localRepo
+		s.repoTimestamp = req.Timestamp
+		s.lock.Unlock()
+		return nil
+	}
+
+	// Sync the current repo to peers
+	err = s.publishSync(r.Context())
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+	return nil
+}
+
+// publishSync syncs the current repo with peers.
+func (s *Service) publishSync(ctx context.Context) error {
+	var req struct {
+		Timestamp time.Time                    `json:"timestamp"`
+		Values    map[string]map[string]string `json:"values"`
+	}
+	s.lock.RLock()
+	req.Timestamp = s.repoTimestamp
+	req.Values = s.repo.values
+	ch := s.Publish(
+		ctx,
+		pub.POST("https://"+s.HostName()+"/sync"),
+		pub.Body(req))
+	for range ch {
+		// Ignore results
+	}
+	s.lock.RUnlock()
+	return nil
 }
 
 // Values returns the values associated with the specified config property names
@@ -102,16 +195,14 @@ func (s *Service) Values(w http.ResponseWriter, r *http.Request) error {
 	res.Values = map[string]string{}
 
 	// Load the values of the requested properties from the repo
-	s.repoLock.Lock()
-	if s.repo != nil {
-		for _, name := range req.Names {
-			val, ok := s.repo.Value(host, name)
-			if ok {
-				res.Values[name] = val
-			}
+	s.lock.RLock()
+	for _, name := range req.Names {
+		val, ok := s.repo.Value(host, name)
+		if ok {
+			res.Values[name] = val
 		}
 	}
-	s.repoLock.Unlock()
+	s.lock.RUnlock()
 
 	// Write the response
 	body, err := json.Marshal(res)
@@ -123,126 +214,14 @@ func (s *Service) Values(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// fetchValues loads the values from the local and remote config.yaml files
-// then informs all microservices to refresh their config.
-func (s *Service) fetchValues(ctx context.Context) error {
-	exists := func(fileName string) bool {
-		_, err := os.Stat(fileName)
-		return err == nil
-	}
-
-	var localRepo repository
-
-	// Download remote config.yaml files
-	var err error
-	var y []byte
-	if s.mockedConfigImportYAML != "" {
-		y = []byte(s.mockedConfigImportYAML)
-	} else if exists("configimport.yaml") {
-		y, err = os.ReadFile("configimport.yaml")
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	if len(y) > 0 {
-		var remotes []*struct {
-			From   string `json:"from"`
-			Import string `json:"import"`
-		}
-		err = yaml.Unmarshal(y, &remotes)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		for _, remote := range remotes {
-			var y []byte
-			if s.mockedURLs != nil && s.mockedURLs[remote.From] != "" {
-				y = []byte(s.mockedURLs[remote.From])
-			} else {
-				client := http.Client{
-					Timeout: 4 * time.Second,
-				}
-				response, err := client.Get(remote.From)
-				if err != nil {
-					return errors.Trace(err)
-				}
-				y, err = io.ReadAll(response.Body)
-				if err != nil {
-					return errors.Trace(err)
-				}
-			}
-			scopes := strings.Split(remote.Import, ",")
-			for _, scope := range scopes {
-				err = localRepo.LoadYAML(y, strings.TrimSpace(scope))
-				if err != nil {
-					return errors.Trace(err)
-				}
-			}
-		}
-	}
-
-	// Look for explicit values in local config.yaml file
-	y = nil
-	if s.mockedConfigYAML != "" {
-		y = []byte(s.mockedConfigYAML)
-	} else if exists("config.yaml") {
-		y, err = os.ReadFile("config.yaml")
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	if len(y) > 0 {
-		err = localRepo.LoadYAML(y, "")
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-
-	// Replace the old repo with the new repo
-	s.repoLock.Lock()
-	push := s.lastPush.IsZero() || time.Since(s.lastPush) >= 20*time.Minute || !s.repo.Equals(&localRepo)
-	if push {
-		s.repo = &localRepo
-		s.lastPush = time.Now()
-	}
-	s.repoLock.Unlock()
-
-	// Tell all microservices to refresh their configs
-	if push {
-		err = s.pushRefresh(ctx)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-
-	return nil
-}
-
-// mockConfigYAML sets a mock value for the config.yaml file. For testing only.
-func (s *Service) mockConfigYAML(configYAML string) error {
+// loadYAML loads a config.yaml into the repo. For testing only.
+func (s *Service) loadYAML(configYAML string) error {
 	if s.Deployment() == connector.PROD {
 		return errors.Newf("disallowed in %s deployment", connector.PROD)
 	}
-	s.mockedConfigYAML = configYAML
-	return nil
-}
-
-// mockConfigImportYAML sets a mock value for the configimport.yaml file. For testing only.
-func (s *Service) mockConfigImportYAML(configImportYAML string) error {
-	if s.Deployment() == connector.PROD {
-		return errors.Newf("disallowed in %s deployment", connector.PROD)
-	}
-	s.mockedConfigImportYAML = configImportYAML
-	return nil
-}
-
-// mockRemoteConfigYAML sets a mock config.yaml for a URL. For testing only.
-func (s *Service) mockRemoteConfigYAML(url string, remoteYAML string) error {
-	if s.Deployment() == connector.PROD {
-		return errors.Newf("disallowed in %s deployment", connector.PROD)
-	}
-	if s.mockedURLs == nil {
-		s.mockedURLs = map[string]string{}
-	}
-	s.mockedURLs[url] = remoteYAML
+	s.lock.Lock()
+	s.repo.LoadYAML([]byte(configYAML))
+	s.repoTimestamp = time.Now()
+	s.lock.Unlock()
 	return nil
 }
