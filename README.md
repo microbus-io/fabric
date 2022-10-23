@@ -4,7 +4,7 @@
 
 ## Introduction
 
-`Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices. Microservices over bus = microbus.
+`Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices. Microservices over a bus = microbus.
 
 The framework involves itself in three conceptual areas:
 
