@@ -14,7 +14,7 @@ import (
 )
 
 // StartupHandler handles the OnStartup callback.
-type ConfigChangedHandler func(ctx context.Context, changed map[string]bool) error
+type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) error
 
 // SetOnConfigChanged sets a function to be called when a new config was received from the configurator.
 func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...cb.Option) error {
@@ -160,7 +160,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 		}
 		if setValue != config.Value {
 			config.Value = setValue
-			changed[config.Name] = true
+			changed[strings.ToLower(config.Name)] = true
 			if config.Secret {
 				setValue = strings.Repeat("*", len(setValue))
 			}
@@ -177,7 +177,10 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onConfigChanged.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
-			return c.onConfigChanged.Handler.(ConfigChangedHandler)(callbackCtx, changed)
+			f := func(name string) bool {
+				return changed[strings.ToLower(name)]
+			}
+			return c.onConfigChanged.Handler.(ConfigChangedHandler)(callbackCtx, f)
 		})
 		cancel()
 		if err != nil {

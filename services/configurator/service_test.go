@@ -85,8 +85,8 @@ func TestConfigurator_Callback(t *testing.T) {
 	con := connector.New("callback.configurator")
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	callbackCalled := false
-	err := con.SetOnConfigChanged(func(ctx context.Context, changed map[string]bool) error {
-		assert.True(t, changed["foo"])
+	err := con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
+		assert.True(t, changed("foo"))
 		callbackCalled = true
 		return nil
 	})

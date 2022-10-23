@@ -57,7 +57,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 
 	plane := rand.AlphaNum64(12)
 
-	// Mock config service
+	// Mock a config service
 	mockCfg := New("configurator.sys")
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
@@ -78,9 +78,9 @@ func TestConnector_FetchConfig(t *testing.T) {
 	err = con.DefineConfig("int", cfg.Validation("int"), cfg.DefaultValue("5"))
 	assert.NoError(t, err)
 	callbackCalled := false
-	err = con.SetOnConfigChanged(func(ctx context.Context, changed map[string]bool) error {
-		assert.True(t, changed["foo"])
-		assert.False(t, changed["int"])
+	err = con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
+		assert.True(t, changed("FOO"))
+		assert.False(t, changed("int"))
 		callbackCalled = true
 		return nil
 	})
