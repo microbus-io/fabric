@@ -44,29 +44,40 @@ func ValidateTickerName(name string) error {
 	return nil
 }
 
-// ValidateURL indicates if the URL has a valid host name and port.
-func ValidateURL(u string) error {
+// ParseURL returns a canonical version of the parsed URL with the scheme and port filled in if omitted.
+// It returns an error if the URL has a invalid scheme, host name or port.
+func ParseURL(u string) (canonical *url.URL, err error) {
 	parsed, err := url.Parse(u)
 	if err != nil {
-		return errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 
 	// Host
 	if err := ValidateHostName(parsed.Hostname()); err != nil {
-		return errors.Trace(err)
+		return nil, errors.Trace(err)
+	}
+
+	// Scheme
+	if parsed.Scheme == "" {
+		parsed.Scheme = "https"
 	}
 
 	// Port
 	port := 443
+	if parsed.Scheme == "http" {
+		port = 80
+	}
 	if parsed.Port() != "" {
 		port, err = strconv.Atoi(parsed.Port())
 		if err != nil {
-			return errors.Newf("invalid port '%s'", parsed.Port())
+			return nil, errors.Newf("invalid port '%s'", parsed.Port())
 		}
+	} else {
+		parsed.Host += ":" + strconv.Itoa(port)
 	}
 	if port < 0 || port > 65535 {
-		return errors.Newf("invalid port '%d'", port)
+		return nil, errors.Newf("invalid port '%d'", port)
 	}
 
-	return nil
+	return parsed, nil
 }

@@ -52,3 +52,41 @@ func TestSub_InvalidPort(t *testing.T) {
 		assert.Error(t, err)
 	}
 }
+
+func TestSub_Apply(t *testing.T) {
+	t.Parallel()
+
+	s, err := NewSub("www.example.com", "/path", nil)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "www.example.com", s.Queue)
+	s.Apply(NoQueue())
+	assert.Equal(t, "", s.Queue)
+	s.Apply(Queue("foo"))
+	assert.Equal(t, "foo", s.Queue)
+	s.Apply(DefaultQueue())
+	assert.Equal(t, "www.example.com", s.Queue)
+	s.Apply(Pervasive())
+	assert.Equal(t, "", s.Queue)
+	s.Apply(LoadBalanced())
+	assert.Equal(t, "www.example.com", s.Queue)
+
+	err = s.Apply(Queue("$$$"))
+	assert.Error(t, err)
+}
+
+func TestSub_Canonical(t *testing.T) {
+	t.Parallel()
+
+	s, err := NewSub("www.example.com", ":334/path", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "www.example.com:334/path", s.Canonical())
+
+	s, err = NewSub("www.example.com", "/path", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "www.example.com:443/path", s.Canonical()) // default port 443
+
+	s, err = NewSub("www.example.com", "http://zzz.example.com/path", nil) // http
+	assert.NoError(t, err)
+	assert.Equal(t, "zzz.example.com:80/path", s.Canonical()) // default port 80 for http
+}

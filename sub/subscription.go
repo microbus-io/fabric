@@ -2,7 +2,6 @@ package sub
 
 import (
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -56,16 +55,14 @@ func NewSub(defaultHost string, path string, handler any, options ...Option) (*S
 		spec = "https://" + defaultHost + ":443/" + path
 	}
 
-	if err := utils.ValidateURL(spec); err != nil {
+	u, err := utils.ParseURL(spec)
+	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	u, _ := url.Parse(spec)
 
 	// Port
 	port := 443
-	if u.Port() != "" {
-		port, _ = strconv.Atoi(u.Port())
-	}
+	port, _ = strconv.Atoi(u.Port())
 
 	sub := &Subscription{
 		Host:    u.Hostname(),
@@ -74,7 +71,7 @@ func NewSub(defaultHost string, path string, handler any, options ...Option) (*S
 		Queue:   defaultHost,
 		Handler: handler,
 	}
-	err := sub.Apply(options...)
+	err = sub.Apply(options...)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -94,5 +91,5 @@ func (sub *Subscription) Apply(options ...Option) error {
 
 // Canonical returns the fully-qualified canonical path of the subscription
 func (sub *Subscription) Canonical() string {
-	return fmt.Sprintf("https://%s:%d%s", sub.Host, sub.Port, sub.Path)
+	return fmt.Sprintf("%s:%d%s", sub.Host, sub.Port, sub.Path)
 }
