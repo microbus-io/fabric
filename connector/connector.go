@@ -94,7 +94,7 @@ func NewConnector() *Connector {
 		lru.BumpOnLoad(true), lru.MaxAge(24*time.Hour), lru.MaxWeight(10000),
 	)
 	c.pendingMulticasts = lru.NewCache[string, string](
-		lru.BumpOnLoad(false), lru.MaxAge(c.networkHop*4), lru.MaxWeight(10000),
+		lru.BumpOnLoad(false), lru.MaxAge(time.Minute), lru.MaxWeight(10000),
 	)
 
 	return c
