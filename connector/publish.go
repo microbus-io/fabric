@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
@@ -169,14 +170,14 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	}
 
 	enumResponders := func(responders map[string]bool) string {
-		str := ""
+		var b strings.Builder
 		for k := range responders {
-			if str != "" {
-				str += ", "
+			if b.Len() != 0 {
+				b.WriteString(", ")
 			}
-			str += k
+			b.WriteString(k)
 		}
-		return str
+		return b.String()
 	}
 
 	// Await and return the responses
