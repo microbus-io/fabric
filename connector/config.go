@@ -10,14 +10,12 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/utils"
 )
 
-// StartupHandler handles the OnStartup callback.
-type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) error
-
 // SetOnConfigChanged sets a function to be called when a new config was received from the configurator.
-func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...cb.Option) error {
+func (c *Connector) SetOnConfigChanged(handler service.ConfigChangedHandler, options ...cb.Option) error {
 	if c.started {
 		return errors.New("already started")
 	}
@@ -180,7 +178,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 			f := func(name string) bool {
 				return changed[strings.ToLower(name)]
 			}
-			return c.onConfigChanged.Handler.(ConfigChangedHandler)(callbackCtx, f)
+			return c.onConfigChanged.Handler.(service.ConfigChangedHandler)(callbackCtx, f)
 		})
 		cancel()
 		if err != nil {

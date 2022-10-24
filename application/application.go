@@ -6,14 +6,14 @@ import (
 	"syscall"
 
 	"github.com/microbus-io/fabric/clock"
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/service"
 )
 
 // Application is a collection of microservices that run in a single process and share the same lifecycle
 type Application struct {
-	services   []connector.Service
+	services   []service.Service
 	started    bool
 	sig        chan os.Signal
 	plane      string
@@ -22,7 +22,7 @@ type Application struct {
 }
 
 // New creates a new app with a collection of microservices
-func New(services ...connector.Service) *Application {
+func New(services ...service.Service) *Application {
 	return &Application{
 		services: services,
 		sig:      make(chan os.Signal, 1),
@@ -31,7 +31,7 @@ func New(services ...connector.Service) *Application {
 
 // NewTesting creates a new app for running in a unit test environment.
 // A random plane of communication is used to isolate the app from other apps.
-func NewTesting(services ...connector.Service) *Application {
+func NewTesting(services ...service.Service) *Application {
 	return &Application{
 		services:   services,
 		sig:        make(chan os.Signal, 1),

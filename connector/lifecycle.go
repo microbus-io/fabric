@@ -10,18 +10,13 @@ import (
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/utils"
 )
 
-// StartupHandler handles the OnStartup callback.
-type StartupHandler func(ctx context.Context) error
-
-// StartupHandler handles the OnShutdown callback.
-type ShutdownHandler func(ctx context.Context) error
-
 // SetOnStartup sets a function to be called during the starting up of the microservice.
 // The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) error {
+func (c *Connector) SetOnStartup(handler service.StartupHandler, options ...cb.Option) error {
 	if c.started {
 		return errors.New("already started")
 	}
@@ -36,7 +31,7 @@ func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) e
 
 // SetOnShutdown sets a function to be called during the shutting down of the microservice.
 // The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnShutdown(handler ShutdownHandler, options ...cb.Option) error {
+func (c *Connector) SetOnShutdown(handler service.ShutdownHandler, options ...cb.Option) error {
 	if c.started {
 		return errors.New("already started")
 	}
@@ -149,7 +144,7 @@ func (c *Connector) Startup() (err error) {
 			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
-			return c.onStartup.Handler.(StartupHandler)(callbackCtx)
+			return c.onStartup.Handler.(service.StartupHandler)(callbackCtx)
 		})
 		cancel()
 		if err != nil {
@@ -244,7 +239,7 @@ func (c *Connector) Shutdown() error {
 			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
 		}
 		err = utils.CatchPanic(func() error {
-			return c.onShutdown.Handler.(ShutdownHandler)(callbackCtx)
+			return c.onShutdown.Handler.(service.ShutdownHandler)(callbackCtx)
 		})
 		cancel()
 		if err != nil {

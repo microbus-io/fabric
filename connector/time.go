@@ -10,14 +10,12 @@ import (
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/utils"
 )
 
-// TickerHandler handles the ticker callbacks.
-type TickerHandler func(ctx context.Context) error
-
 // StartTicker initiates a recurring job at a set interval.
-func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler, options ...cb.Option) error {
+func (c *Connector) StartTicker(name string, interval time.Duration, handler service.TickerHandler, options ...cb.Option) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return errors.Trace(err)
 	}
@@ -101,7 +99,7 @@ func (c *Connector) runTicker(job *cb.Callback) {
 				callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, job.TimeBudget)
 			}
 			err := utils.CatchPanic(func() error {
-				return job.Handler.(TickerHandler)(callbackCtx)
+				return job.Handler.(service.TickerHandler)(callbackCtx)
 			})
 			cancel()
 			if err != nil {
@@ -135,9 +133,9 @@ func (c *Connector) Clock() clock.Clock {
 	return c.clock
 }
 
-// Now returns the current time using the connector's clock.
+// Now returns the current time using the connector's clock, in the UTC timezone.
 func (c *Connector) Now() time.Time {
-	return c.clock.Now()
+	return c.clock.Now().UTC()
 }
 
 // SetClock sets an alternative clock for this connector,

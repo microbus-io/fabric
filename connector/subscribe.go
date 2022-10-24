@@ -14,13 +14,11 @@ import (
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
-
-// HTTPHandler extends the standard http.Handler to also return an error
-type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
 
 /*
 Subscribe assigns a function to handle HTTP requests to the given path.
@@ -41,7 +39,7 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func (c *Connector) Subscribe(path string, handler HTTPHandler, options ...sub.Option) error {
+func (c *Connector) Subscribe(path string, handler service.HTTPHandler, options ...sub.Option) error {
 	if c.hostName == "" {
 		return errors.New("host name is not set")
 	}
@@ -286,7 +284,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Call the web handler
 	httpRecorder := utils.NewResponseRecorder()
 	handlerErr := utils.CatchPanic(func() error {
-		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
+		return s.Handler.(service.HTTPHandler)(httpRecorder, httpReq)
 	})
 
 	if handlerErr != nil {

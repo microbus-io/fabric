@@ -101,8 +101,8 @@ func TestConnector_ClockNow(t *testing.T) {
 	con := New("clock.now.connector")
 	con.SetClock(mockClock)
 
-	assert.Equal(t, mockClock.Now(), con.Now())
-	assert.Equal(t, mockClock.Now(), con.Clock().Now())
+	assert.True(t, mockClock.Now().Equal(con.Now()))
+	assert.True(t, mockClock.Now().Equal(con.Clock().Now()))
 }
 
 func TestConnector_TickerPendingOps(t *testing.T) {
