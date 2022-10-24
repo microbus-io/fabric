@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLRU_Lookup(t *testing.T) {
+func TestLRU_Load(t *testing.T) {
 	t.Parallel()
 
 	cache := NewCache[string, string]()
@@ -34,6 +34,27 @@ func TestLRU_Lookup(t *testing.T) {
 	assert.Equal(t, "", v)
 }
 
+func TestLRU_LoadOrPut(t *testing.T) {
+	t.Parallel()
+
+	cache := NewCache[string, string]()
+	cache.Put("a", "aaa")
+
+	v, found := cache.LoadOrPut("a", "AAA")
+	assert.True(t, found)
+	assert.Equal(t, "aaa", v)
+
+	cache.Delete("a")
+
+	v, found = cache.LoadOrPut("a", "AAA")
+	assert.False(t, found)
+	assert.Equal(t, "AAA", v)
+
+	v, found = cache.Load("a")
+	assert.True(t, found)
+	assert.Equal(t, "AAA", v)
+}
+
 func TestLRU_WeightLimit(t *testing.T) {
 	t.Parallel()
 
@@ -43,33 +64,44 @@ func TestLRU_WeightLimit(t *testing.T) {
 		BumpOnLoad(false),
 	)
 
-	cache.Store(999, "too big", 3)
+	cache.Store(999, "too big", maxWt+1)
 	_, ok := cache.Load(999)
 	assert.False(t, ok)
 	assert.Equal(t, 0, cache.Weight())
 
-	for i := 1; i <= maxWt+1; i++ {
+	// Fill in the cache
+	// head> [13,14,15,16] [9,10,11,12] [5,6,7,8] [1,2,3,4] _ _ _ _ <tail
+	for i := 1; i <= maxWt; i += 4 {
+		cache.cycleOnce()
 		cache.Store(i, "Foo", 1)
+		cache.Store(i+1, "Foo", 1)
+		cache.Store(i+2, "Foo", 1)
+		cache.Store(i+3, "Foo", 1)
 	}
 
-	// First two elements should get evicted with the oldest bucket
-	_, ok = cache.Load(1)
-	assert.False(t, ok)
-	_, ok = cache.Load(2)
-	assert.False(t, ok)
-	for i := 3; i <= maxWt+1; i++ {
+	// Oldest bucket should get evicted
+	// head> 101 _ _ _ _ [13,14,15,16] [9,10,11,12] [5,6,7,8] <tail
+	cache.Store(101, "Foo", 1)
+	for i := 1; i < 4; i++ {
+		_, ok = cache.Load(i)
+		assert.False(t, ok, "%d", i)
+	}
+	for i := 5; i <= maxWt; i++ {
 		_, ok = cache.Load(i)
 		assert.True(t, ok, "%d", i)
 	}
-	assert.Equal(t, maxWt-1, cache.Weight())
+	assert.Equal(t, maxWt-3, cache.Weight())
 
-	// There should be room for one more element
-	cache.Store(maxWt+2, "Foo", 1)
-	_, ok = cache.Load(1)
-	assert.False(t, ok)
-	_, ok = cache.Load(2)
-	assert.False(t, ok)
-	for i := 3; i <= maxWt+2; i++ {
+	// There should be room for three more elements
+	// head> [101,102,103,104] _ _ _ _ [13,14,15,16] [9,10,11,12] [5,6,7,8] <tail
+	cache.Store(102, "Foo", 1)
+	cache.Store(103, "Foo", 1)
+	cache.Store(104, "Foo", 1)
+	for i := 1; i < 4; i++ {
+		_, ok = cache.Load(i)
+		assert.False(t, ok, "%d", i)
+	}
+	for i := 5; i <= maxWt; i++ {
 		_, ok = cache.Load(i)
 		assert.True(t, ok, "%d", i)
 	}
@@ -187,39 +219,55 @@ func TestLRU_BumpOnLoad(t *testing.T) {
 	t.Parallel()
 
 	cache := NewCache[int, string](
-		MaxWeight(numBuckets), // 1 element per bucket
+		MaxWeight(numBuckets),
 		BumpOnLoad(true),
 	)
 
 	// Fill in the cache
 	// head> 8 7 6 5 4 3 2 1 <tail
 	for i := 1; i <= numBuckets; i++ {
+		cache.cycleOnce()
 		cache.Put(i, "X")
 	}
 	assert.Equal(t, numBuckets, cache.Len())
 
 	// Loading element 1 should bump it to the top of the cache
-	// head> 1 8 7 6 5 4 3 2 <tail
+	// head> [1,8] 7 6 5 4 3 2 _ <tail
 	_, ok := cache.Load(1)
 	assert.True(t, ok)
 	assert.Equal(t, numBuckets, cache.Len())
 
-	// Loading element 8 should bump it to the top of the cache ahead of 1.
-	// Element 2 will drop off the tail.
-	// head> 8 1 _ 7 6 5 4 3 <tail
+	// Loading element 8 should make no difference
+	// head> [8,1] 7 6 5 4 3 2 _ <tail
 	_, ok = cache.Load(8)
 	assert.True(t, ok)
-	assert.Equal(t, numBuckets-1, cache.Len())
+	assert.Equal(t, numBuckets, cache.Len())
+
+	// Putting element 9 should drop 2 off the tail
+	cache.Put(9, "X")
+	// head> _ _ [9,8,1] 7 6 5 4 3 <tail
+	assert.Equal(t, numBuckets, cache.Len())
 	_, ok = cache.Load(2)
 	assert.False(t, ok)
 
-	// Loading element 1 should bump it to the top of the cache
-	// Element 3 will drop off the tail.
-	// head> 1 8 _ _ 7 6 5 4 <tail
-	_, ok = cache.Load(1)
+	// Loading element 4 should bump it to the top of the cache
+	// head> 4 _ [9,8,1] 7 6 5 _ 3 <tail
+	_, ok = cache.Load(4)
 	assert.True(t, ok)
+	assert.Equal(t, numBuckets, cache.Len())
+
+	// Cycle once to cause 3 to drop off the tail
+	// head> _ 4 _ [9,8,1] 7 6 5 _ <tail
+	cache.cycleOnce()
 	_, ok = cache.Load(3)
 	assert.False(t, ok)
+	assert.Equal(t, numBuckets-1, cache.Len())
+
+	// Loading element 4 should bump it to the top of the cache
+	// head> 4 _ _ [9,8,1] 7 6 5 _ <tail
+	_, ok = cache.Load(4)
+	assert.True(t, ok)
+	assert.Equal(t, numBuckets-1, cache.Len())
 }
 
 func BenchmarkLRU_Store(b *testing.B) {
@@ -231,7 +279,7 @@ func BenchmarkLRU_Store(b *testing.B) {
 	}
 
 	// On 2021 MacBook Pro M1 15":
-	// 315 ns/op
+	// 294 ns/op
 }
 
 func BenchmarkLRU_LoadNoBump(b *testing.B) {
@@ -248,7 +296,7 @@ func BenchmarkLRU_LoadNoBump(b *testing.B) {
 	}
 
 	// On 2021 MacBook Pro M1 15":
-	// 245 ns/op
+	// 197 ns/op
 }
 
 func BenchmarkLRU_LoadWithBump(b *testing.B) {
@@ -265,5 +313,5 @@ func BenchmarkLRU_LoadWithBump(b *testing.B) {
 	}
 
 	// On 2021 MacBook Pro M1 15":
-	// 440 ns/op
+	// 198 ns/op
 }

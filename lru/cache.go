@@ -33,12 +33,12 @@ func newBucket[K comparable, V any]() *bucket[K, V] {
 
 // Cache is an LRU cache that enforces a maximum weight capacity and age limit for its elements.
 type Cache[K comparable, V any] struct {
-	options         cacheOptions
-	buckets         []*bucket[K, V]
-	maxBucketWeight int
-	nextCycle       time.Time
-	cycleDuration   time.Duration
-	lock            sync.Mutex
+	options       cacheOptions
+	buckets       []*bucket[K, V]
+	nextCycle     time.Time
+	cycleDuration time.Duration
+	lock          sync.Mutex
+	weight        int
 }
 
 // NewCache creates a new LRU cache.
@@ -66,9 +66,6 @@ func NewCache[K comparable, V any](options ...Option) *Cache[K, V] {
 	cache.cycleDuration = cache.options.maxAge / time.Duration(nb)
 	cache.nextCycle = cache.options.clock.Now().Add(cache.cycleDuration)
 
-	// Calc max bucket weight
-	cache.maxBucketWeight = cache.options.maxWeight / nb
-
 	return cache
 }
 
@@ -81,6 +78,7 @@ func (cache *Cache[K, V]) Clear() {
 		cache.buckets = append(cache.buckets, newBucket[K, V]())
 	}
 	cache.nextCycle = cache.options.clock.Now().Add(cache.cycleDuration)
+	cache.weight = 0
 	cache.lock.Unlock()
 }
 
@@ -90,6 +88,7 @@ func (cache *Cache[K, V]) Clear() {
 // A new bucket 0 is initialized to hold the freshest elements.
 func (cache *Cache[K, V]) cycleOnce() {
 	nb := len(cache.buckets)
+	cache.weight -= cache.buckets[nb-1].weight
 	for b := nb - 2; b >= 0; b-- {
 		cache.buckets[b+1] = cache.buckets[b]
 	}
@@ -120,7 +119,7 @@ func (cache *Cache[K, V]) Put(key K, value V) {
 // Store inserts an element to the cache with the indicated weight.
 // The weight must be 1 or greater but cannot exceed 10% of the cache's maximum weight limit.
 func (cache *Cache[K, V]) Store(key K, value V, weight int) {
-	if weight > cache.maxBucketWeight {
+	if weight > cache.options.maxWeight {
 		return
 	}
 	if weight < 1 {
@@ -128,22 +127,19 @@ func (cache *Cache[K, V]) Store(key K, value V, weight int) {
 	}
 
 	cache.lock.Lock()
-
-	// Remove the element from all buckets
-	nb := len(cache.buckets)
-	for b := 0; b < nb; b++ {
-		e, ok := cache.buckets[b].lookup[key]
-		if ok {
-			cache.buckets[b].weight -= e.weight
-			delete(cache.buckets[b].lookup, key)
-		}
-	}
-
-	// Cycle
 	cache.cycleAge()
-	if cache.buckets[0].weight+weight > cache.maxBucketWeight {
+	cache.store(key, value, weight)
+	cache.lock.Unlock()
+}
+
+func (cache *Cache[K, V]) store(key K, value V, weight int) {
+	// Remove the element from all buckets
+	cache.delete(key)
+
+	// Cycle if cache weight is exceeded
+	for cache.weight+weight > cache.options.maxWeight {
 		cache.cycleOnce()
-		cache.nextCycle = cache.options.clock.Now().Add(cache.cycleDuration)
+		cache.nextCycle = cache.nextCycle.Add(cache.cycleDuration)
 	}
 
 	// Insert to bucket 0
@@ -152,18 +148,20 @@ func (cache *Cache[K, V]) Store(key K, value V, weight int) {
 		weight: weight,
 	}
 	cache.buckets[0].weight += weight
-
-	cache.lock.Unlock()
+	cache.weight += weight
 }
 
 // Load looks up an element in the cache.
 func (cache *Cache[K, V]) Load(key K) (value V, ok bool) {
 	cache.lock.Lock()
-
-	// Cycle
 	cache.cycleAge()
+	value, ok = cache.load(key)
+	cache.lock.Unlock()
+	return value, ok
+}
 
-	// Scan from newest to older
+func (cache *Cache[K, V]) load(key K) (value V, ok bool) {
+	// Scan from newest to oldest
 	nb := len(cache.buckets)
 	var foundIn int
 	var elem *element[V]
@@ -176,11 +174,9 @@ func (cache *Cache[K, V]) Load(key K) (value V, ok bool) {
 		}
 	}
 	if !found {
-		cache.lock.Unlock()
 		return value, false
 	}
 	if !cache.options.bumpOnLoad || foundIn == 0 {
-		cache.lock.Unlock()
 		return elem.val, true
 	}
 
@@ -189,44 +185,58 @@ func (cache *Cache[K, V]) Load(key K) (value V, ok bool) {
 	cache.buckets[foundIn].weight -= elem.weight
 
 	// Insert the element to bucket 0
-	if cache.buckets[0].weight+elem.weight > cache.maxBucketWeight {
-		cache.cycleOnce()
-		cache.nextCycle = cache.options.clock.Now().Add(cache.cycleDuration)
-	}
 	cache.buckets[0].lookup[key] = elem
 	cache.buckets[0].weight += elem.weight
 
-	cache.lock.Unlock()
 	return elem.val, true
 }
 
-// Delete removed an element from the cache.
+// LoadOrPut looks up an element in the cache.
+// If the element is not found, the new value is stored and returned instead.
+func (cache *Cache[K, V]) LoadOrPut(key K, newValue V) (value V, found bool) {
+	return cache.LoadOrStore(key, newValue, 1)
+}
+
+// LoadOrStore looks up an element in the cache.
+// If the element is not found, the new value is stored and returned instead.
+func (cache *Cache[K, V]) LoadOrStore(key K, newValue V, weight int) (value V, found bool) {
+	cache.lock.Lock()
+	cache.cycleAge()
+	value, found = cache.load(key)
+	if !found {
+		cache.store(key, newValue, weight)
+		value = newValue
+	}
+	cache.lock.Unlock()
+	return value, found
+}
+
+// Delete removes an element from the cache.
 func (cache *Cache[K, V]) Delete(key K) {
 	cache.lock.Lock()
 	cache.cycleAge()
+	cache.delete(key)
+	cache.lock.Unlock()
+}
 
+func (cache *Cache[K, V]) delete(key K) {
 	// Remove the element from all buckets
 	nb := len(cache.buckets)
 	for b := 0; b < nb; b++ {
 		e, ok := cache.buckets[b].lookup[key]
 		if ok {
 			cache.buckets[b].weight -= e.weight
+			cache.weight -= e.weight
 			delete(cache.buckets[b].lookup, key)
 		}
 	}
-
-	cache.lock.Unlock()
 }
 
 // Weight returns the total weight of all the elements in the cache.
 func (cache *Cache[K, V]) Weight() int {
 	cache.lock.Lock()
 	cache.cycleAge()
-	weight := 0
-	nb := len(cache.buckets)
-	for b := 0; b < nb; b++ {
-		weight += cache.buckets[b].weight
-	}
+	weight := cache.weight
 	cache.lock.Unlock()
 	return weight
 }
