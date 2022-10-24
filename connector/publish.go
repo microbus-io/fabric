@@ -168,15 +168,25 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 		return
 	}
 
+	enumResponders := func(responders map[string]bool) string {
+		str := ""
+		for k := range responders {
+			if str != "" {
+				str += ", "
+			}
+			str += k
+		}
+		return str
+	}
+
 	// Await and return the responses
 	var expectedResponders map[string]bool
 	if req.Multicast {
-		c.knownRespondersLock.Lock()
-		expectedResponders = c.knownResponders[subject]
-		c.knownRespondersLock.Unlock()
+		expectedResponders, _ = c.knownResponders.Load(subject)
 		if len(expectedResponders) > 0 {
-			c.LogDebug(c.lifetimeCtx, "Expecting responders", log.String("subject", subject), log.Any("responders", expectedResponders))
+			c.LogDebug(c.lifetimeCtx, "Expecting responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(expectedResponders)))
 		}
+		c.pendingMulticasts.Put(msgID, subject)
 	}
 	countResponses := 0
 	seenIDs := map[string]string{} // FromID -> OpCode
@@ -277,10 +287,9 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				countResponses++
 				if doneWaitingForAcks && countResponses == len(seenIDs) {
 					// All responses have been received
-					c.knownRespondersLock.Lock()
-					c.knownResponders[subject] = seenQueues
-					c.knownRespondersLock.Unlock()
-					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("subject", subject), log.Any("responders", seenQueues))
+					// Known responders optimization
+					c.knownResponders.Put(subject, seenQueues)
+					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
 					return
 				}
 			}
@@ -290,10 +299,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 			output <- pub.NewErrorResponse(errors.New("timeout", req.Canonical()))
 			// Known responders optimization
 			if req.Multicast {
-				c.knownRespondersLock.Lock()
-				delete(c.knownResponders, subject)
-				c.knownRespondersLock.Unlock()
-				c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("subject", subject))
+				c.knownResponders.Delete(subject)
+				c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 			}
 			return
 
@@ -304,10 +311,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				output <- pub.NewErrorResponse(errors.New("ack timeout", req.Canonical()))
 				// Known responders optimization
 				if req.Multicast {
-					c.knownRespondersLock.Lock()
-					delete(c.knownResponders, subject)
-					c.knownRespondersLock.Unlock()
-					c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("subject", subject))
+					c.knownResponders.Delete(subject)
+					c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 				}
 				return
 			}
@@ -315,10 +320,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				// All responses have been received
 				// Known responders optimization
 				if req.Multicast {
-					c.knownRespondersLock.Lock()
-					c.knownResponders[subject] = seenQueues
-					c.knownRespondersLock.Unlock()
-					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("subject", subject), log.Any("responders", seenQueues))
+					c.knownResponders.Put(subject, seenQueues)
+					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
 				}
 				return
 			}
@@ -356,10 +359,17 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	if !ok {
 		opCode := frame.Of(response).OpCode()
 		if opCode != frame.OpCodeAck {
+			subject, _ := c.pendingMulticasts.Load(msgID)
+			if subject != "" {
+				c.knownResponders.Delete(subject)
+			}
 			c.LogInfo(
 				c.lifetimeCtx,
 				"Response received after timeout",
 				log.String("msg", msgID),
+				log.String("subject", subject),
+				log.String("from", frame.Of(response).FromID()),
+				log.String("queue", frame.Of(response).Queue()),
 			)
 		}
 		return

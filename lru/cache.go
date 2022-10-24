@@ -32,6 +32,7 @@ func newBucket[K comparable, V any]() *bucket[K, V] {
 }
 
 // Cache is an LRU cache that enforces a maximum weight capacity and age limit for its elements.
+// The LRU cache performs locking internally and is thread-safe.
 type Cache[K comparable, V any] struct {
 	options       cacheOptions
 	buckets       []*bucket[K, V]
