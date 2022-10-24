@@ -15,6 +15,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
@@ -58,8 +59,8 @@ type Connector struct {
 	responseDefrags     map[string]*frag.DefragResponse
 	responseDefragsLock sync.Mutex
 
-	knownResponders     map[string]map[string]bool
-	knownRespondersLock sync.Mutex
+	knownResponders   *lru.Cache[string, map[string]bool]
+	pendingMulticasts *lru.Cache[string, string]
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
@@ -82,13 +83,19 @@ func NewConnector() *Connector {
 		networkHop:      250 * time.Millisecond,
 		maxCallDepth:    64,
 		subs:            map[string]*sub.Subscription{},
-		knownResponders: map[string]map[string]bool{},
 		requestDefrags:  map[string]*frag.DefragRequest{},
 		responseDefrags: map[string]*frag.DefragResponse{},
 		clock:           clock.NewClockReference(clock.New()),
 		tickers:         map[string]*cb.Callback{},
 		lifetimeCtx:     context.Background(),
 	}
+
+	c.knownResponders = lru.NewCache[string, map[string]bool](
+		lru.BumpOnLoad(true), lru.MaxAge(24*time.Hour), lru.MaxWeight(10000),
+	)
+	c.pendingMulticasts = lru.NewCache[string, string](
+		lru.BumpOnLoad(false), lru.MaxAge(time.Minute), lru.MaxWeight(10000),
+	)
 
 	return c
 }
