@@ -77,7 +77,7 @@ func NewCache(ctx context.Context, svc service.Service, path string, options ...
 
 // start subscribed to handle cache events from peers.
 func (c *Cache) start(ctx context.Context) error {
-	err := c.svc.Subscribe(c.basePath+"/sync/", c.handleSync, sub.NoQueue())
+	err := c.svc.Subscribe(c.basePath+"/all", c.handleAll, sub.NoQueue())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -91,26 +91,27 @@ func (c *Cache) start(ctx context.Context) error {
 // start unsubscribes from handling cache events from peers.
 func (c *Cache) stop(ctx context.Context) error {
 	c.svc.Unsubscribe(c.basePath + "/rescue")
-	c.svc.Unsubscribe(c.basePath + "/sync/")
+	c.svc.Unsubscribe(c.basePath + "/all")
 	return nil
 }
 
-func (c *Cache) handleSync(w http.ResponseWriter, r *http.Request) error {
-	path := r.URL.Path
-	if strings.HasSuffix(path, "/load") {
+func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
+	// Ignore messages from other hosts
+	if frame.Of(r).FromHost() != c.svc.HostName() {
+		return errors.Newf("foreign host '%s'", frame.Of(r).FromHost())
+	}
+	switch r.URL.Query().Get("do") {
+	case "load":
 		return c.handleLoad(w, r)
-	}
-	if strings.HasSuffix(path, "/store") {
+	case "store":
 		return c.handleStore(w, r)
-	}
-	if strings.HasSuffix(path, "/delete") {
+	case "delete":
 		return c.handleDelete(w, r)
-	}
-	if strings.HasSuffix(path, "/clear") {
+	case "clear":
 		return c.handleClear(w, r)
+	default:
+		return errors.Newf("invalid action '%s'", r.URL.Query().Get("do"))
 	}
-	w.WriteHeader(http.StatusNotFound)
-	return nil
 }
 
 func (c *Cache) handleClear(w http.ResponseWriter, r *http.Request) error {
@@ -261,7 +262,7 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte) error {
 	c.localCache.Delete(key)
 
 	// Broadcast to peers
-	u := fmt.Sprintf("%s/sync/store?key=%s", c.basePath, key)
+	u := fmt.Sprintf("%s/all?do=store&key=%s", c.basePath, key)
 	ch := c.svc.Publish(ctx, pub.Method("PUT"), pub.URL(u), pub.Body(value))
 	for r := range ch {
 		_, err := r.Get()
@@ -289,7 +290,7 @@ func (c *Cache) Load(ctx context.Context, key string) (value []byte, ok bool, er
 	}
 
 	// Check with peers
-	u := fmt.Sprintf("%s/sync/load?key=%s", c.basePath, key)
+	u := fmt.Sprintf("%s/all?do=load&key=%s", c.basePath, key)
 	ch := c.svc.Publish(ctx, pub.GET(u))
 	for r := range ch {
 		res, err := r.Get()
@@ -322,7 +323,7 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 	c.localCache.Delete(key)
 
 	// Broadcast to all peers
-	u := fmt.Sprintf("%s/sync/delete?key=%s", c.basePath, key)
+	u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, key)
 	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
 		_, err := r.Get()
@@ -338,7 +339,7 @@ func (c *Cache) Clear(ctx context.Context) error {
 	c.localCache.Clear()
 
 	// Broadcast to all peers
-	u := fmt.Sprintf("%s/sync/clear", c.basePath)
+	u := fmt.Sprintf("%s/all?do=clear", c.basePath)
 	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
 		_, err := r.Get()

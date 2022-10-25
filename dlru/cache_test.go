@@ -20,14 +20,17 @@ func TestDLRU_Lookup(t *testing.T) {
 	alpha := connector.New("lookup.dlru")
 	alphaLRU, err := NewCache(ctx, alpha, "/cache")
 	assert.NoError(t, err)
+	defer alphaLRU.Close(ctx)
 
 	beta := connector.New("lookup.dlru")
 	betaLRU, err := NewCache(ctx, beta, "/cache")
 	assert.NoError(t, err)
+	defer betaLRU.Close(ctx)
 
 	gamma := connector.New("lookup.dlru")
 	gammaLRU, err := NewCache(ctx, gamma, "/cache")
 	assert.NoError(t, err)
+	defer gammaLRU.Close(ctx)
 
 	err = alpha.Startup()
 	assert.NoError(t, err)
@@ -122,10 +125,12 @@ func TestDLRU_Rescue(t *testing.T) {
 	beta := connector.New("rescue.dlru")
 	betaLRU, err := NewCache(ctx, beta, "/cache")
 	assert.NoError(t, err)
+	defer betaLRU.Close(ctx)
 
 	gamma := connector.New("rescue.dlru")
 	gammaLRU, err := NewCache(ctx, gamma, "/cache")
 	assert.NoError(t, err)
+	defer gammaLRU.Close(ctx)
 
 	err = alpha.Startup()
 	assert.NoError(t, err)
@@ -190,14 +195,17 @@ func TestDLRU_Weight(t *testing.T) {
 	alpha := connector.New("weight.dlru")
 	alphaLRU, err := NewCache(ctx, alpha, "/cache", MaxMemory(maxMem))
 	assert.NoError(t, err)
+	defer alphaLRU.Close(ctx)
 
 	beta := connector.New("weight.dlru")
 	betaLRU, err := NewCache(ctx, beta, "/cache", MaxMemory(maxMem))
 	assert.NoError(t, err)
+	defer betaLRU.Close(ctx)
 
 	gamma := connector.New("weight.dlru")
 	gammaLRU, err := NewCache(ctx, gamma, "/cache", MaxMemory(maxMem))
 	assert.NoError(t, err)
+	defer gammaLRU.Close(ctx)
 
 	err = alpha.Startup()
 	assert.NoError(t, err)
@@ -290,4 +298,42 @@ func TestDLRU_Options(t *testing.T) {
 	assert.Equal(t, "https://www.example.com:443/path", dlru.basePath)
 	assert.True(t, dlru.strictLoad)
 	assert.False(t, dlru.rescueOnClose)
+}
+
+func TestDLRU_MulticastOptim(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("multicast.optim.dlru")
+	alphaLRU, err := NewCache(ctx, alpha, "/cache")
+	assert.NoError(t, err)
+	defer alphaLRU.Close(ctx)
+
+	beta := connector.New("multicast.optim.dlru")
+	betaLRU, err := NewCache(ctx, beta, "/cache")
+	assert.NoError(t, err)
+	defer betaLRU.Close(ctx)
+
+	err = alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	// First operation is slow
+	t0 := time.Now()
+	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
+	assert.NoError(t, err)
+	dur := time.Since(t0)
+	assert.True(t, dur >= 250*time.Millisecond)
+
+	// Second operation is fast, even if not the same action
+	t0 = time.Now()
+	err = alphaLRU.Clear(ctx)
+	assert.NoError(t, err)
+	dur = time.Since(t0)
+	assert.True(t, dur < 250*time.Millisecond)
 }
