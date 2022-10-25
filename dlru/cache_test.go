@@ -286,7 +286,6 @@ func TestDLRU_Options(t *testing.T) {
 		"/path",
 		MaxAge(5*time.Hour),
 		MaxMemoryMB(8),
-		BumpOnLoad(false),
 		StrictLoad(true),
 		RescueOnClose(false),
 	)
@@ -294,7 +293,6 @@ func TestDLRU_Options(t *testing.T) {
 
 	assert.Equal(t, 5*time.Hour, dlru.localCache.MaxAge())
 	assert.Equal(t, 8*1024*1024, dlru.localCache.MaxWeight())
-	assert.False(t, dlru.localCache.IsBumpOnLoad())
 	assert.Equal(t, "https://www.example.com:443/path", dlru.basePath)
 	assert.True(t, dlru.strictLoad)
 	assert.False(t, dlru.rescueOnClose)

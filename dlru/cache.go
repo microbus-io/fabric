@@ -103,6 +103,8 @@ func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	switch r.URL.Query().Get("do") {
 	case "load":
 		return c.handleLoad(w, r)
+	case "peek":
+		return c.handlePeek(w, r)
 	case "store":
 		return c.handleStore(w, r)
 	case "delete":
@@ -160,6 +162,30 @@ func (c *Cache) handleLoad(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// handleLoad handles a broadcast when the primary tries to obtain copies held by its peers.
+func (c *Cache) handlePeek(w http.ResponseWriter, r *http.Request) error {
+	// Ignore messages from self
+	if frame.Of(r).FromID() == c.svc.ID() {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
+	key := r.URL.Query().Get("key")
+	if key == "" {
+		return errors.New("missing key")
+	}
+	data, ok := c.localCache.Peek(key)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	_, err := w.Write(data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
 // handleStore handles a broadcast when a new element is stored by the primary.
 func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
@@ -202,6 +228,11 @@ func (c *Cache) Close(ctx context.Context) error {
 
 // rescue distributes the elements in the cache to random peers.
 func (c *Cache) rescue(ctx context.Context) {
+	// Nothing to rescue
+	if c.localCache.Len() == 0 {
+		return
+	}
+
 	// Count number of peers
 	u := fmt.Sprintf("https://%s:888/ping", c.svc.HostName())
 	ch := c.svc.Publish(ctx, pub.GET(u))
@@ -277,6 +308,7 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte) error {
 }
 
 // Load an element from the cache, locally or from peers.
+// If the element is found, it is bumped to the head of the cache.
 func (c *Cache) Load(ctx context.Context, key string) (value []byte, ok bool, err error) {
 	if key == "" {
 		return nil, false, errors.New("missing key")
@@ -291,6 +323,45 @@ func (c *Cache) Load(ctx context.Context, key string) (value []byte, ok bool, er
 
 	// Check with peers
 	u := fmt.Sprintf("%s/all?do=load&key=%s", c.basePath, key)
+	ch := c.svc.Publish(ctx, pub.GET(u))
+	for r := range ch {
+		res, err := r.Get()
+		if err != nil {
+			return nil, false, errors.Trace(err)
+		}
+		if res.StatusCode != http.StatusOK {
+			continue
+		}
+		data, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, false, errors.Trace(err)
+		}
+		if value != nil && !bytes.Equal(value, data) {
+			// Inconsistency detected
+			return nil, false, nil
+		}
+		value = data
+	}
+
+	return value, value != nil, nil
+}
+
+// Peek loads an element from the cache, locally or from peers.
+// If the element is found, it is NOT bumped to the head of the cache.
+func (c *Cache) Peek(ctx context.Context, key string) (value []byte, ok bool, err error) {
+	if key == "" {
+		return nil, false, errors.New("missing key")
+	}
+
+	// Check local cache
+	if value, ok = c.localCache.Peek(key); ok {
+		if !c.strictLoad {
+			return value, true, nil
+		}
+	}
+
+	// Check with peers
+	u := fmt.Sprintf("%s/all?do=peek&key=%s", c.basePath, key)
 	ch := c.svc.Publish(ctx, pub.GET(u))
 	for r := range ch {
 		res, err := r.Get()

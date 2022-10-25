@@ -91,10 +91,10 @@ func NewConnector() *Connector {
 	}
 
 	c.knownResponders = lru.NewCache[string, map[string]bool](
-		lru.BumpOnLoad(true), lru.MaxAge(24*time.Hour), lru.MaxWeight(10000),
+		lru.MaxAge(24*time.Hour), lru.MaxWeight(10000),
 	)
 	c.pendingMulticasts = lru.NewCache[string, string](
-		lru.BumpOnLoad(false), lru.MaxAge(time.Minute), lru.MaxWeight(10000),
+		lru.MaxAge(time.Minute), lru.MaxWeight(10000),
 	)
 
 	return c

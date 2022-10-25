@@ -8,10 +8,9 @@ import (
 
 // cacheOptions collects the options set to construct the cache.
 type cacheOptions struct {
-	maxWeight  int
-	maxAge     time.Duration
-	bumpOnLoad bool
-	clock      clock.Clock
+	maxWeight int
+	maxAge    time.Duration
+	clock     clock.Clock
 }
 
 // Option is used to construct an LRU cache
@@ -35,14 +34,6 @@ func MaxWeight(maxWt int) Option {
 		if maxWt > 0 {
 			co.maxWeight = maxWt
 		}
-	}
-}
-
-// BumpOnLoad sets whether elements should be bumped to the front of the cache when they are accessed.
-// This increases the TTL of frequently-used elements but may shorten that of less frequently-used elements.
-func BumpOnLoad(bump bool) Option {
-	return func(co *cacheOptions) {
-		co.bumpOnLoad = bump
 	}
 }
 

@@ -360,7 +360,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	if !ok {
 		opCode := frame.Of(response).OpCode()
 		if opCode != frame.OpCodeAck {
-			subject, _ := c.pendingMulticasts.Load(msgID)
+			subject, _ := c.pendingMulticasts.Peek(msgID)
 			if subject != "" {
 				c.knownResponders.Delete(subject)
 			}

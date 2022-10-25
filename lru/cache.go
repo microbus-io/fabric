@@ -47,10 +47,9 @@ func NewCache[K comparable, V any](options ...Option) *Cache[K, V] {
 	cache := &Cache[K, V]{
 		buckets: []*bucket[K, V]{},
 		options: cacheOptions{
-			maxWeight:  10000,
-			maxAge:     time.Hour,
-			bumpOnLoad: true,
-			clock:      clock.New(),
+			maxWeight: 10000,
+			maxAge:    time.Hour,
+			clock:     clock.New(),
 		},
 	}
 	for _, opt := range options {
@@ -161,15 +160,36 @@ func (cache *Cache[K, V]) store(key K, value V, weight int) {
 }
 
 // Load looks up an element in the cache.
+// If the element is found, it is bumped to the head of the cache.
 func (cache *Cache[K, V]) Load(key K) (value V, ok bool) {
 	cache.lock.Lock()
 	cache.cycleAge()
-	value, ok = cache.load(key)
+	value, ok = cache.lookup(key, true)
 	cache.lock.Unlock()
 	return value, ok
 }
 
-func (cache *Cache[K, V]) load(key K) (value V, ok bool) {
+// Exists looks up an element in the cache.
+// If the element is found, it is NOT bumped to the head of the cache.
+func (cache *Cache[K, V]) Exists(key K) bool {
+	cache.lock.Lock()
+	cache.cycleAge()
+	_, ok := cache.lookup(key, false)
+	cache.lock.Unlock()
+	return ok
+}
+
+// Peek looks up an element in the cache.
+// If the element is found, it is NOT bumped to the head of the cache.
+func (cache *Cache[K, V]) Peek(key K) (value V, ok bool) {
+	cache.lock.Lock()
+	cache.cycleAge()
+	value, ok = cache.lookup(key, false)
+	cache.lock.Unlock()
+	return value, ok
+}
+
+func (cache *Cache[K, V]) lookup(key K, bump bool) (value V, ok bool) {
 	// Scan from newest to oldest
 	nb := len(cache.buckets)
 	var foundIn int
@@ -185,7 +205,7 @@ func (cache *Cache[K, V]) load(key K) (value V, ok bool) {
 	if !found {
 		return value, false
 	}
-	if !cache.options.bumpOnLoad || foundIn == 0 {
+	if !bump || foundIn == 0 {
 		return elem.val, true
 	}
 
@@ -208,17 +228,41 @@ func (cache *Cache[K, V]) load(key K) (value V, ok bool) {
 }
 
 // LoadOrPut looks up an element in the cache.
+// If the element is found, it is bumped to the head of the cache.
 // If the element is not found, the new value is stored and returned instead.
 func (cache *Cache[K, V]) LoadOrPut(key K, newValue V) (value V, found bool) {
 	return cache.LoadOrStore(key, newValue, 1)
 }
 
 // LoadOrStore looks up an element in the cache.
+// If the element is found, it is bumped to the head of the cache.
 // If the element is not found, the new value is stored and returned instead.
 func (cache *Cache[K, V]) LoadOrStore(key K, newValue V, weight int) (value V, found bool) {
 	cache.lock.Lock()
 	cache.cycleAge()
-	value, found = cache.load(key)
+	value, found = cache.lookup(key, true)
+	if !found {
+		cache.store(key, newValue, weight)
+		value = newValue
+	}
+	cache.lock.Unlock()
+	return value, found
+}
+
+// PeekOrPut looks up an element in the cache.
+// If the element is found, it is NOT bumped to the head of the cache.
+// If the element is not found, the new value is stored and returned instead.
+func (cache *Cache[K, V]) PeekOrPut(key K, newValue V) (value V, found bool) {
+	return cache.PeekOrStore(key, newValue, 1)
+}
+
+// PeekOrStore looks up an element in the cache.
+// If the element is found, it is NOT bumped to the head of the cache.
+// If the element is not found, the new value is stored and returned instead.
+func (cache *Cache[K, V]) PeekOrStore(key K, newValue V, weight int) (value V, found bool) {
+	cache.lock.Lock()
+	cache.cycleAge()
+	value, found = cache.lookup(key, false)
 	if !found {
 		cache.store(key, newValue, weight)
 		value = newValue
@@ -278,11 +322,6 @@ func (cache *Cache[K, V]) MaxWeight() int {
 // MaxWeight returns the age limit set for this cache.
 func (cache *Cache[K, V]) MaxAge() time.Duration {
 	return cache.options.maxAge
-}
-
-// IsBumpOnLoad returns whether bump on load is enabled or not.
-func (cache *Cache[K, V]) IsBumpOnLoad() bool {
-	return cache.options.bumpOnLoad
 }
 
 // ToMap returns the elements currently in the cache in a newly allocated map.
