@@ -38,8 +38,8 @@ func MaxWeight(maxWt int) Option {
 	}
 }
 
-// BumpOnLoad sets whether elements should be bumped to the front of the cache when
-// they are accessed.
+// BumpOnLoad sets whether elements should be bumped to the front of the cache when they are accessed.
+// This increases the TTL of frequently-used elements but may shorten that of less frequently-used elements.
 func BumpOnLoad(bump bool) Option {
 	return func(co *cacheOptions) {
 		co.bumpOnLoad = bump

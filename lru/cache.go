@@ -118,7 +118,7 @@ func (cache *Cache[K, V]) Put(key K, value V) {
 }
 
 // Store inserts an element to the cache with the indicated weight.
-// The weight must be 1 or greater but cannot exceed 10% of the cache's maximum weight limit.
+// The weight must be 1 or greater and cannot exceed the cache's maximum weight limit.
 func (cache *Cache[K, V]) Store(key K, value V, weight int) {
 	if weight > cache.options.maxWeight {
 		return
@@ -253,4 +253,33 @@ func (cache *Cache[K, V]) Len() int {
 	}
 	cache.lock.Unlock()
 	return count
+}
+
+// MaxWeight returns the weight limit set for this cache.
+func (cache *Cache[K, V]) MaxWeight() int {
+	return cache.options.maxWeight
+}
+
+// MaxWeight returns the age limit set for this cache.
+func (cache *Cache[K, V]) MaxAge() time.Duration {
+	return cache.options.maxAge
+}
+
+// IsBumpOnLoad returns whether bump on load is enabled or not.
+func (cache *Cache[K, V]) IsBumpOnLoad() bool {
+	return cache.options.bumpOnLoad
+}
+
+// ToMap returns the elements currently in the cache in a newly allocated map.
+func (cache *Cache[K, V]) ToMap() map[K]V {
+	cache.lock.Lock()
+	m := map[K]V{}
+	nb := len(cache.buckets)
+	for b := 0; b < nb; b++ {
+		for k, elem := range cache.buckets[b].lookup {
+			m[k] = elem.val
+		}
+	}
+	cache.lock.Unlock()
+	return m
 }
