@@ -144,19 +144,20 @@ func TestDLRU_Rescue(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+	assert.Equal(t, n, alphaLRU.localCache.Len())
 
 	err = beta.Startup()
 	assert.NoError(t, err)
-	defer alpha.Shutdown()
+	defer beta.Shutdown()
 
 	err = gamma.Startup()
 	assert.NoError(t, err)
 	defer gamma.Shutdown()
 
-	// Should distribute the elements to beta and gamma
-	assert.Equal(t, n, alphaLRU.localCache.Len())
 	assert.Zero(t, betaLRU.localCache.Len())
 	assert.Zero(t, gammaLRU.localCache.Len())
+
+	// Should distribute the elements to beta and gamma
 	alphaLRU.Close(ctx)
 	assert.Equal(t, n, betaLRU.localCache.Len()+gammaLRU.localCache.Len())
 
@@ -249,31 +250,22 @@ func TestDLRU_Weight(t *testing.T) {
 	err = alphaLRU.Store(ctx, "E", []byte(payload))
 	assert.NoError(t, err)
 
-	// Alpha will have A,B,C,D evicted before E is stored
-	// alpha: E
+	// Alpha will have A evicted
+	// alpha: E D C B
 	// beta: A
 	// gamma: A
-	assert.Equal(t, 1, alphaLRU.localCache.Len())
+	assert.Equal(t, 4, alphaLRU.localCache.Len())
 	assert.Equal(t, 1, betaLRU.localCache.Len())
 	assert.Equal(t, 1, gammaLRU.localCache.Len())
-	assert.Equal(t, maxMem/4, alphaLRU.localCache.Weight())
+	assert.Equal(t, maxMem, alphaLRU.localCache.Weight())
 	assert.Equal(t, maxMem/4, betaLRU.localCache.Weight())
 	assert.Equal(t, maxMem/4, gammaLRU.localCache.Weight())
 
-	expected := map[string]bool{
-		"A": true, // Still be in beta and gamma
-		"B": false,
-		"C": false,
-		"D": false,
-		"E": true, // In alpha
-	}
-	for k, f := range expected {
+	for _, k := range []string{"A", "B", "C", "D", "E"} {
 		val, ok, err := gammaLRU.Load(ctx, k)
 		assert.NoError(t, err)
-		assert.Equal(t, f, ok)
-		if ok {
-			assert.Equal(t, payload, string(val))
-		}
+		assert.True(t, ok)
+		assert.Equal(t, payload, string(val))
 	}
 }
 

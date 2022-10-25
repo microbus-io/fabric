@@ -76,19 +76,24 @@ func (c *Connector) Unsubscribe(path string) error {
 		}
 	}
 	c.subsLock.Unlock()
+	if c.IsStarted() {
+		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
+	}
 	return errors.Trace(err)
 }
 
 // UnsubscribeAll removes all handlers
 func (c *Connector) UnsubscribeAll() error {
 	c.subsLock.Lock()
-	defer c.subsLock.Unlock()
-
 	var lastErr error
 	for _, sub := range c.subs {
 		lastErr = c.deactivateSub(sub)
 	}
 	c.subs = map[string]*sub.Subscription{}
+	c.subsLock.Unlock()
+	if c.IsStarted() {
+		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
+	}
 	return errors.Trace(lastErr)
 }
 

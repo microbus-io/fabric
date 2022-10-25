@@ -64,24 +64,38 @@ func TestLRU_WeightLimit(t *testing.T) {
 		BumpOnLoad(false),
 	)
 
-	cache.Store(999, "too big", maxWt+1)
+	cache.Store(999, "Too Big", maxWt+1)
 	_, ok := cache.Load(999)
 	assert.False(t, ok)
 	assert.Equal(t, 0, cache.Weight())
 
 	// Fill in the cache
-	// head> [13,14,15,16] [9,10,11,12] [5,6,7,8] [1,2,3,4] _ _ _ _ <tail
-	for i := 1; i <= maxWt; i += 4 {
-		cache.cycleOnce()
-		cache.Store(i, "Foo", 1)
-		cache.Store(i+1, "Foo", 1)
-		cache.Store(i+2, "Foo", 1)
-		cache.Store(i+3, "Foo", 1)
+	// head> [16,15] [14,13] [12,11] [10,9] [8,7] [6,5] [4,3] [2,1] <tail
+	for i := 1; i <= maxWt; i++ {
+		cache.Store(i, "Light", 1)
 	}
+	for i := 1; i <= maxWt; i++ {
+		_, ok = cache.Load(i)
+		assert.True(t, ok, "%d", i)
+	}
+	assert.Equal(t, maxWt, cache.Weight())
 
-	// Oldest bucket should get evicted
-	// head> 101 _ _ _ _ [13,14,15,16] [9,10,11,12] [5,6,7,8] <tail
-	cache.Store(101, "Foo", 1)
+	// One more element causes an eviction
+	// head> 101 [16,15] [14,13] [12,11] [10,9] [8,7] [6,5] [4,3] <tail
+	cache.Store(101, "Light", 1)
+	for i := 1; i < 2; i++ {
+		_, ok = cache.Load(i)
+		assert.False(t, ok, "%d", i)
+	}
+	for i := 3; i <= maxWt; i++ {
+		_, ok = cache.Load(i)
+		assert.True(t, ok, "%d", i)
+	}
+	assert.Equal(t, maxWt-1, cache.Weight())
+
+	// Heavy element will cause eviction of [4,3]
+	// head> [101,103!] [16,15] [14,13] [12,11] [10,9] [8,7] [6,5] _ <tail
+	cache.Store(103, "Heavy", 2)
 	for i := 1; i < 4; i++ {
 		_, ok = cache.Load(i)
 		assert.False(t, ok, "%d", i)
@@ -90,18 +104,16 @@ func TestLRU_WeightLimit(t *testing.T) {
 		_, ok = cache.Load(i)
 		assert.True(t, ok, "%d", i)
 	}
-	assert.Equal(t, maxWt-3, cache.Weight())
+	assert.Equal(t, maxWt-1, cache.Weight())
 
-	// There should be room for three more elements
-	// head> [101,102,103,104] _ _ _ _ [13,14,15,16] [9,10,11,12] [5,6,7,8] <tail
-	cache.Store(102, "Foo", 1)
-	cache.Store(103, "Foo", 1)
-	cache.Store(104, "Foo", 1)
-	for i := 1; i < 4; i++ {
+	// Super heavy element will cause eviction of [8,7] [6,5]
+	// head> 104!! [101,103!] [16,15] [14,13] [12,11] [10,9] _ _ <tail
+	cache.Store(104, "Super heavy", 5)
+	for i := 1; i < 9; i++ {
 		_, ok = cache.Load(i)
 		assert.False(t, ok, "%d", i)
 	}
-	for i := 5; i <= maxWt; i++ {
+	for i := 9; i <= maxWt; i++ {
 		_, ok = cache.Load(i)
 		assert.True(t, ok, "%d", i)
 	}
@@ -226,45 +238,45 @@ func TestLRU_BumpOnLoad(t *testing.T) {
 	// Fill in the cache
 	// head> 8 7 6 5 4 3 2 1 <tail
 	for i := 1; i <= numBuckets; i++ {
-		cache.cycleOnce()
 		cache.Put(i, "X")
 	}
 	assert.Equal(t, numBuckets, cache.Len())
 
-	// Loading element 1 should bump it to the top of the cache
-	// head> [1,8] 7 6 5 4 3 2 _ <tail
-	_, ok := cache.Load(1)
+	// Loading element 2 should bump it to the top of the cache
+	// head> 2 8 7 6 5 4 3 _ <tail
+	_, ok := cache.Load(2)
 	assert.True(t, ok)
-	assert.Equal(t, numBuckets, cache.Len())
+	assert.Equal(t, numBuckets-1, cache.Len())
+	_, ok = cache.Load(1)
+	assert.False(t, ok)
 
-	// Loading element 8 should make no difference
-	// head> [8,1] 7 6 5 4 3 2 _ <tail
-	_, ok = cache.Load(8)
-	assert.True(t, ok)
-	assert.Equal(t, numBuckets, cache.Len())
-
-	// Putting element 9 should drop 2 off the tail
+	// Putting element 9 should fit
+	// head> 9 2 8 7 6 5 4 3 <tail
 	cache.Put(9, "X")
-	// head> _ _ [9,8,1] 7 6 5 4 3 <tail
 	assert.Equal(t, numBuckets, cache.Len())
-	_, ok = cache.Load(2)
+
+	// Putting element 10 evicts 3
+	// head> 10 9 2 8 7 6 5 4 <tail
+	cache.Put(10, "X")
+	assert.Equal(t, numBuckets, cache.Len())
+	_, ok = cache.Load(3)
 	assert.False(t, ok)
 
 	// Loading element 4 should bump it to the top of the cache
-	// head> 4 _ [9,8,1] 7 6 5 _ 3 <tail
+	// head> 4 10 9 2 8 7 6 5 <tail
 	_, ok = cache.Load(4)
 	assert.True(t, ok)
 	assert.Equal(t, numBuckets, cache.Len())
 
-	// Cycle once to cause 3 to drop off the tail
-	// head> _ 4 _ [9,8,1] 7 6 5 _ <tail
+	// Cycle once to cause 5 to drop off the tail
+	// head> _ 4 10 9 2 8 7 6 <tail
 	cache.cycleOnce()
-	_, ok = cache.Load(3)
+	_, ok = cache.Load(5)
 	assert.False(t, ok)
 	assert.Equal(t, numBuckets-1, cache.Len())
 
 	// Loading element 4 should bump it to the top of the cache
-	// head> 4 _ _ [9,8,1] 7 6 5 _ <tail
+	// head> 4 _ 10 9 2 8 7 6 <tail
 	_, ok = cache.Load(4)
 	assert.True(t, ok)
 	assert.Equal(t, numBuckets-1, cache.Len())
