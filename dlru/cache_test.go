@@ -67,11 +67,21 @@ func TestDLRU_Lookup(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, "AAA", string(val))
 
+		val, ok, err = c.Peek(ctx, "A")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, "AAA", string(val))
+
 		var jval struct {
 			Num int    `json:"num"`
 			Str string `json:"str"`
 		}
 		ok, err = c.LoadJSON(ctx, "B", &jval)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, bbb, jval)
+
+		ok, err = c.PeekJSON(ctx, "B", &jval)
 		assert.NoError(t, err)
 		assert.True(t, ok)
 		assert.Equal(t, bbb, jval)
@@ -91,7 +101,17 @@ func TestDLRU_Lookup(t *testing.T) {
 		assert.False(t, ok)
 		assert.Equal(t, "", string(val))
 
+		val, ok, err = c.Peek(ctx, "A")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+		assert.Equal(t, "", string(val))
+
 		val, ok, err = c.Load(ctx, "B")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, `{"num":123,"str":"abc"}`, string(val))
+
+		val, ok, err = c.Peek(ctx, "B")
 		assert.NoError(t, err)
 		assert.True(t, ok)
 		assert.Equal(t, `{"num":123,"str":"abc"}`, string(val))
@@ -107,6 +127,11 @@ func TestDLRU_Lookup(t *testing.T) {
 	// Should not be loadable from any of the caches
 	for _, c := range []*Cache{gammaLRU, betaLRU, alphaLRU} {
 		val, ok, err := c.Load(ctx, "B")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+		assert.Equal(t, "", string(val))
+
+		val, ok, err = c.Peek(ctx, "B")
 		assert.NoError(t, err)
 		assert.False(t, ok)
 		assert.Equal(t, "", string(val))

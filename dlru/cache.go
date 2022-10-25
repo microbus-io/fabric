@@ -421,7 +421,28 @@ func (c *Cache) Clear(ctx context.Context) error {
 	return nil
 }
 
+// PeekJSON loads an element from the cache and unmarshals it as JSON.
+// If the element is found, it is NOT bumped to the head of the cache.
+func (c *Cache) PeekJSON(ctx context.Context, key string, value any) (ok bool, err error) {
+	if key == "" {
+		return false, errors.New("missing key")
+	}
+	data, ok, err := c.Peek(ctx, key)
+	if err != nil {
+		return false, errors.Trace(err)
+	}
+	if !ok {
+		return false, nil
+	}
+	err = json.Unmarshal(data, value)
+	if err != nil {
+		return false, errors.Trace(err)
+	}
+	return true, nil
+}
+
 // LoadJSON loads an element from the cache and unmarshals it as JSON.
+// If the element is found, it is bumped to the head of the cache.
 func (c *Cache) LoadJSON(ctx context.Context, key string, value any) (ok bool, err error) {
 	if key == "" {
 		return false, errors.New("missing key")
