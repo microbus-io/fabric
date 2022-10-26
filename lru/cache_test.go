@@ -13,9 +13,9 @@ func TestLRU_Load(t *testing.T) {
 	t.Parallel()
 
 	cache := NewCache[string, string]()
-	cache.Put("a", "aaa")
-	cache.Put("b", "bbb")
-	cache.Put("c", "ccc")
+	cache.Store("a", "aaa")
+	cache.Store("b", "bbb")
+	cache.Store("c", "ccc")
 
 	v, ok := cache.Load("a")
 	assert.True(t, ok)
@@ -40,19 +40,19 @@ func TestLRU_Load(t *testing.T) {
 	assert.Empty(t, m["d"])
 }
 
-func TestLRU_LoadOrPut(t *testing.T) {
+func TestLRU_LoadOrStore(t *testing.T) {
 	t.Parallel()
 
 	cache := NewCache[string, string]()
-	cache.Put("a", "aaa")
+	cache.Store("a", "aaa")
 
-	v, found := cache.LoadOrPut("a", "AAA")
+	v, found := cache.LoadOrStore("a", "AAA")
 	assert.True(t, found)
 	assert.Equal(t, "aaa", v)
 
 	cache.Delete("a")
 
-	v, found = cache.LoadOrPut("a", "AAA")
+	v, found = cache.LoadOrStore("a", "AAA")
 	assert.False(t, found)
 	assert.Equal(t, "AAA", v)
 
@@ -61,36 +61,14 @@ func TestLRU_LoadOrPut(t *testing.T) {
 	assert.Equal(t, "AAA", v)
 }
 
-func TestLRU_PeekOrPut(t *testing.T) {
-	t.Parallel()
-
-	cache := NewCache[string, string]()
-	cache.Put("a", "aaa")
-
-	v, found := cache.PeekOrPut("a", "AAA")
-	assert.True(t, found)
-	assert.Equal(t, "aaa", v)
-
-	cache.Delete("a")
-
-	v, found = cache.PeekOrPut("a", "AAA")
-	assert.False(t, found)
-	assert.Equal(t, "AAA", v)
-
-	v, found = cache.Load("a")
-	assert.True(t, found)
-	assert.Equal(t, "AAA", v)
-}
-
-func TestLRU_WeightLimit(t *testing.T) {
+func TestLRU_MaxWeight(t *testing.T) {
 	t.Parallel()
 
 	maxWt := 2 * numBuckets
-	cache := NewCache[int, string](
-		MaxWeight(maxWt),
-	)
+	cache := NewCache[int, string]()
+	cache.SetMaxWeight(maxWt)
 
-	cache.Store(999, "Too Big", maxWt+1)
+	cache.Store(999, "Too Big", Weight(maxWt+1))
 	_, ok := cache.Load(999)
 	assert.False(t, ok)
 	assert.Equal(t, 0, cache.Weight())
@@ -98,7 +76,7 @@ func TestLRU_WeightLimit(t *testing.T) {
 	// Fill in the cache
 	// head> [16,15] [14,13] [12,11] [10,9] [8,7] [6,5] [4,3] [2,1] <tail
 	for i := 1; i <= maxWt; i++ {
-		cache.Store(i, "Light", 1)
+		cache.Store(i, "Light", Weight(1))
 	}
 	for i := 1; i <= maxWt; i++ {
 		assert.True(t, cache.Exists(i), "%d", i)
@@ -107,7 +85,7 @@ func TestLRU_WeightLimit(t *testing.T) {
 
 	// One more element causes an eviction
 	// head> 101 [16,15] [14,13] [12,11] [10,9] [8,7] [6,5] [4,3] <tail
-	cache.Store(101, "Light", 1)
+	cache.Store(101, "Light", Weight(1))
 	for i := 1; i < 2; i++ {
 		assert.False(t, cache.Exists(i), "%d", i)
 	}
@@ -118,7 +96,7 @@ func TestLRU_WeightLimit(t *testing.T) {
 
 	// Heavy element will cause eviction of [4,3]
 	// head> [101,103!] [16,15] [14,13] [12,11] [10,9] [8,7] [6,5] _ <tail
-	cache.Store(103, "Heavy", 2)
+	cache.Store(103, "Heavy", Weight(2))
 	for i := 1; i < 4; i++ {
 		assert.False(t, cache.Exists(i), "%d", i)
 	}
@@ -129,7 +107,7 @@ func TestLRU_WeightLimit(t *testing.T) {
 
 	// Super heavy element will cause eviction of [8,7] [6,5]
 	// head> 104!! [101,103!] [16,15] [14,13] [12,11] [10,9] _ _ <tail
-	cache.Store(104, "Super heavy", 5)
+	cache.Store(104, "Super heavy", Weight(5))
 	for i := 1; i < 9; i++ {
 		assert.False(t, cache.Exists(i), "%d", i)
 	}
@@ -137,6 +115,24 @@ func TestLRU_WeightLimit(t *testing.T) {
 		assert.True(t, cache.Exists(i), "%d", i)
 	}
 	assert.Equal(t, maxWt, cache.Weight())
+}
+
+func TestLRU_ChangeMaxWeight(t *testing.T) {
+	t.Parallel()
+
+	maxWt := 2 * numBuckets
+	cache := NewCache[int, string]()
+	cache.SetMaxWeight(maxWt)
+
+	for i := 0; i < numBuckets*2; i++ {
+		cache.Store(i, "1", Weight(1))
+	}
+	assert.Equal(t, maxWt, cache.Weight())
+
+	// Halve the weight limit
+	cache.SetMaxWeight(maxWt / 2)
+
+	assert.Equal(t, maxWt/2, cache.Weight())
 }
 
 func TestLRU_Clear(t *testing.T) {
@@ -149,7 +145,7 @@ func TestLRU_Clear(t *testing.T) {
 	n := 6
 	sum := 0
 	for i := 1; i <= n; i++ {
-		cache.Store(i, "X", i)
+		cache.Store(i, "X", Weight(i))
 		sum += i
 	}
 	for i := 1; i <= n; i++ {
@@ -184,7 +180,7 @@ func TestLRU_Delete(t *testing.T) {
 			assert.False(t, cache.Exists(n-span))
 		} else {
 			sim[n] = "X"
-			cache.Put(n, "X")
+			cache.Store(n, "X")
 			assert.True(t, cache.Exists(n))
 		}
 	}
@@ -199,14 +195,13 @@ func TestLRU_MaxAge(t *testing.T) {
 	t.Parallel()
 
 	seconds := numBuckets * 10 // 80 seconds
+	cache := NewCache[int, string]()
+	cache.SetMaxAge(time.Second * time.Duration(seconds))
 	clock := clock.NewMock()
-	cache := NewCache[int, string](
-		MaxAge(time.Second*time.Duration(seconds)),
-		mockClock(clock),
-	)
+	cache.setClock(clock)
 
 	for i := 1; i <= seconds-1; i++ {
-		cache.Put(i, "X")
+		cache.Store(i, "X")
 		clock.Add(time.Second)
 	}
 
@@ -238,17 +233,42 @@ func TestLRU_MaxAge(t *testing.T) {
 	assert.Equal(t, 0, cache.Len())
 }
 
+func TestLRU_ChangeMaxAge(t *testing.T) {
+	t.Parallel()
+
+	seconds := numBuckets * 10 // 80 seconds
+	maxAge := time.Second * time.Duration(seconds)
+	cache := NewCache[int, string]()
+	cache.SetMaxAge(maxAge)
+	clock := clock.NewMock()
+	cache.setClock(clock)
+
+	for i := 1; i <= seconds-1; i++ {
+		cache.Store(i, "X")
+		clock.Add(time.Second)
+	}
+	assert.Equal(t, seconds-1, cache.Len())
+
+	// Halve the age limit
+	cache.SetMaxAge(maxAge / 2)
+
+	// Cache should empty within half the time
+	clock.Add(maxAge / 4)
+	assert.Equal(t, seconds/2-1, cache.Len())
+	clock.Add(maxAge / 4)
+	assert.Equal(t, 0, cache.Len())
+}
+
 func TestLRU_Bump(t *testing.T) {
 	t.Parallel()
 
-	cache := NewCache[int, string](
-		MaxWeight(numBuckets),
-	)
+	cache := NewCache[int, string]()
+	cache.SetMaxWeight(numBuckets)
 
 	// Fill in the cache
 	// head> 8 7 6 5 4 3 2 1 <tail
 	for i := 1; i <= numBuckets; i++ {
-		cache.Put(i, "X")
+		cache.Store(i, "X")
 	}
 	assert.Equal(t, numBuckets, cache.Len())
 
@@ -260,14 +280,14 @@ func TestLRU_Bump(t *testing.T) {
 	_, ok = cache.Load(1)
 	assert.False(t, ok)
 
-	// Putting element 9 should fit
+	// Storing element 9 should fit
 	// head> 9 2 8 7 6 5 4 3 <tail
-	cache.Put(9, "X")
+	cache.Store(9, "X")
 	assert.Equal(t, numBuckets, cache.Len())
 
-	// Putting element 10 evicts 3
+	// Storing element 10 evicts 3
 	// head> 10 9 2 8 7 6 5 4 <tail
-	cache.Put(10, "X")
+	cache.Store(10, "X")
 	assert.Equal(t, numBuckets, cache.Len())
 	_, ok = cache.Load(3)
 	assert.False(t, ok)
@@ -291,9 +311,9 @@ func TestLRU_Bump(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, numBuckets-1, cache.Len())
 
-	// Peeking element 6 should not bump it to the head of the cache
+	// Loading element 6 without bumping it to the head of the cache
 	// head> 4 _ 10 9 2 8 7 6 <tail
-	_, ok = cache.Peek(6)
+	_, ok = cache.Load(6, NoBump())
 	assert.True(t, ok)
 	assert.Equal(t, numBuckets-1, cache.Len())
 
@@ -304,40 +324,37 @@ func TestLRU_Bump(t *testing.T) {
 	assert.Equal(t, numBuckets-2, cache.Len())
 }
 
-func BenchmarkLRU_Put(b *testing.B) {
-	cache := NewCache[int, int](
-		MaxWeight(b.N * 2),
-	)
+func BenchmarkLRU_Store(b *testing.B) {
+	cache := NewCache[int, int]()
+	cache.SetMaxWeight(b.N * 2)
 	for i := 0; i < b.N; i++ {
-		cache.Put(i, i)
+		cache.Store(i, i)
 	}
 
 	// On 2021 MacBook Pro M1 15":
 	// 330 ns/op
 }
 
-func BenchmarkLRU_Peek(b *testing.B) {
-	cache := NewCache[int, int](
-		MaxWeight(b.N * 2),
-	)
+func BenchmarkLRU_LoadNoBump(b *testing.B) {
+	cache := NewCache[int, int]()
+	cache.SetMaxWeight(b.N * 2)
 	for i := 0; i < b.N; i++ {
-		cache.Put(i, i)
+		cache.Store(i, i)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cache.Peek(i)
+		cache.Load(i, NoBump())
 	}
 
 	// On 2021 MacBook Pro M1 15":
 	// 240 ns/op
 }
 
-func BenchmarkLRU_Load(b *testing.B) {
-	cache := NewCache[int, int](
-		MaxWeight(b.N * 2),
-	)
+func BenchmarkLRU_LoadBump(b *testing.B) {
+	cache := NewCache[int, int]()
+	cache.SetMaxWeight(b.N * 2)
 	for i := 0; i < b.N; i++ {
-		cache.Put(i, i)
+		cache.Store(i, i)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -36,35 +36,26 @@ callback of the microservice and destroyed in the OnShutdown.
 	})
 */
 type Cache struct {
-	localCache        *lru.Cache[string, []byte]
-	localCacheOptions []lru.Option
-	strictLoad        bool
-	rescueOnClose     bool
-	basePath          string
-	svc               service.Service
+	localCache *lru.Cache[string, []byte]
+	basePath   string
+	svc        service.Service
 }
 
 // NewCache starts a new cache for the service at a given path.
 // It's recommended to use a non-standard port for the path.
-func NewCache(ctx context.Context, svc service.Service, path string, options ...Option) (*Cache, error) {
+func NewCache(ctx context.Context, svc service.Service, path string) (*Cache, error) {
 	sub, err := sub.NewSub(svc.HostName(), path, nil)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	c := &Cache{
-		basePath:      "https://" + strings.TrimSuffix(sub.Canonical(), "/"),
-		strictLoad:    false,
-		rescueOnClose: true,
-		svc:           svc,
-		localCacheOptions: []lru.Option{
-			lru.MaxWeight(32 * 1024 * 1024), // 32MB
-		},
+		basePath: "https://" + strings.TrimSuffix(sub.Canonical(), "/"),
+		svc:      svc,
 	}
-	for _, opt := range options {
-		opt(c)
-	}
-	c.localCache = lru.NewCache[string, []byte](c.localCacheOptions...)
+	c.localCache = lru.NewCache[string, []byte]()
+	c.localCache.SetMaxAge(time.Hour)
+	c.localCache.SetMaxWeight(32 * 1024 * 1024) // 32MB
 
 	err = c.start(ctx)
 	if err != nil {
@@ -73,6 +64,46 @@ func NewCache(ctx context.Context, svc service.Service, path string, options ...
 	}
 
 	return c, nil
+}
+
+// SetMaxAge sets the age limit of elements in this cache.
+// Elements that are bumped have their life span reset and will therefore survive longer.
+func (c *Cache) SetMaxAge(ttl time.Duration) error {
+	err := c.localCache.SetMaxAge(ttl)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// MaxAge returns the age limit of elements in this cache.
+// Elements that are bumped have their life span reset and will therefore survive longer.
+func (c *Cache) MaxAge() time.Duration {
+	return c.localCache.MaxAge()
+}
+
+// SetMaxMemory limits the memory used by the cache.
+func (c *Cache) SetMaxMemory(bytes int) error {
+	err := c.localCache.SetMaxWeight(bytes)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// SetMaxMemoryMB limits the memory used by the cache.
+func (c *Cache) SetMaxMemoryMB(megaBytes int) error {
+	err := c.localCache.SetMaxWeight(megaBytes * 1024 * 1024)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// MaxAge returns the age limit of elements in this cache.
+// Elements that are bumped have their life span reset and will therefore survive longer.
+func (c *Cache) MaxMemory() int {
+	return c.localCache.MaxWeight()
 }
 
 // start subscribed to handle cache events from peers.
@@ -103,8 +134,6 @@ func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	switch r.URL.Query().Get("do") {
 	case "load":
 		return c.handleLoad(w, r)
-	case "peek":
-		return c.handlePeek(w, r)
 	case "store":
 		return c.handleStore(w, r)
 	case "delete":
@@ -162,30 +191,6 @@ func (c *Cache) handleLoad(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// handleLoad handles a broadcast when the primary tries to obtain copies held by its peers.
-func (c *Cache) handlePeek(w http.ResponseWriter, r *http.Request) error {
-	// Ignore messages from self
-	if frame.Of(r).FromID() == c.svc.ID() {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-
-	key := r.URL.Query().Get("key")
-	if key == "" {
-		return errors.New("missing key")
-	}
-	data, ok := c.localCache.Peek(key)
-	if !ok {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-	_, err := w.Write(data)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
-}
-
 // handleStore handles a broadcast when a new element is stored by the primary.
 func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
@@ -205,7 +210,7 @@ func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
 
 	if c.localCache.Weight()+weight <= c.localCache.MaxWeight()/4 {
 		// Keep a local copy if the cache is relatively empty
-		c.localCache.Store(key, data, weight)
+		c.localCache.Store(key, data, lru.Weight(weight))
 	} else {
 		// Delete the local copy, if present
 		c.localCache.Delete(key)
@@ -219,9 +224,7 @@ func (c *Cache) Close(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	if c.rescueOnClose {
-		c.rescue(ctx)
-	}
+	c.rescue(ctx)
 	c.localCache.Clear()
 	return nil
 }
@@ -302,66 +305,34 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte) error {
 		}
 	}
 
-	c.localCache.Store(key, value, len(value))
+	c.localCache.Store(key, value, lru.Weight(len(value)))
 
 	return nil
 }
 
 // Load an element from the cache, locally or from peers.
 // If the element is found, it is bumped to the head of the cache.
-func (c *Cache) Load(ctx context.Context, key string) (value []byte, ok bool, err error) {
+func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (value []byte, ok bool, err error) {
 	if key == "" {
 		return nil, false, errors.New("missing key")
 	}
 
+	var opts cacheOptions
+	for _, opt := range options {
+		opt(&opts)
+	}
+
 	// Check local cache
-	if value, ok = c.localCache.Load(key); ok {
-		if !c.strictLoad {
+	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump))
+	if ok {
+		if !opts.Consensus {
 			return value, true, nil
 		}
 	}
 
 	// Check with peers
+	// No need to pass options to peers
 	u := fmt.Sprintf("%s/all?do=load&key=%s", c.basePath, key)
-	ch := c.svc.Publish(ctx, pub.GET(u))
-	for r := range ch {
-		res, err := r.Get()
-		if err != nil {
-			return nil, false, errors.Trace(err)
-		}
-		if res.StatusCode != http.StatusOK {
-			continue
-		}
-		data, err := io.ReadAll(res.Body)
-		if err != nil {
-			return nil, false, errors.Trace(err)
-		}
-		if value != nil && !bytes.Equal(value, data) {
-			// Inconsistency detected
-			return nil, false, nil
-		}
-		value = data
-	}
-
-	return value, value != nil, nil
-}
-
-// Peek loads an element from the cache, locally or from peers.
-// If the element is found, it is NOT bumped to the head of the cache.
-func (c *Cache) Peek(ctx context.Context, key string) (value []byte, ok bool, err error) {
-	if key == "" {
-		return nil, false, errors.New("missing key")
-	}
-
-	// Check local cache
-	if value, ok = c.localCache.Peek(key); ok {
-		if !c.strictLoad {
-			return value, true, nil
-		}
-	}
-
-	// Check with peers
-	u := fmt.Sprintf("%s/all?do=peek&key=%s", c.basePath, key)
 	ch := c.svc.Publish(ctx, pub.GET(u))
 	for r := range ch {
 		res, err := r.Get()
@@ -421,33 +392,13 @@ func (c *Cache) Clear(ctx context.Context) error {
 	return nil
 }
 
-// PeekJSON loads an element from the cache and unmarshals it as JSON.
-// If the element is found, it is NOT bumped to the head of the cache.
-func (c *Cache) PeekJSON(ctx context.Context, key string, value any) (ok bool, err error) {
-	if key == "" {
-		return false, errors.New("missing key")
-	}
-	data, ok, err := c.Peek(ctx, key)
-	if err != nil {
-		return false, errors.Trace(err)
-	}
-	if !ok {
-		return false, nil
-	}
-	err = json.Unmarshal(data, value)
-	if err != nil {
-		return false, errors.Trace(err)
-	}
-	return true, nil
-}
-
 // LoadJSON loads an element from the cache and unmarshals it as JSON.
 // If the element is found, it is bumped to the head of the cache.
-func (c *Cache) LoadJSON(ctx context.Context, key string, value any) (ok bool, err error) {
+func (c *Cache) LoadJSON(ctx context.Context, key string, value any, options ...LoadOption) (ok bool, err error) {
 	if key == "" {
 		return false, errors.New("missing key")
 	}
-	data, ok, err := c.Load(ctx, key)
+	data, ok, err := c.Load(ctx, key, options...)
 	if err != nil {
 		return false, errors.Trace(err)
 	}

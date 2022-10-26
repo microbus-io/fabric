@@ -1,49 +1,41 @@
 package dlru
 
-import (
-	"time"
+type cacheOptions struct {
+	Bump      bool
+	Consensus bool
+}
 
-	"github.com/microbus-io/fabric/lru"
-)
+// LoadOption is used customize loading from the cache.
+type LoadOption func(opts *cacheOptions)
 
-// Option is used to construct a new distributed cache.
-type Option func(*Cache)
-
-// MaxAge sets the maximum time that an element is stored in the cache.
-// The age of an element is reset if and when it is bumped to the front of the cache.
-func MaxAge(maxAge time.Duration) Option {
-	return func(cache *Cache) {
-		cache.localCacheOptions = append(cache.localCacheOptions, lru.MaxAge(maxAge))
+// NoBump prevents a loaded element from being bumped to the head of the cache.
+func NoBump() LoadOption {
+	return func(opts *cacheOptions) {
+		opts.Bump = false
 	}
 }
 
-// MaxMemory limits the memory used by the cache.
-func MaxMemory(bytes int) Option {
-	return func(cache *Cache) {
-		cache.localCacheOptions = append(cache.localCacheOptions, lru.MaxWeight(bytes))
+// Bump causes a loaded element to be bumped to the head of the cache.
+// This is the default behavior.
+func Bump() LoadOption {
+	return func(opts *cacheOptions) {
+		opts.Bump = true
 	}
 }
 
-// MaxMemoryMB limits the memory used by the cache.
-func MaxMemoryMB(megaBytes int) Option {
-	return func(cache *Cache) {
-		cache.localCacheOptions = append(cache.localCacheOptions, lru.MaxWeight(megaBytes*1024*1024))
-	}
-}
-
-// StrictLoad indicates whether or not to check with all peers for consistency before returning an
+// Consensus indicates to check with all peers for consistency before returning an
 // element from the cache.
-// This option impacts performance and is off by default.
-func StrictLoad(strict bool) Option {
-	return func(cache *Cache) {
-		cache.strictLoad = strict
+// This option impacts performance. It is on by default.
+func Consensus() LoadOption {
+	return func(opts *cacheOptions) {
+		opts.Consensus = true
 	}
 }
 
-// RescueOnClose indicates whether or not to offload the content of the cache onto peers when it is closed.
-// This option is on by default.
-func RescueOnClose(rescue bool) Option {
-	return func(cache *Cache) {
-		cache.rescueOnClose = rescue
+// Quick indicates not to check with peers before returning an element that is found in the local cache.
+// This option improves performance. It is off by default.
+func Quick() LoadOption {
+	return func(opts *cacheOptions) {
+		opts.Consensus = true
 	}
 }

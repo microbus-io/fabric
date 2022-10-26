@@ -67,21 +67,11 @@ func TestDLRU_Lookup(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, "AAA", string(val))
 
-		val, ok, err = c.Peek(ctx, "A")
-		assert.NoError(t, err)
-		assert.True(t, ok)
-		assert.Equal(t, "AAA", string(val))
-
 		var jval struct {
 			Num int    `json:"num"`
 			Str string `json:"str"`
 		}
 		ok, err = c.LoadJSON(ctx, "B", &jval)
-		assert.NoError(t, err)
-		assert.True(t, ok)
-		assert.Equal(t, bbb, jval)
-
-		ok, err = c.PeekJSON(ctx, "B", &jval)
 		assert.NoError(t, err)
 		assert.True(t, ok)
 		assert.Equal(t, bbb, jval)
@@ -101,17 +91,7 @@ func TestDLRU_Lookup(t *testing.T) {
 		assert.False(t, ok)
 		assert.Equal(t, "", string(val))
 
-		val, ok, err = c.Peek(ctx, "A")
-		assert.NoError(t, err)
-		assert.False(t, ok)
-		assert.Equal(t, "", string(val))
-
 		val, ok, err = c.Load(ctx, "B")
-		assert.NoError(t, err)
-		assert.True(t, ok)
-		assert.Equal(t, `{"num":123,"str":"abc"}`, string(val))
-
-		val, ok, err = c.Peek(ctx, "B")
 		assert.NoError(t, err)
 		assert.True(t, ok)
 		assert.Equal(t, `{"num":123,"str":"abc"}`, string(val))
@@ -127,11 +107,6 @@ func TestDLRU_Lookup(t *testing.T) {
 	// Should not be loadable from any of the caches
 	for _, c := range []*Cache{gammaLRU, betaLRU, alphaLRU} {
 		val, ok, err := c.Load(ctx, "B")
-		assert.NoError(t, err)
-		assert.False(t, ok)
-		assert.Equal(t, "", string(val))
-
-		val, ok, err = c.Peek(ctx, "B")
 		assert.NoError(t, err)
 		assert.False(t, ok)
 		assert.Equal(t, "", string(val))
@@ -218,17 +193,20 @@ func TestDLRU_Weight(t *testing.T) {
 	maxMem := 4096
 
 	alpha := connector.New("weight.dlru")
-	alphaLRU, err := NewCache(ctx, alpha, "/cache", MaxMemory(maxMem))
+	alphaLRU, err := NewCache(ctx, alpha, "/cache")
+	alphaLRU.SetMaxMemory(maxMem)
 	assert.NoError(t, err)
 	defer alphaLRU.Close(ctx)
 
 	beta := connector.New("weight.dlru")
-	betaLRU, err := NewCache(ctx, beta, "/cache", MaxMemory(maxMem))
+	betaLRU, err := NewCache(ctx, beta, "/cache")
+	betaLRU.SetMaxMemory(maxMem)
 	assert.NoError(t, err)
 	defer betaLRU.Close(ctx)
 
 	gamma := connector.New("weight.dlru")
-	gammaLRU, err := NewCache(ctx, gamma, "/cache", MaxMemory(maxMem))
+	gammaLRU, err := NewCache(ctx, gamma, "/cache")
+	gammaLRU.SetMaxMemory(maxMem)
 	assert.NoError(t, err)
 	defer gammaLRU.Close(ctx)
 
@@ -305,22 +283,14 @@ func TestDLRU_Weight(t *testing.T) {
 func TestDLRU_Options(t *testing.T) {
 	t.Parallel()
 
-	dlru, err := NewCache(
-		context.Background(),
-		connector.New("www.example.com"),
-		"/path",
-		MaxAge(5*time.Hour),
-		MaxMemoryMB(8),
-		StrictLoad(true),
-		RescueOnClose(false),
-	)
+	dlru, err := NewCache(context.Background(), connector.New("www.example.com"), "/path")
+	dlru.SetMaxAge(5 * time.Hour)
+	dlru.SetMaxMemoryMB(8)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 5*time.Hour, dlru.localCache.MaxAge())
-	assert.Equal(t, 8*1024*1024, dlru.localCache.MaxWeight())
 	assert.Equal(t, "https://www.example.com:443/path", dlru.basePath)
-	assert.True(t, dlru.strictLoad)
-	assert.False(t, dlru.rescueOnClose)
+	assert.Equal(t, 5*time.Hour, dlru.MaxAge())
+	assert.Equal(t, 8*1024*1024, dlru.MaxMemory())
 }
 
 func TestDLRU_MulticastOptim(t *testing.T) {

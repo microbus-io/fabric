@@ -1,45 +1,70 @@
 package lru
 
-import (
-	"time"
+// --- Load options ---
 
-	"github.com/microbus-io/fabric/clock"
-)
+type loadOptions interface {
+	SetBump(bump bool)
+}
 
-// cacheOptions collects the options set to construct the cache.
+// LoadOption is used customize loading from the cache.
+type LoadOption func(opts loadOptions)
+
+// Bump indicates whether or not a loaded element is bumped to the head of the cache.
+// This is on by default.
+func Bump(bump bool) LoadOption {
+	return func(opts loadOptions) {
+		opts.SetBump(bump)
+	}
+}
+
+// NoBump indicates not to bump a loaded element to the head of the cache.
+func NoBump() LoadOption {
+	return Bump(false)
+}
+
+// --- Store options ---
+
+type storeOptions interface {
+	SetWeight(weight int)
+}
+
+// StoreOption is used customize storing in the cache.
+type StoreOption func(opts storeOptions)
+
+// Weight sets the weight of the element stored in the cache.
+// It must be greater than 0 and cannot exceed the cache's maximum weight limit.
+// Elements are evicted when the total weight exceeds the cache's limit.
+func Weight(weight int) StoreOption {
+	return func(opts storeOptions) {
+		if weight > 0 {
+			opts.SetWeight(weight)
+		}
+	}
+}
+
+// --- LoadOrStore options ---
+
+type loadOrStoreOptions interface {
+	loadOptions
+	storeOptions
+}
+
+// LoadOrStoreOption is used customize the load or store operation.
+type LoadOrStoreOption func(opts loadOrStoreOptions)
+
+// --- Implementation ---
+
 type cacheOptions struct {
-	maxWeight int
-	maxAge    time.Duration
-	clock     clock.Clock
+	Bump   bool
+	Weight int
 }
 
-// Option is used to construct an LRU cache
-type Option func(cache *cacheOptions)
-
-// MaxAge sets the maximum time that an element is stored in the cache.
-// The age of an element is reset if and when it is bumped to the front of the cache.
-func MaxAge(maxAge time.Duration) Option {
-	return func(co *cacheOptions) {
-		if maxAge > 0 {
-			co.maxAge = maxAge
-		}
-	}
+// SetBump sets whether a loaded element is bumped to the head of the cache.
+func (co *cacheOptions) SetBump(bump bool) {
+	co.Bump = bump
 }
 
-// MaxWeight sets the maximum weight that the cache can carry.
-// Each element inserted into the cache carries a weight.
-// Elements are evicted when the total weight exceeds the maximum.
-func MaxWeight(maxWt int) Option {
-	return func(co *cacheOptions) {
-		if maxWt > 0 {
-			co.maxWeight = maxWt
-		}
-	}
-}
-
-// mockClock sets a mock clock for testing purposes.
-func mockClock(mockClock clock.Clock) Option {
-	return func(co *cacheOptions) {
-		co.clock = mockClock
-	}
+// SetWeight sets the weight of a stored element.
+func (co *cacheOptions) SetWeight(weight int) {
+	co.Weight = weight
 }

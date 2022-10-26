@@ -1,6 +1,7 @@
 package lru
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -34,26 +35,23 @@ func newBucket[K comparable, V any]() *bucket[K, V] {
 // Cache is an LRU cache that enforces a maximum weight capacity and age limit for its elements.
 // The LRU cache performs locking internally and is thread-safe.
 type Cache[K comparable, V any] struct {
-	options       cacheOptions
 	buckets       []*bucket[K, V]
 	nextCycle     time.Time
 	cycleDuration time.Duration
 	lock          sync.Mutex
 	weight        int
+	maxWeight     int
+	maxAge        time.Duration
+	clock         clock.Clock
 }
 
 // NewCache creates a new LRU cache.
-func NewCache[K comparable, V any](options ...Option) *Cache[K, V] {
+func NewCache[K comparable, V any]() *Cache[K, V] {
 	cache := &Cache[K, V]{
-		buckets: []*bucket[K, V]{},
-		options: cacheOptions{
-			maxWeight: 10000,
-			maxAge:    time.Hour,
-			clock:     clock.New(),
-		},
-	}
-	for _, opt := range options {
-		opt(&cache.options)
+		buckets:   []*bucket[K, V]{},
+		maxWeight: 16384,
+		maxAge:    time.Hour,
+		clock:     clock.New(),
 	}
 
 	// Prepare buckets
@@ -63,10 +61,15 @@ func NewCache[K comparable, V any](options ...Option) *Cache[K, V] {
 	}
 
 	// Calc next cycle time
-	cache.cycleDuration = cache.options.maxAge / time.Duration(nb)
-	cache.nextCycle = cache.options.clock.Now().Add(cache.cycleDuration)
+	cache.cycleDuration = cache.maxAge / time.Duration(nb)
+	cache.nextCycle = cache.clock.Now().Add(cache.cycleDuration)
 
 	return cache
+}
+
+func (cache *Cache[K, V]) setClock(mock clock.Clock) {
+	cache.clock = mock
+	cache.nextCycle = cache.clock.Now().Add(cache.cycleDuration)
 }
 
 // Clear empties the cache.
@@ -77,7 +80,7 @@ func (cache *Cache[K, V]) Clear() {
 	for b := 0; b < nb; b++ {
 		cache.buckets = append(cache.buckets, newBucket[K, V]())
 	}
-	cache.nextCycle = cache.options.clock.Now().Add(cache.cycleDuration)
+	cache.nextCycle = cache.clock.Now().Add(cache.cycleDuration)
 	cache.weight = 0
 	cache.lock.Unlock()
 }
@@ -99,7 +102,7 @@ func (cache *Cache[K, V]) cycleOnce() {
 // cycleAge cycles the cache to gradually evict buckets holding old elements.
 func (cache *Cache[K, V]) cycleAge() {
 	nb := len(cache.buckets)
-	now := cache.options.clock.Now()
+	now := cache.clock.Now()
 	cycled := 0
 	for i := 0; i < nb && !cache.nextCycle.After(now); i++ {
 		cache.cycleOnce()
@@ -107,43 +110,42 @@ func (cache *Cache[K, V]) cycleAge() {
 	}
 	if cycled == nb {
 		// Cache is fully cleared
-		cache.nextCycle = cache.options.clock.Now().Add(cache.cycleDuration)
+		cache.nextCycle = cache.clock.Now().Add(cache.cycleDuration)
 	}
 }
 
-// Put stores an element with a weight of 1.
-func (cache *Cache[K, V]) Put(key K, value V) {
-	cache.Store(key, value, 1)
-}
-
-// Store inserts an element to the cache with the indicated weight.
+// Store inserts an element to the cache.
 // The weight must be 1 or greater and cannot exceed the cache's maximum weight limit.
-func (cache *Cache[K, V]) Store(key K, value V, weight int) {
-	if weight > cache.options.maxWeight {
+func (cache *Cache[K, V]) Store(key K, value V, options ...StoreOption) {
+	opts := cacheOptions{
+		Weight: 1,
+		Bump:   true,
+	}
+	for _, opt := range options {
+		opt(&opts)
+	}
+	if opts.Weight > cache.maxWeight {
+		// Too heavy for this cache
 		return
 	}
-	if weight < 1 {
-		weight = 1
-	}
-
 	cache.lock.Lock()
 	cache.cycleAge()
-	cache.store(key, value, weight)
+	cache.store(key, value, opts)
 	cache.lock.Unlock()
 }
 
-func (cache *Cache[K, V]) store(key K, value V, weight int) {
+func (cache *Cache[K, V]) store(key K, value V, opts cacheOptions) {
 	// Remove the element from all buckets
 	cache.delete(key)
 
 	// Cycle once if bucket 0 is too full
 	nb := len(cache.buckets)
-	if cache.buckets[0].weight >= cache.options.maxWeight/nb {
+	if cache.buckets[0].weight >= cache.maxWeight/nb {
 		cache.cycleOnce()
 	}
 
 	// Clear older buckets if max weight would be exceeded
-	for b := nb - 1; b >= 0 && cache.weight+weight > cache.options.maxWeight; b-- {
+	for b := nb - 1; b >= 0 && cache.weight+opts.Weight > cache.maxWeight; b-- {
 		cache.weight -= cache.buckets[b].weight
 		cache.buckets[b].lookup = map[K]*element[V]{}
 		cache.buckets[b].weight = 0
@@ -152,44 +154,35 @@ func (cache *Cache[K, V]) store(key K, value V, weight int) {
 	// Insert to bucket 0
 	cache.buckets[0].lookup[key] = &element[V]{
 		val:    value,
-		weight: weight,
+		weight: opts.Weight,
 	}
-	cache.buckets[0].weight += weight
-	cache.weight += weight
-
+	cache.buckets[0].weight += opts.Weight
+	cache.weight += opts.Weight
 }
 
-// Load looks up an element in the cache.
-// If the element is found, it is bumped to the head of the cache.
-func (cache *Cache[K, V]) Load(key K) (value V, ok bool) {
-	cache.lock.Lock()
-	cache.cycleAge()
-	value, ok = cache.lookup(key, true)
-	cache.lock.Unlock()
-	return value, ok
-}
-
-// Exists looks up an element in the cache.
-// If the element is found, it is NOT bumped to the head of the cache.
+// Exists indicates if the key is in the cache.
 func (cache *Cache[K, V]) Exists(key K) bool {
-	cache.lock.Lock()
-	cache.cycleAge()
-	_, ok := cache.lookup(key, false)
-	cache.lock.Unlock()
+	_, ok := cache.Load(key, NoBump())
 	return ok
 }
 
-// Peek looks up an element in the cache.
-// If the element is found, it is NOT bumped to the head of the cache.
-func (cache *Cache[K, V]) Peek(key K) (value V, ok bool) {
+// Load looks up an element in the cache.
+func (cache *Cache[K, V]) Load(key K, options ...LoadOption) (value V, ok bool) {
+	opts := cacheOptions{
+		Weight: 1,
+		Bump:   true,
+	}
+	for _, opt := range options {
+		opt(&opts)
+	}
 	cache.lock.Lock()
 	cache.cycleAge()
-	value, ok = cache.lookup(key, false)
+	value, ok = cache.load(key, opts)
 	cache.lock.Unlock()
 	return value, ok
 }
 
-func (cache *Cache[K, V]) lookup(key K, bump bool) (value V, ok bool) {
+func (cache *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 	// Scan from newest to oldest
 	nb := len(cache.buckets)
 	var foundIn int
@@ -205,7 +198,7 @@ func (cache *Cache[K, V]) lookup(key K, bump bool) (value V, ok bool) {
 	if !found {
 		return value, false
 	}
-	if !bump || foundIn == 0 {
+	if !opts.Bump || foundIn == 0 {
 		return elem.val, true
 	}
 
@@ -215,7 +208,7 @@ func (cache *Cache[K, V]) lookup(key K, bump bool) (value V, ok bool) {
 	cache.weight -= elem.weight
 
 	// Cycle once if bucket 0 is too full
-	if cache.buckets[0].weight >= cache.options.maxWeight/nb {
+	if cache.buckets[0].weight >= cache.maxWeight/nb {
 		cache.cycleOnce()
 	}
 
@@ -227,44 +220,21 @@ func (cache *Cache[K, V]) lookup(key K, bump bool) (value V, ok bool) {
 	return elem.val, true
 }
 
-// LoadOrPut looks up an element in the cache.
-// If the element is found, it is bumped to the head of the cache.
-// If the element is not found, the new value is stored and returned instead.
-func (cache *Cache[K, V]) LoadOrPut(key K, newValue V) (value V, found bool) {
-	return cache.LoadOrStore(key, newValue, 1)
-}
-
 // LoadOrStore looks up an element in the cache.
-// If the element is found, it is bumped to the head of the cache.
 // If the element is not found, the new value is stored and returned instead.
-func (cache *Cache[K, V]) LoadOrStore(key K, newValue V, weight int) (value V, found bool) {
-	cache.lock.Lock()
-	cache.cycleAge()
-	value, found = cache.lookup(key, true)
-	if !found {
-		cache.store(key, newValue, weight)
-		value = newValue
+func (cache *Cache[K, V]) LoadOrStore(key K, newValue V, options ...LoadOrStoreOption) (value V, found bool) {
+	opts := cacheOptions{
+		Weight: 1,
+		Bump:   true,
 	}
-	cache.lock.Unlock()
-	return value, found
-}
-
-// PeekOrPut looks up an element in the cache.
-// If the element is found, it is NOT bumped to the head of the cache.
-// If the element is not found, the new value is stored and returned instead.
-func (cache *Cache[K, V]) PeekOrPut(key K, newValue V) (value V, found bool) {
-	return cache.PeekOrStore(key, newValue, 1)
-}
-
-// PeekOrStore looks up an element in the cache.
-// If the element is found, it is NOT bumped to the head of the cache.
-// If the element is not found, the new value is stored and returned instead.
-func (cache *Cache[K, V]) PeekOrStore(key K, newValue V, weight int) (value V, found bool) {
+	for _, opt := range options {
+		opt(&opts)
+	}
 	cache.lock.Lock()
 	cache.cycleAge()
-	value, found = cache.lookup(key, false)
+	value, found = cache.load(key, opts)
 	if !found {
-		cache.store(key, newValue, weight)
+		cache.store(key, newValue, opts)
 		value = newValue
 	}
 	cache.lock.Unlock()
@@ -314,14 +284,61 @@ func (cache *Cache[K, V]) Len() int {
 	return count
 }
 
-// MaxWeight returns the weight limit set for this cache.
-func (cache *Cache[K, V]) MaxWeight() int {
-	return cache.options.maxWeight
+// SetMaxAge sets the age limit of elements in this cache.
+// Elements that are bumped have their life span reset and will therefore
+// survive longer.
+func (cache *Cache[K, V]) SetMaxWeight(weight int) error {
+	if weight < 0 {
+		return errors.New("negative weight")
+	}
+	cache.lock.Lock()
+	reduced := weight < cache.maxWeight
+	cache.maxWeight = weight
+
+	if reduced {
+		// Clear older buckets if max weight would be exceeded
+		nb := len(cache.buckets)
+		for b := nb - 1; b >= 0 && cache.weight > cache.maxWeight; b-- {
+			cache.weight -= cache.buckets[b].weight
+			cache.buckets[b].lookup = map[K]*element[V]{}
+			cache.buckets[b].weight = 0
+		}
+	}
+
+	cache.lock.Unlock()
+	return nil
 }
 
-// MaxWeight returns the age limit set for this cache.
+// MaxWeight returns the weight limit set for this cache.
+func (cache *Cache[K, V]) MaxWeight() int {
+	cache.lock.Lock()
+	weight := cache.maxWeight
+	cache.lock.Unlock()
+	return weight
+}
+
+// SetMaxAge sets the age limit of elements in this cache.
+// Elements that are bumped have their life span reset and will therefore survive longer.
+func (cache *Cache[K, V]) SetMaxAge(ttl time.Duration) error {
+	if ttl < 0 {
+		return errors.New("negative TTL")
+	}
+	cache.lock.Lock()
+	cache.maxAge = ttl
+	nb := len(cache.buckets)
+	cache.cycleDuration = cache.maxAge / time.Duration(nb)
+	cache.nextCycle = cache.clock.Now().Add(cache.cycleDuration)
+	cache.lock.Unlock()
+	return nil
+}
+
+// MaxAge returns the age limit of elements in this cache.
+// Elements that are bumped have their life span reset and will therefore survive longer.
 func (cache *Cache[K, V]) MaxAge() time.Duration {
-	return cache.options.maxAge
+	cache.lock.Lock()
+	ttl := cache.maxAge
+	cache.lock.Unlock()
+	return ttl
 }
 
 // ToMap returns the elements currently in the cache in a newly allocated map.

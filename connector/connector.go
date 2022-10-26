@@ -90,12 +90,11 @@ func NewConnector() *Connector {
 		lifetimeCtx:     context.Background(),
 	}
 
-	c.knownResponders = lru.NewCache[string, map[string]bool](
-		lru.MaxAge(24*time.Hour), lru.MaxWeight(10000),
-	)
-	c.pendingMulticasts = lru.NewCache[string, string](
-		lru.MaxAge(time.Minute), lru.MaxWeight(10000),
-	)
+	c.knownResponders = lru.NewCache[string, map[string]bool]()
+	c.knownResponders.SetMaxAge(24 * time.Hour)
+
+	c.pendingMulticasts = lru.NewCache[string, string]()
+	c.knownResponders.SetMaxAge(time.Minute)
 
 	return c
 }
