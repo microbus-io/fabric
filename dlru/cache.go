@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -66,6 +67,13 @@ func NewCache(ctx context.Context, svc service.Service, path string) (*Cache, er
 	}
 
 	return c, nil
+}
+
+// LocalCache returns the LRU cache that is backing the cache in this peer.
+// Modifying the local cache is unadvisable and may result in inconsistencies.
+// Access is provided mainly for testing purposes.
+func (c *Cache) LocalCache() *lru.Cache[string, []byte] {
+	return c.localCache
 }
 
 // SetMaxAge sets the age limit of elements in this cache.
@@ -204,21 +212,41 @@ func (c *Cache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
+	// Get arguments
 	key := r.URL.Query().Get("key")
 	if key == "" {
 		return errors.New("missing key")
 	}
-	data, ok := c.localCache.Load(key)
+	checksum := r.URL.Query().Get("checksum")
+	if checksum == "" {
+		return errors.New("missing checksum")
+	}
+	remoteSum, err := hex.DecodeString(checksum)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Locate the local copy
+	data, ok := c.localCache.Load(key, lru.NoBump())
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
 	hash := md5.New()
-	_, err := hash.Write(data)
+	_, err = hash.Write(data)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	_, err = w.Write(hash.Sum(nil))
+	localSum := hash.Sum(nil)
+
+	if !bytes.Equal(localSum, remoteSum) {
+		// Delete the inconsistent element
+		c.localCache.Delete(key)
+		c.svc.LogInfo(r.Context(), "Inconsistent cache elem deleted", log.String("key", key))
+	}
+
+	// Return the sum to the remote
+	_, err = w.Write(localSum)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -242,7 +270,7 @@ func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
 	}
 	weight := len(data)
 
-	if c.localCache.Weight()+weight <= c.localCache.MaxWeight()/4 {
+	if c.localCache.Weight()+weight <= c.localCache.MaxWeight()/2 {
 		// Keep a local copy if the cache is relatively empty
 		c.localCache.Store(key, data, lru.Weight(weight))
 	} else {
@@ -252,7 +280,7 @@ func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// Close closed and clears the cache.
+// Close closes and clears the cache.
 func (c *Cache) Close(ctx context.Context) error {
 	err := c.stop(ctx)
 	if err != nil {
@@ -375,7 +403,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		localSum := hash.Sum(nil)
 
 		// Validate with peers
-		u := fmt.Sprintf("%s/all?do=checksum&key=%s", c.basePath, key)
+		u := fmt.Sprintf("%s/all?do=checksum&checksum=%s&key=%s", c.basePath, hex.EncodeToString(localSum), key)
 		ch := c.svc.Publish(ctx, pub.GET(u))
 		for r := range ch {
 			res, err := r.Get()
@@ -385,12 +413,18 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 			if res.StatusCode != http.StatusOK {
 				continue
 			}
+			if value == nil {
+				// Already deleted
+				continue
+			}
 			remoteSum, err := io.ReadAll(res.Body)
 			if err != nil {
 				return nil, false, errors.Trace(err)
 			}
 			if !bytes.Equal(localSum, remoteSum) {
 				// Inconsistency detected
+				c.localCache.Delete(key)
+				c.svc.LogInfo(ctx, "Inconsistent cache elem deleted", log.String("key", key))
 				value = nil
 				ok = false
 			}
@@ -420,9 +454,16 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 			return nil, false, nil
 		}
 		value = data
+		ok = true
 	}
 
-	return value, value != nil, nil
+	weight := len(value)
+	if ok && c.localCache.Weight()+weight <= c.localCache.MaxWeight()/2 {
+		// Keep a local copy if the cache is relatively empty
+		c.localCache.Store(key, value, lru.Weight(weight))
+	}
+
+	return value, ok, nil
 }
 
 // Delete an element from the cache.

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
+	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/service"
@@ -135,6 +136,12 @@ func (c *Connector) Startup() (err error) {
 	}
 	c.logConfigs()
 
+	// Start the distributed cache
+	c.distribCache, err = dlru.NewCache(c.lifetimeCtx, c, ":888/dcache")
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	// Call the callback function, if provided
 	c.onStartupCalled = true
 	if c.onStartup != nil {
@@ -245,6 +252,15 @@ func (c *Connector) Shutdown() error {
 		if err != nil {
 			lastErr = errors.Trace(err)
 		}
+	}
+
+	// Close the distributed cache
+	if c.distribCache != nil {
+		err = c.distribCache.Close(c.lifetimeCtx)
+		if err != nil {
+			lastErr = errors.Trace(err)
+		}
+		c.distribCache = nil
 	}
 
 	// Unsubscribe from the response subject

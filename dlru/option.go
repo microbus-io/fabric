@@ -36,6 +36,6 @@ func Consensus() LoadOption {
 // This option improves performance. It is off by default.
 func Quick() LoadOption {
 	return func(opts *cacheOptions) {
-		opts.Consensus = true
+		opts.Consensus = false
 	}
 }

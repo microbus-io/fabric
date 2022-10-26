@@ -12,6 +12,7 @@ import (
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/clock"
+	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/log"
@@ -72,28 +73,29 @@ type Connector struct {
 	clockSet    bool
 	tickers     map[string]*cb.Callback
 	tickersLock sync.Mutex
+
+	distribCache *dlru.Cache
 }
 
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:              strings.ToLower(rand.AlphaNum32(10)),
-		reqs:            map[string]chan *http.Response{},
-		configs:         map[string]*cfg.Config{},
-		networkHop:      250 * time.Millisecond,
-		maxCallDepth:    64,
-		subs:            map[string]*sub.Subscription{},
-		requestDefrags:  map[string]*frag.DefragRequest{},
-		responseDefrags: map[string]*frag.DefragResponse{},
-		clock:           clock.NewClockReference(clock.New()),
-		tickers:         map[string]*cb.Callback{},
-		lifetimeCtx:     context.Background(),
+		id:                strings.ToLower(rand.AlphaNum32(10)),
+		reqs:              map[string]chan *http.Response{},
+		configs:           map[string]*cfg.Config{},
+		networkHop:        250 * time.Millisecond,
+		maxCallDepth:      64,
+		subs:              map[string]*sub.Subscription{},
+		requestDefrags:    map[string]*frag.DefragRequest{},
+		responseDefrags:   map[string]*frag.DefragResponse{},
+		clock:             clock.NewClockReference(clock.New()),
+		tickers:           map[string]*cb.Callback{},
+		lifetimeCtx:       context.Background(),
+		knownResponders:   lru.NewCache[string, map[string]bool](),
+		pendingMulticasts: lru.NewCache[string, string](),
 	}
 
-	c.knownResponders = lru.NewCache[string, map[string]bool]()
 	c.knownResponders.SetMaxAge(24 * time.Hour)
-
-	c.pendingMulticasts = lru.NewCache[string, string]()
 	c.knownResponders.SetMaxAge(time.Minute)
 
 	return c
@@ -262,4 +264,20 @@ func (c *Connector) connectToNATS() error {
 
 	c.natsConn = cn
 	return nil
+}
+
+// DistribCache is a cache that stores data among all peers of the microservice.
+// By default the cache is limited to 32MB per peer and a 1 hour TTL.
+//
+// Operating on a distributed cache is slower than on a local cache because
+// it involves network communication among peers.
+// However, the memory capacity of a distributed cache scales linearly with the number of peers
+// and its content is often able to survive a restart of the microservice.
+//
+// Cache elements can get evicted for various reason and without warning.
+// Cache only that which you can afford to lose and reconstruct.
+// Do not use the cache to share state among peers.
+// The cache is subject to race conditions in rare situations.
+func (c *Connector) DistribCache() *dlru.Cache {
+	return c.distribCache
 }
