@@ -82,7 +82,6 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 
 	// Create the microservice
 	con := New("echo.parallel.connector")
-	con.networkHop = 4 * time.Second // to avoid timeouts
 	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, _ := io.ReadAll(r.Body)
 		w.Write(body)
@@ -106,10 +105,10 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	b.StopTimer()
 
 	// On 2021 MacBook Pro M1 15":
-	// N=71256 concurrent
-	// 17594 ns/op
-	// 34113 B/op
-	// 216 allocs/op
+	// N=46232 concurrent
+	// 20094 ns/op
+	// 59724 B/op
+	// 242 allocs/op
 }
 
 func TestConnector_QueryArgs(t *testing.T) {
@@ -264,12 +263,11 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	budget := 8 * time.Second
 	depth := 0
 
 	// Create the microservice
 	con := New("timeout.drawdown.connector")
-	con.networkHop = time.Second
+	budget := con.networkHop * 8
 	con.Subscribe("next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
 		_, err := con.GET(r.Context(), "https://timeout.drawdown.connector/next")
@@ -288,7 +286,7 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 	)
 	assert.Error(t, err)
 	assert.Contains(t, "ack timeout", err.Error())
-	assert.True(t, depth > 1 && depth <= int(budget/con.networkHop))
+	assert.True(t, depth >= 7 && depth <= 8, "%d", depth)
 }
 
 func TestConnector_TimeoutNotFound(t *testing.T) {
@@ -313,7 +311,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	)
 	dur := con.Clock().Since(t0)
 	assert.Error(t, err)
-	assert.True(t, dur >= con.networkHop && dur <= con.networkHop*2)
+	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 
 	// Use the default time budget
 	t0 = con.Now()
@@ -324,7 +322,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	dur = con.Clock().Since(t0)
 	assert.Error(t, err)
 	assert.Contains(t, "ack timeout", err.Error())
-	assert.True(t, dur >= con.networkHop && dur <= con.networkHop*2)
+	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 }
 
 func TestConnector_TimeoutSlow(t *testing.T) {
@@ -443,7 +441,7 @@ func TestConnector_Multicast(t *testing.T) {
 		}
 	}
 	dur := client.Clock().Since(t0)
-	assert.True(t, dur >= client.networkHop && dur < client.networkHop*2)
+	assert.True(t, dur >= AckTimeout && dur < AckTimeout*2)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
 	assert.True(t, responded["noqueue2"])
@@ -465,7 +463,7 @@ func TestConnector_Multicast(t *testing.T) {
 		}
 	}
 	dur = client.Clock().Since(t0)
-	assert.True(t, dur < client.networkHop)
+	assert.True(t, dur < AckTimeout)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
 	assert.True(t, responded["noqueue2"])
@@ -482,7 +480,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 
 	// Create the microservices
 	slow := New("multicast.delay.connector")
-	delay := slow.networkHop
+	delay := AckTimeout
 	slow.Subscribe("cast", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(delay * 2)
 		w.Write([]byte("slow"))
@@ -584,7 +582,7 @@ func TestConnector_MulticastError(t *testing.T) {
 		}
 	}
 	dur := bad.Clock().Since(t0)
-	assert.True(t, dur >= bad.networkHop && dur <= 2*bad.networkHop)
+	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 	assert.Equal(t, 1, countErrs)
 	assert.Equal(t, 1, countOKs)
 }
@@ -646,7 +644,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 		}
 	}
 	dur := client.Clock().Since(t0)
-	assert.True(t, dur >= client.networkHop && dur <= 2*client.networkHop)
+	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 	assert.Equal(t, N, countOKs)
 }
 
@@ -728,7 +726,7 @@ func TestConnector_KnownResponders(t *testing.T) {
 			}
 		}
 		dur := alpha.Clock().Since(t0)
-		return len(responded), dur < alpha.networkHop
+		return len(responded), dur < AckTimeout
 	}
 
 	// First request should be slower, consecutive requests should be quick

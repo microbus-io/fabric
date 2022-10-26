@@ -321,12 +321,12 @@ func TestDLRU_MulticastOptim(t *testing.T) {
 	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
 	assert.NoError(t, err)
 	dur := time.Since(t0)
-	assert.True(t, dur >= 250*time.Millisecond)
+	assert.True(t, dur >= connector.AckTimeout)
 
 	// Second operation is fast, even if not the same action
 	t0 = time.Now()
 	err = alphaLRU.Clear(ctx)
 	assert.NoError(t, err)
 	dur = time.Since(t0)
-	assert.True(t, dur < 250*time.Millisecond)
+	assert.True(t, dur < connector.AckTimeout)
 }

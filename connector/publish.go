@@ -21,6 +21,8 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+const AckTimeout = 250 * time.Millisecond
+
 // GET makes a GET request
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{
@@ -197,7 +199,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	// Must not use mocked timers for request timeouts
 	timeoutTimer := time.NewTimer(req.TimeBudget)
 	defer timeoutTimer.Stop()
-	ackTimer := time.NewTimer(c.networkHop)
+	ackTimer := time.NewTimer(AckTimeout)
 	defer ackTimer.Stop()
 	for {
 		select {
