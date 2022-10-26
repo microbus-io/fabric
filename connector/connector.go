@@ -60,8 +60,8 @@ type Connector struct {
 	responseDefrags     map[string]*frag.DefragResponse
 	responseDefragsLock sync.Mutex
 
-	knownResponders   *lru.Cache[string, map[string]bool]
-	pendingMulticasts *lru.Cache[string, string]
+	knownResponders   lru.Cache[string, map[string]bool]
+	pendingMulticasts lru.Cache[string, string]
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
@@ -74,7 +74,7 @@ type Connector struct {
 	tickers     map[string]*cb.Callback
 	tickersLock sync.Mutex
 
-	distribCache *dlru.Cache
+	distribCache dlru.Cache
 }
 
 // NewConnector constructs a new Connector.
@@ -278,6 +278,6 @@ func (c *Connector) connectToNATS() error {
 // Cache only that which you can afford to lose and reconstruct.
 // Do not use the cache to share state among peers.
 // The cache is subject to race conditions in rare situations.
-func (c *Connector) DistribCache() *dlru.Cache {
+func (c *Connector) DistribCache() dlru.Cache {
 	return c.distribCache
 }
