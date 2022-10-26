@@ -2,13 +2,16 @@ package dlru
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,31 +21,28 @@ func TestDLRU_Lookup(t *testing.T) {
 	ctx := context.Background()
 
 	alpha := connector.New("lookup.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	alphaLRU, err := NewCache(ctx, alpha, "/cache")
 	assert.NoError(t, err)
 	defer alphaLRU.Close(ctx)
 
 	beta := connector.New("lookup.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	betaLRU, err := NewCache(ctx, beta, "/cache")
 	assert.NoError(t, err)
 	defer betaLRU.Close(ctx)
 
 	gamma := connector.New("lookup.dlru")
-	gammaLRU, err := NewCache(ctx, gamma, "/cache")
-	assert.NoError(t, err)
-	defer gammaLRU.Close(ctx)
-
-	err = alpha.Startup()
-	assert.NoError(t, err)
-	defer alpha.Shutdown()
-
-	err = beta.Startup()
-	assert.NoError(t, err)
-	defer alpha.Shutdown()
-
 	err = gamma.Startup()
 	assert.NoError(t, err)
 	defer gamma.Shutdown()
+	gammaLRU, err := NewCache(ctx, gamma, "/cache")
+	assert.NoError(t, err)
+	defer gammaLRU.Close(ctx)
 
 	// Insert to alpha cache
 	err = alphaLRU.Store(ctx, "A", []byte("AAA"))
@@ -119,22 +119,11 @@ func TestDLRU_Rescue(t *testing.T) {
 	ctx := context.Background()
 
 	alpha := connector.New("rescue.dlru")
-	alphaLRU, err := NewCache(ctx, alpha, "/cache")
-	assert.NoError(t, err)
-
-	beta := connector.New("rescue.dlru")
-	betaLRU, err := NewCache(ctx, beta, "/cache")
-	assert.NoError(t, err)
-	defer betaLRU.Close(ctx)
-
-	gamma := connector.New("rescue.dlru")
-	gammaLRU, err := NewCache(ctx, gamma, "/cache")
-	assert.NoError(t, err)
-	defer gammaLRU.Close(ctx)
-
-	err = alpha.Startup()
+	err := alpha.Startup()
 	assert.NoError(t, err)
 	defer alpha.Shutdown()
+	alphaLRU, err := NewCache(ctx, alpha, "/cache")
+	assert.NoError(t, err)
 
 	// Store values in alpha before starting beta and gamma
 	n := 1024
@@ -151,13 +140,21 @@ func TestDLRU_Rescue(t *testing.T) {
 	wg.Wait()
 	assert.Equal(t, n, alphaLRU.localCache.Len())
 
+	beta := connector.New("rescue.dlru")
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer beta.Shutdown()
+	betaLRU, err := NewCache(ctx, beta, "/cache")
+	assert.NoError(t, err)
+	defer betaLRU.Close(ctx)
 
+	gamma := connector.New("rescue.dlru")
 	err = gamma.Startup()
 	assert.NoError(t, err)
 	defer gamma.Shutdown()
+	gammaLRU, err := NewCache(ctx, gamma, "/cache")
+	assert.NoError(t, err)
+	defer gammaLRU.Close(ctx)
 
 	assert.Zero(t, betaLRU.localCache.Len())
 	assert.Zero(t, gammaLRU.localCache.Len())
@@ -193,34 +190,31 @@ func TestDLRU_Weight(t *testing.T) {
 	maxMem := 4096
 
 	alpha := connector.New("weight.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	alphaLRU, err := NewCache(ctx, alpha, "/cache")
 	alphaLRU.SetMaxMemory(maxMem)
 	assert.NoError(t, err)
 	defer alphaLRU.Close(ctx)
 
 	beta := connector.New("weight.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	betaLRU, err := NewCache(ctx, beta, "/cache")
 	betaLRU.SetMaxMemory(maxMem)
 	assert.NoError(t, err)
 	defer betaLRU.Close(ctx)
 
 	gamma := connector.New("weight.dlru")
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	defer gamma.Shutdown()
 	gammaLRU, err := NewCache(ctx, gamma, "/cache")
 	gammaLRU.SetMaxMemory(maxMem)
 	assert.NoError(t, err)
 	defer gammaLRU.Close(ctx)
-
-	err = alpha.Startup()
-	assert.NoError(t, err)
-	defer alpha.Shutdown()
-
-	err = beta.Startup()
-	assert.NoError(t, err)
-	defer alpha.Shutdown()
-
-	err = gamma.Startup()
-	assert.NoError(t, err)
-	defer gamma.Shutdown()
 
 	// Insert 1/4 of max memory
 	payload := rand.AlphaNum64(maxMem / 4)
@@ -299,22 +293,20 @@ func TestDLRU_MulticastOptim(t *testing.T) {
 	ctx := context.Background()
 
 	alpha := connector.New("multicast.optim.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
 	alphaLRU, err := NewCache(ctx, alpha, "/cache")
 	assert.NoError(t, err)
 	defer alphaLRU.Close(ctx)
 
 	beta := connector.New("multicast.optim.dlru")
-	betaLRU, err := NewCache(ctx, beta, "/cache")
-	assert.NoError(t, err)
-	defer betaLRU.Close(ctx)
-
-	err = alpha.Startup()
-	assert.NoError(t, err)
-	defer alpha.Shutdown()
-
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer alpha.Shutdown()
+	betaLRU, err := NewCache(ctx, beta, "/cache")
+	assert.NoError(t, err)
+	defer betaLRU.Close(ctx)
 
 	// First operation is slow
 	t0 := time.Now()
@@ -329,4 +321,139 @@ func TestDLRU_MulticastOptim(t *testing.T) {
 	assert.NoError(t, err)
 	dur = time.Since(t0)
 	assert.True(t, dur < connector.AckTimeout)
+}
+
+func TestDLRU_InvalidRequests(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	con := connector.New("invalid.requests.dlru")
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	cache, err := NewCache(ctx, con, "/cache")
+	assert.NoError(t, err)
+	defer cache.Close(ctx)
+
+	// Missing key
+	for _, action := range []string{"load", "checksum", "store", "delete"} {
+		w := utils.NewResponseRecorder()
+		r, err := http.NewRequest("GET", "https://"+con.HostName()+"/cache/all?do="+action, nil)
+		assert.NoError(t, err)
+		frame.Of(r).SetFromHost(con.HostName())
+		err = cache.handleAll(w, r)
+		assert.Equal(t, "missing key", err.Error())
+	}
+
+	_, _, err = cache.Load(ctx, "")
+	assert.Equal(t, "missing key", err.Error())
+	_, err = cache.LoadJSON(ctx, "", nil)
+	assert.Equal(t, "missing key", err.Error())
+	err = cache.Store(ctx, "", nil)
+	assert.Equal(t, "missing key", err.Error())
+	err = cache.Delete(ctx, "")
+	assert.Equal(t, "missing key", err.Error())
+
+	// Invalid action
+	w := utils.NewResponseRecorder()
+	r, err := http.NewRequest("GET", "https://"+con.HostName()+"/cache/all?do=unknown", nil)
+	assert.NoError(t, err)
+	frame.Of(r).SetFromHost(con.HostName())
+	err = cache.handleAll(w, r)
+	assert.Contains(t, err.Error(), "invalid action")
+
+	// Foreign host
+	w = utils.NewResponseRecorder()
+	r, err = http.NewRequest("GET", "https://"+con.HostName()+"/cache/all?do=load", nil)
+	assert.NoError(t, err)
+	frame.Of(r).SetFromHost("foreign.host")
+	err = cache.handleAll(w, r)
+	assert.Contains(t, err.Error(), "foreign host")
+}
+
+func TestDLRU_Inconsistency(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("inconsistency.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	alphaLRU, err := NewCache(ctx, alpha, "/cache")
+	assert.NoError(t, err)
+	defer alphaLRU.Close(ctx)
+
+	beta := connector.New("inconsistency.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	betaLRU, err := NewCache(ctx, beta, "/cache")
+	assert.NoError(t, err)
+	defer betaLRU.Close(ctx)
+
+	// Store an element in the cache
+	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
+	assert.NoError(t, err)
+
+	// Should be copied to both internal caches
+	alphaVal, ok := alphaLRU.localCache.Load("Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Bar", string(alphaVal))
+	betaVal, ok := betaLRU.localCache.Load("Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Bar", string(betaVal))
+
+	// Should be loadable from either caches
+	val, ok, err := alphaLRU.Load(ctx, "Foo")
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "Bar", string(val))
+	val, ok, err = betaLRU.Load(ctx, "Foo")
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "Bar", string(val))
+
+	// Corrupt the value in one of the internal caches
+	betaLRU.localCache.Store("Foo", []byte("Bad"))
+
+	// Loading should fail from either caches
+	_, ok, err = alphaLRU.Load(ctx, "Foo")
+	assert.NoError(t, err)
+	assert.False(t, ok)
+	_, ok, err = betaLRU.Load(ctx, "Foo")
+	assert.NoError(t, err)
+	assert.False(t, ok)
+
+	// The values are still in the internal caches
+	alphaVal, ok = alphaLRU.localCache.Load("Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Bar", string(alphaVal))
+	betaVal, ok = betaLRU.localCache.Load("Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Bad", string(betaVal))
+
+	// Storing a new value should remedy the situation
+	err = alphaLRU.Store(ctx, "Foo", []byte("Baz"))
+	assert.NoError(t, err)
+
+	// Should be copied to both internal caches
+	alphaVal, ok = alphaLRU.localCache.Load("Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Baz", string(alphaVal))
+	betaVal, ok = betaLRU.localCache.Load("Foo")
+	assert.True(t, ok)
+	assert.Equal(t, "Baz", string(betaVal))
+
+	// Should be loadable from either caches
+	val, ok, err = alphaLRU.Load(ctx, "Foo")
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "Baz", string(val))
+	val, ok, err = betaLRU.Load(ctx, "Foo")
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "Baz", string(val))
 }

@@ -3,6 +3,7 @@ package dlru
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -134,6 +135,8 @@ func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	switch r.URL.Query().Get("do") {
 	case "load":
 		return c.handleLoad(w, r)
+	case "checksum":
+		return c.handleChecksum(w, r)
 	case "store":
 		return c.handleStore(w, r)
 	case "delete":
@@ -179,12 +182,42 @@ func (c *Cache) handleLoad(w http.ResponseWriter, r *http.Request) error {
 	if key == "" {
 		return errors.New("missing key")
 	}
-	data, ok := c.localCache.Load(key)
+	bump := r.URL.Query().Get("bump")
+	data, ok := c.localCache.Load(key, lru.Bump(bump == "true"))
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
 	_, err := w.Write(data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// handleChecksum handles a broadcast when the primary tries to validate the copy it has.
+func (c *Cache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
+	// Ignore messages from self
+	if frame.Of(r).FromID() == c.svc.ID() {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
+	key := r.URL.Query().Get("key")
+	if key == "" {
+		return errors.New("missing key")
+	}
+	data, ok := c.localCache.Load(key)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	hash := md5.New()
+	_, err := hash.Write(data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	_, err = w.Write(hash.Sum(nil))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -317,7 +350,10 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		return nil, false, errors.New("missing key")
 	}
 
-	var opts cacheOptions
+	opts := cacheOptions{
+		Bump:      true,
+		Consensus: true,
+	}
 	for _, opt := range options {
 		opt(&opts)
 	}
@@ -328,11 +364,43 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		if !opts.Consensus {
 			return value, true, nil
 		}
+
+		// Calculate checksum of local copy
+		hash := md5.New()
+		_, err := hash.Write(value)
+		if err != nil {
+			return nil, false, errors.Trace(err)
+		}
+		localSum := hash.Sum(nil)
+
+		// Validate with peers
+		u := fmt.Sprintf("%s/all?do=checksum&key=%s", c.basePath, key)
+		ch := c.svc.Publish(ctx, pub.GET(u))
+		for r := range ch {
+			res, err := r.Get()
+			if err != nil {
+				return nil, false, errors.Trace(err)
+			}
+			if res.StatusCode != http.StatusOK {
+				continue
+			}
+			remoteSum, err := io.ReadAll(res.Body)
+			if err != nil {
+				return nil, false, errors.Trace(err)
+			}
+			if !bytes.Equal(localSum, remoteSum) {
+				// Inconsistency detected
+				value = nil
+				ok = false
+			}
+		}
+		return value, ok, nil
 	}
 
-	// Check with peers
-	// No need to pass options to peers
-	u := fmt.Sprintf("%s/all?do=load&key=%s", c.basePath, key)
+	// Load from peers
+	value = nil
+	ok = false
+	u := fmt.Sprintf("%s/all?do=load&bump=%v&key=%s", c.basePath, opts.Bump, key)
 	ch := c.svc.Publish(ctx, pub.GET(u))
 	for r := range ch {
 		res, err := r.Get()
