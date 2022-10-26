@@ -126,18 +126,10 @@ func TestDLRU_Rescue(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Store values in alpha before starting beta and gamma
-	n := 1024
-	var wg sync.WaitGroup
+	n := 2048
 	for i := 0; i < n; i++ {
-		i := i
-		wg.Add(1)
-		go func() {
-			err := alphaLRU.Store(ctx, strconv.Itoa(i), []byte(strconv.Itoa(i)))
-			assert.NoError(t, err)
-			wg.Done()
-		}()
+		alphaLRU.localCache.Store(strconv.Itoa(i), []byte(strconv.Itoa(i)))
 	}
-	wg.Wait()
 	assert.Equal(t, n, alphaLRU.localCache.Len())
 
 	beta := connector.New("rescue.dlru")
@@ -163,6 +155,7 @@ func TestDLRU_Rescue(t *testing.T) {
 	alphaLRU.Close(ctx)
 	assert.Equal(t, n, betaLRU.localCache.Len()+gammaLRU.localCache.Len())
 
+	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
 		i := i
 		wg.Add(1)

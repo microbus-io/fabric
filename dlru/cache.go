@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -274,8 +275,8 @@ func (c *Cache) rescue(ctx context.Context) {
 	ch := c.svc.Publish(ctx, pub.GET(u))
 	peers := 0
 	for r := range ch {
-		_, err := r.Get()
-		if err == nil {
+		res, err := r.Get()
+		if err == nil && frame.Of(res).FromID() != c.svc.ID() {
 			peers++
 		}
 	}
@@ -284,31 +285,31 @@ func (c *Cache) rescue(ctx context.Context) {
 	}
 
 	// Send local cache content to random peers
-	subCtx, cancel := context.WithTimeout(ctx, 2*time.Second) // Take no more than 2 seconds
-	defer cancel()
-	concurrent := 64 * peers // 64 requests per peer in parallel
+	elemMap := c.localCache.ToMap()
 	type kv struct {
 		key string
 		val []byte
 	}
-	rescueQueue := make(chan *kv, concurrent)
-	go func() {
-		for k, v := range c.localCache.ToMap() {
-			rescueQueue <- &kv{k, v}
-		}
-		close(rescueQueue)
-	}()
+	rescueQueue := make(chan *kv, len(elemMap))
+	for k, v := range elemMap {
+		rescueQueue <- &kv{k, v}
+	}
+	close(rescueQueue)
 	var wg sync.WaitGroup
 	var rescued int64
 	t0 := time.Now()
+	concurrent := runtime.NumCPU() * 4
 	for i := 0; i < concurrent; i++ {
 		wg.Add(1)
 		go func() {
 			for kv := range rescueQueue {
+				if time.Since(t0) >= 4*time.Second {
+					break
+				}
 				u := fmt.Sprintf("%s/rescue?key=%s", c.basePath, kv.key)
-				_, err := c.svc.Request(subCtx, pub.Method("PUT"), pub.URL(u), pub.Body(kv.val))
+				_, err := c.svc.Request(ctx, pub.Method("PUT"), pub.URL(u), pub.Body(kv.val))
 				if err != nil {
-					break // Likely context timeout
+					break
 				}
 				atomic.AddInt64(&rescued, 1)
 			}
