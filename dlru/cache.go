@@ -397,7 +397,7 @@ func (c *DistribCache) Load(ctx context.Context, key string, options ...LoadOpti
 
 	opts := cacheOptions{
 		Bump:      true,
-		Consensus: true,
+		PeerCheck: true,
 	}
 	for _, opt := range options {
 		opt(&opts)
@@ -406,7 +406,7 @@ func (c *DistribCache) Load(ctx context.Context, key string, options ...LoadOpti
 	// Check local cache
 	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump))
 	if ok {
-		if !opts.Consensus {
+		if !opts.PeerCheck {
 			return value, true, nil
 		}
 

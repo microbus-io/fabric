@@ -403,6 +403,60 @@ func TestDLRU_Inconsistency(t *testing.T) {
 	assert.Equal(t, "Baz", string(val))
 }
 
+func TestDLRU_RandomActions(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("random.actions.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	beta := connector.New("random.actions.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+
+	gamma := connector.New("random.actions.dlru")
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	defer gamma.Shutdown()
+
+	caches := []dlru.Cache{
+		alpha.DistribCache(),
+		beta.DistribCache(),
+		gamma.DistribCache(),
+	}
+
+	state := map[string][]byte{}
+	for i := 0; i < 10000; i++ {
+		cache := caches[rand.Intn(len(caches))]
+		key := strconv.Itoa(rand.Intn(20))
+		switch rand.Intn(4) {
+		case 1, 2: // Load
+			bump := rand.Intn(2) == 1
+			peerCheck := rand.Intn(2) == 1
+			val1, ok1, err := cache.Load(ctx, key, dlru.Bump(bump), dlru.PeerCheck(peerCheck))
+			assert.NoError(t, err)
+			val2, ok2 := state[key]
+			assert.Equal(t, ok2, ok1)
+			assert.Equal(t, val2, val1)
+
+		case 3: // Store
+			val := []byte(rand.AlphaNum32(15))
+			err := cache.Store(ctx, key, val)
+			assert.NoError(t, err)
+			state[key] = val
+
+		case 4: // Delete
+			err := cache.Delete(ctx, key)
+			assert.NoError(t, err)
+			delete(state, key)
+		}
+	}
+}
+
 func BenchmarkLRU_Store(b *testing.B) {
 	ctx := context.Background()
 
@@ -424,19 +478,19 @@ func BenchmarkLRU_Store(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15": 236909 ns/op
+	// On 2021 MacBook Pro M1 16": 213892 ns/op
 }
 
 func BenchmarkLRU_Load(b *testing.B) {
 	ctx := context.Background()
 
-	alpha := connector.New("benchmark.store.dlru")
+	alpha := connector.New("benchmark.load.dlru")
 	err := alpha.Startup()
 	assert.NoError(b, err)
 	defer alpha.Shutdown()
 	alphaLRU := alpha.DistribCache()
 
-	beta := connector.New("benchmark.store.dlru")
+	beta := connector.New("benchmark.load.dlru")
 	err = beta.Startup()
 	assert.NoError(b, err)
 	defer beta.Shutdown()
@@ -452,19 +506,19 @@ func BenchmarkLRU_Load(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15": 162217 ns/op
+	// On 2021 MacBook Pro M1 16": 162217 ns/op
 }
 
-func BenchmarkLRU_LoadQuick(b *testing.B) {
+func BenchmarkLRU_LoadNoPeerCheck(b *testing.B) {
 	ctx := context.Background()
 
-	alpha := connector.New("benchmark.store.dlru")
+	alpha := connector.New("benchmark.load.no.peer.check.dlru")
 	err := alpha.Startup()
 	assert.NoError(b, err)
 	defer alpha.Shutdown()
 	alphaLRU := alpha.DistribCache()
 
-	beta := connector.New("benchmark.store.dlru")
+	beta := connector.New("benchmark.load.no.peer.check.dlru")
 	err = beta.Startup()
 	assert.NoError(b, err)
 	defer beta.Shutdown()
@@ -474,11 +528,11 @@ func BenchmarkLRU_LoadQuick(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, ok, err := alphaLRU.Load(ctx, "Foo", dlru.Quick())
+		_, ok, err := alphaLRU.Load(ctx, "Foo", dlru.NoPeerCheck())
 		assert.NoError(b, err)
 		assert.True(b, ok)
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15": 81 ns/op
+	// On 2021 MacBook Pro M1 16": 81 ns/op
 }

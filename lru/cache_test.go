@@ -331,7 +331,7 @@ func BenchmarkLRU_Store(b *testing.B) {
 		cache.Store(i, i)
 	}
 
-	// On 2021 MacBook Pro M1 15":
+	// On 2021 MacBook Pro M1 16":
 	// 330 ns/op
 }
 
@@ -346,7 +346,7 @@ func BenchmarkLRU_LoadNoBump(b *testing.B) {
 		cache.Load(i, NoBump())
 	}
 
-	// On 2021 MacBook Pro M1 15":
+	// On 2021 MacBook Pro M1 16":
 	// 240 ns/op
 }
 
@@ -361,6 +361,6 @@ func BenchmarkLRU_LoadBump(b *testing.B) {
 		cache.Load(i)
 	}
 
-	// On 2021 MacBook Pro M1 15":
+	// On 2021 MacBook Pro M1 16":
 	// 450 ns/op
 }

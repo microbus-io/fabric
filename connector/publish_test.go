@@ -71,7 +71,7 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15":
+	// On 2021 MacBook Pro M1 16":
 	// 78851 ns/op
 	// 32869 B/op
 	// 210 allocs/op
@@ -104,7 +104,7 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	wg.Wait()
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15":
+	// On 2021 MacBook Pro M1 16":
 	// N=46232 concurrent
 	// 20094 ns/op
 	// 59724 B/op
@@ -662,7 +662,7 @@ func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15":
+	// On 2021 MacBook Pro M1 16":
 	// 128B: 82 ns/op
 	// 256B: 104 ns/op
 	// 512B: 153 ns/op

@@ -2,7 +2,7 @@ package dlru
 
 type cacheOptions struct {
 	Bump      bool
-	Consensus bool
+	PeerCheck bool
 }
 
 // LoadOption is used customize loading from the cache.
@@ -17,25 +17,25 @@ func NoBump() LoadOption {
 
 // Bump causes a loaded element to be bumped to the head of the cache.
 // This is the default behavior.
-func Bump() LoadOption {
+func Bump(bump bool) LoadOption {
 	return func(opts *cacheOptions) {
-		opts.Bump = true
+		opts.Bump = bump
 	}
 }
 
-// Consensus indicates to check with all peers for consistency before returning an
+// PeerCheck indicates to check with all peers for consistency before returning an
 // element from the cache.
 // This option impacts performance. It is on by default.
-func Consensus() LoadOption {
+func PeerCheck(check bool) LoadOption {
 	return func(opts *cacheOptions) {
-		opts.Consensus = true
+		opts.PeerCheck = check
 	}
 }
 
-// Quick indicates not to check with peers before returning an element that is found in the local cache.
+// NoPeerCheck indicates not to check with peers before returning an element that is found in the local cache.
 // This option improves performance. It is off by default.
-func Quick() LoadOption {
+func NoPeerCheck() LoadOption {
 	return func(opts *cacheOptions) {
-		opts.Consensus = false
+		opts.PeerCheck = false
 	}
 }
