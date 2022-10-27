@@ -8,12 +8,11 @@ import (
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
-	"github.com/microbus-io/fabric/service"
 )
 
 // Application is a collection of microservices that run in a single process and share the same lifecycle
 type Application struct {
-	services   []service.Service
+	services   []Service
 	started    bool
 	sig        chan os.Signal
 	plane      string
@@ -21,8 +20,8 @@ type Application struct {
 	clock      clock.Clock
 }
 
-// New creates a new app with a collection of microservices
-func New(services ...service.Service) *Application {
+// New creates a new app with a collection of microservices.
+func New(services ...Service) *Application {
 	return &Application{
 		services: services,
 		sig:      make(chan os.Signal, 1),
@@ -31,7 +30,7 @@ func New(services ...service.Service) *Application {
 
 // NewTesting creates a new app for running in a unit test environment.
 // A random plane of communication is used to isolate the app from other apps.
-func NewTesting(services ...service.Service) *Application {
+func NewTesting(services ...Service) *Application {
 	return &Application{
 		services:   services,
 		sig:        make(chan os.Signal, 1),
@@ -58,7 +57,7 @@ func (a *Application) SetClock(clock clock.Clock) error {
 	return nil
 }
 
-// Startup all microservices included in this app (in order)
+// Startup all microservices included in this app, in order.
 func (a *Application) Startup() error {
 	if a.started {
 		return errors.New("already started")
@@ -89,7 +88,7 @@ func (a *Application) Startup() error {
 	return nil
 }
 
-// Shutdown all microservices included in this app (in reverse order)
+// Shutdown all microservices included in this app, in reverse order.
 func (a *Application) Shutdown() error {
 	if !a.started {
 		return errors.New("not started")
@@ -107,13 +106,13 @@ func (a *Application) Shutdown() error {
 	return returnErr
 }
 
-// IsStarted indicates if the app has been successfully started
+// IsStarted indicates if the app has been successfully started.
 func (a *Application) IsStarted() bool {
 	return a.started
 }
 
 // WaitForInterrupt blocks until an interrupt is received through
-// a SIGTERM, SIGINT or a call to interrupt
+// a SIGTERM, SIGINT or a call to interrupt.
 func (a *Application) WaitForInterrupt() error {
 	if !a.started {
 		return errors.New("not started")
@@ -123,7 +122,7 @@ func (a *Application) WaitForInterrupt() error {
 	return nil
 }
 
-// Interrupt the app
+// Interrupt the app.
 func (a *Application) Interrupt() error {
 	if !a.started {
 		return errors.New("not started")
@@ -132,7 +131,7 @@ func (a *Application) Interrupt() error {
 	return nil
 }
 
-// Run all microservices included in this app until an interrupt is received
+// Run all microservices included in this app until an interrupt is received.
 func (a *Application) Run() error {
 	err := a.Startup()
 	if err != nil {

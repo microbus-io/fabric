@@ -9,7 +9,6 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/rand"
-	"github.com/microbus-io/fabric/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +16,7 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 	t.Parallel()
 
 	configSvc := NewService()
-	services := []service.Service{
+	services := []application.Service{
 		configSvc,
 	}
 	for i := 0; i < 16; i++ {

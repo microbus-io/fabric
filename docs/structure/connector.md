@@ -10,6 +10,7 @@ The `Connector` provides key capabilities (or _building blocks_) to microservice
 * [Configuration](../tech/configuration.md)
 * Mockable clock
 * Tickers to execute jobs on a fixed schedule
+* Distributed cache
 
 The `connector` package includes a separate source file for each functional area of the microservice. All these source files implement the same `Connector` class.
 
@@ -17,7 +18,6 @@ The `connector` package includes a separate source file for each functional area
 * `connector.go` defines the `Connector` struct and provides a few getters and setters
 * `control.go` deals with subscribing and handling the control messages on the reserved port `:888`
 * `fragment.go` orchestrates the fragmentation and defragmentation of large requests and responses
-* `interfaces.go` defines various interfaces of the microservice
 * `lifecycle.go` implements the `Startup` and `Shutdown` logic
 * `logger.go` provides a JSON logger for the microservice
 * `publish.go` deals with outbound messaging

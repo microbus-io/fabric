@@ -56,7 +56,7 @@ Ciao, Bella!
 
 The `/calculator` endpoint renders a rudimentary UI of a calculator. Behind the scenes, this endpoint calls the `calculator.example/arithmetic` endpoint to perform the calculation itself, demonstrating service-to-service calls. The `calculator.example` microservice is discussed next.
 
-<img src="examples-1.png" width=315>
+<img src="examples-1.png" width="315">
 
 ## Calculator
 

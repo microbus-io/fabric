@@ -20,16 +20,8 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
 )
-
-// DistribCache implements the cache.
-type DistribCache struct {
-	localCache lru.Cache[string, []byte]
-	basePath   string
-	svc        service.Service
-}
 
 /*
 Cache is an LRU cache that is distributed among the peers of a microservice.
@@ -45,30 +37,21 @@ callback of the microservice and destroyed in the OnShutdown.
 		myCache.Close(ctx)
 	})
 */
-type Cache interface {
-	SetMaxAge(ttl time.Duration) error
-	MaxAge() time.Duration
-	SetMaxMemory(bytes int) error
-	SetMaxMemoryMB(megaBytes int) error
-	MaxMemory() int
-	Close(ctx context.Context) error
-	Store(ctx context.Context, key string, value []byte) error
-	Load(ctx context.Context, key string, options ...LoadOption) (value []byte, ok bool, err error)
-	Delete(ctx context.Context, key string) error
-	Clear(ctx context.Context) error
-	LoadJSON(ctx context.Context, key string, value any, options ...LoadOption) (ok bool, err error)
-	StoreJSON(ctx context.Context, key string, value any) error
+type Cache struct {
+	localCache *lru.Cache[string, []byte]
+	basePath   string
+	svc        Service
 }
 
 // NewCache starts a new cache for the service at a given path.
 // It's recommended to use a non-standard port for the path.
-func NewCache(ctx context.Context, svc service.Service, path string) (Cache, error) {
+func NewCache(ctx context.Context, svc Service, path string) (*Cache, error) {
 	sub, err := sub.NewSub(svc.HostName(), path, nil)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	c := &DistribCache{
+	c := &Cache{
 		basePath: "https://" + strings.TrimSuffix(sub.Canonical(), "/"),
 		svc:      svc,
 	}
@@ -85,16 +68,16 @@ func NewCache(ctx context.Context, svc service.Service, path string) (Cache, err
 	return c, nil
 }
 
-// LocalCache returns the LRU cache that is backing the cache in this peer.
+// LocalCache returns the underlying LRU cache that is backing the cache in this peer.
 // Modifying the local cache is unadvisable and may result in inconsistencies.
 // Access is provided mainly for testing purposes.
-func (c *DistribCache) LocalCache() lru.Cache[string, []byte] {
+func (c *Cache) LocalCache() *lru.Cache[string, []byte] {
 	return c.localCache
 }
 
 // SetMaxAge sets the age limit of elements in this cache.
 // Elements that are bumped have their life span reset and will therefore survive longer.
-func (c *DistribCache) SetMaxAge(ttl time.Duration) error {
+func (c *Cache) SetMaxAge(ttl time.Duration) error {
 	err := c.localCache.SetMaxAge(ttl)
 	if err != nil {
 		return errors.Trace(err)
@@ -104,12 +87,12 @@ func (c *DistribCache) SetMaxAge(ttl time.Duration) error {
 
 // MaxAge returns the age limit of elements in this cache.
 // Elements that are bumped have their life span reset and will therefore survive longer.
-func (c *DistribCache) MaxAge() time.Duration {
+func (c *Cache) MaxAge() time.Duration {
 	return c.localCache.MaxAge()
 }
 
 // SetMaxMemory limits the memory used by the cache.
-func (c *DistribCache) SetMaxMemory(bytes int) error {
+func (c *Cache) SetMaxMemory(bytes int) error {
 	err := c.localCache.SetMaxWeight(bytes)
 	if err != nil {
 		return errors.Trace(err)
@@ -118,7 +101,7 @@ func (c *DistribCache) SetMaxMemory(bytes int) error {
 }
 
 // SetMaxMemoryMB limits the memory used by the cache.
-func (c *DistribCache) SetMaxMemoryMB(megaBytes int) error {
+func (c *Cache) SetMaxMemoryMB(megaBytes int) error {
 	err := c.localCache.SetMaxWeight(megaBytes * 1024 * 1024)
 	if err != nil {
 		return errors.Trace(err)
@@ -128,12 +111,12 @@ func (c *DistribCache) SetMaxMemoryMB(megaBytes int) error {
 
 // MaxAge returns the age limit of elements in this cache.
 // Elements that are bumped have their life span reset and will therefore survive longer.
-func (c *DistribCache) MaxMemory() int {
+func (c *Cache) MaxMemory() int {
 	return c.localCache.MaxWeight()
 }
 
 // start subscribed to handle cache events from peers.
-func (c *DistribCache) start(ctx context.Context) error {
+func (c *Cache) start(ctx context.Context) error {
 	err := c.svc.Subscribe(c.basePath+"/all", c.handleAll, sub.NoQueue())
 	if err != nil {
 		return errors.Trace(err)
@@ -146,13 +129,13 @@ func (c *DistribCache) start(ctx context.Context) error {
 }
 
 // start unsubscribes from handling cache events from peers.
-func (c *DistribCache) stop(ctx context.Context) error {
+func (c *Cache) stop(ctx context.Context) error {
 	c.svc.Unsubscribe(c.basePath + "/rescue")
 	c.svc.Unsubscribe(c.basePath + "/all")
 	return nil
 }
 
-func (c *DistribCache) handleAll(w http.ResponseWriter, r *http.Request) error {
+func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from other hosts
 	if frame.Of(r).FromHost() != c.svc.HostName() {
 		return errors.Newf("foreign host '%s'", frame.Of(r).FromHost())
@@ -173,7 +156,7 @@ func (c *DistribCache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
-func (c *DistribCache) handleClear(w http.ResponseWriter, r *http.Request) error {
+func (c *Cache) handleClear(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
 	if frame.Of(r).FromID() == c.svc.ID() {
 		return nil
@@ -182,7 +165,7 @@ func (c *DistribCache) handleClear(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-func (c *DistribCache) handleDelete(w http.ResponseWriter, r *http.Request) error {
+func (c *Cache) handleDelete(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
 	if frame.Of(r).FromID() == c.svc.ID() {
 		return nil
@@ -196,7 +179,7 @@ func (c *DistribCache) handleDelete(w http.ResponseWriter, r *http.Request) erro
 }
 
 // handleLoad handles a broadcast when the primary tries to obtain copies held by its peers.
-func (c *DistribCache) handleLoad(w http.ResponseWriter, r *http.Request) error {
+func (c *Cache) handleLoad(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
 	if frame.Of(r).FromID() == c.svc.ID() {
 		w.WriteHeader(http.StatusNotFound)
@@ -221,7 +204,7 @@ func (c *DistribCache) handleLoad(w http.ResponseWriter, r *http.Request) error 
 }
 
 // handleChecksum handles a broadcast when the primary tries to validate the copy it has.
-func (c *DistribCache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
+func (c *Cache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
 	if frame.Of(r).FromID() == c.svc.ID() {
 		w.WriteHeader(http.StatusNotFound)
@@ -270,7 +253,7 @@ func (c *DistribCache) handleChecksum(w http.ResponseWriter, r *http.Request) er
 }
 
 // handleStore handles a broadcast when a new element is stored by the primary.
-func (c *DistribCache) handleStore(w http.ResponseWriter, r *http.Request) error {
+func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
 	if frame.Of(r).FromID() == c.svc.ID() {
 		return nil
@@ -297,7 +280,7 @@ func (c *DistribCache) handleStore(w http.ResponseWriter, r *http.Request) error
 }
 
 // Close closes and clears the cache.
-func (c *DistribCache) Close(ctx context.Context) error {
+func (c *Cache) Close(ctx context.Context) error {
 	err := c.stop(ctx)
 	if err != nil {
 		return errors.Trace(err)
@@ -308,7 +291,7 @@ func (c *DistribCache) Close(ctx context.Context) error {
 }
 
 // rescue distributes the elements in the cache to random peers.
-func (c *DistribCache) rescue(ctx context.Context) {
+func (c *Cache) rescue(ctx context.Context) {
 	// Nothing to rescue
 	if c.localCache.Len() == 0 {
 		return
@@ -366,7 +349,7 @@ func (c *DistribCache) rescue(ctx context.Context) {
 }
 
 // Store an element in the cache.
-func (c *DistribCache) Store(ctx context.Context, key string, value []byte) error {
+func (c *Cache) Store(ctx context.Context, key string, value []byte) error {
 	if key == "" {
 		return errors.New("missing key")
 	}
@@ -390,7 +373,7 @@ func (c *DistribCache) Store(ctx context.Context, key string, value []byte) erro
 
 // Load an element from the cache, locally or from peers.
 // If the element is found, it is bumped to the head of the cache.
-func (c *DistribCache) Load(ctx context.Context, key string, options ...LoadOption) (value []byte, ok bool, err error) {
+func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (value []byte, ok bool, err error) {
 	if key == "" {
 		return nil, false, errors.New("missing key")
 	}
@@ -483,7 +466,7 @@ func (c *DistribCache) Load(ctx context.Context, key string, options ...LoadOpti
 }
 
 // Delete an element from the cache.
-func (c *DistribCache) Delete(ctx context.Context, key string) error {
+func (c *Cache) Delete(ctx context.Context, key string) error {
 	if key == "" {
 		return errors.New("missing key")
 	}
@@ -503,7 +486,7 @@ func (c *DistribCache) Delete(ctx context.Context, key string) error {
 }
 
 // Clear the cache.
-func (c *DistribCache) Clear(ctx context.Context) error {
+func (c *Cache) Clear(ctx context.Context) error {
 	c.localCache.Clear()
 
 	// Broadcast to all peers
@@ -520,7 +503,7 @@ func (c *DistribCache) Clear(ctx context.Context) error {
 
 // LoadJSON loads an element from the cache and unmarshals it as JSON.
 // If the element is found, it is bumped to the head of the cache.
-func (c *DistribCache) LoadJSON(ctx context.Context, key string, value any, options ...LoadOption) (ok bool, err error) {
+func (c *Cache) LoadJSON(ctx context.Context, key string, value any, options ...LoadOption) (ok bool, err error) {
 	if key == "" {
 		return false, errors.New("missing key")
 	}
@@ -541,7 +524,7 @@ func (c *DistribCache) LoadJSON(ctx context.Context, key string, value any, opti
 // StoreJSON marshals the value as JSON and stores it in the cache.
 // JSON marshalling is not memory efficient and should be avoided if the cache is
 // expected to store a lot of data.
-func (c *DistribCache) StoreJSON(ctx context.Context, key string, value any) error {
+func (c *Cache) StoreJSON(ctx context.Context, key string, value any) error {
 	if key == "" {
 		return errors.New("missing key")
 	}

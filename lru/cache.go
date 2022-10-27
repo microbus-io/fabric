@@ -32,8 +32,9 @@ func newBucket[K comparable, V any]() *bucket[K, V] {
 	}
 }
 
-// LRUCache implements the cache.
-type LRUCache[K comparable, V any] struct {
+// Cache is an LRU cache that enforces a maximum weight capacity and age limit for its elements.
+// The LRU cache performs locking internally and is thread-safe.
+type Cache[K comparable, V any] struct {
 	buckets       []*bucket[K, V]
 	nextCycle     time.Time
 	cycleDuration time.Duration
@@ -44,27 +45,9 @@ type LRUCache[K comparable, V any] struct {
 	clock         clock.Clock
 }
 
-// Cache is an LRU cache that enforces a maximum weight capacity and age limit for its elements.
-// The LRU cache performs locking internally and is thread-safe.
-type Cache[K comparable, V any] interface {
-	Clear()
-	Store(key K, value V, options ...StoreOption)
-	Exists(key K) bool
-	Load(key K, options ...LoadOption) (value V, ok bool)
-	LoadOrStore(key K, newValue V, options ...LoadOrStoreOption) (value V, found bool)
-	Delete(key K)
-	Weight() int
-	Len() int
-	SetMaxWeight(weight int) error
-	MaxWeight() int
-	SetMaxAge(ttl time.Duration) error
-	MaxAge() time.Duration
-	ToMap() map[K]V
-}
-
 // NewCache creates a new LRU cache.
-func NewCache[K comparable, V any]() Cache[K, V] {
-	c := &LRUCache[K, V]{
+func NewCache[K comparable, V any]() *Cache[K, V] {
+	c := &Cache[K, V]{
 		buckets:   []*bucket[K, V]{},
 		maxWeight: 16384,
 		maxAge:    time.Hour,
@@ -84,13 +67,13 @@ func NewCache[K comparable, V any]() Cache[K, V] {
 	return c
 }
 
-func (c *LRUCache[K, V]) setClock(mock clock.Clock) {
+func (c *Cache[K, V]) setClock(mock clock.Clock) {
 	c.clock = mock
 	c.nextCycle = c.clock.Now().Add(c.cycleDuration)
 }
 
 // Clear empties the cache.
-func (c *LRUCache[K, V]) Clear() {
+func (c *Cache[K, V]) Clear() {
 	c.lock.Lock()
 	nb := len(c.buckets)
 	c.buckets = []*bucket[K, V]{}
@@ -106,7 +89,7 @@ func (c *LRUCache[K, V]) Clear() {
 // Bucket 0 will become 1, 1 will become 2, etc.
 // Bucket 8 drops off the tail.
 // A new bucket 0 is initialized to hold the freshest elements.
-func (c *LRUCache[K, V]) cycleOnce() {
+func (c *Cache[K, V]) cycleOnce() {
 	nb := len(c.buckets)
 	c.weight -= c.buckets[nb-1].weight
 	for b := nb - 2; b >= 0; b-- {
@@ -117,7 +100,7 @@ func (c *LRUCache[K, V]) cycleOnce() {
 }
 
 // cycleAge cycles the cache to gradually evict buckets holding old elements.
-func (c *LRUCache[K, V]) cycleAge() {
+func (c *Cache[K, V]) cycleAge() {
 	nb := len(c.buckets)
 	now := c.clock.Now()
 	cycled := 0
@@ -133,7 +116,7 @@ func (c *LRUCache[K, V]) cycleAge() {
 
 // Store inserts an element to the cache.
 // The weight must be 1 or greater and cannot exceed the cache's maximum weight limit.
-func (c *LRUCache[K, V]) Store(key K, value V, options ...StoreOption) {
+func (c *Cache[K, V]) Store(key K, value V, options ...StoreOption) {
 	opts := cacheOptions{
 		Weight: 1,
 		Bump:   true,
@@ -151,7 +134,7 @@ func (c *LRUCache[K, V]) Store(key K, value V, options ...StoreOption) {
 	c.lock.Unlock()
 }
 
-func (c *LRUCache[K, V]) store(key K, value V, opts cacheOptions) {
+func (c *Cache[K, V]) store(key K, value V, opts cacheOptions) {
 	// Remove the element from all buckets
 	c.delete(key)
 
@@ -178,13 +161,13 @@ func (c *LRUCache[K, V]) store(key K, value V, opts cacheOptions) {
 }
 
 // Exists indicates if the key is in the cache.
-func (c *LRUCache[K, V]) Exists(key K) bool {
+func (c *Cache[K, V]) Exists(key K) bool {
 	_, ok := c.Load(key, NoBump())
 	return ok
 }
 
 // Load looks up an element in the cache.
-func (c *LRUCache[K, V]) Load(key K, options ...LoadOption) (value V, ok bool) {
+func (c *Cache[K, V]) Load(key K, options ...LoadOption) (value V, ok bool) {
 	opts := cacheOptions{
 		Weight: 1,
 		Bump:   true,
@@ -199,7 +182,7 @@ func (c *LRUCache[K, V]) Load(key K, options ...LoadOption) (value V, ok bool) {
 	return value, ok
 }
 
-func (c *LRUCache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
+func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 	// Scan from newest to oldest
 	nb := len(c.buckets)
 	var foundIn int
@@ -239,7 +222,7 @@ func (c *LRUCache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 
 // LoadOrStore looks up an element in the cache.
 // If the element is not found, the new value is stored and returned instead.
-func (c *LRUCache[K, V]) LoadOrStore(key K, newValue V, options ...LoadOrStoreOption) (value V, found bool) {
+func (c *Cache[K, V]) LoadOrStore(key K, newValue V, options ...LoadOrStoreOption) (value V, found bool) {
 	opts := cacheOptions{
 		Weight: 1,
 		Bump:   true,
@@ -259,14 +242,14 @@ func (c *LRUCache[K, V]) LoadOrStore(key K, newValue V, options ...LoadOrStoreOp
 }
 
 // Delete removes an element from the cache.
-func (c *LRUCache[K, V]) Delete(key K) {
+func (c *Cache[K, V]) Delete(key K) {
 	c.lock.Lock()
 	c.cycleAge()
 	c.delete(key)
 	c.lock.Unlock()
 }
 
-func (c *LRUCache[K, V]) delete(key K) {
+func (c *Cache[K, V]) delete(key K) {
 	// Remove the element from all buckets
 	nb := len(c.buckets)
 	for b := 0; b < nb; b++ {
@@ -280,7 +263,7 @@ func (c *LRUCache[K, V]) delete(key K) {
 }
 
 // Weight returns the total weight of all the elements in the cache.
-func (c *LRUCache[K, V]) Weight() int {
+func (c *Cache[K, V]) Weight() int {
 	c.lock.Lock()
 	c.cycleAge()
 	weight := c.weight
@@ -289,7 +272,7 @@ func (c *LRUCache[K, V]) Weight() int {
 }
 
 // Len returns the number of elements in the cache.
-func (c *LRUCache[K, V]) Len() int {
+func (c *Cache[K, V]) Len() int {
 	c.lock.Lock()
 	c.cycleAge()
 	count := 0
@@ -304,7 +287,7 @@ func (c *LRUCache[K, V]) Len() int {
 // SetMaxAge sets the age limit of elements in this cache.
 // Elements that are bumped have their life span reset and will therefore
 // survive longer.
-func (c *LRUCache[K, V]) SetMaxWeight(weight int) error {
+func (c *Cache[K, V]) SetMaxWeight(weight int) error {
 	if weight < 0 {
 		return errors.New("negative weight")
 	}
@@ -327,7 +310,7 @@ func (c *LRUCache[K, V]) SetMaxWeight(weight int) error {
 }
 
 // MaxWeight returns the weight limit set for this cache.
-func (c *LRUCache[K, V]) MaxWeight() int {
+func (c *Cache[K, V]) MaxWeight() int {
 	c.lock.Lock()
 	weight := c.maxWeight
 	c.lock.Unlock()
@@ -336,7 +319,7 @@ func (c *LRUCache[K, V]) MaxWeight() int {
 
 // SetMaxAge sets the age limit of elements in this cache.
 // Elements that are bumped have their life span reset and will therefore survive longer.
-func (c *LRUCache[K, V]) SetMaxAge(ttl time.Duration) error {
+func (c *Cache[K, V]) SetMaxAge(ttl time.Duration) error {
 	if ttl < 0 {
 		return errors.New("negative TTL")
 	}
@@ -351,7 +334,7 @@ func (c *LRUCache[K, V]) SetMaxAge(ttl time.Duration) error {
 
 // MaxAge returns the age limit of elements in this cache.
 // Elements that are bumped have their life span reset and will therefore survive longer.
-func (c *LRUCache[K, V]) MaxAge() time.Duration {
+func (c *Cache[K, V]) MaxAge() time.Duration {
 	c.lock.Lock()
 	ttl := c.maxAge
 	c.lock.Unlock()
@@ -359,7 +342,7 @@ func (c *LRUCache[K, V]) MaxAge() time.Duration {
 }
 
 // ToMap returns the elements currently in the cache in a newly allocated map.
-func (c *LRUCache[K, V]) ToMap() map[K]V {
+func (c *Cache[K, V]) ToMap() map[K]V {
 	c.lock.Lock()
 	m := map[K]V{}
 	nb := len(c.buckets)

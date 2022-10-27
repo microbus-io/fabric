@@ -23,19 +23,19 @@ func TestDLRU_Lookup(t *testing.T) {
 	err := alpha.Startup()
 	assert.NoError(t, err)
 	defer alpha.Shutdown()
-	alphaLRU := alpha.DistribCache().(*dlru.DistribCache)
+	alphaLRU := alpha.DistribCache()
 
 	beta := connector.New("lookup.dlru")
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer beta.Shutdown()
-	betaLRU := beta.DistribCache().(*dlru.DistribCache)
+	betaLRU := beta.DistribCache()
 
 	gamma := connector.New("lookup.dlru")
 	err = gamma.Startup()
 	assert.NoError(t, err)
 	defer gamma.Shutdown()
-	gammaLRU := gamma.DistribCache().(*dlru.DistribCache)
+	gammaLRU := gamma.DistribCache()
 
 	// Insert to alpha cache
 	err = alphaLRU.Store(ctx, "A", []byte("AAA"))
@@ -54,7 +54,7 @@ func TestDLRU_Lookup(t *testing.T) {
 	assert.Equal(t, 2, gammaLRU.LocalCache().Len())
 
 	// Should be loadable from all caches
-	for _, c := range []*dlru.DistribCache{gammaLRU, betaLRU, alphaLRU} {
+	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
 		val, ok, err := c.Load(ctx, "A")
 		assert.NoError(t, err)
 		assert.True(t, ok)
@@ -78,7 +78,7 @@ func TestDLRU_Lookup(t *testing.T) {
 	assert.Equal(t, 1, gammaLRU.LocalCache().Len())
 
 	// Should not be loadable from any of the caches
-	for _, c := range []dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
+	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
 		val, ok, err := c.Load(ctx, "A")
 		assert.NoError(t, err)
 		assert.False(t, ok)
@@ -98,7 +98,7 @@ func TestDLRU_Lookup(t *testing.T) {
 	assert.Equal(t, 0, gammaLRU.LocalCache().Len())
 
 	// Should not be loadable from any of the caches
-	for _, c := range []dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
+	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
 		val, ok, err := c.Load(ctx, "B")
 		assert.NoError(t, err)
 		assert.False(t, ok)
@@ -114,7 +114,7 @@ func TestDLRU_Rescue(t *testing.T) {
 	alpha := connector.New("rescue.dlru")
 	err := alpha.Startup()
 	assert.NoError(t, err)
-	alphaLRU := alpha.DistribCache().(*dlru.DistribCache)
+	alphaLRU := alpha.DistribCache()
 
 	// Store values in alpha before starting beta and gamma
 	n := 2048
@@ -141,13 +141,13 @@ func TestDLRU_Rescue(t *testing.T) {
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer beta.Shutdown()
-	betaLRU := beta.DistribCache().(*dlru.DistribCache)
+	betaLRU := beta.DistribCache()
 
 	gamma := connector.New("rescue.dlru")
 	err = gamma.Startup()
 	assert.NoError(t, err)
 	defer gamma.Shutdown()
-	gammaLRU := gamma.DistribCache().(*dlru.DistribCache)
+	gammaLRU := gamma.DistribCache()
 
 	assert.Zero(t, betaLRU.LocalCache().Len())
 	assert.Zero(t, gammaLRU.LocalCache().Len())
@@ -192,21 +192,21 @@ func TestDLRU_Weight(t *testing.T) {
 	err := alpha.Startup()
 	assert.NoError(t, err)
 	defer alpha.Shutdown()
-	alphaLRU := alpha.DistribCache().(*dlru.DistribCache)
+	alphaLRU := alpha.DistribCache()
 	alphaLRU.SetMaxMemory(maxMem)
 
 	beta := connector.New("weight.dlru")
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer beta.Shutdown()
-	betaLRU := beta.DistribCache().(*dlru.DistribCache)
+	betaLRU := beta.DistribCache()
 	betaLRU.SetMaxMemory(maxMem)
 
 	gamma := connector.New("weight.dlru")
 	err = gamma.Startup()
 	assert.NoError(t, err)
 	defer gamma.Shutdown()
-	gammaLRU := gamma.DistribCache().(*dlru.DistribCache)
+	gammaLRU := gamma.DistribCache()
 	gammaLRU.SetMaxMemory(maxMem)
 
 	// Insert 1/2 of max memory
@@ -343,13 +343,13 @@ func TestDLRU_Inconsistency(t *testing.T) {
 	err := alpha.Startup()
 	assert.NoError(t, err)
 	defer alpha.Shutdown()
-	alphaLRU := alpha.DistribCache().(*dlru.DistribCache)
+	alphaLRU := alpha.DistribCache()
 
 	beta := connector.New("inconsistency.dlru")
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer beta.Shutdown()
-	betaLRU := beta.DistribCache().(*dlru.DistribCache)
+	betaLRU := beta.DistribCache()
 
 	// Store an element in the cache
 	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
@@ -423,7 +423,7 @@ func TestDLRU_RandomActions(t *testing.T) {
 	assert.NoError(t, err)
 	defer gamma.Shutdown()
 
-	caches := []dlru.Cache{
+	caches := []*dlru.Cache{
 		alpha.DistribCache(),
 		beta.DistribCache(),
 		gamma.DistribCache(),
@@ -457,7 +457,7 @@ func TestDLRU_RandomActions(t *testing.T) {
 	}
 }
 
-func BenchmarkLRU_Store(b *testing.B) {
+func BenchmarkDLRU_Store(b *testing.B) {
 	ctx := context.Background()
 
 	alpha := connector.New("benchmark.store.dlru")
@@ -481,7 +481,7 @@ func BenchmarkLRU_Store(b *testing.B) {
 	// On 2021 MacBook Pro M1 16": 213892 ns/op
 }
 
-func BenchmarkLRU_Load(b *testing.B) {
+func BenchmarkDLRU_Load(b *testing.B) {
 	ctx := context.Background()
 
 	alpha := connector.New("benchmark.load.dlru")
@@ -509,7 +509,7 @@ func BenchmarkLRU_Load(b *testing.B) {
 	// On 2021 MacBook Pro M1 16": 162217 ns/op
 }
 
-func BenchmarkLRU_LoadNoPeerCheck(b *testing.B) {
+func BenchmarkDLRU_LoadNoPeerCheck(b *testing.B) {
 	ctx := context.Background()
 
 	alpha := connector.New("benchmark.load.no.peer.check.dlru")
@@ -535,4 +535,11 @@ func BenchmarkLRU_LoadNoPeerCheck(b *testing.B) {
 	b.StopTimer()
 
 	// On 2021 MacBook Pro M1 16": 81 ns/op
+}
+
+func TestDLRU_Interface(t *testing.T) {
+	t.Parallel()
+
+	c := connector.New("example")
+	_ = dlru.Service(c)
 }

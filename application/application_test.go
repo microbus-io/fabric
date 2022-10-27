@@ -170,3 +170,10 @@ func TestApplication_Clock(t *testing.T) {
 	err = app.Shutdown()
 	assert.NoError(t, err)
 }
+
+func TestApplication_Interface(t *testing.T) {
+	t.Parallel()
+
+	c := connector.New("example")
+	_ = Service(c)
+}

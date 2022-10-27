@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/microbus-io/fabric/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -128,14 +127,4 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 	defer con.Shutdown()
 
 	assert.Equal(t, LAB, con.Deployment())
-}
-
-func TestConnector_Implements(t *testing.T) {
-	t.Parallel()
-
-	c := NewConnector()
-	_ = service.Service(c)
-	_ = service.Logger(c)
-	_ = service.Publisher(c)
-	_ = service.Subscriber(c)
 }

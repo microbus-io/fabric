@@ -198,7 +198,7 @@ func TestLRU_MaxAge(t *testing.T) {
 	cache := NewCache[int, string]()
 	cache.SetMaxAge(time.Second * time.Duration(seconds))
 	clock := clock.NewMock()
-	cache.(*LRUCache[int, string]).setClock(clock)
+	cache.setClock(clock)
 
 	for i := 1; i <= seconds-1; i++ {
 		cache.Store(i, "X")
@@ -241,7 +241,7 @@ func TestLRU_ChangeMaxAge(t *testing.T) {
 	cache := NewCache[int, string]()
 	cache.SetMaxAge(maxAge)
 	clock := clock.NewMock()
-	cache.(*LRUCache[int, string]).setClock(clock)
+	cache.setClock(clock)
 
 	for i := 1; i <= seconds-1; i++ {
 		cache.Store(i, "X")
@@ -300,7 +300,7 @@ func TestLRU_Bump(t *testing.T) {
 
 	// Cycle once to cause 5 to drop off the tail
 	// head> _ 4 10 9 2 8 7 6 <tail
-	cache.(*LRUCache[int, string]).cycleOnce()
+	cache.cycleOnce()
 	_, ok = cache.Load(5)
 	assert.False(t, ok)
 	assert.Equal(t, numBuckets-1, cache.Len())
@@ -319,7 +319,7 @@ func TestLRU_Bump(t *testing.T) {
 
 	// Cycle once to cause 6 to drop off the tail
 	// head> _ 4 _ 10 9 2 8 7 <tail
-	cache.(*LRUCache[int, string]).cycleOnce()
+	cache.cycleOnce()
 	assert.False(t, cache.Exists(6))
 	assert.Equal(t, numBuckets-2, cache.Len())
 }

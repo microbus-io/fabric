@@ -2,6 +2,7 @@ package sub
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -9,6 +10,9 @@ import (
 	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
+
+// HTTPHandler extends the standard http.Handler to also return an error
+type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
 
 // Subscription handles incoming requests.
 // Although technically public, it is used internally and should not be constructed by microservices directly
@@ -39,7 +43,7 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func NewSub(defaultHost string, path string, handler any, options ...Option) (*Subscription, error) {
+func NewSub(defaultHost string, path string, handler HTTPHandler, options ...Option) (*Subscription, error) {
 	spec := path
 	if path == "" {
 		// (empty)

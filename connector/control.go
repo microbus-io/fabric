@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
 )
 
@@ -12,7 +11,7 @@ import (
 func (c *Connector) subscribeControl() error {
 	type ctrlSub struct {
 		path    string
-		handler service.HTTPHandler
+		handler HTTPHandler
 		options []sub.Option
 	}
 	subs := []*ctrlSub{
