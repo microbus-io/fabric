@@ -306,6 +306,8 @@ func TestDLRU_InvalidRequests(t *testing.T) {
 	assert.Equal(t, "missing key", err.Error())
 	err = cache.Store(ctx, "", nil)
 	assert.Equal(t, "missing key", err.Error())
+	err = cache.StoreJSON(ctx, "", nil)
+	assert.Equal(t, "missing key", err.Error())
 	err = cache.Delete(ctx, "")
 	assert.Equal(t, "missing key", err.Error())
 }
