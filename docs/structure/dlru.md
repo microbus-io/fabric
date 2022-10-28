@@ -4,11 +4,11 @@ The `dlru` package implements an [LRU cache](./lru.md) that is distributed among
 
 <img src="dlru-1.svg" width="720">
 
-The capacity of the cache scales linearly with the number of replicas.
+The capacity of the cache scales linearly with the number of replicas of the microservice.
 
 <img src="dlru-2.svg" width="820">
 
-The cache is scoped to a single microservice, therefore isolating it from side-effects that can be caused by "noisy neighbor" microservices. Isolation also makes it possible to independently scale up to the individual needs of each microservice.
+The cache is scoped to a single microservice, therefore isolating it from side-effects that can be caused by "noisy neighbor" microservices. Isolation also makes it possible to independently scale to the individual needs of each microservice.
 
 <img src="dlru-3.svg" width="720">
 
