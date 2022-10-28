@@ -50,8 +50,8 @@ func TestDLRU_Lookup(t *testing.T) {
 	err = alphaLRU.StoreJSON(ctx, "B", bbb)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, alphaLRU.LocalCache().Len())
-	assert.Equal(t, 2, betaLRU.LocalCache().Len())
-	assert.Equal(t, 2, gammaLRU.LocalCache().Len())
+	assert.Equal(t, 0, betaLRU.LocalCache().Len())
+	assert.Equal(t, 0, gammaLRU.LocalCache().Len())
 
 	// Should be loadable from all caches
 	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
@@ -74,8 +74,8 @@ func TestDLRU_Lookup(t *testing.T) {
 	err = gammaLRU.Delete(ctx, "A")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, alphaLRU.LocalCache().Len())
-	assert.Equal(t, 1, betaLRU.LocalCache().Len())
-	assert.Equal(t, 1, gammaLRU.LocalCache().Len())
+	assert.Equal(t, 0, betaLRU.LocalCache().Len())
+	assert.Equal(t, 0, gammaLRU.LocalCache().Len())
 
 	// Should not be loadable from any of the caches
 	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
@@ -202,68 +202,44 @@ func TestDLRU_Weight(t *testing.T) {
 	betaLRU := beta.DistribCache()
 	betaLRU.SetMaxMemory(maxMem)
 
-	gamma := connector.New("weight.dlru")
-	err = gamma.Startup()
-	assert.NoError(t, err)
-	defer gamma.Shutdown()
-	gammaLRU := gamma.DistribCache()
-	gammaLRU.SetMaxMemory(maxMem)
-
-	// Insert 1/2 of max memory
+	// Insert enough to max out the memory limit
 	payload := rand.AlphaNum64(maxMem / 4)
 	err = alphaLRU.Store(ctx, "A", []byte(payload))
 	assert.NoError(t, err)
 	err = alphaLRU.Store(ctx, "B", []byte(payload))
 	assert.NoError(t, err)
-
-	// Should be replicated to all three caches
-	// alpha: A B
-	// beta: A B
-	// gamma: A B
-	assert.Equal(t, 2, alphaLRU.LocalCache().Len())
-	assert.Equal(t, 2, betaLRU.LocalCache().Len())
-	assert.Equal(t, 2, gammaLRU.LocalCache().Len())
-	assert.Equal(t, maxMem/2, alphaLRU.LocalCache().Weight())
-	assert.Equal(t, maxMem/2, betaLRU.LocalCache().Weight())
-	assert.Equal(t, maxMem/2, gammaLRU.LocalCache().Weight())
-
-	// Insert another 1/4
 	err = alphaLRU.Store(ctx, "C", []byte(payload))
 	assert.NoError(t, err)
-
-	// Should only be added to alpha
-	// alpha: A B C
-	// beta: A B
-	// gamma: A B
-	assert.Equal(t, 3, alphaLRU.LocalCache().Len())
-	assert.Equal(t, 2, betaLRU.LocalCache().Len())
-	assert.Equal(t, 2, gammaLRU.LocalCache().Len())
-	assert.Equal(t, maxMem*3/4, alphaLRU.LocalCache().Weight())
-	assert.Equal(t, maxMem/2, betaLRU.LocalCache().Weight())
-	assert.Equal(t, maxMem/2, gammaLRU.LocalCache().Weight())
-
-	// Insert 2 more into alpha
 	err = alphaLRU.Store(ctx, "D", []byte(payload))
 	assert.NoError(t, err)
+
+	// Should be stored in alpha
+	// alpha: D C B A
+	// beta:
+	assert.Equal(t, 4, alphaLRU.LocalCache().Len())
+	assert.Equal(t, 0, betaLRU.LocalCache().Len())
+	assert.Equal(t, maxMem, alphaLRU.LocalCache().Weight())
+	assert.Equal(t, 0, betaLRU.LocalCache().Weight())
+
+	// Insert another 1/4
 	err = alphaLRU.Store(ctx, "E", []byte(payload))
 	assert.NoError(t, err)
 
 	// Alpha will have A evicted
 	// alpha: E D C B
-	// beta: A B
-	// gamma: A B
+	// beta:
 	assert.Equal(t, 4, alphaLRU.LocalCache().Len())
-	assert.Equal(t, 2, betaLRU.LocalCache().Len())
-	assert.Equal(t, 2, gammaLRU.LocalCache().Len())
+	assert.Equal(t, 0, betaLRU.LocalCache().Len())
 	assert.Equal(t, maxMem, alphaLRU.LocalCache().Weight())
-	assert.Equal(t, maxMem/2, betaLRU.LocalCache().Weight())
-	assert.Equal(t, maxMem/2, gammaLRU.LocalCache().Weight())
+	assert.Equal(t, 0, betaLRU.LocalCache().Weight())
 
 	for _, k := range []string{"A", "B", "C", "D", "E"} {
-		val, ok, err := gammaLRU.Load(ctx, k)
+		val, ok, err := betaLRU.Load(ctx, k)
 		assert.NoError(t, err)
-		assert.True(t, ok)
-		assert.Equal(t, payload, string(val))
+		assert.Equal(t, k != "A", ok)
+		if ok {
+			assert.Equal(t, payload, string(val))
+		}
 	}
 }
 
@@ -355,9 +331,9 @@ func TestDLRU_Inconsistency(t *testing.T) {
 	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
 	assert.NoError(t, err)
 
-	// Should be copied to both internal caches
+	// Should be stored in alpha
 	assert.Equal(t, 1, alphaLRU.LocalCache().Len())
-	assert.Equal(t, 1, betaLRU.LocalCache().Len())
+	assert.Equal(t, 0, betaLRU.LocalCache().Len())
 
 	// Should be loadable from either caches
 	val, ok, err := alphaLRU.Load(ctx, "Foo")
@@ -369,7 +345,7 @@ func TestDLRU_Inconsistency(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "Bar", string(val))
 
-	// Corrupt the value in one of the internal caches
+	// Store a different value in beta
 	betaLRU.LocalCache().Store("Foo", []byte("Bad"))
 
 	// Loading should fail from either caches
@@ -383,24 +359,6 @@ func TestDLRU_Inconsistency(t *testing.T) {
 	// The inconsistent values should be removed
 	assert.Equal(t, 0, alphaLRU.LocalCache().Len())
 	assert.Equal(t, 0, betaLRU.LocalCache().Len())
-
-	// Storing a new value should remedy the situation
-	err = alphaLRU.Store(ctx, "Foo", []byte("Baz"))
-	assert.NoError(t, err)
-
-	// Should be copied to both internal caches
-	assert.Equal(t, 1, alphaLRU.LocalCache().Len())
-	assert.Equal(t, 1, betaLRU.LocalCache().Len())
-
-	// Should be loadable from either caches
-	val, ok, err = alphaLRU.Load(ctx, "Foo")
-	assert.NoError(t, err)
-	assert.True(t, ok)
-	assert.Equal(t, "Baz", string(val))
-	val, ok, err = betaLRU.Load(ctx, "Foo")
-	assert.NoError(t, err)
-	assert.True(t, ok)
-	assert.Equal(t, "Baz", string(val))
 }
 
 func TestDLRU_RandomActions(t *testing.T) {
@@ -436,8 +394,7 @@ func TestDLRU_RandomActions(t *testing.T) {
 		switch rand.Intn(4) {
 		case 1, 2: // Load
 			bump := rand.Intn(2) == 1
-			peerCheck := rand.Intn(2) == 1
-			val1, ok1, err := cache.Load(ctx, key, dlru.Bump(bump), dlru.PeerCheck(peerCheck))
+			val1, ok1, err := cache.Load(ctx, key, dlru.Bump(bump))
 			assert.NoError(t, err)
 			val2, ok2 := state[key]
 			assert.Equal(t, ok2, ok1)
@@ -478,7 +435,7 @@ func BenchmarkDLRU_Store(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 16": 213892 ns/op
+	// On 2021 MacBook Pro M1 16": 193309 ns/op
 }
 
 func BenchmarkDLRU_Load(b *testing.B) {
@@ -506,35 +463,7 @@ func BenchmarkDLRU_Load(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 16": 162217 ns/op
-}
-
-func BenchmarkDLRU_LoadNoPeerCheck(b *testing.B) {
-	ctx := context.Background()
-
-	alpha := connector.New("benchmark.load.no.peer.check.dlru")
-	err := alpha.Startup()
-	assert.NoError(b, err)
-	defer alpha.Shutdown()
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("benchmark.load.no.peer.check.dlru")
-	err = beta.Startup()
-	assert.NoError(b, err)
-	defer beta.Shutdown()
-
-	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
-	assert.NoError(b, err)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, ok, err := alphaLRU.Load(ctx, "Foo", dlru.NoPeerCheck())
-		assert.NoError(b, err)
-		assert.True(b, ok)
-	}
-	b.StopTimer()
-
-	// On 2021 MacBook Pro M1 16": 81 ns/op
+	// On 2021 MacBook Pro M1 16": 165499 ns/op
 }
 
 func TestDLRU_Interface(t *testing.T) {

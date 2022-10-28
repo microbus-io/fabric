@@ -16,7 +16,7 @@ The framework involves itself in three conceptual areas:
 
 ## Quick Start
 
-[Get started quickly](docs/quick-start.md) by setting up your system and running the examples.
+[Get started quickly](docs/quick-start.md) <sup color="orange">updated</sup> by setting up your system and running the [examples](docs/structure/examples.md) <sup color="orange">updated</sup>.
 
 ## Code Structure
 
@@ -26,14 +26,14 @@ Review each of the major project packages to get oriented in the code structure:
 * [cb](docs/structure/cb.md) - Options for callbacks
 * [cfg](docs/structure/cb.md) - Options for defining config properties
 * [clock](docs/structure/clock.md) - An abstraction of the functions in the standard library time package to allow for mocking
-* [connector](docs/structure/connector.md) <sup color="orange">updated<sup> - The primary construct of the framework and the basis for all microservices
-* [dlru](docs/structure/dlru.md) <sup color="orange">new<sup> - An LRU cache that is distributed among all peers of a microservice
+* [connector](docs/structure/connector.md) <sup color="orange">updated</sup> - The primary construct of the framework and the basis for all microservices
+* [dlru](docs/structure/dlru.md) <sup color="orange">new</sup> - An LRU cache that is distributed among all peers of a microservice
 * [errors](docs/structure/errors.md) - An enhancement of Go's standard `errors` package 
 * [examples](docs/structure/examples.md) - Demo microservices 
 * [frag](docs/structure/frag.md) - Means to break large HTTP requests and responses into fragments that can then be reassembled
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [log](docs/structure/log.md) - Fields for attaching data to log messages
-* [lru](docs/structure/lru.md) <sup color="orange">new<sup> - An LRU with with limits on age and weight
+* [lru](docs/structure/lru.md) <sup color="orange">new</sup> - An LRU with with limits on age and weight
 * [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/configurator](docs/structure/services-configurator.md) - The configurator system microservice

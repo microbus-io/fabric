@@ -121,7 +121,7 @@ func (c *Cache) start(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.svc.Subscribe(c.basePath+"/rescue", c.handleStore, sub.DefaultQueue())
+	err = c.svc.Subscribe(c.basePath+"/rescue", c.handleRescue, sub.DefaultQueue())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -145,8 +145,6 @@ func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 		return c.handleLoad(w, r)
 	case "checksum":
 		return c.handleChecksum(w, r)
-	case "store":
-		return c.handleStore(w, r)
 	case "delete":
 		return c.handleDelete(w, r)
 	case "clear":
@@ -252,8 +250,8 @@ func (c *Cache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// handleStore handles a broadcast when a new element is stored by the primary.
-func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
+// handleRescue stores an element that is offloaded when a peer shuts down.
+func (c *Cache) handleRescue(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
 	if frame.Of(r).FromID() == c.svc.ID() {
 		return nil
@@ -269,13 +267,7 @@ func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
 	}
 	weight := len(data)
 
-	if c.localCache.Weight()+weight <= c.localCache.MaxWeight()/2 {
-		// Keep a local copy if the cache is relatively empty
-		c.localCache.Store(key, data, lru.Weight(weight))
-	} else {
-		// Delete the local copy, if present
-		c.localCache.Delete(key)
-	}
+	c.localCache.Store(key, data, lru.Weight(weight))
 	return nil
 }
 
@@ -354,11 +346,12 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte) error {
 		return errors.New("missing key")
 	}
 
+	// Delete locally
 	c.localCache.Delete(key)
 
-	// Broadcast to peers
-	u := fmt.Sprintf("%s/all?do=store&key=%s", c.basePath, key)
-	ch := c.svc.Publish(ctx, pub.Method("PUT"), pub.URL(u), pub.Body(value))
+	// Delete at peers
+	u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, key)
+	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
 		_, err := r.Get()
 		if err != nil {
@@ -366,6 +359,7 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte) error {
 		}
 	}
 
+	// Store in local cache
 	c.localCache.Store(key, value, lru.Weight(len(value)))
 
 	return nil
@@ -379,8 +373,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	}
 
 	opts := cacheOptions{
-		Bump:      true,
-		PeerCheck: true,
+		Bump: true,
 	}
 	for _, opt := range options {
 		opt(&opts)
@@ -389,10 +382,6 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	// Check local cache
 	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump))
 	if ok {
-		if !opts.PeerCheck {
-			return value, true, nil
-		}
-
 		// Calculate checksum of local copy
 		hash := md5.New()
 		_, err := hash.Write(value)
@@ -423,7 +412,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 			if !bytes.Equal(localSum, remoteSum) {
 				// Inconsistency detected
 				c.localCache.Delete(key)
-				c.svc.LogInfo(ctx, "Inconsistent cache elem deleted", log.String("key", key))
+				c.svc.LogInfo(ctx, "Cache inconsistency", log.String("key", key))
 				value = nil
 				ok = false
 			}
@@ -450,16 +439,11 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		}
 		if value != nil && !bytes.Equal(value, data) {
 			// Inconsistency detected
+			c.svc.LogInfo(ctx, "Cache inconsistency", log.String("key", key))
 			return nil, false, nil
 		}
 		value = data
 		ok = true
-	}
-
-	weight := len(value)
-	if ok && c.localCache.Weight()+weight <= c.localCache.MaxWeight()/2 {
-		// Keep a local copy if the cache is relatively empty
-		c.localCache.Store(key, value, lru.Weight(weight))
 	}
 
 	return value, ok, nil
