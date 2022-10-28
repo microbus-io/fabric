@@ -197,7 +197,7 @@ func BenchmarkConnector_Frag(b *testing.B) {
 
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 15":
+	// On 2021 MacBook Pro M1 16":
 	// 16MB payload: 20 ms/op
 	// 32MB payload: 38 ms/op
 	// 64MB payload: 75 ms/op

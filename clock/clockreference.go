@@ -21,14 +21,16 @@ func NewClockReference(internal Clock) *ClockReference {
 
 // Set sets the referenced clock.
 func (c *ClockReference) Set(internal Clock) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	var nc Clock
 	if ref, ok := internal.(*ClockReference); ok {
 		// Avoid cyclical references
-		c.clock = ref.Get()
+		nc = ref.Get()
 	} else {
-		c.clock = internal
+		nc = internal
 	}
+	c.lock.Lock()
+	c.clock = nc
+	c.lock.Unlock()
 }
 
 // Get returns the referenced clock.

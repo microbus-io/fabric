@@ -53,3 +53,8 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * `Connector` description
 * Update of NATS connection environment variable names
 * Update of deployment and plane environment variable names
+
+[Milestone 9](https://github.com/microbus-io/fabric/tree/milestone/9):
+
+* LRU cache
+* Distributed LRU cache

@@ -135,9 +135,9 @@ func (c *Connector) Clock() clock.Clock {
 	return c.clock
 }
 
-// Now returns the current time using the connector's clock.
+// Now returns the current time using the connector's clock, in the UTC timezone.
 func (c *Connector) Now() time.Time {
-	return c.clock.Now()
+	return c.clock.Now().UTC()
 }
 
 // SetClock sets an alternative clock for this connector,

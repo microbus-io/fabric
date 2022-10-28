@@ -15,10 +15,13 @@ import (
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/nats-io/nats.go"
 )
+
+const AckTimeout = 250 * time.Millisecond
 
 // GET makes a GET request
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
@@ -187,7 +190,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 		if len(expectedResponders) > 0 {
 			c.LogDebug(c.lifetimeCtx, "Expecting responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(expectedResponders)))
 		}
-		c.pendingMulticasts.Put(msgID, subject)
+		c.pendingMulticasts.Store(msgID, subject)
 	}
 	countResponses := 0
 	seenIDs := map[string]string{} // FromID -> OpCode
@@ -196,7 +199,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	// Must not use mocked timers for request timeouts
 	timeoutTimer := time.NewTimer(req.TimeBudget)
 	defer timeoutTimer.Stop()
-	ackTimer := time.NewTimer(c.networkHop)
+	ackTimer := time.NewTimer(AckTimeout)
 	defer ackTimer.Stop()
 	for {
 		select {
@@ -289,7 +292,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				if doneWaitingForAcks && countResponses == len(seenIDs) {
 					// All responses have been received
 					// Known responders optimization
-					c.knownResponders.Put(subject, seenQueues)
+					c.knownResponders.Store(subject, seenQueues)
 					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
 					return
 				}
@@ -321,7 +324,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				// All responses have been received
 				// Known responders optimization
 				if req.Multicast {
-					c.knownResponders.Put(subject, seenQueues)
+					c.knownResponders.Store(subject, seenQueues)
 					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
 				}
 				return
@@ -360,9 +363,10 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	if !ok {
 		opCode := frame.Of(response).OpCode()
 		if opCode != frame.OpCodeAck {
-			subject, _ := c.pendingMulticasts.Load(msgID)
-			if subject != "" {
+			subject, ok := c.pendingMulticasts.Load(msgID, lru.NoBump())
+			if ok {
 				c.knownResponders.Delete(subject)
+				c.pendingMulticasts.Delete(msgID)
 			}
 			c.LogInfo(
 				c.lifetimeCtx,

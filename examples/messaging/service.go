@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
@@ -26,6 +27,8 @@ func NewService() *Service {
 	s.Subscribe("/no-queue", s.NoQueue, sub.NoQueue())
 	s.Subscribe("/default-queue", s.DefaultQueue)
 	s.Subscribe("/home", s.Home)
+	s.Subscribe("/cache/load", s.CacheLoad)
+	s.Subscribe("/cache/store", s.CacheStore)
 	return s
 }
 
@@ -33,6 +36,7 @@ func NewService() *Service {
 // a multicast request/response communication pattern.
 // All instances of this microservice will respond to each request
 func (s *Service) NoQueue(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte("NoQueue " + s.ID()))
 	return nil
 }
@@ -41,6 +45,7 @@ func (s *Service) NoQueue(w http.ResponseWriter, r *http.Request) error {
 // a unicast request/response communication pattern.
 // Only one of the instances of this microservice will respond to each request
 func (s *Service) DefaultQueue(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte("DefaultQueue " + s.ID()))
 	return nil
 }
@@ -136,6 +141,64 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) error {
 
 	buf.WriteString("Refresh the page to try again")
 
+	w.Header().Set("Content-Type", "text/plain")
 	_, err = w.Write(buf.Bytes())
 	return errors.Trace(err)
+}
+
+// CacheStore stores an element in the distributed cache of the microservice.
+func (s *Service) CacheStore(w http.ResponseWriter, r *http.Request) error {
+	key := r.URL.Query().Get("key")
+	if key == "" {
+		return errors.New("missing key")
+	}
+	value := r.URL.Query().Get("value")
+	if value == "" {
+		return errors.New("missing value")
+	}
+	err := s.DistribCache().Store(r.Context(), key, []byte(value))
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	var b strings.Builder
+	b.WriteString("key: ")
+	b.WriteString(key)
+	b.WriteString("\nvalue: ")
+	b.WriteString(value)
+	b.WriteString("\n\nStored by ")
+	b.WriteString(s.ID())
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(b.String()))
+	return nil
+}
+
+// CacheLoad looks up an element in the distributed cache of the microservice.
+func (s *Service) CacheLoad(w http.ResponseWriter, r *http.Request) error {
+	key := r.URL.Query().Get("key")
+	if key == "" {
+		return errors.New("missing key")
+	}
+	value, ok, err := s.DistribCache().Load(r.Context(), key)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	var b strings.Builder
+	b.WriteString("key: ")
+	b.WriteString(key)
+	if ok {
+		b.WriteString("\nfound: yes")
+		b.WriteString("\nvalue: ")
+		b.Write(value)
+	} else {
+		b.WriteString("\nfound: no")
+	}
+	b.WriteString("\n\nLoaded by ")
+	b.WriteString(s.ID())
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(b.String()))
+	return nil
 }

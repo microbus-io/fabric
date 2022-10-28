@@ -16,7 +16,7 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 	t.Parallel()
 
 	configSvc := NewService()
-	services := []connector.Service{
+	services := []application.Service{
 		configSvc,
 	}
 	for i := 0; i < 16; i++ {

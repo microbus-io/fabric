@@ -56,7 +56,7 @@ Ciao, Bella!
 
 The `/calculator` endpoint renders a rudimentary UI of a calculator. Behind the scenes, this endpoint calls the `calculator.example/arithmetic` endpoint to perform the calculation itself, demonstrating service-to-service calls. The `calculator.example` microservice is discussed next.
 
-<img src="examples-1.png" width=315>
+<img src="examples-1.png" width="315">
 
 ## Calculator
 
@@ -160,3 +160,35 @@ Refresh the page to see the IDs change:
 * The processor ID may change
 * The responder to the unicast request may change
 * The order of the responses to the multicast may change
+
+## Distributed Cache
+
+The `messaging.example` microservice also demonstrates how multiple replicas of the same service can share a single cache by communicating over NATS.
+
+To store an element, use the http://localhost:8080/messaging.example/cache/store?key=foo&value=bar endpoint. The output shows which of the replicas handled the request.
+
+```
+key: foo
+value: bar
+
+Stored by qtshc434b7
+```
+
+To load an element, use the http://localhost:8080/messaging.example/cache/load?key=foo endpoint. Refresh the page a few times and notice how all replicas are able to locate the element.
+
+```
+key: foo
+found: yes
+value: bar
+
+Loaded by ucarmsii56
+```
+
+Or if the element can't be located, e.g. http://localhost:8080/messaging.example/cache/load?key=fox :
+
+```
+key: fox
+found: no
+
+Loaded by pv7lqgeu98
+```

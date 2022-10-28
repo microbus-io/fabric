@@ -20,7 +20,7 @@ import (
 )
 
 // HTTPHandler extends the standard http.Handler to also return an error
-type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
+type HTTPHandler = sub.HTTPHandler
 
 /*
 Subscribe assigns a function to handle HTTP requests to the given path.
@@ -41,7 +41,7 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func (c *Connector) Subscribe(path string, handler HTTPHandler, options ...sub.Option) error {
+func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error {
 	if c.hostName == "" {
 		return errors.New("host name is not set")
 	}
@@ -78,19 +78,24 @@ func (c *Connector) Unsubscribe(path string) error {
 		}
 	}
 	c.subsLock.Unlock()
+	if c.IsStarted() {
+		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
+	}
 	return errors.Trace(err)
 }
 
 // UnsubscribeAll removes all handlers
 func (c *Connector) UnsubscribeAll() error {
 	c.subsLock.Lock()
-	defer c.subsLock.Unlock()
-
 	var lastErr error
 	for _, sub := range c.subs {
 		lastErr = c.deactivateSub(sub)
 	}
 	c.subs = map[string]*sub.Subscription{}
+	c.subsLock.Unlock()
+	if c.IsStarted() {
+		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
+	}
 	return errors.Trace(lastErr)
 }
 

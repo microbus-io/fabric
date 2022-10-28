@@ -162,3 +162,36 @@ func TestPub_Canonical(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "https://www.example.com:443/path", r.Canonical())
 }
+
+func TestPub_Apply(t *testing.T) {
+	t.Parallel()
+
+	r, err := NewRequest()
+	assert.NoError(t, err)
+
+	r.Apply(URL("https://www.example.com/delete"), Method("DELETE"))
+	assert.Equal(t, "DELETE", r.Method)
+	assert.Equal(t, "https://www.example.com:443/delete", r.Canonical())
+
+	r.Apply(GET("https://www.example.com/get"))
+	assert.Equal(t, "GET", r.Method)
+	assert.Equal(t, "https://www.example.com:443/get", r.Canonical())
+
+	r.Apply(POST("https://www.example.com/post"))
+	assert.Equal(t, "POST", r.Method)
+	assert.Equal(t, "https://www.example.com:443/post", r.Canonical())
+
+	r.Apply(Multicast())
+	assert.Equal(t, true, r.Multicast)
+
+	r.Apply(Unicast())
+	assert.Equal(t, false, r.Multicast)
+
+	r.Apply(Body("lorem ipsum"))
+	body, err := io.ReadAll(r.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "lorem ipsum", string(body))
+
+	r.Apply(Header("Foo", "Bar"))
+	assert.Equal(t, "Bar", r.Header.Get("Foo"))
+}
