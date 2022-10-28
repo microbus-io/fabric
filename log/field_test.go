@@ -9,6 +9,8 @@ import (
 )
 
 func TestLog_Fields(t *testing.T) {
+	t.Parallel()
+
 	f := Uint("uint", 1)
 	assert.Equal(t, zapcore.Uint64Type, f.Type)
 	assert.Equal(t, "uint", f.Key)
