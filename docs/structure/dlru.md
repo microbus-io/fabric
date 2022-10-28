@@ -4,8 +4,6 @@ The `dlru` package implements an [LRU cache](./lru.md) that is distributed among
 
 <img src="dlru-1.svg" width="720">
 
-The distributed cache exhibits important characteristics:
-
 The capacity of the cache scales linearly with the number of replicas.
 
 <img src="dlru-2.svg" width="820">
