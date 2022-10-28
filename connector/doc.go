@@ -1,4 +1,2 @@
-/*
-Package connector implements the base class to all microservices.
-*/
+// Package connector implements the base class of all microservices.
 package connector

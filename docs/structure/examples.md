@@ -163,7 +163,7 @@ Refresh the page to see the IDs change:
 
 ## Distributed Cache
 
-The messaging microservice also demonstrates how multiple replicas of the same service can share a single cache.
+The `messaging.example` microservice also demonstrates how multiple replicas of the same service can share a single cache by communicating over NATS.
 
 To store an element, use the http://localhost:8080/messaging.example/cache/store?key=foo&value=bar endpoint. The output shows which of the replicas handled the request.
 

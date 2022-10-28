@@ -105,7 +105,8 @@ func (c *Connector) Startup() (err error) {
 	// Initialize logger
 	err = c.initLogger()
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		return err
 	}
 	c.LogInfo(c.lifetimeCtx, "Startup")
 
@@ -118,7 +119,8 @@ func (c *Connector) Startup() (err error) {
 	// Connect to NATS
 	err = c.connectToNATS()
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		return err
 	}
 	c.started = true
 
@@ -131,20 +133,23 @@ func (c *Connector) Startup() (err error) {
 	// Subscribe to the response subject
 	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostName, c.id), c.id, c.onResponse)
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		return err
 	}
 
 	// Fetch configs
 	err = c.refreshConfig(c.lifetimeCtx)
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		return err
 	}
 	c.logConfigs()
 
 	// Start the distributed cache
 	c.distribCache, err = dlru.NewCache(c.lifetimeCtx, c, ":888/dcache")
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		return err
 	}
 
 	// Call the callback function, if provided
@@ -160,7 +165,8 @@ func (c *Connector) Startup() (err error) {
 		})
 		cancel()
 		if err != nil {
-			return errors.Trace(err)
+			err = errors.Trace(err)
+			return err
 		}
 	}
 
@@ -170,14 +176,16 @@ func (c *Connector) Startup() (err error) {
 	// Subscribe to :888 control messages
 	err = c.subscribeControl()
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		return err
 	}
 
 	// Activate subscriptions
 	for _, sub := range c.subs {
 		err = c.activateSub(sub)
 		if err != nil {
-			return errors.Trace(err)
+			err = errors.Trace(err)
+			return err
 		}
 	}
 	time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
@@ -196,11 +204,6 @@ func (c *Connector) Shutdown() error {
 	c.started = false
 
 	var lastErr error
-	defer func() {
-		if lastErr != nil {
-			c.LogError(c.lifetimeCtx, "Shutting down", log.Error(lastErr))
-		}
-	}()
 
 	// Stop all tickers
 	err := c.StopAllTickers()
@@ -281,6 +284,11 @@ func (c *Connector) Shutdown() error {
 	if c.natsConn != nil {
 		c.natsConn.Close()
 		c.natsConn = nil
+	}
+
+	// Last chance to log an error
+	if lastErr != nil {
+		c.LogError(c.lifetimeCtx, "Shutting down", log.Error(lastErr))
 	}
 
 	// Terminate logger

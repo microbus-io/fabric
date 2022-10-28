@@ -58,4 +58,4 @@ Go into the details with these technical guides:
 
 Note the [shortcuts](docs/shortcuts.md) taken in this milestone. These will be addressed in future releases.
 
-Get your hands dirty and [explore more on your own](docs/self-explore.md).
+Get your hands dirty and [explore more on your own](docs/self-explore.md) <sup color="orange">updated</sup>.

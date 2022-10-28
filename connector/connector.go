@@ -96,7 +96,7 @@ func NewConnector() *Connector {
 	}
 
 	c.knownResponders.SetMaxAge(24 * time.Hour)
-	c.knownResponders.SetMaxAge(time.Minute)
+	c.pendingMulticasts.SetMaxAge(time.Minute)
 
 	return c
 }
