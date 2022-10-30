@@ -3,7 +3,7 @@ package dlru
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -229,7 +229,7 @@ func (c *Cache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
-	hash := md5.New()
+	hash := sha256.New()
 	_, err = hash.Write(data)
 	if err != nil {
 		return errors.Trace(err)
@@ -383,7 +383,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump))
 	if ok {
 		// Calculate checksum of local copy
-		hash := md5.New()
+		hash := sha256.New()
 		_, err := hash.Write(value)
 		if err != nil {
 			return nil, false, errors.Trace(err)
