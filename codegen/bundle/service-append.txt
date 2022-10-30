@@ -7,7 +7,7 @@ func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
 
 {{- range .Functions}}{{- if not .Exists}}
 /*
-{{ .Description }}
+{{ TrimEndOfLineWhitespace .Description }}
 */
 func (svc *Service) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}) ({{if .Out}}{{ .Out }}, {{end}}err error) {
     return // TO{{/**/}}DO: {{ .Name }}
@@ -16,7 +16,7 @@ func (svc *Service) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}})
 
 {{- range .Webs}}{{- if not .Exists}}
 /*
-{{ .Description }}
+{{ TrimEndOfLineWhitespace .Description }}
 */
 func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err error) {
     return // TO{{/**/}}DO: {{ .Name }}
@@ -25,7 +25,7 @@ func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err err
 
 {{- range .Tickers}}{{- if not .Exists}}
 /*
-{{ .Description }}
+{{ TrimEndOfLineWhitespace .Description }}
 */
 func (svc *Service) {{ .Name }}(ctx context.Context) (err error) {
     return // TO{{/**/}}DO: {{ .Name }}

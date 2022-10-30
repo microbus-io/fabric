@@ -46,7 +46,7 @@ func New(impl ToDo) *Intermediate {
 	svc.DefineConfig(
 		`{{ .Name }}`,
 		{{- if .Description }}
-		cfg.Description(`{{ .Description }}`),{{ end }}
+		cfg.Description(`{{ TrimEndOfLineWhitespace .Description }}`),{{ end }}
 		{{- if .Validation }}
 		cfg.Validation(`{{ .Validation }}`),{{ end }}
 		{{- if .Default }}

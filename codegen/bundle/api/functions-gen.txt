@@ -41,7 +41,7 @@ func (_out *{{ .Name }}Out) Get() (result int, err error) {
 }
 
 /*
-{{ .Description }}
+{{ TrimEndOfLineWhitespace .Description }}
 */
 func (_c *Client) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}) ({{if .Out}}{{ .Out }}, {{end}}err error) {
 	_in := {{ .Name }}In{
@@ -79,7 +79,7 @@ func (_c *Client) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}) (
 }
 
 /*
-{{ .Description }}
+{{ TrimEndOfLineWhitespace .Description }}
 */
 func (_c *MulticastClient) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}, _options ...pub.Option) <-chan *{{ .Name }}Out {
 	_in := {{ .Name }}In{

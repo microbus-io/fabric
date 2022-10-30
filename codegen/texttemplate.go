@@ -36,7 +36,8 @@ func LoadTemplate(name string) (*TextTemplate, error) {
 func (tt *TextTemplate) Execute(data any) ([]byte, error) {
 	var buf bytes.Buffer
 	funcs := template.FuncMap{
-		"CapitalizeIdentifier": capitalizeIdentifier,
+		"CapitalizeIdentifier":    capitalizeIdentifier,
+		"TrimEndOfLineWhitespace": trimEndOfLineWhitespace,
 	}
 	tmpl, err := template.New(tt.name).Funcs(funcs).Parse(string(tt.content))
 	if err != nil {
@@ -127,4 +128,13 @@ func capitalizeIdentifier(identifier string) string {
 		return strings.ToUpper(lcPrefix) + suffix
 	}
 	return strings.ToUpper(lcPrefix[:1]) + lcPrefix[1:] + suffix
+}
+
+// trimEndOfLineWhitespace removes trailing whitespace at the end of lines.
+func trimEndOfLineWhitespace(desc string) string {
+	split := strings.Split(desc, "\n")
+	for i := range split {
+		split[i] = strings.TrimRight(split[i], " \r\t")
+	}
+	return strings.Join(split, "\n")
 }
