@@ -1,0 +1,80 @@
+---
+# General
+#
+# host - The host name of the microservice
+# description - A human-friendly description of the microservice
+general:
+  host:
+  description:
+
+# Config properties
+#
+# signature - Func() (val Type)
+# description - Go-doc description
+# default - A default value (defaults to empty)
+# validation - A validation pattern
+#   str [a-zA-Z0-9]+
+#   bool
+#   int [0,60]
+#   float [0.0,1.0)
+#   dur (0s,24h]
+#   set Red|Green|Blue
+#   url
+#   email
+#   json
+# callback - "true" to handle the change event (defaults to "false")
+# secret - "true" to indicate a secret (defaults to "false")
+configs:
+  # - signature:
+  #   description:
+  #   default:
+  #   validation:
+
+# Functions
+#
+# signature - Func(name Type, name Type) (name Type, name Type)
+# description - Go-doc description
+# path - The subscription path
+#   (empty) - the function name in lowercase
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - ellipsis denotes the function name in lowercase
+#   https://example.com:123/path
+#   ^ - empty path
+# queue - The subscription queue
+#   default = load balanced (default)
+#   none = Pervasive
+functions:
+  # - signature:
+  #   description:
+
+# Web handlers
+#
+# signature - Func()
+# description - Go-doc description
+# path - The subscription path
+#   (empty) - the function name in lowercase
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - ellipsis denotes the function name in lowercase
+#   https://example.com:123/path
+#   ^ - empty path
+# queue - The subscription queue
+#   default = load balanced (default)
+#   none = Pervasive
+webs:
+  # - signature:
+  #   description:
+
+# Tickers
+#
+# signature - Func()
+# description - Go-doc description
+# interval - Duration between iterations (e.g. 15m)
+# timeBudget - Duration to complete an iteration
+tickers:
+  # - signature:
+  #   description:
+  #   interval:
