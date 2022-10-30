@@ -38,7 +38,6 @@ func makeIntermediate(specs *spec.Service) error {
 		"intermediate/intermediate-gen",
 		"intermediate/configs-gen",
 		"intermediate/functions-gen",
-		"intermediate/resources-gen",
 	}
 	for _, n := range templateNames {
 		tt, err := LoadTemplate(n + ".txt")

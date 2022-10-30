@@ -32,7 +32,7 @@ configs:
 
 # Functions
 #
-# signature - Func(name Type, name Type) (name Type, name Type)
+# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Go-doc description
 # path - The subscription path
 #   (empty) - the function name in lowercase

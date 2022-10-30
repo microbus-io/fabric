@@ -13,8 +13,9 @@ import (
 var (
 	_ json.Decoder
 	_ http.Request
-	_ errors.TracedError
+
 	_ lib.Nothing
+	_ errors.TracedError
 )
 
 {{- range .Functions}}
@@ -46,9 +47,9 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-    {{- range .Signature.OutputArgs }}{{ if eq .Name "httpStatusCode" }}{{ if eq .Type "int" }}
+    {{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}
     w.WriteHeader(o.OhttpStatusCode)
-    {{- end}}{{- end}}{{- end}}
+    {{- end}}{{- end}}
 	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)

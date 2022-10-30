@@ -3,16 +3,35 @@
 package intermediate
 
 import (
+	"context"
     "fmt"
     "strconv"
 	"time"
+
+	"github.com/microbus-io/fabric/errors"
 )
 
 var (
+    _ context.Context
 	_ fmt.Stringer
 	_ strconv.NumError
 	_ time.Duration
+
+	_ errors.TracedError
 )
+
+// doOnConfigChanged is fired when the config of the microservice changed.
+func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
+	{{- range .Configs}}{{- if .Callback}}
+	if changed(`{{ .Name}}`) {
+		err := svc.impl.OnChanged{{ .Name}}(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	{{- end}}{{- end}}
+	return nil
+}
 
 {{- range .Configs}}
 

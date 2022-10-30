@@ -3,22 +3,24 @@
 package intermediate
 
 import (
-	"context"
-	"net/http"
+	"embed"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+
+	"{{ .Package }}/resources"
 )
 
 var (
+	_ embed.FS
+	_ time.Duration
+
 	_ cb.Callback
 	_ cfg.Config
 	_ errors.TracedError
-	_ time.Duration
-	_ http.Request
 )
 
 // Intermediate extends and customized the generic base connector.
@@ -73,15 +75,7 @@ func New(impl ToDo) *Intermediate {
 	return svc
 }
 
-// doOnConfigChanged gets fires when the config of the microservice changed.
-func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
-	{{- range .Configs}}{{- if .Callback}}
-	if changed(`{{ .Name}}`) {
-		err := svc.impl.OnChanged{{ .Name}}(ctx)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	{{- end}}{{- end}}
-	return nil
+// Resources is the in-memory file system of the embedded resources.
+func (svc *Intermediate) Resources() embed.FS {
+	return resources.FS
 }
