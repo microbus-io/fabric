@@ -70,6 +70,10 @@ func mainErr() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
+		err = makeAPI(specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	return nil

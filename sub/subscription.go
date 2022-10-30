@@ -65,8 +65,7 @@ func NewSub(defaultHost string, path string, handler HTTPHandler, options ...Opt
 	}
 
 	// Port
-	port := 443
-	port, _ = strconv.Atoi(u.Port())
+	port, _ := strconv.Atoi(u.Port())
 
 	sub := &Subscription{
 		Host:    u.Hostname(),

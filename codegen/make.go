@@ -50,6 +50,43 @@ func makeIntermediate(specs *spec.Service) error {
 		}
 		printer.Printf(n + ".go")
 	}
+	return nil
+}
+
+// makeAPI creates the API directory and files.
+func makeAPI(specs *spec.Service) error {
+	printer.Printf("Generating client API")
+	printer.Indent()
+	defer printer.Unindent()
+
+	// Create the directories
+	dir := specs.ShortPackage() + "api"
+	_, err := os.Stat(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		os.Mkdir(dir, os.ModePerm)
+		printer.Printf("mkdir " + dir)
+	} else if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Generate API source files
+	templateNames := []string{
+		"api/service-gen",
+		"api/client-gen",
+		"api/webs-gen",
+		"api/functions-gen",
+	}
+	for _, n := range templateNames {
+		tt, err := LoadTemplate(n + ".txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = tt.Overwrite(specs.ShortPackage()+n+".go", specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		printer.Printf(specs.ShortPackage() + n + ".go")
+	}
 
 	return nil
 }
