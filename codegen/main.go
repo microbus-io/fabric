@@ -76,6 +76,12 @@ func mainErr() error {
 		}
 	}
 
+	// Trace errors
+	err = makeTraceReturnedErrors(specs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	return nil
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -182,11 +183,11 @@ func scanFiles(fileSuffix string, regExpression string) (map[string]bool, error)
 	result := map[string]bool{}
 	re, err := regexp.Compile(regExpression)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	files, err := os.ReadDir(".")
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	for _, file := range files {
 		if file.IsDir() || !strings.HasSuffix(file.Name(), fileSuffix) {
@@ -195,7 +196,7 @@ func scanFiles(fileSuffix string, regExpression string) (map[string]bool, error)
 
 		body, err := os.ReadFile(file.Name())
 		if err != nil {
-			return nil, err
+			return nil, errors.Trace(err)
 		}
 		allSubMatches := re.FindAllStringSubmatch(string(body), -1)
 		for _, subMatches := range allSubMatches {
@@ -205,4 +206,116 @@ func scanFiles(fileSuffix string, regExpression string) (map[string]bool, error)
 		}
 	}
 	return result, nil
+}
+
+// makeTraceReturnedErrors adds errors.Trace to returned errors.
+func makeTraceReturnedErrors(specs *spec.Service) error {
+	printer.Printf("Tracing returned errors")
+	printer.Indent()
+	defer printer.Unindent()
+
+	err := makeTraceReturnedErrorsDir(specs, ".")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+func makeTraceReturnedErrorsDir(specs *spec.Service, directory string) error {
+	files, err := os.ReadDir(directory)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	for _, file := range files {
+		fileName := filepath.Join(directory, file.Name())
+		if file.IsDir() {
+			if file.Name() == "intermediate" || file.Name() == "resources" || file.Name() == specs.ShortPackage()+"api" {
+				continue
+			}
+			err = makeTraceReturnedErrorsDir(specs, fileName)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+		if !strings.HasSuffix(file.Name(), ".go") ||
+			strings.HasSuffix(file.Name(), "_test.go") || strings.HasSuffix(file.Name(), "-gen.go") {
+			continue
+		}
+
+		buf, err := os.ReadFile(fileName)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		body := string(buf)
+		alteredBody := findReplaceReturnedErrors(body)
+		alteredBody = findReplaceImportErrors(alteredBody)
+		if body != alteredBody {
+			printer.Printf("%s", fileName)
+			err = os.WriteFile(fileName, []byte(alteredBody), 0666)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+	}
+
+	return nil
+}
+
+var traceReturnErrRegexp = regexp.MustCompile(`\n(\s*)return ([^\n]+, )?(err)\n`)
+
+func findReplaceReturnedErrors(body string) (modified string) {
+	return traceReturnErrRegexp.ReplaceAllString(body, "\n${1}return ${2}errors.Trace(err)\n")
+}
+
+func findReplaceImportErrors(body string) (modified string) {
+	newline := "\n"
+	if strings.Contains(body, "\r\n") {
+		newline = "\r\n"
+	}
+	hasTracing := strings.Contains(body, "errors.Trace(")
+
+	modified = strings.ReplaceAll(body, newline+`import "errors"`+newline, newline+`import "github.com/microbus-io/fabric/errors"`+newline)
+
+	start := strings.Index(modified, newline+"import ("+newline)
+	if start < 0 {
+		return modified
+	}
+	end := strings.Index(modified[start:], ")")
+	if end < 0 {
+		return modified
+	}
+
+	var result strings.Builder
+	result.WriteString(modified[:start])
+
+	stmt := modified[start : start+end+1]
+	lines := strings.Split(stmt, newline)
+	whitespace := "\t"
+	goErrorsFound := false
+	microbusErrorsFound := false
+	for i, line := range lines {
+		if strings.HasSuffix(line, `"errors"`) {
+			whitespace = strings.TrimSuffix(line, `"errors"`)
+			goErrorsFound = true
+			continue
+		}
+		if strings.HasSuffix(line, `"github.com/microbus-io/fabric/errors"`) {
+			microbusErrorsFound = true
+		}
+		if line == ")" && (goErrorsFound || hasTracing) && !microbusErrorsFound {
+			if i >= 2 && lines[i-2] != "import (" {
+				result.WriteString(newline)
+			}
+			result.WriteString(whitespace)
+			result.WriteString(`"github.com/microbus-io/fabric/errors"`)
+			result.WriteString(newline)
+			result.WriteString(")")
+			result.WriteString(newline)
+		} else {
+			result.WriteString(line)
+			result.WriteString(newline)
+		}
+	}
+	result.WriteString(modified[start+end+2:])
+	return result.String()
 }
