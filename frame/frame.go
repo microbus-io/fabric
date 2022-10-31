@@ -9,16 +9,17 @@ import (
 )
 
 const (
-	HeaderPrefix     = "Microbus-"
-	HeaderMsgId      = HeaderPrefix + "Msg-Id"
-	HeaderFromHost   = HeaderPrefix + "From-Host"
-	HeaderFromId     = HeaderPrefix + "From-Id"
-	HeaderTimeBudget = HeaderPrefix + "Time-Budget"
-	HeaderCallDepth  = HeaderPrefix + "Call-Depth"
-	HeaderOpCode     = HeaderPrefix + "Op-Code"
-	HeaderTimestamp  = HeaderPrefix + "Timestamp"
-	HeaderQueue      = HeaderPrefix + "Queue"
-	HeaderFragment   = HeaderPrefix + "Fragment"
+	HeaderPrefix      = "Microbus-"
+	HeaderMsgId       = HeaderPrefix + "Msg-Id"
+	HeaderFromHost    = HeaderPrefix + "From-Host"
+	HeaderFromId      = HeaderPrefix + "From-Id"
+	HeaderFromVersion = HeaderPrefix + "From-Version"
+	HeaderTimeBudget  = HeaderPrefix + "Time-Budget"
+	HeaderCallDepth   = HeaderPrefix + "Call-Depth"
+	HeaderOpCode      = HeaderPrefix + "Op-Code"
+	HeaderTimestamp   = HeaderPrefix + "Timestamp"
+	HeaderQueue       = HeaderPrefix + "Queue"
+	HeaderFragment    = HeaderPrefix + "Fragment"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -28,15 +29,15 @@ const (
 
 type contextKeyType struct{}
 
-// ContextKey is used to store the request headers in a context
+// ContextKey is used to store the request headers in a context.
 var ContextKey = contextKeyType{}
 
-// Frame is a utility class that helps with manipulating the control headers
+// Frame is a utility class that helps with manipulating the control headers.
 type Frame struct {
 	h http.Header
 }
 
-// Of creates a new frame for the headers of the HTTP request, response or response writer
+// Of creates a new frame for the headers of the HTTP request, response or response writer.
 func Of(r any) Frame {
 	var h http.Header
 	switch v := r.(type) {
@@ -57,12 +58,12 @@ func Of(r any) Frame {
 	return Frame{h}
 }
 
-// OpCode indicates the type of the control message
+// OpCode indicates the type of the control message.
 func (f Frame) OpCode() string {
 	return f.h.Get(HeaderOpCode)
 }
 
-// SetOpCode sets the type of the control message
+// SetOpCode sets the type of the control message.
 func (f Frame) SetOpCode(op string) {
 	if op == "" {
 		f.h.Del(HeaderOpCode)
@@ -71,12 +72,12 @@ func (f Frame) SetOpCode(op string) {
 	}
 }
 
-// FromHost is the host name of the microservice that made the request or response
+// FromHost is the host name of the microservice that made the request or response.
 func (f Frame) FromHost() string {
 	return f.h.Get(HeaderFromHost)
 }
 
-// SetFromHost sets the host name of the microservice that is making the request or response
+// SetFromHost sets the host name of the microservice that is making the request or response.
 func (f Frame) SetFromHost(host string) {
 	if host == "" {
 		f.h.Del(HeaderFromHost)
@@ -85,12 +86,12 @@ func (f Frame) SetFromHost(host string) {
 	}
 }
 
-// FromID is the unique ID of the instance of the microservice that made the request or response
+// FromID is the unique ID of the instance of the microservice that made the request or response.
 func (f Frame) FromID() string {
 	return f.h.Get(HeaderFromId)
 }
 
-// SetFromID sets the unique ID of the instance of the microservice that is making the request or response
+// SetFromID sets the unique ID of the instance of the microservice that is making the request or response.
 func (f Frame) SetFromID(id string) {
 	if id == "" {
 		f.h.Del(HeaderFromId)
@@ -99,12 +100,34 @@ func (f Frame) SetFromID(id string) {
 	}
 }
 
-// MessageID is the unique ID given to each HTTP message and its response
+// FromVersion is the version number of the microservice that made the request or response.
+func (f Frame) FromVersion() int {
+	v := f.h.Get(HeaderFromVersion)
+	if v == "" {
+		return 0
+	}
+	ver, err := strconv.Atoi(v)
+	if err != nil {
+		return 0
+	}
+	return ver
+}
+
+// SetFromVersion sets the version number of the microservice that is making the request or response.
+func (f Frame) SetFromVersion(version int) {
+	if version == 0 {
+		f.h.Del(HeaderFromVersion)
+	} else {
+		f.h.Set(HeaderFromVersion, strconv.Itoa(version))
+	}
+}
+
+// MessageID is the unique ID given to each HTTP message and its response.
 func (f Frame) MessageID() string {
 	return f.h.Get(HeaderMsgId)
 }
 
-// SetMessageID sets the unique ID given to each HTTP message or response
+// SetMessageID sets the unique ID given to each HTTP message or response.
 func (f Frame) SetMessageID(id string) {
 	if id == "" {
 		f.h.Del(HeaderMsgId)
@@ -113,7 +136,7 @@ func (f Frame) SetMessageID(id string) {
 	}
 }
 
-// CallDepth is the depth of the call stack beginning at the original request
+// CallDepth is the depth of the call stack beginning at the original request.
 func (f Frame) CallDepth() int {
 	v := f.h.Get(HeaderCallDepth)
 	if v == "" {
@@ -126,7 +149,7 @@ func (f Frame) CallDepth() int {
 	return depth
 }
 
-// SetCallDepth sets the depth of the call stack beginning at the original request
+// SetCallDepth sets the depth of the call stack beginning at the original request.
 func (f Frame) SetCallDepth(depth int) {
 	if depth == 0 {
 		f.h.Del(HeaderCallDepth)
@@ -135,7 +158,7 @@ func (f Frame) SetCallDepth(depth int) {
 	}
 }
 
-// TimeBudget is the duration budgeted for the request to complete
+// TimeBudget is the duration budgeted for the request to complete.
 func (f Frame) TimeBudget() time.Duration {
 	v := f.h.Get(HeaderTimeBudget)
 	if v == "" {
@@ -148,7 +171,7 @@ func (f Frame) TimeBudget() time.Duration {
 	return time.Millisecond * time.Duration(ms)
 }
 
-// SetTimeBudget budgets a duration for the request to complete
+// SetTimeBudget budgets a duration for the request to complete.
 func (f Frame) SetTimeBudget(budget time.Duration) {
 	ms := int(budget.Milliseconds())
 	if ms <= 0 {
@@ -159,13 +182,13 @@ func (f Frame) SetTimeBudget(budget time.Duration) {
 }
 
 // Queue indicates the queue of the subscription that handled the request.
-// It is used by the client to optimize multicast requests
+// It is used by the client to optimize multicast requests.
 func (f Frame) Queue() string {
 	return f.h.Get(HeaderQueue)
 }
 
 // SetQueue sets the queue of the subscription that handled the request.
-// It is used by the client to optimize multicast requests
+// It is used by the client to optimize multicast requests.
 func (f Frame) SetQueue(queue string) {
 	if queue == "" {
 		f.h.Del(HeaderQueue)
@@ -175,7 +198,7 @@ func (f Frame) SetQueue(queue string) {
 }
 
 // Fragment returns the index of the fragment of large messages out of the total number of fragments.
-// Fragments are indexed starting at 1
+// Fragments are indexed starting at 1.
 func (f Frame) Fragment() (index int, max int) {
 	v := f.h.Get(HeaderFragment)
 	if v == "" {
@@ -197,7 +220,7 @@ func (f Frame) Fragment() (index int, max int) {
 }
 
 // Fragment sets the index of the fragment of large messages out of the total number of fragments.
-// Fragments are indexed starting at 1
+// Fragments are indexed starting at 1.
 func (f Frame) SetFragment(index int, max int) {
 	if index < 1 || max < 1 || (index == 1 && max == 1) {
 		f.h.Del(HeaderFragment)

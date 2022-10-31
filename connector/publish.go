@@ -87,6 +87,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	// Set return address
 	frame.Of(req.Header).SetFromHost(c.hostName)
 	frame.Of(req.Header).SetFromID(c.id)
+	frame.Of(req.Header).SetFromVersion(c.version)
 	frame.Of(req.Header).SetOpCode(frame.OpCodeRequest)
 
 	// Make the request

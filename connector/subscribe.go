@@ -314,6 +314,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	frame.Of(httpResponse).SetMessageID(msgID)
 	frame.Of(httpResponse).SetFromHost(c.hostName)
 	frame.Of(httpResponse).SetFromID(c.id)
+	frame.Of(httpResponse).SetFromVersion(c.version)
 	frame.Of(httpResponse).SetQueue(queue)
 	frame.Of(httpResponse).SetOpCode(frame.OpCodeResponse)
 	if handlerErr != nil {
