@@ -15,10 +15,11 @@ var (
 // ToDo defines the interface that the microservice must implement.
 // The intermediate delegates handling to this interface.
 type ToDo interface {
-    OnStartup(ctx context.Context) (err error)
-    OnShutdown(ctx context.Context) (err error)
-    OnChangedMySQL(ctx context.Context) (err error)
-    Multiply(ctx context.Context, x int, y int) (result int, httpStatusCode int, err error)
-    HelloWorld(w http.ResponseWriter, r *http.Request) (err error)
-    MyTickTock(ctx context.Context) (err error)
+	OnStartup(ctx context.Context) (err error)
+	OnShutdown(ctx context.Context) (err error)
+	OnChangedMySQL(ctx context.Context) (err error)
+	Multiply(ctx context.Context, x int, y int) (result int, httpStatusCode int, err error)
+	Add(ctx context.Context, x int, y int) (result int, httpStatusCode int, err error)
+	HelloWorld(w http.ResponseWriter, r *http.Request) (err error)
+	MyTickTock(ctx context.Context) (err error)
 }

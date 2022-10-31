@@ -15,22 +15,22 @@ import (
 
 // {{ .Name }}In are the incoming arguments to {{ .Name }}.
 type {{ .Name }}In struct {
-    {{- range .Signature.InputArgs }}
-    // {{ .Name }} {{ .Type }}
-    {{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
-    {{- end }}
+	{{- range .Signature.InputArgs }}
+	// {{ .Name }} {{ .Type }}
+	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
+	{{- end }}
 }
 
 // {{ .Name }}Out are the return values of {{ .Name }}.
 type {{ .Name }}Out struct {
 	data struct {
-        {{- range .Signature.OutputArgs }}
-        // {{ .Name }} {{ .Type }}
-        {{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
-        {{- end }}
+		{{- range .Signature.OutputArgs }}
+		// {{ .Name }} {{ .Type }}
+		{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
+		{{- end }}
 	}
 	HTTPResponse *http.Response
-	err          error
+	err		  error
 }
 
 // Get retrieves the return values.
@@ -45,10 +45,10 @@ func (_out *{{ .Name }}Out) Get() (result int, err error) {
 */
 func (_c *Client) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}) ({{if .Out}}{{ .Out }}, {{end}}err error) {
 	_in := {{ .Name }}In{
-        {{- range .Signature.InputArgs }}
+		{{- range .Signature.InputArgs }}
 		{{ .Name }},
-        {{- end }}
-    }
+		{{- end }}
+	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -72,9 +72,9 @@ func (_c *Client) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}) (
 		err = errors.Trace(_err)
 		return
 	}
-    {{- range .Signature.OutputArgs }}
+	{{- range .Signature.OutputArgs }}
 	{{ .Name }} = _out.data.{{ CapitalizeIdentifier .Name }}
-    {{- end }}
+	{{- end }}
 	return
 }
 
@@ -83,10 +83,10 @@ func (_c *Client) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}) (
 */
 func (_c *MulticastClient) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}, _options ...pub.Option) <-chan *{{ .Name }}Out {
 	_in := {{ .Name }}In{
-        {{- range .Signature.InputArgs }}
+		{{- range .Signature.InputArgs }}
 		{{ .Name }},
-        {{- end }}
-    }
+		{{- end }}
+	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *{{ .Name }}Out, 1)

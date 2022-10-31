@@ -85,3 +85,6 @@ functions:
   - signature: Multiply(x int, y int) (result int, httpStatusCode int)
     description: Multiply two numbers.
     path: /multiply
+  - signature: Add(x int, y int) (result int, httpStatusCode int)
+    description: Add two numbers.
+    path: /add

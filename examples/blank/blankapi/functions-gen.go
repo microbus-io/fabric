@@ -13,22 +13,22 @@ import (
 
 // MultiplyIn are the incoming arguments to Multiply.
 type MultiplyIn struct {
-    // x int
-    X int `json:"x"`
-    // y int
-    Y int `json:"y"`
+	// x int
+	X int `json:"x"`
+	// y int
+	Y int `json:"y"`
 }
 
 // MultiplyOut are the return values of Multiply.
 type MultiplyOut struct {
 	data struct {
-        // result int
-        Result int `json:"result"`
-        // httpStatusCode int
-        HTTPStatusCode int `json:"httpStatusCode"`
+		// result int
+		Result int `json:"result"`
+		// httpStatusCode int
+		HTTPStatusCode int `json:"httpStatusCode"`
 	}
 	HTTPResponse *http.Response
-	err          error
+	err		  error
 }
 
 // Get retrieves the return values.
@@ -45,7 +45,7 @@ func (_c *Client) Multiply(ctx context.Context, x int, y int) (result int, httpS
 	_in := MultiplyIn{
 		x,
 		y,
-    }
+	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -81,7 +81,7 @@ func (_c *MulticastClient) Multiply(ctx context.Context, x int, y int, _options 
 	_in := MultiplyIn{
 		x,
 		y,
-    }
+	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *MultiplyOut, 1)
@@ -103,6 +103,115 @@ func (_c *MulticastClient) Multiply(ctx context.Context, x int, y int, _options 
 	go func() {
 		for _i := range _ch {
 			var _r MultiplyOut
+			_httpRes, _err := _i.Get()
+			_r.HTTPResponse = _httpRes
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			} else {
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				if _err != nil {
+					_r.err = errors.Trace(_err)
+				}
+			}
+			_res <- &_r
+		}
+		close(_res)
+	}()
+	return _res
+}
+
+// AddIn are the incoming arguments to Add.
+type AddIn struct {
+	// x int
+	X int `json:"x"`
+	// y int
+	Y int `json:"y"`
+}
+
+// AddOut are the return values of Add.
+type AddOut struct {
+	data struct {
+		// result int
+		Result int `json:"result"`
+		// httpStatusCode int
+		HTTPStatusCode int `json:"httpStatusCode"`
+	}
+	HTTPResponse *http.Response
+	err		  error
+}
+
+// Get retrieves the return values.
+func (_out *AddOut) Get() (result int, err error) {
+	result = _out.data.Result
+	err = _out.err
+	return
+}
+
+/*
+Add two numbers.
+*/
+func (_c *Client) Add(ctx context.Context, x int, y int) (result int, httpStatusCode int, err error) {
+	_in := AddIn{
+		x,
+		y,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(joinHostAndPath(_c.host, `/add`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out AddOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	result = _out.data.Result
+	httpStatusCode = _out.data.HTTPStatusCode
+	return
+}
+
+/*
+Add two numbers.
+*/
+func (_c *MulticastClient) Add(ctx context.Context, x int, y int, _options ...pub.Option) <-chan *AddOut {
+	_in := AddIn{
+		x,
+		y,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		_res := make(chan *AddOut, 1)
+		_res <- &AddOut{err: errors.Trace(_err)}
+		close(_res)
+		return _res
+	}
+
+	_opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(joinHostAndPath(_c.host, `/add`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *AddOut, cap(_ch))
+	go func() {
+		for _i := range _ch {
+			var _r AddOut
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {

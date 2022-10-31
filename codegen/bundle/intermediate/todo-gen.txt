@@ -15,22 +15,22 @@ var (
 // ToDo defines the interface that the microservice must implement.
 // The intermediate delegates handling to this interface.
 type ToDo interface {
-    OnStartup(ctx context.Context) (err error)
-    OnShutdown(ctx context.Context) (err error)
+	OnStartup(ctx context.Context) (err error)
+	OnShutdown(ctx context.Context) (err error)
 
 	{{- range .Configs}}{{- if .Callback}}
-    OnChanged{{ .Name }}(ctx context.Context) (err error)
+	OnChanged{{ .Name }}(ctx context.Context) (err error)
 	{{- end}}{{- end}}
 
 	{{- range .Functions}}
-    {{ .Name }}(ctx context.Context{{if .In}}, {{end}}{{ .In }}) ({{ .Out }}{{if .Out}}, {{end}}err error)
+	{{ .Name }}(ctx context.Context{{if .In}}, {{end}}{{ .In }}) ({{ .Out }}{{if .Out}}, {{end}}err error)
 	{{- end}}
 
-    {{- range .Webs}}
-    {{ .Name }}(w http.ResponseWriter, r *http.Request) (err error)
-    {{- end}}
+	{{- range .Webs}}
+	{{ .Name }}(w http.ResponseWriter, r *http.Request) (err error)
+	{{- end}}
 
-    {{- range .Tickers}}
-    {{ .Name }}(ctx context.Context) (err error)
-    {{- end}}
+	{{- range .Tickers}}
+	{{ .Name }}(ctx context.Context) (err error)
+	{{- end}}
 }

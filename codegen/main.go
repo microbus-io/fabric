@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var (
+	flagForce   bool
+	flagVerbose bool
+)
+
 func main() {
 	err := mainErr()
 	if err != nil {
@@ -23,11 +29,21 @@ func main() {
 }
 
 func mainErr() error {
+	// Load flags from environment variable because can't pass arguments to code-generator
+	env := os.Getenv("MICROBUS_CODEGEN")
+	flags := flag.NewFlagSet("", flag.ContinueOnError)
+	flags.BoolVar(&flagForce, "f", false, "Force processing even if no change detected")
+	flags.BoolVar(&flagVerbose, "v", false, "Verbose output")
+	err := flags.Parse(strings.Split(env, " "))
+	if err != nil {
+		return err
+	}
+
 	pkgPath, err := identifyPackage()
 	if err != nil {
 		return errors.Trace(err)
 	}
-	printer.Printf("Package %s", pkgPath)
+	printer.Printf("%s", pkgPath)
 	printer.Indent()
 	defer printer.Unindent()
 
@@ -58,8 +74,14 @@ func mainErr() error {
 		printer.Unindent()
 
 		if v.SHA256 == hash {
-			printer.Printf("No change detected, exiting")
-			return nil
+			if !flagForce {
+				printer.Printf("No change detected, exiting")
+				return nil
+			} else {
+				printer.Printf("No change detected, forcing execution")
+			}
+		} else {
+			printer.Printf("Change detected, processing")
 		}
 	}
 

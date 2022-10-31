@@ -463,13 +463,20 @@ func makeVersion(pkg string, version int) error {
 	printer.Printf("SHA256 %s", v.SHA256)
 	printer.Printf("Timestamp %v", v.Timestamp)
 
-	tt, err := LoadTemplate("version-gen.txt")
-	if err != nil {
-		return errors.Trace(err)
+	templateNames := []string{
+		"version-gen",
+		"version-gen_test",
 	}
-	err = tt.Overwrite("version-gen.go", &v)
-	if err != nil {
-		return errors.Trace(err)
+	for _, n := range templateNames {
+		tt, err := LoadTemplate(n + ".txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = tt.Overwrite(n+".go", &v)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
+
 	return nil
 }

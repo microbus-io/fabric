@@ -21,28 +21,60 @@ var (
 // doMultiply handles marshaling for the "Multiply" function.
 func (svc *Intermediate) doMultiply(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
-        X int `json:"x"`
-        Y int `json:"y"`
+		X int `json:"x"`
+		Y int `json:"y"`
 	}{}
 	o := struct {
-        Result int `json:"result"`
-        HTTPStatusCode int `json:"-"`
+		Result int `json:"result"`
+		HTTPStatusCode int `json:"-"`
 	}{}
 	err := lib.ReadFunctionalRequest(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-    o.Result, o.HTTPStatusCode, err = svc.impl.Multiply(
+	o.Result, o.HTTPStatusCode, err = svc.impl.Multiply(
 		r.Context(),
-        i.X,
-        i.Y,
+		i.X,
+		i.Y,
 	)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(o.HTTPStatusCode)
+	w.WriteHeader(o.HTTPStatusCode)
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doAdd handles marshaling for the "Add" function.
+func (svc *Intermediate) doAdd(w http.ResponseWriter, r *http.Request) error {
+	i := struct {
+		X int `json:"x"`
+		Y int `json:"y"`
+	}{}
+	o := struct {
+		Result int `json:"result"`
+		HTTPStatusCode int `json:"-"`
+	}{}
+	err := lib.ReadFunctionalRequest(r, &i)
+	if err!=nil {
+		return errors.Trace(err)
+	}
+	o.Result, o.HTTPStatusCode, err = svc.impl.Add(
+		r.Context(),
+		i.X,
+		i.Y,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(o.HTTPStatusCode)
 	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)

@@ -27,17 +27,18 @@ var (
 // Code-generated microservices extend the intermediate service.
 type Intermediate struct {
 	*connector.Connector
-    impl ToDo
+	impl ToDo
 }
 
 // New creates a new intermediate service.
-func New(impl ToDo) *Intermediate {
+func New(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
-        Connector: connector.New("blank.example"),
-        impl: impl,
-    }
-
-    svc.SetDescription(`This is a blank service.`)
+		Connector: connector.New("blank.example"),
+		impl: impl,
+	}
+	
+	svc.SetVersion(version)
+	svc.SetDescription(`This is a blank service.`)
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
@@ -54,6 +55,7 @@ func New(impl ToDo) *Intermediate {
 		cfg.DefaultValue(`false`),
 	)
 	svc.Subscribe(`/multiply`, svc.doMultiply)
+	svc.Subscribe(`/add`, svc.doAdd)
 	svc.Subscribe(`/helloworld`, svc.impl.HelloWorld)
 	intervalMyTickTock, _ := time.ParseDuration("1m0s")
 	timeBudgetMyTickTock, _ := time.ParseDuration("10s")

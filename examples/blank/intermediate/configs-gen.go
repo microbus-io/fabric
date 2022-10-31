@@ -4,15 +4,15 @@ package intermediate
 
 import (
 	"context"
-    "fmt"
-    "strconv"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
 )
 
 var (
-    _ context.Context
+	_ context.Context
 	_ fmt.Stringer
 	_ strconv.NumError
 	_ time.Duration
@@ -36,7 +36,7 @@ MySQL connection string.
 */
 func (svc *Intermediate) MySQL() (m string) {
 	_val := svc.Config(`MySQL`)
-    return _val
+	return _val
 }
 
 /*
@@ -44,8 +44,8 @@ Alert on error.
 */
 func (svc *Intermediate) Alert() (b bool) {
 	_val := svc.Config(`Alert`)
-    _b, _ := strconv.ParseBool(_val)
-    return _b
+	_b, _ := strconv.ParseBool(_val)
+	return _b
 }
 
 // Initializer initializes a config property of the microservice.

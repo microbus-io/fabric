@@ -31,7 +31,7 @@ func hashDir(h hash.Hash, dir string) error {
 	for _, file := range files {
 		fileName := filepath.Join(dir, file.Name())
 		if file.IsDir() {
-			if fileName == "./data" || fileName == "./testdata" {
+			if fileName == "data" || fileName == "testdata" {
 				continue
 			}
 			err = hashDir(h, fileName)
@@ -43,8 +43,8 @@ func hashDir(h hash.Hash, dir string) error {
 
 		if strings.HasSuffix(file.Name(), "_test.go") ||
 			strings.HasPrefix(file.Name(), ".") ||
-			fileName == "./debug.test" ||
-			fileName == "./version-gen.go" {
+			fileName == "debug.test" ||
+			fileName == "version-gen.go" {
 			continue
 		}
 

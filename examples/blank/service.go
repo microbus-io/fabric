@@ -59,3 +59,10 @@ func (svc *Service) MyTickTock(ctx context.Context) (err error) {
 	svc.LogInfo(ctx, "Tick Tock")
 	return nil
 }
+
+/*
+Add two numbers.
+*/
+func (svc *Service) Add(ctx context.Context, x int, y int) (result int, httpStatusCode int, err error) {
+    return // TODO: Add
+}

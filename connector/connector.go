@@ -34,6 +34,7 @@ type Connector struct {
 	id          string
 	deployment  string
 	description string
+	version     int
 
 	onStartup       *cb.Callback
 	onShutdown      *cb.Callback
@@ -148,6 +149,17 @@ func (c *Connector) SetDescription(description string) error {
 // Description returns the human-friendly description of the microservice.
 func (c *Connector) Description() string {
 	return c.description
+}
+
+// SetVersion sets the sequential version number of the microservice.
+func (c *Connector) SetVersion(version int) error {
+	c.version = version
+	return nil
+}
+
+// Version is the sequential version number of the microservice.
+func (c *Connector) Version() int {
+	return c.version
 }
 
 // Deployment environments

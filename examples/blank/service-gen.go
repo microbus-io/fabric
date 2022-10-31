@@ -7,7 +7,7 @@ import "github.com/microbus-io/fabric/examples/blank/intermediate"
 // NewService creates a new "blank.example" microservice.
 func NewService() *Service {
 	s := &Service{}
-	s.Intermediate = intermediate.New(s)
+	s.Intermediate = intermediate.New(s, Version)
 	return s
 }
 
