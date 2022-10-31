@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/microbus-io/fabric/codegen/lib"
 	"github.com/microbus-io/fabric/codegen/spec"
 	"github.com/microbus-io/fabric/errors"
 	"gopkg.in/yaml.v2"
@@ -34,6 +36,32 @@ func mainErr() error {
 		return errors.Trace(err)
 	}
 	printer.Printf("Directory %s", dir)
+
+	// Generate hash
+	hash, err := lib.SourceCodeSHA256()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	printer.Printf("SHA256 %s", hash)
+
+	// Read current version
+	v, err := currentVersion()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if v != nil {
+		printer.Printf("Version information parsed")
+		printer.Indent()
+		printer.Printf("Version %d", v.Version)
+		printer.Printf("SHA256 %s", v.SHA256)
+		printer.Printf("Timestamp %s", v.Timestamp)
+		printer.Unindent()
+
+		if v.SHA256 == hash {
+			printer.Printf("No change detected, exiting")
+			return nil
+		}
+	}
 
 	// Prepare service.yaml
 	ok, err := prepareServiceYAML()
@@ -82,7 +110,19 @@ func mainErr() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = makeTraceReturnedErrors(specs)
+	}
+
+	err = makeTraceReturnedErrors()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	if specs != nil {
+		verNum := 1
+		if v != nil {
+			verNum = v.Version + 1
+		}
+		err := makeVersion(pkgPath, verNum)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -126,4 +166,31 @@ func identifyPackage() (string, error) {
 
 	subPath := strings.TrimPrefix(cwd, d)
 	return filepath.Join(modulePath, subPath), nil
+}
+
+// currentVersion loads the version information.
+func currentVersion() (*spec.Version, error) {
+	buf, err := os.ReadFile("version-gen.go")
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	body := string(buf)
+	p := strings.Index(body, "/*")
+	if p < 0 {
+		return nil, errors.New("bad format")
+	}
+	q := strings.Index(body[p+2:], "*/")
+	if q < 0 {
+		return nil, errors.New("bad format")
+	}
+	j := body[p+2 : p+2+q]
+	var v spec.Version
+	err = json.Unmarshal([]byte(j), &v)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	return &v, nil
 }

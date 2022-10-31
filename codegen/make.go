@@ -5,7 +5,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/microbus-io/fabric/codegen/lib"
 	"github.com/microbus-io/fabric/codegen/spec"
 	"github.com/microbus-io/fabric/errors"
 )
@@ -209,19 +211,19 @@ func scanFiles(fileSuffix string, regExpression string) (map[string]bool, error)
 }
 
 // makeTraceReturnedErrors adds errors.Trace to returned errors.
-func makeTraceReturnedErrors(specs *spec.Service) error {
+func makeTraceReturnedErrors() error {
 	printer.Printf("Tracing returned errors")
 	printer.Indent()
 	defer printer.Unindent()
 
-	err := makeTraceReturnedErrorsDir(specs, ".")
+	err := makeTraceReturnedErrorsDir(".")
 	if err != nil {
 		return errors.Trace(err)
 	}
 	return nil
 }
 
-func makeTraceReturnedErrorsDir(specs *spec.Service, directory string) error {
+func makeTraceReturnedErrorsDir(directory string) error {
 	files, err := os.ReadDir(directory)
 	if err != nil {
 		return errors.Trace(err)
@@ -229,10 +231,10 @@ func makeTraceReturnedErrorsDir(specs *spec.Service, directory string) error {
 	for _, file := range files {
 		fileName := filepath.Join(directory, file.Name())
 		if file.IsDir() {
-			if file.Name() == "intermediate" || file.Name() == "resources" || file.Name() == specs.ShortPackage()+"api" {
+			if file.Name() == "intermediate" || file.Name() == "resources" {
 				continue
 			}
-			err = makeTraceReturnedErrorsDir(specs, fileName)
+			err = makeTraceReturnedErrorsDir(fileName)
 			if err != nil {
 				return errors.Trace(err)
 			}
@@ -438,4 +440,36 @@ func findReplaceDescription(specs *spec.Service, source string) (modified string
 		}
 	}
 	return source
+}
+
+// makeVersion generates the versioning files.
+func makeVersion(pkg string, version int) error {
+	printer.Printf("Versioning")
+	printer.Indent()
+	defer printer.Unindent()
+
+	hash, err := lib.SourceCodeSHA256()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	v := &spec.Version{
+		Package:   pkg,
+		Version:   version,
+		Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+		SHA256:    hash,
+	}
+	printer.Printf("Version %d", v.Version)
+	printer.Printf("SHA256 %s", v.SHA256)
+	printer.Printf("Timestamp %v", v.Timestamp)
+
+	tt, err := LoadTemplate("version-gen.txt")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = tt.Overwrite("version-gen.go", &v)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }
