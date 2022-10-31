@@ -88,3 +88,16 @@ functions:
   - signature: Add(x int, y int) (result int, httpStatusCode int)
     description: Add two numbers.
     path: /add
+
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Go-doc description
+# define - Define a new type given a list of fields
+# import - A path to another microservice that defines the type
+types:
+  - name: User
+    define:
+      - firstName string
+      - lastName string
+      - balance int

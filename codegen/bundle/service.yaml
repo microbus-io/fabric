@@ -49,6 +49,21 @@ functions:
   # - signature:
   #   description:
 
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Go-doc description
+# define - Define a new type given a list of fields
+# import - A path to another microservice that defines the type
+types:
+  # - name: DefinedType
+  #   description:
+  #   define:
+  #     - fieldName Type
+  # - name: ImportedType
+  #   description:
+  #   import: package/path/of/another/microservice
+
 # Web handlers
 #
 # signature - Func()

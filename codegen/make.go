@@ -77,6 +77,7 @@ func makeAPI(specs *spec.Service) error {
 		"api/service-gen",
 		"api/client-gen",
 		"api/webs-gen",
+		"api/types-gen",
 		"api/functions-gen",
 	}
 	for _, n := range templateNames {

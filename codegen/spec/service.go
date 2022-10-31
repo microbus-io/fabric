@@ -16,6 +16,7 @@ type Service struct {
 	Functions []*Handler
 	Webs      []*Handler
 	Tickers   []*Handler
+	Types     []*Type
 }
 
 // ShortPackage returns only the last portion of the full package path.
@@ -30,6 +31,28 @@ func (s *Service) AllHandlers() []*Handler {
 	result = append(result, s.Functions...)
 	result = append(result, s.Webs...)
 	result = append(result, s.Tickers...)
+	return result
+}
+
+// ImportedTypes returns only types that are imported.
+func (s *Service) ImportedTypes() []*Type {
+	var result []*Type
+	for _, t := range s.Types {
+		if t.Import != "" {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+// DefinedTypes returns only types that are defined.
+func (s *Service) DefinedTypes() []*Type {
+	var result []*Type
+	for _, t := range s.Types {
+		if len(t.Define) > 0 {
+			result = append(result, t)
+		}
+	}
 	return result
 }
 
@@ -62,6 +85,12 @@ func (s *Service) Validate() error {
 	}
 	for _, w := range s.Tickers {
 		w.Type = "ticker"
+		err := w.Validate()
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	for _, w := range s.Types {
 		err := w.Validate()
 		if err != nil {
 			return errors.Trace(err)
