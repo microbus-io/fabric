@@ -123,7 +123,7 @@ func makeImplementation(specs *spec.Service) error {
 	}
 
 	// Scan .go files for exiting endpoints
-	printer.Printf("Scanning for existing endpoints")
+	printer.Printf("Scanning for existing handlers")
 	existingEndpoints, err := scanFiles(".go", `func \(svc \*Service\) ([A-Z][a-zA-Z0-9]*)\(`) // func (svc *Service) XXX(
 	if err != nil {
 		return errors.Trace(err)
@@ -134,7 +134,7 @@ func makeImplementation(specs *spec.Service) error {
 	}
 	printer.Unindent()
 
-	// Mark existing endpoints in the specs
+	// Mark existing handlers in the specs
 	newEndpoints := false
 	for _, h := range specs.AllHandlers() {
 		if h.Type == "config" && !h.Callback {
@@ -147,9 +147,9 @@ func makeImplementation(specs *spec.Service) error {
 		}
 	}
 
-	// Append new endpoints
+	// Append new handlers
 	if newEndpoints {
-		printer.Printf("Creating new endpoints")
+		printer.Printf("Creating new handlers")
 		printer.Indent()
 		for _, h := range specs.AllHandlers() {
 			if h.Type == "config" && !h.Callback {
@@ -268,15 +268,11 @@ func findReplaceReturnedErrors(body string) (modified string) {
 }
 
 func findReplaceImportErrors(body string) (modified string) {
-	newline := "\n"
-	if strings.Contains(body, "\r\n") {
-		newline = "\r\n"
-	}
 	hasTracing := strings.Contains(body, "errors.Trace(")
 
-	modified = strings.ReplaceAll(body, newline+`import "errors"`+newline, newline+`import "github.com/microbus-io/fabric/errors"`+newline)
+	modified = strings.ReplaceAll(body, "\n"+`import "errors"`+"\n", "\n"+`import "github.com/microbus-io/fabric/errors"`+"\n")
 
-	start := strings.Index(modified, newline+"import ("+newline)
+	start := strings.Index(modified, "\nimport (\n")
 	if start < 0 {
 		return modified
 	}
@@ -289,7 +285,7 @@ func findReplaceImportErrors(body string) (modified string) {
 	result.WriteString(modified[:start])
 
 	stmt := modified[start : start+end+1]
-	lines := strings.Split(stmt, newline)
+	lines := strings.Split(stmt, "\n")
 	whitespace := "\t"
 	goErrorsFound := false
 	microbusErrorsFound := false
@@ -304,18 +300,142 @@ func findReplaceImportErrors(body string) (modified string) {
 		}
 		if line == ")" && (goErrorsFound || hasTracing) && !microbusErrorsFound {
 			if i >= 2 && lines[i-2] != "import (" {
-				result.WriteString(newline)
+				result.WriteString("\n")
 			}
 			result.WriteString(whitespace)
 			result.WriteString(`"github.com/microbus-io/fabric/errors"`)
-			result.WriteString(newline)
-			result.WriteString(")")
-			result.WriteString(newline)
+			result.WriteString("\n)\n")
 		} else {
 			result.WriteString(line)
-			result.WriteString(newline)
+			result.WriteString("\n")
 		}
 	}
 	result.WriteString(modified[start+end+2:])
 	return result.String()
+}
+
+func makeRefreshSignature(specs *spec.Service) error {
+	printer.Printf("Refreshing signatures")
+	printer.Indent()
+	defer printer.Unindent()
+
+	files, err := os.ReadDir(".")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(file.Name(), ".go") ||
+			strings.HasSuffix(file.Name(), "_test.go") || strings.HasSuffix(file.Name(), "-gen.go") {
+			continue
+		}
+
+		buf, err := os.ReadFile(file.Name())
+		if err != nil {
+			return errors.Trace(err)
+		}
+		body := string(buf)
+		alteredBody := findReplaceSignature(specs, body)
+		if body != alteredBody {
+			err = os.WriteFile(file.Name(), []byte(alteredBody), 0666)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func makeRefreshDescription(specs *spec.Service) error {
+	printer.Printf("Refreshing descriptions")
+	printer.Indent()
+	defer printer.Unindent()
+
+	files, err := os.ReadDir(".")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(file.Name(), ".go") ||
+			strings.HasSuffix(file.Name(), "_test.go") || strings.HasSuffix(file.Name(), "-gen.go") {
+			continue
+		}
+
+		buf, err := os.ReadFile(file.Name())
+		if err != nil {
+			return errors.Trace(err)
+		}
+		body := string(buf)
+		alteredBody := findReplaceDescription(specs, body)
+		if body != alteredBody {
+			err = os.WriteFile(file.Name(), []byte(alteredBody), 0666)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// findReplaceSignature updates the signature of functions.
+func findReplaceSignature(specs *spec.Service, source string) (modified string) {
+	for _, fn := range specs.Functions {
+		p := strings.Index(source, "func (svc *Service) "+fn.Name()+"(")
+		if p < 0 {
+			continue
+		}
+		fnSig := "func (svc *Service) " + fn.Name() + "(ctx context.Context"
+		if fn.In() != "" {
+			fnSig += ", " + fn.In()
+		}
+		fnSig += ") ("
+		if fn.Out() != "" {
+			fnSig += fn.Out() + ", "
+		}
+		fnSig += "err error)"
+
+		q := strings.Index(source[p:], fnSig)
+		if q != 0 {
+			// Signature changed
+			nl := strings.Index(source[p:], " {")
+			if nl >= 0 {
+				source = strings.Replace(source, source[p:p+nl], fnSig, 1)
+				printer.Printf("%s", fn.Name())
+			}
+		}
+	}
+	return source
+}
+
+// findReplaceDescription updates the description of handlers.
+func findReplaceDescription(specs *spec.Service, source string) (modified string) {
+	for _, h := range specs.AllHandlers() {
+		pos := strings.Index(source, "func (svc *Service) "+h.Name()+"(")
+		if pos < 0 {
+			continue
+		}
+		q := strings.LastIndex(source[:pos], "*/")
+		if q < 0 || q < pos-4 {
+			continue
+		}
+		q += 2
+		p := strings.LastIndex(source[:pos], "/*")
+		if p < 0 {
+			continue
+		}
+
+		newComment := "/*\n" + trimEndOfLineWhitespace(h.Description) + "\n*/"
+		if source[p:q] != newComment {
+			source = strings.Replace(source, source[p:q], newComment, 1)
+			printer.Printf("%s", h.Name())
+		}
+	}
+	return source
 }

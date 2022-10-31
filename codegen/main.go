@@ -21,19 +21,19 @@ func main() {
 }
 
 func mainErr() error {
-
-	// Print current working directory
-	dir, err := os.Getwd()
-	if err != nil {
-		return errors.Trace(err)
-	}
-	printer.Printf("Directory %s", dir)
-
 	pkgPath, err := identifyPackage()
 	if err != nil {
 		return errors.Trace(err)
 	}
 	printer.Printf("Package %s", pkgPath)
+	printer.Indent()
+	defer printer.Unindent()
+
+	dir, err := os.Getwd()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	printer.Printf("Directory %s", dir)
 
 	// Prepare service.yaml
 	ok, err := prepareServiceYAML()
@@ -74,12 +74,18 @@ func mainErr() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-	}
-
-	// Trace errors
-	err = makeTraceReturnedErrors(specs)
-	if err != nil {
-		return errors.Trace(err)
+		err = makeRefreshSignature(specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = makeRefreshDescription(specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = makeTraceReturnedErrors(specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	return nil

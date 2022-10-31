@@ -25,6 +25,6 @@ func (p *Printer) Unindent() int {
 
 // Printf prints a message to the standard output at the current indentation depth.
 func (p *Printer) Printf(format string, args ...any) {
-	indentation := strings.Repeat(" ", p.depth*4)
+	indentation := strings.Repeat("  ", p.depth)
 	fmt.Printf(indentation+format+"\r\n", args...)
 }
