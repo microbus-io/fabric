@@ -466,7 +466,7 @@ func findReplaceDescription(specs *spec.Service, source string) (modified string
 			continue
 		}
 
-		newComment := "/*\n" + trimEndOfLineWhitespace(h.Description) + "\n*/"
+		newComment := "/*\n" + h.Description + "\n*/"
 		if source[p:q] != newComment {
 			source = strings.Replace(source, source[p:q], newComment, 1)
 			printer.Printf("%s", h.Name())

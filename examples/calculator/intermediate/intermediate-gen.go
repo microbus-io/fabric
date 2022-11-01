@@ -16,6 +16,7 @@ import (
 	"github.com/microbus-io/fabric/codegen/lib"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/sub"
 
 	"github.com/microbus-io/fabric/examples/calculator/resources"
 )
@@ -33,6 +34,7 @@ var (
 	_ cfg.Config
 	_ lib.Nothing
 	_ errors.TracedError
+	_ sub.Option
 )
 
 // ToDo defines the interface that the microservice must implement.

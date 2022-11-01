@@ -19,7 +19,7 @@ var (
 {{- range .ImportedTypes }}
 
 /*
-{{ TrimEndOfLineWhitespace .Description }}
+{{ .Description }}
 */
 type {{ .Name }} = {{ .ImportSuffix }}api.{{ .Name }}
 
@@ -28,7 +28,7 @@ type {{ .Name }} = {{ .ImportSuffix }}api.{{ .Name }}
 {{- range .DefinedTypes }}
 
 /*
-{{ TrimEndOfLineWhitespace .Description }}
+{{ .Description }}
 */
 type {{ .Name }} struct {
     {{- range $name, $type := .Define }}

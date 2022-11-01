@@ -1,7 +1,7 @@
 {{- range .Webs }}
 
 /*
-{{ TrimEndOfLineWhitespace .Description }}
+{{ .Description }}
 */
 func (_c *Client) {{ .Name }}(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
@@ -17,7 +17,7 @@ func (_c *Client) {{ .Name }}(ctx context.Context, options ...pub.Option) (res *
 }
 
 /*
-{{ TrimEndOfLineWhitespace .Description }}
+{{ .Description }}
 */
 func (_c *MulticastClient) {{ .Name }}(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{

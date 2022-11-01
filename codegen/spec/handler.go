@@ -43,12 +43,12 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	// Post processing
 	if h.Path == "" {
-		h.Path = "/" + strings.ToLower(h.Name())
+		h.Path = "/" + kebabCase(h.Name())
 	}
 	if h.Path == "^" {
 		h.Path = ""
 	}
-	h.Path = strings.Replace(h.Path, "...", strings.ToLower(h.Name()), 1)
+	h.Path = strings.Replace(h.Path, "...", kebabCase(h.Name()), 1)
 	h.Description = conformDesc(
 		h.Description,
 		h.Name()+" is a "+h.Type+" handler.",

@@ -3,6 +3,7 @@ package spec
 import (
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 // conformDesc cleans up the description by removing back-quotes and extra spaces.
@@ -38,4 +39,16 @@ var reLowerCaseIdentifier = regexp.MustCompile(`^[a-z][a-zA-Z0-9]*$`)
 // isUpperCaseIdentifier accepts only UpperCaseIdentifiers.
 func isLowerCaseIdentifier(id string) bool {
 	return reLowerCaseIdentifier.MatchString(id)
+}
+
+// kebabCase converts a CamelCase identifier to kebab-case
+func kebabCase(id string) string {
+	var sb strings.Builder
+	for i, r := range id {
+		if i > 0 && unicode.IsUpper(r) {
+			sb.WriteByte('-')
+		}
+		sb.WriteRune(unicode.ToLower(r))
+	}
+	return sb.String()
 }

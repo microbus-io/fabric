@@ -16,7 +16,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 {{- range .Configs}}
 
 /*
-{{ TrimEndOfLineWhitespace .Description }}
+{{ .Description }}
 */
 func (svc *Intermediate) {{ .Name }}() ({{ .Out }}) {
 	_val := svc.Config(`{{ .Name }}`)

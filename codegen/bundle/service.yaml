@@ -35,11 +35,11 @@ configs:
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # path - The subscription path
-#   (empty) - The function name in lowercase
+#   (empty) - The function name in kebab-case
 #   /path
 #   /directory/
 #   :123/path
-#   :123/... - Ellipsis denotes the function name in lowercase
+#   :123/... - Ellipsis denotes the function name in kebab-case
 #   https://example.com:123/path
 #   ^ - Empty path
 # queue - The subscription queue
@@ -69,11 +69,11 @@ types:
 # signature - Func()
 # description - Documentation
 # path - The subscription path
-#   (empty) - The function name in lowercase
+#   (empty) - The function name in kebab-case
 #   /path
 #   /directory/
 #   :123/path
-#   :123/... - Ellipsis denotes the function name in lowercase
+#   :123/... - Ellipsis denotes the function name in kebab-case
 #   https://example.com:123/path
 #   ^ - Empty path
 # queue - The subscription queue

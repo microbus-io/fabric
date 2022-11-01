@@ -35,11 +35,11 @@ configs:
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # path - The subscription path
-#   (empty) - The function name in lowercase
+#   (empty) - The function name in kebab-case
 #   /path
 #   /directory/
 #   :123/path
-#   :123/... - Ellipsis denotes the function name in lowercase
+#   :123/... - Ellipsis denotes the function name in kebab-case
 #   https://example.com:123/path
 #   ^ - Empty path
 # queue - The subscription queue
@@ -69,11 +69,11 @@ types:
 # signature - Func()
 # description - Documentation
 # path - The subscription path
-#   (empty) - The function name in lowercase
+#   (empty) - The function name in kebab-case
 #   /path
 #   /directory/
 #   :123/path
-#   :123/... - Ellipsis denotes the function name in lowercase
+#   :123/... - Ellipsis denotes the function name in kebab-case
 #   https://example.com:123/path
 #   ^ - Empty path
 # queue - The subscription queue
@@ -83,24 +83,20 @@ webs:
   - signature: Home()
     description: Home demonstrates making requests using multicast and unicast request/response patterns.
   - signature: NoQueue()
-    path: /no-queue
     description: |-
       NoQueue demonstrates how the NoQueue subscription option is used to create
       a multicast request/response communication pattern.
       All instances of this microservice will respond to each request.
     queue: none
   - signature: DefaultQueue()
-    path: /default-queue
     description: |-
       DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
       a unicast request/response communication pattern.
       Only one of the instances of this microservice will respond to each request.
     queue: default
   - signature: CacheLoad()
-    path: /cache-load
     description: CacheLoad looks up an element in the distributed cache of the microservice.
   - signature: CacheStore()
-    path: /cache-store
     description: CacheStore stores an element in the distributed cache of the microservice.
 
 # Tickers
