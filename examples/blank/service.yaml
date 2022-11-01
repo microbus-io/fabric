@@ -93,11 +93,11 @@ functions:
 #
 # name - All non-primitive types used in functions must be accounted for
 # description - Go-doc description
-# define - Define a new type given a list of fields
+# define - Define a new type with the specified fields (name: type)
 # import - A path to another microservice that defines the type
 types:
   - name: User
     define:
-      - firstName string
-      - lastName string
-      - balance int
+      firstName: string
+      lastName: string
+      balance: int

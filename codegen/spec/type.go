@@ -9,10 +9,10 @@ import (
 
 // Type is a complex type used in a function.
 type Type struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Define      []*Field `yaml:"define"`
-	Import      string   `yaml:"import"`
+	Name        string            `yaml:"name"`
+	Description string            `yaml:"description"`
+	Define      map[string]string `yaml:"define"`
+	Import      string            `yaml:"import"`
 }
 
 // ImportSuffix returns the last piece of the import definition,
@@ -37,10 +37,16 @@ func (t *Type) Validate() error {
 	if t.Import != "" && len(t.Define) > 0 {
 		return errors.Newf("ambiguous type specification '%s'", t.Name)
 	}
-	for _, f := range t.Define {
-		err := f.Validate()
-		if err != nil {
-			return errors.Trace(err)
+	reName := regexp.MustCompile(`^[a-z][a-zA-Z0-9]*$`)
+	reType := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
+	for fName, fType := range t.Define {
+		match := reName.MatchString(fName)
+		if !match {
+			return errors.Newf("invalid field name '%s'", fName)
+		}
+		match = reType.MatchString(fType)
+		if !match {
+			return errors.Newf("invalid field type '%s'", fType)
 		}
 	}
 	return nil

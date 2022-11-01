@@ -10,7 +10,7 @@ general:
 # Config properties
 #
 # signature - Func() (val Type)
-# description - Go-doc description
+# description - Documentation
 # default - A default value (defaults to empty)
 # validation - A validation pattern
 #   str [a-zA-Z0-9]+
@@ -33,18 +33,18 @@ configs:
 # Functions
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
-# description - Go-doc description
+# description - Documentation
 # path - The subscription path
-#   (empty) - the function name in lowercase
+#   (empty) - The function name in lowercase
 #   /path
 #   /directory/
 #   :123/path
-#   :123/... - ellipsis denotes the function name in lowercase
+#   :123/... - Ellipsis denotes the function name in lowercase
 #   https://example.com:123/path
-#   ^ - empty path
+#   ^ - Empty path
 # queue - The subscription queue
-#   default = load balanced (default)
-#   none = Pervasive
+#   default - Load balanced (default)
+#   none - Pervasive
 functions:
   # - signature:
   #   description:
@@ -52,14 +52,14 @@ functions:
 # Types
 #
 # name - All non-primitive types used in functions must be accounted for
-# description - Go-doc description
-# define - Define a new type given a list of fields
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
 # import - A path to another microservice that defines the type
 types:
   # - name: DefinedType
   #   description:
   #   define:
-  #     - fieldName Type
+  #     fieldName: Type
   # - name: ImportedType
   #   description:
   #   import: package/path/of/another/microservice
@@ -67,18 +67,18 @@ types:
 # Web handlers
 #
 # signature - Func()
-# description - Go-doc description
+# description - Documentation
 # path - The subscription path
-#   (empty) - the function name in lowercase
+#   (empty) - The function name in lowercase
 #   /path
 #   /directory/
 #   :123/path
-#   :123/... - ellipsis denotes the function name in lowercase
+#   :123/... - Ellipsis denotes the function name in lowercase
 #   https://example.com:123/path
-#   ^ - empty path
+#   ^ - Empty path
 # queue - The subscription queue
-#   default = load balanced (default)
-#   none = Pervasive
+#   default - Load balanced (default)
+#   none - Pervasive
 webs:
   # - signature:
   #   description:
@@ -86,7 +86,7 @@ webs:
 # Tickers
 #
 # signature - Func()
-# description - Go-doc description
+# description - Documentation
 # interval - Duration between iterations (e.g. 15m)
 # timeBudget - Duration to complete an iteration
 tickers:

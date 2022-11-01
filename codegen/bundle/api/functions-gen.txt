@@ -30,7 +30,7 @@ type {{ .Name }}Out struct {
 		{{- end }}
 	}
 	HTTPResponse *http.Response
-	err          error
+	err error
 }
 
 // Get retrieves the return values.

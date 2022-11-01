@@ -31,8 +31,8 @@ type {{ .Name }} = {{ .ImportSuffix }}api.{{ .Name }}
 {{ TrimEndOfLineWhitespace .Description }}
 */
 type {{ .Name }} struct {
-    {{- range .Define}}
-    {{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
+    {{- range $name, $type := .Define }}
+    {{ CapitalizeIdentifier $name }} {{ $type }} `json:"{{ $name }}"`
     {{- end}}
 }
 {{- end }}

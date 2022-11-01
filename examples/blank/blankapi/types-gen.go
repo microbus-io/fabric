@@ -10,8 +10,11 @@ var (
     _ time.Duration
 )
 
+/*
+
+*/
 type User struct {
+    Balance int `json:"balance"`
     FirstName string `json:"firstName"`
     LastName string `json:"lastName"`
-    Balance int `json:"balance"`
 }
