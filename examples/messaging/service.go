@@ -33,7 +33,7 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	return // TODO: OnStartup
 }
 
-// OnStartup is called when the microservice is shut down.
+// OnShutdown is called when the microservice is shut down.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	return // TODO: OnShutdown
 }

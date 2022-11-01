@@ -61,7 +61,7 @@ func (svc *Service) OnStartup(ctx context.Context) error {
 	return nil
 }
 
-// OnStartup is called when the microservice is shut down.
+// OnShutdown is called when the microservice is shut down.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	// Stop HTTP server
 	if svc.httpServer != nil {

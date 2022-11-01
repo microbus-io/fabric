@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
@@ -17,6 +18,8 @@ var (
     _ json.Decoder
 	_ http.Request
 	_ strings.Reader
+	_ time.Duration
+
 	_ errors.TracedError
 	_ pub.Request
 )

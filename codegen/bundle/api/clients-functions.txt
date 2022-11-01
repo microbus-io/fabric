@@ -3,7 +3,6 @@
 // {{ .Name }}In are the incoming arguments to {{ .Name }}.
 type {{ .Name }}In struct {
 	{{- range .Signature.InputArgs }}
-	// {{ .Name }} {{ .Type }}
 	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
 	{{- end }}
 }
@@ -12,7 +11,6 @@ type {{ .Name }}In struct {
 type {{ .Name }}Out struct {
 	data struct {
 		{{- range .Signature.OutputArgs }}
-		// {{ .Name }} {{ .Type }}
 		{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
 		{{- end }}
 	}
@@ -21,8 +19,10 @@ type {{ .Name }}Out struct {
 }
 
 // Get retrieves the return values.
-func (_out *{{ .Name }}Out) Get() (result int, err error) {
-	result = _out.data.Result
+func (_out *{{ .Name }}Out) Get() ({{if .Out}}{{ .Out }}, {{end}}err error) {
+	{{- range .Signature.OutputArgs }}
+	{{ .Name }} = _out.data.{{ CapitalizeIdentifier .Name }}
+	{{- end }}
 	err = _out.err
 	return
 }
