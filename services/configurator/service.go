@@ -37,7 +37,9 @@ type Service struct {
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	svc.repo = &repository{}
+	if svc.repo == nil {
+		svc.repo = &repository{}
+	}
 
 	// Load values from config.yaml if present in current working directory
 	exists := func(fileName string) bool {
@@ -75,7 +77,7 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 
 // OnShutdown is called when the microservice is shut down.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
-	return // TODO: OnShutdown
+	return nil
 }
 
 /*
@@ -185,6 +187,9 @@ func (svc *Service) loadYAML(configYAML string) error {
 		return errors.Newf("disallowed in %s deployment", connector.PROD)
 	}
 	svc.lock.Lock()
+	if svc.repo == nil {
+		svc.repo = &repository{}
+	}
 	svc.repo.LoadYAML([]byte(configYAML))
 	svc.repoTimestamp = time.Now()
 	svc.lock.Unlock()
