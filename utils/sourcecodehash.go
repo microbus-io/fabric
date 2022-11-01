@@ -1,4 +1,4 @@
-package lib
+package utils
 
 import (
 	"crypto/sha256"
@@ -12,10 +12,12 @@ import (
 	"github.com/microbus-io/fabric/errors"
 )
 
-// SourceCodeSHA256 generates a hash of the source code files in the current directory and all sub-directories.
-func SourceCodeSHA256() (string, error) {
+// SourceCodeSHA256 generates a SHA256 of the source code files in the indicated directory and its sub-directories.
+// The directory is interpreted relative to the current working directory.
+// Use "." to hash the current working directory.
+func SourceCodeSHA256(directory string) (string, error) {
 	h := sha256.New()
-	err := hashDir(h, ".")
+	err := hashDir(h, directory)
 	if err != nil {
 		return "", errors.Trace(err)
 	}

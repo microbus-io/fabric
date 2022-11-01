@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/microbus-io/fabric/codegen/lib"
 	"github.com/microbus-io/fabric/codegen/spec"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -58,7 +58,7 @@ func mainErr() error {
 	printer.Printf("Directory %s", dir)
 
 	// Generate hash
-	hash, err := lib.SourceCodeSHA256()
+	hash, err := utils.SourceCodeSHA256(".")
 	if err != nil {
 		return errors.Trace(err)
 	}

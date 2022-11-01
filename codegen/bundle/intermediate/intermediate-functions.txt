@@ -11,7 +11,7 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 		{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ if eq .Name "httpStatusCode" }}-{{ else }}{{ .Name }}{{ end }}"`
 		{{- end }}
 	}{}
-	err := lib.ReadFunctionalRequest(r, &i)
+	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

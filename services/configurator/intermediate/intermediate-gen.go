@@ -13,10 +13,10 @@ import (
 
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
-	"github.com/microbus-io/fabric/codegen/lib"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/configurator/resources"
 )
@@ -32,9 +32,9 @@ var (
 
 	_ cb.Callback
 	_ cfg.Config
-	_ lib.Nothing
 	_ errors.TracedError
 	_ sub.Option
+	_ utils.ResponseRecorder
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -104,7 +104,7 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 	o := struct {
 		Values map[string]string `json:"values"`
 	}{}
-	err := lib.ReadFunctionalRequest(r, &i)
+	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -130,7 +130,7 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 	}{}
 	o := struct {
 	}{}
-	err := lib.ReadFunctionalRequest(r, &i)
+	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -157,7 +157,7 @@ func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 	}{}
 	o := struct {
 	}{}
-	err := lib.ReadFunctionalRequest(r, &i)
+	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

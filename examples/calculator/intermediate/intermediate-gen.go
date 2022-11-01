@@ -13,10 +13,10 @@ import (
 
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
-	"github.com/microbus-io/fabric/codegen/lib"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/calculator/resources"
 )
@@ -32,9 +32,9 @@ var (
 
 	_ cb.Callback
 	_ cfg.Config
-	_ lib.Nothing
 	_ errors.TracedError
 	_ sub.Option
+	_ utils.ResponseRecorder
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -104,7 +104,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 		YEcho int `json:"yEcho"`
 		Result int `json:"result"`
 	}{}
-	err := lib.ReadFunctionalRequest(r, &i)
+	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -135,7 +135,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 		XEcho int `json:"xEcho"`
 		Result int `json:"result"`
 	}{}
-	err := lib.ReadFunctionalRequest(r, &i)
+	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

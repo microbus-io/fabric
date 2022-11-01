@@ -84,23 +84,6 @@ http://localhost:8080/calculator.example/square?x=not-valid results in:
 
 ```
 json: cannot unmarshal string into Go struct field .x of type int
-
-lib.readOneArg
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/codegen/lib/readrequest.go:107
-lib.ReadFunctionalRequest
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/codegen/lib/readrequest.go:50
-intermediate.(*Intermediate).doSquare
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/examples/calculator/intermediate/functions-gen.go:67
-connector.(*Connector).onRequest
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/subscribe.go:298
-	calculator.example:443/square
-connector.(*Connector).makeHTTPRequest
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/publish.go:280
-	http.ingress.sys -> calculator.example
-connector.(*Connector).Request
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/publish.go:48
-httpingress.(*Service).ServeHTTP
-	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/services/httpingress/service.go:129
 ```
 
 ## Messaging

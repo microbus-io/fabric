@@ -1,4 +1,4 @@
-package lib
+package utils
 
 import (
 	"encoding/json"
@@ -9,14 +9,10 @@ import (
 	"github.com/microbus-io/fabric/errors"
 )
 
-// Nothing is used as an empty type to force the import.
-type Nothing int
-
 var jsonNumberRegexp = regexp.MustCompile(`^(\-?)(0|([1-9][0-9]*))(\.[0-9]+)?([eE][\+\-]?[0-9]+)?$`)
 
-// ReadFunctionalRequest parses the body and query arguments of an incoming request
-// and populates a data object.
-func ReadFunctionalRequest(r *http.Request, data any) error {
+// ParseRequestData parses the body and query arguments of an incoming request and populates a data object.
+func ParseRequestData(r *http.Request, data any) error {
 	contentType := r.Header.Get("Content-Type")
 	// Parse JSON in the body
 	if contentType == "application/json" {
