@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // Handler is the spec of a callback handler.
@@ -68,6 +70,14 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (h *Handler) validate() error {
 	if h.Queue != "" && h.Queue != "default" && h.Queue != "none" {
 		return errors.Newf("invalid queue '%s'", h.Queue)
+	}
+	if strings.Contains(h.Path, "`") {
+		return errors.Newf("backquote not allowed in path '%s'", h.Path)
+	}
+	joined := sub.JoinHostAndPath("example.com", h.Path)
+	_, err := utils.ParseURL(joined)
+	if err != nil {
+		return errors.Newf("invalid path '%s'", h.Path)
 	}
 
 	// Type will be empty during initial parsing
