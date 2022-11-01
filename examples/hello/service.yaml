@@ -94,6 +94,9 @@ webs:
       Calculator renders a UI for a calculator.
       The calculation operation is delegated to another microservice in order to demonstrate
       a call from one microservice to another.
+  - signature: BusJPEG()
+    path: /bus.jpeg
+    description: BusJPEG serves an image from the embedded resources.
 
 # Tickers
 #

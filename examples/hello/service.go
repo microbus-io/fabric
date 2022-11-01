@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"html"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -179,5 +180,19 @@ TickTock is executed every 10 seconds.
 */
 func (svc *Service) TickTock(ctx context.Context) error {
 	svc.LogInfo(ctx, "Ticktock")
+	return nil
+}
+
+/*
+BusJPEG serves an image from the embedded resources.
+*/
+func (svc *Service) BusJPEG(w http.ResponseWriter, r *http.Request) (err error) {
+	bytes, err := svc.Resources().ReadFile("bus.jpeg")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", mime.TypeByExtension(".jpeg"))
+	w.Header().Set("Cache-Control", "max-age=3600") // 1 hour
+	w.Write(bytes)
 	return nil
 }

@@ -58,6 +58,8 @@ The `/calculator` endpoint renders a rudimentary UI of a calculator. Behind the 
 
 <img src="examples-1.png" width="315">
 
+The `/bus.jpeg` endpoint serves an image from the embedded resources directory.
+
 ## Calculator
 
 The `calculator.example` microservice implement two endpoints, `/arithmetic` and `/square` in order to demonstrate parsing of query arguments and error handling.
@@ -150,7 +152,7 @@ Refresh the page to see the IDs change:
 
 The `messaging.example` microservice also demonstrates how multiple replicas of the same service can share a single cache by communicating over NATS.
 
-To store an element, use the http://localhost:8080/messaging.example/cache/store?key=foo&value=bar endpoint. The output shows which of the replicas handled the request.
+To store an element, use the http://localhost:8080/messaging.example/cache-store?key=foo&value=bar endpoint. The output shows which of the replicas handled the request.
 
 ```
 key: foo
@@ -159,7 +161,7 @@ value: bar
 Stored by qtshc434b7
 ```
 
-To load an element, use the http://localhost:8080/messaging.example/cache/load?key=foo endpoint. Refresh the page a few times and notice how all replicas are able to locate the element.
+To load an element, use the http://localhost:8080/messaging.example/cache-load?key=foo endpoint. Refresh the page a few times and notice how all replicas are able to locate the element.
 
 ```
 key: foo
@@ -169,7 +171,7 @@ value: bar
 Loaded by ucarmsii56
 ```
 
-Or if the element can't be located, e.g. http://localhost:8080/messaging.example/cache/load?key=fox :
+Or if the element can't be located, e.g. http://localhost:8080/messaging.example/cache-load?key=fox :
 
 ```
 key: fox

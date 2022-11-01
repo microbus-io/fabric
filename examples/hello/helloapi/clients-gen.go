@@ -192,3 +192,31 @@ func (_c *MulticastClient) Calculator(ctx context.Context, options ...pub.Option
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
 }
+
+/*
+BusJPEG serves an image from the embedded resources.
+*/
+func (_c *Client) BusJPEG(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/bus.jpeg`)),
+	}
+	opts = append(opts, options...)
+	res, err = _c.svc.Request(ctx, opts...)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	return res, err
+}
+
+/*
+BusJPEG serves an image from the embedded resources.
+*/
+func (_c *MulticastClient) BusJPEG(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/bus.jpeg`)),
+	}
+	opts = append(opts, options...)
+	return _c.svc.Publish(ctx, opts...)
+}

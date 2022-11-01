@@ -46,6 +46,7 @@ type ToDo interface {
 	Echo(w http.ResponseWriter, r *http.Request) (err error)
 	Ping(w http.ResponseWriter, r *http.Request) (err error)
 	Calculator(w http.ResponseWriter, r *http.Request) (err error)
+	BusJPEG(w http.ResponseWriter, r *http.Request) (err error)
 	TickTock(ctx context.Context) (err error)
 }
 
@@ -83,6 +84,7 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`/echo`, svc.impl.Echo)
 	svc.Subscribe(`/ping`, svc.impl.Ping)
 	svc.Subscribe(`/calculator`, svc.impl.Calculator)
+	svc.Subscribe(`/bus.jpeg`, svc.impl.BusJPEG)
 	intervalTickTock, _ := time.ParseDuration("10s")
 	svc.StartTicker(`TickTock`, intervalTickTock, svc.impl.TickTock)
 
