@@ -20,6 +20,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/services/control/controlapi"
 	"github.com/microbus-io/fabric/sub"
 )
 
@@ -290,12 +291,11 @@ func (c *Cache) rescue(ctx context.Context) {
 	}
 
 	// Count number of peers
-	u := fmt.Sprintf("https://%s:888/ping", c.svc.HostName())
-	ch := c.svc.Publish(ctx, pub.GET(u))
+	ch := controlapi.NewMulticastClient(c.svc).ForHost(c.svc.HostName()).Ping(ctx)
 	peers := 0
 	for r := range ch {
-		res, err := r.Get()
-		if err == nil && frame.Of(res).FromID() != c.svc.ID() {
+		_, err := r.Get()
+		if err == nil && frame.Of(r.HTTPResponse).FromID() != c.svc.ID() {
 			peers++
 		}
 	}
