@@ -21,14 +21,18 @@ type TextTemplate struct {
 }
 
 // LoadTemplate loads a template from the embedded bundle.
-func LoadTemplate(name string) (*TextTemplate, error) {
-	b, err := bundle.ReadFile("bundle/" + name)
-	if err != nil {
-		return nil, errors.Trace(err)
+func LoadTemplate(names ...string) (*TextTemplate, error) {
+	var buf bytes.Buffer
+	for _, name := range names {
+		b, err := bundle.ReadFile("bundle/" + name)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		buf.Write(b)
 	}
 	return &TextTemplate{
-		content: b,
-		name:    name,
+		content: buf.Bytes(),
+		name:    names[0],
 	}, nil
 }
 

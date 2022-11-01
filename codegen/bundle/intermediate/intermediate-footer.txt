@@ -1,0 +1,6 @@
+
+
+// Resources is the in-memory file system of the embedded resources.
+func (svc *Intermediate) Resources() embed.FS {
+	return resources.FS
+}

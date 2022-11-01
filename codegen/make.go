@@ -18,7 +18,7 @@ func makeIntermediate(specs *spec.Service) error {
 	printer.Indent()
 	defer printer.Unindent()
 
-	// Create the directories
+	// Create the directory
 	_, err := os.Stat("intermediate")
 	if errors.Is(err, os.ErrNotExist) {
 		os.Mkdir("intermediate", os.ModePerm)
@@ -26,7 +26,33 @@ func makeIntermediate(specs *spec.Service) error {
 	} else if err != nil {
 		return errors.Trace(err)
 	}
-	_, err = os.Stat("resources")
+
+	// intermediate.go
+	tt, err := LoadTemplate(
+		"intermediate/intermediate-gen.txt",
+		"intermediate/intermediate-configs.txt",
+		"intermediate/intermediate-functions.txt",
+		"intermediate/intermediate-footer.txt",
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = tt.Overwrite("intermediate/intermediate-gen.go", specs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	printer.Printf("intermediate/intermediate-gen.go")
+	return nil
+}
+
+// makeResources creates the resources directory and files.
+func makeResources(specs *spec.Service) error {
+	printer.Printf("Generating resources")
+	printer.Indent()
+	defer printer.Unindent()
+
+	// Create the directory
+	_, err := os.Stat("resources")
 	if errors.Is(err, os.ErrNotExist) {
 		os.Mkdir("resources", os.ModePerm)
 		printer.Printf("mkdir resources")
@@ -34,25 +60,17 @@ func makeIntermediate(specs *spec.Service) error {
 		return errors.Trace(err)
 	}
 
-	// Generate intermediate source files
-	templateNames := []string{
-		"resources/embed-gen",
-		"intermediate/todo-gen",
-		"intermediate/intermediate-gen",
-		"intermediate/configs-gen",
-		"intermediate/functions-gen",
+	// embed-gen.go
+	tt, err := LoadTemplate("resources/embed-gen.txt")
+	if err != nil {
+		return errors.Trace(err)
 	}
-	for _, n := range templateNames {
-		tt, err := LoadTemplate(n + ".txt")
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = tt.Overwrite(n+".go", specs)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		printer.Printf(n + ".go")
+	err = tt.Overwrite("resources/embed-gen.go", specs)
+	if err != nil {
+		return errors.Trace(err)
 	}
+	printer.Printf("resources/embed-gen.go")
+
 	return nil
 }
 
@@ -72,25 +90,39 @@ func makeAPI(specs *spec.Service) error {
 		return errors.Trace(err)
 	}
 
-	// Generate API source files
-	templateNames := []string{
-		"api/service-gen",
-		"api/client-gen",
-		"api/webs-gen",
-		"api/types-gen",
-		"api/functions-gen",
-	}
-	for _, n := range templateNames {
-		tt, err := LoadTemplate(n + ".txt")
+	// types-gen.go
+	if len(specs.Types) > 0 {
+		tt, err := LoadTemplate("api/types-gen.txt")
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = tt.Overwrite(specs.ShortPackage()+n+".go", specs)
+		err = tt.Overwrite(specs.ShortPackage()+"api/types-gen.go", specs)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		printer.Printf(specs.ShortPackage() + n + ".go")
+		printer.Printf(specs.ShortPackage() + "api/types-gen.go")
+	} else {
+		err := os.Remove(specs.ShortPackage() + "api/types-gen.go")
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return errors.Trace(err)
+		}
 	}
+
+	// clients-gen.go
+	tt, err := LoadTemplate(
+		"api/clients-gen.txt",
+		"api/clients-webs.txt",
+		"api/clients-functions.txt",
+		"api/clients-footer.txt",
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = tt.Overwrite(specs.ShortPackage()+"api/clients-gen.go", specs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	printer.Printf(specs.ShortPackage() + "api/clients-gen.go")
 
 	return nil
 }

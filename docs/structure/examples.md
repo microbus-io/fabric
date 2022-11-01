@@ -67,7 +67,7 @@ The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, an
 http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=-8 produces:
 
 ```
-{"x":5,"op":"*","y":-8,"result":-40}
+{"xEcho":5,"opEcho":"*","yEcho":-8,"result":-40}
 ```
 
 The `/square` endpoint takes a single integer `x` and prints its square.
@@ -75,7 +75,7 @@ The `/square` endpoint takes a single integer `x` and prints its square.
 http://localhost:8080/calculator.example/square?x=55 produces:
 
 ```
-{"x":55,"result":3025}
+{"xEcho":55,"result":3025}
 ```
 
 If the arguments cannot be parsed, an error is returned.
@@ -83,22 +83,24 @@ If the arguments cannot be parsed, an error is returned.
 http://localhost:8080/calculator.example/square?x=not-valid results in:
 
 ```
-strconv.ParseInt: parsing "not-valid": invalid syntax
+json: cannot unmarshal string into Go struct field .x of type int
 
-calculator.(*Service).Square
-	/src/github.com/microbus-io/fabric/examples/calculator/service.go:84
+lib.readOneArg
+	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/codegen/lib/readrequest.go:107
+lib.ReadFunctionalRequest
+	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/codegen/lib/readrequest.go:50
+intermediate.(*Intermediate).doSquare
+	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/examples/calculator/intermediate/functions-gen.go:67
 connector.(*Connector).onRequest
-	/src/github.com/microbus-io/fabric/connector/subscribe.go:258
-	https://calculator.example:443/square
-connector.(*Connector).onRequest
-	/src/github.com/microbus-io/fabric/connector/subscribe.go:259
+	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/subscribe.go:298
+	calculator.example:443/square
 connector.(*Connector).makeHTTPRequest
-	/src/github.com/microbus-io/fabric/connector/publish.go:232
+	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/publish.go:280
 	http.ingress.sys -> calculator.example
 connector.(*Connector).Request
-	/src/github.com/microbus-io/fabric/connector/publish.go:44
+	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/connector/publish.go:48
 httpingress.(*Service).ServeHTTP
-	/src/github.com/microbus-io/fabric/services/httpingress/service.go:125
+	/Users/brianwillis/Dev/Microbus/src/github.com/microbus-io/fabric/services/httpingress/service.go:129
 ```
 
 ## Messaging

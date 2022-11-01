@@ -3,11 +3,17 @@
 package intermediate
 
 import (
+	"context"
 	"embed"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
+	"github.com/microbus-io/fabric/codegen/lib"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 
@@ -15,13 +21,42 @@ import (
 )
 
 var (
+	_ context.Context
 	_ embed.FS
+	_ json.Decoder
+	_ fmt.Stringer
+	_ http.Request
+	_ strconv.NumError
 	_ time.Duration
 
 	_ cb.Callback
 	_ cfg.Config
+	_ lib.Nothing
 	_ errors.TracedError
 )
+
+// ToDo defines the interface that the microservice must implement.
+// The intermediate delegates handling to this interface.
+type ToDo interface {
+	OnStartup(ctx context.Context) (err error)
+	OnShutdown(ctx context.Context) (err error)
+
+	{{- range .Configs}}{{- if .Callback}}
+	OnChanged{{ .Name }}(ctx context.Context) (err error)
+	{{- end}}{{- end}}
+
+	{{- range .Functions}}
+	{{ .Name }}(ctx context.Context{{if .In}}, {{end}}{{ .In }}) ({{ .Out }}{{if .Out}}, {{end}}err error)
+	{{- end}}
+
+	{{- range .Webs}}
+	{{ .Name }}(w http.ResponseWriter, r *http.Request) (err error)
+	{{- end}}
+
+	{{- range .Tickers}}
+	{{ .Name }}(ctx context.Context) (err error)
+	{{- end}}
+}
 
 // Intermediate extends and customized the generic base connector.
 // Code-generated microservices extend the intermediate service.
@@ -74,9 +109,4 @@ func New(impl ToDo, version int) *Intermediate {
 	{{- end}}
 
 	return svc
-}
-
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() embed.FS {
-	return resources.FS
 }
