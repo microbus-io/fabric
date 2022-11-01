@@ -23,7 +23,11 @@ var (
 func main() {
 	err := mainErr()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%+v\r\n", err)
+		if flagVerbose {
+			fmt.Fprintf(os.Stderr, "%+v\r\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "%v\r\n", err)
+		}
 		os.Exit(-1)
 	}
 }

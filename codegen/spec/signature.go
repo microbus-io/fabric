@@ -8,6 +8,7 @@ import (
 
 // Signature is the spec of a function signature.
 type Signature struct {
+	OrigString string
 	Name       string
 	InputArgs  []*Argument
 	OutputArgs []*Argument
@@ -26,7 +27,7 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&str); err != nil {
 		return err
 	}
-
+	sig.OrigString = str
 	sig.InputArgs = []*Argument{}
 	sig.OutputArgs = []*Argument{}
 
@@ -95,17 +96,21 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // validate validates the data after unmarshaling.
 func (sig *Signature) validate() error {
 	if !isUpperCaseIdentifier(sig.Name) {
-		return errors.Newf("invalid signature '%s'", sig.Name)
+		return errors.Newf("signature must start with uppercase '%s'", sig.OrigString)
 	}
 
 	allArgs := []*Argument{}
 	allArgs = append(allArgs, sig.InputArgs...)
 	allArgs = append(allArgs, sig.OutputArgs...)
 	for _, arg := range allArgs {
-		if arg.Name == "ctx" || arg.Type == "context.Context" ||
-			arg.Name == "err" || arg.Type == "error" ||
-			!isLowerCaseIdentifier(arg.Name) {
-			return errors.Newf("invalid argument '%s'", arg.Name+" "+arg.Type)
+		if arg.Name == "ctx" || arg.Type == "context.Context" {
+			return errors.Newf("context argument not allowed '%s'", sig.OrigString)
+		}
+		if arg.Name == "err" || arg.Type == "error" {
+			return errors.Newf("error argument not allowed '%s'", sig.OrigString)
+		}
+		if !isLowerCaseIdentifier(arg.Name) {
+			return errors.Newf("argument must start with lowercase '%s'", sig.OrigString)
 		}
 	}
 	return nil

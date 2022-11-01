@@ -31,6 +31,17 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	*s = Service(x)
 
 	// Validate
+	err = s.validate()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// validate validates the data after unmarshaling.
+func (s *Service) validate() error {
+	// Has to repeat validation after setting the types because
+	// the handlers don't know their type during parsing.
 	for _, w := range s.Configs {
 		w.Type = "config"
 	}
@@ -43,15 +54,12 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	for _, w := range s.Tickers {
 		w.Type = "ticker"
 	}
-	err = s.validate()
-	if err != nil {
-		return errors.Trace(err)
+	for _, h := range s.AllHandlers() {
+		err := h.validate()
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
-	return nil
-}
-
-// validate validates the data after unmarshaling.
-func (s *Service) validate() error {
 	return nil
 }
 

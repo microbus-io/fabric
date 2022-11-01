@@ -66,18 +66,23 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // validate validates the data after unmarshaling.
 func (h *Handler) validate() error {
+	if h.Queue != "" && h.Queue != "default" && h.Queue != "none" {
+		return errors.Newf("invalid queue '%s'", h.Queue)
+	}
+
+	// Type will be empty during initial parsing
 	switch h.Type {
 	case "web":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {
-			return errors.Newf("invalid signature '%s'", h.Signature)
+			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
 		}
 	case "config":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 1 {
-			return errors.Newf("invalid signature '%s'", h.Signature)
+			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
 		}
 	case "ticker":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {
-			return errors.Newf("invalid signature '%s'", h.Signature)
+			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
 		}
 		if h.Interval <= 0 {
 			return errors.Newf("invalid interval '%v'", h.Interval)
@@ -85,14 +90,22 @@ func (h *Handler) validate() error {
 		if h.TimeBudget < 0 {
 			return errors.Newf("invalid time budget '%v'", h.TimeBudget)
 		}
+	case "function":
+		argNames := map[string]bool{}
+		for _, arg := range h.Signature.InputArgs {
+			if argNames[arg.Name] {
+				return errors.Newf("duplicate arg name '%s'", h.Signature.OrigString)
+			}
+			argNames[arg.Name] = true
+		}
+		for _, arg := range h.Signature.OutputArgs {
+			if argNames[arg.Name] {
+				return errors.Newf("duplicate arg name '%s'", h.Signature.OrigString)
+			}
+			argNames[arg.Name] = true
+		}
 	}
 
-	if strings.Contains(h.Path, "`") {
-		return errors.New("backquote character not allowed")
-	}
-	if h.Queue != "" && h.Queue != "default" && h.Queue != "none" {
-		return errors.Newf("invalid queue '%s'", h.Queue)
-	}
 	return nil
 }
 

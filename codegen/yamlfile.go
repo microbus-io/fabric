@@ -20,11 +20,12 @@ func prepareServiceYAML() (found bool, err error) {
 		if err != nil {
 			return false, errors.Trace(err)
 		}
-	} else {
-		err = updateServiceYAML()
-		if err != nil {
-			return false, errors.Trace(err)
-		}
+		return false, nil // Avoids error processing an empty file
+	}
+
+	err = updateServiceYAML()
+	if err != nil {
+		return false, errors.Trace(err)
 	}
 	return true, nil
 }
