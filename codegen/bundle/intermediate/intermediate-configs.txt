@@ -29,14 +29,6 @@ func (svc *Intermediate) {{ .Name }}() ({{ .Out }}) {
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i){{ end }}
 	
-	{{- if eq .Type "int64"}}
-	_i64, _ := strconv.ParseInt(_val, 10, 64)
-	return _i64{{ end }}
-
-	{{- if eq .Type "int32"}}
-	_i32, _ := strconv.ParseInt(_val, 10, 32)
-	return int32(_i32){{ end }}
-
 	{{- if eq .Type "bool"}}
 	_b, _ := strconv.ParseBool(_val)
 	return _b{{ end }}
@@ -45,17 +37,9 @@ func (svc *Intermediate) {{ .Name }}() ({{ .Out }}) {
 	_dur, _ := time.ParseDuration(_val)
 	return _dur{{ end }}
 
-	{{- if eq .Type "float"}}
-	_f64, _ := time.ParseFloat(_val, 64)
-	return _f64{{ end }}
-
 	{{- if eq .Type "float64"}}
 	_f64, _ := time.ParseFloat(_val, 64)
 	return _f64{{ end }}
-
-	{{- if eq .Type "float32"}}
-	_f32, _ := time.ParseFloat(_val, 32)
-	return float32(_f32){{ end }}
 
 	{{- end }}
 }

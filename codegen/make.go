@@ -424,16 +424,7 @@ func findReplaceSignature(specs *spec.Service, source string) (modified string) 
 		if p < 0 {
 			continue
 		}
-		fnSig := "func (svc *Service) " + fn.Name() + "(ctx context.Context"
-		if fn.In() != "" {
-			fnSig += ", " + fn.In()
-		}
-		fnSig += ") ("
-		if fn.Out() != "" {
-			fnSig += fn.Out() + ", "
-		}
-		fnSig += "err error)"
-
+		fnSig := "func (svc *Service) " + fn.Name() + "(" + fn.In() + ") (" + fn.Out() + ")"
 		q := strings.Index(source[p:], fnSig)
 		if q != 0 {
 			// Signature changed

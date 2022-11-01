@@ -14,12 +14,6 @@ type Signature struct {
 	OutputArgs []*Argument
 }
 
-// Argument is an input or output argument of a signature.
-type Argument struct {
-	Name string
-	Type string
-}
-
 // UnmarshalYAML parses the signature.
 func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Custom unmarshaling from string
@@ -48,13 +42,13 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if args != "" {
 		for _, arg := range strings.Split(args, ",") {
 			arg = strings.TrimSpace(arg)
-			nameValue := strings.Split(arg, " ")
-			if len(nameValue) != 2 {
+			space := strings.Index(arg, " ")
+			if space < 0 {
 				return errors.Newf("invalid argument '%s'", arg)
 			}
 			sig.InputArgs = append(sig.InputArgs, &Argument{
-				Name: strings.TrimSpace(nameValue[0]),
-				Type: strings.TrimSpace(nameValue[1]),
+				Name: strings.TrimSpace(arg[:space]),
+				Type: strings.TrimSpace(arg[space:]),
 			})
 		}
 	}
@@ -74,13 +68,13 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if args != "" {
 		for _, arg := range strings.Split(args, ",") {
 			arg = strings.TrimSpace(arg)
-			nameValue := strings.Split(arg, " ")
-			if len(nameValue) != 2 {
+			space := strings.Index(arg, " ")
+			if space < 0 {
 				return errors.Newf("invalid argument '%s'", arg)
 			}
 			sig.OutputArgs = append(sig.OutputArgs, &Argument{
-				Name: strings.TrimSpace(nameValue[0]),
-				Type: strings.TrimSpace(nameValue[1]),
+				Name: strings.TrimSpace(arg[:space]),
+				Type: strings.TrimSpace(arg[space:]),
 			})
 		}
 	}
@@ -111,6 +105,48 @@ func (sig *Signature) validate() error {
 		}
 		if !isLowerCaseIdentifier(arg.Name) {
 			return errors.Newf("argument must start with lowercase '%s'", sig.OrigString)
+		}
+
+		t := arg.Type
+		for {
+			if strings.HasPrefix(t, "[]") {
+				t = strings.TrimPrefix(t, "[]")
+				continue
+			}
+			if strings.HasPrefix(t, "*") {
+				t = strings.TrimPrefix(t, "*")
+				continue
+			}
+			if strings.HasPrefix(t, "map[") {
+				if !strings.HasPrefix(t, "map[string]") {
+					return errors.Newf("map keys must be strings '%s'", sig.OrigString)
+				}
+				t = strings.TrimPrefix(t, "map[string]")
+				continue
+			}
+			t = strings.TrimPrefix(t, "time.")
+			if strings.Contains(t, ".") {
+				return errors.Newf("dots not allowed in types '%s'", sig.OrigString)
+			}
+
+			switch {
+			case t == "int" || t == "int64" || t == "int32" || t == "int16" || t == "int8":
+				arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
+			case t == "uint" || t == "uint64" || t == "uint32" || t == "uint16" || t == "uint8":
+				arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
+			case t == "float32" || t == "float64" || t == "float":
+				arg.Type = strings.TrimSuffix(arg.Type, t) + "float64"
+			case t == "Time":
+				arg.Type = strings.TrimSuffix(arg.Type, t) + "time.Time"
+			case t == "Duration":
+				arg.Type = strings.TrimSuffix(arg.Type, t) + "time.Duration"
+			case t == "byte" || t == "bool" || t == "string":
+				// Nothing
+			case isLowerCaseIdentifier(t):
+				return errors.Newf("unknown primitive type '%s'", sig.OrigString)
+			}
+
+			break
 		}
 	}
 	return nil

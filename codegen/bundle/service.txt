@@ -7,11 +7,15 @@ import (
 	"github.com/microbus-io/fabric/errors"
 
 	"{{ .Package }}/intermediate"
+
+	"{{ .Package }}/{{ .ShortPackage }}api"
 )
 
 var (
 	_ errors.TracedError
 	_ http.Request
+
+	_ {{ .ShortPackage }}api.Client
 )
 
 /*

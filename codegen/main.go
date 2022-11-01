@@ -106,25 +106,27 @@ func mainErr() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
+		specs.Package = pkgPath
 		printer.Printf("Service.yaml parsed")
 	}
 
 	// Process specs
 	if specs != nil {
-		specs.Package = pkgPath
+		// specs.ShorthandDefinedTypes()
+		err = makeAPI(specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		err = makeResources(specs)
 		if err != nil {
 			return errors.Trace(err)
 		}
+		specs.FullyQualifyDefinedTypes()
 		err = makeIntermediate(specs)
 		if err != nil {
 			return errors.Trace(err)
 		}
 		err = makeImplementation(specs)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = makeAPI(specs)
 		if err != nil {
 			return errors.Trace(err)
 		}

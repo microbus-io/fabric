@@ -90,6 +90,10 @@ func (h *Handler) validate() error {
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 1 {
 			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
 		}
+		t := h.Signature.OutputArgs[0].Type
+		if t != "string" && t != "int" && t != "bool" && t != "time.Duration" && t != "float64" {
+			return errors.Newf("invalid config return type '%s'", h.Signature.OrigString)
+		}
 	case "ticker":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {
 			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
@@ -127,10 +131,9 @@ func (h *Handler) Name() string {
 // In returns the input argument list as a string.
 func (h *Handler) In() string {
 	var b strings.Builder
-	for i, arg := range h.Signature.InputArgs {
-		if i > 0 {
-			b.WriteString(", ")
-		}
+	b.WriteString("ctx context.Context")
+	for _, arg := range h.Signature.InputArgs {
+		b.WriteString(", ")
 		b.WriteString(arg.Name)
 		b.WriteString(" ")
 		b.WriteString(arg.Type)
@@ -141,13 +144,12 @@ func (h *Handler) In() string {
 // In returns the output argument list as a string.
 func (h *Handler) Out() string {
 	var b strings.Builder
-	for i, arg := range h.Signature.OutputArgs {
-		if i > 0 {
-			b.WriteString(", ")
-		}
+	for _, arg := range h.Signature.OutputArgs {
 		b.WriteString(arg.Name)
 		b.WriteString(" ")
 		b.WriteString(arg.Type)
+		b.WriteString(", ")
 	}
+	b.WriteString("err error")
 	return b.String()
 }

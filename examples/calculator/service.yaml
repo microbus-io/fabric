@@ -50,6 +50,10 @@ functions:
     description: Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
   - signature: Square(x int) (xEcho int, result int)
     description: Square prints the square of the integer x.
+  - signature: Distance(p1 Point, p2 Point) (d float64)
+    description: |-
+      Distance calculates the distance between two points.
+      It demonstrates the use of the defined type Point.
 
 # Types
 #
@@ -58,10 +62,11 @@ functions:
 # define - Define a new type with the specified fields (name: type)
 # import - A path to another microservice that defines the type
 types:
-  # - name: DefinedType
-  #   description:
-  #   define:
-  #     fieldName: Type
+  - name: Point
+    description: Point is a 2D (X,Y) coordinate.
+    define:
+      x: float64
+      y: float64
   # - name: ImportedType
   #   description:
   #   import: package/path/of/another/microservice

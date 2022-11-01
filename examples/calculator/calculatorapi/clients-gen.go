@@ -294,3 +294,106 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 	}()
 	return _res
 }
+
+// DistanceIn are the incoming arguments to Distance.
+type DistanceIn struct {
+	P1 Point `json:"p1"`
+	P2 Point `json:"p2"`
+}
+
+// DistanceOut are the return values of Distance.
+type DistanceOut struct {
+	data struct {
+		D float64 `json:"d"`
+	}
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *DistanceOut) Get() (d float64, err error) {
+	d = _out.data.D
+	err = _out.err
+	return
+}
+
+/*
+Distance calculates the distance between two points.
+*/
+func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, err error) {
+	_in := DistanceIn{
+		p1,
+		p2,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/distance`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out DistanceOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	d = _out.data.D
+	return
+}
+
+/*
+Distance calculates the distance between two points.
+*/
+func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _options ...pub.Option) <-chan *DistanceOut {
+	_in := DistanceIn{
+		p1,
+		p2,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		_res := make(chan *DistanceOut, 1)
+		_res <- &DistanceOut{err: errors.Trace(_err)}
+		close(_res)
+		return _res
+	}
+
+	_opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/distance`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *DistanceOut, cap(_ch))
+	go func() {
+		for _i := range _ch {
+			var _r DistanceOut
+			_httpRes, _err := _i.Get()
+			_r.HTTPResponse = _httpRes
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			} else {
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				if _err != nil {
+					_r.err = errors.Trace(_err)
+				}
+			}
+			_res <- &_r
+		}
+		close(_res)
+	}()
+	return _res
+}

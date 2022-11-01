@@ -2,16 +2,21 @@ package calculator
 
 import (
 	"context"
+	"math"
 	"net/http"
 
 	"github.com/microbus-io/fabric/errors"
 
 	"github.com/microbus-io/fabric/examples/calculator/intermediate"
+
+	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
 )
 
 var (
 	_ errors.TracedError
 	_ http.Request
+
+	_ calculatorapi.Client
 )
 
 /*
@@ -61,4 +66,13 @@ Square prints the square of the integer x.
 */
 func (svc *Service) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
 	return x, x * x, nil
+}
+
+/*
+Distance calculates the distance between two points.
+*/
+func (svc *Service) Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error) {
+	dx := p1.X - p2.X
+	dy := p1.Y - p2.Y
+	return math.Sqrt(dx*dx + dy*dy), nil
 }

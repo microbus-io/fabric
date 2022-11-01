@@ -38,6 +38,46 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// FullyQualifyDefinedTypes prepends the API package name to complex types of function arguments.
+func (s *Service) FullyQualifyDefinedTypes() {
+	apiPkg := s.ShortPackage() + "api."
+	for _, w := range s.Functions {
+		for _, a := range w.Signature.InputArgs {
+			endType := a.EndType()
+			if isUpperCaseIdentifier(endType) {
+				a.Type = strings.TrimSuffix(a.Type, endType) + apiPkg + endType
+			}
+		}
+		for _, a := range w.Signature.OutputArgs {
+			endType := a.EndType()
+			if isUpperCaseIdentifier(endType) {
+				a.Type = strings.TrimSuffix(a.Type, endType) + apiPkg + endType
+			}
+		}
+	}
+}
+
+// ShorthandDefinedTypes removed the API package name from complex types of function arguments.
+func (s *Service) ShorthandDefinedTypes() {
+	apiPkg := s.ShortPackage() + "api."
+	for _, w := range s.Functions {
+		for _, a := range w.Signature.InputArgs {
+			endType := a.EndType()
+			if strings.HasPrefix(endType, apiPkg) {
+				shorthand := strings.TrimPrefix(endType, apiPkg)
+				a.Type = strings.TrimSuffix(a.Type, endType) + shorthand
+			}
+		}
+		for _, a := range w.Signature.OutputArgs {
+			endType := a.EndType()
+			if strings.HasPrefix(endType, apiPkg) {
+				shorthand := strings.TrimPrefix(endType, apiPkg)
+				a.Type = strings.TrimSuffix(a.Type, endType) + shorthand
+			}
+		}
+	}
+}
+
 // validate validates the data after unmarshaling.
 func (s *Service) validate() error {
 	// Has to repeat validation after setting the types because
@@ -60,6 +100,7 @@ func (s *Service) validate() error {
 			return errors.Trace(err)
 		}
 	}
+
 	return nil
 }
 

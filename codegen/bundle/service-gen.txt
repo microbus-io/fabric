@@ -2,7 +2,15 @@
 
 package {{ .ShortPackage }}
 
-import "{{ .Package }}/intermediate"
+import (
+	"{{ .Package }}/intermediate"
+
+	"{{ .Package }}/{{ .ShortPackage }}api"
+)
+
+var (
+	_ {{ .ShortPackage }}api.Client
+)
 
 // NewService creates a new "{{ .General.Host }}" microservice.
 func NewService() *Service {

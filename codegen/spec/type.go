@@ -58,9 +58,11 @@ func (t *Type) validate() error {
 		return errors.Newf("ambiguous type specification '%s'", t.Name)
 	}
 
-	match, _ = regexp.MatchString(`^[a-z][a-zA-Z0-9]*(/[a-z][a-zA-Z0-9]*)*$`, t.Import)
-	if !match {
-		return errors.Newf("invalid import path '%s'", t.Import)
+	if t.Import != "" {
+		match, _ = regexp.MatchString(`^[a-z][a-zA-Z0-9]*(/[a-z][a-zA-Z0-9]*)*$`, t.Import)
+		if !match {
+			return errors.Newf("invalid import path '%s'", t.Import)
+		}
 	}
 
 	reName := regexp.MustCompile(`^[a-z][a-zA-Z0-9]*$`)
