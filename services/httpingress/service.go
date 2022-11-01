@@ -9,67 +9,64 @@ import (
 	"strings"
 	"time"
 
-	"github.com/microbus-io/fabric/cfg"
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
+
+	"github.com/microbus-io/fabric/services/httpingress/intermediate"
 )
 
-// Service is an HTTP ingress microservice
+var (
+	_ errors.TracedError
+	_ http.Request
+)
+
+/*
+Service implements the "http.ingress.sys" microservice.
+
+The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.
+*/
 type Service struct {
-	*connector.Connector
+	*intermediate.Intermediate // DO NOT REMOVE
+
 	httpPort   int
 	httpServer *http.Server
 	timeBudget time.Duration
 }
 
-// NewService creates a new HTTP ingress microservice
-func NewService() *Service {
-	s := &Service{
-		Connector: connector.New("http.ingress.sys"),
-	}
-	s.SetDescription("The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.")
-	s.SetOnStartup(s.OnStartup)
-	s.SetOnShutdown(s.OnShutdown)
-	s.DefineConfig("TimeBudget", cfg.DefaultValue("20s"), cfg.Validation("dur [1s,5m]"))
-	s.DefineConfig("Port", cfg.DefaultValue("8080"), cfg.Validation("int [1,65535]"))
-	return s
-}
-
-// OnStartup starts the web server
-func (s *Service) OnStartup(ctx context.Context) error {
+// OnStartup is called when the microservice is started up.
+func (svc *Service) OnStartup(ctx context.Context) error {
 	// Time budget for requests
 	var err error
-	s.timeBudget, err = time.ParseDuration(s.Config("TimeBudget"))
+	svc.timeBudget, err = time.ParseDuration(svc.Config("TimeBudget"))
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	// Incoming HTTP port
-	s.httpPort, err = strconv.Atoi(s.Config("Port"))
+	svc.httpPort, err = strconv.Atoi(svc.Config("Port"))
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	// Start HTTP server
-	s.httpServer = &http.Server{
-		Addr:    ":" + strconv.Itoa(s.httpPort),
-		Handler: s,
+	svc.httpServer = &http.Server{
+		Addr:    ":" + strconv.Itoa(svc.httpPort),
+		Handler: svc,
 	}
-	s.LogInfo(ctx, "Starting HTTP listener", log.Int("port", s.httpPort))
-	go s.httpServer.ListenAndServe()
+	svc.LogInfo(ctx, "Starting HTTP listener", log.Int("port", svc.httpPort))
+	go svc.httpServer.ListenAndServe()
 
 	return nil
 }
 
-// OnShutdown stops the web server
-func (s *Service) OnShutdown(ctx context.Context) error {
+// OnStartup is called when the microservice is shut down.
+func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	// Stop HTTP server
-	if s.httpServer != nil {
-		s.LogInfo(ctx, "Stopping HTTP listener", log.Int("port", s.httpPort))
-		err := s.httpServer.Close() // Not a graceful shutdown
+	if svc.httpServer != nil {
+		svc.LogInfo(ctx, "Stopping HTTP listener", log.Int("port", svc.httpPort))
+		err := svc.httpServer.Close() // Not a graceful shutdown
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -81,7 +78,7 @@ func (s *Service) OnShutdown(ctx context.Context) error {
 // An incoming request http://localhost:8080/echo.example/echo is forwarded to
 // the microservice at https://echo.example/echo .
 // ServeHTTP implements the http.Handler interface
-func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Use the first segment of the URI as the host name to contact
 	uri := r.URL.RequestURI()
 	internalURL := "https:/" + uri
@@ -92,9 +89,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := s.Lifetime()
+	ctx := svc.Lifetime()
 
-	s.LogInfo(ctx, "Request received", log.String("url", internalURL))
+	svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
 
 	// Prepare the internal request options
 	defer r.Body.Close()
@@ -107,10 +104,10 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Add the time budget to the request headers and set it as the context's timeout
 	delegateCtx := ctx
-	if s.timeBudget > 0 {
-		options = append(options, pub.TimeBudget(s.timeBudget))
+	if svc.timeBudget > 0 {
+		options = append(options, pub.TimeBudget(svc.timeBudget))
 		var cancel context.CancelFunc
-		delegateCtx, cancel = s.Clock().WithTimeout(ctx, s.timeBudget)
+		delegateCtx, cancel = svc.Clock().WithTimeout(ctx, svc.timeBudget)
 		defer cancel()
 	}
 
@@ -124,12 +121,12 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delegate the request over NATS
-	internalRes, err := s.Request(delegateCtx, options...)
+	internalRes, err := svc.Request(delegateCtx, options...)
 	if err != nil {
 		err = errors.Trace(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%+v", err)))
-		s.LogError(ctx, "Delegating request", log.Error(err))
+		svc.LogError(ctx, "Delegating request", log.Error(err))
 		return
 	}
 
@@ -157,7 +154,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			err = errors.Trace(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("%+v", err)))
-			s.LogError(ctx, "Copying response body", log.Error(err))
+			svc.LogError(ctx, "Copying response body", log.Error(err))
 			return
 		}
 	}
