@@ -132,7 +132,7 @@ func mainErr() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = makeRefreshDescription(specs)
+		err = makeRefreshComments(specs)
 		if err != nil {
 			return errors.Trace(err)
 		}

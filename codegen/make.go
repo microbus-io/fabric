@@ -382,8 +382,8 @@ func makeRefreshSignature(specs *spec.Service) error {
 	return nil
 }
 
-func makeRefreshDescription(specs *spec.Service) error {
-	printer.Printf("Refreshing descriptions")
+func makeRefreshComments(specs *spec.Service) error {
+	printer.Printf("Refreshing comments")
 	printer.Indent()
 	defer printer.Unindent()
 
@@ -450,25 +450,41 @@ func findReplaceSignature(specs *spec.Service, source string) (modified string) 
 // findReplaceDescription updates the description of handlers.
 func findReplaceDescription(specs *spec.Service, source string) (modified string) {
 	for _, h := range specs.AllHandlers() {
-		pos := strings.Index(source, "func (svc *Service) "+h.Name()+"(")
+		pos := strings.Index(source, "\nfunc (svc *Service) "+h.Name()+"(")
 		if pos < 0 {
-			continue
-		}
-		q := strings.LastIndex(source[:pos], "*/")
-		if q < 0 || q < pos-4 {
-			continue
-		}
-		q += 2
-		p := strings.LastIndex(source[:pos], "/*")
-		if p < 0 {
 			continue
 		}
 
 		newComment := "/*\n" + h.Description + "\n*/"
-		if source[p:q] != newComment {
-			source = strings.Replace(source, source[p:q], newComment, 1)
-			printer.Printf("%s", h.Name())
+
+		// /*
+		// Comment
+		// */
+		// func (svc *Service) ...
+		q := strings.LastIndex(source[:pos], "*/")
+		if q == pos-len("*/") {
+			q += len("*/")
+			p := strings.LastIndex(source[:pos], "/*")
+			if p > 0 && source[p:q] != newComment {
+				source = source[:p] + newComment + source[q:]
+				printer.Printf("%s", h.Name())
+			}
+			continue
 		}
+
+		// // Comment
+		// func (svc *Service) ...
+		p := pos + 1
+		q = pos
+		for {
+			q = strings.LastIndex(source[:q], "\n")
+			if q < 0 || !strings.HasPrefix(source[q:], "\n//") {
+				break
+			}
+			p = q + 1
+		}
+		source = source[:p] + newComment + source[pos:]
+		printer.Printf("%s", h.Name())
 	}
 	return source
 }
