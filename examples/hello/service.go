@@ -3,44 +3,47 @@ package hello
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"html"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/microbus-io/fabric/cfg"
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
+
+	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
+	"github.com/microbus-io/fabric/examples/hello/intermediate"
 )
 
-// Service is the hello.example microservice.
+var (
+	_ errors.TracedError
+	_ http.Request
+)
+
+/*
+Service implements the "hello.example" microservice.
+
+The Hello microservice demonstrates the various capabilities of a microservice.
+*/
 type Service struct {
-	*connector.Connector
+	*intermediate.Intermediate // DO NOT REMOVE
 }
 
-// NewService creates a new hello.example microservice.
-func NewService() *Service {
-	s := &Service{
-		Connector: connector.New("hello.example"),
-	}
-	s.SetDescription("The Hello microservice demonstrates the various capabilities of a microservice.")
-	s.Subscribe("/hello", s.Hello)
-	s.Subscribe("/echo", s.Echo)
-	s.Subscribe("/ping", s.Ping)
-	s.Subscribe("/calculator", s.Calculator)
-	s.StartTicker("TickTock", 10*time.Second, s.TickTock)
-	s.DefineConfig("greeting", cfg.DefaultValue("Hello"))
-	s.DefineConfig("repeat", cfg.DefaultValue("1"), cfg.Validation("int [0,100]"))
-	return s
+// OnStartup is called when the microservice is started up.
+func (svc *Service) OnStartup(ctx context.Context) (err error) {
+	return nil
 }
 
-// Hello prints a greeting.
-func (s *Service) Hello(w http.ResponseWriter, r *http.Request) error {
+// OnStartup is called when the microservice is shut down.
+func (svc *Service) OnShutdown(ctx context.Context) (err error) {
+	return nil
+}
+
+/*
+Hello prints a greeting.
+*/
+func (svc *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 	// If a name is provided, add a personal touch
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -48,9 +51,9 @@ func (s *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Prepare the greeting
-	greeting := s.Config("greeting")
+	greeting := svc.Config("greeting")
 	hello := greeting + ", " + name + "!\n"
-	repeat, err := strconv.Atoi(s.Config("repeat"))
+	repeat, err := strconv.Atoi(svc.Config("repeat"))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -62,8 +65,10 @@ func (s *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// Echo back the incoming request in wire format.
-func (s *Service) Echo(w http.ResponseWriter, r *http.Request) error {
+/*
+Echo back the incoming request in wire format.
+*/
+func (svc *Service) Echo(w http.ResponseWriter, r *http.Request) error {
 	var buf bytes.Buffer
 	err := r.Write(&buf)
 	if err != nil {
@@ -74,10 +79,12 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// Ping all microservices and list them.
-func (s *Service) Ping(w http.ResponseWriter, r *http.Request) error {
+/*
+Ping all microservices and list them.
+*/
+func (svc *Service) Ping(w http.ResponseWriter, r *http.Request) error {
 	var buf bytes.Buffer
-	ch := s.Publish(
+	ch := svc.Publish(
 		r.Context(),
 		pub.GET("https://all:888/ping"),
 		pub.Multicast(),
@@ -99,10 +106,12 @@ func (s *Service) Ping(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// Calculator renders a UI for a calculator.
-// The calculation operation is delegated to another microservice in order to demonstrate
-// calls from one microservice to another.
-func (s *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
+/*
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+*/
+func (svc *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	var buf bytes.Buffer
 	buf.WriteString(`<html><body><h1>Arithmetic Calculator</h1>`)
 	buf.WriteString(`<form method=GET action="calculator"><table>`)
@@ -138,21 +147,20 @@ func (s *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	// Result
 	buf.WriteString(`<tr><td>=</td><td>`)
 	if x != "" && y != "" && op != "" {
-		res, err := s.Request(
-			r.Context(),
-			pub.GET("https://calculator.example/arithmetic?x="+url.QueryEscape(x)+"&op="+url.QueryEscape(op)+"&y="+url.QueryEscape(y)),
-		)
+		xx, err := strconv.Atoi(x)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		yy, err := strconv.Atoi(y)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		// Call the calculator service using its client
+		_, _, _, result, err := calculatorapi.NewClient(svc).Arithmetic(r.Context(), xx, op, yy)
 		if err != nil {
 			buf.WriteString(html.EscapeString(err.Error()))
 		} else {
-			var result struct {
-				Result int64 `json:"result"`
-			}
-			err = json.NewDecoder(res.Body).Decode(&result)
-			if err != nil {
-				return errors.Trace(err)
-			}
-			buf.WriteString(strconv.FormatInt(result.Result, 10))
+			buf.WriteString(strconv.Itoa(result))
 		}
 	}
 	buf.WriteString(`</td><tr>`)
@@ -166,8 +174,10 @@ func (s *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// TickTock is executed every 10 seconds using a ticker.
-func (s *Service) TickTock(ctx context.Context) error {
-	s.LogInfo(ctx, "Ticktock")
+/*
+TickTock is executed every 10 seconds.
+*/
+func (svc *Service) TickTock(ctx context.Context) error {
+	svc.LogInfo(ctx, "Ticktock")
 	return nil
 }
