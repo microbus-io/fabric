@@ -1,0 +1,115 @@
+---
+# General
+#
+# host - The host name of the microservice
+# description - A human-friendly description of the microservice
+general:
+  host: messaging.example
+  description: The Messaging microservice demonstrates service-to-service communication patterns.
+
+# Config properties
+#
+# signature - Func() (val Type)
+# description - Documentation
+# default - A default value (defaults to empty)
+# validation - A validation pattern
+#   str [a-zA-Z0-9]+
+#   bool
+#   int [0,60]
+#   float [0.0,1.0)
+#   dur (0s,24h]
+#   set Red|Green|Blue
+#   url
+#   email
+#   json
+# callback - "true" to handle the change event (defaults to "false")
+# secret - "true" to indicate a secret (defaults to "false")
+configs:
+  # - signature:
+  #   description:
+  #   default:
+  #   validation:
+
+# Functions
+#
+# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# path - The subscription path
+#   (empty) - The function name in lowercase
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - Ellipsis denotes the function name in lowercase
+#   https://example.com:123/path
+#   ^ - Empty path
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+functions:
+  # - signature:
+  #   description:
+
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - A path to another microservice that defines the type
+types:
+  # - name: DefinedType
+  #   description:
+  #   define:
+  #     fieldName: Type
+  # - name: ImportedType
+  #   description:
+  #   import: package/path/of/another/microservice
+
+# Web handlers
+#
+# signature - Func()
+# description - Documentation
+# path - The subscription path
+#   (empty) - The function name in lowercase
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - Ellipsis denotes the function name in lowercase
+#   https://example.com:123/path
+#   ^ - Empty path
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+webs:
+  - signature: Home()
+    description: Home demonstrates making requests using multicast and unicast request/response patterns.
+  - signature: NoQueue()
+    path: /no-queue
+    description: |-
+      NoQueue demonstrates how the NoQueue subscription option is used to create
+      a multicast request/response communication pattern.
+      All instances of this microservice will respond to each request.
+    queue: none
+  - signature: DefaultQueue()
+    path: /default-queue
+    description: |-
+      DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+      a unicast request/response communication pattern.
+      Only one of the instances of this microservice will respond to each request.
+    queue: default
+  - signature: CacheLoad()
+    path: /cache-load
+    description: CacheLoad looks up an element in the distributed cache of the microservice.
+  - signature: CacheStore()
+    path: /cache-store
+    description: CacheStore stores an element in the distributed cache of the microservice.
+
+# Tickers
+#
+# signature - Func()
+# description - Documentation
+# interval - Duration between iterations (e.g. 15m)
+# timeBudget - Duration to complete an iteration
+tickers:
+  # - signature:
+  #   description:
+  #   interval:
