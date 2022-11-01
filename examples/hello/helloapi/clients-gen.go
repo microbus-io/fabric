@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/sub"
 )
 
 var (
@@ -17,8 +19,11 @@ var (
     _ json.Decoder
 	_ http.Request
 	_ strings.Reader
+	_ time.Duration
+
 	_ errors.TracedError
 	_ pub.Request
+	_ sub.Subscription
 )
 
 const ServiceName = "hello.example"
@@ -78,7 +83,7 @@ Hello prints a greeting.
 func (_c *Client) Hello(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/hello`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/hello`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -94,7 +99,7 @@ Hello prints a greeting.
 func (_c *MulticastClient) Hello(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/hello`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/hello`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -106,7 +111,7 @@ Echo back the incoming request in wire format.
 func (_c *Client) Echo(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/echo`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/echo`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -122,7 +127,7 @@ Echo back the incoming request in wire format.
 func (_c *MulticastClient) Echo(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/echo`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/echo`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -134,7 +139,7 @@ Ping all microservices and list them.
 func (_c *Client) Ping(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/ping`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/ping`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -150,7 +155,7 @@ Ping all microservices and list them.
 func (_c *MulticastClient) Ping(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/ping`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/ping`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -164,7 +169,7 @@ a call from one microservice to another.
 func (_c *Client) Calculator(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/calculator`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/calculator`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -182,29 +187,8 @@ a call from one microservice to another.
 func (_c *MulticastClient) Calculator(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/calculator`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/calculator`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
-}
-
-// joinHostAndPath combines the host name and the partial path.
-func joinHostAndPath(hostName string, path string) string {
-	if path == "" {
-		// (empty)
-		return "https://" + hostName + ":443"
-	}
-	if strings.HasPrefix(path, ":") {
-		// :1080/path
-		return "https://" + hostName + path
-	}
-	if strings.HasPrefix(path, "/") {
-		// /path/with/slash
-		return "https://" + hostName + ":443" + path
-	}
-	if !strings.Contains(path, "://") {
-		// path/with/no/slash
-		return "https://" + hostName + ":443/" + path
-	}
-	return path
 }

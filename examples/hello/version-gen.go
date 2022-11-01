@@ -2,12 +2,12 @@
 
 package hello
 
-const Version = 2
-const SourceCodeSHA256 = "35cf5472302b1f397c9489b2481a6a82dc9b877541a2253b33092513a239213c"
-const Timestamp = "2022-11-01T17:34:12.558992Z"
+const Version = 8
+const SourceCodeSHA256 = "a1b718e2450a2bcbac43f8d3d64cc560606224f122e121b1fabf0d0c1796e8f6"
+const Timestamp = "2022-11-01T19:00:44.411417Z"
 
 /* {
-	"ver": 2,
-	"sha256": "35cf5472302b1f397c9489b2481a6a82dc9b877541a2253b33092513a239213c",
-	"ts": "2022-11-01T17:34:12.558992Z"
+	"ver": 8,
+	"sha256": "a1b718e2450a2bcbac43f8d3d64cc560606224f122e121b1fabf0d0c1796e8f6",
+	"ts": "2022-11-01T19:00:44.411417Z"
 } */

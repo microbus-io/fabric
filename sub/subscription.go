@@ -44,29 +44,12 @@ Examples of valid paths:
 	https://www.example.com:1080/path
 */
 func NewSub(defaultHost string, path string, handler HTTPHandler, options ...Option) (*Subscription, error) {
-	spec := path
-	if path == "" {
-		// (empty)
-		spec = "https://" + defaultHost + ":443"
-	} else if strings.HasPrefix(path, ":") {
-		// :1080/path
-		spec = "https://" + defaultHost + path
-	} else if strings.HasPrefix(path, "/") {
-		// /path/with/slash
-		spec = "https://" + defaultHost + ":443" + path
-	} else if !strings.Contains(path, "://") {
-		// path/with/no/slash
-		spec = "https://" + defaultHost + ":443/" + path
-	}
-
-	u, err := utils.ParseURL(spec)
+	joined := JoinHostAndPath(defaultHost, path)
+	u, err := utils.ParseURL(joined)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-
-	// Port
 	port, _ := strconv.Atoi(u.Port())
-
 	sub := &Subscription{
 		Host:    u.Hostname(),
 		Port:    port,
@@ -95,4 +78,23 @@ func (sub *Subscription) Apply(options ...Option) error {
 // Canonical returns the fully-qualified canonical path of the subscription
 func (sub *Subscription) Canonical() string {
 	return fmt.Sprintf("%s:%d%s", sub.Host, sub.Port, sub.Path)
+}
+
+// JoinHostAndPath combines the path shorthand with a host name.
+func JoinHostAndPath(host string, path string) (joined string) {
+	joined = path
+	if path == "" {
+		// (empty)
+		joined = "https://" + host + ":443"
+	} else if strings.HasPrefix(path, ":") {
+		// :1080/path
+		joined = "https://" + host + path
+	} else if strings.HasPrefix(path, "/") {
+		// /path/with/slash
+		joined = "https://" + host + ":443" + path
+	} else if !strings.Contains(path, "://") {
+		// path/with/no/slash
+		joined = "https://" + host + ":443/" + path
+	}
+	return joined
 }

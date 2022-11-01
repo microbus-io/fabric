@@ -1,5 +1,4 @@
-{{- range .Functions }}
-
+{{ range .Functions }}
 // {{ .Name }}In are the incoming arguments to {{ .Name }}.
 type {{ .Name }}In struct {
 	{{- range .Signature.InputArgs }}
@@ -45,7 +44,7 @@ func (_c *Client) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{{end}}) (
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -84,7 +83,7 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -111,4 +110,4 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context{{if .In}}, {{ .In }}{
 	}()
 	return _res
 }
-{{- end }}
+{{ end }}

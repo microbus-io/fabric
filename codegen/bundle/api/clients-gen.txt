@@ -11,6 +11,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/sub"
 )
 
 var (
@@ -22,6 +23,7 @@ var (
 
 	_ errors.TracedError
 	_ pub.Request
+	_ sub.Subscription
 )
 
 const ServiceName = "{{ .General.Host }}"

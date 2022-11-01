@@ -2,12 +2,12 @@
 
 package messaging
 
-const Version = 2
-const SourceCodeSHA256 = "db1332f291f940441efe60fe2325dee7aaaa7636488b442ab5118e4b1f0781be"
-const Timestamp = "2022-11-01T17:33:49.700976Z"
+const Version = 8
+const SourceCodeSHA256 = "26ed3c15884bff94c4c44502e4762b76a2d6dbe3f7b8d36ed0b967771514b10b"
+const Timestamp = "2022-11-01T19:00:44.693065Z"
 
 /* {
-	"ver": 2,
-	"sha256": "db1332f291f940441efe60fe2325dee7aaaa7636488b442ab5118e4b1f0781be",
-	"ts": "2022-11-01T17:33:49.700976Z"
+	"ver": 8,
+	"sha256": "26ed3c15884bff94c4c44502e4762b76a2d6dbe3f7b8d36ed0b967771514b10b",
+	"ts": "2022-11-01T19:00:44.693065Z"
 } */

@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/sub"
 )
 
 var (
@@ -17,8 +19,11 @@ var (
     _ json.Decoder
 	_ http.Request
 	_ strings.Reader
+	_ time.Duration
+
 	_ errors.TracedError
 	_ pub.Request
+	_ sub.Subscription
 )
 
 const ServiceName = "calculator.example"
@@ -74,24 +79,17 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 
 // ArithmeticIn are the incoming arguments to Arithmetic.
 type ArithmeticIn struct {
-	// x int
 	X int `json:"x"`
-	// op string
 	Op string `json:"op"`
-	// y int
 	Y int `json:"y"`
 }
 
 // ArithmeticOut are the return values of Arithmetic.
 type ArithmeticOut struct {
 	data struct {
-		// xEcho int
 		XEcho int `json:"xEcho"`
-		// opEcho string
 		OpEcho string `json:"opEcho"`
-		// yEcho int
 		YEcho int `json:"yEcho"`
-		// result int
 		Result int `json:"result"`
 	}
 	HTTPResponse *http.Response
@@ -99,7 +97,10 @@ type ArithmeticOut struct {
 }
 
 // Get retrieves the return values.
-func (_out *ArithmeticOut) Get() (result int, err error) {
+func (_out *ArithmeticOut) Get() (xEcho int, opEcho string, yEcho int, result int, err error) {
+	xEcho = _out.data.XEcho
+	opEcho = _out.data.OpEcho
+	yEcho = _out.data.YEcho
 	result = _out.data.Result
 	err = _out.err
 	return
@@ -123,7 +124,7 @@ func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEch
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/arithmetic`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/arithmetic`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -163,7 +164,7 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/arithmetic`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/arithmetic`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -193,16 +194,13 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 
 // SquareIn are the incoming arguments to Square.
 type SquareIn struct {
-	// x int
 	X int `json:"x"`
 }
 
 // SquareOut are the return values of Square.
 type SquareOut struct {
 	data struct {
-		// xEcho int
 		XEcho int `json:"xEcho"`
-		// result int
 		Result int `json:"result"`
 	}
 	HTTPResponse *http.Response
@@ -210,7 +208,8 @@ type SquareOut struct {
 }
 
 // Get retrieves the return values.
-func (_out *SquareOut) Get() (result int, err error) {
+func (_out *SquareOut) Get() (xEcho int, result int, err error) {
+	xEcho = _out.data.XEcho
 	result = _out.data.Result
 	err = _out.err
 	return
@@ -232,7 +231,7 @@ func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/square`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/square`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -268,7 +267,7 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/square`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/square`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -294,25 +293,4 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 		close(_res)
 	}()
 	return _res
-}
-
-// joinHostAndPath combines the host name and the partial path.
-func joinHostAndPath(hostName string, path string) string {
-	if path == "" {
-		// (empty)
-		return "https://" + hostName + ":443"
-	}
-	if strings.HasPrefix(path, ":") {
-		// :1080/path
-		return "https://" + hostName + path
-	}
-	if strings.HasPrefix(path, "/") {
-		// /path/with/slash
-		return "https://" + hostName + ":443" + path
-	}
-	if !strings.Contains(path, "://") {
-		// path/with/no/slash
-		return "https://" + hostName + ":443/" + path
-	}
-	return path
 }

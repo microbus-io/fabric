@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/sub"
 )
 
 var (
@@ -17,8 +19,11 @@ var (
     _ json.Decoder
 	_ http.Request
 	_ strings.Reader
+	_ time.Duration
+
 	_ errors.TracedError
 	_ pub.Request
+	_ sub.Subscription
 )
 
 const ServiceName = "messaging.example"
@@ -78,7 +83,7 @@ Home demonstrates making requests using multicast and unicast request/response p
 func (_c *Client) Home(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/home`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/home`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -94,7 +99,7 @@ Home demonstrates making requests using multicast and unicast request/response p
 func (_c *MulticastClient) Home(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/home`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/home`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -108,7 +113,7 @@ All instances of this microservice will respond to each request.
 func (_c *Client) NoQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/no-queue`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/no-queue`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -126,7 +131,7 @@ All instances of this microservice will respond to each request.
 func (_c *MulticastClient) NoQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/no-queue`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/no-queue`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -140,7 +145,7 @@ Only one of the instances of this microservice will respond to each request.
 func (_c *Client) DefaultQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/default-queue`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/default-queue`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -158,7 +163,7 @@ Only one of the instances of this microservice will respond to each request.
 func (_c *MulticastClient) DefaultQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/default-queue`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/default-queue`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -170,7 +175,7 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 func (_c *Client) CacheLoad(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/cache-load`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/cache-load`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -186,7 +191,7 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 func (_c *MulticastClient) CacheLoad(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/cache-load`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/cache-load`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -198,7 +203,7 @@ CacheStore stores an element in the distributed cache of the microservice.
 func (_c *Client) CacheStore(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/cache-store`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/cache-store`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -214,29 +219,8 @@ CacheStore stores an element in the distributed cache of the microservice.
 func (_c *MulticastClient) CacheStore(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/cache-store`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/cache-store`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
-}
-
-// joinHostAndPath combines the host name and the partial path.
-func joinHostAndPath(hostName string, path string) string {
-	if path == "" {
-		// (empty)
-		return "https://" + hostName + ":443"
-	}
-	if strings.HasPrefix(path, ":") {
-		// :1080/path
-		return "https://" + hostName + path
-	}
-	if strings.HasPrefix(path, "/") {
-		// /path/with/slash
-		return "https://" + hostName + ":443" + path
-	}
-	if !strings.Contains(path, "://") {
-		// path/with/no/slash
-		return "https://" + hostName + ":443/" + path
-	}
-	return path
 }

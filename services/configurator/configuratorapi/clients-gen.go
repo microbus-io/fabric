@@ -11,6 +11,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/sub"
 )
 
 var (
@@ -22,6 +23,7 @@ var (
 
 	_ errors.TracedError
 	_ pub.Request
+	_ sub.Subscription
 )
 
 const ServiceName = "configurator.sys"
@@ -112,7 +114,7 @@ func (_c *Client) Values(ctx context.Context, names []string) (values map[string
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/values`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/values`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -147,7 +149,7 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/values`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/values`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -209,7 +211,7 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/refresh`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -243,7 +245,7 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/refresh`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -308,7 +310,7 @@ func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[stri
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/sync`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/sync`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -343,7 +345,7 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(joinHostAndPath(_c.host, `/sync`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `/sync`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -369,25 +371,4 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 		close(_res)
 	}()
 	return _res
-}
-
-// joinHostAndPath combines the host name and the partial path.
-func joinHostAndPath(hostName string, path string) string {
-	if path == "" {
-		// (empty)
-		return "https://" + hostName + ":443"
-	}
-	if strings.HasPrefix(path, ":") {
-		// :1080/path
-		return "https://" + hostName + path
-	}
-	if strings.HasPrefix(path, "/") {
-		// /path/with/slash
-		return "https://" + hostName + ":443" + path
-	}
-	if !strings.Contains(path, "://") {
-		// path/with/no/slash
-		return "https://" + hostName + ":443/" + path
-	}
-	return path
 }

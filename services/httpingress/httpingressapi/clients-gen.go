@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/sub"
 )
 
 var (
@@ -17,8 +19,11 @@ var (
     _ json.Decoder
 	_ http.Request
 	_ strings.Reader
+	_ time.Duration
+
 	_ errors.TracedError
 	_ pub.Request
+	_ sub.Subscription
 )
 
 const ServiceName = "http.ingress.sys"
@@ -70,25 +75,4 @@ func NewMulticastClient(caller Service) *MulticastClient {
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c
-}
-
-// joinHostAndPath combines the host name and the partial path.
-func joinHostAndPath(hostName string, path string) string {
-	if path == "" {
-		// (empty)
-		return "https://" + hostName + ":443"
-	}
-	if strings.HasPrefix(path, ":") {
-		// :1080/path
-		return "https://" + hostName + path
-	}
-	if strings.HasPrefix(path, "/") {
-		// /path/with/slash
-		return "https://" + hostName + ":443" + path
-	}
-	if !strings.Contains(path, "://") {
-		// path/with/no/slash
-		return "https://" + hostName + ":443/" + path
-	}
-	return path
 }

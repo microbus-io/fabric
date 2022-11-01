@@ -1,5 +1,4 @@
 
-
 // doOnConfigChanged is fired when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	{{- range .Configs}}{{- if .Callback}}
@@ -71,13 +70,11 @@ func (svc *Intermediate) With(initializers ...Initializer) {
 		i(svc)
 	}
 }
-
-{{- range .Configs}}
-
+{{ range .Configs}}
 // {{ .Name }} initializes the "{{ .Name }}" config property of the microservice.
 func {{ .Name }}({{ .Out }}) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`{{ .Name }}`, fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
 	}
 }
-{{- end }}
+{{ end }}

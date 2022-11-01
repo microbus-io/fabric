@@ -32,7 +32,6 @@ func makeIntermediate(specs *spec.Service) error {
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-configs.txt",
 		"intermediate/intermediate-functions.txt",
-		"intermediate/intermediate-footer.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -113,7 +112,6 @@ func makeAPI(specs *spec.Service) error {
 		"api/clients-gen.txt",
 		"api/clients-webs.txt",
 		"api/clients-functions.txt",
-		"api/clients-footer.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)

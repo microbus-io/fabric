@@ -77,6 +77,11 @@ func New(impl ToDo, version int) *Intermediate {
 	return svc
 }
 
+// Resources is the in-memory file system of the embedded resources.
+func (svc *Intermediate) Resources() embed.FS {
+	return resources.FS
+}
+
 // doOnConfigChanged is fired when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	return nil
@@ -90,9 +95,4 @@ func (svc *Intermediate) With(initializers ...Initializer) {
 	for _, i := range initializers {
 		i(svc)
 	}
-}
-
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() embed.FS {
-	return resources.FS
 }
