@@ -1,8 +1,6 @@
 package spec
 
 import (
-	"strings"
-
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/utils"
 )
@@ -13,14 +11,37 @@ type General struct {
 	Description string `yaml:"description"`
 }
 
-// Validate indicates if the specs are valid.
-func (g *General) Validate() error {
-	err := utils.ValidateHostName(g.Host)
+// UnmarshalYAML parses and validates the YAML.
+func (g *General) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// Unmarshal
+	type different General
+	var x different
+	err := unmarshal(&x)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	if strings.Contains(g.Description, "`") {
-		return errors.New("backquote character not allowed")
+	*g = General(x)
+
+	// Post processing
+	g.Description = conformDesc(
+		g.Description,
+		`The "`+g.Host+`" microservice.`,
+		"",
+	)
+
+	// Validate
+	err = g.validate()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// validate validates the data after unmarshaling.
+func (g *General) validate() error {
+	err := utils.ValidateHostName(g.Host)
+	if err != nil {
+		return errors.Trace(err)
 	}
 	return nil
 }

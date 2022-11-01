@@ -19,6 +19,42 @@ type Service struct {
 	Types     []*Type
 }
 
+// UnmarshalYAML parses and validates the YAML.
+func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// Unmarshal
+	type different Service
+	var x different
+	err := unmarshal(&x)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	*s = Service(x)
+
+	// Validate
+	for _, w := range s.Configs {
+		w.Type = "config"
+	}
+	for _, w := range s.Functions {
+		w.Type = "function"
+	}
+	for _, w := range s.Webs {
+		w.Type = "web"
+	}
+	for _, w := range s.Tickers {
+		w.Type = "ticker"
+	}
+	err = s.validate()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// validate validates the data after unmarshaling.
+func (s *Service) validate() error {
+	return nil
+}
+
 // ShortPackage returns only the last portion of the full package path.
 func (s *Service) ShortPackage() string {
 	return strings.TrimPrefix(s.Package, filepath.Dir(s.Package)+"/")
@@ -54,47 +90,4 @@ func (s *Service) DefinedTypes() []*Type {
 		}
 	}
 	return result
-}
-
-// Validate indicates if the specs are valid.
-func (s *Service) Validate() error {
-	err := s.General.Validate()
-	if err != nil {
-		return errors.Trace(err)
-	}
-	for _, w := range s.Configs {
-		w.Type = "config"
-		err := w.Validate()
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	for _, w := range s.Functions {
-		w.Type = "func"
-		err := w.Validate()
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	for _, w := range s.Webs {
-		w.Type = "web"
-		err := w.Validate()
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	for _, w := range s.Tickers {
-		w.Type = "ticker"
-		err := w.Validate()
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	for _, w := range s.Types {
-		err := w.Validate()
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	return nil
 }

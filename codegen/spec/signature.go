@@ -1,7 +1,6 @@
 package spec
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
@@ -14,8 +13,15 @@ type Signature struct {
 	OutputArgs []*Argument
 }
 
+// Argument is an input or output argument of a signature.
+type Argument struct {
+	Name string
+	Type string
+}
+
 // UnmarshalYAML parses the signature.
 func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// Custom unmarshaling from string
 	str := ""
 	if err := unmarshal(&str); err != nil {
 		return err
@@ -77,18 +83,19 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			})
 		}
 	}
+
+	// Validate
+	err := sig.validate()
+	if err != nil {
+		return errors.Trace(err)
+	}
 	return nil
 }
 
-// Validate indicates if the specs are valid.
-func (sig *Signature) Validate() error {
-	match, _ := regexp.MatchString(`^[A-Z][a-zA-Z0-9]*$`, sig.Name)
-	if !match {
+// validate validates the data after unmarshaling.
+func (sig *Signature) validate() error {
+	if !isUpperCaseIdentifier(sig.Name) {
 		return errors.Newf("invalid signature '%s'", sig.Name)
-	}
-	argNameRegexp, err := regexp.Compile(`^[a-z][a-zA-Z0-9]*$`)
-	if err != nil {
-		return errors.Trace(err)
 	}
 
 	allArgs := []*Argument{}
@@ -97,39 +104,9 @@ func (sig *Signature) Validate() error {
 	for _, arg := range allArgs {
 		if arg.Name == "ctx" || arg.Type == "context.Context" ||
 			arg.Name == "err" || arg.Type == "error" ||
-			!argNameRegexp.MatchString(arg.Name) {
+			!isLowerCaseIdentifier(arg.Name) {
 			return errors.Newf("invalid argument '%s'", arg.Name+" "+arg.Type)
 		}
 	}
 	return nil
-}
-
-// String returns the signature as a string.
-func (sig *Signature) String() string {
-	var b strings.Builder
-	b.WriteString(sig.Name)
-	b.WriteString("(")
-	for i, arg := range sig.InputArgs {
-		if i > 0 {
-			b.WriteString(", ")
-		}
-		b.WriteString(arg.Name)
-		b.WriteString(" ")
-		b.WriteString(arg.Type)
-	}
-	b.WriteString(")")
-
-	if len(sig.OutputArgs) > 0 {
-		b.WriteString(" (")
-		for i, arg := range sig.OutputArgs {
-			if i > 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(arg.Name)
-			b.WriteString(" ")
-			b.WriteString(arg.Type)
-		}
-		b.WriteString(")")
-	}
-	return b.String()
 }

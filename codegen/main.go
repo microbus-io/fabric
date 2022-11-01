@@ -108,10 +108,6 @@ func mainErr() error {
 	// Process specs
 	if specs != nil {
 		specs.Package = pkgPath
-		err = specs.Validate()
-		if err != nil {
-			return errors.Trace(err)
-		}
 		err = makeIntermediate(specs)
 		if err != nil {
 			return errors.Trace(err)

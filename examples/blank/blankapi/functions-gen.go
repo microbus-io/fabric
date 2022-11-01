@@ -137,7 +137,7 @@ type AddOut struct {
 		HTTPStatusCode int `json:"httpStatusCode"`
 	}
 	HTTPResponse *http.Response
-	err          error
+	err error
 }
 
 // Get retrieves the return values.
