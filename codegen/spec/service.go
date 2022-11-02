@@ -101,6 +101,31 @@ func (s *Service) validate() error {
 		}
 	}
 
+	// Check that all complex types are declared
+	typeNames := map[string]bool{}
+	for _, t := range s.Types {
+		typeNames[t.Name] = true
+	}
+	for _, t := range s.Types {
+		for _, fldType := range t.Define {
+			if isUpperCaseIdentifier(fldType) && !typeNames[fldType] {
+				return errors.Newf("undeclared field type '%s' in type '%s'", fldType, t.Name)
+			}
+		}
+	}
+	for _, fn := range s.Functions {
+		for _, a := range fn.Signature.InputArgs {
+			if isUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
+				return errors.Newf("undeclared type '%s' in '%s'", a.EndType(), fn.Signature.OrigString)
+			}
+		}
+		for _, a := range fn.Signature.OutputArgs {
+			if isUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
+				return errors.Newf("undeclared type '%s' in '%s'", a.EndType(), fn.Signature.OrigString)
+			}
+		}
+	}
+
 	return nil
 }
 

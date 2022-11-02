@@ -29,13 +29,18 @@ func (t *Type) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Post processing
 	ifEmpty := t.Name + " is a complex type."
 	if t.Import != "" {
-		ifEmpty = t.Name + " refers to " + t.Import + "/" + t.ImportSuffix() + "api/" + t.Name
+		ifEmpty = t.Name + " refers to " + t.Import + "/" + t.ImportSuffix() + "api/" + t.Name + "."
 	}
 	t.Description = conformDesc(
 		t.Description,
 		ifEmpty,
 		t.Name,
 	)
+	trimmed := map[string]string{}
+	for k, v := range t.Define {
+		trimmed[strings.TrimSpace(k)] = strings.TrimSpace(v)
+	}
+	t.Define = trimmed
 
 	// Validate
 	err = t.validate()
@@ -59,22 +64,20 @@ func (t *Type) validate() error {
 	}
 
 	if t.Import != "" {
-		match, _ = regexp.MatchString(`^[a-z][a-zA-Z0-9]*(/[a-z][a-zA-Z0-9]*)*$`, t.Import)
+		match, _ = regexp.MatchString(`^[a-z][a-zA-Z0-9\.\-]*(/[a-z][a-zA-Z0-9\.\-]*)*$`, t.Import)
 		if !match {
-			return errors.Newf("invalid import path '%s'", t.Import)
+			return errors.Newf("invalid import path '%s' in '%s'", t.Import, t.Name)
 		}
 	}
 
-	reName := regexp.MustCompile(`^[a-z][a-zA-Z0-9]*$`)
-	reType := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
 	for fName, fType := range t.Define {
-		match := reName.MatchString(fName)
-		if !match {
-			return errors.Newf("invalid field name '%s'", fName)
+		arg := &Argument{
+			Name: fName,
+			Type: fType,
 		}
-		match = reType.MatchString(fType)
-		if !match {
-			return errors.Newf("invalid field type '%s'", fType)
+		err := arg.validate()
+		if err != nil {
+			return errors.Newf("%s in '%s'", err.Error(), t.Name)
 		}
 	}
 	return nil

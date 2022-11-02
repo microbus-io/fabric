@@ -90,63 +90,16 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // validate validates the data after unmarshaling.
 func (sig *Signature) validate() error {
 	if !isUpperCaseIdentifier(sig.Name) {
-		return errors.Newf("signature must start with uppercase '%s'", sig.OrigString)
+		return errors.Newf("handler '%s' must start with uppercase in '%s'", sig.Name, sig.OrigString)
 	}
 
 	allArgs := []*Argument{}
 	allArgs = append(allArgs, sig.InputArgs...)
 	allArgs = append(allArgs, sig.OutputArgs...)
 	for _, arg := range allArgs {
-		if arg.Name == "ctx" || arg.Type == "context.Context" {
-			return errors.Newf("context argument not allowed '%s'", sig.OrigString)
-		}
-		if arg.Name == "err" || arg.Type == "error" {
-			return errors.Newf("error argument not allowed '%s'", sig.OrigString)
-		}
-		if !isLowerCaseIdentifier(arg.Name) {
-			return errors.Newf("argument must start with lowercase '%s'", sig.OrigString)
-		}
-
-		t := arg.Type
-		for {
-			if strings.HasPrefix(t, "[]") {
-				t = strings.TrimPrefix(t, "[]")
-				continue
-			}
-			if strings.HasPrefix(t, "*") {
-				t = strings.TrimPrefix(t, "*")
-				continue
-			}
-			if strings.HasPrefix(t, "map[") {
-				if !strings.HasPrefix(t, "map[string]") {
-					return errors.Newf("map keys must be strings '%s'", sig.OrigString)
-				}
-				t = strings.TrimPrefix(t, "map[string]")
-				continue
-			}
-			t = strings.TrimPrefix(t, "time.")
-			if strings.Contains(t, ".") {
-				return errors.Newf("dots not allowed in types '%s'", sig.OrigString)
-			}
-
-			switch {
-			case t == "int" || t == "int64" || t == "int32" || t == "int16" || t == "int8":
-				arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
-			case t == "uint" || t == "uint64" || t == "uint32" || t == "uint16" || t == "uint8":
-				arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
-			case t == "float32" || t == "float64" || t == "float":
-				arg.Type = strings.TrimSuffix(arg.Type, t) + "float64"
-			case t == "Time":
-				arg.Type = strings.TrimSuffix(arg.Type, t) + "time.Time"
-			case t == "Duration":
-				arg.Type = strings.TrimSuffix(arg.Type, t) + "time.Duration"
-			case t == "byte" || t == "bool" || t == "string":
-				// Nothing
-			case isLowerCaseIdentifier(t):
-				return errors.Newf("unknown primitive type '%s'", sig.OrigString)
-			}
-
-			break
+		err := arg.validate()
+		if err != nil {
+			return errors.Newf("%s in '%s'", err.Error(), sig.OrigString)
 		}
 	}
 	return nil

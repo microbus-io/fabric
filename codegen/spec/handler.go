@@ -69,52 +69,52 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // validate validates the data after unmarshaling.
 func (h *Handler) validate() error {
 	if h.Queue != "" && h.Queue != "default" && h.Queue != "none" {
-		return errors.Newf("invalid queue '%s'", h.Queue)
+		return errors.Newf("invalid queue '%s' in '%s'", h.Queue, h.Name())
 	}
 	if strings.Contains(h.Path, "`") {
-		return errors.Newf("backquote not allowed in path '%s'", h.Path)
+		return errors.Newf("backquote not allowed in path '%s' in '%s'", h.Path, h.Name())
 	}
 	joined := sub.JoinHostAndPath("example.com", h.Path)
 	_, err := utils.ParseURL(joined)
 	if err != nil {
-		return errors.Newf("invalid path '%s'", h.Path)
+		return errors.Newf("invalid path '%s' in '%s'", h.Path, h.Name())
 	}
 
 	// Type will be empty during initial parsing
 	switch h.Type {
 	case "web":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {
-			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
+			return errors.Newf("arguments or return values not allowed in '%s'", h.Signature.OrigString)
 		}
 	case "config":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 1 {
-			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
+			return errors.Newf("single return value expected in '%s'", h.Signature.OrigString)
 		}
 		t := h.Signature.OutputArgs[0].Type
 		if t != "string" && t != "int" && t != "bool" && t != "time.Duration" && t != "float64" {
-			return errors.Newf("invalid config return type '%s'", h.Signature.OrigString)
+			return errors.Newf("invalid config return type '%s' in '%s'", t, h.Signature.OrigString)
 		}
 	case "ticker":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {
-			return errors.Newf("invalid signature '%s'", h.Signature.OrigString)
+			return errors.Newf("arguments or return values not allowed in '%s'", h.Signature.OrigString)
 		}
 		if h.Interval <= 0 {
-			return errors.Newf("invalid interval '%v'", h.Interval)
+			return errors.Newf("negative interval '%v' in '%s'", h.Interval, h.Name())
 		}
 		if h.TimeBudget < 0 {
-			return errors.Newf("invalid time budget '%v'", h.TimeBudget)
+			return errors.Newf("non-positive time budget '%v' in '%s'", h.TimeBudget, h.Name())
 		}
 	case "function":
 		argNames := map[string]bool{}
 		for _, arg := range h.Signature.InputArgs {
 			if argNames[arg.Name] {
-				return errors.Newf("duplicate arg name '%s'", h.Signature.OrigString)
+				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
 			}
 			argNames[arg.Name] = true
 		}
 		for _, arg := range h.Signature.OutputArgs {
 			if argNames[arg.Name] {
-				return errors.Newf("duplicate arg name '%s'", h.Signature.OrigString)
+				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
 			}
 			argNames[arg.Name] = true
 		}
