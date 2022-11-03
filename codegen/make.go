@@ -161,17 +161,18 @@ func (gen *Generator) makeImplementation() error {
 	}
 	gen.Printer.Debug("service-gen.go")
 
-	// Create service.go
+	// Create service.go if it doesn't exist
 	fileName = filepath.Join(gen.WorkDir, "service.go")
-	tt, err = LoadTemplate("service.txt")
-	if err != nil {
-		return errors.Trace(err)
-	}
-	created, err := tt.Create(fileName, gen.specs)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if created {
+	_, err = os.Stat(fileName)
+	if errors.Is(err, os.ErrNotExist) {
+		tt, err = LoadTemplate("service.txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err := tt.Overwrite(fileName, gen.specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		gen.Printer.Debug("service.go")
 	}
 

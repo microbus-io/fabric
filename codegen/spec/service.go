@@ -11,7 +11,7 @@ import (
 type Service struct {
 	Package string `yaml:"-"`
 
-	General   General `yaml:"general"`
+	General   *General `yaml:"general"`
 	Configs   []*Handler
 	Functions []*Handler
 	Webs      []*Handler

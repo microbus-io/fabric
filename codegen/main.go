@@ -20,7 +20,7 @@ func main() {
 	// Run generator
 	gen := NewGenerator()
 	gen.Force = flagForce
-	gen.Printer = &StdPrinter{
+	gen.Printer = &Printer{
 		Verbose: flagVerbose,
 	}
 	err := gen.Run()

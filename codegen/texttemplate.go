@@ -71,15 +71,6 @@ func (tt *TextTemplate) Overwrite(fileName string, data any) error {
 	return nil
 }
 
-// Create writes the template to the named file, but only if it doesn't exist.
-func (tt *TextTemplate) Create(fileName string, data any) (ok bool, err error) {
-	_, err = os.Stat(fileName)
-	if errors.Is(err, os.ErrNotExist) {
-		return true, tt.Overwrite(fileName, data)
-	}
-	return false, nil
-}
-
 // AppendTo writes the template to the named file.
 func (tt *TextTemplate) AppendTo(fileName string, data any) error {
 	generated, err := tt.Execute(data)

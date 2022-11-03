@@ -26,7 +26,7 @@ type Generator struct {
 // the current working directory and output to stdout.
 func NewGenerator() *Generator {
 	return &Generator{
-		Printer: &StdPrinter{
+		Printer: &Printer{
 			Verbose: true,
 		},
 	}
