@@ -55,9 +55,6 @@ func (gen *Generator) makeResources() error {
 	gen.Printer.Indent()
 	defer gen.Printer.Unindent()
 
-	// Fully qualify the types outside of the API directory
-	gen.specs.FullyQualifyDefinedTypes()
-
 	// Create the directory
 	dir := filepath.Join(gen.WorkDir, "resources")
 	_, err := os.Stat(dir)
@@ -371,9 +368,12 @@ func findReplaceImportErrors(body string) (modified string) {
 }
 
 func (gen *Generator) makeRefreshSignature() error {
-	gen.Printer.Debug("Refreshing signatures")
+	gen.Printer.Debug("Refreshing handler signatures")
 	gen.Printer.Indent()
 	defer gen.Printer.Unindent()
+
+	// Fully qualify the types outside of the API directory
+	gen.specs.FullyQualifyDefinedTypes()
 
 	files, err := os.ReadDir(gen.WorkDir)
 	if err != nil {
@@ -395,43 +395,7 @@ func (gen *Generator) makeRefreshSignature() error {
 		}
 		body := string(buf)
 		alteredBody := findReplaceSignature(gen.specs, body)
-		if body != alteredBody {
-			err = os.WriteFile(fileName, []byte(alteredBody), 0666)
-			if err != nil {
-				return errors.Trace(err)
-			}
-			gen.Printer.Debug("%s", file.Name())
-		}
-	}
-
-	return nil
-}
-
-func (gen *Generator) makeRefreshComments() error {
-	gen.Printer.Debug("Refreshing comments")
-	gen.Printer.Indent()
-	defer gen.Printer.Unindent()
-
-	files, err := os.ReadDir(gen.WorkDir)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(file.Name(), ".go") ||
-			strings.HasSuffix(file.Name(), "_test.go") ||
-			strings.HasSuffix(file.Name(), "-gen.go") {
-			continue
-		}
-		fileName := filepath.Join(gen.WorkDir, file.Name())
-		buf, err := os.ReadFile(fileName)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		body := string(buf)
-		alteredBody := findReplaceDescription(gen.specs, body)
+		alteredBody = findReplaceDescription(gen.specs, alteredBody)
 		if body != alteredBody {
 			err = os.WriteFile(fileName, []byte(alteredBody), 0666)
 			if err != nil {

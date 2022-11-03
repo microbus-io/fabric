@@ -126,10 +126,6 @@ func (gen *Generator) Run() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = gen.makeRefreshComments()
-		if err != nil {
-			return errors.Trace(err)
-		}
 	}
 
 	err = gen.makeTraceReturnedErrors()
