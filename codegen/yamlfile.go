@@ -3,17 +3,18 @@ package main
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 
 	"github.com/microbus-io/fabric/errors"
 )
 
-func prepareServiceYAML() (found bool, err error) {
+func (gen *Generator) prepareServiceYAML() (found bool, err error) {
 	// Create a new service.yaml if the directory only contains doc.go or
 	// if there's an empty service.yaml file
 	createNew := false
-	fs, err := os.Stat("service.yaml")
+	fs, err := os.Stat(filepath.Join(gen.WorkDir, "service.yaml"))
 	if errors.Is(err, os.ErrNotExist) {
-		files, err := os.ReadDir(".")
+		files, err := os.ReadDir(gen.WorkDir)
 		if err != nil {
 			return false, errors.Trace(err)
 		}
@@ -28,14 +29,14 @@ func prepareServiceYAML() (found bool, err error) {
 	}
 
 	if createNew {
-		_, err = createServiceYAML()
+		_, err = gen.createServiceYAML()
 		if err != nil {
 			return false, errors.Trace(err)
 		}
 		return false, nil // Avoids error processing an empty file
 	}
 
-	err = updateServiceYAML()
+	err = gen.updateServiceYAML()
 	if err != nil {
 		return false, errors.Trace(err)
 	}
@@ -43,21 +44,21 @@ func prepareServiceYAML() (found bool, err error) {
 }
 
 // createServiceYAML generates a new service.yaml file.
-func createServiceYAML() (found bool, err error) {
+func (gen *Generator) createServiceYAML() (found bool, err error) {
 	tt, err := LoadTemplate("service.yaml")
 	if err != nil {
 		return false, errors.Trace(err)
 	}
-	err = tt.Overwrite("service.yaml", nil)
+	err = tt.Overwrite(filepath.Join(gen.WorkDir, "service.yaml"), nil)
 	if err != nil {
 		return false, errors.Trace(err)
 	}
-	printer.Printf("Service.yaml created")
+	gen.Printer.Debug("Service.yaml created")
 	return true, nil
 }
 
 // updateServiceYAML updates the comments and sections to the latest version.
-func updateServiceYAML() error {
+func (gen *Generator) updateServiceYAML() error {
 	// Read the latest version line by line
 	tt, err := LoadTemplate("service.yaml")
 	if err != nil {
@@ -87,7 +88,7 @@ func updateServiceYAML() error {
 	}
 
 	// Read the current version line by line
-	current, err := os.ReadFile("service.yaml")
+	current, err := os.ReadFile(filepath.Join(gen.WorkDir, "service.yaml"))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -134,7 +135,7 @@ func updateServiceYAML() error {
 
 	// Overwrite the original
 	if !bytes.Equal(content.Bytes(), current) {
-		file, err := os.Create("service.yaml")
+		file, err := os.Create(filepath.Join(gen.WorkDir, "service.yaml"))
 		if err != nil {
 			return err
 		}
@@ -143,7 +144,7 @@ func updateServiceYAML() error {
 		if err != nil {
 			return err
 		}
-		printer.Printf("Service.yaml updated")
+		gen.Printer.Debug("Service.yaml updated")
 	}
 	return nil
 }

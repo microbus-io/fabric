@@ -13,21 +13,26 @@ import (
 )
 
 // makeIntermediate creates the intermediate directory and files.
-func makeIntermediate(specs *spec.Service) error {
-	printer.Printf("Generating intermediate")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeIntermediate() error {
+	gen.Printer.Debug("Generating intermediate")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
+
+	// Fully qualify the types outside of the API directory
+	gen.specs.FullyQualifyDefinedTypes()
 
 	// Create the directory
-	_, err := os.Stat("intermediate")
+	dir := filepath.Join(gen.WorkDir, "intermediate")
+	_, err := os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
-		os.Mkdir("intermediate", os.ModePerm)
-		printer.Printf("mkdir intermediate")
+		os.Mkdir(dir, os.ModePerm)
+		gen.Printer.Debug("mkdir intermediate")
 	} else if err != nil {
 		return errors.Trace(err)
 	}
 
 	// intermediate.go
+	fileName := filepath.Join(gen.WorkDir, "intermediate", "intermediate-gen.go")
 	tt, err := LoadTemplate(
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-configs.txt",
@@ -36,78 +41,88 @@ func makeIntermediate(specs *spec.Service) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = tt.Overwrite("intermediate/intermediate-gen.go", specs)
+	err = tt.Overwrite(fileName, gen.specs)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	printer.Printf("intermediate/intermediate-gen.go")
+	gen.Printer.Debug("intermediate/intermediate-gen.go")
 	return nil
 }
 
 // makeResources creates the resources directory and files.
-func makeResources(specs *spec.Service) error {
-	printer.Printf("Generating resources")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeResources() error {
+	gen.Printer.Debug("Generating resources")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
+
+	// Fully qualify the types outside of the API directory
+	gen.specs.FullyQualifyDefinedTypes()
 
 	// Create the directory
-	_, err := os.Stat("resources")
+	dir := filepath.Join(gen.WorkDir, "resources")
+	_, err := os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
-		os.Mkdir("resources", os.ModePerm)
-		printer.Printf("mkdir resources")
+		os.Mkdir(dir, os.ModePerm)
+		gen.Printer.Debug("mkdir resources")
 	} else if err != nil {
 		return errors.Trace(err)
 	}
 
 	// embed-gen.go
+	fileName := filepath.Join(gen.WorkDir, "resources", "embed-gen.go")
 	tt, err := LoadTemplate("resources/embed-gen.txt")
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = tt.Overwrite("resources/embed-gen.go", specs)
+	err = tt.Overwrite(fileName, gen.specs)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	printer.Printf("resources/embed-gen.go")
+	gen.Printer.Debug("resources/embed-gen.go")
 
 	return nil
 }
 
 // makeAPI creates the API directory and files.
-func makeAPI(specs *spec.Service) error {
-	printer.Printf("Generating client API")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeAPI() error {
+	gen.Printer.Debug("Generating client API")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
+
+	// Should not fully qualify types when generating inside the API directory
+	gen.specs.ShorthandDefinedTypes()
 
 	// Create the directories
-	dir := specs.ShortPackage() + "api"
+	dir := filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api")
 	_, err := os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
 		os.Mkdir(dir, os.ModePerm)
-		printer.Printf("mkdir " + dir)
+		gen.Printer.Debug("mkdir %sapi", gen.specs.ShortPackage())
 	} else if err != nil {
 		return errors.Trace(err)
 	}
 
 	// types-gen.go
-	if len(specs.Types) > 0 {
+	fileName := filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api", "types-gen.go")
+	if len(gen.specs.Types) > 0 {
 		tt, err := LoadTemplate("api/types-gen.txt")
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = tt.Overwrite(specs.ShortPackage()+"api/types-gen.go", specs)
+		err = tt.Overwrite(fileName, gen.specs)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		printer.Printf(specs.ShortPackage() + "api/types-gen.go")
+		gen.Printer.Debug("%sapi/types-gen.go", gen.specs.ShortPackage())
 	} else {
-		err := os.Remove(specs.ShortPackage() + "api/types-gen.go")
+		err := os.Remove(fileName)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return errors.Trace(err)
 		}
 	}
 
 	// clients-gen.go
+	fileName = filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api", "clients-gen.go")
 	tt, err := LoadTemplate(
 		"api/clients-gen.txt",
 		"api/clients-webs.txt",
@@ -116,60 +131,65 @@ func makeAPI(specs *spec.Service) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = tt.Overwrite(specs.ShortPackage()+"api/clients-gen.go", specs)
+	err = tt.Overwrite(fileName, gen.specs)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	printer.Printf(specs.ShortPackage() + "api/clients-gen.go")
+	gen.Printer.Debug("%sapi/clients-gen.go", gen.specs.ShortPackage())
 
 	return nil
 }
 
 // makeImplementation generates service.go and service-gen.go.
-func makeImplementation(specs *spec.Service) error {
-	printer.Printf("Generating implementation")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeImplementation() error {
+	gen.Printer.Debug("Generating implementation")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
+
+	// Fully qualify the types outside of the API directory
+	gen.specs.FullyQualifyDefinedTypes()
 
 	// Overwrite service-gen.go
+	fileName := filepath.Join(gen.WorkDir, "service-gen.go")
 	tt, err := LoadTemplate("service-gen.txt")
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = tt.Overwrite("service-gen.go", specs)
+	err = tt.Overwrite(fileName, gen.specs)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	printer.Printf("service-gen.go")
+	gen.Printer.Debug("service-gen.go")
 
 	// Create service.go
+	fileName = filepath.Join(gen.WorkDir, "service.go")
 	tt, err = LoadTemplate("service.txt")
 	if err != nil {
 		return errors.Trace(err)
 	}
-	created, err := tt.Create("service.go", specs)
+	created, err := tt.Create(fileName, gen.specs)
 	if err != nil {
 		return errors.Trace(err)
 	}
 	if created {
-		printer.Printf("service.go")
+		gen.Printer.Debug("service.go")
 	}
 
-	// Scan .go files for exiting endpoints
-	printer.Printf("Scanning for existing handlers")
-	existingEndpoints, err := scanFiles(".go", `func \(svc \*Service\) ([A-Z][a-zA-Z0-9]*)\(`) // func (svc *Service) XXX(
+	// Scan .go files for existing endpoints
+	gen.Printer.Debug("Scanning for existing handlers")
+	existingEndpoints, err := scanFiles(gen.WorkDir, ".go", `func \(svc \*Service\) ([A-Z][a-zA-Z0-9]*)\(`) // func (svc *Service) XXX(
 	if err != nil {
 		return errors.Trace(err)
 	}
-	printer.Indent()
+	gen.Printer.Indent()
 	for k := range existingEndpoints {
-		printer.Printf(k)
+		gen.Printer.Debug(k)
 	}
-	printer.Unindent()
+	gen.Printer.Unindent()
 
 	// Mark existing handlers in the specs
 	newEndpoints := false
-	for _, h := range specs.AllHandlers() {
+	for _, h := range gen.specs.AllHandlers() {
 		if h.Type == "config" && !h.Callback {
 			continue
 		}
@@ -181,44 +201,45 @@ func makeImplementation(specs *spec.Service) error {
 	}
 
 	// Append new handlers
+	fileName = filepath.Join(gen.WorkDir, "service.go")
 	if newEndpoints {
-		printer.Printf("Creating new handlers")
-		printer.Indent()
-		for _, h := range specs.AllHandlers() {
+		tt, err = LoadTemplate("service-append.txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = tt.AppendTo(fileName, gen.specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		gen.Printer.Debug("New handlers created")
+		gen.Printer.Indent()
+		for _, h := range gen.specs.AllHandlers() {
 			if h.Type == "config" && !h.Callback {
 				continue
 			}
 			if !h.Exists {
 				if h.Type == "config" {
-					printer.Printf("OnChanged%s", h.Name())
+					gen.Printer.Debug("OnChanged%s", h.Name())
 				} else {
-					printer.Printf("%s", h.Name())
+					gen.Printer.Debug("%s", h.Name())
 				}
 			}
 		}
-		printer.Unindent()
-
-		tt, err = LoadTemplate("service-append.txt")
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = tt.AppendTo("service.go", specs)
-		if err != nil {
-			return errors.Trace(err)
-		}
+		gen.Printer.Unindent()
 	}
 
 	return nil
 }
 
 // scanFiles scans all files with the indicated suffix for all sub-matches of the regular expression.
-func scanFiles(fileSuffix string, regExpression string) (map[string]bool, error) {
+func scanFiles(workDir string, fileSuffix string, regExpression string) (map[string]bool, error) {
 	result := map[string]bool{}
 	re, err := regexp.Compile(regExpression)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	files, err := os.ReadDir(".")
+	files, err := os.ReadDir(workDir)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -226,8 +247,8 @@ func scanFiles(fileSuffix string, regExpression string) (map[string]bool, error)
 		if file.IsDir() || !strings.HasSuffix(file.Name(), fileSuffix) {
 			continue
 		}
-
-		body, err := os.ReadFile(file.Name())
+		fileName := filepath.Join(workDir, file.Name())
+		body, err := os.ReadFile(fileName)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
@@ -242,19 +263,19 @@ func scanFiles(fileSuffix string, regExpression string) (map[string]bool, error)
 }
 
 // makeTraceReturnedErrors adds errors.Trace to returned errors.
-func makeTraceReturnedErrors() error {
-	printer.Printf("Tracing returned errors")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeTraceReturnedErrors() error {
+	gen.Printer.Debug("Adding tracing to errors")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
 
-	err := makeTraceReturnedErrorsDir(".")
+	err := gen.makeTraceReturnedErrorsDir(gen.WorkDir)
 	if err != nil {
 		return errors.Trace(err)
 	}
 	return nil
 }
 
-func makeTraceReturnedErrorsDir(directory string) error {
+func (gen *Generator) makeTraceReturnedErrorsDir(directory string) error {
 	files, err := os.ReadDir(directory)
 	if err != nil {
 		return errors.Trace(err)
@@ -265,13 +286,14 @@ func makeTraceReturnedErrorsDir(directory string) error {
 			if file.Name() == "intermediate" || file.Name() == "resources" {
 				continue
 			}
-			err = makeTraceReturnedErrorsDir(fileName)
+			err = gen.makeTraceReturnedErrorsDir(fileName)
 			if err != nil {
 				return errors.Trace(err)
 			}
 		}
 		if !strings.HasSuffix(file.Name(), ".go") ||
-			strings.HasSuffix(file.Name(), "_test.go") || strings.HasSuffix(file.Name(), "-gen.go") {
+			strings.HasSuffix(file.Name(), "_test.go") ||
+			strings.HasSuffix(file.Name(), "-gen.go") {
 			continue
 		}
 
@@ -283,11 +305,11 @@ func makeTraceReturnedErrorsDir(directory string) error {
 		alteredBody := findReplaceReturnedErrors(body)
 		alteredBody = findReplaceImportErrors(alteredBody)
 		if body != alteredBody {
-			printer.Printf("%s", fileName)
 			err = os.WriteFile(fileName, []byte(alteredBody), 0666)
 			if err != nil {
 				return errors.Trace(err)
 			}
+			gen.Printer.Debug("%s", strings.TrimLeft(fileName, gen.WorkDir+"/"))
 		}
 	}
 
@@ -347,12 +369,12 @@ func findReplaceImportErrors(body string) (modified string) {
 	return result.String()
 }
 
-func makeRefreshSignature(specs *spec.Service) error {
-	printer.Printf("Refreshing signatures")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeRefreshSignature() error {
+	gen.Printer.Debug("Refreshing signatures")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
 
-	files, err := os.ReadDir(".")
+	files, err := os.ReadDir(gen.WorkDir)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -361,33 +383,35 @@ func makeRefreshSignature(specs *spec.Service) error {
 			continue
 		}
 		if !strings.HasSuffix(file.Name(), ".go") ||
-			strings.HasSuffix(file.Name(), "_test.go") || strings.HasSuffix(file.Name(), "-gen.go") {
+			strings.HasSuffix(file.Name(), "_test.go") ||
+			strings.HasSuffix(file.Name(), "-gen.go") {
 			continue
 		}
-
-		buf, err := os.ReadFile(file.Name())
+		fileName := filepath.Join(gen.WorkDir, file.Name())
+		buf, err := os.ReadFile(fileName)
 		if err != nil {
 			return errors.Trace(err)
 		}
 		body := string(buf)
-		alteredBody := findReplaceSignature(specs, body)
+		alteredBody := findReplaceSignature(gen.specs, body)
 		if body != alteredBody {
-			err = os.WriteFile(file.Name(), []byte(alteredBody), 0666)
+			err = os.WriteFile(fileName, []byte(alteredBody), 0666)
 			if err != nil {
 				return errors.Trace(err)
 			}
+			gen.Printer.Debug("%s", file.Name())
 		}
 	}
 
 	return nil
 }
 
-func makeRefreshComments(specs *spec.Service) error {
-	printer.Printf("Refreshing comments")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeRefreshComments() error {
+	gen.Printer.Debug("Refreshing comments")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
 
-	files, err := os.ReadDir(".")
+	files, err := os.ReadDir(gen.WorkDir)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -396,21 +420,23 @@ func makeRefreshComments(specs *spec.Service) error {
 			continue
 		}
 		if !strings.HasSuffix(file.Name(), ".go") ||
-			strings.HasSuffix(file.Name(), "_test.go") || strings.HasSuffix(file.Name(), "-gen.go") {
+			strings.HasSuffix(file.Name(), "_test.go") ||
+			strings.HasSuffix(file.Name(), "-gen.go") {
 			continue
 		}
-
-		buf, err := os.ReadFile(file.Name())
+		fileName := filepath.Join(gen.WorkDir, file.Name())
+		buf, err := os.ReadFile(fileName)
 		if err != nil {
 			return errors.Trace(err)
 		}
 		body := string(buf)
-		alteredBody := findReplaceDescription(specs, body)
+		alteredBody := findReplaceDescription(gen.specs, body)
 		if body != alteredBody {
-			err = os.WriteFile(file.Name(), []byte(alteredBody), 0666)
+			err = os.WriteFile(fileName, []byte(alteredBody), 0666)
 			if err != nil {
 				return errors.Trace(err)
 			}
+			gen.Printer.Debug("%s", file.Name())
 		}
 	}
 
@@ -431,7 +457,6 @@ func findReplaceSignature(specs *spec.Service, source string) (modified string) 
 			nl := strings.Index(source[p:], " {")
 			if nl >= 0 {
 				source = strings.Replace(source, source[p:p+nl], fnSig, 1)
-				printer.Printf("%s", fn.Name())
 			}
 		}
 	}
@@ -458,7 +483,6 @@ func findReplaceDescription(specs *spec.Service, source string) (modified string
 			p := strings.LastIndex(source[:pos], "/*")
 			if p > 0 && source[p:q] != newComment {
 				source = source[:p] + newComment + source[q:]
-				printer.Printf("%s", h.Name())
 			}
 			continue
 		}
@@ -475,42 +499,42 @@ func findReplaceDescription(specs *spec.Service, source string) (modified string
 			p = q + 1
 		}
 		source = source[:p] + newComment + source[pos:]
-		printer.Printf("%s", h.Name())
 	}
 	return source
 }
 
 // makeVersion generates the versioning files.
-func makeVersion(pkg string, version int) error {
-	printer.Printf("Versioning")
-	printer.Indent()
-	defer printer.Unindent()
+func (gen *Generator) makeVersion(version int) error {
+	gen.Printer.Debug("Versioning")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
 
-	hash, err := utils.SourceCodeSHA256(".")
+	hash, err := utils.SourceCodeSHA256(gen.WorkDir)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	v := &spec.Version{
-		Package:   pkg,
+		Package:   gen.specs.Package,
 		Version:   version,
 		Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 		SHA256:    hash,
 	}
-	printer.Printf("Version %d", v.Version)
-	printer.Printf("SHA256 %s", v.SHA256)
-	printer.Printf("Timestamp %v", v.Timestamp)
+	gen.Printer.Debug("Version %d", v.Version)
+	gen.Printer.Debug("SHA256 %s", v.SHA256)
+	gen.Printer.Debug("Timestamp %v", v.Timestamp)
 
 	templateNames := []string{
 		"version-gen",
 		"version-gen_test",
 	}
 	for _, n := range templateNames {
+		fileName := filepath.Join(gen.WorkDir, n+".go")
 		tt, err := LoadTemplate(n + ".txt")
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = tt.Overwrite(n+".go", &v)
+		err = tt.Overwrite(fileName, &v)
 		if err != nil {
 			return errors.Trace(err)
 		}

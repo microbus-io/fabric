@@ -17,6 +17,8 @@ type Service struct {
 	Webs      []*Handler
 	Tickers   []*Handler
 	Types     []*Type
+
+	fullyQualified bool
 }
 
 // UnmarshalYAML parses and validates the YAML.
@@ -40,6 +42,11 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // FullyQualifyDefinedTypes prepends the API package name to complex types of function arguments.
 func (s *Service) FullyQualifyDefinedTypes() {
+	if s.fullyQualified {
+		return
+	}
+	s.fullyQualified = true
+
 	apiPkg := s.ShortPackage() + "api."
 	for _, w := range s.Functions {
 		for _, a := range w.Signature.InputArgs {
@@ -59,6 +66,11 @@ func (s *Service) FullyQualifyDefinedTypes() {
 
 // ShorthandDefinedTypes removed the API package name from complex types of function arguments.
 func (s *Service) ShorthandDefinedTypes() {
+	if !s.fullyQualified {
+		return
+	}
+	s.fullyQualified = false
+
 	apiPkg := s.ShortPackage() + "api."
 	for _, w := range s.Functions {
 		for _, a := range w.Signature.InputArgs {

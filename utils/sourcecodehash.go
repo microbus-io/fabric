@@ -29,11 +29,10 @@ func hashDir(h hash.Hash, dir string) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	for _, file := range files {
 		fileName := filepath.Join(dir, file.Name())
 		if file.IsDir() {
-			if fileName == "data" || fileName == "testdata" {
+			if file.Name() == "data" || file.Name() == "testdata" {
 				continue
 			}
 			err = hashDir(h, fileName)
@@ -42,14 +41,12 @@ func hashDir(h hash.Hash, dir string) error {
 			}
 			continue
 		}
-
 		if strings.HasSuffix(file.Name(), "_test.go") ||
 			strings.HasPrefix(file.Name(), ".") ||
-			fileName == "debug.test" ||
-			fileName == "version-gen.go" {
+			file.Name() == "debug.test" ||
+			file.Name() == "version-gen.go" {
 			continue
 		}
-
 		f, err := os.Open(fileName)
 		if err != nil {
 			return errors.Trace(err)
@@ -60,6 +57,5 @@ func hashDir(h hash.Hash, dir string) error {
 			return errors.Trace(err)
 		}
 	}
-
 	return nil
 }
