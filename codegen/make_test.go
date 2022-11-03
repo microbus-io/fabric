@@ -12,29 +12,25 @@ func TestCodegen_FindReplaceReturnedErrors(t *testing.T) {
 	testCases := []string{
 		`
 return err
-`,
-		`
+`, `
 return errors.Trace(err)
 `,
 
 		`
 	return err
-`,
-		`
+`, `
 	return errors.Trace(err)
 `,
 
 		`
 	return 1, map[string]bool{}, err
-`,
-		`
+`, `
 	return 1, map[string]bool{}, errors.Trace(err)
 `,
 
 		`
 	return err // No trace
-`,
-		`
+`, `
 	return err // No trace
 `,
 
@@ -42,8 +38,7 @@ return errors.Trace(err)
 	if err := doSomething(); err!=nil {
 		return err
 	}
-`,
-		`
+`, `
 	if err := doSomething(); err!=nil {
 		return errors.Trace(err)
 	}
@@ -62,8 +57,7 @@ func TestCodegen_FindReplaceImportErrors(t *testing.T) {
 	testCases := []string{
 		`
 import "errors"
-`,
-		`
+`, `
 import "github.com/microbus-io/fabric/errors"
 `,
 
@@ -72,8 +66,7 @@ import (
 	"errors"
 	"fmt"
 )
-`,
-		`
+`, `
 import (
 	"fmt"
 
@@ -86,8 +79,7 @@ import (
 	"fmt"
 	"errors"
 )
-`,
-		`
+`, `
 import (
 	"fmt"
 
@@ -101,8 +93,7 @@ import (
 	"errors"
 	"net"
 )
-`,
-		`
+`, `
 import (
 	"fmt"
 	"net"
@@ -115,8 +106,7 @@ import (
 import (
 	"errors"
 )
-`,
-		`
+`, `
 import (
 	"github.com/microbus-io/fabric/errors"
 )
@@ -126,8 +116,7 @@ import (
 import (
 	"fmt"
 )
-`,
-		`
+`, `
 import (
 	"fmt"
 )
@@ -135,8 +124,7 @@ import (
 
 		`
 import "fmt"
-`,
-		`
+`, `
 import "fmt"
 `,
 	}

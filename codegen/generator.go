@@ -34,13 +34,13 @@ func NewGenerator() *Generator {
 
 // Run performs code generation.
 func (gen *Generator) Run() error {
-	if gen.WorkDir == "" {
+	if !strings.HasPrefix(gen.WorkDir, string(os.PathSeparator)) {
 		// Use current working directory if one is not explicitly specified
-		dir, err := os.Getwd()
+		cwd, err := os.Getwd()
 		if err != nil {
 			return errors.Trace(err)
 		}
-		gen.WorkDir = dir
+		gen.WorkDir = filepath.Join(cwd, gen.WorkDir)
 	}
 
 	pkgPath, err := gen.identifyPackage()
