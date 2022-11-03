@@ -49,10 +49,10 @@ configs:
 #   none - Pervasive
 functions:
   - signature: Ping() (pong int)
-    path: :888/ping
+    path: :888/...
     description: Ping responds to the message with a pong.
   - signature: ConfigRefresh()
-    path: :888/config/refresh
+    path: :888/...
     description: ConfigRefresh pulls the latest config values from the configurator service.
 
 # Types

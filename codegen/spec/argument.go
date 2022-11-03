@@ -66,12 +66,16 @@ func (arg *Argument) validate() error {
 			arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
 		case t == "uint" || t == "uint64" || t == "uint32" || t == "uint16" || t == "uint8":
 			arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
-		case t == "float32" || t == "float64" || t == "float":
+		case t == "float32" || t == "float64" || t == "float" || t == "double":
 			arg.Type = strings.TrimSuffix(arg.Type, t) + "float64"
-		case t == "Time":
-			arg.Type = strings.TrimSuffix(arg.Type, t) + "time.Time"
-		case t == "Duration":
-			arg.Type = strings.TrimSuffix(arg.Type, t) + "time.Duration"
+		case t == "Time" || t == "time":
+			arg.Type = strings.TrimSuffix(arg.Type, t)
+			arg.Type = strings.TrimSuffix(arg.Type, "time.")
+			arg.Type += "time.Time"
+		case t == "Duration" || t == "duration":
+			arg.Type = strings.TrimSuffix(arg.Type, t)
+			arg.Type = strings.TrimSuffix(arg.Type, "time.")
+			arg.Type += "time.Duration"
 		case t == "byte" || t == "bool" || t == "string":
 			// Nothing
 		case isLowerCaseIdentifier(t):

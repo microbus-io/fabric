@@ -12,7 +12,7 @@ var (
 	_ calculatorapi.Client
 )
 
-// NewService creates a new "calculator.example" microservice.
+// NewService creates a new calculator.example microservice.
 func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.New(s, Version)

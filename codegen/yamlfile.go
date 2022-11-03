@@ -8,14 +8,26 @@ import (
 )
 
 func prepareServiceYAML() (found bool, err error) {
+	// Create a new service.yaml if the directory only contains doc.go or
+	// if there's an empty service.yaml file
+	createNew := false
 	fs, err := os.Stat("service.yaml")
 	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
+		files, err := os.ReadDir(".")
+		if err != nil {
+			return false, errors.Trace(err)
+		}
+		if len(files) != 1 || files[0].Name() != "doc.go" {
+			return false, nil
+		}
+		createNew = true
 	} else if err != nil {
 		return false, errors.Trace(err)
+	} else if fs.Size() == 0 {
+		createNew = true
 	}
 
-	if fs.Size() == 0 {
+	if createNew {
 		_, err = createServiceYAML()
 		if err != nil {
 			return false, errors.Trace(err)

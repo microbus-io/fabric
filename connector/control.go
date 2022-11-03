@@ -21,7 +21,7 @@ func (c *Connector) subscribeControl() error {
 			options: []sub.Option{sub.NoQueue()},
 		},
 		{
-			path:    "config/refresh",
+			path:    "config-refresh",
 			handler: c.handleControlConfigRefresh,
 			options: []sub.Option{sub.NoQueue()},
 		},
@@ -46,7 +46,7 @@ func (c *Connector) handleControlPing(w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
-// handleControlConfigRefresh responds to the :888/config/refresh control request
+// handleControlConfigRefresh responds to the :888/config-refresh control request
 // by pulling the latest config values from the configurator service.
 func (c *Connector) handleControlConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	err := c.refreshConfig(r.Context())

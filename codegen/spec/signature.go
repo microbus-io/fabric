@@ -48,7 +48,7 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}
 			sig.InputArgs = append(sig.InputArgs, &Argument{
 				Name: strings.TrimSpace(arg[:space]),
-				Type: strings.TrimSpace(arg[space:]),
+				Type: strings.TrimSpace(strings.TrimLeft(arg[space:], " :")),
 			})
 		}
 	}
@@ -74,7 +74,7 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}
 			sig.OutputArgs = append(sig.OutputArgs, &Argument{
 				Name: strings.TrimSpace(arg[:space]),
-				Type: strings.TrimSpace(arg[space:]),
+				Type: strings.TrimSpace(strings.TrimLeft(arg[space:], " :")),
 			})
 		}
 	}

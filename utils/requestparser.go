@@ -11,7 +11,8 @@ import (
 
 var jsonNumberRegexp = regexp.MustCompile(`^(\-?)(0|([1-9][0-9]*))(\.[0-9]+)?([eE][\+\-]?[0-9]+)?$`)
 
-// ParseRequestData parses the body and query arguments of an incoming request and populates a data object.
+// ParseRequestData parses the body and query arguments of an incoming request
+// and populates a data object that represents its input arguments.
 func ParseRequestData(r *http.Request, data any) error {
 	contentType := r.Header.Get("Content-Type")
 	// Parse JSON in the body

@@ -51,11 +51,6 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		h.Path = ""
 	}
 	h.Path = strings.Replace(h.Path, "...", kebabCase(h.Name()), 1)
-	h.Description = conformDesc(
-		h.Description,
-		h.Name()+" is a "+h.Type+" handler.",
-		h.Name(),
-	)
 	h.Queue = strings.ToLower(h.Queue)
 
 	// Validate
@@ -80,7 +75,18 @@ func (h *Handler) validate() error {
 		return errors.Newf("invalid path '%s' in '%s'", h.Path, h.Name())
 	}
 
-	// Type will be empty during initial parsing
+	// Type will be empty during initial parsing.
+	// It will get filled by the parent service which will then call this method again.
+	if h.Type == "" {
+		return nil
+	}
+
+	h.Description = conformDesc(
+		h.Description,
+		h.Name()+" is a "+h.Type+".",
+		h.Name(),
+	)
+
 	switch h.Type {
 	case "web":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {

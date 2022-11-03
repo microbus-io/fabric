@@ -2,9 +2,17 @@
 
 package control
 
-import "github.com/microbus-io/fabric/services/control/intermediate"
+import (
+	"github.com/microbus-io/fabric/services/control/intermediate"
 
-// NewService creates a new "control.sys" microservice.
+	"github.com/microbus-io/fabric/services/control/controlapi"
+)
+
+var (
+	_ controlapi.Client
+)
+
+// NewService creates a new control.sys microservice.
 func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.New(s, Version)

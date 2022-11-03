@@ -29,7 +29,7 @@ func (t *Type) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Post processing
 	ifEmpty := t.Name + " is a complex type."
 	if t.Import != "" {
-		ifEmpty = t.Name + " refers to " + t.Import + "/" + t.ImportSuffix() + "api/" + t.Name + "."
+		ifEmpty = t.Name + " refers to " + t.Import + "/" + t.ImportSuffix() + "api."
 	}
 	t.Description = conformDesc(
 		t.Description,
@@ -79,6 +79,7 @@ func (t *Type) validate() error {
 		if err != nil {
 			return errors.Newf("%s in '%s'", err.Error(), t.Name)
 		}
+		t.Define[fName] = arg.Type // Type may have been sanitized
 	}
 	return nil
 }

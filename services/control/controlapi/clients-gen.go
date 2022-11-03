@@ -35,14 +35,14 @@ type Service interface {
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 }
 
-// Client provides type-safe access to the endpoints of the "control.sys" microservice.
+// Client provides type-safe access to the endpoints of the control.sys microservice.
 // This simple version is for unicast calls.
 type Client struct {
 	svc  Service
 	host string
 }
 
-// NewClient creates a new unicast client to the "control.sys" microservice.
+// NewClient creates a new unicast client to the control.sys microservice.
 func NewClient(caller Service) *Client {
 	return &Client{
 		svc:  caller,
@@ -56,14 +56,14 @@ func (_c *Client) ForHost(host string) *Client {
 	return _c
 }
 
-// MulticastClient provides type-safe access to the endpoints of the "control.sys" microservice.
+// MulticastClient provides type-safe access to the endpoints of the control.sys microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
 	svc  Service
 	host string
 }
 
-// NewMulticastClient creates a new multicast client to the "control.sys" microservice.
+// NewMulticastClient creates a new multicast client to the control.sys microservice.
 func NewMulticastClient(caller Service) *MulticastClient {
 	return &MulticastClient{
 		svc:  caller,
@@ -207,7 +207,7 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config/refresh`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config-refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -240,7 +240,7 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config/refresh`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config-refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}

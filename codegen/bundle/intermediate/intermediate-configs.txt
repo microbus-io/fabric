@@ -17,7 +17,9 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 /*
 {{ .Description }}
 */
-func (svc *Intermediate) {{ .Name }}() ({{ .Out }}) {
+func (svc *Intermediate) {{ .Name }}() (
+	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
+) {
 	_val := svc.Config(`{{ .Name }}`)
 	
 	{{- with index .Signature.OutputArgs 0}}
@@ -49,13 +51,14 @@ func (svc *Intermediate) {{ .Name }}() ({{ .Out }}) {
 type Initializer func(svc *Intermediate) error
 
 // With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) {
+func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 	for _, i := range initializers {
 		i(svc)
 	}
+	return svc
 }
 {{ range .Configs}}
-// {{ .Name }} initializes the "{{ .Name }}" config property of the microservice.
+// {{ .Name }} initializes the {{ .Name }} config property of the microservice.
 func {{ .Name }}({{ .Out }}) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`{{ .Name }}`, fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))

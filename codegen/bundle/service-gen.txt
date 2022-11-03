@@ -12,7 +12,7 @@ var (
 	_ {{ .ShortPackage }}api.Client
 )
 
-// NewService creates a new "{{ .General.Host }}" microservice.
+// NewService creates a new {{ .General.Host }} microservice.
 func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.New(s, Version)
@@ -21,10 +21,12 @@ func NewService() *Service {
 
 {{- if .Configs }}
 
+type Initializer = intermediate.Initializer
+
 // Config initializers
 var (
 	{{- range .Configs}}
-	// {{ .Name }} initializes the "{{ .Name }}" config property of the microservice.
+	// {{ .Name }} initializes the {{ .Name }} config property of the microservice
 	{{ .Name }} = intermediate.{{ .Name }}
 	{{- end}}
 )
@@ -34,7 +36,7 @@ With initializes the config properties of the microservice for testings purposes
 
 	{{ .ShortPackage }}Svc := {{ .ShortPackage }}.NewService().With(...)
 */
-func (svc *Service) With(initializers ...intermediate.Initializer) *Service {
+func (svc *Service) With(initializers ...Initializer) *Service {
 	svc.Intermediate.With(initializers...)
 	return svc
 }

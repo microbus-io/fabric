@@ -155,7 +155,7 @@ An error is returned if any of the values sent to the microservices fails valida
 */
 func (svc *Service) PeriodicRefresh(ctx context.Context) (err error) {
 	var lastErr error
-	ch := svc.Publish(ctx, pub.GET("https://all:888/config/refresh"))
+	ch := svc.Publish(ctx, pub.GET("https://all:888/config-refresh"))
 	for i := range ch {
 		_, err := i.Get()
 		if err != nil && err.Error() != "ack timeout" {

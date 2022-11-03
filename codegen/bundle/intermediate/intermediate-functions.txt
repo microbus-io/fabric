@@ -1,5 +1,5 @@
 {{ range .Functions}}
-// do{{ .Name }} handles marshaling for the "{{ .Name }}" function.
+// do{{ .Name }} handles marshaling for the {{ .Name }} function.
 func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 		{{- range .Signature.InputArgs }}

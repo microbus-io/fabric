@@ -2,12 +2,12 @@
 
 package configurator
 
-const Version = 14
-const SourceCodeSHA256 = "2317145921f5229a8c28cea7f6e1fb7c17cc5e2eb73a3e28fbed7e3e5333c9a1"
-const Timestamp = "2022-11-01T21:10:57.518503Z"
+const Version = 18
+const SourceCodeSHA256 = "15dc17e25d5ad2c48c656d688c3a6c1a0061f2ed1b681866f4d9131b99d6ead3"
+const Timestamp = "2022-11-03T02:58:06.926423Z"
 
 /* {
-	"ver": 14,
-	"sha256": "2317145921f5229a8c28cea7f6e1fb7c17cc5e2eb73a3e28fbed7e3e5333c9a1",
-	"ts": "2022-11-01T21:10:57.518503Z"
+	"ver": 18,
+	"sha256": "15dc17e25d5ad2c48c656d688c3a6c1a0061f2ed1b681866f4d9131b99d6ead3",
+	"ts": "2022-11-03T02:58:06.926423Z"
 } */

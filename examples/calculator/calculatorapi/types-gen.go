@@ -11,7 +11,7 @@ var (
 )
 
 /*
-Point is a 2D coordinate (X, Y)
+Point is a 2D (X,Y) coordinate.
 */
 type Point struct {
     X float64 `json:"x"`

@@ -70,6 +70,7 @@ func (svc *Service) Square(ctx context.Context, x int) (xEcho int, result int, e
 
 /*
 Distance calculates the distance between two points.
+It demonstrates the use of the defined type Point.
 */
 func (svc *Service) Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error) {
 	dx := p1.X - p2.X

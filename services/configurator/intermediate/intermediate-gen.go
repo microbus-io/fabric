@@ -19,6 +19,8 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/configurator/resources"
+
+	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
 )
 
 var (
@@ -35,6 +37,8 @@ var (
 	_ errors.TracedError
 	_ sub.Option
 	_ utils.ResponseRecorder
+
+	_ configuratorapi.Client
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -90,13 +94,14 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 type Initializer func(svc *Intermediate) error
 
 // With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) {
+func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 	for _, i := range initializers {
 		i(svc)
 	}
+	return svc
 }
 
-// doValues handles marshaling for the "Values" function.
+// doValues handles marshaling for the Values function.
 func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 		Names []string `json:"names"`
@@ -124,7 +129,7 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
-// doRefresh handles marshaling for the "Refresh" function.
+// doRefresh handles marshaling for the Refresh function.
 func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 	}{}
@@ -149,7 +154,7 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-// doSync handles marshaling for the "Sync" function.
+// doSync handles marshaling for the Sync function.
 func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 		Timestamp time.Time `json:"timestamp"`

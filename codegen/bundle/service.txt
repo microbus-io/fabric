@@ -19,7 +19,7 @@ var (
 )
 
 /*
-Service implements the "{{ .General.Host }}" microservice.
+Service implements the {{ .General.Host }} microservice.
 
 {{ .General.Description }}
 */

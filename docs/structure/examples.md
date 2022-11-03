@@ -1,6 +1,6 @@
 # Package `examples`
 
-The `examples` package holds several examples that demonstrate how the `Connector` can be used to create microservices.
+The `examples` package holds several examples that demonstrate how the framework can be used to create microservices. When studying an example, start by looking at the `service.yaml` to get a quick overview of the functionality of the microservice. Then go deep into the code in `service.go`. All files with `-gen` in their name are code generated and can be ignored unless studying the internals of the generated code.
 
 ## Hello
 
@@ -62,9 +62,9 @@ The `/bus.jpeg` endpoint serves an image from the embedded resources directory.
 
 ## Calculator
 
-The `calculator.example` microservice implement two endpoints, `/arithmetic` and `/square` in order to demonstrate parsing of query arguments and error handling.
+The `calculator.example` microservice implement two endpoints, `/arithmetic` and `/square` in order to demonstrate functional handlers. These types of handlers automatically parse incoming requests (typically JSON over HTTP) and make it appear like a function is called. Functional endpoints are best called using the client that's defined in the `calculatorapi` package. The `hello.example` discussed earlier is making use of this client.
 
-The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, and one of four operators in the `op` argument: `+`, `-`, `/` and `*`. The response is a JSON structure.
+The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, and one of four operators in the `op` argument: `+`, `-`, `/` and `*`. The response is a an echo of the input arguments and the result of the calculation. It is returned as JSON.
 
 http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=-8 produces:
 
@@ -86,6 +86,36 @@ http://localhost:8080/calculator.example/square?x=not-valid results in:
 
 ```
 json: cannot unmarshal string into Go struct field .x of type int
+```
+
+The `/distance` endpoint demonstrates the use of a complex type `Point`. The type is defined in `service.yaml`:
+
+```yaml
+types:
+  - name: Point
+    description: Point is a 2D (X,Y) coordinate.
+    define:
+      x: float64
+      y: float64
+```
+
+and code generated in the API package:
+
+```go
+/*
+Point is a 2D coordinate (X, Y)
+*/
+type Point struct {
+    X float64 `json:"x"`
+    Y float64 `json:"y"`
+}
+```
+
+Dot notation can be used in URL query arguments to denote values of nested fields.
+http://localhost:8080/calculator.example/distance?p1.x=0&p1.y=0&p2.x=3&p2.y=4 produces the result:
+
+```
+{"d":5}
 ```
 
 ## Messaging

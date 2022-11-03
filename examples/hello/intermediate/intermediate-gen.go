@@ -19,6 +19,8 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/hello/resources"
+
+	"github.com/microbus-io/fabric/examples/hello/helloapi"
 )
 
 var (
@@ -35,6 +37,8 @@ var (
 	_ errors.TracedError
 	_ sub.Option
 	_ utils.ResponseRecorder
+
+	_ helloapi.Client
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -122,21 +126,22 @@ func (svc *Intermediate) Repeat() (count int) {
 type Initializer func(svc *Intermediate) error
 
 // With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) {
+func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 	for _, i := range initializers {
 		i(svc)
 	}
+	return svc
 }
 
-// Greeting initializes the "Greeting" config property of the microservice.
-func Greeting(greeting string) Initializer {
+// Greeting initializes the Greeting config property of the microservice.
+func Greeting(greeting string, err error) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`Greeting`, fmt.Sprintf("%v", greeting))
 	}
 }
 
-// Repeat initializes the "Repeat" config property of the microservice.
-func Repeat(count int) Initializer {
+// Repeat initializes the Repeat config property of the microservice.
+func Repeat(count int, err error) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`Repeat`, fmt.Sprintf("%v", count))
 	}

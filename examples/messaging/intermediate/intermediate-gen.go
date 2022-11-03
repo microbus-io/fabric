@@ -19,6 +19,8 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/messaging/resources"
+
+	"github.com/microbus-io/fabric/examples/messaging/messagingapi"
 )
 
 var (
@@ -35,6 +37,8 @@ var (
 	_ errors.TracedError
 	_ sub.Option
 	_ utils.ResponseRecorder
+
+	_ messagingapi.Client
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -91,8 +95,9 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 type Initializer func(svc *Intermediate) error
 
 // With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) {
+func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 	for _, i := range initializers {
 		i(svc)
 	}
+	return svc
 }

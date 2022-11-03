@@ -2,9 +2,17 @@
 
 package configurator
 
-import "github.com/microbus-io/fabric/services/configurator/intermediate"
+import (
+	"github.com/microbus-io/fabric/services/configurator/intermediate"
 
-// NewService creates a new "configurator.sys" microservice.
+	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
+)
+
+var (
+	_ configuratorapi.Client
+)
+
+// NewService creates a new configurator.sys microservice.
 func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.New(s, Version)

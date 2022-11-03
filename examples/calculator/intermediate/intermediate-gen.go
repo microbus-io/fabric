@@ -91,13 +91,14 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 type Initializer func(svc *Intermediate) error
 
 // With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) {
+func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 	for _, i := range initializers {
 		i(svc)
 	}
+	return svc
 }
 
-// doArithmetic handles marshaling for the "Arithmetic" function.
+// doArithmetic handles marshaling for the Arithmetic function.
 func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 		X int `json:"x"`
@@ -132,7 +133,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
-// doSquare handles marshaling for the "Square" function.
+// doSquare handles marshaling for the Square function.
 func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 		X int `json:"x"`
@@ -161,7 +162,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
-// doDistance handles marshaling for the "Distance" function.
+// doDistance handles marshaling for the Distance function.
 func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 		P1 calculatorapi.Point `json:"p1"`

@@ -35,14 +35,14 @@ type Service interface {
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 }
 
-// Client provides type-safe access to the endpoints of the "configurator.sys" microservice.
+// Client provides type-safe access to the endpoints of the configurator.sys microservice.
 // This simple version is for unicast calls.
 type Client struct {
 	svc  Service
 	host string
 }
 
-// NewClient creates a new unicast client to the "configurator.sys" microservice.
+// NewClient creates a new unicast client to the configurator.sys microservice.
 func NewClient(caller Service) *Client {
 	return &Client{
 		svc:  caller,
@@ -56,14 +56,14 @@ func (_c *Client) ForHost(host string) *Client {
 	return _c
 }
 
-// MulticastClient provides type-safe access to the endpoints of the "configurator.sys" microservice.
+// MulticastClient provides type-safe access to the endpoints of the configurator.sys microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
 	svc  Service
 	host string
 }
 
-// NewMulticastClient creates a new multicast client to the "configurator.sys" microservice.
+// NewMulticastClient creates a new multicast client to the configurator.sys microservice.
 func NewMulticastClient(caller Service) *MulticastClient {
 	return &MulticastClient{
 		svc:  caller,

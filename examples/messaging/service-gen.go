@@ -2,9 +2,17 @@
 
 package messaging
 
-import "github.com/microbus-io/fabric/examples/messaging/intermediate"
+import (
+	"github.com/microbus-io/fabric/examples/messaging/intermediate"
 
-// NewService creates a new "messaging.example" microservice.
+	"github.com/microbus-io/fabric/examples/messaging/messagingapi"
+)
+
+var (
+	_ messagingapi.Client
+)
+
+// NewService creates a new messaging.example microservice.
 func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.New(s, Version)

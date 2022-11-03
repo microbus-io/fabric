@@ -19,6 +19,8 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/control/resources"
+
+	"github.com/microbus-io/fabric/services/control/controlapi"
 )
 
 var (
@@ -35,6 +37,8 @@ var (
 	_ errors.TracedError
 	_ sub.Option
 	_ utils.ResponseRecorder
+
+	_ controlapi.Client
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -67,7 +71,7 @@ The microservice itself does nothing and should not be included in applications.
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.Subscribe(`:888/ping`, svc.doPing)
-	svc.Subscribe(`:888/config/refresh`, svc.doConfigRefresh)
+	svc.Subscribe(`:888/config-refresh`, svc.doConfigRefresh)
 
 	return svc
 }
@@ -86,13 +90,14 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 type Initializer func(svc *Intermediate) error
 
 // With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) {
+func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 	for _, i := range initializers {
 		i(svc)
 	}
+	return svc
 }
 
-// doPing handles marshaling for the "Ping" function.
+// doPing handles marshaling for the Ping function.
 func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 	}{}
@@ -118,7 +123,7 @@ func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// doConfigRefresh handles marshaling for the "ConfigRefresh" function.
+// doConfigRefresh handles marshaling for the ConfigRefresh function.
 func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	i := struct {
 	}{}

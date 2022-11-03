@@ -19,6 +19,8 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/httpingress/resources"
+
+	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
 )
 
 var (
@@ -35,6 +37,8 @@ var (
 	_ errors.TracedError
 	_ sub.Option
 	_ utils.ResponseRecorder
+
+	_ httpingressapi.Client
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -111,21 +115,22 @@ func (svc *Intermediate) Port() (port int) {
 type Initializer func(svc *Intermediate) error
 
 // With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) {
+func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 	for _, i := range initializers {
 		i(svc)
 	}
+	return svc
 }
 
-// TimeBudget initializes the "TimeBudget" config property of the microservice.
-func TimeBudget(budget time.Duration) Initializer {
+// TimeBudget initializes the TimeBudget config property of the microservice.
+func TimeBudget(budget time.Duration, err error) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`TimeBudget`, fmt.Sprintf("%v", budget))
 	}
 }
 
-// Port initializes the "Port" config property of the microservice.
-func Port(port int) Initializer {
+// Port initializes the Port config property of the microservice.
+func Port(port int, err error) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`Port`, fmt.Sprintf("%v", port))
 	}

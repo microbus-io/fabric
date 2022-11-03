@@ -58,3 +58,17 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * LRU cache
 * Distributed LRU cache
+
+[Milestone 10](https://github.com/microbus-io/fabric/tree/milestone/10):
+
+* Code generation tool
+* Code generation to bootstrap new microservices
+* Code generation of config definitions and accessors
+* Code generation of web handlers
+* Code generation of functional handlers (JSON over HTTP)
+* Code generation of tickers
+* Code generation of complex types
+* Code change detection and automatic microservice versioning
+* Embedded resources
+* Clients for the port `:888` control subscriptions
+* Automatic tracing of returned errors

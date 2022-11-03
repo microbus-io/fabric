@@ -2,25 +2,14 @@
 
 All microservices on the `Microbus` subscribe to handle control messages on the reserved port `:888` in addition to any subscriptions they create for their own use case.
 
-Currently, only the `:888/ping` endpoint is implemented but more will be added in the future. The ping handler is subscribed to both the original host `www.example.com` and to the special host `all`:
+## Ping
 
-To discover all instances of `www.example.com`:
+The `:888/ping` endpoint enables the dynamic discovery of microservices. The ping handler is subscribed to both the host name of the service and to the special host `all`, allowing the discovery of replicas of a specific microservice, or of all microservices.
 
-```go
-ch := s.Publish(r.Context(), pub.GET("https://www.example.com:888/ping"))
-for r := range ch {
-    res, err := r.Get()
-    if err != nil {
-        return errors.Trace(err)
-    }
-    fromID := frame.Of(res).FromID()
-}
-```
-
-To discover all instances of all microservices:
+To discover all instances of `www.example.com` using the `Publish` method of the connector:
 
 ```go
-ch := s.Publish(r.Context(), pub.GET("https://all:888/ping"))
+ch := con.Publish(r.Context(), pub.GET("https://www.example.com:888/ping"))
 for r := range ch {
     res, err := r.Get()
     if err != nil {
@@ -31,4 +20,28 @@ for r := range ch {
 }
 ```
 
-Note how `frame.Of(res)` is used to extract the control headers from the response. The body of the response is ignored.
+Or use the `controlapi.Client` that abstracts the internals:
+
+```go
+ch := controlapi.NewMulticastClient(svc).ForHost("www.example.com").Ping(ctx)
+for r := range ch {
+    fromHost := frame.Of(r.HTTPResponse).FromHost()
+    fromID := frame.Of(r.HTTPResponse).FromID()
+}
+```
+
+To discover instances of all microservices replace the host name `www.example.com` with the special host name `all`:
+
+```go
+ch := con.Publish(r.Context(), pub.GET("https://all:888/ping"))
+```
+
+Or with `controlapi`:
+
+```go
+ch := controlapi.NewMulticastClient(svc).ForHost("all").Ping(ctx)
+```
+
+## Config Refresh
+
+The `:888/config-refresh` endpoint indicates to the microservice to contact the configurator to refetch the values of its config properties.
