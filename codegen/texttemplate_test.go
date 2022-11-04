@@ -41,7 +41,7 @@ func TestCodegen_TextTemplate(t *testing.T) {
 
 	specs := &spec.Service{
 		Package: "testing/text/template",
-		General: &spec.General{
+		General: spec.General{
 			Host:        "example.com",
 			Description: "Example",
 		},
@@ -52,7 +52,7 @@ func TestCodegen_TextTemplate(t *testing.T) {
 	assert.Contains(t, string(rendered), "testing/text/template")
 	assert.Contains(t, string(rendered), "example.com")
 
-	fileName := "testing-text-template-" + rand.AlphaNum32(12)
+	fileName := "testing-" + rand.AlphaNum32(12)
 	defer os.Remove(fileName)
 
 	err = tt.AppendTo(fileName, specs)

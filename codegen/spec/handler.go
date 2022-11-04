@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
@@ -74,6 +75,16 @@ func (h *Handler) validate() error {
 	if err != nil {
 		return errors.Newf("invalid path '%s' in '%s'", h.Path, h.Name())
 	}
+	if h.Validation != "" {
+		_, err := cfg.NewConfig(
+			h.Name(),
+			cfg.Validation(h.Validation),
+			cfg.DefaultValue(h.Default),
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 
 	// Type will be empty during initial parsing.
 	// It will get filled by the parent service which will then call this method again.
@@ -93,22 +104,25 @@ func (h *Handler) validate() error {
 			return errors.Newf("arguments or return values not allowed in '%s'", h.Signature.OrigString)
 		}
 	case "config":
-		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 1 {
+		if len(h.Signature.InputArgs) != 0 {
+			return errors.Newf("arguments not allowed in '%s'", h.Signature.OrigString)
+		}
+		if len(h.Signature.OutputArgs) != 1 {
 			return errors.Newf("single return value expected in '%s'", h.Signature.OrigString)
 		}
 		t := h.Signature.OutputArgs[0].Type
 		if t != "string" && t != "int" && t != "bool" && t != "time.Duration" && t != "float64" {
-			return errors.Newf("invalid config return type '%s' in '%s'", t, h.Signature.OrigString)
+			return errors.Newf("invalid return type '%s' in '%s'", t, h.Signature.OrigString)
 		}
 	case "ticker":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {
 			return errors.Newf("arguments or return values not allowed in '%s'", h.Signature.OrigString)
 		}
 		if h.Interval <= 0 {
-			return errors.Newf("negative interval '%v' in '%s'", h.Interval, h.Name())
+			return errors.Newf("non-positive interval '%v' in '%s'", h.Interval, h.Name())
 		}
 		if h.TimeBudget < 0 {
-			return errors.Newf("non-positive time budget '%v' in '%s'", h.TimeBudget, h.Name())
+			return errors.Newf("negative time budget '%v' in '%s'", h.TimeBudget, h.Name())
 		}
 	case "function":
 		argNames := map[string]bool{}

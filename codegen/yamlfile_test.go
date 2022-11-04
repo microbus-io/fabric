@@ -12,6 +12,8 @@ import (
 )
 
 func TestCodegen_YAMLFile(t *testing.T) {
+	t.Parallel()
+
 	// Create a temp directory
 	dir := "testing-yaml-" + rand.AlphaNum64(12)
 	os.Mkdir(dir, os.ModePerm)

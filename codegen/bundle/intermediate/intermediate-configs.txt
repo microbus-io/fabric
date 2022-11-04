@@ -59,7 +59,9 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 }
 {{ range .Configs}}
 // {{ .Name }} initializes the {{ .Name }} config property of the microservice.
-func {{ .Name }}({{ .Out }}) Initializer {
+func {{ .Name }}(
+	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
+) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`{{ .Name }}`, fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
 	}

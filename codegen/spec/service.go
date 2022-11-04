@@ -11,7 +11,7 @@ import (
 type Service struct {
 	Package string `yaml:"-"`
 
-	General   *General `yaml:"general"`
+	General   General `yaml:"general"`
 	Configs   []*Handler
 	Functions []*Handler
 	Webs      []*Handler
@@ -92,6 +92,12 @@ func (s *Service) ShorthandDefinedTypes() {
 
 // validate validates the data after unmarshaling.
 func (s *Service) validate() error {
+	// Need to validate when YAML does not include a general section
+	err := s.General.validate()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	// Has to repeat validation after setting the types because
 	// the handlers don't know their type during parsing.
 	for _, w := range s.Configs {

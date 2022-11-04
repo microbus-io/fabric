@@ -123,14 +123,14 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 }
 
 // TimeBudget initializes the TimeBudget config property of the microservice.
-func TimeBudget(budget time.Duration, err error) Initializer {
+func TimeBudget(budget time.Duration) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`TimeBudget`, fmt.Sprintf("%v", budget))
 	}
 }
 
 // Port initializes the Port config property of the microservice.
-func Port(port int, err error) Initializer {
+func Port(port int) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`Port`, fmt.Sprintf("%v", port))
 	}

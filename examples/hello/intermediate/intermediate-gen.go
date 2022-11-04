@@ -134,14 +134,14 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 }
 
 // Greeting initializes the Greeting config property of the microservice.
-func Greeting(greeting string, err error) Initializer {
+func Greeting(greeting string) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`Greeting`, fmt.Sprintf("%v", greeting))
 	}
 }
 
 // Repeat initializes the Repeat config property of the microservice.
-func Repeat(count int, err error) Initializer {
+func Repeat(count int) Initializer {
 	return func(svc *Intermediate) error{
 		return svc.InitConfig(`Repeat`, fmt.Sprintf("%v", count))
 	}

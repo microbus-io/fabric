@@ -68,6 +68,8 @@ func (arg *Argument) validate() error {
 			arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
 		case t == "float32" || t == "float64" || t == "float" || t == "double":
 			arg.Type = strings.TrimSuffix(arg.Type, t) + "float64"
+		case t == "boolean" || t == "Boolean":
+			arg.Type = strings.TrimSuffix(arg.Type, t) + "bool"
 		case t == "Time" || t == "time":
 			arg.Type = strings.TrimSuffix(arg.Type, t)
 			arg.Type = strings.TrimSuffix(arg.Type, "time.")

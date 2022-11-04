@@ -55,27 +55,26 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	str = str[closeParen+1:]
 	openParen = strings.Index(str, "(")
-	if openParen < 0 {
-		return nil
-	}
-	str = str[openParen+1:]
-	closeParen = strings.Index(str, ")")
-	if closeParen < 0 {
-		return errors.New("missing closing parenthesis")
-	}
+	if openParen >= 0 {
+		str = str[openParen+1:]
+		closeParen = strings.Index(str, ")")
+		if closeParen < 0 {
+			return errors.New("missing closing parenthesis")
+		}
 
-	args = strings.TrimSpace(str[:closeParen])
-	if args != "" {
-		for _, arg := range strings.Split(args, ",") {
-			arg = strings.TrimSpace(arg)
-			space := strings.Index(arg, " ")
-			if space < 0 {
-				return errors.Newf("invalid argument '%s'", arg)
+		args = strings.TrimSpace(str[:closeParen])
+		if args != "" {
+			for _, arg := range strings.Split(args, ",") {
+				arg = strings.TrimSpace(arg)
+				space := strings.Index(arg, " ")
+				if space < 0 {
+					return errors.Newf("invalid argument '%s'", arg)
+				}
+				sig.OutputArgs = append(sig.OutputArgs, &Argument{
+					Name: strings.TrimSpace(arg[:space]),
+					Type: strings.TrimSpace(strings.TrimLeft(arg[space:], " :")),
+				})
 			}
-			sig.OutputArgs = append(sig.OutputArgs, &Argument{
-				Name: strings.TrimSpace(arg[:space]),
-				Type: strings.TrimSpace(strings.TrimLeft(arg[space:], " :")),
-			})
 		}
 	}
 

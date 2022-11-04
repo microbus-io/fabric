@@ -13,7 +13,7 @@ The following options are supported:
 * `cfg.DefaultValue` specifies a default value for the property when one is not provided by the configurator
 * `cfg.Validation` uses a pattern to validate values before they are set
 	* `str` - Plain text, no validation
-	* `str [a-zA-Z0-9]+` - Text with regexp validation
+	* `str ^[a-zA-Z0-9]+$` - Text with regexp validation
 	* `bool` - Must be `true` or `false`
 	* `int` - An integer, no validation
 	* `int [0,60]` - An integer in range
