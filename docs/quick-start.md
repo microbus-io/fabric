@@ -24,7 +24,7 @@ It's recommended to start the NATS server in a separate terminal window to bette
 
 ## Run the Examples
 
-Run the [examples](docs/structure/examples.md):
+Run the example app:
 
 ```cmd
 cd examples/main

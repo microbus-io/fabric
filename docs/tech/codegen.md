@@ -18,11 +18,11 @@ The next step is to create a `service.yaml` file which will be used to specify t
 
 In `service.yaml`, developers are able to define the various pieces of the microservice in a declarative fashion. Code generation picks up these definitions to generate boilerplate code, leaving it up to the developer to implement the business logic.
 
-`service.yaml` include several sections:
+`service.yaml` include several sections: general, configs, functions, types, webs and tickers.
 
 ### General
 
-The `general` section of `service.yaml` defines the `host` name of the microservice and its human-friendly `description`. The host name is required. It will be how the microservice is addressed inside the `Microbus` system. A hierarchical naming scheme for host names such as `myservice.mydomain.myproduct` can help avoid conflicts.
+The `general` section of `service.yaml` defines the `host` name of the microservice and its human-friendly `description`. The host name is required. It will be how the microservice is addressed by other microservices. A hierarchical naming scheme for host names such as `myservice.mydomain.myproduct` can help avoid conflicts.
 
 ```yaml
 # General
@@ -74,13 +74,13 @@ If `callback` is set to `true`, a callback function will be generated and called
 ```go
 // OnChangedFoo is triggered when the value of the Foo config property changes.
 func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
-    return // todo
+    return
 }
 ```
 
 ### Functions
 
-`functions` define a web endpoint that is made to appear like a function. Input arguments are pulled from either the JSON body of the request or from the query arguments. Output arguments are written as JSON to the body of the response.
+`functions` define a web endpoint that is made to appear like a function (RPC). Input arguments are pulled from either the JSON body of the request or from the query arguments. Output arguments are written as JSON to the body of the response.
 
 ```yaml
 # Functions
@@ -107,7 +107,7 @@ functions:
 
 The `signature` defines the function name (which much start with an uppercase letter) and the input and output arguments. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
 
-The code generated functional request handler will look similar to this:
+The code generated functional request handler will look similar to the following. `Microbus` is taking care of marhsaling and unmarshaling behind the scenes.
 
 ```go
 /*
@@ -124,9 +124,9 @@ Along with the host name of the service, the `path` defines the URL to this endp
 
 ### Types
 
-Any complex non-primitive types used in functions must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are allowed. Types that are owned by this microservice are defined locally to this microservice. Types that are owned by other microservices but are used by this microservices must be imported by pointing to the location of their package.
+All complex (struct) non-primitive types used in `functions` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to the location of their package.
 
-Complex types may contain other complex types, in which case those nested types also must be declared.
+Complex types may contain other complex types in which case those nested types also must be declared.
 
 ```yaml
 # Types
@@ -147,7 +147,7 @@ types:
 
 ### Web Handlers
 
-The `webs` sections defines raw web handlers.
+The `webs` sections defines low-level web handlers which allow the microservice to handle incoming web requests as they see fit.
 
 ```yaml
 # Web handlers
@@ -181,7 +181,7 @@ The code generated web handler will look similar to this:
 WebHandler is an example of a web handler.
 */
 func (svc *Service) WebHandler(w http.ResponseWriter, r *http.Request) (err error) {
-    return nil // todo
+    return nil
 }
 ```
 
@@ -210,21 +210,27 @@ The code generated ticker handler will look similar to this:
 TickerHandler is an example of a ticker handler.
 */
 func (svc *Service) TickerHandler(ctx context.Context) (err error) {
-    return nil // todo
+    return nil
 }
 ```
 
 ### Clients
 
-In addition to the server-side, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to reduce the chance of cyclical dependencies between upstream and downstream microservices.
+In addition to the server side of things, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to reduce the chance of cyclical dependencies between upstream and downstream microservices.
+
+With clients, an upstream microservice remotely calling a downstream microservice looks very much like a standard local function call.
+
+```go
+result, err := downstreamapi.NewClient(upstreamSvc).Add(ctx, x, y)
+```
 
 ### Embedded Resources
 
-A `resources` directory is automatically created with a `//go:embed` directive to allow microservices to bundle resource files along with the executable.
+A `resources` directory is automatically created with a `//go:embed` directive to allow microservices to bundle resource files along with the executable. The `embed.FS` is made available via `svc.Resources()`.
 
 ### Versioning
 
-The code generator tool calculates a hash of the source code of the microservice which helps it detect changes. When a change is detected, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to differentiate between different builds of the microservice.
+The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to differentiate among different builds of the microservice.
 
 ## Structure of Generated Code
 
@@ -232,25 +238,25 @@ The code generator creates quite a few files and sub-directories in the director
 
 The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types that they use. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
-The `intermediate` directory (and package) defines the `Intermediate` which is used as the base of the microservice via anonymous inclusion. The `Intermediate` in turn extends the [`Connector`](../structure/connector.md).
+The `intermediate` directory (and package) defines the `Intermediate` which serves as the base of the microservice via anonymous inclusion. The `Intermediate` in turn extends the [`Connector`](../structure/connector.md).
 
-The `resources` directory is a place to put static resources to be embedded into the executable of the microservice. Templates, images, scripts, etc. are some examples of what can potentially be embedded.
+The `resources` directory is a place to put static files to be embedded (linked) into the executable of the microservice. Templates, images, scripts, etc. are some examples of what can potentially be embedded.
 
 `service-gen.go` primarily includes the function to create a `NewService`. It may also alias the config initializers of the `Intermediate` and its `With` function, if appropriate.
 
-`service.go` is where developers are expected to introduce the business logic of the microservice. `service.go` implements `Service`, which extends `Intermediate` as mentioned earlier. Most of the tools that a microservice needs are available through the receiver `(svc *Service)` which points to the `Intermediate` and by extension the `Connector`. It include the methods of the `Connector` as well as type-specific methods defined in the `Intermediate`.
+`service.go` is where application developers are expected to introduce the business logic of the microservice. `service.go` implements `Service`, which extends `Intermediate` as mentioned earlier. Most of the tools that a microservice needs are available through the receiver `(svc *Service)` which points to the `Intermediate` and by extension the `Connector`. It include the methods of the `Connector` as well as type-specific methods defined in the `Intermediate`.
 
 ```go
 type Intermediate struct {
-	*connector.Connector
+    *connector.Connector
 }
 
 type Service struct {
-	*Intermediate
+    *intermediate.Intermediate
 }
 
 func (svc *Service) DoSomething(ctx context.Context) (err error) {
-    // svc points to the Intermediate and the Connector
+    // svc points to the Intermediate and by extension the Connector
 }
 ```
 
@@ -259,13 +265,13 @@ In addition to the standard `OnStartup` and `OnShutdown` callbacks, the code gen
 ```go
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	return // todo
+    return
 }
 
 // OnShutdown is called when the microservice is shut down.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
-	return // todo
+    return
 }
 ```
 
-`version-gen.go` holds the SHA256 of the source code and the auto-incremented version number. `version-gen_test.go` makes sure it is up to date. If the test fails, running `go generate` will bring the version up to date.
+`version-gen.go` holds the SHA256 of the source code and the auto-incremented version number. `version-gen_test.go` makes sure it is up to date. If the test fails, running `go generate` brings the version up to date.

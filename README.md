@@ -1,6 +1,6 @@
 # Microbus.io fabric : Milestone 10
 
-<img src="docs\gopher-on-bus.png" width=256>
+<img src="docs/gopher-on-bus.png" width=256>
 
 ## Introduction
 
@@ -9,14 +9,22 @@
 The framework involves itself in three conceptual areas:
 
 * Common runtime - The framework specifies rules that all microservices need to comply with during runtime. This includes things like how microservices [communicate](docs/tech/unicast.md), how they report metrics, where they [pull config values](docs/tech/configuration.md) from, how they get deployed, etc. A common set of rules is important for proper interoperability and the stability of the system as a whole
-* RAD tools - The framework introduces tools for the rapid development of microservices with the intent that application developers focus on application business logic rather than boilerplate code. Developer productivity is directly correlated to customer value
+* RAD tools - The framework leverages [code generation](docs/tech/codegen.md) for the rapid development of microservices with the intent that application developers focus on the business logic rather than on boilerplate code. Developer productivity is directly correlated to customer value
 * Building blocks - Capabilities that are deemed to be the building blocks of microservices are implemented by the framework in a standard way, serving to facilitate both of the above
 
 `fabric` is the main project that provides the core capabilities that all `Microbus` microservices are built on. The [milestones](docs/milestones.md) of this project are maintained in separate branches in order to demonstrate the thinking process behind the building of this framework.
 
-## Quick Start
+## Getting Started
 
-[Get started quickly](docs/quick-start.md) <sup color="orange">updated</sup> and set up your system, then go through the [examples](docs/structure/examples.md) <sup color="orange">updated</sup>.
+Follow the [quick start guide](docs/quick-start.md) <sup color="orange">updated</sup> to set up your system and run the example app.
+
+Go through the [examples](docs/structure/examples.md) <sup color="orange">updated</sup> in depth.
+
+Follow the step-by-step guide and [build your first microservice](docs/firstservice.md) <sup color="orange">new</sup>!
+
+Discover the full power of [code generation](docs/tech/codegen.md) in `Microbus`. It's totally RAD, dude!
+
+Venture out and [explore more on your own](docs/self-explore.md) <sup color="orange">updated</sup>.
 
 ## Code Structure
 
@@ -45,7 +53,7 @@ Review each of the major project packages to get oriented in the code structure:
 
 ## Technical Deep Dive
 
-Go into the details with these technical guides:
+Get a deeper understanding of the principals and philosophy of `Microbus`:
 
 * [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
@@ -57,8 +65,4 @@ Go into the details with these technical guides:
 * [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
 * [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
-* [Code generation](docs/tech/codegen.md) <sup color="orange">new</sup> - `Microbus`'s most powerful RAD tool
-
-Note the [shortcuts](docs/shortcuts.md) taken in this milestone. These will be addressed in future releases.
-
-Get your hands dirty and [explore more on your own](docs/self-explore.md) <sup color="orange">updated</sup>.
+* [Code generation](docs/tech/codegen.md) <sup color="orange">new</sup> - Discover the power of `Microbus`'s most powerful RAD tool

@@ -71,4 +71,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Code change detection and automatic microservice versioning
 * Embedded resources
 * Clients for the port `:888` control subscriptions
-* Automatic tracing of returned errors
+* Code generator automatically adding `errors.Trace` to returned errors
+* Capturing errors during initialization and failing startup
