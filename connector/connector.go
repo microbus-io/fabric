@@ -42,6 +42,7 @@ type Connector struct {
 	ctxCancel       context.CancelFunc
 	pendingOps      int32
 	onStartupCalled bool
+	initErr         error
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription

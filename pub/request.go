@@ -23,6 +23,7 @@ type Request struct {
 // NewRequest constructs a new request from the provided options.
 func NewRequest(options ...Option) (*Request, error) {
 	req := &Request{
+		Method:     "POST",
 		Header:     make(http.Header),
 		Multicast:  true,
 		TimeBudget: 20 * time.Second,

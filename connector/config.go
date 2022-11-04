@@ -19,12 +19,12 @@ type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) e
 // SetOnConfigChanged sets a function to be called when a new config was received from the configurator.
 func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...cb.Option) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 
 	callback, err := cb.NewCallback("onconfigchanged", handler, options...)
 	if err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	c.onConfigChanged = callback
 	return nil
@@ -35,12 +35,12 @@ func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...
 // Property names are case-insensitive.
 func (c *Connector) DefineConfig(name string, options ...cfg.Option) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 
 	config, err := cfg.NewConfig(name, options...)
 	if err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	config.Value = config.DefaultValue
 
@@ -48,7 +48,7 @@ func (c *Connector) DefineConfig(name string, options ...cfg.Option) error {
 	defer c.configLock.Unlock()
 
 	if _, ok := c.configs[strings.ToLower(name)]; ok {
-		return errors.Newf("config '%s' is already defined", name)
+		return c.captureInitErr(errors.Newf("config '%s' is already defined", name))
 	}
 	c.configs[strings.ToLower(name)] = config
 	return nil
@@ -74,7 +74,7 @@ func (c *Connector) Config(name string) (value string) {
 // Property names are case-insensitive.
 func (c *Connector) InitConfig(name string, value string) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 
 	c.configLock.Lock()
@@ -85,7 +85,7 @@ func (c *Connector) InitConfig(name string, value string) error {
 		return nil
 	}
 	if !cfg.Validate(config.Validation, value) {
-		return errors.Newf("invalid value '%s' for config property '%s'", value, name)
+		return c.captureInitErr(errors.Newf("invalid value '%s' for config property '%s'", value, name))
 	}
 	config.DefaultValue = value
 	config.Value = value
