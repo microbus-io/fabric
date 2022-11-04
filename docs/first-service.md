@@ -4,12 +4,7 @@ This guide walks through the creation of a microservice that implements a simpli
 
 For example, if the secret word is `APPLE` and a guess is `OPERA`, the system will identify the second letter `P` as an exact match (green), the letters `A` and `E` as out-of-place matches (yellow), and the letters `O` and `R` as non-matches (grey).
 
-<div style="background:grey;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">O</div>
-<div style="background:green;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">P</div>
-<div style="background:#DBA800;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">E</div>
-<div style="background:grey;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">R</div>
-<div style="background:#DBA800;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">A</div>
-<p>
+<img src="first-service-1.png" width="213">
 
 ## Step 1: Bootstrap
 
@@ -34,7 +29,7 @@ A `service.yaml` template is generated. We'll fill it in next.
 
 ## Step 2: Service Definition
 
-Open `service.yaml`. This is you starting point and where you define the structure of the microservice. First, name the service:
+Open `service.yaml`. This is your starting point and where you declare the structure of the microservice. First, name the service:
 
 ```yaml
 general:
@@ -96,7 +91,7 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 
 ## Step 4: Implementation
 
-We'll implement the logic of the game in the `Play` method which represents the `GET /play` request. This endpoint accepts two optional query arguments. The first, `game`, identifies the game. If it is not present, a new game is created. Add the following code to `Play`.
+We'll implement the game logic in the `Play` method which handles the `GET /play` request. This endpoint accepts two optional query arguments. The first, `game`, identifies the game. If it is not present, a new game is created. Add the following code to `Play`.
 
 ```go
 gameID := r.URL.Query().Get("game")
@@ -112,7 +107,7 @@ if gameID == "" || game == nil {
 
 The secret word is hard-coded to `APPLE` for the time being. We'll get to it later.
 
-The second argument is `guess` which, if present, submits a guess to the identified game. Add the following code to `Play`.
+The second argument is `guess`, which if present submits a guess to the identified game. Add the following code to `Play`.
 
 ```go
 guess := r.URL.Query().Get("guess")
@@ -130,10 +125,6 @@ Notice the use of `svc.MaxGuesses()` to pull the value of the config property th
 
 Next, we'll render the UI. First, a simple form to submit a guess,
 
-<input type="text" maxlength="5">
-<input type="button" value="Guess">
-<p>
-
 ```go
 var page bytes.Buffer
 page.WriteString(`<html><body>`)
@@ -147,21 +138,7 @@ page.WriteString(`
 `)
 ```
 
-then all prior guesses and with indication of their level of matching of the secret word.
-
-<div style="background:grey;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">W</div>
-<div style="background:#DBA800;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">R</div>
-<div style="background:grey;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">O</div>
-<div style="background:grey;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">N</div>
-<div style="background:#DBA800;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">G</div>
-<p>
-
-<div style="background:green;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">R</div>
-<div style="background:green;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">I</div>
-<div style="background:green;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">G</div>
-<div style="background:green;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">H</div>
-<div style="background:green;color:white;display:inline-block;font-size:24pt;width:32pt;text-align:center;">T</div>
-<p>
+then all prior guesses with indication of how they match the secret word.
 
 ```go
 for _, g := range game.guesses {
@@ -231,7 +208,7 @@ func (svc *Service) randomWord() string {
 }
 ```
 
-And finally, adjusting the new game generation.
+Lastly, adjust the new game generation to make use of `randomWord`.
 
 ```go
 game = &Game{
@@ -274,6 +251,7 @@ This microservice is far from being polished. Try the following on your own:
 
 * Add a title to the top of the page
 * Add instructions that mention how many guesses the player has left
+* Add a UI element (link or button) to let the player start a new game
 * Give a cleaner error message to the user on an invalid guess
 * Do not print the guessing form if the player exhausted all of their guesses
 * Do not accept guesses after the player identified the secret word

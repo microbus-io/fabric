@@ -20,7 +20,7 @@ Follow the [quick start guide](docs/quick-start.md) <sup color="orange">updated<
 
 Go through the [examples](docs/structure/examples.md) <sup color="orange">updated</sup> in depth.
 
-Follow the step-by-step guide and [build your first microservice](docs/firstservice.md) <sup color="orange">new</sup>!
+Follow the step-by-step guide and [build your first microservice](docs/first-service.md) <sup color="orange">new</sup>!
 
 Discover the full power of [code generation](docs/tech/codegen.md) in `Microbus`. It's totally RAD, dude!
 
