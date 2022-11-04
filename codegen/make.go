@@ -19,7 +19,7 @@ func (gen *Generator) makeIntermediate() error {
 	defer gen.Printer.Unindent()
 
 	// Fully qualify the types outside of the API directory
-	gen.specs.FullyQualifyDefinedTypes()
+	gen.specs.FullyQualifyTypes()
 
 	// Create the directory
 	dir := filepath.Join(gen.WorkDir, "intermediate")
@@ -87,7 +87,7 @@ func (gen *Generator) makeAPI() error {
 	defer gen.Printer.Unindent()
 
 	// Should not fully qualify types when generating inside the API directory
-	gen.specs.ShorthandDefinedTypes()
+	gen.specs.ShorthandTypes()
 
 	// Create the directories
 	dir := filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api")
@@ -144,7 +144,7 @@ func (gen *Generator) makeImplementation() error {
 	defer gen.Printer.Unindent()
 
 	// Fully qualify the types outside of the API directory
-	gen.specs.FullyQualifyDefinedTypes()
+	gen.specs.FullyQualifyTypes()
 
 	// Overwrite service-gen.go
 	fileName := filepath.Join(gen.WorkDir, "service-gen.go")
@@ -373,7 +373,7 @@ func (gen *Generator) makeRefreshSignature() error {
 	defer gen.Printer.Unindent()
 
 	// Fully qualify the types outside of the API directory
-	gen.specs.FullyQualifyDefinedTypes()
+	gen.specs.FullyQualifyTypes()
 
 	files, err := os.ReadDir(gen.WorkDir)
 	if err != nil {

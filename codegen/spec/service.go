@@ -40,8 +40,8 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// FullyQualifyDefinedTypes prepends the API package name to complex types of function arguments.
-func (s *Service) FullyQualifyDefinedTypes() {
+// FullyQualifyTypes prepends the API package name to complex types of function arguments.
+func (s *Service) FullyQualifyTypes() {
 	if s.fullyQualified {
 		return
 	}
@@ -64,8 +64,8 @@ func (s *Service) FullyQualifyDefinedTypes() {
 	}
 }
 
-// ShorthandDefinedTypes removed the API package name from complex types of function arguments.
-func (s *Service) ShorthandDefinedTypes() {
+// ShorthandTypes removed the API package name from complex types of function arguments.
+func (s *Service) ShorthandTypes() {
 	if !s.fullyQualified {
 		return
 	}

@@ -62,7 +62,7 @@ func (arg *Argument) validate() error {
 		}
 
 		switch {
-		case t == "int" || t == "int64" || t == "int32" || t == "int16" || t == "int8":
+		case t == "int" || t == "int64" || t == "int32" || t == "int16" || t == "int8" || t == "integer":
 			arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
 		case t == "uint" || t == "uint64" || t == "uint32" || t == "uint16" || t == "uint8":
 			arg.Type = strings.TrimSuffix(arg.Type, t) + "int"
