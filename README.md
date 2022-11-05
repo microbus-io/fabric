@@ -22,9 +22,9 @@ Go through the [examples](docs/structure/examples.md) <sup color="orange">update
 
 Follow the step-by-step guide and [build your first microservice](docs/first-service.md) <sup color="orange">new</sup>!
 
-Discover the full power of [code generation](docs/tech/codegen.md) in `Microbus`. It's totally RAD, dude!
+Discover the full power of [code generation](docs/tech/codegen.md) <sup color="orange">new</sup> in `Microbus`. It's totally RAD, dude!
 
-Venture out and [explore more on your own](docs/self-explore.md) <sup color="orange">updated</sup>.
+Venture out and [explore more on your own](docs/self-explore.md).
 
 ## Code Structure
 
@@ -63,6 +63,6 @@ Get a deeper understanding of the principals and philosophy of `Microbus`:
 * [Configuration](docs/tech/configuration.md) - How to configure microservices
 * [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
 * [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
-* [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
+* [Control subscriptions](docs/tech/controlsubs.md) <sup color="orange">updated</sup> - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
 * [Code generation](docs/tech/codegen.md) <sup color="orange">new</sup> - Discover the power of `Microbus`'s most powerful RAD tool
