@@ -2,12 +2,12 @@
 
 package hello
 
-const Version = 16
+const Version = 1
 const SourceCodeSHA256 = "7f2f52e004e7f0a89b719d6a38124667edf2bdd1311e2fcc74eccf42fb8c88fa"
 const Timestamp = "2022-11-04T01:51:07.139856Z"
 
 /* {
-	"ver": 16,
+	"ver": 1,
 	"sha256": "7f2f52e004e7f0a89b719d6a38124667edf2bdd1311e2fcc74eccf42fb8c88fa",
 	"ts": "2022-11-04T01:51:07.139856Z"
 } */
