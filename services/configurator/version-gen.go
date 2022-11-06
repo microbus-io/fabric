@@ -3,11 +3,11 @@
 package configurator
 
 const Version = 1
-const SourceCodeSHA256 = "9edf7ce32869cfc9bc3388ded970a09a2cec88694c61d675519c1a6e4c47c2d0"
-const Timestamp = "2022-11-04T01:51:07.802747Z"
+const SourceCodeSHA256 = "b160bdec8ffa99075c3050a16508e13cde2364c2d2c9927d7cc2f6f42032c6a6"
+const Timestamp = "2022-11-06T00:15:51.885695Z"
 
 /* {
 	"ver": 1,
-	"sha256": "9edf7ce32869cfc9bc3388ded970a09a2cec88694c61d675519c1a6e4c47c2d0",
-	"ts": "2022-11-04T01:51:07.802747Z"
+	"sha256": "b160bdec8ffa99075c3050a16508e13cde2364c2d2c9927d7cc2f6f42032c6a6",
+	"ts": "2022-11-06T00:15:51.885695Z"
 } */

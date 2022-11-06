@@ -16,7 +16,7 @@ import (
 
 var (
 	_ context.Context
-    _ json.Decoder
+	_ json.Decoder
 	_ http.Request
 	_ strings.Reader
 	_ time.Duration

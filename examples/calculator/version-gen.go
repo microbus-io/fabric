@@ -3,11 +3,11 @@
 package calculator
 
 const Version = 1
-const SourceCodeSHA256 = "cc2d221975d68a54a1225f27095dceb5814a765ab247c6d478b559b67f16a153"
-const Timestamp = "2022-11-04T01:51:06.784254Z"
+const SourceCodeSHA256 = "0e87a0e070046ff3a1c74bd4dc101ab9a7a702d5bbeb41a50f02fdd5b542d3d5"
+const Timestamp = "2022-11-06T00:15:50.570099Z"
 
 /* {
 	"ver": 1,
-	"sha256": "cc2d221975d68a54a1225f27095dceb5814a765ab247c6d478b559b67f16a153",
-	"ts": "2022-11-04T01:51:06.784254Z"
+	"sha256": "0e87a0e070046ff3a1c74bd4dc101ab9a7a702d5bbeb41a50f02fdd5b542d3d5",
+	"ts": "2022-11-06T00:15:50.570099Z"
 } */

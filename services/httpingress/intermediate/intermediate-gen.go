@@ -48,8 +48,8 @@ type ToDo interface {
 	OnShutdown(ctx context.Context) (err error)
 }
 
-// Intermediate extends and customized the generic base connector.
-// Code-generated microservices extend the intermediate service.
+// Intermediate extends and customizes the generic base connector.
+// Code generated microservices then extend the intermediate.
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
@@ -68,13 +68,13 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
-		`TimeBudget`,
+		"TimeBudget",
 		cfg.Description(`TimeBudget specifies the time out for incoming requests.`),
 		cfg.Validation(`dur [1s,5m]`),
 		cfg.DefaultValue(`20s`),
 	)
 	svc.DefineConfig(
-		`Port`,
+		"Port",
 		cfg.Description(`Port is the HTTP port on which to listen for incoming requests.`),
 		cfg.Validation(`int [1,65535]`),
 		cfg.DefaultValue(`8080`),
@@ -97,7 +97,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 TimeBudget specifies the time out for incoming requests.
 */
 func (svc *Intermediate) TimeBudget() (budget time.Duration) {
-	_val := svc.Config(`TimeBudget`)
+	_val := svc.Config("TimeBudget")
 	_dur, _ := time.ParseDuration(_val)
 	return _dur
 }
@@ -106,7 +106,7 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 Port is the HTTP port on which to listen for incoming requests.
 */
 func (svc *Intermediate) Port() (port int) {
-	_val := svc.Config(`Port`)
+	_val := svc.Config("Port")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
@@ -125,13 +125,13 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 // TimeBudget initializes the TimeBudget config property of the microservice.
 func TimeBudget(budget time.Duration) Initializer {
 	return func(svc *Intermediate) error{
-		return svc.InitConfig(`TimeBudget`, fmt.Sprintf("%v", budget))
+		return svc.InitConfig("TimeBudget", fmt.Sprintf("%v", budget))
 	}
 }
 
 // Port initializes the Port config property of the microservice.
 func Port(port int) Initializer {
 	return func(svc *Intermediate) error{
-		return svc.InitConfig(`Port`, fmt.Sprintf("%v", port))
+		return svc.InitConfig("Port", fmt.Sprintf("%v", port))
 	}
 }

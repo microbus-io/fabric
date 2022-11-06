@@ -53,8 +53,8 @@ type ToDo interface {
 	CacheStore(w http.ResponseWriter, r *http.Request) (err error)
 }
 
-// Intermediate extends and customized the generic base connector.
-// Code-generated microservices extend the intermediate service.
+// Intermediate extends and customizes the generic base connector.
+// Code generated microservices then extend the intermediate.
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo

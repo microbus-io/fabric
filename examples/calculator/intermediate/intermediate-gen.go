@@ -51,8 +51,8 @@ type ToDo interface {
 	Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error)
 }
 
-// Intermediate extends and customized the generic base connector.
-// Code-generated microservices extend the intermediate service.
+// Intermediate extends and customizes the generic base connector.
+// Code generated microservices then extend the intermediate.
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo

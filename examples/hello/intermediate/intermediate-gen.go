@@ -54,8 +54,8 @@ type ToDo interface {
 	TickTock(ctx context.Context) (err error)
 }
 
-// Intermediate extends and customized the generic base connector.
-// Code-generated microservices extend the intermediate service.
+// Intermediate extends and customizes the generic base connector.
+// Code generated microservices then extend the intermediate.
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
@@ -74,12 +74,12 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
-		`Greeting`,
+		"Greeting",
 		cfg.Description(`Greeting to use.`),
 		cfg.DefaultValue(`Hello`),
 	)
 	svc.DefineConfig(
-		`Repeat`,
+		"Repeat",
 		cfg.Description(`Repeat indicates how many times to display the greeting.`),
 		cfg.Validation(`int [0,100]`),
 		cfg.DefaultValue(`1`),
@@ -90,7 +90,7 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`/calculator`, svc.impl.Calculator)
 	svc.Subscribe(`/bus.jpeg`, svc.impl.BusJPEG)
 	intervalTickTock, _ := time.ParseDuration("10s")
-	svc.StartTicker(`TickTock`, intervalTickTock, svc.impl.TickTock)
+	svc.StartTicker("TickTock", intervalTickTock, svc.impl.TickTock)
 
 	return svc
 }
@@ -109,7 +109,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 Greeting to use.
 */
 func (svc *Intermediate) Greeting() (greeting string) {
-	_val := svc.Config(`Greeting`)
+	_val := svc.Config("Greeting")
 	return _val
 }
 
@@ -117,7 +117,7 @@ func (svc *Intermediate) Greeting() (greeting string) {
 Repeat indicates how many times to display the greeting.
 */
 func (svc *Intermediate) Repeat() (count int) {
-	_val := svc.Config(`Repeat`)
+	_val := svc.Config("Repeat")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
@@ -136,13 +136,13 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 // Greeting initializes the Greeting config property of the microservice.
 func Greeting(greeting string) Initializer {
 	return func(svc *Intermediate) error{
-		return svc.InitConfig(`Greeting`, fmt.Sprintf("%v", greeting))
+		return svc.InitConfig("Greeting", fmt.Sprintf("%v", greeting))
 	}
 }
 
 // Repeat initializes the Repeat config property of the microservice.
 func Repeat(count int) Initializer {
 	return func(svc *Intermediate) error{
-		return svc.InitConfig(`Repeat`, fmt.Sprintf("%v", count))
+		return svc.InitConfig("Repeat", fmt.Sprintf("%v", count))
 	}
 }

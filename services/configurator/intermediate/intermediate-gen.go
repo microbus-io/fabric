@@ -52,8 +52,8 @@ type ToDo interface {
 	PeriodicRefresh(ctx context.Context) (err error)
 }
 
-// Intermediate extends and customized the generic base connector.
-// Code-generated microservices extend the intermediate service.
+// Intermediate extends and customizes the generic base connector.
+// Code generated microservices then extend the intermediate.
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
@@ -75,7 +75,7 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`/refresh`, svc.doRefresh)
 	svc.Subscribe(`/sync`, svc.doSync, sub.NoQueue())
 	intervalPeriodicRefresh, _ := time.ParseDuration("20m0s")
-	svc.StartTicker(`PeriodicRefresh`, intervalPeriodicRefresh, svc.impl.PeriodicRefresh)
+	svc.StartTicker("PeriodicRefresh", intervalPeriodicRefresh, svc.impl.PeriodicRefresh)
 
 	return svc
 }

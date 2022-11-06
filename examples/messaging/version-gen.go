@@ -3,11 +3,11 @@
 package messaging
 
 const Version = 1
-const SourceCodeSHA256 = "e71e8df045e6e33a0d7a0f5bdbf2596edd6a895b4feef4f022080d6bb9cee39f"
-const Timestamp = "2022-11-04T01:51:07.47314Z"
+const SourceCodeSHA256 = "2cc0c2f5ffa840279cba13abf668c1bacc2726c81c84e75342efed752202b93f"
+const Timestamp = "2022-11-06T00:15:51.243731Z"
 
 /* {
 	"ver": 1,
-	"sha256": "e71e8df045e6e33a0d7a0f5bdbf2596edd6a895b4feef4f022080d6bb9cee39f",
-	"ts": "2022-11-04T01:51:07.47314Z"
+	"sha256": "2cc0c2f5ffa840279cba13abf668c1bacc2726c81c84e75342efed752202b93f",
+	"ts": "2022-11-06T00:15:51.243731Z"
 } */
