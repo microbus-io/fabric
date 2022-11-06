@@ -2,7 +2,7 @@
 // doOnConfigChanged is fired when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	{{- range .Configs}}{{- if .Callback}}
-	if changed(`{{ .Name}}`) {
+	if changed("{{ .Name}}") {
 		err := svc.impl.OnChanged{{ .Name}}(ctx)
 		if err != nil {
 			return errors.Trace(err)
@@ -20,7 +20,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 func (svc *Intermediate) {{ .Name }}() (
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
 ) {
-	_val := svc.Config(`{{ .Name }}`)
+	_val := svc.Config("{{ .Name }}")
 	
 	{{- with index .Signature.OutputArgs 0}}
 
@@ -63,7 +63,7 @@ func {{ .Name }}(
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
 ) Initializer {
 	return func(svc *Intermediate) error{
-		return svc.InitConfig(`{{ .Name }}`, fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
+		return svc.InitConfig("{{ .Name }}", fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
 	}
 }
 {{ end }}

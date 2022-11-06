@@ -64,8 +64,8 @@ type ToDo interface {
 	{{- end}}
 }
 
-// Intermediate extends and customized the generic base connector.
-// Code-generated microservices extend the intermediate service.
+// Intermediate extends and customizes the generic base connector.
+// Code generated microservices then extend the intermediate.
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
@@ -86,7 +86,7 @@ func New(impl ToDo, version int) *Intermediate {
 
 	{{- range .Configs}}
 	svc.DefineConfig(
-		`{{ .Name }}`,
+		"{{ .Name }}",
 		{{- if .Description }}
 		cfg.Description(`{{ .Description }}`),{{ end }}
 		{{- if .Validation }}
@@ -111,7 +111,7 @@ func New(impl ToDo, version int) *Intermediate {
 	{{- if .TimeBudget }}
 	timeBudget{{ .Name }}, _ := time.ParseDuration("{{ .TimeBudget }}")
 	{{- end}}
-	svc.StartTicker(`{{ .Name }}`, interval{{ .Name }}, svc.impl.{{ .Name }}{{if .TimeBudget }}, cb.TimeBudget(timeBudget{{ .Name }}){{end}})
+	svc.StartTicker("{{ .Name }}", interval{{ .Name }}, svc.impl.{{ .Name }}{{if .TimeBudget }}, cb.TimeBudget(timeBudget{{ .Name }}){{end}})
 	{{- end}}
 
 	return svc

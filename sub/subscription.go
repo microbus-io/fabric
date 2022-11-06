@@ -81,20 +81,22 @@ func (sub *Subscription) Canonical() string {
 }
 
 // JoinHostAndPath combines the path shorthand with a host name.
-func JoinHostAndPath(host string, path string) (joined string) {
-	joined = path
+func JoinHostAndPath(host string, path string) string {
 	if path == "" {
 		// (empty)
-		joined = "https://" + host + ":443"
-	} else if strings.HasPrefix(path, ":") {
-		// :1080/path
-		joined = "https://" + host + path
-	} else if strings.HasPrefix(path, "/") {
-		// /path/with/slash
-		joined = "https://" + host + ":443" + path
-	} else if !strings.Contains(path, "://") {
-		// path/with/no/slash
-		joined = "https://" + host + ":443/" + path
+		return "https://" + host + ":443"
 	}
-	return joined
+	if strings.HasPrefix(path, ":") {
+		// :1080/path
+		return "https://" + host + path
+	}
+	if strings.HasPrefix(path, "/") {
+		// /path/with/slash
+		return "https://" + host + ":443" + path
+	}
+	if !strings.Contains(path, "://") {
+		// path/with/no/slash
+		return "https://" + host + ":443/" + path
+	}
+	return path
 }

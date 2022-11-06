@@ -20,8 +20,10 @@ var (
 
 /*
 Service implements the {{ .General.Host }} microservice.
+{{- if .General.Description }}
 
 {{ .General.Description }}
+{{- end }}
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE

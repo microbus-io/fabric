@@ -100,8 +100,8 @@ var acronyms = map[string]bool{
 	"css":   true,
 }
 
-// capitalizeIdentifier will capitalize a lowercase identifier.
-// fooBar will become FooBar, htmlPage will become HTMLPage, etc.
+// capitalizeIdentifier capitalizes a lowercase identifier.
+// fooBar becomes FooBar, htmlPage becomes HTMLPage, etc.
 func capitalizeIdentifier(identifier string) string {
 	if identifier == "" {
 		return identifier

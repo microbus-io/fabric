@@ -80,6 +80,47 @@ func (gen *Generator) makeResources() error {
 	return nil
 }
 
+// makeApp creates the app directory and main.
+func (gen *Generator) makeApp() error {
+	gen.Printer.Debug("Generating application")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
+
+	// Create the directories
+	dir := filepath.Join(gen.WorkDir, "app")
+	_, err := os.Stat(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		os.Mkdir(dir, os.ModePerm)
+		gen.Printer.Debug("mkdir app")
+	} else if err != nil {
+		return errors.Trace(err)
+	}
+
+	underscoredHost := strings.ReplaceAll(gen.specs.General.Host, ".", "_")
+	dir = filepath.Join(gen.WorkDir, "app", underscoredHost)
+	_, err = os.Stat(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		os.Mkdir(dir, os.ModePerm)
+		gen.Printer.Debug("mkdir app/%s", underscoredHost)
+	} else if err != nil {
+		return errors.Trace(err)
+	}
+
+	// main-gen.go
+	fileName := filepath.Join(gen.WorkDir, "app", underscoredHost, "main-gen.go")
+	tt, err := LoadTemplate("app/main-gen.txt")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = tt.Overwrite(fileName, gen.specs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	gen.Printer.Debug("app/%s/main-gen.go", underscoredHost)
+
+	return nil
+}
+
 // makeAPI creates the API directory and files.
 func (gen *Generator) makeAPI() error {
 	gen.Printer.Debug("Generating client API")
