@@ -12,6 +12,8 @@ var (
 	_ controlapi.Client
 )
 
+const ServiceName = "control.sys"
+
 // NewService creates a new control.sys microservice.
 func NewService() *Service {
 	s := &Service{}

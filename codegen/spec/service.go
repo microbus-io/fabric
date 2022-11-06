@@ -11,12 +11,14 @@ import (
 type Service struct {
 	Package string `yaml:"-"`
 
-	General   General `yaml:"general"`
-	Configs   []*Handler
-	Functions []*Handler
-	Webs      []*Handler
-	Tickers   []*Handler
-	Types     []*Type
+	General   General    `yaml:"general"`
+	Configs   []*Handler `yaml:"configs"`
+	Types     []*Type    `yaml:"types"`
+	Functions []*Handler `yaml:"functions"`
+	Events    []*Handler `yaml:"events"`
+	Sinks     []*Handler `yaml:"sinks"`
+	Webs      []*Handler `yaml:"webs"`
+	Tickers   []*Handler `yaml:"tickers"`
 
 	fullyQualified bool
 }
@@ -98,6 +100,15 @@ func (s *Service) validate() error {
 		return errors.Trace(err)
 	}
 
+	// Disallow duplicate handler names
+	handlerNames := map[string]bool{}
+	for _, h := range s.AllHandlers() {
+		if handlerNames[h.Name()] {
+			return errors.Newf("duplicate handler name '%s'", h.Name())
+		}
+		handlerNames[h.Name()] = true
+	}
+
 	// Has to repeat validation after setting the types because
 	// the handlers don't know their type during parsing.
 	for _, w := range s.Configs {
@@ -111,6 +122,12 @@ func (s *Service) validate() error {
 	}
 	for _, w := range s.Tickers {
 		w.Type = "ticker"
+	}
+	for _, w := range s.Events {
+		w.Type = "event"
+	}
+	for _, w := range s.Sinks {
+		w.Type = "sink"
 	}
 	for _, h := range s.AllHandlers() {
 		err := h.validate()
@@ -131,7 +148,11 @@ func (s *Service) validate() error {
 			}
 		}
 	}
-	for _, fn := range s.Functions {
+	typedHandlers := []*Handler{}
+	typedHandlers = append(typedHandlers, s.Functions...)
+	typedHandlers = append(typedHandlers, s.Events...)
+	typedHandlers = append(typedHandlers, s.Sinks...)
+	for _, fn := range typedHandlers {
 		for _, a := range fn.Signature.InputArgs {
 			if isUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
 				return errors.Newf("undeclared type '%s' in '%s'", a.EndType(), fn.Signature.OrigString)
@@ -157,6 +178,8 @@ func (s *Service) AllHandlers() []*Handler {
 	var result []*Handler
 	result = append(result, s.Configs...)
 	result = append(result, s.Functions...)
+	result = append(result, s.Events...)
+	result = append(result, s.Sinks...)
 	result = append(result, s.Webs...)
 	result = append(result, s.Tickers...)
 	return result

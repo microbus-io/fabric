@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,8 +11,7 @@ import (
 func TestSpec_ErrorsInYAML(t *testing.T) {
 	t.Parallel()
 
-	testCases := []string{
-		// -------------------- GENERAL
+	tcGeneral := []string{
 		`
 general:
 `,
@@ -22,146 +22,114 @@ general:
   host: $uper.$ervice
 `,
 		"invalid host",
-		// -------------------- FUNCTIONS
+	}
+
+	tcTypedHandlers := []string{
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(ctx context.Context) (result int)
+xxx:
+  - signature: OnFunc(ctx context.Context) (result int)
 `,
 		"context type not allowed",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(x int) (result int, err error)
+xxx:
+  - signature: OnFunc(x int) (result int, err error)
 `,
 		"error type not allowed",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: func(x int) (y int)
+xxx:
+  - signature: onFunc(x int) (y int)
 `,
 		"start with uppercase",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(X int) (y int)
+xxx:
+  - signature: OnFunc(X int) (y int)
 `,
 		"start with lowercase",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(x float64) (Y float64)
+xxx:
+  - signature: OnFunc(x float64) (Y float64)
 `,
 		"start with lowercase",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(x os.File) (y int)
+xxx:
+  - signature: OnFunc(x os.File) (y int)
 `,
 		"dot notation",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Since(x Time) (x Duration)
+xxx:
+  - signature: OnFunc(x Time) (x Duration)
 `,
 		"duplicate arg",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(b boolean, x uint64, x int) (y int)
+xxx:
+  - signature: OnFunc(b boolean, x uint64, x int) (y int)
 `,
 		"duplicate arg",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(x map[string]string) (y int, b bool, y int)
+xxx:
+  - signature: OnFunc(x map[string]string) (y int, b bool, y int)
 `,
 		"duplicate arg",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(m map[int]int)
+xxx:
+  - signature: OnFunc(m map[int]int)
 `,
 		"map keys",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(m mutex)
+xxx:
+  - signature: OnFunc(m mutex)
 `,
 		"primitive type",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(m int
+xxx:
+  - signature: OnFunc(m int
 `,
 		"closing parenthesis",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(m int) (x int
+xxx:
+  - signature: OnFunc(m int) (x int
 `,
 		"closing parenthesis",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(mint) (x int)
+xxx:
+  - signature: OnFunc(mint) (x int)
 `,
 		"invalid argument",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(x int) (mint)
+xxx:
+  - signature: OnFunc(x int) (mint)
 `,
 		"invalid argument",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(user User) (ok bool)
+xxx:
+  - signature: OnFunc(user User) (ok bool)
 `,
 		"undeclared",
 		// --------------------
 		`
-general:
-  host: super.service
-functions:
-  - signature: Func(id string) (user User)
+xxx:
+  - signature: OnFunc(id string) (user User)
 `,
 		"undeclared",
-		// --------------------
+	}
+
+	tcFunctions := []string{
 		`
-general:
-  host: super.service
 functions:
   - signature: Func(s []*int)
     path: :99999/...
@@ -169,25 +137,66 @@ functions:
 		"invalid path",
 		// --------------------
 		`
-general:
-  host: super.service
 functions:
   - signature: Func(s string)
     queue: skip
 `,
 		"invalid queue",
-		// -------------------- TYPES
+	}
+
+	tcEvents := []string{
 		`
-general:
-  host: super.service
+events:
+  - signature: Func(s []*int)
+`,
+		"must start with 'On'",
+		// --------------------
+		`
+events:
+  - signature: OnFunc(s []*int)
+    path: :99999/...
+`,
+		"invalid path",
+	}
+
+	tcSinks := []string{
+		`
+sinks:
+  - signature: Func(s []*int)
+    source: from/somewhere/else
+`,
+		"must start with 'On'",
+		// --------------------
+		`
+sinks:
+  - signature: OnFunc(s []*int)
+`,
+		"invalid source",
+		// --------------------
+		`
+sinks:
+  - signature: OnFunc(s []*int)
+    source: https://www.example.com
+`,
+		"invalid source",
+		// --------------------
+		`
+sinks:
+  - signature: OnFunc(s []*int)
+    source: from/somewhere/else
+    forHost: invalid.ho$t
+`,
+		"invalid host name",
+	}
+
+	tcTypes := []string{
+		`
 types:
   - name: User
 `,
 		"missing type specification",
 		// --------------------
 		`
-general:
-  host: super.service
 types:
   - name: User
     define:
@@ -197,32 +206,24 @@ types:
 		"ambiguous type specification",
 		// --------------------
 		`
-general:
-  host: super.service
 types:
   - name: User_Record
 `,
 		"invalid type name",
 		// --------------------
 		`
-general:
-  host: super.service
 types:
   - name: User.Record
 `,
 		"invalid type name",
 		// --------------------
 		`
-general:
-  host: super.service
 types:
   - name: user
 `,
 		"invalid type name",
 		// --------------------
 		`
-general:
-  host: super.service
 types:
   - name: User
     define:
@@ -231,8 +232,6 @@ types:
 		"start with lowercase",
 		// --------------------
 		`
-general:
-  host: super.service
 types:
   - name: User
     import: https://www.example.com
@@ -240,50 +239,40 @@ types:
 		"invalid import path",
 		// --------------------
 		`
-general:
-  host: super.service
 types:
   - name: User
     define:
       id: UUID
 `,
 		"undeclared",
-		// -------------------- CONFIGS
+	}
+
+	tcConfigs := []string{
 		`
-general:
-  host: super.service
 configs:
   - signature: func() (b bool)
 `,
 		"start with uppercase",
 		// --------------------
 		`
-general:
-  host: super.service
 configs:
   - signature: Func()
 `,
 		"single return value",
 		// --------------------
 		`
-general:
-  host: super.service
 configs:
   - signature: Func(x int) (b bool)
 `,
 		"arguments not allowed",
 		// --------------------
 		`
-general:
-  host: super.service
 configs:
   - signature: Func() (b byte)
 `,
 		"invalid return type",
 		// --------------------
 		`
-general:
-  host: super.service
 configs:
   - signature: Func() (b string)
     validation: xyz
@@ -291,50 +280,40 @@ configs:
 		"invalid validation rule",
 		// --------------------
 		`
-general:
-  host: super.service
 configs:
   - signature: Func() (b string)
     validation: str ^[a-z]+$
     default: 123
 `,
 		"doesn't validate against rule",
-		// -------------------- TICKERS
+	}
+
+	tcTickers := []string{
 		`
-general:
-  host: super.service
 tickers:
   - signature: func()
 `,
 		"start with uppercase",
 		// --------------------
 		`
-general:
-  host: super.service
 tickers:
   - signature: Func(x int)
 `,
 		"arguments or return values not allowed",
 		// --------------------
 		`
-general:
-  host: super.service
 tickers:
   - signature: Func() (x string)
 `,
 		"arguments or return values not allowed",
 		// --------------------
 		`
-general:
-  host: super.service
 tickers:
   - signature: Func()
 `,
 		"non-positive interval",
 		// --------------------
 		`
-general:
-  host: super.service
 tickers:
   - signature: Func()
     interval: -2m
@@ -342,42 +321,34 @@ tickers:
 		"non-positive interval",
 		// --------------------
 		`
-general:
-  host: super.service
 tickers:
   - signature: Func()
     interval: 2m
     timeBudget: -1m
 `,
 		"negative time budget",
-		// -------------------- WEBS
+	}
+
+	tcWebs := []string{
 		`
-general:
-  host: super.service
 webs:
   - signature: func()
 `,
 		"start with uppercase",
 		// --------------------
 		`
-general:
-  host: super.service
 webs:
   - signature: Func(x int)
 `,
 		"arguments or return values not allowed",
 		// --------------------
 		`
-general:
-  host: super.service
 webs:
   - signature: Func() (x string)
 `,
 		"arguments or return values not allowed",
 		// --------------------
 		`
-general:
-  host: super.service
 webs:
   - signature: Func()
     path: :99999/...
@@ -385,21 +356,60 @@ webs:
 		"invalid path",
 		// --------------------
 		`
-general:
-  host: super.service
 webs:
   - signature: Func()
     queue: skip
 `,
 		"invalid queue",
-		// --------------------
 	}
 
+	tcService := []string{
+		`
+functions:
+  - signature: Func(x int) (y int)
+webs:
+  - signature: Func()
+`,
+		"duplicate",
+	}
+
+	testCases := []string{}
+	testCases = append(testCases, tcConfigs...)
+	testCases = append(testCases, tcEvents...)
+	testCases = append(testCases, tcFunctions...)
+	testCases = append(testCases, tcGeneral...)
+	testCases = append(testCases, tcService...)
+	testCases = append(testCases, tcSinks...)
+	testCases = append(testCases, tcTickers...)
+	testCases = append(testCases, tcTypes...)
+	testCases = append(testCases, tcWebs...)
 	for i := 0; i < len(testCases); i += 2 {
+		tc := testCases[i]
+		if !strings.Contains(tc, "general:") {
+			tc = `
+general:
+  host: any.host
+` + tc
+		}
 		var svc Service
-		err := yaml.Unmarshal([]byte(testCases[i]), &svc)
-		if assert.Error(t, err, "%s", testCases[i]) {
-			assert.Contains(t, err.Error(), testCases[i+1], "%s", testCases[i])
+		err := yaml.Unmarshal([]byte(tc), &svc)
+		if assert.Error(t, err, "%s", tc) {
+			assert.Contains(t, err.Error(), testCases[i+1], "%s", tc)
+		}
+	}
+
+	for i := 0; i < len(tcTypedHandlers); i += 2 {
+		for _, x := range []string{"functions:", "events:", "sinks:"} {
+			tc := `
+general:
+  host: any.host
+` + strings.ReplaceAll(tcTypedHandlers[i], "xxx:", x) +
+				`    source: this/path/is/ok`
+			var svc Service
+			err := yaml.Unmarshal([]byte(tc), &svc)
+			if assert.Error(t, err, "%s", tc) {
+				assert.Contains(t, err.Error(), tcTypedHandlers[i+1], "%s", tc)
+			}
 		}
 	}
 }

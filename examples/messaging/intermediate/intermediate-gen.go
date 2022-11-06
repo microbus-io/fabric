@@ -19,7 +19,6 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/messaging/resources"
-
 	"github.com/microbus-io/fabric/examples/messaging/messagingapi"
 )
 
@@ -72,6 +71,8 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	
+	// Webs
 	svc.Subscribe(`/home`, svc.impl.Home)
 	svc.Subscribe(`/no-queue`, svc.impl.NoQueue, sub.NoQueue())
 	svc.Subscribe(`/default-queue`, svc.impl.DefaultQueue)

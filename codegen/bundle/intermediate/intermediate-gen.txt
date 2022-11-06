@@ -19,8 +19,12 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"{{ .Package }}/resources"
-
 	"{{ .Package }}/{{ .ShortPackage }}api"
+
+	{{- if .Sinks }}
+	{{ range $i, $sink := .Sinks }}
+    {{ $sink.SourceSuffix }}api{{ $i }} "{{ $sink.Source }}/{{ $sink.SourceSuffix }}api"
+	{{- end}}{{end}}
 )
 
 var (
@@ -59,6 +63,10 @@ type ToDo interface {
 	{{ .Name }}(w http.ResponseWriter, r *http.Request) (err error)
 	{{- end}}
 
+	{{- range .Sinks}}
+	{{ .Name }}({{ .In }}) ({{ .Out }})
+	{{- end}}
+
 	{{- range .Tickers}}
 	{{ .Name }}(ctx context.Context) (err error)
 	{{- end}}
@@ -84,7 +92,10 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 
-	{{- range .Configs}}
+	{{- if .Configs }}
+	
+	// Configs
+	{{- range .Configs }}
 	svc.DefineConfig(
 		"{{ .Name }}",
 		{{- if .Description }}
@@ -96,23 +107,43 @@ func New(impl ToDo, version int) *Intermediate {
 		{{- if .Secret }}
 		cfg.Secret(),{{ end }}
 	)
-	{{- end}}
+	{{- end }}{{ end }}
 
-	{{- range .Functions}}
-	svc.Subscribe(`{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
-	{{- end}}
+	{{- if .Functions }}
 	
+	// Functions
+	{{- range .Functions }}
+	svc.Subscribe(`{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+	{{- end }}{{ end }}
+	
+	{{- if .Webs }}
+	
+	// Webs
 	{{- range .Webs}}
 	svc.Subscribe(`{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
-	{{- end}}
+	{{- end }}{{ end }}
 
-	{{- range .Tickers}}
+	{{- if .Sinks }}
+	
+	// Sinks
+	{{- range $i, $sink := .Sinks }}
+	pathOf{{ $sink.Name }} := {{ $sink.SourceSuffix }}api{{ $i }}.PathOf{{ $sink.Event }}
+	{{- if $sink.ForHost }}
+	pathOf{{ $sink.Name }} = sub.JoinHostAndPath("{{ $sink.ForHost }}", pathOf{{ $sink.Name }})
+	{{- end }}
+	svc.Subscribe(pathOf{{ $sink.Name }}, svc.do{{ $sink.Name }} {{- if eq $sink.Queue "none"}}, sub.NoQueue(){{end -}} )
+	{{- end }}{{ end }}
+
+	{{- if .Tickers }}
+	
+	// Tickers
+	{{- range .Tickers }}
 	interval{{ .Name }}, _ := time.ParseDuration("{{ .Interval }}")
 	{{- if .TimeBudget }}
 	timeBudget{{ .Name }}, _ := time.ParseDuration("{{ .TimeBudget }}")
-	{{- end}}
+	{{- end }}
 	svc.StartTicker("{{ .Name }}", interval{{ .Name }}, svc.impl.{{ .Name }}{{if .TimeBudget }}, cb.TimeBudget(timeBudget{{ .Name }}){{end}})
-	{{- end}}
+	{{- end }}{{ end }}
 
 	return svc
 }

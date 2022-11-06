@@ -35,7 +35,7 @@ type Service interface {
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 }
 
-// Client provides type-safe access to the endpoints of the configurator.sys microservice.
+// Client is an interface to calling the endpoints of the configurator.sys microservice.
 // This simple version is for unicast calls.
 type Client struct {
 	svc  Service
@@ -56,7 +56,7 @@ func (_c *Client) ForHost(host string) *Client {
 	return _c
 }
 
-// MulticastClient provides type-safe access to the endpoints of the configurator.sys microservice.
+// MulticastClient is an interface to calling the endpoints of the configurator.sys microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
 	svc  Service
@@ -77,24 +77,24 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// ValuesIn are the incoming arguments to Values.
+// ValuesIn are the input arguments of Values.
 type ValuesIn struct {
 	Names []string `json:"names"`
 }
 
 // ValuesOut are the return values of Values.
 type ValuesOut struct {
-	data struct {
+	Data struct {
 		Values map[string]string `json:"values"`
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *ValuesOut) Get() (values map[string]string, err error) {
-	values = _out.data.Values
-	err = _out.err
+	values = _out.Data.Values
+	err = _out.Err
 	return
 }
 
@@ -123,12 +123,12 @@ func (_c *Client) Values(ctx context.Context, names []string) (values map[string
 		return
 	}
 	var _out ValuesOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	values = _out.data.Values
+	values = _out.Data.Values
 	return
 }
 
@@ -142,7 +142,7 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *ValuesOut, 1)
-		_res <- &ValuesOut{err: errors.Trace(_err)}
+		_res <- &ValuesOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -163,11 +163,11 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -177,21 +177,21 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 	return _res
 }
 
-// RefreshIn are the incoming arguments to Refresh.
+// RefreshIn are the input arguments of Refresh.
 type RefreshIn struct {
 }
 
 // RefreshOut are the return values of Refresh.
 type RefreshOut struct {
-	data struct {
+	Data struct {
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *RefreshOut) Get() (err error) {
-	err = _out.err
+	err = _out.Err
 	return
 }
 
@@ -220,7 +220,7 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 		return
 	}
 	var _out RefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
@@ -238,7 +238,7 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *RefreshOut, 1)
-		_res <- &RefreshOut{err: errors.Trace(_err)}
+		_res <- &RefreshOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -259,11 +259,11 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -273,7 +273,7 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 	return _res
 }
 
-// SyncIn are the incoming arguments to Sync.
+// SyncIn are the input arguments of Sync.
 type SyncIn struct {
 	Timestamp time.Time `json:"timestamp"`
 	Values map[string]map[string]string `json:"values"`
@@ -281,15 +281,15 @@ type SyncIn struct {
 
 // SyncOut are the return values of Sync.
 type SyncOut struct {
-	data struct {
+	Data struct {
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *SyncOut) Get() (err error) {
-	err = _out.err
+	err = _out.Err
 	return
 }
 
@@ -319,7 +319,7 @@ func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[stri
 		return
 	}
 	var _out SyncOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
@@ -338,7 +338,7 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *SyncOut, 1)
-		_res <- &SyncOut{err: errors.Trace(_err)}
+		_res <- &SyncOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -359,11 +359,11 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r

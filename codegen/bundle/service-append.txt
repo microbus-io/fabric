@@ -23,6 +23,15 @@ func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err err
 }
 {{end}}{{- end}}
 
+{{- range .Sinks}}{{- if not .Exists}}
+/*
+{{ .Description }}
+*/
+func (svc *Service) {{ .Name }}({{ .In }}) ({{ .Out }}) {
+    return // TO{{/**/}}DO: {{ .Name }}
+}
+{{end}}{{- end}}
+
 {{- range .Tickers}}{{- if not .Exists}}
 /*
 {{ .Description }}

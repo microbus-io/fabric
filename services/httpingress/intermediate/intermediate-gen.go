@@ -19,7 +19,6 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/httpingress/resources"
-
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
 )
 
@@ -67,6 +66,8 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	
+	// Configs
 	svc.DefineConfig(
 		"TimeBudget",
 		cfg.Description(`TimeBudget specifies the time out for incoming requests.`),

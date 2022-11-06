@@ -12,6 +12,8 @@ var (
 	_ httpingressapi.Client
 )
 
+const ServiceName = "http.ingress.sys"
+
 // NewService creates a new http.ingress.sys microservice.
 func NewService() *Service {
 	s := &Service{}

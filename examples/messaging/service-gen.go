@@ -12,6 +12,8 @@ var (
 	_ messagingapi.Client
 )
 
+const ServiceName = "messaging.example"
+
 // NewService creates a new messaging.example microservice.
 func NewService() *Service {
 	s := &Service{}

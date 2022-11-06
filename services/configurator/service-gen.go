@@ -12,6 +12,8 @@ var (
 	_ configuratorapi.Client
 )
 
+const ServiceName = "configurator.sys"
+
 // NewService creates a new configurator.sys microservice.
 func NewService() *Service {
 	s := &Service{}

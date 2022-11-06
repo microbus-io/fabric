@@ -34,6 +34,22 @@ functions:
     description: Func2 is a distributed search.
     path: :1234/count-occurrences
     queue: none
+events:
+  - signature: OnEvent1(x Type1) (ok bool)
+    description: OnEvent1 is fired before deletion.
+    path: :1234/event1
+  - signature: OnEvent2(x Type2)
+    description: OnEvent2 is fired after deletion.
+    path: :1234/event2
+sinks:
+  - signature: OnSink1(x Type1) (ok bool)
+    description: OnSink1 handles an event.
+    event: OnSink
+    source: from/somewhere/else
+    forHost: event.source
+  - signature: OnSink2(x Type2)
+    description: OnSink2 handles an event.
+    source: from/somewhere/else
 types:
   - name: Type1
     define:
@@ -79,8 +95,12 @@ tickers:
 	}
 
 	fileContains(
+		filepath.Join("app", "test-full-generation", "main-gen.go"),
+		"func main", dir+".NewService()",
+	)
+	fileContains(
 		filepath.Join(dir+"api", "clients-gen.go"),
-		"Func1(ctx", "Func2(ctx", "Web1(ctx", "Web2(ctx",
+		"Func1(ctx", "Func2(ctx", "Web1(ctx", "Web2(ctx", "OnEvent1(ctx", "OnEvent2(ctx",
 	)
 	fileContains(
 		filepath.Join(dir+"api", "types-gen.go"),
@@ -91,6 +111,8 @@ tickers:
 		"svc.Subscribe(",
 		"svc.impl.Func1", "svc.impl.Func1",
 		") doFunc1(w", ") doFunc2(w",
+		"svc.impl.OnSink1", "svc.impl.OnSink2",
+		") doOnSink1(w", ") doOnSink2(w",
 		"svc.impl.Web1", "svc.impl.Web2",
 		"svc.StartTicker(",
 		"svc.impl.Ticker1", "svc.impl.Ticker2",

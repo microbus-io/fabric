@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,11 +17,16 @@ type Handler struct {
 	Type   string `yaml:"-"`
 	Exists bool   `yaml:"-"`
 
-	// Web or Function
+	// Shared
 	Signature   *Signature `yaml:"signature"`
 	Description string     `yaml:"description"`
 	Path        string     `yaml:"path"`
 	Queue       string     `yaml:"queue"`
+
+	// Sink
+	Event   string `yaml:"event"`
+	Source  string `yaml:"source"`
+	ForHost string `yaml:"forHost"`
 
 	// Config
 	Default    string `yaml:"default"`
@@ -53,6 +59,10 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	h.Path = strings.Replace(h.Path, "...", kebabCase(h.Name()), 1)
 	h.Queue = strings.ToLower(h.Queue)
+
+	if h.Event == "" {
+		h.Event = h.Name()
+	}
 
 	// Validate
 	err = h.validate()
@@ -98,6 +108,7 @@ func (h *Handler) validate() error {
 		h.Name(),
 	)
 
+	// Validate types and number of arguments
 	switch h.Type {
 	case "web":
 		if len(h.Signature.InputArgs) != 0 || len(h.Signature.OutputArgs) != 0 {
@@ -124,7 +135,7 @@ func (h *Handler) validate() error {
 		if h.TimeBudget < 0 {
 			return errors.Newf("negative time budget '%v' in '%s'", h.TimeBudget, h.Name())
 		}
-	case "function":
+	case "function", "event", "sink":
 		argNames := map[string]bool{}
 		for _, arg := range h.Signature.InputArgs {
 			if argNames[arg.Name] {
@@ -137,6 +148,28 @@ func (h *Handler) validate() error {
 				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
 			}
 			argNames[arg.Name] = true
+		}
+	}
+
+	startsWithOn := regexp.MustCompile(`^On[A-Z][a-zA-Z0-9]*$`)
+	if h.Type == "sink" {
+		match, _ := regexp.MatchString(`^[a-z][a-zA-Z0-9\.\-]*(/[a-z][a-zA-Z0-9\.\-]*)*$`, h.Source)
+		if !match {
+			return errors.Newf("invalid source '%s' in '%s'", h.Source, h.Name())
+		}
+		if h.ForHost != "" {
+			err := utils.ValidateHostName(h.ForHost)
+			if err != nil {
+				return errors.Newf("invalid host name '%s' in '%s'", h.ForHost, h.Name())
+			}
+		}
+		if !startsWithOn.MatchString(h.Event) {
+			return errors.Newf("event name '%s' must start with 'On' in '%s'", h.Event, h.Name())
+		}
+	}
+	if h.Type == "sink" || h.Type == "event" {
+		if !startsWithOn.MatchString(h.Name()) {
+			return errors.Newf("function name must start with 'On' in '%s'", h.Signature.OrigString)
 		}
 	}
 
@@ -172,4 +205,14 @@ func (h *Handler) Out() string {
 	}
 	b.WriteString("err error")
 	return b.String()
+}
+
+// SourceSuffix returns the last piece of the by definition,
+// which is expected to point to a microservice.
+func (h *Handler) SourceSuffix() string {
+	p := strings.LastIndex(h.Source, "/")
+	if p < 0 {
+		p = -1
+	}
+	return h.Source[p+1:]
 }

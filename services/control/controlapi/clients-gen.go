@@ -35,7 +35,7 @@ type Service interface {
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 }
 
-// Client provides type-safe access to the endpoints of the control.sys microservice.
+// Client is an interface to calling the endpoints of the control.sys microservice.
 // This simple version is for unicast calls.
 type Client struct {
 	svc  Service
@@ -56,7 +56,7 @@ func (_c *Client) ForHost(host string) *Client {
 	return _c
 }
 
-// MulticastClient provides type-safe access to the endpoints of the control.sys microservice.
+// MulticastClient is an interface to calling the endpoints of the control.sys microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
 	svc  Service
@@ -77,23 +77,23 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// PingIn are the incoming arguments to Ping.
+// PingIn are the input arguments of Ping.
 type PingIn struct {
 }
 
 // PingOut are the return values of Ping.
 type PingOut struct {
-	data struct {
+	Data struct {
 		Pong int `json:"pong"`
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *PingOut) Get() (pong int, err error) {
-	pong = _out.data.Pong
-	err = _out.err
+	pong = _out.Data.Pong
+	err = _out.Err
 	return
 }
 
@@ -121,12 +121,12 @@ func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 		return
 	}
 	var _out PingOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	pong = _out.data.Pong
+	pong = _out.Data.Pong
 	return
 }
 
@@ -139,7 +139,7 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *PingOut, 1)
-		_res <- &PingOut{err: errors.Trace(_err)}
+		_res <- &PingOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -160,11 +160,11 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -174,21 +174,21 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 	return _res
 }
 
-// ConfigRefreshIn are the incoming arguments to ConfigRefresh.
+// ConfigRefreshIn are the input arguments of ConfigRefresh.
 type ConfigRefreshIn struct {
 }
 
 // ConfigRefreshOut are the return values of ConfigRefresh.
 type ConfigRefreshOut struct {
-	data struct {
+	Data struct {
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *ConfigRefreshOut) Get() (err error) {
-	err = _out.err
+	err = _out.Err
 	return
 }
 
@@ -216,7 +216,7 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 		return
 	}
 	var _out ConfigRefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
@@ -233,7 +233,7 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *ConfigRefreshOut, 1)
-		_res <- &ConfigRefreshOut{err: errors.Trace(_err)}
+		_res <- &ConfigRefreshOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -254,11 +254,11 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r

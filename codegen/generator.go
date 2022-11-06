@@ -106,6 +106,10 @@ func (gen *Generator) Run() error {
 
 	// Process specs
 	if gen.specs != nil {
+		err = gen.makeApp()
+		if err != nil {
+			return errors.Trace(err)
+		}
 		err = gen.makeAPI()
 		if err != nil {
 			return errors.Trace(err)

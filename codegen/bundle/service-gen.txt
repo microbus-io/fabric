@@ -12,6 +12,8 @@ var (
 	_ {{ .ShortPackage }}api.Client
 )
 
+const ServiceName = "{{ .General.Host }}"
+
 // NewService creates a new {{ .General.Host }} microservice.
 func NewService() *Service {
 	s := &Service{}

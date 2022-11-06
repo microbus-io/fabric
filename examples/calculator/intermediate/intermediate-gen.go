@@ -19,7 +19,6 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/calculator/resources"
-
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
 )
 
@@ -70,6 +69,8 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	
+	// Functions
 	svc.Subscribe(`/arithmetic`, svc.doArithmetic)
 	svc.Subscribe(`/square`, svc.doSquare)
 	svc.Subscribe(`/distance`, svc.doDistance)
@@ -100,22 +101,14 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 
 // doArithmetic handles marshaling for the Arithmetic function.
 func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-		X int `json:"x"`
-		Op string `json:"op"`
-		Y int `json:"y"`
-	}{}
-	o := struct {
-		XEcho int `json:"xEcho"`
-		OpEcho string `json:"opEcho"`
-		YEcho int `json:"yEcho"`
-		Result int `json:"result"`
-	}{}
+	var i calculatorapi.ArithmeticIn
+	var o calculatorapi.ArithmeticOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.impl.Arithmetic(
+	d.XEcho, d.OpEcho, d.YEcho, d.Result, err = svc.impl.Arithmetic(
 		r.Context(),
 		i.X,
 		i.Op,
@@ -124,9 +117,8 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -135,27 +127,22 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 
 // doSquare handles marshaling for the Square function.
 func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-		X int `json:"x"`
-	}{}
-	o := struct {
-		XEcho int `json:"xEcho"`
-		Result int `json:"result"`
-	}{}
+	var i calculatorapi.SquareIn
+	var o calculatorapi.SquareOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.XEcho, o.Result, err = svc.impl.Square(
+	d.XEcho, d.Result, err = svc.impl.Square(
 		r.Context(),
 		i.X,
 	)
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -164,18 +151,14 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 
 // doDistance handles marshaling for the Distance function.
 func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-		P1 calculatorapi.Point `json:"p1"`
-		P2 calculatorapi.Point `json:"p2"`
-	}{}
-	o := struct {
-		D float64 `json:"d"`
-	}{}
+	var i calculatorapi.DistanceIn
+	var o calculatorapi.DistanceOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.D, err = svc.impl.Distance(
+	d.D, err = svc.impl.Distance(
 		r.Context(),
 		i.P1,
 		i.P2,
@@ -183,9 +166,8 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}

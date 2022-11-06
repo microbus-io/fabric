@@ -19,7 +19,6 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/hello/resources"
-
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
 )
 
@@ -73,6 +72,8 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	
+	// Configs
 	svc.DefineConfig(
 		"Greeting",
 		cfg.Description(`Greeting to use.`),
@@ -84,11 +85,15 @@ func New(impl ToDo, version int) *Intermediate {
 		cfg.Validation(`int [0,100]`),
 		cfg.DefaultValue(`1`),
 	)
+	
+	// Webs
 	svc.Subscribe(`/hello`, svc.impl.Hello)
 	svc.Subscribe(`/echo`, svc.impl.Echo)
 	svc.Subscribe(`/ping`, svc.impl.Ping)
 	svc.Subscribe(`/calculator`, svc.impl.Calculator)
 	svc.Subscribe(`/bus.jpeg`, svc.impl.BusJPEG)
+	
+	// Tickers
 	intervalTickTock, _ := time.ParseDuration("10s")
 	svc.StartTicker("TickTock", intervalTickTock, svc.impl.TickTock)
 

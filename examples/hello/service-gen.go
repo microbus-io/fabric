@@ -12,6 +12,8 @@ var (
 	_ helloapi.Client
 )
 
+const ServiceName = "hello.example"
+
 // NewService creates a new hello.example microservice.
 func NewService() *Service {
 	s := &Service{}

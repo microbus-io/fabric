@@ -37,6 +37,7 @@ func (gen *Generator) makeIntermediate() error {
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-configs.txt",
 		"intermediate/intermediate-functions.txt",
+		"intermediate/intermediate-sinks.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -96,18 +97,18 @@ func (gen *Generator) makeApp() error {
 		return errors.Trace(err)
 	}
 
-	underscoredHost := strings.ReplaceAll(gen.specs.General.Host, ".", "_")
-	dir = filepath.Join(gen.WorkDir, "app", underscoredHost)
+	hyphenated := strings.ReplaceAll(gen.specs.General.Host, ".", "-")
+	dir = filepath.Join(gen.WorkDir, "app", hyphenated)
 	_, err = os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
 		os.Mkdir(dir, os.ModePerm)
-		gen.Printer.Debug("mkdir app/%s", underscoredHost)
+		gen.Printer.Debug("mkdir app/%s", hyphenated)
 	} else if err != nil {
 		return errors.Trace(err)
 	}
 
 	// main-gen.go
-	fileName := filepath.Join(gen.WorkDir, "app", underscoredHost, "main-gen.go")
+	fileName := filepath.Join(gen.WorkDir, "app", hyphenated, "main-gen.go")
 	tt, err := LoadTemplate("app/main-gen.txt")
 	if err != nil {
 		return errors.Trace(err)
@@ -116,7 +117,7 @@ func (gen *Generator) makeApp() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	gen.Printer.Debug("app/%s/main-gen.go", underscoredHost)
+	gen.Printer.Debug("app/%s/main-gen.go", hyphenated)
 
 	return nil
 }
@@ -165,6 +166,7 @@ func (gen *Generator) makeAPI() error {
 		"api/clients-gen.txt",
 		"api/clients-webs.txt",
 		"api/clients-functions.txt",
+		"api/clients-events.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)

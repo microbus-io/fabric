@@ -19,7 +19,6 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/control/resources"
-
 	"github.com/microbus-io/fabric/services/control/controlapi"
 )
 
@@ -70,6 +69,8 @@ The microservice itself does nothing and should not be included in applications.
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	
+	// Functions
 	svc.Subscribe(`:888/ping`, svc.doPing)
 	svc.Subscribe(`:888/config-refresh`, svc.doConfigRefresh)
 
@@ -99,24 +100,21 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 
 // doPing handles marshaling for the Ping function.
 func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-	}{}
-	o := struct {
-		Pong int `json:"pong"`
-	}{}
+	var i controlapi.PingIn
+	var o controlapi.PingOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Pong, err = svc.impl.Ping(
+	d.Pong, err = svc.impl.Ping(
 		r.Context(),
 	)
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -125,10 +123,9 @@ func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 
 // doConfigRefresh handles marshaling for the ConfigRefresh function.
 func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-	}{}
-	o := struct {
-	}{}
+	var i controlapi.ConfigRefreshIn
+	var o controlapi.ConfigRefreshOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
@@ -139,9 +136,8 @@ func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}

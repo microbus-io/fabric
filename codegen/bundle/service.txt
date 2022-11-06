@@ -7,7 +7,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 
 	"{{ .Package }}/intermediate"
-
 	"{{ .Package }}/{{ .ShortPackage }}api"
 )
 

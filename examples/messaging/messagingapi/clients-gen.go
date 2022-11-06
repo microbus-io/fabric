@@ -35,7 +35,7 @@ type Service interface {
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 }
 
-// Client provides type-safe access to the endpoints of the messaging.example microservice.
+// Client is an interface to calling the endpoints of the messaging.example microservice.
 // This simple version is for unicast calls.
 type Client struct {
 	svc  Service
@@ -56,7 +56,7 @@ func (_c *Client) ForHost(host string) *Client {
 	return _c
 }
 
-// MulticastClient provides type-safe access to the endpoints of the messaging.example microservice.
+// MulticastClient is an interface to calling the endpoints of the messaging.example microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
 	svc  Service

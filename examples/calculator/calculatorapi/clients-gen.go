@@ -35,7 +35,7 @@ type Service interface {
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 }
 
-// Client provides type-safe access to the endpoints of the calculator.example microservice.
+// Client is an interface to calling the endpoints of the calculator.example microservice.
 // This simple version is for unicast calls.
 type Client struct {
 	svc  Service
@@ -56,7 +56,7 @@ func (_c *Client) ForHost(host string) *Client {
 	return _c
 }
 
-// MulticastClient provides type-safe access to the endpoints of the calculator.example microservice.
+// MulticastClient is an interface to calling the endpoints of the calculator.example microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
 	svc  Service
@@ -77,7 +77,7 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// ArithmeticIn are the incoming arguments to Arithmetic.
+// ArithmeticIn are the input arguments of Arithmetic.
 type ArithmeticIn struct {
 	X int `json:"x"`
 	Op string `json:"op"`
@@ -86,23 +86,23 @@ type ArithmeticIn struct {
 
 // ArithmeticOut are the return values of Arithmetic.
 type ArithmeticOut struct {
-	data struct {
+	Data struct {
 		XEcho int `json:"xEcho"`
 		OpEcho string `json:"opEcho"`
 		YEcho int `json:"yEcho"`
 		Result int `json:"result"`
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *ArithmeticOut) Get() (xEcho int, opEcho string, yEcho int, result int, err error) {
-	xEcho = _out.data.XEcho
-	opEcho = _out.data.OpEcho
-	yEcho = _out.data.YEcho
-	result = _out.data.Result
-	err = _out.err
+	xEcho = _out.Data.XEcho
+	opEcho = _out.Data.OpEcho
+	yEcho = _out.Data.YEcho
+	result = _out.Data.Result
+	err = _out.Err
 	return
 }
 
@@ -133,15 +133,15 @@ func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEch
 		return
 	}
 	var _out ArithmeticOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	xEcho = _out.data.XEcho
-	opEcho = _out.data.OpEcho
-	yEcho = _out.data.YEcho
-	result = _out.data.Result
+	xEcho = _out.Data.XEcho
+	opEcho = _out.Data.OpEcho
+	yEcho = _out.Data.YEcho
+	result = _out.Data.Result
 	return
 }
 
@@ -157,7 +157,7 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *ArithmeticOut, 1)
-		_res <- &ArithmeticOut{err: errors.Trace(_err)}
+		_res <- &ArithmeticOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -178,11 +178,11 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -192,26 +192,26 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 	return _res
 }
 
-// SquareIn are the incoming arguments to Square.
+// SquareIn are the input arguments of Square.
 type SquareIn struct {
 	X int `json:"x"`
 }
 
 // SquareOut are the return values of Square.
 type SquareOut struct {
-	data struct {
+	Data struct {
 		XEcho int `json:"xEcho"`
 		Result int `json:"result"`
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *SquareOut) Get() (xEcho int, result int, err error) {
-	xEcho = _out.data.XEcho
-	result = _out.data.Result
-	err = _out.err
+	xEcho = _out.Data.XEcho
+	result = _out.Data.Result
+	err = _out.Err
 	return
 }
 
@@ -240,13 +240,13 @@ func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err
 		return
 	}
 	var _out SquareOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	xEcho = _out.data.XEcho
-	result = _out.data.Result
+	xEcho = _out.Data.XEcho
+	result = _out.Data.Result
 	return
 }
 
@@ -260,7 +260,7 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *SquareOut, 1)
-		_res <- &SquareOut{err: errors.Trace(_err)}
+		_res <- &SquareOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -281,11 +281,11 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -295,7 +295,7 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 	return _res
 }
 
-// DistanceIn are the incoming arguments to Distance.
+// DistanceIn are the input arguments of Distance.
 type DistanceIn struct {
 	P1 Point `json:"p1"`
 	P2 Point `json:"p2"`
@@ -303,17 +303,17 @@ type DistanceIn struct {
 
 // DistanceOut are the return values of Distance.
 type DistanceOut struct {
-	data struct {
+	Data struct {
 		D float64 `json:"d"`
 	}
 	HTTPResponse *http.Response
-	err error
+	Err error
 }
 
 // Get retrieves the return values.
 func (_out *DistanceOut) Get() (d float64, err error) {
-	d = _out.data.D
-	err = _out.err
+	d = _out.Data.D
+	err = _out.Err
 	return
 }
 
@@ -344,12 +344,12 @@ func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, 
 		return
 	}
 	var _out DistanceOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	d = _out.data.D
+	d = _out.Data.D
 	return
 }
 
@@ -365,7 +365,7 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
 		_res := make(chan *DistanceOut, 1)
-		_res <- &DistanceOut{err: errors.Trace(_err)}
+		_res <- &DistanceOut{Err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -386,11 +386,11 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.Err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
 				if _err != nil {
-					_r.err = errors.Trace(_err)
+					_r.Err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r

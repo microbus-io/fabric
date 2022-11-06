@@ -18,7 +18,9 @@ The next step is to create a `service.yaml` file which will be used to specify t
 
 In `service.yaml`, developers are able to define the various pieces of the microservice in a declarative fashion. Code generation picks up these definitions to generate boilerplate code, leaving it up to the developer to implement the business logic.
 
-`service.yaml` include several sections: general, configs, functions, types, webs and tickers.
+`service.yaml` include several sections: general, configs, functions, events, types, webs and tickers. Combined, these define the characteristics of the microservice.
+
+<img src="codegen-1.svg" width="285">
 
 ### General
 
@@ -105,7 +107,7 @@ functions:
     queue:
 ```
 
-The `signature` defines the function name (which much start with an uppercase letter) and the input and output arguments. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
+The `signature` defines the function name (which must start with an uppercase letter) and the input and output arguments. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
 
 The code generated functional request handler will look similar to the following. `Microbus` is taking care of marhsaling and unmarshaling behind the scenes.
 
@@ -122,28 +124,30 @@ Along with the host name of the service, the `path` defines the URL to this endp
 
 `queue` defines whether a request is routed to one of the replicas of the microservice (load-balanced) or to all (pervasive).
 
-### Types
+### Events
 
-All complex (struct) non-primitive types used in `functions` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to the location of their package.
-
-Complex types may contain other complex types in which case those nested types also must be declared.
+`events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. Events are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `UserDeleted(id string)` could be an event fired by the user management microservice.
 
 ```yaml
-# Types
+# Events
 #
-# name - All non-primitive types used in functions must be accounted for
+# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - A path to another microservice that defines the type
-types:
-  - name:
+# path - The subscription path
+#   (empty) - The function name in kebab-case
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - Ellipsis denotes the function name in kebab-case
+#   https://example.com:123/path
+#   ^ - Empty path
+events:
+  - signature:
     description:
-    define:
-      fieldName: Type
-  - name:
-    description:
-    import:
+    path:
 ```
+
+The `signature` defines the event name (which must start with an uppercase letter) and the input and output arguments. In `Microbus`, events are bi-directional and event sinks may return values back to the event source. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
 
 ### Web Handlers
 
@@ -214,7 +218,30 @@ func (svc *Service) TickerHandler(ctx context.Context) (err error) {
 }
 ```
 
-### Clients
+### Types
+
+All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to the location of their package.
+
+Complex types may contain other complex types in which case those nested types also must be declared.
+
+```yaml
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - A path to another microservice that defines the type
+types:
+  - name:
+    description:
+    define:
+      fieldName: Type
+  - name:
+    description:
+    import:
+```
+
+## Clients
 
 In addition to the server side of things, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to reduce the chance of cyclical dependencies between upstream and downstream microservices.
 
@@ -224,17 +251,39 @@ With clients, an upstream microservice remotely calling a downstream microservic
 result, err := downstreamapi.NewClient(upstreamSvc).Add(ctx, x, y)
 ```
 
-### Embedded Resources
+## Embedded Resources
 
 A `resources` directory is automatically created with a `//go:embed` directive to allow microservices to bundle resource files along with the executable. The `embed.FS` is made available via `svc.Resources()`.
 
-### Versioning
+## Versioning
 
 The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to differentiate among different builds of the microservice.
 
 ## Structure of Generated Code
 
-The code generator creates quite a few files and sub-directories in the directory of the microservice. Files that include `-gen` in their name are fully code generated and should not be edited.
+The code generator creates quite a few files and sub-directories in the directory of the microservice.
+
+```
+{service}
+  app
+    {hyphenated-host-name}
+      main-gen.go
+  {service}api
+    clients-gen.go
+    types-gen.go
+  intermediate
+    intermediate-gen.go
+  resources
+    embed-gen.go
+  service-gen.go
+  service.go
+  version-gen_test.go
+  version-gen.go
+```
+
+Files that include `-gen` in their name are fully code generated and should not be edited.
+
+The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the host name of the service, with dots replaced by hyphens.
 
 The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types that they use. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 

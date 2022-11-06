@@ -12,6 +12,8 @@ var (
 	_ calculatorapi.Client
 )
 
+const ServiceName = "calculator.example"
+
 // NewService creates a new calculator.example microservice.
 func NewService() *Service {
 	s := &Service{}

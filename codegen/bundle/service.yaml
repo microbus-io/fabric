@@ -49,20 +49,36 @@ functions:
   # - signature:
   #   description:
 
-# Types
+# Event sources
 #
-# name - All non-primitive types used in functions must be accounted for
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - A path to another microservice that defines the type
-types:
-  # - name: DefinedType
+# path - The subscription path
+#   (empty) - The function name in kebab-case
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - Ellipsis denotes the function name in kebab-case
+#   https://example.com:123/path
+#   ^ - Empty path
+events:
+  # - signature:
   #   description:
-  #   define:
-  #     fieldName: Type
-  # - name: ImportedType
+
+# Event sinks
+#
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# event - The event name to handle (defaults to the function name)
+# source - A path to the microservice that is the source of the event
+# forHost - For an event source with an overridden host name
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+sinks:
+  # - signature:
   #   description:
-  #   import: package/path/of/another/microservice
+  #   source: package/path/of/another/microservice
 
 # Web handlers
 #
@@ -93,3 +109,18 @@ tickers:
   # - signature:
   #   description:
   #   interval:
+
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - A path to the microservice that defines the type
+types:
+  # - name: DefinedType
+  #   description:
+  #   define:
+  #     fieldName: Type
+  # - name: ImportedType
+  #   description:
+  #   import: package/path/of/another/microservice

@@ -35,7 +35,7 @@ type Service interface {
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 }
 
-// Client provides type-safe access to the endpoints of the {{ .General.Host }} microservice.
+// Client is an interface to calling the endpoints of the {{ .General.Host }} microservice.
 // This simple version is for unicast calls.
 type Client struct {
 	svc  Service
@@ -56,7 +56,7 @@ func (_c *Client) ForHost(host string) *Client {
 	return _c
 }
 
-// MulticastClient provides type-safe access to the endpoints of the {{ .General.Host }} microservice.
+// MulticastClient is an interface to calling the endpoints of the {{ .General.Host }} microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
 	svc  Service
@@ -76,3 +76,26 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c
 }
+
+{{- if .Events }}
+
+// MulticastTrigger is an interface to trigger the events of the {{ .General.Host }} microservice.
+type MulticastTrigger struct {
+	svc  Service
+	host string
+}
+
+// NewMulticastTrigger creates a new multicast trigger to the {{ .General.Host }} microservice.
+func NewMulticastTrigger(caller Service) *MulticastTrigger {
+	return &MulticastTrigger{
+		svc:  caller,
+		host: "{{ .General.Host }}",
+	}
+}
+
+// ForHost replaces the default host name of this trigger.
+func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
+	_c.host = host
+	return _c
+}
+{{- end}}

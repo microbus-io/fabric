@@ -19,7 +19,6 @@ import (
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/configurator/resources"
-
 	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
 )
 
@@ -71,9 +70,13 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	
+	// Functions
 	svc.Subscribe(`/values`, svc.doValues)
 	svc.Subscribe(`/refresh`, svc.doRefresh)
 	svc.Subscribe(`/sync`, svc.doSync, sub.NoQueue())
+	
+	// Tickers
 	intervalPeriodicRefresh, _ := time.ParseDuration("20m0s")
 	svc.StartTicker("PeriodicRefresh", intervalPeriodicRefresh, svc.impl.PeriodicRefresh)
 
@@ -103,26 +106,22 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 
 // doValues handles marshaling for the Values function.
 func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-		Names []string `json:"names"`
-	}{}
-	o := struct {
-		Values map[string]string `json:"values"`
-	}{}
+	var i configuratorapi.ValuesIn
+	var o configuratorapi.ValuesOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Values, err = svc.impl.Values(
+	d.Values, err = svc.impl.Values(
 		r.Context(),
 		i.Names,
 	)
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -131,10 +130,9 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 
 // doRefresh handles marshaling for the Refresh function.
 func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-	}{}
-	o := struct {
-	}{}
+	var i configuratorapi.RefreshIn
+	var o configuratorapi.RefreshOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
@@ -145,9 +143,8 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -156,12 +153,9 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 
 // doSync handles marshaling for the Sync function.
 func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
-	i := struct {
-		Timestamp time.Time `json:"timestamp"`
-		Values map[string]map[string]string `json:"values"`
-	}{}
-	o := struct {
-	}{}
+	var i configuratorapi.SyncIn
+	var o configuratorapi.SyncOut
+	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
@@ -174,9 +168,8 @@ func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	err = json.NewEncoder(w).Encode(d)
 	if err != nil {
 		return errors.Trace(err)
 	}
