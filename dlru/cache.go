@@ -3,7 +3,7 @@ package dlru
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -20,6 +20,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/services/control/controlapi"
 	"github.com/microbus-io/fabric/sub"
 )
 
@@ -229,7 +230,7 @@ func (c *Cache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
-	hash := md5.New()
+	hash := sha256.New()
 	_, err = hash.Write(data)
 	if err != nil {
 		return errors.Trace(err)
@@ -290,12 +291,11 @@ func (c *Cache) rescue(ctx context.Context) {
 	}
 
 	// Count number of peers
-	u := fmt.Sprintf("https://%s:888/ping", c.svc.HostName())
-	ch := c.svc.Publish(ctx, pub.GET(u))
+	ch := controlapi.NewMulticastClient(c.svc).ForHost(c.svc.HostName()).Ping(ctx)
 	peers := 0
 	for r := range ch {
-		res, err := r.Get()
-		if err == nil && frame.Of(res).FromID() != c.svc.ID() {
+		_, err := r.Get()
+		if err == nil && frame.Of(r.HTTPResponse).FromID() != c.svc.ID() {
 			peers++
 		}
 	}
@@ -383,7 +383,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump))
 	if ok {
 		// Calculate checksum of local copy
-		hash := md5.New()
+		hash := sha256.New()
 		_, err := hash.Write(value)
 		if err != nil {
 			return nil, false, errors.Trace(err)

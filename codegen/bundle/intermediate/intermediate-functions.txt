@@ -1,0 +1,38 @@
+{{ range .Functions}}
+// do{{ .Name }} handles marshaling for the {{ .Name }} function.
+func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
+	i := struct {
+		{{- range .Signature.InputArgs }}
+		{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
+		{{- end }}
+	}{}
+	o := struct {
+		{{- range .Signature.OutputArgs }}
+		{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ if eq .Name "httpStatusCode" }}-{{ else }}{{ .Name }}{{ end }}"`
+		{{- end }}
+	}{}
+	err := utils.ParseRequestData(r, &i)
+	if err!=nil {
+		return errors.Trace(err)
+	}
+	{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = svc.impl.{{ .Name }}(
+		r.Context(),
+		{{- range .Signature.InputArgs }}
+		i.{{ CapitalizeIdentifier .Name }},
+		{{- end}}
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}
+	w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
+	{{- end}}{{- end}}
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+{{ end}}

@@ -24,12 +24,12 @@ type ShutdownHandler func(ctx context.Context) error
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 
 	callback, err := cb.NewCallback("onstartup", handler, options...)
 	if err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	c.onStartup = callback
 	return nil
@@ -39,12 +39,12 @@ func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) e
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnShutdown(handler ShutdownHandler, options ...cb.Option) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 
 	callback, err := cb.NewCallback("onshutdown", handler, options...)
 	if err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	c.onShutdown = callback
 	return nil
@@ -56,7 +56,11 @@ func (c *Connector) Startup() (err error) {
 		return errors.New("already started")
 	}
 	if c.hostName == "" {
-		return errors.New("no hostname")
+		return errors.New("hostname is not set")
+	}
+	defer func() { c.initErr = nil }()
+	if c.initErr != nil {
+		return c.initErr
 	}
 
 	// Determine the communication plane
@@ -309,4 +313,14 @@ func (c *Connector) IsStarted() bool {
 // In most cases the lifetime context should be used instead of the background context.
 func (c *Connector) Lifetime() context.Context {
 	return c.lifetimeCtx
+}
+
+// captureInitErr captures errors during the pre-start phase of the connector.
+// If such an error occurs, the connector fails to start.
+// This is useful since errors can be ignored during initialization.
+func (c *Connector) captureInitErr(err error) error {
+	if err != nil && c.initErr == nil && !c.started {
+		c.initErr = err
+	}
+	return err
 }

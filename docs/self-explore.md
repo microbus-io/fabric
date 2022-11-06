@@ -7,4 +7,4 @@
 * Create your own microservice from scratch and add it to `examples/main/main.go`
 * Put a breakpoint in any of the microservices of the example application and try debugging
 * Write unit tests that require mocking the microservice's clock
-* Add a `/cache/delete` endpoint to the `messaging.example`
+* Add a `/cache-delete` endpoint to the `messaging.example`

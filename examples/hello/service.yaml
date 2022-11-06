@@ -1,0 +1,110 @@
+---
+# General
+#
+# host - The host name of the microservice
+# description - A human-friendly description of the microservice
+general:
+  host: hello.example
+  description: The Hello microservice demonstrates the various capabilities of a microservice.
+
+# Config properties
+#
+# signature - Func() (val Type)
+# description - Documentation
+# default - A default value (defaults to empty)
+# validation - A validation pattern
+#   str ^[a-zA-Z0-9]+$
+#   bool
+#   int [0,60]
+#   float [0.0,1.0)
+#   dur (0s,24h]
+#   set Red|Green|Blue
+#   url
+#   email
+#   json
+# callback - "true" to handle the change event (defaults to "false")
+# secret - "true" to indicate a secret (defaults to "false")
+configs:
+  - signature: Greeting() (greeting string)
+    description: Greeting to use.
+    default: Hello
+  - signature: Repeat() (count int)
+    description: Repeat indicates how many times to display the greeting.
+    default: 1
+    validation: int [0,100]
+
+# Functions
+#
+# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# path - The subscription path
+#   (empty) - The function name in kebab-case
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - Ellipsis denotes the function name in kebab-case
+#   https://example.com:123/path
+#   ^ - Empty path
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+functions:
+  # - signature:
+  #   description:
+
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - A path to another microservice that defines the type
+types:
+  # - name: DefinedType
+  #   description:
+  #   define:
+  #     fieldName: Type
+  # - name: ImportedType
+  #   description:
+  #   import: package/path/of/another/microservice
+
+# Web handlers
+#
+# signature - Func()
+# description - Documentation
+# path - The subscription path
+#   (empty) - The function name in kebab-case
+#   /path
+#   /directory/
+#   :123/path
+#   :123/... - Ellipsis denotes the function name in kebab-case
+#   https://example.com:123/path
+#   ^ - Empty path
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+webs:
+  - signature: Hello()
+    description: Hello prints a greeting.
+  - signature: Echo()
+    description: Echo back the incoming request in wire format.
+  - signature: Ping()
+    description: Ping all microservices and list them.
+  - signature: Calculator()
+    description: |-
+      Calculator renders a UI for a calculator.
+      The calculation operation is delegated to another microservice in order to demonstrate
+      a call from one microservice to another.
+  - signature: BusJPEG()
+    path: /bus.jpeg
+    description: BusJPEG serves an image from the embedded resources.
+
+# Tickers
+#
+# signature - Func()
+# description - Documentation
+# interval - Duration between iterations (e.g. 15m)
+# timeBudget - Duration to complete an iteration
+tickers:
+  - signature: TickTock()
+    description: TickTock is executed every 10 seconds.
+    interval: 10s

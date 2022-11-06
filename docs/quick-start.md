@@ -24,7 +24,7 @@ It's recommended to start the NATS server in a separate terminal window to bette
 
 ## Run the Examples
 
-Run the [examples](docs/structure/examples.md):
+Run the example app:
 
 ```cmd
 cd examples/main
@@ -40,12 +40,18 @@ Try the following URLs in your browser:
 * http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=8
 * http://localhost:8080/calculator.example/square?x=5
 * http://localhost:8080/calculator.example/square?x=not-a-number
+* http://localhost:8080/calculator.example/distance?p1.x=0&p1.y=0&p2.x=3&p2.y=4
 * http://localhost:8080/hello.example/echo
 * http://localhost:8080/hello.example/ping
 * http://localhost:8080/hello.example/hello?name=Bella
 * http://localhost:8080/hello.example/calculator
+* http://localhost:8080/hello.example/bus.jpeg
 * http://localhost:8080/messaging.example/home
-* http://localhost:8080/messaging.example/cache/store?key=foo&value=bar
-* http://localhost:8080/messaging.example/cache/load?key=foo
+* http://localhost:8080/messaging.example/cache-store?key=foo&value=bar
+* http://localhost:8080/messaging.example/cache-load?key=foo
 
 Feel free to experiment with different values for the query arguments.
+
+## Configure IDE
+
+The [Todo Tree extension](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree) is recommended for VS Code users.

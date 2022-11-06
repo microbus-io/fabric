@@ -32,7 +32,7 @@ Validation sets the validation rule of the config property.
 
 Valid rules are:
 
-	str [a-zA-Z0-9]+
+	str ^[a-zA-Z0-9]+$
 	bool
 	int [0,60]
 	float [0.0,1.0)

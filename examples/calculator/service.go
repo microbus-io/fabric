@@ -1,97 +1,79 @@
 package calculator
 
 import (
-	"encoding/json"
+	"context"
+	"math"
 	"net/http"
-	"strconv"
 
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+
+	"github.com/microbus-io/fabric/examples/calculator/intermediate"
+
+	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
 )
 
-// Service is a calculator microservice
+var (
+	_ errors.TracedError
+	_ http.Request
+
+	_ calculatorapi.Client
+)
+
+/*
+Service implements the "calculator.example" microservice.
+
+The Calculator microservice performs simple mathematical operations.
+*/
 type Service struct {
-	*connector.Connector
+	*intermediate.Intermediate // DO NOT REMOVE
 }
 
-// NewService creates a new calculator microservice
-func NewService() *Service {
-	s := &Service{
-		Connector: connector.New("calculator.example"),
-	}
-	s.SetDescription("The Calculator microservice performs simple mathematical operations.")
-	s.Subscribe("/arithmetic", s.Arithmetic)
-	s.Subscribe("/square", s.Square)
-	return s
+// OnStartup is called when the microservice is started up.
+func (svc *Service) OnStartup(ctx context.Context) (err error) {
+	return nil
 }
 
-// Arithmetic perform an arithmetic operation between two integers x and y given an operator op
-func (s *Service) Arithmetic(w http.ResponseWriter, r *http.Request) error {
-	// Read and parse query arguments
-	x := r.URL.Query().Get("x")
-	y := r.URL.Query().Get("y")
-	op := r.URL.Query().Get("op")
+// OnShutdown is called when the microservice is shut down.
+func (svc *Service) OnShutdown(ctx context.Context) (err error) {
+	return nil
+}
+
+/*
+Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
+*/
+func (svc *Service) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
 	if op == " " {
 		op = "+" // + is interpreted as a space in URLs
 	}
-
-	xx, err := strconv.ParseInt(x, 10, 32)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	yy, _ := strconv.ParseInt(y, 10, 32)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	var rr int64
-
 	// Perform the arithmetic operation
 	switch op {
 	case "*":
-		rr = xx * yy
+		result = x * y
 	case "+":
-		rr = xx + yy
+		result = x + y
 	case "-":
-		rr = xx - yy
+		result = x - y
 	case "/":
-		rr = xx / yy
+		result = x / y
 	default:
-		return errors.Newf("invalid operator '%s'", op)
+		return x, op, y, result, errors.Newf("invalid operator '%s'", op)
 	}
-
-	// Print the result
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(struct {
-		X      int64  `json:"x"`
-		Op     string `json:"op"`
-		Y      int64  `json:"y"`
-		Result int64  `json:"result"`
-	}{
-		xx,
-		op,
-		yy,
-		rr,
-	})
-	return errors.Trace(err)
+	return x, op, y, result, nil
 }
 
-// Square prints the square of the integer x
-func (s *Service) Square(w http.ResponseWriter, r *http.Request) error {
-	// Read and parse query argument
-	x := r.URL.Query().Get("x")
-	xx, err := strconv.ParseInt(x, 10, 32)
-	if err != nil {
-		return errors.Trace(err)
-	}
+/*
+Square prints the square of the integer x.
+*/
+func (svc *Service) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
+	return x, x * x, nil
+}
 
-	// Print the result
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(struct {
-		X      int64 `json:"x"`
-		Result int64 `json:"result"`
-	}{
-		xx,
-		xx * xx,
-	})
-	return errors.Trace(err)
+/*
+Distance calculates the distance between two points.
+It demonstrates the use of the defined type Point.
+*/
+func (svc *Service) Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error) {
+	dx := p1.X - p2.X
+	dy := p1.Y - p2.Y
+	return math.Sqrt(dx*dx + dy*dy), nil
 }

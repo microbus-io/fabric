@@ -1,6 +1,6 @@
 # Package `examples`
 
-The `examples` package holds several examples that demonstrate how the `Connector` can be used to create microservices.
+The `examples` package holds several examples that demonstrate how the framework can be used to create microservices. When studying an example, start by looking at the `service.yaml` to get a quick overview of the functionality of the microservice. Then go deep into the code in `service.go`. All files with `-gen` in their name are code generated and can be ignored unless studying the internals of the generated code.
 
 ## Hello
 
@@ -58,16 +58,18 @@ The `/calculator` endpoint renders a rudimentary UI of a calculator. Behind the 
 
 <img src="examples-1.png" width="315">
 
+The `/bus.jpeg` endpoint serves an image from the embedded resources directory.
+
 ## Calculator
 
-The `calculator.example` microservice implement two endpoints, `/arithmetic` and `/square` in order to demonstrate parsing of query arguments and error handling.
+The `calculator.example` microservice implement two endpoints, `/arithmetic` and `/square` in order to demonstrate functional handlers. These types of handlers automatically parse incoming requests (typically JSON over HTTP) and make it appear like a function is called. Functional endpoints are best called using the client that's defined in the `calculatorapi` package. The `hello.example` discussed earlier is making use of this client.
 
-The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, and one of four operators in the `op` argument: `+`, `-`, `/` and `*`. The response is a JSON structure.
+The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, and one of four operators in the `op` argument: `+`, `-`, `/` and `*`. The response is a an echo of the input arguments and the result of the calculation. It is returned as JSON.
 
 http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=-8 produces:
 
 ```
-{"x":5,"op":"*","y":-8,"result":-40}
+{"xEcho":5,"opEcho":"*","yEcho":-8,"result":-40}
 ```
 
 The `/square` endpoint takes a single integer `x` and prints its square.
@@ -75,7 +77,7 @@ The `/square` endpoint takes a single integer `x` and prints its square.
 http://localhost:8080/calculator.example/square?x=55 produces:
 
 ```
-{"x":55,"result":3025}
+{"xEcho":55,"result":3025}
 ```
 
 If the arguments cannot be parsed, an error is returned.
@@ -83,22 +85,37 @@ If the arguments cannot be parsed, an error is returned.
 http://localhost:8080/calculator.example/square?x=not-valid results in:
 
 ```
-strconv.ParseInt: parsing "not-valid": invalid syntax
+json: cannot unmarshal string into Go struct field .x of type int
+```
 
-calculator.(*Service).Square
-	/src/github.com/microbus-io/fabric/examples/calculator/service.go:84
-connector.(*Connector).onRequest
-	/src/github.com/microbus-io/fabric/connector/subscribe.go:258
-	https://calculator.example:443/square
-connector.(*Connector).onRequest
-	/src/github.com/microbus-io/fabric/connector/subscribe.go:259
-connector.(*Connector).makeHTTPRequest
-	/src/github.com/microbus-io/fabric/connector/publish.go:232
-	http.ingress.sys -> calculator.example
-connector.(*Connector).Request
-	/src/github.com/microbus-io/fabric/connector/publish.go:44
-httpingress.(*Service).ServeHTTP
-	/src/github.com/microbus-io/fabric/services/httpingress/service.go:125
+The `/distance` endpoint demonstrates the use of a complex type `Point`. The type is defined in `service.yaml`:
+
+```yaml
+types:
+  - name: Point
+    description: Point is a 2D (X,Y) coordinate.
+    define:
+      x: float64
+      y: float64
+```
+
+and code generated in the API package:
+
+```go
+/*
+Point is a 2D coordinate (X, Y)
+*/
+type Point struct {
+    X float64 `json:"x"`
+    Y float64 `json:"y"`
+}
+```
+
+Dot notation can be used in URL query arguments to denote values of nested fields.
+http://localhost:8080/calculator.example/distance?p1.x=0&p1.y=0&p2.x=3&p2.y=4 produces the result:
+
+```
+{"d":5}
 ```
 
 ## Messaging
@@ -165,7 +182,7 @@ Refresh the page to see the IDs change:
 
 The `messaging.example` microservice also demonstrates how multiple replicas of the same service can share a single cache by communicating over NATS.
 
-To store an element, use the http://localhost:8080/messaging.example/cache/store?key=foo&value=bar endpoint. The output shows which of the replicas handled the request.
+To store an element, use the http://localhost:8080/messaging.example/cache-store?key=foo&value=bar endpoint. The output shows which of the replicas handled the request.
 
 ```
 key: foo
@@ -174,7 +191,7 @@ value: bar
 Stored by qtshc434b7
 ```
 
-To load an element, use the http://localhost:8080/messaging.example/cache/load?key=foo endpoint. Refresh the page a few times and notice how all replicas are able to locate the element.
+To load an element, use the http://localhost:8080/messaging.example/cache-load?key=foo endpoint. Refresh the page a few times and notice how all replicas are able to locate the element.
 
 ```
 key: foo
@@ -184,7 +201,7 @@ value: bar
 Loaded by ucarmsii56
 ```
 
-Or if the element can't be located, e.g. http://localhost:8080/messaging.example/cache/load?key=fox :
+Or if the element can't be located, e.g. http://localhost:8080/messaging.example/cache-load?key=fox :
 
 ```
 key: fox
