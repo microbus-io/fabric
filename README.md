@@ -1,5 +1,7 @@
 # Microbus.io fabric : Milestone 10
 
+[![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
+
 <img src="docs/gopher-on-bus.png" width=256>
 
 ## Introduction
