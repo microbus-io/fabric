@@ -5,7 +5,7 @@
 # description - A human-friendly description of the microservice
 general:
   host: eventsource.example
-  description: The Event Source microservice fires events that are caught by the Event Sink microservice.
+  description: The event source microservice fires events that are caught by the event sink microservice.
 
 # Config properties
 #

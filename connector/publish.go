@@ -23,7 +23,7 @@ import (
 
 const AckTimeout = 250 * time.Millisecond
 
-// GET makes a GET request
+// GET makes a GET request.
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{
 		pub.GET(url),
@@ -32,7 +32,7 @@ func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error)
 
 // POST makes a POST request.
 // Body of type io.Reader, []byte and string is serialized in binary form.
-// All other types are serialized as JSON
+// All other types are serialized as JSON.
 func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{
 		pub.POST(url),
@@ -40,7 +40,7 @@ func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Respo
 	}...)
 }
 
-// Request makes an HTTP request then awaits and returns a single response synchronously
+// Request makes an HTTP request then awaits and returns a single response synchronously.
 func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.Response, error) {
 	options = append(options, pub.Unicast())
 	ch := c.Publish(ctx, options...)
@@ -104,7 +104,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	return output
 }
 
-// makeHTTPRequest makes an HTTP request then awaits and pushes the responses to the output channel
+// makeHTTPRequest makes an HTTP request then awaits and pushes the responses to the output channel.
 func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response) {
 	// Set a random message ID
 	msgID := rand.AlphaNum64(8)
@@ -334,7 +334,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	}
 }
 
-// onResponse is called when a response to an outgoing request is received
+// onResponse is called when a response to an outgoing request is received.
 func (c *Connector) onResponse(msg *nats.Msg) {
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
