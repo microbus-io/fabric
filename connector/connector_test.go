@@ -40,9 +40,8 @@ func TestConnector_BadHostName(t *testing.T) {
 func TestConnector_Plane(t *testing.T) {
 	t.Parallel()
 
-	con := New("plane.connector")
-
 	// Before starting
+	con := New("plane.connector")
 	assert.Empty(t, con.Plane())
 	err := con.SetPlane("bad.plane.name")
 	assert.Error(t, err)
@@ -53,12 +52,11 @@ func TestConnector_Plane(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", con.Plane())
 
-	// Start connector
+	// After starting
+	con = New("plane.connector")
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
-
-	// After starting
 	assert.NotEmpty(t, con.Plane())
 	err = con.SetPlane("123plane456")
 	assert.Error(t, err)
@@ -89,9 +87,8 @@ func TestConnector_PlaneEnv(t *testing.T) {
 func TestConnector_Deployment(t *testing.T) {
 	t.Parallel()
 
-	con := New("deployment.connector")
-
 	// Before starting
+	con := New("deployment.connector")
 	assert.Empty(t, con.Deployment())
 	err := con.SetDeployment("NOGOOD")
 	assert.Error(t, err)
@@ -102,12 +99,11 @@ func TestConnector_Deployment(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", con.Deployment())
 
-	// Start connector
+	// After starting
+	con = New("deployment.connector")
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
-
-	// After starting
 	assert.Equal(t, LOCAL, con.Deployment())
 	err = con.SetDeployment(LAB)
 	assert.Error(t, err)
@@ -127,4 +123,28 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 	defer con.Shutdown()
 
 	assert.Equal(t, LAB, con.Deployment())
+}
+
+func TestConnector_Version(t *testing.T) {
+	t.Parallel()
+
+	// Before starting
+	con := New("version.connector")
+	assert.Empty(t, con.Plane())
+	err := con.SetVersion(-1)
+	assert.Error(t, err)
+	err = con.SetVersion(123)
+	assert.NoError(t, err)
+	assert.Equal(t, 123, con.Version())
+	err = con.SetVersion(0)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, con.Version())
+
+	// After starting
+	con = New("version.connector")
+	err = con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+	err = con.SetVersion(123)
+	assert.Error(t, err)
 }

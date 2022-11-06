@@ -43,16 +43,16 @@ Examples of valid paths:
 */
 func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error {
 	if c.hostName == "" {
-		return errors.New("host name is not set")
+		return c.captureInitErr(errors.New("host name is not set"))
 	}
 	newSub, err := sub.NewSub(c.hostName, path, handler, options...)
 	if err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	if c.IsStarted() {
 		err := c.activateSub(newSub)
 		if err != nil {
-			return errors.Trace(err)
+			return c.captureInitErr(errors.Trace(err))
 		}
 		time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 	}
@@ -314,6 +314,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	frame.Of(httpResponse).SetMessageID(msgID)
 	frame.Of(httpResponse).SetFromHost(c.hostName)
 	frame.Of(httpResponse).SetFromID(c.id)
+	frame.Of(httpResponse).SetFromVersion(c.version)
 	frame.Of(httpResponse).SetQueue(queue)
 	frame.Of(httpResponse).SetOpCode(frame.OpCodeResponse)
 	if handlerErr != nil {

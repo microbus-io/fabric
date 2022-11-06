@@ -76,6 +76,12 @@ func TestFrame_GetSet(t *testing.T) {
 	f.SetFromID("")
 	assert.Equal(t, "", f.FromID())
 
+	assert.Equal(t, 0, f.FromVersion())
+	f.SetFromVersion(12345)
+	assert.Equal(t, 12345, f.FromVersion())
+	f.SetFromVersion(0)
+	assert.Equal(t, 0, f.FromVersion())
+
 	assert.Equal(t, "", f.MessageID())
 	f.SetMessageID("1234567890")
 	assert.Equal(t, "1234567890", f.MessageID())

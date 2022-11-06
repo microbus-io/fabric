@@ -122,6 +122,7 @@ func (c *Connector) initLogger() (err error) {
 	c.logger = c.logger.With(
 		log.String("host", c.HostName()),
 		log.String("id", c.ID()),
+		log.Int("ver", c.Version()),
 	)
 	return nil
 }

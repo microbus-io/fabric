@@ -7,7 +7,7 @@ import (
 	"github.com/microbus-io/fabric/sub"
 )
 
-// subscribeControl creates subscriptions for control requests on the reserved port 888
+// subscribeControl creates subscriptions for control requests on the reserved port 888.
 func (c *Connector) subscribeControl() error {
 	type ctrlSub struct {
 		path    string
@@ -21,7 +21,7 @@ func (c *Connector) subscribeControl() error {
 			options: []sub.Option{sub.NoQueue()},
 		},
 		{
-			path:    "config/refresh",
+			path:    "config-refresh",
 			handler: c.handleControlConfigRefresh,
 			options: []sub.Option{sub.NoQueue()},
 		},
@@ -39,13 +39,15 @@ func (c *Connector) subscribeControl() error {
 	return nil
 }
 
-// handleControlPing responds to the :888/ping control request with a pong
+// handleControlPing responds to the :888/ping control request with a pong.
 func (c *Connector) handleControlPing(w http.ResponseWriter, r *http.Request) error {
-	w.Write([]byte(`pong`))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"pong":0}`))
 	return nil
 }
 
-// handleControlPing responds to the :888/ping control request with a pong
+// handleControlConfigRefresh responds to the :888/config-refresh control request
+// by pulling the latest config values from the configurator service.
 func (c *Connector) handleControlConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	err := c.refreshConfig(r.Context())
 	if err != nil {

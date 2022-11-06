@@ -12,6 +12,15 @@
             "mode": "auto",
             "program": "${workspaceFolder}/examples/main",
             "cwd": "${workspaceFolder}/examples/main"
+        },
+        {
+            "name": "Codegen",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/codegen",
+            "cwd": "${workspaceFolder}/examples/hello",
+            "env": {"MICROBUS_CODEGEN": "-f"}
         }
     ]
 }

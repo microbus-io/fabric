@@ -44,7 +44,7 @@ many.microservices.configurator:
 `)
 	assert.NoError(t, err)
 
-	err = configSvc.PublishRefresh(configSvc.Lifetime())
+	err = configSvc.Refresh(configSvc.Lifetime())
 	assert.NoError(t, err)
 
 	// Known responders optimization might cause some of the microservices to be missed
@@ -64,7 +64,7 @@ many.microservices.configurator:
 `)
 	assert.NoError(t, err)
 
-	err = configSvc.PublishRefresh(configSvc.Lifetime())
+	err = configSvc.Refresh(configSvc.Lifetime())
 	assert.NoError(t, err)
 
 	// Known responders optimization might cause some of the microservices to be missed
@@ -105,7 +105,7 @@ callback.configurator:
 `)
 
 	// Force a refresh
-	err = configSvc.PublishRefresh(configSvc.Lifetime())
+	err = configSvc.Refresh(configSvc.Lifetime())
 	assert.NoError(t, err)
 
 	// Known responders optimization might cause some of the microservices to be missed

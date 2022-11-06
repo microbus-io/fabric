@@ -124,7 +124,7 @@ func TestDLRU_Rescue(t *testing.T) {
 	}
 	close(numChan)
 	var wg sync.WaitGroup
-	for i := 0; i < runtime.NumCPU()*8; i++ {
+	for i := 0; i < runtime.NumCPU()*4; i++ {
 		wg.Add(1)
 		go func() {
 			for i := range numChan {
@@ -162,7 +162,7 @@ func TestDLRU_Rescue(t *testing.T) {
 		numChan <- i
 	}
 	close(numChan)
-	for i := 0; i < runtime.NumCPU()*8; i++ {
+	for i := 0; i < runtime.NumCPU()*4; i++ {
 		wg.Add(1)
 		go func() {
 			for i := range numChan {

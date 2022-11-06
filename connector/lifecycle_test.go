@@ -2,10 +2,12 @@ package connector
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -144,4 +146,38 @@ func TestConnector_ShutdownTimeout(t *testing.T) {
 	time.Sleep(600 * time.Millisecond)
 	<-done
 	assert.False(t, con.IsStarted())
+}
+
+func TestConnector_InitError(t *testing.T) {
+	t.Parallel()
+
+	con := New("init.error.connector")
+	err := con.DefineConfig("Hundred", cfg.DefaultValue("101"), cfg.Validation("int [1,100]"))
+	assert.Error(t, err)
+	err = con.Startup()
+	assert.Error(t, err)
+
+	con = New("init.error.connector")
+	err = con.DefineConfig("Hundred", cfg.DefaultValue("1"), cfg.Validation("int [1,100]"))
+	assert.NoError(t, err)
+	err = con.InitConfig("Hundred", "101")
+	assert.Error(t, err)
+	err = con.Startup()
+	assert.Error(t, err)
+
+	con = New("init.error.connector")
+	err = con.Subscribe(":99999/path", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+	assert.Error(t, err)
+	err = con.Startup()
+	assert.Error(t, err)
+
+	con = New("init.error.connector")
+	err = con.StartTicker("ticktock", -time.Minute, func(ctx context.Context) error {
+		return nil
+	})
+	assert.Error(t, err)
+	err = con.Startup()
+	assert.Error(t, err)
 }

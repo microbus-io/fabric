@@ -19,21 +19,24 @@ type TickerHandler func(ctx context.Context) error
 // StartTicker initiates a recurring job at a set interval.
 func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler, options ...cb.Option) error {
 	if err := utils.ValidateTickerName(name); err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 
 	if _, ok := c.tickers[strings.ToLower(name)]; ok {
-		return errors.Newf("ticker '%s' is already started", name)
+		return c.captureInitErr(errors.Newf("ticker '%s' is already started", name))
 	}
 
 	cb, err := cb.NewCallback(name, handler, options...)
 	if err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	cb.Interval = interval
+	if interval <= 0 {
+		return c.captureInitErr(errors.Newf("non-positive interval '%v'", interval))
+	}
 	c.tickers[strings.ToLower(name)] = cb
 	if c.started {
 		c.runTicker(cb)

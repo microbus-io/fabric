@@ -537,7 +537,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 			respondedErr++
 			assert.Equal(t, 2, respondedOK)
 			dur := slow.Clock().Since(t0)
-			assert.True(t, dur >= 3*delay && dur < 4*delay)
+			assert.True(t, dur >= 3*delay && dur < 4*delay, "%v", dur)
 		}
 	}
 	assert.Equal(t, 2, respondedOK)
