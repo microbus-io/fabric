@@ -121,15 +121,15 @@ func (c *Connector) ID() string {
 // For example, this.is.a.valid.hostname.123.local
 func (c *Connector) SetHostName(hostName string) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 	hostName = strings.TrimSpace(hostName)
 	if err := utils.ValidateHostName(hostName); err != nil {
-		return errors.Trace(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	hn := strings.ToLower(hostName)
 	if hn == "all" || strings.HasSuffix(hn, ".all") {
-		return errors.Newf("disallowed host name '%s'", hostName)
+		return c.captureInitErr(errors.Newf("disallowed host name '%s'", hostName))
 	}
 	c.hostName = hostName
 	return nil
@@ -154,6 +154,12 @@ func (c *Connector) Description() string {
 
 // SetVersion sets the sequential version number of the microservice.
 func (c *Connector) SetVersion(version int) error {
+	if c.started {
+		return c.captureInitErr(errors.New("already started"))
+	}
+	if version < 0 {
+		return c.captureInitErr(errors.Newf("negative version '%d'", version))
+	}
 	c.version = version
 	return nil
 }
@@ -188,11 +194,11 @@ func (c *Connector) Deployment() string {
 // LOCAL when developing on the local machine or running unit tests
 func (c *Connector) SetDeployment(deployment string) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 	deployment = strings.ToUpper(deployment)
 	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL {
-		return errors.Newf("invalid deployment '%s'", deployment)
+		return c.captureInitErr(errors.Newf("invalid deployment '%s'", deployment))
 	}
 	c.deployment = deployment
 	return nil
@@ -214,10 +220,10 @@ func (c *Connector) Plane() string {
 // Setting an empty value will clear this override
 func (c *Connector) SetPlane(plane string) error {
 	if c.started {
-		return errors.New("already started")
+		return c.captureInitErr(errors.New("already started"))
 	}
 	if match, _ := regexp.MatchString(`^[0-9a-zA-Z]*$`, plane); !match {
-		return errors.New("invalid plane: %s", plane)
+		return c.captureInitErr(errors.Newf("invalid plane: %s", plane))
 	}
 	c.plane = plane
 	return nil

@@ -58,10 +58,9 @@ func (c *Connector) Startup() (err error) {
 	if c.hostName == "" {
 		return errors.New("hostname is not set")
 	}
+	defer func() { c.initErr = nil }()
 	if c.initErr != nil {
-		err = errors.Trace(c.initErr)
-		c.initErr = nil
-		return err
+		return c.initErr
 	}
 
 	// Determine the communication plane
