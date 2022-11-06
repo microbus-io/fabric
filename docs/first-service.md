@@ -238,7 +238,7 @@ func main() {
 
 Go to http://localhost:8080/wordly.example/play and enjoy!
 
-Wanna make the game harder by decreasing the number of guesses? Change the value of the config property `MaxGuesses` by editing the `examples/main/config.yaml`.
+Want to make the game harder by decreasing the number of guesses? Change the value of the config property `MaxGuesses` by editing the `examples/main/config.yaml`.
 
 ```yaml
 wordly.example:
@@ -256,5 +256,6 @@ This microservice is far from being polished. Try the following on your own:
 * Do not print the guessing form if the player exhausted all of their guesses
 * Do not accept guesses after the player identified the secret word
 * Accept guesses only if they are themselves valid words
+* Print the secret word when the player fails to guess it
 * Support 4, 6 and 7 letter words
 * The microservice stores state in local memory which will break when a second replica is added to the app and requests are load-balanced. Use the distributed cache to work around that
