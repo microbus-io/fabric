@@ -257,3 +257,4 @@ This microservice is far from being polished. Try the following on your own:
 * Do not accept guesses after the player identified the secret word
 * Accept guesses only if they are themselves valid words
 * Support 4, 6 and 7 letter words
+* The microservice stores state in local memory which will break when a second replica is added to the app and requests are load-balanced. Use the distributed cache to work around that
