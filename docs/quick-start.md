@@ -20,7 +20,7 @@ go build github.com/nats-io/nats-server
 ./nats-server -D -V
 ```
 
-It's recommended to start the NATS server in a separate terminal window to better be able to see the action. 
+The `-D` and `-V` flags will produce a lot of output. It's recommended to start the NATS server in a separate terminal window to better be able to see the action. Remove these flags if speed is important, such as when running benchmarks and certain tests.
 
 ## Run the Examples
 

@@ -8,11 +8,11 @@
 
 `Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices. Microservices over a bus = microbus.
 
-The framework involves itself in three conceptual areas:
+The framework's philosophy can be broken into three areas:
 
-* Common runtime - The framework specifies rules that all microservices need to comply with during runtime. This includes things like how microservices [communicate](docs/tech/unicast.md), how they report metrics, where they [pull config values](docs/tech/configuration.md) from, how they get deployed, etc. A common set of rules is important for proper interoperability and the stability of the system as a whole
+* Common runtime - The framework specifies rules that all microservices need to comply with during runtime. This includes things like how microservices [communicate](docs/tech/unicast.md), how they report metrics, where they [pull config values](docs/tech/configuration.md) from, how they get deployed, etc. A common set of rules is important for interoperability, maintainability and stability of the system
 * RAD tools - The framework leverages [code generation](docs/tech/codegen.md) for the rapid development of microservices with the intent that application developers focus on the business logic rather than on boilerplate code. Developer productivity is directly correlated to customer value
-* Building blocks - Capabilities that are deemed to be the building blocks of microservices are implemented by the framework in a standard way, serving to facilitate both of the above
+* Standard building blocks - Capabilities that are deemed to be the building blocks of microservices are implemented by the framework in a standard way, serving to facilitate both of the above
 
 `fabric` is the main project that provides the core capabilities that all `Microbus` microservices are built on. The [milestones](docs/milestones.md) of this project are maintained in separate branches in order to demonstrate the thinking process behind the building of this framework.
 
