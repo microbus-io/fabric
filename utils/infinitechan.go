@@ -6,7 +6,7 @@ import (
 )
 
 // InfiniteChan is backed by a finite channel with the specified capacity.
-// Overflowing elements are stored in a queue and are pushed to the channel when it has free capacity.
+// Overflowing elements are stored in a queue and are delivered to the channel when it has free capacity.
 // Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
 type InfiniteChan[T any] struct {
 	C     <-chan T
@@ -15,12 +15,12 @@ type InfiniteChan[T any] struct {
 	idle  time.Duration
 	lock  sync.Mutex
 
-	count   int
-	drained int
+	count     int
+	delivered int
 }
 
 // NewInfiniteChan creates a new infinite channel backed by a finite channel with the specified capacity.
-// Overflowing elements are stored in a queue and are pushed to the channel when it has free capacity.
+// Overflowing elements are stored in a queue and are delivered to the channel when it has free capacity.
 // Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
 func NewInfiniteChan[T any](capacity int, idleTimeout time.Duration) *InfiniteChan[T] {
 	oc := &InfiniteChan[T]{
@@ -31,7 +31,8 @@ func NewInfiniteChan[T any](capacity int, idleTimeout time.Duration) *InfiniteCh
 	return oc
 }
 
-// Push pushes an element to the channel.
+// Push pushes an element to the channel, if it has spare capacity. If not, the element
+// if queued for delivery to the channel at a later time.
 func (oc *InfiniteChan[T]) Push(elem T) {
 	// Add to queue
 	oc.lock.Lock()
@@ -39,17 +40,17 @@ func (oc *InfiniteChan[T]) Push(elem T) {
 	oc.count++
 	oc.lock.Unlock()
 
-	// Attempt to push to channel
-	oc.tryDrainQueue()
+	// Attempt to deliver to channel
+	oc.tryDeliver()
 }
 
-// tryDrainQueue drains as many elements from the queue that fit in the channel.
-func (oc *InfiniteChan[T]) tryDrainQueue() (drained int, done bool) {
+// tryDeliver delivers to the channel as many elements as its spare capacity.
+func (oc *InfiniteChan[T]) tryDeliver() (delivered int, done bool) {
 	for {
 		oc.lock.Lock()
 		if len(oc.queue) == 0 {
 			oc.lock.Unlock()
-			return drained, true
+			return delivered, true
 		}
 		elem := oc.queue[0]
 		oc.lock.Unlock()
@@ -58,22 +59,21 @@ func (oc *InfiniteChan[T]) tryDrainQueue() (drained int, done bool) {
 		case oc.ch <- elem:
 			oc.lock.Lock()
 			oc.queue = oc.queue[1:]
-			drained++
-			oc.drained++
+			delivered++
+			oc.delivered++
 			oc.lock.Unlock()
 		default:
-			return drained, false
+			return delivered, false
 		}
 	}
 }
 
-// Close closes the channel after trying to drain any queued items.
-// Queued elements may be dropped when the context is canceled, or if the channel is left unread
-// for over the idle timeout,
-func (oc *InfiniteChan[T]) Close() (fullyDrained bool) {
+// Close closes the channel after trying to deliver any queued items to the channel.
+// Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
+func (oc *InfiniteChan[T]) Close() (fullyDelivered bool) {
 	lastDrain := time.Now()
 	for {
-		n, done := oc.tryDrainQueue()
+		n, done := oc.tryDeliver()
 		if done {
 			// Fully drained
 			close(oc.ch)
