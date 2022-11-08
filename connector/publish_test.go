@@ -799,3 +799,111 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 	dur := con.Clock().Since(t0)
 	assert.True(t, dur < time.Second)
 }
+
+func TestConnector_UnconsumedResponse(t *testing.T) {
+	t.Parallel()
+
+	var responses int32
+	n := 8
+	var wg sync.WaitGroup
+	wg.Add(n)
+	cons := make([]*Connector, n)
+	for i := 0; i < n; i++ {
+		i := i
+		go func() {
+			cons[i] = New("unconsumed.response.connector")
+			cons[i].Subscribe("multicast", func(w http.ResponseWriter, r *http.Request) error {
+				atomic.AddInt32(&responses, 1)
+				return nil
+			}, sub.NoQueue())
+			err := cons[i].Startup()
+			assert.NoError(t, err)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	defer func() {
+		for i := 0; i < n; i++ {
+			cons[i].Shutdown()
+		}
+	}()
+
+	cons[0].Subscribe("unicast", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+
+	// Multicast
+	responses = 0
+	cons[0].multicastChanCap = n / 2
+	ch := cons[0].Publish(
+		context.Background(),
+		pub.GET("https://unconsumed.response.connector/multicast"),
+		pub.TimeBudget(time.Second*2),
+	)
+
+	// ch should produce n responses, but ch only has a capacity of n/2
+	assert.Equal(t, n/2, cap(ch))
+	time.Sleep(2 * AckTimeout)
+	assert.Equal(t, n, int(responses))
+
+	// Pull one element, should be instant
+	t0 := time.Now()
+	_, err := (<-ch).Get()
+	dur := time.Since(t0)
+	assert.True(t, dur < time.Millisecond*50)
+	assert.NoError(t, err)
+
+	// At this point ch is full, but other requests should work
+	t0 = time.Now()
+	_, err = cons[0].Request(
+		context.Background(),
+		pub.GET("https://unconsumed.response.connector/unicast"),
+		pub.TimeBudget(time.Second*2),
+	)
+	assert.NoError(t, err)
+	dur = time.Since(t0)
+	assert.True(t, dur < time.Millisecond*50)
+
+	// Not consuming from ch for more than a second should cause responses to be dropped
+	time.Sleep(time.Second + 500*time.Millisecond)
+
+	// What's already been pushed to ch should be readable
+	remaining := 0
+	for range ch {
+		remaining++
+	}
+	assert.Equal(t, cap(ch), remaining)
+}
+
+func TestConnector_UnicastToNoQueue(t *testing.T) {
+	t.Parallel()
+
+	n := 8
+	var wg sync.WaitGroup
+	wg.Add(n)
+	cons := make([]*Connector, n)
+	for i := 0; i < n; i++ {
+		i := i
+		go func() {
+			cons[i] = New("unicast.to.no.queue.connector")
+			cons[i].Subscribe("no-queue", func(w http.ResponseWriter, r *http.Request) error {
+				return nil
+			}, sub.NoQueue())
+			err := cons[i].Startup()
+			assert.NoError(t, err)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	defer func() {
+		for i := 0; i < n; i++ {
+			cons[i].Shutdown()
+		}
+	}()
+
+	_, err := cons[0].Request(
+		cons[0].Lifetime(),
+		pub.GET("https://unicast.to.no.queue.connector/no-queue"),
+	)
+	assert.NoError(t, err)
+}

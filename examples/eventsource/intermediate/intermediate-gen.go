@@ -63,7 +63,7 @@ func New(impl ToDo, version int) *Intermediate {
 	}
 	
 	svc.SetVersion(version)
-	svc.SetDescription(`The Event Source microservice fires events that are caught by the Event Sink microservice.`)
+	svc.SetDescription(`The event source microservice fires events that are caught by the event sink microservice.`)
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)

@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,6 +16,7 @@ func TestConnector_Ping(t *testing.T) {
 
 	// Create the microservice
 	con := New("ping.connector")
+	con.SetPlane(rand.AlphaNum64(12))
 
 	// Startup the microservice
 	err := con.Startup()
@@ -21,12 +24,20 @@ func TestConnector_Ping(t *testing.T) {
 	defer con.Shutdown()
 
 	// Send messages
-	_, err = con.GET(ctx, "https://ping.connector:888/ping")
-	assert.NoError(t, err)
-	_, err = con.GET(ctx, "https://"+con.id+".ping.connector:888/ping")
-	assert.NoError(t, err)
-	_, err = con.GET(ctx, "https://all:888/ping")
-	assert.NoError(t, err)
-	_, err = con.GET(ctx, "https://"+con.id+".all:888/ping")
-	assert.NoError(t, err)
+	for r := range con.Publish(ctx, pub.GET("https://ping.connector:888/ping")) {
+		_, err := r.Get()
+		assert.NoError(t, err)
+	}
+	for r := range con.Publish(ctx, pub.GET("https://"+con.id+".ping.connector:888/ping")) {
+		_, err := r.Get()
+		assert.NoError(t, err)
+	}
+	for r := range con.Publish(ctx, pub.GET("https://all:888/ping")) {
+		_, err := r.Get()
+		assert.NoError(t, err)
+	}
+	for r := range con.Publish(ctx, pub.GET("https://"+con.id+".all:888/ping")) {
+		_, err := r.Get()
+		assert.NoError(t, err)
+	}
 }

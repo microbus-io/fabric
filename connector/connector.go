@@ -51,19 +51,20 @@ type Connector struct {
 	started         bool
 	plane           string
 
-	reqs            map[string]chan *http.Response
-	reqsLock        sync.Mutex
-	networkHop      time.Duration
-	maxCallDepth    int
-	maxFragmentSize int64
+	reqs             map[string]chan *http.Response
+	reqsLock         sync.Mutex
+	networkHop       time.Duration
+	maxCallDepth     int
+	maxFragmentSize  int64
+	multicastChanCap int
 
 	requestDefrags      map[string]*frag.DefragRequest
 	requestDefragsLock  sync.Mutex
 	responseDefrags     map[string]*frag.DefragResponse
 	responseDefragsLock sync.Mutex
 
-	knownResponders   *lru.Cache[string, map[string]bool]
-	pendingMulticasts *lru.Cache[string, string]
+	knownResponders *lru.Cache[string, map[string]bool]
+	postRequestData *lru.Cache[string, string]
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
@@ -82,23 +83,26 @@ type Connector struct {
 // NewConnector constructs a new Connector.
 func NewConnector() *Connector {
 	c := &Connector{
-		id:                strings.ToLower(rand.AlphaNum32(10)),
-		reqs:              map[string]chan *http.Response{},
-		configs:           map[string]*cfg.Config{},
-		networkHop:        250 * time.Millisecond,
-		maxCallDepth:      64,
-		subs:              map[string]*sub.Subscription{},
-		requestDefrags:    map[string]*frag.DefragRequest{},
-		responseDefrags:   map[string]*frag.DefragResponse{},
-		clock:             clock.NewClockReference(clock.New()),
-		tickers:           map[string]*cb.Callback{},
-		lifetimeCtx:       context.Background(),
-		knownResponders:   lru.NewCache[string, map[string]bool](),
-		pendingMulticasts: lru.NewCache[string, string](),
+		id:               strings.ToLower(rand.AlphaNum32(10)),
+		reqs:             map[string]chan *http.Response{},
+		configs:          map[string]*cfg.Config{},
+		networkHop:       250 * time.Millisecond,
+		maxCallDepth:     64,
+		subs:             map[string]*sub.Subscription{},
+		requestDefrags:   map[string]*frag.DefragRequest{},
+		responseDefrags:  map[string]*frag.DefragResponse{},
+		clock:            clock.NewClockReference(clock.New()),
+		tickers:          map[string]*cb.Callback{},
+		lifetimeCtx:      context.Background(),
+		knownResponders:  lru.NewCache[string, map[string]bool](),
+		postRequestData:  lru.NewCache[string, string](),
+		multicastChanCap: 32,
 	}
 
+	c.knownResponders.SetMaxWeight(16 * 1024)
 	c.knownResponders.SetMaxAge(24 * time.Hour)
-	c.pendingMulticasts.SetMaxAge(time.Minute)
+	c.postRequestData.SetMaxWeight(256 * 1024)
+	c.postRequestData.SetMaxAge(time.Minute)
 
 	return c
 }
