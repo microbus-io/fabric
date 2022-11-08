@@ -11,7 +11,6 @@ import (
 	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
-	"github.com/microbus-io/fabric/utils"
 )
 
 // StartupHandler handles the OnStartup callback.
@@ -159,15 +158,15 @@ func (c *Connector) Startup() (err error) {
 	// Call the callback function, if provided
 	c.onStartupCalled = true
 	if c.onStartup != nil {
-		callbackCtx := c.lifetimeCtx
-		cancel := func() {}
-		if c.onStartup.TimeBudget > 0 {
-			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onStartup.TimeBudget)
-		}
-		err = utils.CatchPanic(func() error {
-			return c.onStartup.Handler.(StartupHandler)(callbackCtx)
-		})
-		cancel()
+		err = c.doCallback(
+			c.lifetimeCtx,
+			c.onStartup.TimeBudget,
+			"Startup callback",
+			":0/on-startup",
+			func(ctx context.Context) error {
+				return c.onStartup.Handler.(StartupHandler)(ctx)
+			},
+		)
 		if err != nil {
 			err = errors.Trace(err)
 			return err
@@ -252,15 +251,15 @@ func (c *Connector) Shutdown() error {
 
 	// Call the callback function, if provided
 	if c.onShutdown != nil && c.onStartupCalled {
-		callbackCtx := c.lifetimeCtx
-		cancel := func() {}
-		if c.onShutdown.TimeBudget > 0 {
-			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onShutdown.TimeBudget)
-		}
-		err = utils.CatchPanic(func() error {
-			return c.onShutdown.Handler.(ShutdownHandler)(callbackCtx)
-		})
-		cancel()
+		err = c.doCallback(
+			c.lifetimeCtx,
+			c.onShutdown.TimeBudget,
+			"Shutdown callback",
+			":0/on-shutdown",
+			func(ctx context.Context) error {
+				return c.onShutdown.Handler.(ShutdownHandler)(ctx)
+			},
+		)
 		if err != nil {
 			lastErr = errors.Trace(err)
 		}

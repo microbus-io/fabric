@@ -304,3 +304,26 @@ func (c *Connector) connectToNATS() error {
 func (c *Connector) DistribCache() *dlru.Cache {
 	return c.distribCache
 }
+
+// doCallback sets up the context and calls a callback, making sure to captures panics.
+// It is used for the on startup, on shutdown, on ticker and on config change situations.
+// The path is used to name this callback in telemetry.
+func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, desc string, path string, callback func(ctx context.Context) error) error {
+	if callback == nil {
+		return nil
+	}
+	callbackCtx := ctx
+	cancel := func() {}
+	if timeout > 0 {
+		callbackCtx, cancel = context.WithTimeout(ctx, timeout)
+	}
+	err := utils.CatchPanic(func() error {
+		return callback(callbackCtx)
+	})
+	cancel()
+	if err != nil {
+		err = errors.Trace(err, sub.JoinHostAndPath(c.hostName, path))
+		c.LogError(ctx, desc, log.Error(err), log.String("path", path))
+	}
+	return err
+}

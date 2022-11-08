@@ -1,4 +1,4 @@
-package spec
+package utils
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSpec_KebabCase(t *testing.T) {
+func TestUtils_ToKebabCase(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]string{
@@ -23,6 +23,6 @@ func TestSpec_KebabCase(t *testing.T) {
 		"":           "",
 	}
 	for id, expected := range testCases {
-		assert.Equal(t, expected, kebabCase(id), "%s", id)
+		assert.Equal(t, expected, ToKebabCase(id), "%s", id)
 	}
 }

@@ -52,12 +52,12 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	// Post processing
 	if h.Path == "" {
-		h.Path = "/" + kebabCase(h.Name())
+		h.Path = "/" + utils.ToKebabCase(h.Name())
 	}
 	if h.Path == "^" {
 		h.Path = ""
 	}
-	h.Path = strings.Replace(h.Path, "...", kebabCase(h.Name()), 1)
+	h.Path = strings.Replace(h.Path, "...", utils.ToKebabCase(h.Name()), 1)
 	h.Queue = strings.ToLower(h.Queue)
 
 	if h.Event == "" {

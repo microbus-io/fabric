@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // Service is the spec of the microservice parsed from service.yaml.
@@ -53,13 +54,13 @@ func (s *Service) FullyQualifyTypes() {
 	for _, w := range s.Functions {
 		for _, a := range w.Signature.InputArgs {
 			endType := a.EndType()
-			if isUpperCaseIdentifier(endType) {
+			if utils.IsUpperCaseIdentifier(endType) {
 				a.Type = strings.TrimSuffix(a.Type, endType) + apiPkg + endType
 			}
 		}
 		for _, a := range w.Signature.OutputArgs {
 			endType := a.EndType()
-			if isUpperCaseIdentifier(endType) {
+			if utils.IsUpperCaseIdentifier(endType) {
 				a.Type = strings.TrimSuffix(a.Type, endType) + apiPkg + endType
 			}
 		}
@@ -143,7 +144,7 @@ func (s *Service) validate() error {
 	}
 	for _, t := range s.Types {
 		for _, fldType := range t.Define {
-			if isUpperCaseIdentifier(fldType) && !typeNames[fldType] {
+			if utils.IsUpperCaseIdentifier(fldType) && !typeNames[fldType] {
 				return errors.Newf("undeclared field type '%s' in type '%s'", fldType, t.Name)
 			}
 		}
@@ -154,12 +155,12 @@ func (s *Service) validate() error {
 	typedHandlers = append(typedHandlers, s.Sinks...)
 	for _, fn := range typedHandlers {
 		for _, a := range fn.Signature.InputArgs {
-			if isUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
+			if utils.IsUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
 				return errors.Newf("undeclared type '%s' in '%s'", a.EndType(), fn.Signature.OrigString)
 			}
 		}
 		for _, a := range fn.Signature.OutputArgs {
-			if isUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
+			if utils.IsUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
 				return errors.Newf("undeclared type '%s' in '%s'", a.EndType(), fn.Signature.OrigString)
 			}
 		}
