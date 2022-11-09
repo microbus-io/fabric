@@ -33,7 +33,8 @@ var (
 	_ sub.Subscription
 )
 
-const ServiceName = "control.sys"
+// The default host name addressed by the clients is control.sys.
+const HostName = "control.sys"
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

@@ -19,7 +19,8 @@ var (
 	_ {{ .ShortPackage }}api.Client
 )
 
-const ServiceName = "{{ .General.Host }}"
+// The default host name of the microservice is {{ .General.Host }}.
+const HostName = "{{ .General.Host }}"
 
 // NewService creates a new {{ .General.Host }} microservice.
 func NewService() *Service {

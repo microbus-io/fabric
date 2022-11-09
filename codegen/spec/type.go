@@ -84,7 +84,7 @@ func (t *Type) validate() error {
 	return nil
 }
 
-// ImportSuffix returns the last piece of the import definition,
+// ImportSuffix returns the last piece of the import package path,
 // which is expected to point to a microservice.
 func (t *Type) ImportSuffix() string {
 	p := strings.LastIndex(t.Import, "/")

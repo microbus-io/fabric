@@ -32,7 +32,8 @@ var (
 	_ sub.Subscription
 )
 
-const ServiceName = "eventsink.example"
+// The default host name addressed by the clients is eventsink.example.
+const HostName = "eventsink.example"
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

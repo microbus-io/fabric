@@ -32,7 +32,8 @@ var (
 	_ sub.Subscription
 )
 
-const ServiceName = "http.ingress.sys"
+// The default host name addressed by the clients is http.ingress.sys.
+const HostName = "http.ingress.sys"
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

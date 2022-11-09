@@ -17,7 +17,8 @@ var (
 	_ eventsourceapi.Client
 )
 
-const ServiceName = "eventsource.example"
+// The default host name of the microservice is eventsource.example.
+const HostName = "eventsource.example"
 
 // NewService creates a new eventsource.example microservice.
 func NewService() *Service {

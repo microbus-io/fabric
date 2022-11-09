@@ -29,8 +29,8 @@ import (
 	"{{ .Package }}/{{ .ShortPackage }}api"
 
 	{{- if .Sinks }}
-	{{ range $i, $sink := .Sinks }}
-    {{ $sink.SourceSuffix }}api{{ $i }} "{{ $sink.Source }}/{{ $sink.SourceSuffix }}api"
+	{{ range $i, $s := .Sinks }}
+	{{ .SourceSuffix }}api{{ $i }} "{{ .Source }}/{{ .SourceSuffix }}api"
 	{{- end}}{{end}}
 )
 
@@ -133,12 +133,12 @@ func New(impl ToDo, version int) *Intermediate {
 	{{- if .Sinks }}
 	
 	// Sinks
-	{{- range $i, $sink := .Sinks }}
-	pathOf{{ $sink.Name }} := {{ $sink.SourceSuffix }}api{{ $i }}.PathOf{{ $sink.Event }}
-	{{- if $sink.ForHost }}
-	pathOf{{ $sink.Name }} = sub.JoinHostAndPath("{{ $sink.ForHost }}", pathOf{{ $sink.Name }})
+	{{- range $i, $s := .Sinks }}
+	pathOf{{ .Name }} := {{ .SourceSuffix }}api{{ $i }}.PathOf{{ .Event }}
+	{{- if .ForHost }}
+	pathOf{{ .Name }} = sub.JoinHostAndPath("{{ .ForHost }}", pathOf{{ .Name }})
 	{{- end }}
-	svc.Subscribe(pathOf{{ $sink.Name }}, svc.do{{ $sink.Name }} {{- if eq $sink.Queue "none"}}, sub.NoQueue(){{end -}} )
+	svc.Subscribe(pathOf{{ .Name }}, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
 	{{- end }}{{ end }}
 
 	{{- if .Tickers }}

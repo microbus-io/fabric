@@ -212,7 +212,7 @@ func (h *Handler) Out() string {
 	return b.String()
 }
 
-// SourceSuffix returns the last piece of the by definition,
+// SourceSuffix returns the last piece of the event source package path,
 // which is expected to point to a microservice.
 func (h *Handler) SourceSuffix() string {
 	p := strings.LastIndex(h.Source, "/")

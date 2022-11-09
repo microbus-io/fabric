@@ -1,8 +1,8 @@
 # Events
 
-Events are a powerful pattern that is often neglected in microservice systems because it is not trivial to implement using HTTP and because the workaround of making direct calls is considered acceptable. Without events however, microservices end up cyclicly depending on one other, resulting in what soon becomes a spaghetti topology. An event-driven architecture on the other hand, uses events to communicate and decouples microservices.
+Events are a powerful pattern that is often neglected in microservice systems because it is not trivial to implement using HTTP and because the workaround of making direct calls is considered acceptable. Without events however, microservices end up cyclicly depending on one other, resulting in what soon becomes a spaghetti topology. An event-driven architecture on the other hand, uses events to communicate and keeps microservices decoupled.
 
-To demonstrate, let's look at a common example: a user management microservices. When a user is deleted, many other resources that are tied to them also need to be deleted. Without the benefit of events, the `DeleteUser` handler needs to make direct requests to all related service and might look similar to this (error checks omitted for brevity):
+To demonstrate, let's look at a common example: a user management microservices. When a user is deleted, many other resources that are tied to the user also need to be deleted. Without the benefit of events, the `DeleteUser` handler needs to make direct requests to all related service and might look similar to this (error checks omitted for brevity):
 
 ```go
 func (svc *Service) DeleteUser(userID string) (err error) {
@@ -14,13 +14,13 @@ func (svc *Service) DeleteUser(userID string) (err error) {
 }
 ```
 
-What's more, when new microservices are added in the future, this list may keep growing. Releasing a new microservice that keeps resources tied to a user now also requires releasing a new version of the user management microservice. In very large systems, with multiple teams, this may result in code conflicts, increased release complexity, or implementation delays.
+What's more, this list may keep growing when new microservices are added in the future. Releasing a new microservice that keeps resources tied to a user now also requires releasing a new version of the user management microservice. In very large systems, with multiple teams, this may result in code conflicts, increased release complexity, or implementation delays.
 
 In addition, the user management microservice has become dependent on a large number of microservices which are almost certainly depending back on it. The microservices dependency graph is no longer a DAG making it is challenging to reason about and test the system.
 
 <img src="events-1.svg" width="300">
 
-Events take advantage of the pub/sub pattern and allow the user management microservice to publish an event without knowing who will be there to respond. The code will look similar to the following:
+Alternatively, events take advantage of the pub/sub pattern and allow the user management microservice to publish an event without knowing who will be there to respond. The code will look similar to the following:
 
 ```go
 func (svc *Service) DeleteUser(userID string) (err error) {

@@ -26,8 +26,8 @@ import (
 	"github.com/microbus-io/fabric/examples/eventsink/resources"
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 	
-    eventsourceapi0 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
-    eventsourceapi1 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
+	eventsourceapi0 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
+	eventsourceapi1 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 )
 
 var (
@@ -143,7 +143,7 @@ func (svc *Intermediate) doOnAllowRegister(w http.ResponseWriter, r *http.Reques
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	// An error here indicates that the signature of the event sink doesn't match that of the event source
+	// A compilation error here indicates that the signature of the event sink doesn't match that of the event source
 	fn := eventsourceapi0.OnAllowRegisterHandler(svc.impl.OnAllowRegister)
 	d.Allow, err = fn(
 		r.Context(),
@@ -169,7 +169,7 @@ func (svc *Intermediate) doOnRegistered(w http.ResponseWriter, r *http.Request) 
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	// An error here indicates that the signature of the event sink doesn't match that of the event source
+	// A compilation error here indicates that the signature of the event sink doesn't match that of the event source
 	fn := eventsourceapi1.OnRegisteredHandler(svc.impl.OnRegistered)
 	err = fn(
 		r.Context(),

@@ -3,7 +3,7 @@
 Automatic code generation is `Microbus`'s most powerful tool. It facilitates rapid development (RAD) of microservices and significantly increases developer productivity. Although it's possible to create a microservice by working directly with the `Connector`, the abstraction added by the code generator makes things simpler by taking care of much of the repetitive boilerplate code.
 
 Code generation in `Microbus` is additive and idempotent. When new functionality is added,
-incremental code changes are generated for it without impacting the existing code.
+code changes are generated incrementally without impacting the existing code.
 
 ## Bootstrapping
 
@@ -15,7 +15,7 @@ Code generation starts by introducing the `//go:generate` directive into any sou
 package myservice
 ```
 
-The next step is to create a `service.yaml` file which will be used to specify the functionality of the microservice. If the directory contains only `doc.go` or an empty `service.yaml`, running `go generate` inside the directory will automatically populate `service.yaml`.
+The next step is to create a `service.yaml` file which will be used to specify the functionality of the microservice. If the directory contains only a `doc.go` or an empty `service.yaml`, running `go generate` inside the directory will automatically populate `service.yaml`.
 
 ## Service.yaml
 
@@ -174,7 +174,7 @@ sinks:
     source: package/path/of/another/microservice
 ```
 
-The `signature` of an event sink must match that of the event source to the letter. The only exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if two different services used the same name for their events. That is because handler function names must be unique in the scope of the sink microservice.
+The `signature` of an event sink must match that of the event source to the letter. The only exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if different event sources use the same name for their events. That becomes necessary because handler function names must be unique in the scope of the sink microservice.
 
 ```yaml
 sinks:
@@ -261,7 +261,7 @@ func (svc *Service) TickerHandler(ctx context.Context) (err error) {
 
 ### Types
 
-All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to the location of their package.
+All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to the fully-qualified path of their package.
 
 Complex types may contain other complex types in which case those nested types also must be declared.
 

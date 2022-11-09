@@ -17,7 +17,8 @@ var (
 	_ helloapi.Client
 )
 
-const ServiceName = "hello.example"
+// The default host name of the microservice is hello.example.
+const HostName = "hello.example"
 
 // NewService creates a new hello.example microservice.
 func NewService() *Service {

@@ -126,7 +126,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	}
 	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
 
-	c.LogDebug(c.lifetimeCtx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
+	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
 
 	// Fragment large requests
 	fragger, err := frag.NewFragRequest(httpReq, c.maxFragmentSize)
@@ -217,9 +217,6 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 			opCode := frame.Of(response).OpCode()
 			fromID := frame.Of(response).FromID()
 			queue := frame.Of(response).Queue()
-
-			// msgID := frame.Of(response).MessageID()
-			// c.LogDebug(c.lifetimeCtx, "Pulled from await chan", log.String("msg", msgID), log.String("from", fromID))
 
 			// Known responders optimization
 			if req.Multicast {
@@ -319,12 +316,12 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
 			err = errors.New("timeout", req.Canonical())
 			output.Push(pub.NewErrorResponse(err))
+			c.postRequestData.Store("timeout:"+msgID, subject)
 			// Known responders optimization
 			if req.Multicast {
 				c.knownResponders.Delete(subject)
 				c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 			}
-			c.postRequestData.Store("timeout:"+msgID, "true")
 			return
 
 		// Ack timer
@@ -390,7 +387,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 					c.knownResponders.Delete(subject)
 					c.postRequestData.Delete("multicast:" + msgID)
 				}
-				_, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
+				subject, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
 				if ok {
 					c.LogInfo(
 						c.lifetimeCtx,
@@ -399,6 +396,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 						log.String("fromID", frame.Of(response).FromID()),
 						log.String("fromHost", frame.Of(response).FromHost()),
 						log.String("queue", frame.Of(response).Queue()),
+						log.String("subject", subject),
 					)
 				}
 			}
@@ -407,17 +405,11 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 
 		select {
 		case ch <- response:
-			// c.LogDebug(
-			// 	c.lifetimeCtx,
-			// 	"Pushed to await chan",
-			// 	log.String("msg", msgID),
-			// 	log.String("from", frame.Of(response).FromID()),
-			// )
 			return
 		default:
 			c.LogInfo(
 				c.lifetimeCtx,
-				"Await chan blocked",
+				"Await chan temporarily full",
 				log.String("msg", msgID),
 				log.String("from", frame.Of(response).FromID()),
 			)

@@ -1,4 +1,4 @@
-{{ range $i, $sink := .Sinks}}
+{{ range $i, $s := .Sinks}}
 // do{{ .Name }} handles marshaling for the {{ .Name }} event sink.
 func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	var i {{ .SourceSuffix }}api{{ $i }}.{{ .Event }}In
@@ -8,7 +8,7 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	// An error here indicates that the signature of the event sink doesn't match that of the event source
+	// A compilation error here indicates that the signature of the event sink doesn't match that of the event source
 	fn := {{ .SourceSuffix }}api{{ $i }}.{{ .Event }}Handler(svc.impl.{{ .Name }})
 	{{ range .Signature.OutputArgs }}d.{{ CapitalizeIdentifier .Name }}, {{ end }}err = fn(
 		r.Context(),

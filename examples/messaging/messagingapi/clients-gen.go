@@ -32,7 +32,8 @@ var (
 	_ sub.Subscription
 )
 
-const ServiceName = "messaging.example"
+// The default host name addressed by the clients is messaging.example.
+const HostName = "messaging.example"
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

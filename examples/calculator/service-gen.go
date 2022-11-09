@@ -17,7 +17,8 @@ var (
 	_ calculatorapi.Client
 )
 
-const ServiceName = "calculator.example"
+// The default host name of the microservice is calculator.example.
+const HostName = "calculator.example"
 
 // NewService creates a new calculator.example microservice.
 func NewService() *Service {
