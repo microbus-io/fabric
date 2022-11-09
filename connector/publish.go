@@ -94,18 +94,18 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	// Make the request
 	var output *utils.InfiniteChan[*pub.Response]
 	if req.Multicast {
-		output = utils.NewInfiniteChan[*pub.Response](c.multicastChanCap, time.Second)
+		output = utils.MakeInfiniteChan[*pub.Response](c.multicastChanCap)
 	} else {
-		output = utils.NewInfiniteChan[*pub.Response](2, time.Second)
+		output = utils.MakeInfiniteChan[*pub.Response](2)
 	}
 	go func() {
 		c.makeHTTPRequest(ctx, req, output)
-		fullyDrained := output.Close()
+		fullyDrained := output.Close(time.Second)
 		if !fullyDrained {
 			c.LogDebug(ctx, "Unconsumed responses dropped", log.String("url", req.Canonical()))
 		}
 	}()
-	return output.C
+	return output.C()
 }
 
 // makeHTTPRequest makes an HTTP request then awaits and pushes the responses to the output channel.
@@ -143,7 +143,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	}
 
 	// Create a channel to await on
-	awaitCh := make(chan *http.Response, c.multicastChanCap)
+	awaitCh := utils.MakeInfiniteChan[*http.Response](c.multicastChanCap)
 	c.reqsLock.Lock()
 	c.reqs[msgID] = awaitCh
 	c.reqsLock.Unlock()
@@ -213,7 +213,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	defer ackTimer.Stop()
 	for {
 		select {
-		case response := <-awaitCh:
+		case response := <-awaitCh.C():
 			opCode := frame.Of(response).OpCode()
 			fromID := frame.Of(response).FromID()
 			queue := frame.Of(response).Queue()
@@ -374,46 +374,33 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 
 	// Push it to the channel matching the message ID
 	msgID := frame.Of(response).MessageID()
-	for {
-		c.reqsLock.Lock()
-		ch, ok := c.reqs[msgID]
-		c.reqsLock.Unlock()
+	c.reqsLock.Lock()
+	ch, ok := c.reqs[msgID]
+	c.reqsLock.Unlock()
+	if ok {
+		ch.Push(response)
+		return
+	}
 
-		if !ok {
-			opCode := frame.Of(response).OpCode()
-			if opCode != frame.OpCodeAck {
-				subject, ok := c.postRequestData.Load("multicast:"+msgID, lru.NoBump())
-				if ok {
-					c.knownResponders.Delete(subject)
-					c.postRequestData.Delete("multicast:" + msgID)
-				}
-				subject, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
-				if ok {
-					c.LogInfo(
-						c.lifetimeCtx,
-						"Response received after timeout",
-						log.String("msg", msgID),
-						log.String("fromID", frame.Of(response).FromID()),
-						log.String("fromHost", frame.Of(response).FromHost()),
-						log.String("queue", frame.Of(response).Queue()),
-						log.String("subject", subject),
-					)
-				}
-			}
-			return
+	// Handle message that arrive after the request is done
+	opCode := frame.Of(response).OpCode()
+	if opCode != frame.OpCodeAck {
+		subject, ok := c.postRequestData.Load("multicast:"+msgID, lru.NoBump())
+		if ok {
+			c.knownResponders.Delete(subject)
+			c.postRequestData.Delete("multicast:" + msgID)
 		}
-
-		select {
-		case ch <- response:
-			return
-		default:
+		subject, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
+		if ok {
 			c.LogInfo(
 				c.lifetimeCtx,
-				"Await chan temporarily full",
+				"Response received after timeout",
 				log.String("msg", msgID),
-				log.String("from", frame.Of(response).FromID()),
+				log.String("fromID", frame.Of(response).FromID()),
+				log.String("fromHost", frame.Of(response).FromHost()),
+				log.String("queue", frame.Of(response).Queue()),
+				log.String("subject", subject),
 			)
-			time.Sleep(1 * time.Millisecond)
 		}
 	}
 }

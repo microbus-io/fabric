@@ -51,7 +51,7 @@ type Connector struct {
 	started         bool
 	plane           string
 
-	reqs             map[string]chan *http.Response
+	reqs             map[string]*utils.InfiniteChan[*http.Response]
 	reqsLock         sync.Mutex
 	networkHop       time.Duration
 	maxCallDepth     int
@@ -84,7 +84,7 @@ type Connector struct {
 func NewConnector() *Connector {
 	c := &Connector{
 		id:               strings.ToLower(rand.AlphaNum32(10)),
-		reqs:             map[string]chan *http.Response{},
+		reqs:             map[string]*utils.InfiniteChan[*http.Response]{},
 		configs:          map[string]*cfg.Config{},
 		networkHop:       250 * time.Millisecond,
 		maxCallDepth:     64,

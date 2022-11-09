@@ -1,18 +1,19 @@
 package utils
 
 import (
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUtils_InfiniteChanTimeout(t *testing.T) {
+func TestUtils_InfiniteChanSlowReadAfterClose(t *testing.T) {
 	t.Parallel()
 
 	n := 4
-	inf := NewInfiniteChan[int](n, time.Second)
-	assert.Equal(t, n, cap(inf.C))
+	inf := MakeInfiniteChan[int](n)
+	assert.Equal(t, n, cap(inf.C()))
 
 	// Push twice the capacity of the channel
 	t0 := time.Now()
@@ -25,23 +26,23 @@ func TestUtils_InfiniteChanTimeout(t *testing.T) {
 	assert.Equal(t, n*2, inf.count)
 
 	// Close the channel and wait enough to timeout
-	go inf.Close()
+	go inf.Close(time.Second)
 	time.Sleep(time.Second + 100*time.Millisecond)
 
 	// Channel should produce its max capacity
 	m := 0
-	for range inf.C {
+	for range inf.C() {
 		m++
 	}
 	assert.Equal(t, n, m)
 }
 
-func TestUtils_InfiniteChanBeforeTimeout(t *testing.T) {
+func TestUtils_InfiniteChanFastReadAfterClose(t *testing.T) {
 	t.Parallel()
 
 	n := 4
-	inf := NewInfiniteChan[int](n, time.Second)
-	assert.Equal(t, n, cap(inf.C))
+	inf := MakeInfiniteChan[int](n)
+	assert.Equal(t, n, cap(inf.C()))
 
 	// Push twice the capacity of the channel
 	t0 := time.Now()
@@ -54,13 +55,52 @@ func TestUtils_InfiniteChanBeforeTimeout(t *testing.T) {
 	assert.Equal(t, n*2, inf.count)
 
 	// Close the channel
-	go inf.Close()
+	go inf.Close(time.Second)
 
 	// Channel should produce all elements if read quickly after closing
 	m := 0
-	for range inf.C {
+	for range inf.C() {
 		m++
 		time.Sleep(25 * time.Millisecond)
 	}
 	assert.Equal(t, n*2, m)
+}
+
+func TestUtils_InfiniteChanReadWhileOpen(t *testing.T) {
+	t.Parallel()
+
+	n := 4
+	inf := MakeInfiniteChan[int](n)
+	assert.Equal(t, n, cap(inf.C()))
+
+	// Pull while channel is empty
+	var wg sync.WaitGroup
+	x := 0
+	wg.Add(1)
+	go func() {
+		assert.Equal(t, 0, len(inf.ch))
+		x = <-inf.C()
+		assert.Equal(t, 1, x)
+		wg.Done()
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	inf.Push(1)
+	wg.Wait()
+	assert.Equal(t, 1, x)
+	assert.Equal(t, 0, len(inf.ch))
+
+	// Pull all from an overflowing channel
+	for i := 0; i < n*2; i++ {
+		inf.Push(i)
+	}
+	assert.Equal(t, n, len(inf.ch))
+	assert.Equal(t, n, len(inf.queue))
+
+	for i := 0; i < n*2; i++ {
+		y := <-inf.C()
+		assert.Equal(t, i, y)
+	}
+	assert.Equal(t, 0, len(inf.ch))
+	assert.Equal(t, 0, len(inf.queue))
 }

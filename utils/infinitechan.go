@@ -9,84 +9,92 @@ import (
 // Overflowing elements are stored in a queue and are delivered to the channel when it has free capacity.
 // Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
 type InfiniteChan[T any] struct {
-	C     <-chan T
-	ch    chan T
-	queue []T
-	idle  time.Duration
-	lock  sync.Mutex
-
+	ch        chan T
+	queue     []T
+	lock      sync.Mutex
+	closed    bool
 	count     int
 	delivered int
 }
 
-// NewInfiniteChan creates a new infinite channel backed by a finite channel with the specified capacity.
+// MakeInfiniteChan creates a new infinite channel backed by a finite buffered channel with the specified capacity.
 // Overflowing elements are stored in a queue and are delivered to the channel when it has free capacity.
 // Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
-func NewInfiniteChan[T any](capacity int, idleTimeout time.Duration) *InfiniteChan[T] {
+func MakeInfiniteChan[T any](capacity int) *InfiniteChan[T] {
 	oc := &InfiniteChan[T]{
-		ch:   make(chan T, capacity),
-		idle: idleTimeout,
+		ch: make(chan T, capacity),
 	}
-	oc.C = oc.ch
 	return oc
 }
 
-// Push pushes an element to the channel, if it has spare capacity. If not, the element
-// if queued for delivery to the channel at a later time.
-func (oc *InfiniteChan[T]) Push(elem T) {
-	// Add to queue
+// C is the underlying finite buffered channel.
+// Reading from this channel will block if no elements are available.
+func (oc *InfiniteChan[T]) C() <-chan T {
 	oc.lock.Lock()
+	oc.tryDeliver()
+	oc.lock.Unlock()
+	return oc.ch
+}
+
+// Push pushes an element to the channel, if it has spare capacity.
+// If not, the element if queued for delivery to the channel at a later time.
+// Push therefore never blocks. It will panic if the channel is closed.
+func (oc *InfiniteChan[T]) Push(elem T) {
+	oc.lock.Lock()
+	if oc.closed {
+		oc.lock.Unlock()
+		panic("push on closed channel")
+	}
 	oc.queue = append(oc.queue, elem)
 	oc.count++
-	oc.lock.Unlock()
-
-	// Attempt to deliver to channel
 	oc.tryDeliver()
+	oc.lock.Unlock()
 }
 
 // tryDeliver delivers to the channel as many elements as its spare capacity.
-func (oc *InfiniteChan[T]) tryDeliver() (delivered int, done bool) {
+// Must be called under lock!
+func (oc *InfiniteChan[T]) tryDeliver() (delivered int) {
 	for {
-		oc.lock.Lock()
-		if len(oc.queue) == 0 {
-			oc.lock.Unlock()
-			return delivered, true
+		if len(oc.queue) == 0 || oc.closed {
+			return delivered
 		}
-		elem := oc.queue[0]
-		oc.lock.Unlock()
-
 		select {
-		case oc.ch <- elem:
-			oc.lock.Lock()
+		case oc.ch <- oc.queue[0]:
 			oc.queue = oc.queue[1:]
 			delivered++
 			oc.delivered++
-			oc.lock.Unlock()
 		default:
-			return delivered, false
+			return delivered
 		}
 	}
 }
 
 // Close closes the channel after trying to deliver any queued items to the channel.
-// Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
-func (oc *InfiniteChan[T]) Close() (fullyDelivered bool) {
-	lastDrain := time.Now()
+// Queued elements may be dropped if the channel is closed and left unread for over the idle timeout.
+// Close will spin-block until reading from the channel is finished or until the idle timeout is reached.
+func (oc *InfiniteChan[T]) Close(idleTimeout time.Duration) (fullyDelivered bool) {
+	lastDelivery := time.Now()
 	for {
-		n, done := oc.tryDeliver()
-		if done {
-			// Fully drained
+		oc.lock.Lock()
+		n := oc.tryDeliver()
+		if len(oc.queue) == 0 {
+			oc.closed = true
 			close(oc.ch)
-			return true
+			oc.lock.Unlock()
+			return true // Fully delivered
 		}
+		oc.lock.Unlock()
 		if n > 0 {
-			lastDrain = time.Now()
+			lastDelivery = time.Now()
 			time.Sleep(50 * time.Millisecond)
 			continue
 		}
-		if time.Since(lastDrain) >= oc.idle {
+		if time.Since(lastDelivery) >= idleTimeout {
 			// Nothing was read from the channel in more than the idle timeout
+			oc.lock.Lock()
+			oc.closed = true
 			close(oc.ch)
+			oc.lock.Unlock()
 			return false
 		}
 		time.Sleep(50 * time.Millisecond)
