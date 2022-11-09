@@ -130,7 +130,7 @@ func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEch
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/arithmetic`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/arithmetic`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -170,7 +170,7 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/arithmetic`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/arithmetic`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -237,7 +237,7 @@ func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/square`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/square`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -273,7 +273,7 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/square`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/square`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -341,7 +341,7 @@ func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, 
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/distance`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/distance`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -378,7 +378,7 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/distance`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/distance`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}

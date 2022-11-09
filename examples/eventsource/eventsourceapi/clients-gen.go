@@ -140,7 +140,7 @@ func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/register`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -175,7 +175,7 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/register`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -207,7 +207,7 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 type OnAllowRegisterHandler func (ctx context.Context, email string) (allow bool, err error)
 
 // PathOfOnAllowRegister is the URL path of the OnAllowRegister event.
-const PathOfOnAllowRegister = "/on-allow-register"
+const PathOfOnAllowRegister = ":417/on-allow-register"
 
 // OnAllowRegisterIn are the input arguments of OnAllowRegister.
 type OnAllowRegisterIn struct {
@@ -248,7 +248,7 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/on-allow-register`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -280,7 +280,7 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 type OnRegisteredHandler func (ctx context.Context, email string) (err error)
 
 // PathOfOnRegistered is the URL path of the OnRegistered event.
-const PathOfOnRegistered = "/on-registered"
+const PathOfOnRegistered = ":417/on-registered"
 
 // OnRegisteredIn are the input arguments of OnRegistered.
 type OnRegisteredIn struct {
@@ -318,7 +318,7 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/on-registered`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:417/on-registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}

@@ -118,7 +118,7 @@ func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/registered`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -152,7 +152,7 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `/registered`)),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}

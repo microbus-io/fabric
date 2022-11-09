@@ -92,11 +92,11 @@ func New(impl ToDo, version int) *Intermediate {
 	)
 	
 	// Webs
-	svc.Subscribe(`/hello`, svc.impl.Hello)
-	svc.Subscribe(`/echo`, svc.impl.Echo)
-	svc.Subscribe(`/ping`, svc.impl.Ping)
-	svc.Subscribe(`/calculator`, svc.impl.Calculator)
-	svc.Subscribe(`/bus.jpeg`, svc.impl.BusJPEG)
+	svc.Subscribe(`:443/hello`, svc.impl.Hello)
+	svc.Subscribe(`:443/echo`, svc.impl.Echo)
+	svc.Subscribe(`:443/ping`, svc.impl.Ping)
+	svc.Subscribe(`:443/calculator`, svc.impl.Calculator)
+	svc.Subscribe(`:443/bus.jpeg`, svc.impl.BusJPEG)
 	
 	// Tickers
 	intervalTickTock, _ := time.ParseDuration("10s")

@@ -77,9 +77,9 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Functions
-	svc.Subscribe(`/values`, svc.doValues)
-	svc.Subscribe(`/refresh`, svc.doRefresh)
-	svc.Subscribe(`/sync`, svc.doSync, sub.NoQueue())
+	svc.Subscribe(`:443/values`, svc.doValues)
+	svc.Subscribe(`:443/refresh`, svc.doRefresh)
+	svc.Subscribe(`:443/sync`, svc.doSync, sub.NoQueue())
 	
 	// Tickers
 	intervalPeriodicRefresh, _ := time.ParseDuration("20m0s")

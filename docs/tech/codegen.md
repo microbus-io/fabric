@@ -2,6 +2,9 @@
 
 Automatic code generation is `Microbus`'s most powerful tool. It facilitates rapid development (RAD) of microservices and significantly increases developer productivity. Although it's possible to create a microservice by working directly with the `Connector`, the abstraction added by the code generator makes things simpler by taking care of much of the repetitive boilerplate code.
 
+Code generation in `Microbus` is additive and idempotent. When new functionality is added,
+incremental code changes are generated for it without impacting the existing code.
+
 ## Bootstrapping
 
 Code generation starts by introducing the `//go:generate` directive into any source file in the directory of the microservice. The recommendation is to add it to a `doc.go` file:
@@ -12,11 +15,11 @@ Code generation starts by introducing the `//go:generate` directive into any sou
 package myservice
 ```
 
-The next step is to create a `service.yaml` file which will be used to specify the functionality of the microservice. If the directory contains only `doc.go` or if `service.yaml` is empty, running `go generate` inside the directory will automatically populate `service.yaml`.
+The next step is to create a `service.yaml` file which will be used to specify the functionality of the microservice. If the directory contains only `doc.go` or an empty `service.yaml`, running `go generate` inside the directory will automatically populate `service.yaml`.
 
 ## Service.yaml
 
-In `service.yaml`, developers are able to define the various pieces of the microservice in a declarative fashion. Code generation picks up these definitions to generate boilerplate code, leaving it up to the developer to implement the business logic.
+In `service.yaml`, developers are able to define the various pieces of the microservice in a declarative fashion. Code generation picks up these definitions to generate boilerplate code, leaving it up to the developer to implement the business logic. As noted earlier, declarations can be added over time and applied incrementally.
 
 `service.yaml` include several sections: general, configs, functions, events, types, webs and tickers. Combined, these define the characteristics of the microservice.
 
@@ -91,12 +94,12 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 # description - Documentation
 # path - The subscription path
 #   (empty) - The function name in kebab-case
-#   /path
-#   /directory/
-#   :123/path
-#   :123/... - Ellipsis denotes the function name in kebab-case
-#   https://example.com:123/path
-#   ^ - Empty path
+#   /path - Default port :443
+#   /directory/ - All paths under the directory
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path
+#   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -124,34 +127,72 @@ Along with the host name of the service, the `path` defines the URL to this endp
 
 `queue` defines whether a request is routed to one of the replicas of the microservice (load-balanced) or to all (pervasive).
 
-### Events
+### Event Sources
 
-`events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. Events are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `UserDeleted(id string)` could be an event fired by the user management microservice.
+`events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. [Events](../tech/events.md) are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `OnUserDeleted(id string)` could be an event fired by a user management microservice.
 
 ```yaml
 # Events
 #
-# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # path - The subscription path
 #   (empty) - The function name in kebab-case
-#   /path
-#   /directory/
-#   :123/path
-#   :123/... - Ellipsis denotes the function name in kebab-case
-#   https://example.com:123/path
-#   ^ - Empty path
+#   /path - Default port :417
+#   /directory/ - All paths under the directory
+#   :417/path
+#   :417/... - Ellipsis denotes the function name in kebab-case
+#   :417 - Root path
+#   https://example.com:417/path
 events:
   - signature:
     description:
     path:
 ```
 
-The `signature` defines the event name (which must start with an uppercase letter) and the input and output arguments. In `Microbus`, events are bi-directional and event sinks may return values back to the event source. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
+The `signature` defines the event name (which must start with the word `On` followed by an uppercase letter) and the input and output arguments. In `Microbus`, events are bi-directional and event sinks may return values back to the event source. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
+
+### Event Sinks
+
+`sinks` are the flip side of event sources. A sink subscribes to receive notification of events that are generated by other services.
+
+```yaml
+# Event sinks
+#
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# event - The event name to handle (defaults to the function name)
+# source - A path to the microservice that is the source of the event
+# forHost - For an event source with an overridden host name
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+sinks:
+  - signature:
+    description:
+    event:
+    source: package/path/of/another/microservice
+```
+
+The `signature` of an event sink must match that of the event source to the letter. The only exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if two different services used the same name for their events. That is because handler function names must be unique in the scope of the sink microservice.
+
+```yaml
+sinks:
+  - signature: OnDeleteUser(userID string)
+    event: OnDelete
+    source: package/path/to/user/store
+  - signature: OnDeleteGroup(groupID string)
+    event: OnDelete
+    source: package/path/to/group/store
+```
+
+The `source` must point to the microservice that is the source of the event. This is the fully-qualified package path.
+
+The optional field `forHost` adjusts the subscription to listen to microservices whose host name was overridden with `SetHostName`.
 
 ### Web Handlers
 
-The `webs` sections defines low-level web handlers which allow the microservice to handle incoming web requests as they see fit.
+The `webs` sections defines low-level web handlers which allow the microservice to handle incoming web requests as it sees fit.
 
 ```yaml
 # Web handlers
@@ -160,12 +201,12 @@ The `webs` sections defines low-level web handlers which allow the microservice 
 # description - Documentation
 # path - The subscription path
 #   (empty) - The function name in kebab-case
-#   /path
-#   /directory/
-#   :123/path
-#   :123/... - Ellipsis denotes the function name in kebab-case
-#   https://example.com:123/path
-#   ^ - Empty path
+#   /path - Default port :443
+#   /directory/ - All paths under the directory
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path
+#   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -259,7 +300,7 @@ A `resources` directory is automatically created with a `//go:embed` directive t
 
 The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to differentiate among different builds of the microservice.
 
-## Structure of Generated Code
+## Generated Code Structure
 
 The code generator creates quite a few files and sub-directories in the directory of the microservice.
 
@@ -285,7 +326,7 @@ Files that include `-gen` in their name are fully code generated and should not 
 
 The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the host name of the service, with dots replaced by hyphens.
 
-The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types that they use. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
+The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
 The `intermediate` directory (and package) defines the `Intermediate` which serves as the base of the microservice via anonymous inclusion. The `Intermediate` in turn extends the [`Connector`](../structure/connector.md).
 

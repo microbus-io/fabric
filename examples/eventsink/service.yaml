@@ -36,12 +36,12 @@ configs:
 # description - Documentation
 # path - The subscription path
 #   (empty) - The function name in kebab-case
-#   /path
-#   /directory/
-#   :123/path
-#   :123/... - Ellipsis denotes the function name in kebab-case
-#   https://example.com:123/path
-#   ^ - Empty path
+#   /path - Default port :443
+#   /directory/ - All paths under the directory
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path
+#   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -55,12 +55,12 @@ functions:
 # description - Documentation
 # path - The subscription path
 #   (empty) - The function name in kebab-case
-#   /path
-#   /directory/
-#   :123/path
-#   :123/... - Ellipsis denotes the function name in kebab-case
-#   https://example.com:123/path
-#   ^ - Empty path
+#   /path - Default port :417
+#   /directory/ - All paths under the directory
+#   :417/path
+#   :417/... - Ellipsis denotes the function name in kebab-case
+#   :417 - Root path
+#   https://example.com:417/path
 events:
   # - signature:
   #   description:
@@ -70,7 +70,7 @@ events:
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # event - The event name to handle (defaults to the function name)
-# source - A path to the microservice that is the source of the event
+# source - The package path to the microservice that is the source of the event
 # forHost - For an event source with an overridden host name
 # queue - The subscription queue
 #   default - Load balanced (default)
@@ -92,12 +92,12 @@ sinks:
 # description - Documentation
 # path - The subscription path
 #   (empty) - The function name in kebab-case
-#   /path
-#   /directory/
-#   :123/path
-#   :123/... - Ellipsis denotes the function name in kebab-case
-#   https://example.com:123/path
-#   ^ - Empty path
+#   /path - Default port :443
+#   /directory/ - All paths under the directory
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path
+#   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -121,7 +121,7 @@ tickers:
 # name - All non-primitive types used in functions must be accounted for
 # description - Documentation
 # define - Define a new type with the specified fields (name: type)
-# import - A path to the microservice that defines the type
+# import - The package path to the microservice that defines the type
 types:
   # - name: DefinedType
   #   description:

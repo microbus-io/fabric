@@ -1,4 +1,4 @@
-# Microbus.io fabric : Milestone 10
+# Microbus.io fabric : Milestone 11
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
@@ -18,13 +18,13 @@ The framework's philosophy can be broken into three areas:
 
 ## Getting Started
 
-Follow the [quick start guide](docs/quick-start.md) <sup color="orange">updated</sup> to set up your system and run the example app.
+Follow the [quick start guide](docs/quick-start.md) to set up your system and run the example app.
 
 Go through the [examples](docs/structure/examples.md) <sup color="orange">updated</sup> in depth.
 
-Follow the step-by-step guide and [build your first microservice](docs/first-service.md) <sup color="orange">new</sup>!
+Follow the step-by-step guide and [build your first microservice](docs/first-service.md)!
 
-Discover the full power of [code generation](docs/tech/codegen.md) <sup color="orange">new</sup> in `Microbus`. It's totally RAD, dude!
+Discover the full power of [code generation](docs/tech/codegen.md) <sup color="orange">updated</sup> in `Microbus`. It's totally RAD, dude!
 
 Venture out and [explore more on your own](docs/self-explore.md).
 
@@ -36,7 +36,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [cb](docs/structure/cb.md) - Options for callbacks
 * [cfg](docs/structure/cb.md) - Options for defining config properties
 * [clock](docs/structure/clock.md) - An abstraction of the functions in the standard library time package to allow for mocking
-* [codegen](docs/structure/codegen.md) <sup color="orange">new</sup> - The code generator
+* [codegen](docs/structure/codegen.md) - The code generator
 * [connector](docs/structure/connector.md) - The primary construct of the framework and the basis for all microservices
 * [dlru](docs/structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
 * [errors](docs/structure/errors.md) - An enhancement of Go's standard `errors` package 
@@ -48,10 +48,10 @@ Review each of the major project packages to get oriented in the code structure:
 * [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/configurator](docs/structure/services-configurator.md) - The configurator system microservice
-* [services/control](docs/structure/services-control.md) <sup color="orange">new</sup> - Client API for the [control subscriptions](docs/tech/controlsubs.md)
+* [services/control](docs/structure/services-control.md) - Client API for the [control subscriptions](docs/tech/controlsubs.md)
 * [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy system microservice
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
-* [utils](docs/structure/utils.md) <sup color="orange">updated</sup> - Various independent utility classes and functions
+* [utils](docs/structure/utils.md) - Various independent utility classes and functions
 
 ## Technical Deep Dive
 
@@ -65,6 +65,7 @@ Get a deeper understanding of the principals and philosophy of `Microbus`:
 * [Configuration](docs/tech/configuration.md) - How to configure microservices
 * [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
 * [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
-* [Control subscriptions](docs/tech/controlsubs.md) <sup color="orange">updated</sup> - Subscriptions that all microservices implement out of the box on port `:888`
+* [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
-* [Code generation](docs/tech/codegen.md) <sup color="orange">new</sup> - Discover the power of `Microbus`'s most powerful RAD tool
+* [Code generation](docs/tech/codegen.md) <sup color="orange">updated</sup> - Discover the power of `Microbus`'s most powerful RAD tool
+* [Events](docs/tech/events.md) <sup color="orange">new</sup> - Using event-driven architecture to decouple microservices

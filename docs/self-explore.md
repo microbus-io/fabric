@@ -8,3 +8,4 @@
 * Put a breakpoint in any of the microservices of the example application and try debugging
 * Write unit tests that require mocking the microservice's clock
 * Add a `/cache-delete` endpoint to the `messaging.example`
+* Create a second event sink microservice (name it differently though) and block registrations based on a configurable exclusion list

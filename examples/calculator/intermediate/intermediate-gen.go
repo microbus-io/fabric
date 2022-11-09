@@ -76,9 +76,9 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Functions
-	svc.Subscribe(`/arithmetic`, svc.doArithmetic)
-	svc.Subscribe(`/square`, svc.doSquare)
-	svc.Subscribe(`/distance`, svc.doDistance)
+	svc.Subscribe(`:443/arithmetic`, svc.doArithmetic)
+	svc.Subscribe(`:443/square`, svc.doSquare)
+	svc.Subscribe(`:443/distance`, svc.doDistance)
 
 	return svc
 }

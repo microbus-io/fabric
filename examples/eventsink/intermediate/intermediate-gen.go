@@ -79,7 +79,7 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Functions
-	svc.Subscribe(`/registered`, svc.doRegistered)
+	svc.Subscribe(`:443/registered`, svc.doRegistered)
 	
 	// Sinks
 	pathOfOnAllowRegister := eventsourceapi0.PathOfOnAllowRegister

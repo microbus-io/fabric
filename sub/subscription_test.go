@@ -78,9 +78,9 @@ func TestSub_Apply(t *testing.T) {
 func TestSub_Canonical(t *testing.T) {
 	t.Parallel()
 
-	s, err := NewSub("www.example.com", ":334/path", nil)
+	s, err := NewSub("www.example.com", ":567/path", nil)
 	assert.NoError(t, err)
-	assert.Equal(t, "www.example.com:334/path", s.Canonical())
+	assert.Equal(t, "www.example.com:567/path", s.Canonical())
 
 	s, err = NewSub("www.example.com", "/path", nil)
 	assert.NoError(t, err)

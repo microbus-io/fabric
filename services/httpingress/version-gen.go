@@ -2,12 +2,12 @@
 
 package httpingress
 
-const Version = 7
-const SourceCodeSHA256 = "8b370665c493945c6d894e0c6565870a6d3df4d89736f1d5101dd802c6d78365"
-const Timestamp = "2022-11-08T17:42:59.547283Z"
+const Version = 8
+const SourceCodeSHA256 = "5f748ea65d0a2424017ebfe53320b8d6bc2e6bfc9945ac850710569a80bcbc03"
+const Timestamp = "2022-11-09T04:25:28.605314Z"
 
 /* {
-	"ver": 7,
-	"sha256": "8b370665c493945c6d894e0c6565870a6d3df4d89736f1d5101dd802c6d78365",
-	"ts": "2022-11-08T17:42:59.547283Z"
+	"ver": 8,
+	"sha256": "5f748ea65d0a2424017ebfe53320b8d6bc2e6bfc9945ac850710569a80bcbc03",
+	"ts": "2022-11-09T04:25:28.605314Z"
 } */

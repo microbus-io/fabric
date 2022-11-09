@@ -74,7 +74,7 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Functions
-	svc.Subscribe(`/register`, svc.doRegister)
+	svc.Subscribe(`:443/register`, svc.doRegister)
 
 	return svc
 }

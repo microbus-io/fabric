@@ -54,9 +54,6 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if h.Path == "" {
 		h.Path = "/" + utils.ToKebabCase(h.Name())
 	}
-	if h.Path == "^" {
-		h.Path = ""
-	}
 	h.Path = strings.Replace(h.Path, "...", utils.ToKebabCase(h.Name()), 1)
 	h.Queue = strings.ToLower(h.Queue)
 
@@ -100,6 +97,14 @@ func (h *Handler) validate() error {
 	// It will get filled by the parent service which will then call this method again.
 	if h.Type == "" {
 		return nil
+	}
+
+	if strings.HasPrefix(h.Path, "/") {
+		if h.Type == "event" {
+			h.Path = ":417" + h.Path
+		} else {
+			h.Path = ":443" + h.Path
+		}
 	}
 
 	h.Description = conformDesc(
