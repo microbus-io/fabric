@@ -78,4 +78,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Code generation of event sources
 * Code generation of event sinks
-* Avoid blocking messaging channels in high-load situations
+* Use `InfiniteChan`s to avoid blocking messaging channels in high-load situations
