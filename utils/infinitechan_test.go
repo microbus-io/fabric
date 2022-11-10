@@ -104,3 +104,13 @@ func TestUtils_InfiniteChanReadWhileOpen(t *testing.T) {
 	assert.Equal(t, 0, len(inf.ch))
 	assert.Equal(t, 0, len(inf.queue))
 }
+
+func BenchmarkUtils_InfiniteChanPushPull(b *testing.B) {
+	inf := MakeInfiniteChan[int](128)
+	for i := 0; i < b.N; i++ {
+		inf.Push(i)
+		<-inf.C()
+	}
+
+	// On 2021 MacBook Pro M1 16": 52 ns/op
+}

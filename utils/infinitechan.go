@@ -19,7 +19,7 @@ type InfiniteChan[T any] struct {
 
 // MakeInfiniteChan creates a new infinite channel backed by a finite buffered channel with the specified capacity.
 // Overflowing elements are stored in a queue and are delivered to the channel when it has free capacity.
-// Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
+// Queued elements may be dropped if the channel is closed and left unread for over the idle timeout.
 func MakeInfiniteChan[T any](capacity int) *InfiniteChan[T] {
 	oc := &InfiniteChan[T]{
 		ch: make(chan T, capacity),
@@ -71,7 +71,8 @@ func (oc *InfiniteChan[T]) tryDeliver() (delivered int) {
 
 // Close closes the channel after trying to deliver any queued items to the channel.
 // Queued elements may be dropped if the channel is closed and left unread for over the idle timeout.
-// Close will spin-block until reading from the channel is finished or until the idle timeout is reached.
+// Close will spin-block until reading from the channel is finished or until the channel is
+// abandoned and left unread for the idle timeout.
 func (oc *InfiniteChan[T]) Close(idleTimeout time.Duration) (fullyDelivered bool) {
 	lastDelivery := time.Now()
 	for {
