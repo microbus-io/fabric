@@ -210,8 +210,8 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 // OnAllowRegisterHandler is a handler of the OnAllowRegister event.
 type OnAllowRegisterHandler func (ctx context.Context, email string) (allow bool, err error)
 
-// PathOfOnAllowRegister is the URL path of the OnAllowRegister event.
-const PathOfOnAllowRegister = ":417/on-allow-register"
+// OnAllowRegisterPath is the URL path of the OnAllowRegister event.
+const OnAllowRegisterPath = ":417/on-allow-register"
 
 // OnAllowRegisterIn are the input arguments of the OnAllowRegister event.
 type OnAllowRegisterIn struct {
@@ -286,8 +286,8 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 // OnRegisteredHandler is a handler of the OnRegistered event.
 type OnRegisteredHandler func (ctx context.Context, email string) (err error)
 
-// PathOfOnRegistered is the URL path of the OnRegistered event.
-const PathOfOnRegistered = ":417/on-registered"
+// OnRegisteredPath is the URL path of the OnRegistered event.
+const OnRegisteredPath = ":417/on-registered"
 
 // OnRegisteredIn are the input arguments of the OnRegistered event.
 type OnRegisteredIn struct {

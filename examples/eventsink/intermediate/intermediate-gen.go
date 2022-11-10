@@ -82,9 +82,9 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`:443/registered`, svc.doRegistered)
 	
 	// Sinks
-	pathOfOnAllowRegister := eventsourceapi0.PathOfOnAllowRegister
+	pathOfOnAllowRegister := eventsourceapi0.OnAllowRegisterPath
 	svc.Subscribe(pathOfOnAllowRegister, svc.doOnAllowRegister)
-	pathOfOnRegistered := eventsourceapi1.PathOfOnRegistered
+	pathOfOnRegistered := eventsourceapi1.OnRegisteredPath
 	svc.Subscribe(pathOfOnRegistered, svc.doOnRegistered)
 
 	return svc

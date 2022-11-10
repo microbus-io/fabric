@@ -134,7 +134,7 @@ func New(impl ToDo, version int) *Intermediate {
 	
 	// Sinks
 	{{- range $i, $s := .Sinks }}
-	pathOf{{ .Name }} := {{ .SourceSuffix }}api{{ $i }}.PathOf{{ .Event }}
+	pathOf{{ .Name }} := {{ .SourceSuffix }}api{{ $i }}.{{ .Event }}Path
 	{{- if .ForHost }}
 	pathOf{{ .Name }} = sub.JoinHostAndPath("{{ .ForHost }}", pathOf{{ .Name }})
 	{{- end }}

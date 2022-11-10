@@ -2,8 +2,8 @@
 // {{ .Name }}Handler is a handler of the {{ .Name }} event.
 type {{ .Name }}Handler func ({{ .In }}) ({{ .Out }})
 
-// PathOf{{ .Name }} is the URL path of the {{ .Name }} event.
-const PathOf{{ .Name }} = "{{ .Path }}"
+// {{ .Name }}Path is the URL path of the {{ .Name }} event.
+const {{ .Name }}Path = "{{ .Path }}"
 
 // {{ .Name }}In are the input arguments of the {{ .Name }} event.
 type {{ .Name }}In struct {
