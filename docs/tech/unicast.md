@@ -105,6 +105,6 @@ Hello]
 
 ## Notes on Subscription Subjects
 
-The format of the subscription subject is by design. NATS provides means of controlling access to subjects using an ACL. Reversing the order of the segments of the host name enables setting permissions such as `ALLOW *.*.com.example.>` which restricts a microservice to communicate only under the `example.com` domain.
+The format of the subscription subject is by design. [NATS provides means of controlling access to subjects using ACLs](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization). Reversing the order of the segments of the host name enables setting permissions such as `subscribe = "*.*.com.example.>"` which restricts a microservice to communicate only under the `example.com` domain. The two asterisks stand for any plane and any port.
 
 The `microbus` prefix seen in the subscription subjects is referred to as the plane of communication. Microservices on a given plane can only talk to other services on the same plane. Planes therefore provide isolation for groups of microservices that share a single NATS cluster with other groups of unrelated microservices. For example, testing apps use a randomly generated plane to prevent unit tests from conflicting when running in parallel with other unit tests.

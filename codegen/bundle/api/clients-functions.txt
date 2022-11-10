@@ -1,24 +1,27 @@
 {{ range .Functions }}
-// {{ .Name }}In are the incoming arguments to {{ .Name }}.
+// {{ .Name }}In are the input arguments of the {{ .Name }} function.
 type {{ .Name }}In struct {
 	{{- range .Signature.InputArgs }}
 	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
 	{{- end }}
 }
 
-// {{ .Name }}Out are the return values of {{ .Name }}.
+// {{ .Name }}Out are the return values of the {{ .Name }} function.
 type {{ .Name }}Out struct {
-	data struct {
-		{{- range .Signature.OutputArgs }}
-		{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
-		{{- end }}
-	}
+	{{- range .Signature.OutputArgs }}
+	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ if eq .Name "httpStatusCode" }}-{{ else }}{{ .Name }}{{ end }}"`
+	{{- end }}
+}
+
+// {{ .Name }}Response is the response of the {{ .Name }} function.
+type {{ .Name }}Response struct {
+	data {{ .Name }}Out
 	HTTPResponse *http.Response
 	err error
 }
 
 // Get retrieves the return values.
-func (_out *{{ .Name }}Out) Get() ({{ .Out }}) {
+func (_out *{{ .Name }}Response) Get() ({{ .Out }}) {
 	{{- range .Signature.OutputArgs }}
 	{{ .Name }} = _out.data.{{ CapitalizeIdentifier .Name }}
 	{{- end }}
@@ -53,13 +56,13 @@ func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 		return
 	}
 	var _out {{ .Name }}Out
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
 	{{- range .Signature.OutputArgs }}
-	{{ .Name }} = _out.data.{{ CapitalizeIdentifier .Name }}
+	{{ .Name }} = _out.{{ CapitalizeIdentifier .Name }}
 	{{- end }}
 	return
 }
@@ -67,7 +70,7 @@ func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 /*
 {{ .Description }}
 */
-func (_c *MulticastClient) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Out {
+func (_c *MulticastClient) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
@@ -75,8 +78,8 @@ func (_c *MulticastClient) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *{{ .Name }}Out, 1)
-		_res <- &{{ .Name }}Out{err: errors.Trace(_err)}
+		_res := make(chan *{{ .Name }}Response, 1)
+		_res <- &{{ .Name }}Response{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -90,10 +93,10 @@ func (_c *MulticastClient) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *{{ .Name }}Out, cap(_ch))
+	_res := make(chan *{{ .Name }}Response, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r {{ .Name }}Out
+			var _r {{ .Name }}Response
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {

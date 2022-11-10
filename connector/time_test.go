@@ -211,7 +211,7 @@ func TestConnector_TickerTimeout(t *testing.T) {
 	t0 := time.Now()
 	<-end
 	dur := time.Since(t0)
-	assert.True(t, dur > interval/4 && dur < interval/2)
+	assert.True(t, dur > interval/4 && dur < interval/2, "%v", dur)
 }
 
 func TestConnector_TickerLifetimeCancellation(t *testing.T) {

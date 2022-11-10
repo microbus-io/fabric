@@ -98,19 +98,15 @@ func (c *Connector) runTicker(job *cb.Callback) {
 			// Call the callback
 			atomic.AddInt32(&c.pendingOps, 1)
 			started := c.Now()
-			callbackCtx := c.lifetimeCtx
-			cancel := func() {}
-			if job.TimeBudget > 0 {
-				callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, job.TimeBudget)
-			}
-			err := utils.CatchPanic(func() error {
-				return job.Handler.(TickerHandler)(callbackCtx)
-			})
-			cancel()
-			if err != nil {
-				err = errors.Trace(err, c.hostName, job.Name)
-				c.LogError(c.Lifetime(), "Ticker callback", log.Error(err), log.String("ticker", job.Name))
-			}
+			_ = c.doCallback(
+				c.lifetimeCtx,
+				job.TimeBudget,
+				"Ticker callback",
+				":0/"+utils.ToKebabCase(job.Name),
+				func(ctx context.Context) error {
+					return job.Handler.(TickerHandler)(ctx)
+				},
+			)
 			dur := time.Since(started)
 			atomic.AddInt32(&c.pendingOps, -1)
 

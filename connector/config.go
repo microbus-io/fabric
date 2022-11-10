@@ -10,7 +10,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/utils"
 )
 
 // StartupHandler handles the OnStartup callback.
@@ -171,18 +170,18 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 
 	// Call the callback function, if provided
 	if c.onConfigChanged != nil && len(changed) > 0 {
-		callbackCtx := c.lifetimeCtx
-		cancel := func() {}
-		if c.onConfigChanged.TimeBudget > 0 {
-			callbackCtx, cancel = context.WithTimeout(c.lifetimeCtx, c.onConfigChanged.TimeBudget)
-		}
-		err = utils.CatchPanic(func() error {
-			f := func(name string) bool {
-				return changed[strings.ToLower(name)]
-			}
-			return c.onConfigChanged.Handler.(ConfigChangedHandler)(callbackCtx, f)
-		})
-		cancel()
+		err = c.doCallback(
+			c.lifetimeCtx,
+			c.onConfigChanged.TimeBudget,
+			"Config changed callback",
+			":0/on-config-changed",
+			func(ctx context.Context) error {
+				f := func(name string) bool {
+					return changed[strings.ToLower(name)]
+				}
+				return c.onConfigChanged.Handler.(ConfigChangedHandler)(ctx, f)
+			},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}

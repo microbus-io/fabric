@@ -73,3 +73,9 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Clients for the port `:888` control subscriptions
 * Code generator automatically adding `errors.Trace` to returned errors
 * Capturing errors during initialization and failing startup
+
+[Milestone 11](https://github.com/microbus-io/fabric/tree/milestone/11):
+
+* Code generation of event sources
+* Code generation of event sinks
+* Use `InfiniteChan`s to avoid blocking messaging channels in high-load situations

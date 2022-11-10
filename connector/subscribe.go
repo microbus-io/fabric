@@ -285,19 +285,22 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Set the context's timeout to the time budget reduced by a network hop
 	frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
 	ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
-	defer cancel()
 	httpReq = httpReq.WithContext(ctx)
 
-	// Call the web handler
+	// Call the handler
 	httpRecorder := utils.NewResponseRecorder()
-	handlerErr := utils.CatchPanic(func() error {
-		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
-	})
+	handlerErr := c.doCallback(
+		ctx,
+		0,
+		"Handling request",
+		s.Path,
+		func(_ context.Context) error {
+			return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
+		},
+	)
+	cancel()
 
 	if handlerErr != nil {
-		handlerErr = errors.Trace(handlerErr, s.Canonical())
-		c.LogError(frameCtx, "Handling request", log.Error(handlerErr))
-
 		// Prepare an error response instead
 		httpRecorder = utils.NewResponseRecorder()
 		httpRecorder.Header().Set("Content-Type", "application/json")

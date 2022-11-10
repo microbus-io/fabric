@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // Signature is the spec of a function signature.
@@ -88,7 +89,7 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // validate validates the data after unmarshaling.
 func (sig *Signature) validate() error {
-	if !isUpperCaseIdentifier(sig.Name) {
+	if !utils.IsUpperCaseIdentifier(sig.Name) {
 		return errors.Newf("handler '%s' must start with uppercase in '%s'", sig.Name, sig.OrigString)
 	}
 

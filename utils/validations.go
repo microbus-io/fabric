@@ -47,6 +47,10 @@ func ValidateTickerName(name string) error {
 // ParseURL returns a canonical version of the parsed URL with the scheme and port filled in if omitted.
 // It returns an error if the URL has a invalid scheme, host name or port.
 func ParseURL(u string) (canonical *url.URL, err error) {
+	if strings.Contains(u, "`") {
+		return nil, errors.New("backquote not allowed")
+	}
+
 	parsed, err := url.Parse(u)
 	if err != nil {
 		return nil, errors.Trace(err)

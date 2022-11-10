@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // Argument is an input or output argument of a signature.
@@ -35,7 +36,7 @@ func (arg *Argument) validate() error {
 	if arg.Name == "err" || arg.Type == "error" {
 		return errors.Newf("error type not allowed")
 	}
-	if !isLowerCaseIdentifier(arg.Name) {
+	if !utils.IsLowerCaseIdentifier(arg.Name) {
 		return errors.Newf("name '%s' must start with lowercase", arg.Name)
 	}
 
@@ -80,7 +81,7 @@ func (arg *Argument) validate() error {
 			arg.Type += "time.Duration"
 		case t == "byte" || t == "bool" || t == "string":
 			// Nothing
-		case isLowerCaseIdentifier(t):
+		case utils.IsLowerCaseIdentifier(t):
 			return errors.Newf("unknown primitive type '%s'", t)
 		}
 

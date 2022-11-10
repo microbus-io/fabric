@@ -18,12 +18,13 @@ import (
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
 
 const AckTimeout = 250 * time.Millisecond
 
-// GET makes a GET request
+// GET makes a GET request.
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{
 		pub.GET(url),
@@ -32,7 +33,7 @@ func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error)
 
 // POST makes a POST request.
 // Body of type io.Reader, []byte and string is serialized in binary form.
-// All other types are serialized as JSON
+// All other types are serialized as JSON.
 func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{
 		pub.POST(url),
@@ -40,7 +41,7 @@ func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Respo
 	}...)
 }
 
-// Request makes an HTTP request then awaits and returns a single response synchronously
+// Request makes an HTTP request then awaits and returns a single response synchronously.
 func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.Response, error) {
 	options = append(options, pub.Unicast())
 	ch := c.Publish(ctx, options...)
@@ -91,21 +92,24 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	frame.Of(req.Header).SetOpCode(frame.OpCodeRequest)
 
 	// Make the request
-	var output chan *pub.Response
+	var output *utils.InfiniteChan[*pub.Response]
 	if req.Multicast {
-		output = make(chan *pub.Response, 64)
+		output = utils.MakeInfiniteChan[*pub.Response](c.multicastChanCap)
 	} else {
-		output = make(chan *pub.Response, 2)
+		output = utils.MakeInfiniteChan[*pub.Response](2)
 	}
 	go func() {
-		c.makeHTTPRequest(req, output)
-		close(output)
+		c.makeHTTPRequest(ctx, req, output)
+		fullyDrained := output.Close(time.Second)
+		if !fullyDrained {
+			c.LogDebug(ctx, "Unconsumed responses dropped", log.String("url", req.Canonical()))
+		}
 	}()
-	return output
+	return output.C()
 }
 
-// makeHTTPRequest makes an HTTP request then awaits and pushes the responses to the output channel
-func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response) {
+// makeHTTPRequest makes an HTTP request then awaits and pushes the responses to the output channel.
+func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, output *utils.InfiniteChan[*pub.Response]) {
 	// Set a random message ID
 	msgID := rand.AlphaNum64(8)
 	frame.Of(req.Header).SetMessageID(msgID)
@@ -113,7 +117,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	// Prepare the HTTP request (first fragment only)
 	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+		err = errors.Trace(err, req.Canonical())
+		output.Push(pub.NewErrorResponse(err))
 		return
 	}
 	for name, value := range req.Header {
@@ -121,22 +126,24 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	}
 	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
 
-	c.LogDebug(c.lifetimeCtx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
+	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
 
 	// Fragment large requests
 	fragger, err := frag.NewFragRequest(httpReq, c.maxFragmentSize)
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+		err = errors.Trace(err, req.Canonical())
+		output.Push(pub.NewErrorResponse(err))
 		return
 	}
 	httpReq, err = fragger.Fragment(1)
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+		err = errors.Trace(err, req.Canonical())
+		output.Push(pub.NewErrorResponse(err))
 		return
 	}
 
 	// Create a channel to await on
-	awaitCh := make(chan *http.Response, 64)
+	awaitCh := utils.MakeInfiniteChan[*http.Response](c.multicastChanCap)
 	c.reqsLock.Lock()
 	c.reqs[msgID] = awaitCh
 	c.reqsLock.Unlock()
@@ -154,7 +161,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	if httpReq.URL.Port() != "" {
 		port64, err := strconv.ParseInt(httpReq.URL.Port(), 10, 32)
 		if err != nil {
-			output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+			err = errors.Trace(err, req.Canonical())
+			output.Push(pub.NewErrorResponse(err))
 			return
 		}
 		port = int(port64)
@@ -164,12 +172,14 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	var buf bytes.Buffer
 	err = httpReq.Write(&buf)
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+		err = errors.Trace(err, req.Canonical())
+		output.Push(pub.NewErrorResponse(err))
 		return
 	}
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
-		output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+		err = errors.Trace(err, req.Canonical())
+		output.Push(pub.NewErrorResponse(err))
 		return
 	}
 
@@ -189,22 +199,21 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	if req.Multicast {
 		expectedResponders, _ = c.knownResponders.Load(subject)
 		if len(expectedResponders) > 0 {
-			c.LogDebug(c.lifetimeCtx, "Expecting responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(expectedResponders)))
+			c.LogDebug(ctx, "Expecting responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(expectedResponders)))
 		}
-		c.pendingMulticasts.Store(msgID, subject)
+		c.postRequestData.Store("multicast:"+msgID, subject)
 	}
 	countResponses := 0
 	seenIDs := map[string]string{} // FromID -> OpCode
 	seenQueues := map[string]bool{}
 	doneWaitingForAcks := false
-	// Must not use mocked timers for request timeouts
 	timeoutTimer := time.NewTimer(req.TimeBudget)
 	defer timeoutTimer.Stop()
 	ackTimer := time.NewTimer(AckTimeout)
 	defer ackTimer.Stop()
 	for {
 		select {
-		case response := <-awaitCh:
+		case response := <-awaitCh.C():
 			opCode := frame.Of(response).OpCode()
 			fromID := frame.Of(response).FromID()
 			queue := frame.Of(response).Queue()
@@ -238,7 +247,8 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 						for f := 2; f <= fragger.N(); f++ {
 							fragment, err := fragger.Fragment(f)
 							if err != nil {
-								output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+								err = errors.Trace(err)
+								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()))
 								break
 							}
 
@@ -248,12 +258,14 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 							var buf bytes.Buffer
 							err = fragment.Write(&buf)
 							if err != nil {
-								output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+								err = errors.Trace(err)
+								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()))
 								break
 							}
 							err = c.natsConn.Publish(subject, buf.Bytes())
 							if err != nil {
-								output <- pub.NewErrorResponse(errors.Trace(err, req.Canonical()))
+								err = errors.Trace(err)
+								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()))
 								break
 							}
 						}
@@ -263,7 +275,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 
 			// Response
 			if opCode == frame.OpCodeResponse {
-				output <- pub.NewHTTPResponse(response)
+				output.Push(pub.NewHTTPResponse(response))
 			}
 
 			// Error
@@ -279,7 +291,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				} else {
 					err = errors.Trace(reconstitutedError, c.hostName+" -> "+httpReq.URL.Hostname())
 				}
-				output <- pub.NewErrorResponse(err)
+				output.Push(pub.NewErrorResponse(err))
 			}
 
 			// Response or error (i.e. not an ack)
@@ -294,18 +306,21 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 					// All responses have been received
 					// Known responders optimization
 					c.knownResponders.Store(subject, seenQueues)
-					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
+					c.LogDebug(ctx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
 					return
 				}
 			}
 
 		// Timeout timer
 		case <-timeoutTimer.C:
-			output <- pub.NewErrorResponse(errors.New("timeout", req.Canonical()))
+			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
+			err = errors.New("timeout", req.Canonical())
+			output.Push(pub.NewErrorResponse(err))
+			c.postRequestData.Store("timeout:"+msgID, subject)
 			// Known responders optimization
 			if req.Multicast {
 				c.knownResponders.Delete(subject)
-				c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
+				c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 			}
 			return
 
@@ -313,11 +328,12 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 		case <-ackTimer.C:
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
-				output <- pub.NewErrorResponse(errors.New("ack timeout", req.Canonical()))
+				err = errors.New("ack timeout", req.Canonical())
+				output.Push(pub.NewErrorResponse(err))
 				// Known responders optimization
 				if req.Multicast {
 					c.knownResponders.Delete(subject)
-					c.LogDebug(c.lifetimeCtx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
+					c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 				}
 				return
 			}
@@ -326,7 +342,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 				// Known responders optimization
 				if req.Multicast {
 					c.knownResponders.Store(subject, seenQueues)
-					c.LogDebug(c.lifetimeCtx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
+					c.LogDebug(ctx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
 				}
 				return
 			}
@@ -334,7 +350,7 @@ func (c *Connector) makeHTTPRequest(req *pub.Request, output chan *pub.Response)
 	}
 }
 
-// onResponse is called when a response to an outgoing request is received
+// onResponse is called when a response to an outgoing request is received.
 func (c *Connector) onResponse(msg *nats.Msg) {
 	// Parse the response
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
@@ -361,24 +377,30 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	c.reqsLock.Lock()
 	ch, ok := c.reqs[msgID]
 	c.reqsLock.Unlock()
-	if !ok {
-		opCode := frame.Of(response).OpCode()
-		if opCode != frame.OpCodeAck {
-			subject, ok := c.pendingMulticasts.Load(msgID, lru.NoBump())
-			if ok {
-				c.knownResponders.Delete(subject)
-				c.pendingMulticasts.Delete(msgID)
-			}
+	if ok {
+		ch.Push(response)
+		return
+	}
+
+	// Handle message that arrive after the request is done
+	opCode := frame.Of(response).OpCode()
+	if opCode != frame.OpCodeAck {
+		subject, ok := c.postRequestData.Load("multicast:"+msgID, lru.NoBump())
+		if ok {
+			c.knownResponders.Delete(subject)
+			c.postRequestData.Delete("multicast:" + msgID)
+		}
+		subject, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
+		if ok {
 			c.LogInfo(
 				c.lifetimeCtx,
 				"Response received after timeout",
 				log.String("msg", msgID),
-				log.String("subject", subject),
-				log.String("from", frame.Of(response).FromID()),
+				log.String("fromID", frame.Of(response).FromID()),
+				log.String("fromHost", frame.Of(response).FromHost()),
 				log.String("queue", frame.Of(response).Queue()),
+				log.String("subject", subject),
 			)
 		}
-		return
 	}
-	ch <- response
 }
