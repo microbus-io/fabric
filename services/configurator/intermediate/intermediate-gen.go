@@ -113,12 +113,11 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.ValuesIn
 	var o configuratorapi.ValuesOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	d.Values, err = svc.impl.Values(
+	o.Values, err = svc.impl.Values(
 		r.Context(),
 		i.Names,
 	)
@@ -126,7 +125,7 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -137,7 +136,6 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.RefreshIn
 	var o configuratorapi.RefreshOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
@@ -149,7 +147,7 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -160,7 +158,6 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.SyncIn
 	var o configuratorapi.SyncOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
@@ -174,7 +171,7 @@ func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

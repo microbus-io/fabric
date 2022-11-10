@@ -108,19 +108,18 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.PingIn
 	var o controlapi.PingOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	d.Pong, err = svc.impl.Ping(
+	o.Pong, err = svc.impl.Ping(
 		r.Context(),
 	)
 	if err != nil {
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -131,7 +130,6 @@ func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.ConfigRefreshIn
 	var o controlapi.ConfigRefreshOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
@@ -143,7 +141,7 @@ func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request)
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

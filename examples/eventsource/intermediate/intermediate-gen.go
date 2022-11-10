@@ -104,12 +104,11 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) error {
 	var i eventsourceapi.RegisterIn
 	var o eventsourceapi.RegisterOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	d.Allowed, err = svc.impl.Register(
+	o.Allowed, err = svc.impl.Register(
 		r.Context(),
 		i.Email,
 	)
@@ -117,7 +116,7 @@ func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) erro
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

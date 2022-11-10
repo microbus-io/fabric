@@ -115,19 +115,18 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doRegistered(w http.ResponseWriter, r *http.Request) error {
 	var i eventsinkapi.RegisteredIn
 	var o eventsinkapi.RegisteredOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	d.Emails, err = svc.impl.Registered(
+	o.Emails, err = svc.impl.Registered(
 		r.Context(),
 	)
 	if err != nil {
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -138,14 +137,13 @@ func (svc *Intermediate) doRegistered(w http.ResponseWriter, r *http.Request) er
 func (svc *Intermediate) doOnAllowRegister(w http.ResponseWriter, r *http.Request) error {
 	var i eventsourceapi0.OnAllowRegisterIn
 	var o eventsourceapi0.OnAllowRegisterOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
 	// A compilation error here indicates that the signature of the event sink doesn't match that of the event source
 	fn := eventsourceapi0.OnAllowRegisterHandler(svc.impl.OnAllowRegister)
-	d.Allow, err = fn(
+	o.Allow, err = fn(
 		r.Context(),
 		i.Email,
 	)
@@ -153,7 +151,7 @@ func (svc *Intermediate) doOnAllowRegister(w http.ResponseWriter, r *http.Reques
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -164,7 +162,6 @@ func (svc *Intermediate) doOnAllowRegister(w http.ResponseWriter, r *http.Reques
 func (svc *Intermediate) doOnRegistered(w http.ResponseWriter, r *http.Request) error {
 	var i eventsourceapi1.OnRegisteredIn
 	var o eventsourceapi1.OnRegisteredOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
@@ -179,7 +176,7 @@ func (svc *Intermediate) doOnRegistered(w http.ResponseWriter, r *http.Request) 
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

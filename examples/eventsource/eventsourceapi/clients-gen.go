@@ -104,24 +104,27 @@ func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
 	return _c
 }
 
-// RegisterIn are the input arguments of Register.
+// RegisterIn are the input arguments of the Register function.
 type RegisterIn struct {
 	Email string `json:"email"`
 }
 
-// RegisterOut are the return values of Register.
+// RegisterOut are the return values of the Register function.
 type RegisterOut struct {
-	Data struct {
-		Allowed bool `json:"allowed"`
-	}
+	Allowed bool `json:"allowed"`
+}
+
+// RegisterResponse is the response of the Register function.
+type RegisterResponse struct {
+	data RegisterOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *RegisterOut) Get() (allowed bool, err error) {
-	allowed = _out.Data.Allowed
-	err = _out.Err
+func (_out *RegisterResponse) Get() (allowed bool, err error) {
+	allowed = _out.data.Allowed
+	err = _out.err
 	return
 }
 
@@ -150,26 +153,26 @@ func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err
 		return
 	}
 	var _out RegisterOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	allowed = _out.Data.Allowed
+	allowed = _out.Allowed
 	return
 }
 
 /*
 Register attempts to register a new user.
 */
-func (_c *MulticastClient) Register(ctx context.Context, email string, _options ...pub.Option) <-chan *RegisterOut {
+func (_c *MulticastClient) Register(ctx context.Context, email string, _options ...pub.Option) <-chan *RegisterResponse {
 	_in := RegisterIn{
 		email,
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *RegisterOut, 1)
-		_res <- &RegisterOut{Err: errors.Trace(_err)}
+		_res := make(chan *RegisterResponse, 1)
+		_res <- &RegisterResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -183,18 +186,18 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *RegisterOut, cap(_ch))
+	_res := make(chan *RegisterResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r RegisterOut
+			var _r RegisterResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -210,24 +213,27 @@ type OnAllowRegisterHandler func (ctx context.Context, email string) (allow bool
 // PathOfOnAllowRegister is the URL path of the OnAllowRegister event.
 const PathOfOnAllowRegister = ":417/on-allow-register"
 
-// OnAllowRegisterIn are the input arguments of OnAllowRegister.
+// OnAllowRegisterIn are the input arguments of the OnAllowRegister event.
 type OnAllowRegisterIn struct {
 	Email string `json:"email"`
 }
 
-// OnAllowRegisterOut are the return values of OnAllowRegister.
+// OnAllowRegisterOut are the return values of the OnAllowRegister event.
 type OnAllowRegisterOut struct {
-	Data struct {
-		Allow bool `json:"allow"`
-	}
+	Allow bool `json:"allow"`
+}
+
+// OnAllowRegisterResponse is the response to the OnAllowRegister event.
+type OnAllowRegisterResponse struct {
+	data OnAllowRegisterOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *OnAllowRegisterOut) Get() (allow bool, err error) {
-	allow = _out.Data.Allow
-	err = _out.Err
+func (_out *OnAllowRegisterResponse) Get() (allow bool, err error) {
+	allow = _out.data.Allow
+	err = _out.err
 	return
 }
 
@@ -235,14 +241,14 @@ func (_out *OnAllowRegisterOut) Get() (allow bool, err error) {
 OnAllowRegister is called before a user is allowed to register.
 Event sinks are given the opportunity to block the registration.
 */
-func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _options ...pub.Option) <-chan *OnAllowRegisterOut {
+func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _options ...pub.Option) <-chan *OnAllowRegisterResponse {
 	_in := OnAllowRegisterIn{
 		email,
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *OnAllowRegisterOut, 1)
-		_res <- &OnAllowRegisterOut{Err: errors.Trace(_err)}
+		_res := make(chan *OnAllowRegisterResponse, 1)
+		_res <- &OnAllowRegisterResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -256,18 +262,18 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *OnAllowRegisterOut, cap(_ch))
+	_res := make(chan *OnAllowRegisterResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r OnAllowRegisterOut
+			var _r OnAllowRegisterResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -283,36 +289,39 @@ type OnRegisteredHandler func (ctx context.Context, email string) (err error)
 // PathOfOnRegistered is the URL path of the OnRegistered event.
 const PathOfOnRegistered = ":417/on-registered"
 
-// OnRegisteredIn are the input arguments of OnRegistered.
+// OnRegisteredIn are the input arguments of the OnRegistered event.
 type OnRegisteredIn struct {
 	Email string `json:"email"`
 }
 
-// OnRegisteredOut are the return values of OnRegistered.
+// OnRegisteredOut are the return values of the OnRegistered event.
 type OnRegisteredOut struct {
-	Data struct {
-	}
+}
+
+// OnRegisteredResponse is the response to the OnRegistered event.
+type OnRegisteredResponse struct {
+	data OnRegisteredOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *OnRegisteredOut) Get() (err error) {
-	err = _out.Err
+func (_out *OnRegisteredResponse) Get() (err error) {
+	err = _out.err
 	return
 }
 
 /*
 OnRegistered is called when a user is successfully registered.
 */
-func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredOut {
+func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredResponse {
 	_in := OnRegisteredIn{
 		email,
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *OnRegisteredOut, 1)
-		_res <- &OnRegisteredOut{Err: errors.Trace(_err)}
+		_res := make(chan *OnRegisteredResponse, 1)
+		_res <- &OnRegisteredResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -326,18 +335,18 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *OnRegisteredOut, cap(_ch))
+	_res := make(chan *OnRegisteredResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r OnRegisteredOut
+			var _r OnRegisteredResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r

@@ -108,12 +108,11 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.ArithmeticIn
 	var o calculatorapi.ArithmeticOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	d.XEcho, d.OpEcho, d.YEcho, d.Result, err = svc.impl.Arithmetic(
+	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.impl.Arithmetic(
 		r.Context(),
 		i.X,
 		i.Op,
@@ -123,7 +122,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -134,12 +133,11 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.SquareIn
 	var o calculatorapi.SquareOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	d.XEcho, d.Result, err = svc.impl.Square(
+	o.XEcho, o.Result, err = svc.impl.Square(
 		r.Context(),
 		i.X,
 	)
@@ -147,7 +145,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -158,12 +156,11 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.DistanceIn
 	var o calculatorapi.DistanceOut
-	d := &o.Data
 	err := utils.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	d.D, err = svc.impl.Distance(
+	o.D, err = svc.impl.Distance(
 		r.Context(),
 		i.P1,
 		i.P2,
@@ -172,7 +169,7 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(d)
+	err = json.NewEncoder(w).Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

@@ -85,23 +85,26 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// PingIn are the input arguments of Ping.
+// PingIn are the input arguments of the Ping function.
 type PingIn struct {
 }
 
-// PingOut are the return values of Ping.
+// PingOut are the return values of the Ping function.
 type PingOut struct {
-	Data struct {
-		Pong int `json:"pong"`
-	}
+	Pong int `json:"pong"`
+}
+
+// PingResponse is the response of the Ping function.
+type PingResponse struct {
+	data PingOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *PingOut) Get() (pong int, err error) {
-	pong = _out.Data.Pong
-	err = _out.Err
+func (_out *PingResponse) Get() (pong int, err error) {
+	pong = _out.data.Pong
+	err = _out.err
 	return
 }
 
@@ -129,25 +132,25 @@ func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 		return
 	}
 	var _out PingOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	pong = _out.Data.Pong
+	pong = _out.Pong
 	return
 }
 
 /*
 Ping responds to the message with a pong.
 */
-func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingOut {
+func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingResponse {
 	_in := PingIn{
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *PingOut, 1)
-		_res <- &PingOut{Err: errors.Trace(_err)}
+		_res := make(chan *PingResponse, 1)
+		_res <- &PingResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -161,18 +164,18 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *PingOut, cap(_ch))
+	_res := make(chan *PingResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r PingOut
+			var _r PingResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -182,21 +185,24 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 	return _res
 }
 
-// ConfigRefreshIn are the input arguments of ConfigRefresh.
+// ConfigRefreshIn are the input arguments of the ConfigRefresh function.
 type ConfigRefreshIn struct {
 }
 
-// ConfigRefreshOut are the return values of ConfigRefresh.
+// ConfigRefreshOut are the return values of the ConfigRefresh function.
 type ConfigRefreshOut struct {
-	Data struct {
-	}
+}
+
+// ConfigRefreshResponse is the response of the ConfigRefresh function.
+type ConfigRefreshResponse struct {
+	data ConfigRefreshOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *ConfigRefreshOut) Get() (err error) {
-	err = _out.Err
+func (_out *ConfigRefreshResponse) Get() (err error) {
+	err = _out.err
 	return
 }
 
@@ -224,7 +230,7 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 		return
 	}
 	var _out ConfigRefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
@@ -235,13 +241,13 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 /*
 ConfigRefresh pulls the latest config values from the configurator service.
 */
-func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshOut {
+func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshResponse {
 	_in := ConfigRefreshIn{
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *ConfigRefreshOut, 1)
-		_res <- &ConfigRefreshOut{Err: errors.Trace(_err)}
+		_res := make(chan *ConfigRefreshResponse, 1)
+		_res <- &ConfigRefreshResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -255,18 +261,18 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *ConfigRefreshOut, cap(_ch))
+	_res := make(chan *ConfigRefreshResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r ConfigRefreshOut
+			var _r ConfigRefreshResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r

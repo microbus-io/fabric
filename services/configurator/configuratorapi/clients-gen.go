@@ -84,24 +84,27 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// ValuesIn are the input arguments of Values.
+// ValuesIn are the input arguments of the Values function.
 type ValuesIn struct {
 	Names []string `json:"names"`
 }
 
-// ValuesOut are the return values of Values.
+// ValuesOut are the return values of the Values function.
 type ValuesOut struct {
-	Data struct {
-		Values map[string]string `json:"values"`
-	}
+	Values map[string]string `json:"values"`
+}
+
+// ValuesResponse is the response of the Values function.
+type ValuesResponse struct {
+	data ValuesOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *ValuesOut) Get() (values map[string]string, err error) {
-	values = _out.Data.Values
-	err = _out.Err
+func (_out *ValuesResponse) Get() (values map[string]string, err error) {
+	values = _out.data.Values
+	err = _out.err
 	return
 }
 
@@ -130,26 +133,26 @@ func (_c *Client) Values(ctx context.Context, names []string) (values map[string
 		return
 	}
 	var _out ValuesOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	values = _out.Data.Values
+	values = _out.Values
 	return
 }
 
 /*
 Values returns the values associated with the specified config property names for the caller microservice.
 */
-func (_c *MulticastClient) Values(ctx context.Context, names []string, _options ...pub.Option) <-chan *ValuesOut {
+func (_c *MulticastClient) Values(ctx context.Context, names []string, _options ...pub.Option) <-chan *ValuesResponse {
 	_in := ValuesIn{
 		names,
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *ValuesOut, 1)
-		_res <- &ValuesOut{Err: errors.Trace(_err)}
+		_res := make(chan *ValuesResponse, 1)
+		_res <- &ValuesResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -163,18 +166,18 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *ValuesOut, cap(_ch))
+	_res := make(chan *ValuesResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r ValuesOut
+			var _r ValuesResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -184,21 +187,24 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 	return _res
 }
 
-// RefreshIn are the input arguments of Refresh.
+// RefreshIn are the input arguments of the Refresh function.
 type RefreshIn struct {
 }
 
-// RefreshOut are the return values of Refresh.
+// RefreshOut are the return values of the Refresh function.
 type RefreshOut struct {
-	Data struct {
-	}
+}
+
+// RefreshResponse is the response of the Refresh function.
+type RefreshResponse struct {
+	data RefreshOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *RefreshOut) Get() (err error) {
-	err = _out.Err
+func (_out *RefreshResponse) Get() (err error) {
+	err = _out.err
 	return
 }
 
@@ -227,7 +233,7 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 		return
 	}
 	var _out RefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
@@ -239,13 +245,13 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 Refresh tells all microservices to contact the configurator and refresh their configs.
 An error is returned if any of the values sent to the microservices fails validation.
 */
-func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshOut {
+func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshResponse {
 	_in := RefreshIn{
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *RefreshOut, 1)
-		_res <- &RefreshOut{Err: errors.Trace(_err)}
+		_res := make(chan *RefreshResponse, 1)
+		_res <- &RefreshResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -259,18 +265,18 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *RefreshOut, cap(_ch))
+	_res := make(chan *RefreshResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r RefreshOut
+			var _r RefreshResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
@@ -280,23 +286,26 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 	return _res
 }
 
-// SyncIn are the input arguments of Sync.
+// SyncIn are the input arguments of the Sync function.
 type SyncIn struct {
 	Timestamp time.Time `json:"timestamp"`
 	Values map[string]map[string]string `json:"values"`
 }
 
-// SyncOut are the return values of Sync.
+// SyncOut are the return values of the Sync function.
 type SyncOut struct {
-	Data struct {
-	}
+}
+
+// SyncResponse is the response of the Sync function.
+type SyncResponse struct {
+	data SyncOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *SyncOut) Get() (err error) {
-	err = _out.Err
+func (_out *SyncResponse) Get() (err error) {
+	err = _out.err
 	return
 }
 
@@ -326,7 +335,7 @@ func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[stri
 		return
 	}
 	var _out SyncOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
@@ -337,15 +346,15 @@ func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[stri
 /*
 Sync is used to synchronize values among replica peers of the configurator.
 */
-func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string, _options ...pub.Option) <-chan *SyncOut {
+func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string, _options ...pub.Option) <-chan *SyncResponse {
 	_in := SyncIn{
 		timestamp,
 		values,
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *SyncOut, 1)
-		_res <- &SyncOut{Err: errors.Trace(_err)}
+		_res := make(chan *SyncResponse, 1)
+		_res <- &SyncResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -359,18 +368,18 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *SyncOut, cap(_ch))
+	_res := make(chan *SyncResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r SyncOut
+			var _r SyncResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r

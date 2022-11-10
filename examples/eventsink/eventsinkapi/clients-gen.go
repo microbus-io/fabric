@@ -84,23 +84,26 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// RegisteredIn are the input arguments of Registered.
+// RegisteredIn are the input arguments of the Registered function.
 type RegisteredIn struct {
 }
 
-// RegisteredOut are the return values of Registered.
+// RegisteredOut are the return values of the Registered function.
 type RegisteredOut struct {
-	Data struct {
-		Emails []string `json:"emails"`
-	}
+	Emails []string `json:"emails"`
+}
+
+// RegisteredResponse is the response of the Registered function.
+type RegisteredResponse struct {
+	data RegisteredOut
 	HTTPResponse *http.Response
-	Err error
+	err error
 }
 
 // Get retrieves the return values.
-func (_out *RegisteredOut) Get() (emails []string, err error) {
-	emails = _out.Data.Emails
-	err = _out.Err
+func (_out *RegisteredResponse) Get() (emails []string, err error) {
+	emails = _out.data.Emails
+	err = _out.err
 	return
 }
 
@@ -128,25 +131,25 @@ func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
 		return
 	}
 	var _out RegisteredOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&(_out.Data))
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	emails = _out.Data.Emails
+	emails = _out.Emails
 	return
 }
 
 /*
 Registered returns the list of registered users.
 */
-func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredOut {
+func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredResponse {
 	_in := RegisteredIn{
 	}
 	_body, _err := json.Marshal(_in)
 	if _err != nil {
-		_res := make(chan *RegisteredOut, 1)
-		_res <- &RegisteredOut{Err: errors.Trace(_err)}
+		_res := make(chan *RegisteredResponse, 1)
+		_res <- &RegisteredResponse{err: errors.Trace(_err)}
 		close(_res)
 		return _res
 	}
@@ -160,18 +163,18 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
-	_res := make(chan *RegisteredOut, cap(_ch))
+	_res := make(chan *RegisteredResponse, cap(_ch))
 	go func() {
 		for _i := range _ch {
-			var _r RegisteredOut
+			var _r RegisteredResponse
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.Err = errors.Trace(_err)
+				_r.err = errors.Trace(_err)
 			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.Data))
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
-					_r.Err = errors.Trace(_err)
+					_r.err = errors.Trace(_err)
 				}
 			}
 			_res <- &_r
