@@ -1,0 +1,33 @@
+{{- $pkg := CapitalizeIdentifier .ShortPackage }}
+{{- range (JoinHandlers .Functions .Sinks) }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	t.Parallel()
+	// ctx := Context()
+	{{- if .Signature.OutputArgs }}
+	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Expect(t {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }})
+	{{- end }}
+	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).NoError(t)
+	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Error(t, errContains)
+	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Assert(t, func(t *testing.T, {{ .Out }}) {})
+}
+{{ end }}
+
+{{- range .Webs }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	t.Parallel()
+	// ctx := Context()
+	// {{ .Name }}(ctx, POST(body), ContentType(mime)).Expect(t, statusCode, bodyContains)
+	// {{ .Name }}(ctx, GET(), QueryArg(n, v))        .NoError(t)
+	// {{ .Name }}(ctx, DELETE(), Header(n, v))       .Error(t, errContains)
+	// {{ .Name }}(ctx, PUT(body))                    .Assert(t, func(t *testing.T, res *http.Response, err error) {})
+}
+{{ end }}
+
+{{- range .Tickers }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	t.Parallel()
+	// ctx := Context()
+	// {{ .Name }}(ctx).NoError(t, http.StatusOK)
+	// {{ .Name }}(ctx).Error(t, errContains)
+}
+{{ end }}

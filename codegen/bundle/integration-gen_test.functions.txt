@@ -1,0 +1,40 @@
+{{ range (JoinHandlers .Functions .Sinks) }}
+type {{ .Name }}TestCase struct {
+	Expect  func(t *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }})
+	Error   func(t *testing.T, errContains string)
+	NoError func(t *testing.T)
+	Assert  func(t *testing.T, asserter func(t *testing.T, {{ .Out }}))
+}
+
+func {{ .Name }}({{ .In }}) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{
+		Expect: func(t *testing.T {{- range .Signature.OutputArgs }}, _{{ .Name }} {{ .Type }}{{ end }}) {
+			{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			{{- if .Signature.OutputArgs }}
+			if assert.NoError(t, err) {
+				{{- range .Signature.OutputArgs }}
+				assert.Equal(t, _{{ .Name }}, {{ .Name }})
+				{{- end}}
+			}
+			{{- else }}
+			assert.NoError(t, err)
+			{{- end}}
+		},
+		Error: func(t *testing.T, errContains string) {
+			{{ range .Signature.OutputArgs }}_, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			if assert.Error(t, err) {
+				assert.Contains(t, err.Error(), errContains)
+			}
+		},
+		NoError: func(t *testing.T) {
+			{{ range .Signature.OutputArgs }}_, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			assert.NoError(t, err)
+		},
+		Assert: func(t *testing.T, asserter func(t *testing.T, {{ .Out }})) {
+			{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			asserter(t, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err)
+		},
+	}
+	return tc
+}
+{{ end }}

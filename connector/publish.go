@@ -33,6 +33,7 @@ func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error)
 
 // POST makes a POST request.
 // Body of type io.Reader, []byte and string is serialized in binary form.
+// url.Values is serialized as form data.
 // All other types are serialized as JSON.
 func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{

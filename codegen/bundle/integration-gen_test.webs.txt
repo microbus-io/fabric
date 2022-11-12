@@ -1,0 +1,62 @@
+{{ range .Webs }}
+type {{ .Name }}TestCase struct {
+	Expect  func(t *testing.T, statusCode int, bodyContains []byte)
+	Error   func(t *testing.T, errContains string)
+	NoError func(t *testing.T, statusCode int)
+	Assert  func(t *testing.T, asserter func(t *testing.T, res *http.Response, err error))
+}
+
+func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase {
+	pubOptions := []pub.Option{pub.URL(`{{ .Path }}`)}
+	for _, opt := range options {
+		pubOptions = append(pubOptions, pub.Option(opt))
+	}
+	req, err := pub.NewRequest(pubOptions...)
+	if err != nil {
+		panic(err)
+	}
+	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	if err != nil {
+		panic(err)
+	}
+	for name, value := range req.Header {
+		httpReq.Header[name] = value
+	}
+	tc := &{{ .Name }}TestCase{
+		Expect: func(t *testing.T, statusCode int, bodyContains []byte) {
+			r := httpReq.WithContext(ctx)
+			w := utils.NewResponseRecorder()
+			err := Svc.{{ .Name }}(w, r)
+			res := w.Result()
+			if assert.NoError(t, err) && assert.Equal(t, statusCode, res.StatusCode) {
+				body := res.Body.(*utils.BodyReader).Bytes()
+				assert.Contains(t, body, bodyContains)
+			}
+		},
+		Error: func(t *testing.T, errContains string) {
+			r := httpReq.WithContext(ctx)
+			w := utils.NewResponseRecorder()
+			err := Svc.{{ .Name }}(w, r)
+			if assert.Error(t, err) {
+				assert.Contains(t, err.Error(), errContains)
+			}
+		},
+		NoError: func(t *testing.T, statusCode int) {
+			r := httpReq.WithContext(ctx)
+			w := utils.NewResponseRecorder()
+			err := Svc.{{ .Name }}(w, r)
+			if assert.NoError(t, err) {
+				assert.Equal(t, statusCode, w.Result().StatusCode)
+			}
+		},
+		Assert: func(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+			r := httpReq.WithContext(ctx)
+			w := utils.NewResponseRecorder()
+			err := Svc.{{ .Name }}(w, r)
+			res := w.Result()
+			asserter(t, res, err)
+		},
+	}
+	return tc
+}
+{{ end }}

@@ -5,7 +5,7 @@ func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
 }
 {{end}}{{- end}}{{- end}}
 
-{{- range .Functions}}{{- if not .Exists}}
+{{- range (JoinHandlers .Functions .Sinks) }}{{- if not .Exists}}
 /*
 {{ .Description }}
 */
@@ -19,15 +19,6 @@ func (svc *Service) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 {{ .Description }}
 */
 func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err error) {
-    return // TO{{/**/}}DO: {{ .Name }}
-}
-{{end}}{{- end}}
-
-{{- range .Sinks}}{{- if not .Exists}}
-/*
-{{ .Description }}
-*/
-func (svc *Service) {{ .Name }}({{ .In }}) ({{ .Out }}) {
     return // TO{{/**/}}DO: {{ .Name }}
 }
 {{end}}{{- end}}

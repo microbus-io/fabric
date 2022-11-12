@@ -195,3 +195,33 @@ func TestPub_Apply(t *testing.T) {
 	r.Apply(Header("Foo", "Bar"))
 	assert.Equal(t, "Bar", r.Header.Get("Foo"))
 }
+
+func TestPub_QueryArgs(t *testing.T) {
+	t.Parallel()
+
+	req, err := NewRequest([]Option{
+		GET("https://www.example.com:443/path?a=1"),
+	}...)
+	assert.NoError(t, err)
+	httpReq, err := toHTTP(req)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://www.example.com:443/path?a=1", httpReq.URL.String())
+
+	err = req.Apply(QueryArg("b", "2"))
+	assert.NoError(t, err)
+	httpReq, err = toHTTP(req)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://www.example.com:443/path?a=1&b=2", httpReq.URL.String())
+
+	err = req.Apply(QueryArg("a", "3"))
+	assert.NoError(t, err)
+	httpReq, err = toHTTP(req)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://www.example.com:443/path?a=1&b=2&a=3", httpReq.URL.String())
+
+	err = req.Apply(URL("https://zzz.example.com:123/newpath"))
+	assert.NoError(t, err)
+	httpReq, err = toHTTP(req)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://zzz.example.com:123/newpath?b=2&a=3", httpReq.URL.String())
+}

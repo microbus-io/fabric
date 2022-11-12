@@ -12,6 +12,102 @@ import (
 	"github.com/microbus-io/fabric/utils"
 )
 
+// makeIntegration creates the integration tests.
+func (gen *Generator) makeIntegration() error {
+	gen.Printer.Debug("Generating integration tests")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
+
+	// Fully qualify the types outside of the API directory
+	gen.specs.FullyQualifyTypes()
+
+	// integration-gen_test.go
+	fileName := filepath.Join(gen.WorkDir, "integration-gen_test.go")
+	tt, err := LoadTemplate(
+		"integration-gen_test.txt",
+		"integration-gen_test.functions.txt",
+		"integration-gen_test.webs.txt",
+		"integration-gen_test.tickers.txt",
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = tt.Overwrite(fileName, gen.specs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	gen.Printer.Debug("integration-gen_test.go")
+
+	// Create integration_test.go if it doesn't exist
+	fileName = filepath.Join(gen.WorkDir, "integration_test.go")
+	_, err = os.Stat(fileName)
+	if errors.Is(err, os.ErrNotExist) {
+		tt, err = LoadTemplate("integration_test.txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err := tt.Overwrite(fileName, gen.specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		gen.Printer.Debug("integration_test.go")
+	}
+
+	// Scan .go files for existing endpoints
+	gen.Printer.Debug("Scanning for existing tests")
+	pkg := capitalizeIdentifier(gen.specs.ShortPackage())
+	existingTests, err := scanFiles(gen.WorkDir, "_test.go", `func Test`+pkg+`_([A-Z][a-zA-Z0-9]*)\(t `) // func TestService_XXX(t *testing.T)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	gen.Printer.Indent()
+	for k := range existingTests {
+		gen.Printer.Debug(k)
+	}
+	gen.Printer.Unindent()
+
+	// Mark existing tests in the specs
+	newTests := false
+	for _, h := range gen.specs.AllHandlers() {
+		if h.Type != "function" && h.Type != "sink" && h.Type != "web" && h.Type != "ticker" {
+			continue
+		}
+		if existingTests[h.Name()] || existingTests["OnChanged"+h.Name()] {
+			h.Exists = true
+		} else {
+			h.Exists = false
+			newTests = true
+		}
+	}
+
+	// Append new handlers
+	fileName = filepath.Join(gen.WorkDir, "integration_test.go")
+	if newTests {
+		tt, err = LoadTemplate("integration_test.append.txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = tt.AppendTo(fileName, gen.specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		gen.Printer.Debug("New tests created")
+		gen.Printer.Indent()
+		for _, h := range gen.specs.AllHandlers() {
+			if h.Type != "function" && h.Type != "sink" && h.Type != "web" && h.Type != "ticker" {
+				continue
+			}
+			if !h.Exists {
+				gen.Printer.Debug("%s", h.Name())
+			}
+		}
+		gen.Printer.Unindent()
+	}
+
+	return nil
+}
+
 // makeIntermediate creates the intermediate directory and files.
 func (gen *Generator) makeIntermediate() error {
 	gen.Printer.Debug("Generating intermediate")
@@ -35,9 +131,9 @@ func (gen *Generator) makeIntermediate() error {
 	fileName := filepath.Join(gen.WorkDir, "intermediate", "intermediate-gen.go")
 	tt, err := LoadTemplate(
 		"intermediate/intermediate-gen.txt",
-		"intermediate/intermediate-configs.txt",
-		"intermediate/intermediate-functions.txt",
-		"intermediate/intermediate-sinks.txt",
+		"intermediate/intermediate-gen.configs.txt",
+		"intermediate/intermediate-gen.functions.txt",
+		"intermediate/intermediate-gen.sinks.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -164,9 +260,8 @@ func (gen *Generator) makeAPI() error {
 	fileName = filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api", "clients-gen.go")
 	tt, err := LoadTemplate(
 		"api/clients-gen.txt",
-		"api/clients-webs.txt",
-		"api/clients-functions.txt",
-		"api/clients-events.txt",
+		"api/clients-gen.webs.txt",
+		"api/clients-gen.functions.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -237,6 +332,7 @@ func (gen *Generator) makeImplementation() error {
 		if existingEndpoints[h.Name()] || existingEndpoints["OnChanged"+h.Name()] {
 			h.Exists = true
 		} else {
+			h.Exists = false
 			newEndpoints = true
 		}
 	}
@@ -244,7 +340,7 @@ func (gen *Generator) makeImplementation() error {
 	// Append new handlers
 	fileName = filepath.Join(gen.WorkDir, "service.go")
 	if newEndpoints {
-		tt, err = LoadTemplate("service-append.txt")
+		tt, err = LoadTemplate("service.append.txt")
 		if err != nil {
 			return errors.Trace(err)
 		}

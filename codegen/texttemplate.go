@@ -8,6 +8,7 @@ import (
 	"text/template"
 	"unicode"
 
+	"github.com/microbus-io/fabric/codegen/spec"
 	"github.com/microbus-io/fabric/errors"
 )
 
@@ -41,6 +42,7 @@ func (tt *TextTemplate) Execute(data any) ([]byte, error) {
 	var buf bytes.Buffer
 	funcs := template.FuncMap{
 		"CapitalizeIdentifier": capitalizeIdentifier,
+		"JoinHandlers":         joinHandlers,
 	}
 	tmpl, err := template.New(tt.name).Funcs(funcs).Parse(string(tt.content))
 	if err != nil {
@@ -122,4 +124,13 @@ func capitalizeIdentifier(identifier string) string {
 		return strings.ToUpper(lcPrefix) + suffix
 	}
 	return strings.ToUpper(lcPrefix[:1]) + lcPrefix[1:] + suffix
+}
+
+// joinHandlers merges groups of handlers together.
+func joinHandlers(handlers ...[]*spec.Handler) []*spec.Handler {
+	result := []*spec.Handler{}
+	for _, h := range handlers {
+		result = append(result, h...)
+	}
+	return result
 }

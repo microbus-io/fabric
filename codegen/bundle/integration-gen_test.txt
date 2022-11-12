@@ -1,0 +1,165 @@
+package {{ .ShortPackage }}
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"testing"
+
+	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/services/configurator"
+	"github.com/microbus-io/fabric/utils"
+
+	"github.com/stretchr/testify/assert"
+
+	"{{ .Package }}/{{ .ShortPackage }}api"
+)
+
+var (
+	_ context.Context
+	_ fmt.Stringer
+	_ io.Reader
+	_ http.Request
+	_ os.File
+
+	_ pub.Option
+	_ utils.BodyReader
+
+	_ {{ .ShortPackage }}api.Client
+)
+
+var (
+	// Configurator is the configurator system microservice.
+	Configurator *configurator.Service
+	// App manages the lifecycle of the microservices used in the test.
+	App *application.Application
+	// Svc is the calculator.example service being tested.
+	Svc *Service
+)
+
+func TestMain(m *testing.M) {
+	var code int
+
+	// Initialize the application
+	err := func() error {
+		Configurator = configurator.NewService()
+		Svc = NewService()
+		App = application.NewTesting()
+		err := Initialize()
+		if err != nil {
+			return err
+		}
+		err = App.Startup()
+		if err != nil {
+			return err
+		}
+		return nil
+	}()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "--- FAIL: %+v\n", err)
+		code = 19
+	}
+
+	// Run the tests
+	if err == nil {
+		code = m.Run()
+	}
+
+	// Terminate the app
+	err = func() error {
+		var lastErr error
+		err = Terminate()
+		if err != nil {
+			lastErr = err
+		}
+		err := App.Shutdown()
+		if err != nil {
+			lastErr = err
+		}
+		return lastErr
+	}()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "--- FAIL: %+v\n", err)
+	}
+
+	os.Exit(code)
+}
+
+// Context creates a new context for a test.
+func Context() context.Context {
+	return context.Background()
+}
+
+type WebOption func(req *pub.Request) error
+
+// GET sets the method of the request.
+func GET() WebOption {
+	return WebOption(pub.Method("GET"))
+}
+
+// DELETE sets the method of the request.
+func DELETE() WebOption {
+	return WebOption(pub.Method("DELETE"))
+}
+
+// HEAD sets the method of the request.
+func HEAD() WebOption {
+	return WebOption(pub.Method("HEAD"))
+}
+
+// POST sets the method and body of the request.
+func POST(body any) WebOption {
+	return func(req *pub.Request) error {
+		pub.Method("POST")(req)
+		return pub.Body(body)(req)
+	}
+}
+
+// PUT sets the method and body of the request.
+func PUT(body any) WebOption {
+	return func(req *pub.Request) error {
+		pub.Method("PUT")(req)
+		return pub.Body(body)(req)
+	}
+}
+
+// PATCH sets the method and body of the request.
+func PATCH(body any) WebOption {
+	return func(req *pub.Request) error {
+		pub.Method("PATCH")(req)
+		return pub.Body(body)(req)
+	}
+}
+
+// Method sets the method of the request.
+func Method(method string) WebOption {
+	return WebOption(pub.Method(method))
+}
+
+// Header add the header to the request.
+// The same header may have multiple values.
+func Header(name string, value string) WebOption {
+	return WebOption(pub.Header(name, value))
+}
+
+// QueryArg add the query argument to the request.
+// The same argument may have multiple values.
+func QueryArg(name string, value string) WebOption {
+	return WebOption(pub.QueryArg(name, value))
+}
+
+// Body sets the body of the request.
+// Arguments of type io.Reader, []byte and string are serialized in binary form.
+// url.Values is serialized as form data.
+// All other types are serialized as JSON.
+func Body(body any) WebOption {
+	return WebOption(pub.Body(body))
+}
+
+// ContentType sets the Content-Type header.
+func ContentType(contentType string) WebOption {
+	return WebOption(pub.ContentType(contentType))
+}

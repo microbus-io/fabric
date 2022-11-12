@@ -2,38 +2,73 @@ package {{ .ShortPackage }}
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"os"
+	"testing"
 
-	"github.com/microbus-io/fabric/errors"
-
-	"{{ .Package }}/intermediate"
-	"{{ .Package }}/{{ .ShortPackage }}api"
+	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/services/configurator"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
-	_ errors.TracedError
-	_ http.Request
-
-	_ {{ .ShortPackage }}api.Client
+	// Svc is the {{ .General.Host }} service.
+	Svc *Service
+	// App manages the lifecycle of the microservices used in the test.
+	App *application.Application
+	// Configurator is the configurator system microservice.
+	Configurator *configurator.Service
 )
 
-/*
-Service implements the {{ .General.Host }} microservice.
-{{- if .General.Description }}
+func TestMain(m *testing.M) {
+	var code int
 
-{{ .General.Description }}
-{{- end }}
-*/
-type Service struct {
-	*intermediate.Intermediate // DO NOT REMOVE
+	// Initialize the application
+	err := func() error {
+		Configurator = configurator.NewService()
+		Svc = NewService()
+		App = application.NewTesting()
+		err := Initialize()
+		if err != nil {
+			return err
+		}
+		err = App.Startup()
+		if err != nil {
+			return err
+		}
+		return nil
+	}()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "--- FAIL: %+v\n", err)
+		code = 19
+	}
+
+	// Run the tests
+	if err == nil {
+		code = m.Run()
+	}
+
+	// Terminate the app
+	err = func() error {
+		var lastErr error
+		err := App.Shutdown()
+		if err != nil {
+			lastErr = err
+		}
+		err = Terminate()
+		if err != nil {
+			lastErr = err
+		}
+		return lastErr
+	}()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "--- FAIL: %+v\n", err)
+	}
+
+	os.Exit(code)
 }
 
-// OnStartup is called when the microservice is started up.
-func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	return // TO{{/**/}}DO: OnStartup
-}
-
-// OnShutdown is called when the microservice is shut down.
-func (svc *Service) OnShutdown(ctx context.Context) (err error) {
-	return // TO{{/**/}}DO: OnShutdown
+// Context creates a new context for a test.
+func Context() context.Context {
+	return context.Background()
 }

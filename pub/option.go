@@ -3,6 +3,7 @@ package pub
 import (
 	"encoding/json"
 	"io"
+	"net/url"
 	"strings"
 	"time"
 
@@ -10,10 +11,10 @@ import (
 	"github.com/microbus-io/fabric/utils"
 )
 
-// Option is used to construct a request in Connector.Publish
+// Option is used to construct a request in Connector.Publish.
 type Option func(req *Request) error
 
-// Method sets the method of the request
+// Method sets the method of the request.
 func Method(method string) Option {
 	method = strings.ToUpper(method)
 	return func(req *Request) error {
@@ -22,19 +23,20 @@ func Method(method string) Option {
 	}
 }
 
-// URL sets the URL of the request
+// URL sets the URL of the request.
 func URL(url string) Option {
 	return func(req *Request) error {
 		u, err := utils.ParseURL(url)
 		if err != nil {
 			return errors.Trace(err)
 		}
+		u.RawQuery += req.queryArgs
 		req.URL = u.String()
 		return nil
 	}
 }
 
-// GET sets the method and URL of the request
+// GET sets the method and URL of the request.
 func GET(url string) Option {
 	return func(req *Request) error {
 		err := req.Apply(URL(url))
@@ -46,7 +48,31 @@ func GET(url string) Option {
 	}
 }
 
-// POST sets the method and URL of the request
+// DELETE sets the method and URL of the request.
+func DELETE(url string) Option {
+	return func(req *Request) error {
+		err := req.Apply(URL(url))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		req.Method = "DELETE"
+		return nil
+	}
+}
+
+// HEAD sets the method and URL of the request.
+func HEAD(url string) Option {
+	return func(req *Request) error {
+		err := req.Apply(URL(url))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		req.Method = "HEAD"
+		return nil
+	}
+}
+
+// POST sets the method and URL of the request.
 func POST(url string) Option {
 	return func(req *Request) error {
 		err := req.Apply(URL(url))
@@ -58,8 +84,32 @@ func POST(url string) Option {
 	}
 }
 
+// PUT sets the method and URL of the request.
+func PUT(url string) Option {
+	return func(req *Request) error {
+		err := req.Apply(URL(url))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		req.Method = "PUT"
+		return nil
+	}
+}
+
+// PATCH sets the method and URL of the request.
+func PATCH(url string) Option {
+	return func(req *Request) error {
+		err := req.Apply(URL(url))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		req.Method = "PATCH"
+		return nil
+	}
+}
+
 // Header add the header to the request.
-// The same header may have multiple values
+// The same header may have multiple values.
 func Header(name, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
@@ -69,9 +119,35 @@ func Header(name, value string) Option {
 	}
 }
 
+// QueryArg add the query argument to the request.
+// The same argument may have multiple values.
+func QueryArg(name, value string) Option {
+	return func(req *Request) error {
+		if value != "" {
+			if len(req.queryArgs) > 0 {
+				req.queryArgs += "&"
+			}
+			req.queryArgs += url.QueryEscape(name) + "=" + url.QueryEscape(value)
+			if req.URL != "" {
+				u, err := utils.ParseURL(req.URL)
+				if err != nil {
+					return errors.Trace(err)
+				}
+				if len(u.RawQuery) > 0 {
+					u.RawQuery += "&"
+				}
+				u.RawQuery += url.QueryEscape(name) + "=" + url.QueryEscape(value)
+				req.URL = u.String()
+			}
+		}
+		return nil
+	}
+}
+
 // Body sets the body of the request.
 // Arguments of type io.Reader, []byte and string are serialized in binary form.
-// All other types are serialized as JSON
+// url.Values is serialized as form data.
+// All other types are serialized as JSON.
 func Body(body any) Option {
 	return func(req *Request) error {
 		if body == nil {
@@ -84,6 +160,9 @@ func Body(body any) Option {
 			req.Body = utils.NewBodyReader(v)
 		case string:
 			req.Body = utils.NewBodyReader([]byte(v))
+		case url.Values:
+			req.Body = utils.NewBodyReader([]byte(v.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		default:
 			j, err := json.Marshal(body)
 			if err != nil {
@@ -92,6 +171,14 @@ func Body(body any) Option {
 			req.Body = utils.NewBodyReader(j)
 			req.Header.Set("Content-Type", "application/json")
 		}
+		return nil
+	}
+}
+
+// ContentType sets the Content-Type header.
+func ContentType(contentType string) Option {
+	return func(req *Request) error {
+		req.Header.Set("Content-Type", contentType)
 		return nil
 	}
 }
@@ -108,7 +195,7 @@ func TimeBudget(timeout time.Duration) Option {
 	}
 }
 
-// Unicast indicates that a single response is expected from this request
+// Unicast indicates that a single response is expected from this request.
 func Unicast() Option {
 	return func(req *Request) error {
 		req.Multicast = false
@@ -116,7 +203,7 @@ func Unicast() Option {
 	}
 }
 
-// Multicast indicates that a multiple responses are expected from this request
+// Multicast indicates that a multiple responses are expected from this request.
 func Multicast() Option {
 	return func(req *Request) error {
 		req.Multicast = true

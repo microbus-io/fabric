@@ -5,9 +5,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
-	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,21 +19,18 @@ func TestApplication_StartStop(t *testing.T) {
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
-	assert.False(t, app.IsStarted())
 
 	err := app.Startup()
 	assert.NoError(t, err)
 
 	assert.True(t, alpha.IsStarted())
 	assert.True(t, beta.IsStarted())
-	assert.True(t, app.IsStarted())
 
 	err = app.Shutdown()
 	assert.NoError(t, err)
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
-	assert.False(t, app.IsStarted())
 }
 
 func TestApplication_Interrupt(t *testing.T) {
@@ -46,53 +41,22 @@ func TestApplication_Interrupt(t *testing.T) {
 
 	ch := make(chan bool)
 	go func() {
-		err := app.Run()
+		err := app.Startup()
 		assert.NoError(t, err)
+		go func() {
+			app.WaitForInterrupt()
+			err := app.Shutdown()
+			assert.NoError(t, err)
+			ch <- true
+		}()
 		ch <- true
 	}()
 
-	for !app.IsStarted() {
-		time.Sleep(50 * time.Microsecond)
-	}
-	assert.True(t, app.IsStarted())
-
+	<-ch
+	assert.True(t, con.IsStarted())
 	app.Interrupt()
-
-	for app.IsStarted() {
-		time.Sleep(50 * time.Microsecond)
-	}
-	assert.False(t, app.IsStarted())
-}
-
-func TestApplication_NotStartedInterrupt(t *testing.T) {
-	t.Parallel()
-
-	con := connector.New("not.started.interrupt.application")
-	app := New(con)
-
-	err := app.WaitForInterrupt()
-	assert.Error(t, err)
-	err = app.Interrupt()
-	assert.Error(t, err)
-
-	err = app.Startup()
-	assert.NoError(t, err)
-
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		err := app.Interrupt()
-		assert.NoError(t, err)
-	}()
-	err = app.WaitForInterrupt()
-	assert.NoError(t, err)
-
-	err = app.Shutdown()
-	assert.NoError(t, err)
-
-	err = app.WaitForInterrupt()
-	assert.Error(t, err)
-	err = app.Interrupt()
-	assert.Error(t, err)
+	<-ch
+	assert.False(t, con.IsStarted())
 }
 
 func TestApplication_NoConflict(t *testing.T) {
@@ -146,34 +110,4 @@ func TestApplication_NoConflict(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []byte("beta"), body)
 	}
-}
-
-func TestApplication_Clock(t *testing.T) {
-	t.Parallel()
-
-	con := connector.New("clock.application")
-	app := New(con)
-
-	mockClock1 := clock.NewMockAtNow()
-	err := app.SetClock(mockClock1)
-	assert.NoError(t, err)
-
-	err = app.Startup()
-	assert.NoError(t, err)
-
-	mockClock2 := clock.NewMockAtNow()
-	err = app.SetClock(mockClock2)
-	assert.NoError(t, err)
-
-	assert.Equal(t, mockClock2, con.Clock().(*clock.ClockReference).Get())
-
-	err = app.Shutdown()
-	assert.NoError(t, err)
-}
-
-func TestApplication_Interface(t *testing.T) {
-	t.Parallel()
-
-	c := connector.New("example")
-	_ = Service(c)
 }

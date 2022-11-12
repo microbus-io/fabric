@@ -1,19 +1,27 @@
-{{ range .Functions }}
-// {{ .Name }}In are the input arguments of the {{ .Name }} function.
+{{ range .Events }}
+// {{ .Name }}Handler is a handler of the {{ .Name }} event.
+type {{ .Name }}Handler func ({{ .In }}) ({{ .Out }})
+
+// {{ .Name }}Path is the URL path of the {{ .Name }} event.
+const {{ .Name }}Path = "{{ .Path }}"
+{{ end }}
+
+{{- range (JoinHandlers .Functions .Events) }}
+// {{ .Name }}In are the input arguments of {{ .Name }}.
 type {{ .Name }}In struct {
 	{{- range .Signature.InputArgs }}
 	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
 	{{- end }}
 }
 
-// {{ .Name }}Out are the return values of the {{ .Name }} function.
+// {{ .Name }}Out are the return values of {{ .Name }}.
 type {{ .Name }}Out struct {
 	{{- range .Signature.OutputArgs }}
 	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ if eq .Name "httpStatusCode" }}-{{ else }}{{ .Name }}{{ end }}"`
 	{{- end }}
 }
 
-// {{ .Name }}Response is the response of the {{ .Name }} function.
+// {{ .Name }}Response is the response to {{ .Name }}.
 type {{ .Name }}Response struct {
 	data {{ .Name }}Out
 	HTTPResponse *http.Response
@@ -32,45 +40,9 @@ func (_out *{{ .Name }}Response) Get() ({{ .Out }}) {
 /*
 {{ .Description }}
 */
-func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
-	_in := {{ .Name }}In{
-		{{- range .Signature.InputArgs }}
-		{{ .Name }},
-		{{- end }}
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out {{ .Name }}Out
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	{{- range .Signature.OutputArgs }}
-	{{ .Name }} = _out.{{ CapitalizeIdentifier .Name }}
-	{{- end }}
-	return
-}
-
-/*
-{{ .Description }}
-*/
-func (_c *MulticastClient) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
+func (_c *Multicast
+{{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
+) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
@@ -112,5 +84,45 @@ func (_c *MulticastClient) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan
 		close(_res)
 	}()
 	return _res
+}
+{{ end }}
+
+{{- range .Functions }}
+/*
+{{ .Description }}
+*/
+func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
+	_in := {{ .Name }}In{
+		{{- range .Signature.InputArgs }}
+		{{ .Name }},
+		{{- end }}
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out {{ .Name }}Out
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	{{- range .Signature.OutputArgs }}
+	{{ .Name }} = _out.{{ CapitalizeIdentifier .Name }}
+	{{- end }}
+	return
 }
 {{ end }}

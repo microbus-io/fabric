@@ -5,22 +5,21 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
 )
 
-// Application is a collection of microservices that run in a single process and share the same lifecycle
+// Application is a collection of microservices that run in a single process and share the same lifecycle.
 type Application struct {
 	services   []Service
-	started    bool
 	sig        chan os.Signal
 	plane      string
 	deployment string
-	clock      clock.Clock
 }
 
 // New creates a new app with a collection of microservices.
+// Included microservices must be explicitly started up.
 func New(services ...Service) *Application {
 	return &Application{
 		services: services,
@@ -30,6 +29,7 @@ func New(services ...Service) *Application {
 
 // NewTesting creates a new app for running in a unit test environment.
 // A random plane of communication is used to isolate the app from other apps.
+// Included microservices must be explicitly started up.
 func NewTesting(services ...Service) *Application {
 	return &Application{
 		services:   services,
@@ -39,96 +39,85 @@ func NewTesting(services ...Service) *Application {
 	}
 }
 
-// SetClock sets an alternative clock for all microservices of this app,
-// primarily to be used to inject a mock clock for testing.
-func (a *Application) SetClock(clock clock.Clock) error {
-	if a.started {
-		for i := range a.services {
-			err := a.services[i].SetClock(clock)
-			if err != nil {
-				for j := 0; j < i; j++ {
-					a.services[j].SetClock(a.clock)
-				}
-				return errors.Trace(err)
-			}
-		}
-	}
-	a.clock = clock
-	return nil
+// Include adds a collection of microservices to the app.
+// The microservices must be explicitly started up even if other microservices added
+// earlier had been started already.
+func (a *Application) Include(services ...Service) {
+	a.services = append(a.services, services...)
 }
 
-// Startup all microservices included in this app, in order.
-func (a *Application) Startup() error {
-	if a.started {
-		return errors.New("already started")
-	}
-
-	for i := range a.services {
-		var err error
-		err = a.services[i].SetPlane(a.plane)
-		if err == nil {
-			err = a.services[i].SetDeployment(a.deployment)
+// RemoveByHost shuts down and removes all microservices with the indicated host name.
+func (a *Application) RemoveByHost(host string) error {
+	var lastErr error
+	for j := len(a.services) - 1; j >= 0; j-- {
+		if a.services[j].HostName() != host {
+			continue
 		}
-		if err == nil && a.clock != nil {
-			err = a.services[i].SetClock(a.clock)
-		}
-		if err == nil {
-			err = a.services[i].Startup()
-		}
-		if err != nil {
-			// Shutdown all services in reverse order
-			for j := i - 1; j >= 0; j-- {
-				a.services[j].Shutdown()
+		if a.services[j].IsStarted() {
+			err := a.services[j].Shutdown()
+			if err != nil {
+				lastErr = errors.Trace(err)
 			}
+		}
+		if !a.services[j].IsStarted() {
+			copy(a.services[j:], a.services[j+1:])
+		}
+	}
+	return lastErr
+}
+
+// Startup all unstarted microservices included in this app.
+// If included, the configurator is started first, then other microservices in order of inclusion.
+func (a *Application) Startup() error {
+	// Move configurator to the front of the list
+	for i, s := range a.services {
+		if s.HostName() != configuratorapi.HostName || i == 0 {
+			continue
+		}
+		copy(a.services[i+1:], a.services[i:])
+		a.services[i] = s
+	}
+	// Start other services in order
+	for _, s := range a.services {
+		if s.IsStarted() {
+			continue
+		}
+		s.SetPlane(a.plane)
+		s.SetDeployment(a.deployment)
+		err := s.Startup()
+		if err != nil {
 			return errors.Trace(err)
 		}
 	}
-
-	a.started = true
 	return nil
 }
 
-// Shutdown all microservices included in this app, in reverse order.
+// Shutdown all started microservices included in this app.
+// If included, the configurator is shut down last, after other microservices in reverse order of inclusion.
 func (a *Application) Shutdown() error {
-	if !a.started {
-		return errors.New("not started")
-	}
-
-	var returnErr error
+	var lastErr error
 	for j := len(a.services) - 1; j >= 0; j-- {
+		if !a.services[j].IsStarted() {
+			continue
+		}
 		err := a.services[j].Shutdown()
 		if err != nil {
-			returnErr = errors.Trace(err)
+			lastErr = errors.Trace(err)
 		}
 	}
-
-	a.started = false
-	return returnErr
-}
-
-// IsStarted indicates if the app has been successfully started.
-func (a *Application) IsStarted() bool {
-	return a.started
+	return lastErr
 }
 
 // WaitForInterrupt blocks until an interrupt is received through
 // a SIGTERM, SIGINT or a call to interrupt.
-func (a *Application) WaitForInterrupt() error {
-	if !a.started {
-		return errors.New("not started")
-	}
+func (a *Application) WaitForInterrupt() {
 	signal.Notify(a.sig, syscall.SIGINT, syscall.SIGTERM)
 	<-a.sig
-	return nil
 }
 
 // Interrupt the app.
-func (a *Application) Interrupt() error {
-	if !a.started {
-		return errors.New("not started")
-	}
+func (a *Application) Interrupt() {
 	a.sig <- syscall.SIGINT
-	return nil
 }
 
 // Run all microservices included in this app until an interrupt is received.
@@ -137,10 +126,7 @@ func (a *Application) Run() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = a.WaitForInterrupt()
-	if err != nil {
-		return errors.Trace(err)
-	}
+	a.WaitForInterrupt()
 	err = a.Shutdown()
 	if err != nil {
 		return errors.Trace(err)
