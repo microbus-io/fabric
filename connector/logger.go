@@ -57,7 +57,7 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 	}
 	c.logger.Warn(msg, fields...)
 
-	if c.deployment == LOCAL {
+	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
 		for _, f := range fields {
 			if f.Type == zapcore.ErrorType && f.Key == "error" {
 				sep := strings.Repeat("~", 120)
@@ -83,7 +83,7 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 	}
 	c.logger.Error(msg, fields...)
 
-	if c.deployment == LOCAL {
+	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
 		for _, f := range fields {
 			if f.Type == zapcore.ErrorType && f.Key == "error" {
 				sep := strings.Repeat("~", 120)
@@ -103,7 +103,7 @@ func (c *Connector) initLogger() (err error) {
 	env := c.Deployment()
 
 	var config zap.Config
-	if env == LOCAL {
+	if env == LOCAL || env == TESTINGAPP {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05.000")
 		// config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder

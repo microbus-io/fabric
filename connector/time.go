@@ -17,6 +17,7 @@ import (
 type TickerHandler func(ctx context.Context) error
 
 // StartTicker initiates a recurring job at a set interval.
+// Tickers do not run when the connector is running in the TESTINGAPP deployment environment.
 func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler, options ...cb.Option) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return c.captureInitErr(errors.Trace(err))
@@ -68,16 +69,21 @@ func (c *Connector) runTickers() {
 
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *cb.Callback) {
+	if c.deployment == TESTINGAPP {
+		return // Tickers don't run during test suite execution
+	}
+	c.tickersLock.Lock()
 	if job.Ticker == nil {
 		job.Ticker = time.NewTicker(job.Interval)
 	} else {
-		// Already running
-		return
+		c.tickersLock.Unlock()
+		return // Already running
 	}
+	ticker := job.Ticker
+	c.tickersLock.Unlock()
 	go func() {
 		c.LogDebug(c.Lifetime(), "Ticker started", log.String("name", job.Name))
-		tickerCh := job.Ticker.C
-		for range tickerCh {
+		for range ticker.C {
 			if !c.started {
 				continue
 			}
@@ -102,7 +108,7 @@ func (c *Connector) runTicker(job *cb.Callback) {
 			done := false
 			for !done {
 				select {
-				case <-tickerCh:
+				case <-ticker.C:
 					skipped++
 				default:
 					done = true
@@ -129,7 +135,7 @@ func (c *Connector) Now() time.Time {
 // SetClock sets an alternative clock for this connector,
 // primarily to be used to inject a mock clock for testing.
 func (c *Connector) SetClock(newClock clock.Clock) error {
-	if c.Deployment() == PROD {
+	if c.Deployment() != LOCAL && c.Deployment() != TESTINGAPP {
 		return errors.Newf("clock can't be changed in %s deployment", PROD)
 	}
 

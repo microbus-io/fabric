@@ -114,7 +114,7 @@ func (c *Connector) Startup() (err error) {
 	c.LogInfo(c.lifetimeCtx, "Startup")
 
 	// Validate that clock is not changed in PROD
-	if c.Deployment() == PROD && c.clockSet {
+	if c.Deployment() != LOCAL && c.Deployment() != TESTINGAPP && c.clockSet {
 		err = errors.Newf("clock can't be changed in %s deployment", PROD)
 		return err
 	}

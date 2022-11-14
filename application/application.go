@@ -23,7 +23,10 @@ type Application struct {
 }
 
 // New creates a new app with a collection of microservices.
-// Included microservices must be explicitly started up.
+// Microservices are included in the app's lifecycle management and will be
+// started up or shut down with the app.
+// Inclusion by itself does not startup or shutdown the microservices.
+// Explicit action is required.
 func New(services ...Service) *Application {
 	app := &Application{
 		sig:            make(chan os.Signal, 1),
@@ -34,13 +37,17 @@ func New(services ...Service) *Application {
 }
 
 // NewTesting creates a new app for running in a unit test environment.
+// Microservices are included in the app's lifecycle management and will be
+// started up or shut down with the app.
+// Inclusion by itself does not startup or shutdown the microservices.
+// Explicit action is required.
 // A random plane of communication is used to isolate the app from other apps.
-// Included microservices must be explicitly started up.
+// Tickers of microservices do not run in the TESTINGAPP deployment environment.
 func NewTesting(services ...Service) *Application {
 	app := &Application{
 		sig:            make(chan os.Signal, 1),
-		plane:          rand.AlphaNum64(8),
-		deployment:     "LOCAL",
+		plane:          rand.AlphaNum64(12),
+		deployment:     "TESTINGAPP",
 		startupTimeout: time.Second * 20,
 	}
 	app.Include(services...)

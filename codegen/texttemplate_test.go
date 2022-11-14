@@ -49,8 +49,8 @@ func TestCodegen_TextTemplate(t *testing.T) {
 	rendered, err := tt.Execute(specs)
 	n := len(rendered)
 	assert.NoError(t, err)
-	assert.Contains(t, string(rendered), "testing/text/template")
-	assert.Contains(t, string(rendered), "example.com")
+	assert.Contains(t, string(rendered), specs.ShortPackage())
+	assert.Contains(t, string(rendered), specs.General.Host)
 
 	fileName := "testing-" + rand.AlphaNum32(12)
 	defer os.Remove(fileName)
