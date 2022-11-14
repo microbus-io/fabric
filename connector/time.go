@@ -45,36 +45,22 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler Tic
 	return nil
 }
 
-// StopTicker terminates a recurring job.
-func (c *Connector) StopTicker(name string) error {
-	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
-
-	if job, ok := c.tickers[strings.ToLower(name)]; ok {
-		if job.Ticker != nil {
-			job.Ticker.Stop()
-		}
-		delete(c.tickers, strings.ToLower(name))
-	}
-	return nil
-}
-
-// StopAllTickers terminates all recurring jobs.
-func (c *Connector) StopAllTickers() error {
+// stopTickers terminates all recurring jobs.
+func (c *Connector) stopTickers() error {
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 
 	for _, job := range c.tickers {
 		if job.Ticker != nil {
 			job.Ticker.Stop()
+			job.Ticker = nil
 		}
 	}
-	c.tickers = map[string]*cb.Callback{}
 	return nil
 }
 
-// runAllTickers starts goroutines to run all tickers.
-func (c *Connector) runAllTickers() {
+// runTickers starts goroutines to run all tickers.
+func (c *Connector) runTickers() {
 	for _, job := range c.tickers {
 		c.runTicker(job)
 	}
@@ -90,7 +76,8 @@ func (c *Connector) runTicker(job *cb.Callback) {
 	}
 	go func() {
 		c.LogDebug(c.Lifetime(), "Ticker started", log.String("name", job.Name))
-		for range job.Ticker.C {
+		tickerCh := job.Ticker.C
+		for range tickerCh {
 			if !c.started {
 				continue
 			}
@@ -115,7 +102,7 @@ func (c *Connector) runTicker(job *cb.Callback) {
 			done := false
 			for !done {
 				select {
-				case <-job.Ticker.C:
+				case <-tickerCh:
 					skipped++
 				default:
 					done = true

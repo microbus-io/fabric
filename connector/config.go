@@ -115,22 +115,24 @@ func (c *Connector) logConfigs() {
 
 // refreshConfig contacts the configurator microservices to fetch values for the config properties.
 func (c *Connector) refreshConfig(ctx context.Context) error {
-	if len(c.configs) == 0 {
-		return nil
-	}
 	if !c.started {
 		return errors.New("not started")
 	}
 
+	c.configLock.Lock()
+	if len(c.configs) == 0 {
+		c.configLock.Unlock()
+		return nil
+	}
 	var req struct {
 		Names []string `json:"names"`
 	}
-	c.configLock.Lock()
 	for _, config := range c.configs {
 		req.Names = append(req.Names, config.Name)
 	}
 	c.LogDebug(ctx, "Requesting config values", log.Any("names", req.Names))
 	c.configLock.Unlock()
+
 	response, err := c.Request(
 		ctx,
 		pub.POST("https://configurator.sys/values"),
@@ -188,4 +190,13 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// resetConfigs resets the values of the config to the default value.
+func (c *Connector) resetConfigs() {
+	c.configLock.Lock()
+	for _, config := range c.configs {
+		config.Value = config.DefaultValue
+	}
+	c.configLock.Unlock()
 }

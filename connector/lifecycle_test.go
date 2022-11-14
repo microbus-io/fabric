@@ -9,6 +9,8 @@ import (
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -180,4 +182,96 @@ func TestConnector_InitError(t *testing.T) {
 	assert.Error(t, err)
 	err = con.Startup()
 	assert.Error(t, err)
+}
+
+func TestConnector_Restart(t *testing.T) {
+	t.Parallel()
+
+	startupCalled := 0
+	shutdownCalled := 0
+	endpointCalled := 0
+	tickerCalled := 0
+
+	// Set up a configurator
+	plane := rand.AlphaNum64(12)
+	configurator := New("configurator.sys")
+	configurator.SetPlane(plane)
+
+	err := configurator.Startup()
+	assert.NoError(t, err)
+	defer configurator.Shutdown()
+
+	// Set up the connector
+	con := New("restart.connector")
+	con.SetPlane(plane)
+	con.SetOnStartup(func(ctx context.Context) error {
+		startupCalled++
+		return nil
+	})
+	con.SetOnShutdown(func(ctx context.Context) error {
+		shutdownCalled++
+		return nil
+	})
+	con.Subscribe("/endpoint", func(w http.ResponseWriter, r *http.Request) error {
+		endpointCalled++
+		return nil
+	})
+	con.StartTicker("tick", time.Millisecond*500, func(ctx context.Context) error {
+		tickerCalled++
+		return nil
+	})
+	con.DefineConfig("config", cfg.DefaultValue("default"))
+
+	assert.Same(t, context.Background(), con.lifetimeCtx)
+	assert.Equal(t, "default", con.configs["config"].Value)
+
+	// Startup
+	configurator.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte(`{"values":{"config":"overriden"}}`))
+		return nil
+	})
+	err = con.Startup()
+	assert.NoError(t, err)
+	assert.NotSame(t, context.Background(), con.lifetimeCtx)
+	assert.Equal(t, 1, startupCalled)
+	assert.Equal(t, 0, shutdownCalled)
+	_, err = con.Request(con.lifetimeCtx, pub.GET("https://restart.connector/endpoint"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, endpointCalled)
+	time.Sleep(time.Second)
+	assert.True(t, tickerCalled > 0)
+	assert.Equal(t, "overriden", con.Config("config"))
+
+	// Shutdown
+	err = con.Shutdown()
+	assert.NoError(t, err)
+	assert.Equal(t, 1, shutdownCalled)
+
+	// Restart
+	configurator.Unsubscribe("/values")
+	configurator.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte(`{}`))
+		return nil
+	})
+	startupCalled = 0
+	shutdownCalled = 0
+	endpointCalled = 0
+	tickerCalled = 0
+
+	err = con.Startup()
+	assert.NoError(t, err)
+	assert.NotSame(t, context.Background(), con.lifetimeCtx)
+	assert.Equal(t, 1, startupCalled)
+	assert.Equal(t, 0, shutdownCalled)
+	_, err = con.Request(con.lifetimeCtx, pub.GET("https://restart.connector/endpoint"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, endpointCalled)
+	time.Sleep(time.Second)
+	assert.True(t, tickerCalled > 0)
+	assert.Equal(t, "default", con.Config("config"))
+
+	// Shutdown
+	err = con.Shutdown()
+	assert.NoError(t, err)
+	assert.Equal(t, 1, shutdownCalled)
 }

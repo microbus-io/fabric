@@ -141,6 +141,7 @@ func (c *Connector) Startup() (err error) {
 	}
 
 	// Fetch configs
+	c.resetConfigs()
 	err = c.refreshConfig(c.lifetimeCtx)
 	if err != nil {
 		err = errors.Trace(err)
@@ -194,7 +195,7 @@ func (c *Connector) Startup() (err error) {
 	time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 
 	// Run all tickers
-	c.runAllTickers()
+	c.runTickers()
 
 	return nil
 }
@@ -209,13 +210,13 @@ func (c *Connector) Shutdown() error {
 	var lastErr error
 
 	// Stop all tickers
-	err := c.StopAllTickers()
+	err := c.stopTickers()
 	if err != nil {
 		lastErr = errors.Trace(err)
 	}
 
 	// Unsubscribe all handlers
-	err = c.UnsubscribeAll()
+	err = c.deactivateSubs()
 	if err != nil {
 		lastErr = errors.Trace(err)
 	}

@@ -84,21 +84,6 @@ func (c *Connector) Unsubscribe(path string) error {
 	return errors.Trace(err)
 }
 
-// UnsubscribeAll removes all handlers
-func (c *Connector) UnsubscribeAll() error {
-	c.subsLock.Lock()
-	var lastErr error
-	for _, sub := range c.subs {
-		lastErr = c.deactivateSub(sub)
-	}
-	c.subs = map[string]*sub.Subscription{}
-	c.subsLock.Unlock()
-	if c.IsStarted() {
-		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
-	}
-	return errors.Trace(lastErr)
-}
-
 // activateSub will subscribe to NATS
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	handler := func(msg *nats.Msg) {
@@ -142,7 +127,21 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 	return nil
 }
 
-// deactivateSub will unsubscribe from NATS
+// deactivateSubs unsubscribes from NATS.
+func (c *Connector) deactivateSubs() error {
+	c.subsLock.Lock()
+	var lastErr error
+	for _, sub := range c.subs {
+		lastErr = c.deactivateSub(sub)
+	}
+	c.subsLock.Unlock()
+	if c.IsStarted() {
+		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
+	}
+	return errors.Trace(lastErr)
+}
+
+// deactivateSub unsubscribes from NATS.
 func (c *Connector) deactivateSub(s *sub.Subscription) error {
 	var lastErr error
 	if s.HostSub != nil {
