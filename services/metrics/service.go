@@ -15,14 +15,9 @@ import (
 )
 
 var (
-	_              errors.TracedError
-	_              http.Request
-	_              metricsapi.Client
-	registry       = prometheus.NewRegistry()
-	prometheusReg  = registry
-	metricsHandler = promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-	gaugeVec       *prometheus.GaugeVec
-	uptimeBase     = time.Now()
+	_ errors.TracedError
+	_ http.Request
+	_ metricsapi.Client
 )
 
 /*
@@ -32,15 +27,23 @@ The Metrics service is a system microservice that aggregates metrics from other 
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
+	registry                   *prometheus.Registry
+	metricsHandler             http.Handler
+	gaugeVec                   *prometheus.GaugeVec
+	uptimeBase                 time.Time
 }
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	gaugeVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	svc.registry = prometheus.NewRegistry()
+	//svc.prometheusReg  = registry
+	svc.metricsHandler = promhttp.HandlerFor(svc.registry, promhttp.HandlerOpts{})
+	svc.uptimeBase = time.Now()
+	svc.gaugeVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "service_uptime_duration_seconds_total",
 		Help: "Duration of time since the service was started, in seconds.",
 	}, []string{"metrics"})
-	err = prometheusReg.Register(gaugeVec)
+	err = svc.registry.Register(svc.gaugeVec)
 	return
 }
 
@@ -53,11 +56,11 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 Collect returns the latest aggregated metrics.
 */
 func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) {
-	gauge, err := gaugeVec.GetMetricWithLabelValues("metrics")
+	gauge, err := svc.gaugeVec.GetMetricWithLabelValues("metrics")
 	if err != nil {
 		return errors.Trace(err)
 	}
-	gauge.Set(time.Now().Sub(uptimeBase).Seconds())
-	metricsHandler.ServeHTTP(w, r)
-	return
+	gauge.Set(time.Since(svc.uptimeBase).Seconds())
+	svc.metricsHandler.ServeHTTP(w, r)
+	return nil
 }

@@ -72,3 +72,4 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](docs/tech/integrationtesting.md) 🎁 - Testing multiple microservices together
+* [Metrics](docs/tech/metrics.md) - Collecting and exposing metrics in microservices

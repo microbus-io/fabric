@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestConfigurator_ManyMicroservices(t *testing.T) {
+func TestMetrics_Collect(t *testing.T) {
 	t.Skip()
 	t.Parallel()
 }
