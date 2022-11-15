@@ -1,4 +1,4 @@
-{{ $shortPackage := .ShortPackage }}{{ range .Functions}}
+{{ $shortPackage := .PackageSuffix }}{{ range .Functions}}
 // do{{ .Name }} handles marshaling for the {{ .Name }} function.
 func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	var i {{ $shortPackage }}api.{{ .Name }}In

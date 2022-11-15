@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,6 +22,30 @@ func (gen *Generator) makeIntegration() error {
 
 	// Fully qualify the types outside of the API directory
 	gen.specs.FullyQualifyTypes()
+
+	// Scan .go files for use of clients of downstream services
+	gen.Printer.Debug("Scanning for downstream dependencies")
+	dependencies, err := scanFiles(
+		gen.WorkDir,
+		func(file fs.DirEntry) bool {
+			return strings.HasSuffix(file.Name(), ".go") &&
+				!strings.HasSuffix(file.Name(), "_test.go") &&
+				!strings.HasSuffix(file.Name(), "-gen.go")
+		},
+		`\s+"([a-z0-9\.\/\-]+api)"`, // "xxx.com/yyy-io/zzzapi"
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	delete(dependencies, gen.specs.Package+"/"+gen.specs.PackageSuffix()+"api")
+	gen.Printer.Indent()
+	gen.specs.Dependencies = []string{}
+	for k := range dependencies {
+		k := filepath.Dir(k)
+		gen.Printer.Debug(k)
+		gen.specs.Dependencies = append(gen.specs.Dependencies, k)
+	}
+	gen.Printer.Unindent()
 
 	// integration-gen_test.go
 	fileName := filepath.Join(gen.WorkDir, "integration-gen_test.go")
@@ -55,8 +81,15 @@ func (gen *Generator) makeIntegration() error {
 
 	// Scan .go files for existing endpoints
 	gen.Printer.Debug("Scanning for existing tests")
-	pkg := capitalizeIdentifier(gen.specs.ShortPackage())
-	existingTests, err := scanFiles(gen.WorkDir, "_test.go", `func Test`+pkg+`_([A-Z][a-zA-Z0-9]*)\(t `) // func TestService_XXX(t *testing.T)
+	pkg := capitalizeIdentifier(gen.specs.PackageSuffix())
+	existingTests, err := scanFiles(
+		gen.WorkDir,
+		func(file fs.DirEntry) bool {
+			return strings.HasSuffix(file.Name(), "_test.go") &&
+				!strings.HasSuffix(file.Name(), "-gen_test.go")
+		},
+		`func Test`+pkg+`_([A-Z][a-zA-Z0-9]*)\(t `,
+	) // func TestService_XXX(t *testing.T)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -103,6 +136,44 @@ func (gen *Generator) makeIntegration() error {
 			}
 		}
 		gen.Printer.Unindent()
+	}
+
+	// Add downstream services to app
+	if len(dependencies) > 0 {
+		fileName = filepath.Join(gen.WorkDir, "integration_test.go")
+		body, err := os.ReadFile(fileName)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		p := bytes.Index(body, []byte("\n\tApp.Include(\n"))
+		if p > 0 {
+			var insert bytes.Buffer
+			q := bytes.Index(body[p:], []byte("\n\t)\n"))
+			if q > 0 {
+				gen.Printer.Debug("Adding downstream services to app")
+				gen.Printer.Indent()
+				for _, dep := range gen.specs.Dependencies {
+					svcVarName := capitalizeIdentifier(packageSuffix(dep)) + "Svc"
+					if !bytes.Contains(body[p:p+q], []byte(svcVarName)) {
+						insert.WriteString("\n\t\t")
+						insert.WriteString(svcVarName)
+						insert.WriteString(".With(),")
+						gen.Printer.Debug("%s", svcVarName)
+					}
+				}
+				gen.Printer.Unindent()
+				if insert.Len() > 0 {
+					var newBody bytes.Buffer
+					newBody.Write(body[:p+q])
+					newBody.Write(insert.Bytes())
+					newBody.Write(body[p+q:])
+					err := os.WriteFile(fileName, newBody.Bytes(), 0666)
+					if err != nil {
+						return errors.Trace(err)
+					}
+				}
+			}
+		}
 	}
 
 	return nil
@@ -228,17 +299,17 @@ func (gen *Generator) makeAPI() error {
 	gen.specs.ShorthandTypes()
 
 	// Create the directories
-	dir := filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api")
+	dir := filepath.Join(gen.WorkDir, gen.specs.PackageSuffix()+"api")
 	_, err := os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
 		os.Mkdir(dir, os.ModePerm)
-		gen.Printer.Debug("mkdir %sapi", gen.specs.ShortPackage())
+		gen.Printer.Debug("mkdir %sapi", gen.specs.PackageSuffix())
 	} else if err != nil {
 		return errors.Trace(err)
 	}
 
 	// types-gen.go
-	fileName := filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api", "types-gen.go")
+	fileName := filepath.Join(gen.WorkDir, gen.specs.PackageSuffix()+"api", "types-gen.go")
 	if len(gen.specs.Types) > 0 {
 		tt, err := LoadTemplate("api/types-gen.txt")
 		if err != nil {
@@ -248,7 +319,7 @@ func (gen *Generator) makeAPI() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		gen.Printer.Debug("%sapi/types-gen.go", gen.specs.ShortPackage())
+		gen.Printer.Debug("%sapi/types-gen.go", gen.specs.PackageSuffix())
 	} else {
 		err := os.Remove(fileName)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -257,7 +328,7 @@ func (gen *Generator) makeAPI() error {
 	}
 
 	// clients-gen.go
-	fileName = filepath.Join(gen.WorkDir, gen.specs.ShortPackage()+"api", "clients-gen.go")
+	fileName = filepath.Join(gen.WorkDir, gen.specs.PackageSuffix()+"api", "clients-gen.go")
 	tt, err := LoadTemplate(
 		"api/clients-gen.txt",
 		"api/clients-gen.webs.txt",
@@ -270,7 +341,7 @@ func (gen *Generator) makeAPI() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	gen.Printer.Debug("%sapi/clients-gen.go", gen.specs.ShortPackage())
+	gen.Printer.Debug("%sapi/clients-gen.go", gen.specs.PackageSuffix())
 
 	return nil
 }
@@ -313,7 +384,15 @@ func (gen *Generator) makeImplementation() error {
 
 	// Scan .go files for existing endpoints
 	gen.Printer.Debug("Scanning for existing handlers")
-	existingEndpoints, err := scanFiles(gen.WorkDir, ".go", `func \(svc \*Service\) ([A-Z][a-zA-Z0-9]*)\(`) // func (svc *Service) XXX(
+	existingEndpoints, err := scanFiles(
+		gen.WorkDir,
+		func(file fs.DirEntry) bool {
+			return strings.HasSuffix(file.Name(), ".go") &&
+				!strings.HasSuffix(file.Name(), "_test.go") &&
+				!strings.HasSuffix(file.Name(), "-gen.go")
+		},
+		`func \(svc \*Service\) ([A-Z][a-zA-Z0-9]*)\(`, // func (svc *Service) XXX(
+	)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -370,7 +449,7 @@ func (gen *Generator) makeImplementation() error {
 }
 
 // scanFiles scans all files with the indicated suffix for all sub-matches of the regular expression.
-func scanFiles(workDir string, fileSuffix string, regExpression string) (map[string]bool, error) {
+func scanFiles(workDir string, filter func(file fs.DirEntry) bool, regExpression string) (map[string]bool, error) {
 	result := map[string]bool{}
 	re, err := regexp.Compile(regExpression)
 	if err != nil {
@@ -381,7 +460,7 @@ func scanFiles(workDir string, fileSuffix string, regExpression string) (map[str
 		return nil, errors.Trace(err)
 	}
 	for _, file := range files {
-		if file.IsDir() || !strings.HasSuffix(file.Name(), fileSuffix) {
+		if file.IsDir() || !filter(file) {
 			continue
 		}
 		fileName := filepath.Join(workDir, file.Name())
@@ -401,7 +480,7 @@ func scanFiles(workDir string, fileSuffix string, regExpression string) (map[str
 
 // makeTraceReturnedErrors adds errors.Trace to returned errors.
 func (gen *Generator) makeTraceReturnedErrors() error {
-	gen.Printer.Debug("Adding tracing to errors")
+	gen.Printer.Debug("Tracing returned errors")
 	gen.Printer.Indent()
 	defer gen.Printer.Unindent()
 

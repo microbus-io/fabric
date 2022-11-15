@@ -135,10 +135,6 @@ func (c *Connector) Now() time.Time {
 // SetClock sets an alternative clock for this connector,
 // primarily to be used to inject a mock clock for testing.
 func (c *Connector) SetClock(newClock clock.Clock) error {
-	if c.Deployment() != LOCAL && c.Deployment() != TESTINGAPP {
-		return errors.Newf("clock can't be changed in %s deployment", PROD)
-	}
-
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 

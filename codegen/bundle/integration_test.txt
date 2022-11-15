@@ -1,45 +1,45 @@
-package {{ .ShortPackage }}
+package {{ .PackageSuffix }}
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"{{ .Package }}/{{ .ShortPackage }}api"
+	"{{ .Package }}/{{ .PackageSuffix }}api"
 )
 
 var (
 	_ testing.T
 	_ assert.TestingT
-	_ {{ .ShortPackage }}api.Client
+	_ {{ .PackageSuffix }}api.Client
 )
 
 // Initialize starts up the testing app.
 func Initialize() error {
-	// Include all downstream microservices in the app
-	// and initialize them with appropriate config values
+	// Include all downstream microservices in the testing app.
+	// Use .With(options) to initialize microservices with appropriate config values.
+	// Microservices are detected and added automatically. Comment them out if unneeded.
 	App.Include(
 		Configurator,
 		Svc.With(),
 	)
 
-	err = App.Startup() // DO NOT REMOVE
+	err := App.Startup()
 	if err != nil {
 		return err
 	}
 
-	// You may call the microservices after the app is started,
-	// for example to populate data shared among all tests
+	// You may call any of the microservices after the app is started,
+	// for example to populate data shared among all tests.
 
 	return nil
 }
 
 // Terminate shuts down the testing app.
 func Terminate() error {
-	err = App.Shutdown() // DO NOT REMOVE
+	err := App.Shutdown()
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

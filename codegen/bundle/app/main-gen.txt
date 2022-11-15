@@ -14,7 +14,7 @@ import (
 // main runs an app containing only the {{ .General.Host }} service.
 func main() {
 	app := application.New(
-		{{ .ShortPackage }}.NewService(),
+		{{ .PackageSuffix }}.NewService(),
 	)
 	err := app.Run()
 	if err != nil {

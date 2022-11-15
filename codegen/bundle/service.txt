@@ -1,4 +1,4 @@
-package {{ .ShortPackage }}
+package {{ .PackageSuffix }}
 
 import (
 	"context"

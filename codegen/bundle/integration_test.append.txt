@@ -1,4 +1,4 @@
-{{- $pkg := CapitalizeIdentifier .ShortPackage }}
+{{- $pkg := CapitalizeIdentifier .PackageSuffix }}
 {{- range (JoinHandlers .Functions .Sinks) }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
@@ -27,7 +27,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	// ctx := Context()
-	// {{ .Name }}(ctx).NoError(t, http.StatusOK)
+	// {{ .Name }}(ctx).NoError(t)
 	// {{ .Name }}(ctx).Error(t, errContains)
 }
 {{ end }}

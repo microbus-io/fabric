@@ -10,7 +10,8 @@ import (
 
 // Service is the spec of the microservice parsed from service.yaml.
 type Service struct {
-	Package string `yaml:"-"`
+	Package      string   `yaml:"-"`
+	Dependencies []string `yaml:"-"`
 
 	General   General    `yaml:"general"`
 	Configs   []*Handler `yaml:"configs"`
@@ -50,7 +51,7 @@ func (s *Service) FullyQualifyTypes() {
 	}
 	s.fullyQualified = true
 
-	apiPkg := s.ShortPackage() + "api."
+	apiPkg := s.PackageSuffix() + "api."
 	for _, w := range s.Functions {
 		for _, a := range w.Signature.InputArgs {
 			endType := a.EndType()
@@ -74,7 +75,7 @@ func (s *Service) ShorthandTypes() {
 	}
 	s.fullyQualified = false
 
-	apiPkg := s.ShortPackage() + "api."
+	apiPkg := s.PackageSuffix() + "api."
 	for _, w := range s.Functions {
 		for _, a := range w.Signature.InputArgs {
 			endType := a.EndType()
@@ -169,8 +170,8 @@ func (s *Service) validate() error {
 	return nil
 }
 
-// ShortPackage returns only the last portion of the full package path.
-func (s *Service) ShortPackage() string {
+// PackageSuffix returns only the last portion of the full package path.
+func (s *Service) PackageSuffix() string {
 	return strings.TrimPrefix(s.Package, filepath.Dir(s.Package)+"/")
 }
 

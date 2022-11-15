@@ -13,7 +13,7 @@ type Version struct {
 	Timestamp string `json:"ts"`
 }
 
-// ShortPackage returns only the last portion of the full package path.
-func (v *Version) ShortPackage() string {
+// PackageSuffix returns only the last portion of the full package path.
+func (v *Version) PackageSuffix() string {
 	return strings.TrimPrefix(v.Package, filepath.Dir(v.Package)+"/")
 }

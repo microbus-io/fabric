@@ -49,7 +49,7 @@ func TestCodegen_TextTemplate(t *testing.T) {
 	rendered, err := tt.Execute(specs)
 	n := len(rendered)
 	assert.NoError(t, err)
-	assert.Contains(t, string(rendered), specs.ShortPackage())
+	assert.Contains(t, string(rendered), specs.PackageSuffix())
 	assert.Contains(t, string(rendered), specs.General.Host)
 
 	fileName := "testing-" + rand.AlphaNum32(12)

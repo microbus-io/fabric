@@ -21,10 +21,10 @@ func TestConnector_NoMockClockInProd(t *testing.T) {
 	err := con.SetClock(mockClock)
 	assert.NoError(t, err)
 
-	// Should fail when deployment is set to PROD
+	// OK before service was started
 	con.SetDeployment(PROD)
 	err = con.SetClock(mockClock)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 
 	// Should fail to start with the mock clock set
 	err = con.Startup()

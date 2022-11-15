@@ -1,7 +1,7 @@
 {{ range .Tickers }}
 type {{ .Name }}TestCase struct {
 	Error   func(t *testing.T, errContains string)
-	NoError func(t *testing.T, statusCode int)
+	NoError func(t *testing.T)
 }
 
 func {{ .Name }}(ctx context.Context) *{{ .Name }}TestCase {
@@ -12,7 +12,7 @@ func {{ .Name }}(ctx context.Context) *{{ .Name }}TestCase {
 				assert.Contains(t, err.Error(), errContains)
 			}
 		},
-		NoError: func(t *testing.T, statusCode int) {
+		NoError: func(t *testing.T) {
 			err := Svc.{{ .Name }}(ctx)
 			assert.NoError(t, err)
 		},

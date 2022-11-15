@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
@@ -43,6 +44,7 @@ func (tt *TextTemplate) Execute(data any) ([]byte, error) {
 	funcs := template.FuncMap{
 		"CapitalizeIdentifier": capitalizeIdentifier,
 		"JoinHandlers":         joinHandlers,
+		"PackageSuffix":        packageSuffix,
 	}
 	tmpl, err := template.New(tt.name).Funcs(funcs).Parse(string(tt.content))
 	if err != nil {
@@ -133,4 +135,9 @@ func joinHandlers(handlers ...[]*spec.Handler) []*spec.Handler {
 		result = append(result, h...)
 	}
 	return result
+}
+
+// packageSuffix returns the last segment of the path of a package.
+func packageSuffix(pkgPath string) string {
+	return strings.TrimPrefix(pkgPath, filepath.Dir(pkgPath)+"/")
 }
