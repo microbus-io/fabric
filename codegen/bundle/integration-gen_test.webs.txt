@@ -26,7 +26,9 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 		Expect: func(t *testing.T, statusCode int, bodyContains []byte) {
 			r := httpReq.WithContext(ctx)
 			w := utils.NewResponseRecorder()
-			err := Svc.{{ .Name }}(w, r)
+			err := utils.CatchPanic(func () error {
+				return Svc.{{ .Name }}(w, r)
+			})
 			res := w.Result()
 			if assert.NoError(t, err) && assert.Equal(t, statusCode, res.StatusCode) {
 				body := res.Body.(*utils.BodyReader).Bytes()
@@ -36,7 +38,9 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 		Error: func(t *testing.T, errContains string) {
 			r := httpReq.WithContext(ctx)
 			w := utils.NewResponseRecorder()
-			err := Svc.{{ .Name }}(w, r)
+			err := utils.CatchPanic(func () error {
+				return Svc.{{ .Name }}(w, r)
+			})
 			if assert.Error(t, err) {
 				assert.Contains(t, err.Error(), errContains)
 			}
@@ -44,7 +48,9 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 		NoError: func(t *testing.T, statusCode int) {
 			r := httpReq.WithContext(ctx)
 			w := utils.NewResponseRecorder()
-			err := Svc.{{ .Name }}(w, r)
+			err := utils.CatchPanic(func () error {
+				return Svc.{{ .Name }}(w, r)
+			})
 			if assert.NoError(t, err) {
 				assert.Equal(t, statusCode, w.Result().StatusCode)
 			}
@@ -52,7 +58,9 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 		Assert: func(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
 			r := httpReq.WithContext(ctx)
 			w := utils.NewResponseRecorder()
-			err := Svc.{{ .Name }}(w, r)
+			err := utils.CatchPanic(func () error {
+				return Svc.{{ .Name }}(w, r)
+			})
 			res := w.Result()
 			asserter(t, res, err)
 		},

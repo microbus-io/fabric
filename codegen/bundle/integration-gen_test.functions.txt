@@ -10,7 +10,14 @@ type {{ .Name }}TestCase struct {
 func {{ .Name }}({{ .In }}) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{
 		Expect: func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, _{{ .Name }} {{ .Type }}{{ end }}) {
-			{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			{{- range .Signature.OutputArgs }}
+			var {{ .Name }} {{ .Type }}
+			{{- end }}
+			var err error
+			err = utils.CatchPanic(func() error {
+				{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+				return err
+			})
 			{{- if .Signature.OutputArgs }}
 			if assert.NoError({{ $t }}, err) {
 				{{- range .Signature.OutputArgs }}
@@ -22,17 +29,32 @@ func {{ .Name }}({{ .In }}) *{{ .Name }}TestCase {
 			{{- end}}
 		},
 		Error: func({{ $t }} *testing.T, errContains string) {
-			{{ range .Signature.OutputArgs }}_, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			var err error
+			err = utils.CatchPanic(func() error {
+				{{ range .Signature.OutputArgs }}_, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+				return err
+			})
 			if assert.Error({{ $t }}, err) {
 				assert.Contains({{ $t }}, err.Error(), errContains)
 			}
 		},
 		NoError: func({{ $t }} *testing.T) {
-			{{ range .Signature.OutputArgs }}_, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			var err error
+			err = utils.CatchPanic(func() error {
+				{{ range .Signature.OutputArgs }}_, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+				return err
+			})
 			assert.NoError({{ $t }}, err)
 		},
 		Assert: func({{ $t }} *testing.T, asserter func({{ $t }} *testing.T, {{ .Out }})) {
-			{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err := Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+			{{- range .Signature.OutputArgs }}
+			var {{ .Name }} {{ .Type }}
+			{{- end }}
+			var err error
+			err = utils.CatchPanic(func() error {
+				{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+				return err
+			})
 			asserter({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err)
 		},
 	}

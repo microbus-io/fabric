@@ -7,13 +7,17 @@ type {{ .Name }}TestCase struct {
 func {{ .Name }}(ctx context.Context) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{
 		Error: func(t *testing.T, errContains string) {
-			err := Svc.{{ .Name }}(ctx)
+			err := utils.CatchPanic(func () error {
+				return Svc.{{ .Name }}(ctx)
+			})
 			if assert.Error(t, err) {
 				assert.Contains(t, err.Error(), errContains)
 			}
 		},
 		NoError: func(t *testing.T) {
-			err := Svc.{{ .Name }}(ctx)
+			err := utils.CatchPanic(func () error {
+				return Svc.{{ .Name }}(ctx)
+			})
 			assert.NoError(t, err)
 		},
 	}
