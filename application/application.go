@@ -117,6 +117,9 @@ func (app *Application) Startup() error {
 
 	// Start configurators first
 	for _, s := range app.services {
+		if s.IsStarted() {
+			continue
+		}
 		if s.HostName() == configuratorapi.HostName {
 			err := s.Startup()
 			if err != nil {
@@ -208,6 +211,9 @@ func (app *Application) Shutdown() error {
 
 	// Shutdown configurators last
 	for _, s := range app.services {
+		if !s.IsStarted() {
+			continue
+		}
 		if s.HostName() == configuratorapi.HostName {
 			err := s.Shutdown()
 			if err != nil {
