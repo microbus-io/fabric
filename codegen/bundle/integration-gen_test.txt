@@ -29,10 +29,8 @@ var (
 	_ io.Reader
 	_ http.Request
 	_ os.File
-
 	_ pub.Option
 	_ utils.BodyReader
-
 	_ {{ .PackageSuffix }}api.Client
 )
 

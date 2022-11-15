@@ -9,7 +9,6 @@ package calculator
 
 import (
 	"github.com/microbus-io/fabric/examples/calculator/intermediate"
-
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
 )
 

@@ -11,7 +11,6 @@ package {{ .PackageSuffix }}
 
 import (
 	"{{ .Package }}/intermediate"
-
 	"{{ .Package }}/{{ .PackageSuffix }}api"
 )
 

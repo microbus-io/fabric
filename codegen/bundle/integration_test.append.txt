@@ -2,6 +2,7 @@
 {{- range (JoinHandlers .Functions .Sinks) }}
 {{- $t := TestingT .Signature }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	// ctx := Context()
 	{{- if .Signature.OutputArgs }}
@@ -15,6 +16,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 
 {{- range .Webs }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	// ctx := Context()
 	// {{ .Name }}(ctx, POST(body), ContentType(mime)).Expect(t, statusCode, bodyContains)
@@ -26,6 +28,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 
 {{- range .Tickers }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	// ctx := Context()
 	// {{ .Name }}(ctx).NoError(t)

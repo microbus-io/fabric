@@ -84,14 +84,14 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// ArithmeticIn are the input arguments of the Arithmetic function.
+// ArithmeticIn are the input arguments of Arithmetic.
 type ArithmeticIn struct {
 	X int `json:"x"`
 	Op string `json:"op"`
 	Y int `json:"y"`
 }
 
-// ArithmeticOut are the return values of the Arithmetic function.
+// ArithmeticOut are the return values of Arithmetic.
 type ArithmeticOut struct {
 	XEcho int `json:"xEcho"`
 	OpEcho string `json:"opEcho"`
@@ -99,7 +99,7 @@ type ArithmeticOut struct {
 	Result int `json:"result"`
 }
 
-// ArithmeticResponse is the response of the Arithmetic function.
+// ArithmeticResponse is the response to Arithmetic.
 type ArithmeticResponse struct {
 	data ArithmeticOut
 	HTTPResponse *http.Response
@@ -113,45 +113,6 @@ func (_out *ArithmeticResponse) Get() (xEcho int, opEcho string, yEcho int, resu
 	yEcho = _out.data.YEcho
 	result = _out.data.Result
 	err = _out.err
-	return
-}
-
-/*
-Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
-*/
-func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
-	_in := ArithmeticIn{
-		x,
-		op,
-		y,
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/arithmetic`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out ArithmeticOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	xEcho = _out.XEcho
-	opEcho = _out.OpEcho
-	yEcho = _out.YEcho
-	result = _out.Result
 	return
 }
 
@@ -202,18 +163,18 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 	return _res
 }
 
-// SquareIn are the input arguments of the Square function.
+// SquareIn are the input arguments of Square.
 type SquareIn struct {
 	X int `json:"x"`
 }
 
-// SquareOut are the return values of the Square function.
+// SquareOut are the return values of Square.
 type SquareOut struct {
 	XEcho int `json:"xEcho"`
 	Result int `json:"result"`
 }
 
-// SquareResponse is the response of the Square function.
+// SquareResponse is the response to Square.
 type SquareResponse struct {
 	data SquareOut
 	HTTPResponse *http.Response
@@ -225,41 +186,6 @@ func (_out *SquareResponse) Get() (xEcho int, result int, err error) {
 	xEcho = _out.data.XEcho
 	result = _out.data.Result
 	err = _out.err
-	return
-}
-
-/*
-Square prints the square of the integer x.
-*/
-func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
-	_in := SquareIn{
-		x,
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/square`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out SquareOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	xEcho = _out.XEcho
-	result = _out.Result
 	return
 }
 
@@ -308,18 +234,18 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 	return _res
 }
 
-// DistanceIn are the input arguments of the Distance function.
+// DistanceIn are the input arguments of Distance.
 type DistanceIn struct {
 	P1 Point `json:"p1"`
 	P2 Point `json:"p2"`
 }
 
-// DistanceOut are the return values of the Distance function.
+// DistanceOut are the return values of Distance.
 type DistanceOut struct {
 	D float64 `json:"d"`
 }
 
-// DistanceResponse is the response of the Distance function.
+// DistanceResponse is the response to Distance.
 type DistanceResponse struct {
 	data DistanceOut
 	HTTPResponse *http.Response
@@ -330,42 +256,6 @@ type DistanceResponse struct {
 func (_out *DistanceResponse) Get() (d float64, err error) {
 	d = _out.data.D
 	err = _out.err
-	return
-}
-
-/*
-Distance calculates the distance between two points.
-It demonstrates the use of the defined type Point.
-*/
-func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, err error) {
-	_in := DistanceIn{
-		p1,
-		p2,
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/distance`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out DistanceOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	d = _out.D
 	return
 }
 
@@ -414,4 +304,114 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 		close(_res)
 	}()
 	return _res
+}
+
+/*
+Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
+*/
+func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
+	_in := ArithmeticIn{
+		x,
+		op,
+		y,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/arithmetic`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out ArithmeticOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	xEcho = _out.XEcho
+	opEcho = _out.OpEcho
+	yEcho = _out.YEcho
+	result = _out.Result
+	return
+}
+
+/*
+Square prints the square of the integer x.
+*/
+func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
+	_in := SquareIn{
+		x,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/square`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out SquareOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	xEcho = _out.XEcho
+	result = _out.Result
+	return
+}
+
+/*
+Distance calculates the distance between two points.
+It demonstrates the use of the defined type Point.
+*/
+func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, err error) {
+	_in := DistanceIn{
+		p1,
+		p2,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:443/distance`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out DistanceOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	d = _out.D
+	return
 }

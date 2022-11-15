@@ -1,33 +1,37 @@
-{{- range .Configs}}{{- if .Callback}}{{- if not .Exists}}
+{{- range .Configs }}{{- if .Callback }}{{- if not .Exists }}
 // OnChanged{{ .Name }} is triggered when the value of the {{ .Name }} config property changes.
 func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
-    return // TO{{/**/}}DO: OnChanged{{ .Name }}
+    // TO{{/**/}}DO: Implement OnChanged{{ .Name }}
+    return nil
 }
-{{end}}{{- end}}{{- end}}
+{{ end }}{{ end }}{{ end }}
 
-{{- range (JoinHandlers .Functions .Sinks) }}{{- if not .Exists}}
+{{- range (JoinHandlers .Functions .Sinks) }}{{- if not .Exists }}
 /*
 {{ .Description }}
 */
 func (svc *Service) {{ .Name }}({{ .In }}) ({{ .Out }}) {
-    return // TO{{/**/}}DO: {{ .Name }}
+    // TO{{/**/}}DO: Implement {{ .Name }}
+    return {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}nil
 }
-{{end}}{{- end}}
+{{ end }}{{ end }}
 
-{{- range .Webs}}{{- if not .Exists}}
+{{- range .Webs }}{{- if not .Exists }}
 /*
 {{ .Description }}
 */
 func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err error) {
-    return // TO{{/**/}}DO: {{ .Name }}
+    // TO{{/**/}}DO: Implement {{ .Name }}
+    return nil
 }
-{{end}}{{- end}}
+{{ end }}{{ end }}
 
-{{- range .Tickers}}{{- if not .Exists}}
+{{- range .Tickers }}{{- if not .Exists }}
 /*
 {{ .Description }}
 */
 func (svc *Service) {{ .Name }}(ctx context.Context) (err error) {
-    return // TO{{/**/}}DO: {{ .Name }}
+    // TO{{/**/}}DO: Implement {{ .Name }}
+    return nil
 }
-{{end}}{{- end}}
+{{ end }}{{ end }}

@@ -16,6 +16,8 @@ var (
 
 // Initialize starts up the testing app.
 func Initialize() error {
+    // TO{{/**/}}DO: Initialize testing app
+	
 	// Include all downstream microservices in the testing app.
 	// Use .With(options) to initialize microservices with appropriate config values.
 	// Microservices are detected and added automatically. Comment them out if unneeded.
