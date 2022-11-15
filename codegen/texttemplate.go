@@ -45,6 +45,7 @@ func (tt *TextTemplate) Execute(data any) ([]byte, error) {
 		"CapitalizeIdentifier": capitalizeIdentifier,
 		"JoinHandlers":         joinHandlers,
 		"PackageSuffix":        packageSuffix,
+		"TestingT":             testingT,
 	}
 	tmpl, err := template.New(tt.name).Funcs(funcs).Parse(string(tt.content))
 	if err != nil {
@@ -140,4 +141,20 @@ func joinHandlers(handlers ...[]*spec.Handler) []*spec.Handler {
 // packageSuffix returns the last segment of the path of a package.
 func packageSuffix(pkgPath string) string {
 	return strings.TrimPrefix(pkgPath, filepath.Dir(pkgPath)+"/")
+}
+
+// testingT returns a name for the testing.T argument used in the test harness so that it doesn't clash
+// with any arguments or return values defined by the function.
+func testingT(sig *spec.Signature) string {
+	for _, arg := range sig.InputArgs {
+		if arg.Name == "t" {
+			return "testingT"
+		}
+	}
+	for _, arg := range sig.OutputArgs {
+		if arg.Name == "t" {
+			return "testingT"
+		}
+	}
+	return "t"
 }

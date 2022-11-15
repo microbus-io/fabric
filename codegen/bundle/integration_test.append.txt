@@ -1,14 +1,15 @@
 {{- $pkg := CapitalizeIdentifier .PackageSuffix }}
 {{- range (JoinHandlers .Functions .Sinks) }}
+{{- $t := TestingT .Signature }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	// ctx := Context()
 	{{- if .Signature.OutputArgs }}
-	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Expect(t {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }})
+	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }})
 	{{- end }}
 	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).NoError(t)
 	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Error(t, errContains)
-	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Assert(t, func(t *testing.T, {{ .Out }}) {})
+	// {{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).Assert(t, func({{ $t }} *testing.T, {{ .Out }}) {})
 }
 {{ end }}
 
