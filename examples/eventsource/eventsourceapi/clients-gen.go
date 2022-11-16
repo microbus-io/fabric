@@ -18,6 +18,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 )
 
 var (
@@ -26,10 +27,10 @@ var (
 	_ http.Request
 	_ strings.Reader
 	_ time.Duration
-
 	_ errors.TracedError
 	_ pub.Request
 	_ sub.Subscription
+	_ utils.BodyReader
 )
 
 // The default host name addressed by the clients is eventsource.example.
@@ -40,6 +41,8 @@ const HostName = "eventsource.example"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the eventsource.example microservice.
@@ -90,7 +93,7 @@ type MulticastTrigger struct {
 	host string
 }
 
-// NewMulticastTrigger creates a new multicast trigger to the eventsource.example microservice.
+// NewMulticastTrigger creates a new multicast trigger of the eventsource.example microservice.
 func NewMulticastTrigger(caller Service) *MulticastTrigger {
 	return &MulticastTrigger{
 		svc:  caller,
@@ -100,6 +103,26 @@ func NewMulticastTrigger(caller Service) *MulticastTrigger {
 
 // ForHost replaces the default host name of this trigger.
 func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
+	_c.host = host
+	return _c
+}
+
+// Hook assists in the subscription to the events of the eventsource.example microservice.
+type Hook struct {
+	svc  Service
+	host string
+}
+
+// NewHook creates a new hook to the events of the eventsource.example microservice.
+func NewHook(caller Service) *Hook {
+	return &Hook{
+		svc:  caller,
+		host: "eventsource.example",
+	}
+}
+
+// ForHost replaces the default host name of this hook.
+func (_c *Hook) ForHost(host string) *Hook {
 	_c.host = host
 	return _c
 }
@@ -283,6 +306,39 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 	return _res
 }
 
+/*
+OnAllowRegister is called before a user is allowed to register.
+Event sinks are given the opportunity to block the registration.
+*/
+func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) (allow bool, err error), options ...sub.Option) error {
+	doOnAllowRegister := func(w http.ResponseWriter, r *http.Request) error {
+		var i OnAllowRegisterIn
+		var o OnAllowRegisterOut
+		err := utils.ParseRequestData(r, &i)
+		if err!=nil {
+			return errors.Trace(err)
+		}
+		o.Allow, err = handler(
+			r.Context(),
+			i.Email,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(o)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	path := sub.JoinHostAndPath(_c.host, `:417/on-allow-register`)
+	if handler == nil {
+		return _c.svc.Unsubscribe(path)
+	}
+	return _c.svc.Subscribe(path, doOnAllowRegister, options...)
+}
+
 // OnRegisteredHandler is a handler of the OnRegistered event.
 type OnRegisteredHandler func (ctx context.Context, email string) (err error)
 
@@ -354,4 +410,36 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 		close(_res)
 	}()
 	return _res
+}
+
+/*
+OnRegistered is called when a user is successfully registered.
+*/
+func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (err error), options ...sub.Option) error {
+	doOnRegistered := func(w http.ResponseWriter, r *http.Request) error {
+		var i OnRegisteredIn
+		var o OnRegisteredOut
+		err := utils.ParseRequestData(r, &i)
+		if err!=nil {
+			return errors.Trace(err)
+		}
+		err = handler(
+			r.Context(),
+			i.Email,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(o)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	path := sub.JoinHostAndPath(_c.host, `:417/on-registered`)
+	if handler == nil {
+		return _c.svc.Unsubscribe(path)
+	}
+	return _c.svc.Subscribe(path, doOnRegistered, options...)
 }
