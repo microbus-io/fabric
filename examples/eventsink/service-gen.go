@@ -9,7 +9,6 @@ package eventsink
 
 import (
 	"github.com/microbus-io/fabric/examples/eventsink/intermediate"
-
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 )
 

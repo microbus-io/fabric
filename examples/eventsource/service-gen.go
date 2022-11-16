@@ -9,7 +9,6 @@ package eventsource
 
 import (
 	"github.com/microbus-io/fabric/examples/eventsource/intermediate"
-
 	"github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 )
 

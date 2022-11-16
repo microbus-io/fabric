@@ -204,7 +204,6 @@ func (gen *Generator) makeIntermediate() error {
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-gen.configs.txt",
 		"intermediate/intermediate-gen.functions.txt",
-		"intermediate/intermediate-gen.sinks.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)

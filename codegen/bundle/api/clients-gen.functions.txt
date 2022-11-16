@@ -1,12 +1,4 @@
-{{ range .Events }}
-// {{ .Name }}Handler is a handler of the {{ .Name }} event.
-type {{ .Name }}Handler func ({{ .In }}) ({{ .Out }})
-
-// {{ .Name }}Path is the URL path of the {{ .Name }} event.
-const {{ .Name }}Path = "{{ .Path }}"
-{{ end }}
-
-{{- range (JoinHandlers .Functions .Events) }}
+{{ range (JoinHandlers .Functions .Events) }}
 // {{ .Name }}In are the input arguments of {{ .Name }}.
 type {{ .Name }}In struct {
 	{{- range .Signature.InputArgs }}
@@ -124,5 +116,44 @@ func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 	{{ .Name }} = _out.{{ CapitalizeIdentifier .Name }}
 	{{- end }}
 	return
+}
+{{ end }}
+
+{{- range .Events }}
+/*
+{{ .Description }}
+*/
+func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub.Option) error {
+	do{{ .Name }} := func(w http.ResponseWriter, r *http.Request) error {
+		var i {{ .Name }}In
+		var o {{ .Name }}Out
+		err := utils.ParseRequestData(r, &i)
+		if err!=nil {
+			return errors.Trace(err)
+		}
+		{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = handler(
+			r.Context(),
+			{{- range .Signature.InputArgs }}
+			i.{{ CapitalizeIdentifier .Name }},
+			{{- end}}
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}
+		w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
+		{{- end}}{{- end}}
+		err = json.NewEncoder(w).Encode(o)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	path := sub.JoinHostAndPath(_c.host, `{{ .Path }}`)
+	if handler == nil {
+		return _c.svc.Unsubscribe(path)
+	}
+	return _c.svc.Subscribe(path, do{{ .Name }}, options...)
 }
 {{ end }}

@@ -20,6 +20,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 )
 
 var (
@@ -28,10 +29,10 @@ var (
 	_ http.Request
 	_ strings.Reader
 	_ time.Duration
-
 	_ errors.TracedError
 	_ pub.Request
 	_ sub.Subscription
+	_ utils.BodyReader
 )
 
 // The default host name addressed by the clients is {{ .General.Host }}.
@@ -42,6 +43,8 @@ const HostName = "{{ .General.Host }}"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the {{ .General.Host }} microservice.
@@ -94,7 +97,7 @@ type MulticastTrigger struct {
 	host string
 }
 
-// NewMulticastTrigger creates a new multicast trigger to the {{ .General.Host }} microservice.
+// NewMulticastTrigger creates a new multicast trigger of the {{ .General.Host }} microservice.
 func NewMulticastTrigger(caller Service) *MulticastTrigger {
 	return &MulticastTrigger{
 		svc:  caller,
@@ -104,6 +107,26 @@ func NewMulticastTrigger(caller Service) *MulticastTrigger {
 
 // ForHost replaces the default host name of this trigger.
 func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
+	_c.host = host
+	return _c
+}
+
+// Hook assists in the subscription to the events of the {{ .General.Host }} microservice.
+type Hook struct {
+	svc  Service
+	host string
+}
+
+// NewHook creates a new hook to the events of the {{ .General.Host }} microservice.
+func NewHook(caller Service) *Hook {
+	return &Hook{
+		svc:  caller,
+		host: "{{ .General.Host }}",
+	}
+}
+
+// ForHost replaces the default host name of this hook.
+func (_c *Hook) ForHost(host string) *Hook {
 	_c.host = host
 	return _c
 }
