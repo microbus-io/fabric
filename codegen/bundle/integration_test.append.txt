@@ -1,6 +1,6 @@
 {{- $pkg := CapitalizeIdentifier .PackageSuffix }}
 {{- range (JoinHandlers .Functions .Sinks) }}
-{{- $t := TestingT .Signature }}
+{{- $t := .Signature.TestingT }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()

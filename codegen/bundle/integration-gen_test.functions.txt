@@ -1,5 +1,5 @@
 {{ range (JoinHandlers .Functions .Sinks) }}
-{{- $t := TestingT .Signature }}
+{{- $t := .Signature.TestingT }}
 type {{ .Name }}TestCase struct {
 	Expect  func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }})
 	Error   func(t *testing.T, errContains string)

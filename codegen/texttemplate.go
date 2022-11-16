@@ -45,7 +45,6 @@ func (tt *TextTemplate) Execute(data any) ([]byte, error) {
 		"CapitalizeIdentifier": capitalizeIdentifier,
 		"JoinHandlers":         joinHandlers,
 		"PackageSuffix":        packageSuffix,
-		"TestingT":             testingT,
 	}
 	tmpl, err := template.New(tt.name).Funcs(funcs).Parse(string(tt.content))
 	if err != nil {

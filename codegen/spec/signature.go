@@ -104,3 +104,19 @@ func (sig *Signature) validate() error {
 	}
 	return nil
 }
+
+// TestingT returns "testingT" if "t" conflicts with an argument of the function.
+// Otherwise, "t" is returned.
+func (sig *Signature) TestingT() string {
+	for _, arg := range sig.InputArgs {
+		if arg.Name == "t" {
+			return "testingT"
+		}
+	}
+	for _, arg := range sig.OutputArgs {
+		if arg.Name == "t" {
+			return "testingT"
+		}
+	}
+	return "t"
+}
