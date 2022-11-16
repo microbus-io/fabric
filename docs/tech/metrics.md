@@ -39,3 +39,19 @@ See https://prometheus.io/docs/concepts/metric_types/ for details on the differe
 ```go
 /* TODO */
 ```
+
+## Local Setup
+
+To support and test Metrics when running locally, using a docker image is recommended. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) if not already installed and pull the latest Prometheus docker image.
+
+```cmd
+docker pull prom/prometheus
+```
+
+Make sure the metrics service are started and then start the prometheus container with the following command:
+
+```cmd
+docker run -p 9090:9090 -v path/to/github.com/microbus-io/fabric/examples/main/prometheus.yaml:/etc/prometheus/prometheus.yml prom/prometheus
+```
+
+The provided sample prometheus.yaml will scrape from the metrics service every 5 seconds. You can verify by navigating to http://localhost:9090/graph and executing `service_uptime_duration_seconds_total` in the query box. If successful, you should see the current uptime of the metrics service.
