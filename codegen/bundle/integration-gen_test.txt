@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/pub"
@@ -29,8 +30,10 @@ var (
 	_ io.Reader
 	_ http.Request
 	_ os.File
+	_ time.Time
 	_ pub.Option
 	_ utils.BodyReader
+	_ assert.TestingT
 	_ {{ .PackageSuffix }}api.Client
 )
 

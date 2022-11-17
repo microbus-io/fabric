@@ -34,6 +34,7 @@ The `general` section of `service.yaml` defines the `host` name of the microserv
 #
 # host - The host name of the microservice
 # description - A human-friendly description of the microservice
+# integrationTests - Whether or not to generate integration tests (defaults to true)
 general:
   host: email.communication.xyz
   description: The email service delivers emails to recipients.
@@ -132,7 +133,7 @@ Along with the host name of the service, the `path` defines the URL to this endp
 `events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. [Events](../tech/events.md) are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `OnUserDeleted(id string)` could be an event fired by a user management microservice.
 
 ```yaml
-# Events
+# Event sources
 #
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
@@ -161,8 +162,8 @@ The `signature` defines the event name (which must start with the word `On` foll
 #
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# event - The event name to handle (defaults to the function name)
-# source - A path to the microservice that is the source of the event
+# event - The name of the event at the source (defaults to the function name)
+# source - The package path of the microservice that is the source of the event
 # forHost - For an event source with an overridden host name
 # queue - The subscription queue
 #   default - Load balanced (default)
@@ -271,7 +272,8 @@ Complex types may contain other complex types in which case those nested types a
 # name - All non-primitive types used in functions must be accounted for
 # description - Documentation
 # define - Define a new type with the specified fields (name: type)
-# import - A path to another microservice that defines the type
+# import - The name of the imported type (defaults to the function name)
+# source - The package path of the microservice that defines the type
 types:
   - name:
     description:
@@ -280,6 +282,7 @@ types:
   - name:
     description:
     import:
+    source:
 ```
 
 ## Clients

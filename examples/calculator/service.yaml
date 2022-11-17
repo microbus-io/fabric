@@ -69,7 +69,7 @@ types:
       y: float64
   # - name: ImportedType
   #   description:
-  #   import: package/path/of/another/microservice
+  #   source: package/path/of/another/microservice
 
 # Web handlers
 #

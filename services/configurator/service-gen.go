@@ -9,7 +9,6 @@ package configurator
 
 import (
 	"github.com/microbus-io/fabric/services/configurator/intermediate"
-
 	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
 )
 

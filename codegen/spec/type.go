@@ -13,6 +13,7 @@ type Type struct {
 	Description string            `yaml:"description"`
 	Define      map[string]string `yaml:"define"`
 	Import      string            `yaml:"import"`
+	Source      string            `yaml:"source"`
 }
 
 // UnmarshalYAML parses the handler.
@@ -28,8 +29,11 @@ func (t *Type) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	// Post processing
 	ifEmpty := t.Name + " is a complex type."
-	if t.Import != "" {
-		ifEmpty = t.Name + " refers to " + t.Import + "/" + t.ImportSuffix() + "api."
+	if t.Source != "" {
+		if t.Import == "" {
+			t.Import = t.Name
+		}
+		ifEmpty = t.Name + " refers to " + t.Import + " at " + t.Source + "."
 	}
 	t.Description = conformDesc(
 		t.Description,
@@ -56,17 +60,17 @@ func (t *Type) validate() error {
 	if !match {
 		return errors.Newf("invalid type name '%s'", t.Name)
 	}
-	if t.Import == "" && len(t.Define) == 0 {
+	if t.Source == "" && len(t.Define) == 0 {
 		return errors.Newf("missing type specification '%s'", t.Name)
 	}
-	if t.Import != "" && len(t.Define) > 0 {
+	if t.Source != "" && len(t.Define) > 0 {
 		return errors.Newf("ambiguous type specification '%s'", t.Name)
 	}
 
-	if t.Import != "" {
-		match, _ = regexp.MatchString(`^[a-z][a-zA-Z0-9\.\-]*(/[a-z][a-zA-Z0-9\.\-]*)*$`, t.Import)
+	if t.Source != "" {
+		match, _ = regexp.MatchString(`^[a-z][a-zA-Z0-9\.\-]*(/[a-z][a-zA-Z0-9\.\-]*)*$`, t.Source)
 		if !match {
-			return errors.Newf("invalid import path '%s' in '%s'", t.Import, t.Name)
+			return errors.Newf("invalid import source path '%s' in '%s'", t.Source, t.Name)
 		}
 	}
 
@@ -84,12 +88,12 @@ func (t *Type) validate() error {
 	return nil
 }
 
-// ImportSuffix returns the last piece of the import package path,
+// SourceSuffix returns the last piece of the import package path,
 // which is expected to point to a microservice.
-func (t *Type) ImportSuffix() string {
-	p := strings.LastIndex(t.Import, "/")
+func (t *Type) SourceSuffix() string {
+	p := strings.LastIndex(t.Source, "/")
 	if p < 0 {
-		p = -1
+		return t.Source
 	}
-	return t.Import[p+1:]
+	return t.Source[p+1:]
 }

@@ -19,6 +19,6 @@ func main() {
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)
-		os.Exit(-1)
+		os.Exit(19)
 	}
 }

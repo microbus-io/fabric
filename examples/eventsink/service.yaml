@@ -129,4 +129,4 @@ types:
   #     fieldName: Type
   # - name: ImportedType
   #   description:
-  #   import: package/path/of/another/microservice
+  #   source: package/path/of/another/microservice

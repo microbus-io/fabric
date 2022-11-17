@@ -9,7 +9,6 @@ package httpingress
 
 import (
 	"github.com/microbus-io/fabric/services/httpingress/intermediate"
-
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
 )
 

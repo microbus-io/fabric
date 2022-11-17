@@ -20,6 +20,11 @@ func (gen *Generator) makeIntegration() error {
 	gen.Printer.Indent()
 	defer gen.Printer.Unindent()
 
+	if !gen.specs.General.IntegrationTests {
+		gen.Printer.Debug("Disabled in service.yaml")
+		return nil
+	}
+
 	// Fully qualify the types outside of the API directory
 	gen.specs.FullyQualifyTypes()
 

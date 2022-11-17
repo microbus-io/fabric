@@ -19,6 +19,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 )
 
 var (
@@ -27,10 +28,10 @@ var (
 	_ http.Request
 	_ strings.Reader
 	_ time.Duration
-
 	_ errors.TracedError
 	_ pub.Request
 	_ sub.Subscription
+	_ utils.BodyReader
 )
 
 // The default host name addressed by the clients is control.sys.
@@ -41,6 +42,8 @@ const HostName = "control.sys"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the control.sys microservice.
@@ -85,16 +88,16 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// PingIn are the input arguments of the Ping function.
+// PingIn are the input arguments of Ping.
 type PingIn struct {
 }
 
-// PingOut are the return values of the Ping function.
+// PingOut are the return values of Ping.
 type PingOut struct {
 	Pong int `json:"pong"`
 }
 
-// PingResponse is the response of the Ping function.
+// PingResponse is the response to Ping.
 type PingResponse struct {
 	data PingOut
 	HTTPResponse *http.Response
@@ -105,39 +108,6 @@ type PingResponse struct {
 func (_out *PingResponse) Get() (pong int, err error) {
 	pong = _out.data.Pong
 	err = _out.err
-	return
-}
-
-/*
-Ping responds to the message with a pong.
-*/
-func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
-	_in := PingIn{
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/ping`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out PingOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	pong = _out.Pong
 	return
 }
 
@@ -185,15 +155,15 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 	return _res
 }
 
-// ConfigRefreshIn are the input arguments of the ConfigRefresh function.
+// ConfigRefreshIn are the input arguments of ConfigRefresh.
 type ConfigRefreshIn struct {
 }
 
-// ConfigRefreshOut are the return values of the ConfigRefresh function.
+// ConfigRefreshOut are the return values of ConfigRefresh.
 type ConfigRefreshOut struct {
 }
 
-// ConfigRefreshResponse is the response of the ConfigRefresh function.
+// ConfigRefreshResponse is the response to ConfigRefresh.
 type ConfigRefreshResponse struct {
 	data ConfigRefreshOut
 	HTTPResponse *http.Response
@@ -203,38 +173,6 @@ type ConfigRefreshResponse struct {
 // Get retrieves the return values.
 func (_out *ConfigRefreshResponse) Get() (err error) {
 	err = _out.err
-	return
-}
-
-/*
-ConfigRefresh pulls the latest config values from the configurator service.
-*/
-func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
-	_in := ConfigRefreshIn{
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config-refresh`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out ConfigRefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
 	return
 }
 
@@ -280,4 +218,69 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 		close(_res)
 	}()
 	return _res
+}
+
+/*
+Ping responds to the message with a pong.
+*/
+func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
+	_in := PingIn{
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:888/ping`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out PingOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	pong = _out.Pong
+	return
+}
+
+/*
+ConfigRefresh pulls the latest config values from the configurator service.
+*/
+func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
+	_in := ConfigRefreshIn{
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config-refresh`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out ConfigRefreshOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	return
 }

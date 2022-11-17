@@ -10,7 +10,6 @@ package control
 
 import (
 	"github.com/microbus-io/fabric/services/control/intermediate"
-
 	"github.com/microbus-io/fabric/services/control/controlapi"
 )
 

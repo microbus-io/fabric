@@ -5,11 +5,11 @@ package {{ .PackageSuffix }}api
 import (
     "time"
 
-{{- if .ImportedTypes}}
-{{ end }}
-{{- range .ImportedTypes }}
-    "{{ .Import }}/{{ .ImportSuffix }}api"
-{{- end }}
+    {{- if .ImportedTypes}}
+    {{ end }}
+    {{- range .ImportedTypes }}
+    "{{ .Source }}/{{ .SourceSuffix }}api"
+    {{- end }}
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 /*
 {{ .Description }}
 */
-type {{ .Name }} = {{ .ImportSuffix }}api.{{ .Name }}
+type {{ .Name }} = {{ .SourceSuffix }}api.{{ .Import }}
 
 {{- end }}
 
