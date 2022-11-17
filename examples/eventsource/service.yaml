@@ -3,6 +3,7 @@
 #
 # host - The host name of the microservice
 # description - A human-friendly description of the microservice
+# integrationTests - Whether or not to generate integration tests (defaults to true)
 general:
   host: eventsource.example
   description: The event source microservice fires events that are caught by the event sink microservice.
@@ -104,7 +105,8 @@ tickers:
 # name - All non-primitive types used in functions must be accounted for
 # description - Documentation
 # define - Define a new type with the specified fields (name: type)
-# import - The package path of the microservice that defines the type
+# import - The name of the imported type (defaults to the function name)
+# source - The package path of the microservice that defines the type
 types:
   # - name: DefinedType
   #   description:

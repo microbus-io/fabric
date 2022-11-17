@@ -9,7 +9,6 @@ package messaging
 
 import (
 	"github.com/microbus-io/fabric/examples/messaging/intermediate"
-
 	"github.com/microbus-io/fabric/examples/messaging/messagingapi"
 )
 

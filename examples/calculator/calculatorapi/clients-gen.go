@@ -18,6 +18,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 )
 
 var (
@@ -26,10 +27,10 @@ var (
 	_ http.Request
 	_ strings.Reader
 	_ time.Duration
-
 	_ errors.TracedError
 	_ pub.Request
 	_ sub.Subscription
+	_ utils.BodyReader
 )
 
 // The default host name addressed by the clients is calculator.example.
@@ -40,6 +41,8 @@ const HostName = "calculator.example"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the calculator.example microservice.
