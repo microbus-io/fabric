@@ -126,8 +126,8 @@ func New(impl ToDo, version int) *Intermediate {
 	{{- if .Webs }}
 	
 	// Webs
-	{{- range .Webs}}
-	svc.Subscribe(`{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+	{{- range .Webs }}
+	svc.Subscribe(`{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
 	{{- end }}{{ end }}
 
 	{{- if .Sinks }}
@@ -137,8 +137,7 @@ func New(impl ToDo, version int) *Intermediate {
 	{{ .SourceSuffix }}api{{ $i }}.NewHook(svc).
 	{{- if .ForHost }}ForHost(`{{ .ForHost }}`).{{ end }}
 	{{- .Event }}(svc.impl.{{ .Name }}
-	{{- if eq .Queue "none"}}, sub.NoQueue(){{ end }}
-	{{- if eq .Queue "default"}}, sub.DefaultQueue(){{ end -}}
+	{{- if eq .Queue "none"}}, sub.NoQueue(){{ end -}}
 	)
 	{{- end }}{{ end }}
 

@@ -56,6 +56,9 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	h.Path = strings.Replace(h.Path, "...", utils.ToKebabCase(h.Name()), 1)
 	h.Queue = strings.ToLower(h.Queue)
+	if h.Queue == "" {
+		h.Queue = "default"
+	}
 
 	if h.Event == "" {
 		h.Event = h.Name()
@@ -71,7 +74,7 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // validate validates the data after unmarshaling.
 func (h *Handler) validate() error {
-	if h.Queue != "" && h.Queue != "default" && h.Queue != "none" {
+	if h.Queue != "default" && h.Queue != "none" {
 		return errors.Newf("invalid queue '%s' in '%s'", h.Queue, h.Name())
 	}
 	if strings.Contains(h.Path, "`") {
