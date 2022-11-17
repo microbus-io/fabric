@@ -20,8 +20,8 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/httpingress/resources"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
@@ -40,7 +40,7 @@ var (
 	_ cfg.Config
 	_ errors.TracedError
 	_ sub.Option
-	_ utils.ResponseRecorder
+	_ httpx.ResponseRecorder
 
 	_ httpingressapi.Client
 )

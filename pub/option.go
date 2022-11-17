@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -157,18 +158,18 @@ func Body(body any) Option {
 		case io.Reader:
 			req.Body = v
 		case []byte:
-			req.Body = utils.NewBodyReader(v)
+			req.Body = httpx.NewBodyReader(v)
 		case string:
-			req.Body = utils.NewBodyReader([]byte(v))
+			req.Body = httpx.NewBodyReader([]byte(v))
 		case url.Values:
-			req.Body = utils.NewBodyReader([]byte(v.Encode()))
+			req.Body = httpx.NewBodyReader([]byte(v.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		default:
 			j, err := json.Marshal(body)
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.Body = utils.NewBodyReader(j)
+			req.Body = httpx.NewBodyReader(j)
 			req.Header.Set("Content-Type", "application/json")
 		}
 		return nil

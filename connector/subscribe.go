@@ -13,9 +13,9 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
 
@@ -287,7 +287,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	httpReq = httpReq.WithContext(ctx)
 
 	// Call the handler
-	httpRecorder := utils.NewResponseRecorder()
+	httpRecorder := httpx.NewResponseRecorder()
 	handlerErr := c.doCallback(
 		ctx,
 		0,
@@ -301,7 +301,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	if handlerErr != nil {
 		// Prepare an error response instead
-		httpRecorder = utils.NewResponseRecorder()
+		httpRecorder = httpx.NewResponseRecorder()
 		httpRecorder.Header().Set("Content-Type", "application/json")
 		body, err := json.MarshalIndent(handlerErr, "", "\t")
 		if err != nil {

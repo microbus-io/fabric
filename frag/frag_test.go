@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/rand"
-	"github.com/microbus-io/fabric/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	body := []byte(rand.AlphaNum64(int(bodySize)))
 	var bodyReader io.Reader
 	if optimized {
-		bodyReader = utils.NewBodyReader(body)
+		bodyReader = httpx.NewBodyReader(body)
 	} else {
 		bodyReader = bytes.NewReader(body)
 	}
@@ -100,7 +100,7 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 
 	var res *http.Response
 	if optimized {
-		rec := utils.NewResponseRecorder()
+		rec := httpx.NewResponseRecorder()
 		rec.Header().Set("Foo", "Bar")
 		n, err := rec.Write(body)
 		assert.NoError(t, err)

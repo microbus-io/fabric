@@ -17,9 +17,9 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 	_ errors.TracedError
 	_ pub.Request
 	_ sub.Subscription
-	_ utils.BodyReader
+	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is control.sys.

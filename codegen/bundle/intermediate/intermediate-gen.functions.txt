@@ -3,7 +3,7 @@
 func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	var i {{ $shortPackage }}api.{{ .Name }}In
 	var o {{ $shortPackage }}api.{{ .Name }}Out
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

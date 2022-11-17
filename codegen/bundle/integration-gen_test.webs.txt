@@ -25,19 +25,19 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 	tc := &{{ .Name }}TestCase{
 		Expect: func(t *testing.T, statusCode int, bodyContains []byte) {
 			r := httpReq.WithContext(ctx)
-			w := utils.NewResponseRecorder()
+			w := httpx.NewResponseRecorder()
 			err := utils.CatchPanic(func () error {
 				return Svc.{{ .Name }}(w, r)
 			})
 			res := w.Result()
 			if assert.NoError(t, err) && assert.Equal(t, statusCode, res.StatusCode) {
-				body := res.Body.(*utils.BodyReader).Bytes()
+				body := res.Body.(*httpx.BodyReader).Bytes()
 				assert.Contains(t, body, bodyContains)
 			}
 		},
 		Error: func(t *testing.T, errContains string) {
 			r := httpReq.WithContext(ctx)
-			w := utils.NewResponseRecorder()
+			w := httpx.NewResponseRecorder()
 			err := utils.CatchPanic(func () error {
 				return Svc.{{ .Name }}(w, r)
 			})
@@ -47,7 +47,7 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 		},
 		NoError: func(t *testing.T, statusCode int) {
 			r := httpReq.WithContext(ctx)
-			w := utils.NewResponseRecorder()
+			w := httpx.NewResponseRecorder()
 			err := utils.CatchPanic(func () error {
 				return Svc.{{ .Name }}(w, r)
 			})
@@ -57,7 +57,7 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 		},
 		Assert: func(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
 			r := httpReq.WithContext(ctx)
-			w := utils.NewResponseRecorder()
+			w := httpx.NewResponseRecorder()
 			err := utils.CatchPanic(func () error {
 				return Svc.{{ .Name }}(w, r)
 			})

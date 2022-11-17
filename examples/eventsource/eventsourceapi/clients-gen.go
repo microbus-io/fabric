@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 )
 
 var (
@@ -30,7 +30,7 @@ var (
 	_ errors.TracedError
 	_ pub.Request
 	_ sub.Subscription
-	_ utils.BodyReader
+	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is eventsource.example.
@@ -375,7 +375,7 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 	doOnAllowRegister := func(w http.ResponseWriter, r *http.Request) error {
 		var i OnAllowRegisterIn
 		var o OnAllowRegisterOut
-		err := utils.ParseRequestData(r, &i)
+		err := httpx.ParseRequestData(r, &i)
 		if err!=nil {
 			return errors.Trace(err)
 		}
@@ -407,7 +407,7 @@ func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (er
 	doOnRegistered := func(w http.ResponseWriter, r *http.Request) error {
 		var i OnRegisteredIn
 		var o OnRegisteredOut
-		err := utils.ParseRequestData(r, &i)
+		err := httpx.ParseRequestData(r, &i)
 		if err!=nil {
 			return errors.Trace(err)
 		}

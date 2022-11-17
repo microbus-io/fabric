@@ -8,7 +8,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
-	"github.com/microbus-io/fabric/utils"
+	"github.com/microbus-io/fabric/httpx"
 )
 
 // FragResponse transforms an HTTP response into one or more fragments that do not exceed a given size.
@@ -27,7 +27,7 @@ func NewFragResponse(r *http.Response, fragmentSize int64) (*FragResponse, error
 
 	result := &FragResponse{origResponse: r}
 
-	if bodyReader, ok := (r.Body).(*utils.BodyReader); ok {
+	if bodyReader, ok := (r.Body).(*httpx.BodyReader); ok {
 		// BodyReader optimization
 		body := bodyReader.Bytes()
 		if len(body) <= int(fragmentSize) {
@@ -84,7 +84,7 @@ func (fr *FragResponse) Fragment(index int) (f *http.Response, err error) {
 	n := int64(len(body))
 
 	// Prepare the HTTP response
-	fragment := utils.NewResponseRecorder()
+	fragment := httpx.NewResponseRecorder()
 	for k, vv := range fr.origResponse.Header {
 		for _, v := range vv {
 			fragment.Header().Set(k, v)

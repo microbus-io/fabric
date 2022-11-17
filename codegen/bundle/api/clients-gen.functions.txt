@@ -127,7 +127,7 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 	do{{ .Name }} := func(w http.ResponseWriter, r *http.Request) error {
 		var i {{ .Name }}In
 		var o {{ .Name }}Out
-		err := utils.ParseRequestData(r, &i)
+		err := httpx.ParseRequestData(r, &i)
 		if err!=nil {
 			return errors.Trace(err)
 		}

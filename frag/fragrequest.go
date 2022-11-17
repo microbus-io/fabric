@@ -8,7 +8,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
-	"github.com/microbus-io/fabric/utils"
+	"github.com/microbus-io/fabric/httpx"
 )
 
 // FragRequest transforms an HTTP request into one or more fragments that do not exceed a given size.
@@ -27,7 +27,7 @@ func NewFragRequest(r *http.Request, fragmentSize int64) (*FragRequest, error) {
 
 	result := &FragRequest{origRequest: r}
 
-	if bodyReader, ok := (r.Body).(*utils.BodyReader); ok {
+	if bodyReader, ok := (r.Body).(*httpx.BodyReader); ok {
 		// BodyReader optimization
 		body := bodyReader.Bytes()
 		if len(body) <= int(fragmentSize) {

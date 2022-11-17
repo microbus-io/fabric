@@ -20,8 +20,8 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/configurator/resources"
 	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
@@ -40,7 +40,7 @@ var (
 	_ cfg.Config
 	_ errors.TracedError
 	_ sub.Option
-	_ utils.ResponseRecorder
+	_ httpx.ResponseRecorder
 
 	_ configuratorapi.Client
 )
@@ -113,7 +113,7 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.ValuesIn
 	var o configuratorapi.ValuesOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -136,7 +136,7 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.RefreshIn
 	var o configuratorapi.RefreshOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -158,7 +158,7 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.SyncIn
 	var o configuratorapi.SyncOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

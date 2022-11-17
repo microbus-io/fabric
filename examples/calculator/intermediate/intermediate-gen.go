@@ -20,8 +20,8 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/calculator/resources"
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
@@ -40,7 +40,7 @@ var (
 	_ cfg.Config
 	_ errors.TracedError
 	_ sub.Option
-	_ utils.ResponseRecorder
+	_ httpx.ResponseRecorder
 
 	_ calculatorapi.Client
 )
@@ -108,7 +108,7 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.ArithmeticIn
 	var o calculatorapi.ArithmeticOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -133,7 +133,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.SquareIn
 	var o calculatorapi.SquareOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -156,7 +156,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.DistanceIn
 	var o calculatorapi.DistanceOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

@@ -22,8 +22,8 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"{{ .Package }}/resources"
 	"{{ .Package }}/{{ .PackageSuffix }}api"
@@ -47,7 +47,7 @@ var (
 	_ cfg.Config
 	_ errors.TracedError
 	_ sub.Option
-	_ utils.ResponseRecorder
+	_ httpx.ResponseRecorder
 
 	_ {{ .PackageSuffix }}api.Client
 )

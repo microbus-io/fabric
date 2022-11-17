@@ -20,8 +20,8 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/eventsource/resources"
 	"github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
@@ -40,7 +40,7 @@ var (
 	_ cfg.Config
 	_ errors.TracedError
 	_ sub.Option
-	_ utils.ResponseRecorder
+	_ httpx.ResponseRecorder
 
 	_ eventsourceapi.Client
 )
@@ -104,7 +104,7 @@ func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
 func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) error {
 	var i eventsourceapi.RegisterIn
 	var o eventsourceapi.RegisterOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/services/configurator"
 	"github.com/microbus-io/fabric/utils"
@@ -31,8 +32,9 @@ var (
 	_ http.Request
 	_ os.File
 	_ time.Time
+	_ httpx.BodyReader
 	_ pub.Option
-	_ utils.BodyReader
+	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ {{ .PackageSuffix }}api.Client
 )
