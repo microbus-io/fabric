@@ -44,11 +44,23 @@ func (gen *Generator) makeIntegration() error {
 	}
 	delete(dependencies, gen.specs.Package+"/"+gen.specs.PackageSuffix()+"api")
 	gen.Printer.Indent()
-	gen.specs.Dependencies = []string{}
+
+	dedup := PkgDedup{}
 	for k := range dependencies {
 		k := filepath.Dir(k)
-		gen.Printer.Debug(k)
-		gen.specs.Dependencies = append(gen.specs.Dependencies, k)
+		dedup.Add(k)
+	}
+	for _, sink := range gen.specs.Sinks {
+		dedup.Add(sink.Source)
+	}
+
+	gen.specs.Dependencies = []*spec.Dependency{}
+	for pkg, alias := range dedup {
+		gen.Printer.Debug(pkg)
+		gen.specs.Dependencies = append(gen.specs.Dependencies, &spec.Dependency{
+			Package: pkg,
+			Alias:   alias,
+		})
 	}
 	gen.Printer.Unindent()
 
@@ -144,7 +156,7 @@ func (gen *Generator) makeIntegration() error {
 	}
 
 	// Add downstream services to app
-	if len(dependencies) > 0 {
+	if len(gen.specs.Dependencies) > 0 {
 		fileName = filepath.Join(gen.WorkDir, "integration_test.go")
 		body, err := os.ReadFile(fileName)
 		if err != nil {
@@ -158,7 +170,7 @@ func (gen *Generator) makeIntegration() error {
 				gen.Printer.Debug("Adding downstream services to app")
 				gen.Printer.Indent()
 				for _, dep := range gen.specs.Dependencies {
-					svcVarName := capitalizeIdentifier(packageSuffix(dep)) + "Svc"
+					svcVarName := capitalizeIdentifier(dep.Alias) + "Svc"
 					if !bytes.Contains(body[p:p+q], []byte(svcVarName)) {
 						insert.WriteString("\n\t\t")
 						insert.WriteString(svcVarName)

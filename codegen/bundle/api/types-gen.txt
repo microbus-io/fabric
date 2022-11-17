@@ -7,8 +7,8 @@ import (
 
     {{- if .ImportedTypes}}
     {{ end }}
-    {{- range .ImportedTypes }}
-    "{{ .Source }}/{{ .SourceSuffix }}api"
+    {{- range $i, $t := .ImportedTypes }}
+    {{ .SourceSuffix }}api{{ Add $i 1 }} "{{ .Source }}/{{ .SourceSuffix }}api"
     {{- end }}
 )
 
@@ -16,12 +16,12 @@ var (
     _ time.Duration
 )
 
-{{- range .ImportedTypes }}
+{{- range $i, $t := .ImportedTypes }}
 
 /*
 {{ .Description }}
 */
-type {{ .Name }} = {{ .SourceSuffix }}api.{{ .Import }}
+type {{ .Name }} = {{ .SourceSuffix }}api{{ Add $i 1 }}.{{ .Import }}
 
 {{- end }}
 

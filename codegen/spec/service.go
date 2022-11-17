@@ -1,7 +1,6 @@
 package spec
 
 import (
-	"path/filepath"
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
@@ -10,8 +9,8 @@ import (
 
 // Service is the spec of the microservice parsed from service.yaml.
 type Service struct {
-	Package      string   `yaml:"-"`
-	Dependencies []string `yaml:"-"`
+	Package      string        `yaml:"-"`
+	Dependencies []*Dependency `yaml:"-"`
 
 	General   General    `yaml:"general"`
 	Configs   []*Handler `yaml:"configs"`
@@ -41,6 +40,7 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
 	return nil
 }
 
@@ -172,7 +172,11 @@ func (s *Service) validate() error {
 
 // PackageSuffix returns only the last portion of the full package path.
 func (s *Service) PackageSuffix() string {
-	return strings.TrimPrefix(s.Package, filepath.Dir(s.Package)+"/")
+	p := strings.LastIndex(s.Package, "/")
+	if p < 0 {
+		return s.Package
+	}
+	return s.Package[p+1:]
 }
 
 // AllHandlers returns an array holding all handlers of all types.

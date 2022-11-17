@@ -20,7 +20,7 @@ import (
 
 	"{{ .Package }}/{{ .PackageSuffix }}api"
 	{{- range .Dependencies }}
-	"{{.}}"
+	{{ .Alias }} "{{ .Package }}"
 	{{- end }}
 )
 
@@ -45,8 +45,8 @@ var (
 	// Svc is the {{ .General.Host }} microservice being tested.
 	Svc *Service
 	{{- range .Dependencies }}
-	// {{ CapitalizeIdentifier (PackageSuffix .) }}Svc is a downstream dependency.
-	{{ CapitalizeIdentifier (PackageSuffix .) }}Svc *{{ PackageSuffix . }}.Service
+	// {{ CapitalizeIdentifier .Alias }}Svc is a downstream dependency.
+	{{ CapitalizeIdentifier .Alias }}Svc *{{ .Alias }}.Service
 	{{- end }}
 )
 
@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 		Configurator = configurator.NewService()
 		Svc = NewService()
 		{{- range .Dependencies }}
-		{{ CapitalizeIdentifier (PackageSuffix .) }}Svc = {{ PackageSuffix . }}.NewService()
+		{{ CapitalizeIdentifier .Alias }}Svc = {{ .Alias }}.NewService()
 		{{- end }}
 		err := Initialize()
 		if err != nil {

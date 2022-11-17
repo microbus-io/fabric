@@ -220,7 +220,7 @@ func (h *Handler) Out() string {
 func (h *Handler) SourceSuffix() string {
 	p := strings.LastIndex(h.Source, "/")
 	if p < 0 {
-		p = -1
+		return h.Source
 	}
 	return h.Source[p+1:]
 }

@@ -26,8 +26,8 @@ import (
 	"github.com/microbus-io/fabric/examples/eventsink/resources"
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 	
-	eventsourceapi0 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 	eventsourceapi1 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
+	eventsourceapi2 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 )
 
 var (
@@ -82,8 +82,8 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`:443/registered`, svc.doRegistered)
 	
 	// Sinks
-	eventsourceapi0.NewHook(svc).OnAllowRegister(svc.impl.OnAllowRegister)
-	eventsourceapi1.NewHook(svc).OnRegistered(svc.impl.OnRegistered)
+	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.impl.OnAllowRegister)
+	eventsourceapi2.NewHook(svc).OnRegistered(svc.impl.OnRegistered)
 
 	return svc
 }

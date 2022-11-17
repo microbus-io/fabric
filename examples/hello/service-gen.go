@@ -9,7 +9,6 @@ package hello
 
 import (
 	"github.com/microbus-io/fabric/examples/hello/intermediate"
-
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
 )
 
