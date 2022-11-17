@@ -1,13 +1,27 @@
-{{ range .Webs }}
+{{ $host := .General.Host }}{{ range .Webs }}
+// {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
-	Expect  func(t *testing.T, statusCode int, bodyContains []byte)
-	Error   func(t *testing.T, errContains string)
-	NoError func(t *testing.T, statusCode int)
-	Assert  func(t *testing.T, asserter func(t *testing.T, res *http.Response, err error))
+	res *http.Response
+	err error
+	
+	StatusOK     func(t *testing.T) *{{ .Name }}TestCase
+	StatusCode   func(t *testing.T, statusCode int) *{{ .Name }}TestCase
+	BodyContains func(t *testing.T, bodyContains any) *{{ .Name }}TestCase
+	Error        func(t *testing.T, errContains string) *{{ .Name }}TestCase
+	NoError      func(t *testing.T) *{{ .Name }}TestCase
 }
 
+// Get returns the result of executing {{ .Name }}.
+func (tc *{{ .Name }}TestCase) Get() (res *http.Response, err error) {
+	return tc.res, tc.err
+}
+
+// {{ .Name }} executes the web handler and returns a corresponding test case.
 func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase {
-	pubOptions := []pub.Option{pub.URL(`{{ .Path }}`)}
+	tc := &{{ .Name }}TestCase{}
+	pubOptions := []pub.Option{
+		pub.URL(httpx.JoinHostAndPath("{{ $host }}", `{{ .Path }}`)),
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
@@ -22,48 +36,48 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
 	}
-	tc := &{{ .Name }}TestCase{
-		Expect: func(t *testing.T, statusCode int, bodyContains []byte) {
-			r := httpReq.WithContext(ctx)
-			w := httpx.NewResponseRecorder()
-			err := utils.CatchPanic(func () error {
-				return Svc.{{ .Name }}(w, r)
-			})
-			res := w.Result()
-			if assert.NoError(t, err) && assert.Equal(t, statusCode, res.StatusCode) {
-				body := res.Body.(*httpx.BodyReader).Bytes()
-				assert.Contains(t, body, bodyContains)
+	r := httpReq.WithContext(ctx)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.{{ .Name }}(w, r)
+	})
+	tc.res = w.Result()
+	tc.StatusOK = func(t *testing.T) *{{ .Name }}TestCase {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
+		}
+		return tc
+	}
+	tc.StatusCode = func(t *testing.T, statusCode int) *{{ .Name }}TestCase {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, tc.res.StatusCode, statusCode)
+		}
+		return tc
+	}
+	tc.BodyContains = func(t *testing.T, bodyContains any) *{{ .Name }}TestCase {
+		if assert.NoError(t, tc.err) {
+			body := tc.res.Body.(*httpx.BodyReader).Bytes()
+			switch v := bodyContains.(type) {
+			case []byte:
+				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+			case string:
+				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+			default:
+				vv := fmt.Sprintf("%v", v)
+				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
 			}
-		},
-		Error: func(t *testing.T, errContains string) {
-			r := httpReq.WithContext(ctx)
-			w := httpx.NewResponseRecorder()
-			err := utils.CatchPanic(func () error {
-				return Svc.{{ .Name }}(w, r)
-			})
-			if assert.Error(t, err) {
-				assert.Contains(t, err.Error(), errContains)
-			}
-		},
-		NoError: func(t *testing.T, statusCode int) {
-			r := httpReq.WithContext(ctx)
-			w := httpx.NewResponseRecorder()
-			err := utils.CatchPanic(func () error {
-				return Svc.{{ .Name }}(w, r)
-			})
-			if assert.NoError(t, err) {
-				assert.Equal(t, statusCode, w.Result().StatusCode)
-			}
-		},
-		Assert: func(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
-			r := httpReq.WithContext(ctx)
-			w := httpx.NewResponseRecorder()
-			err := utils.CatchPanic(func () error {
-				return Svc.{{ .Name }}(w, r)
-			})
-			res := w.Result()
-			asserter(t, res, err)
-		},
+		}
+		return tc
+	}
+	tc.Error = func(t *testing.T, errContains string) *{{ .Name }}TestCase {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+		return tc
+	}
+	tc.NoError = func(t *testing.T) *{{ .Name }}TestCase {
+		assert.NoError(t, tc.err)
+		return tc
 	}
 	return tc
 }

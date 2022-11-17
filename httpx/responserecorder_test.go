@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUtils_ResponseRecorder(t *testing.T) {
+func TestHttpx_ResponseRecorder(t *testing.T) {
 	rr := NewResponseRecorder()
 
 	// Write once

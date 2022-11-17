@@ -29,9 +29,9 @@ var (
 	_ strings.Reader
 	_ time.Duration
 	_ errors.TracedError
+	_ httpx.BodyReader
 	_ pub.Request
 	_ sub.Subscription
-	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is control.sys.
@@ -127,7 +127,7 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/ping`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -192,7 +192,7 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config-refresh`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -235,7 +235,7 @@ func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/ping`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -268,7 +268,7 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:888/config-refresh`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)

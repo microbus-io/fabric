@@ -28,9 +28,9 @@ var (
 	_ strings.Reader
 	_ time.Duration
 	_ errors.TracedError
+	_ httpx.BodyReader
 	_ pub.Request
 	_ sub.Subscription
-	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is messaging.example.
@@ -93,7 +93,7 @@ Home demonstrates making requests using multicast and unicast request/response p
 func (_c *Client) Home(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/home`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/home`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -109,7 +109,7 @@ Home demonstrates making requests using multicast and unicast request/response p
 func (_c *MulticastClient) Home(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/home`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/home`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -123,7 +123,7 @@ All instances of this microservice will respond to each request.
 func (_c *Client) NoQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/no-queue`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/no-queue`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -141,7 +141,7 @@ All instances of this microservice will respond to each request.
 func (_c *MulticastClient) NoQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/no-queue`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/no-queue`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -155,7 +155,7 @@ Only one of the instances of this microservice will respond to each request.
 func (_c *Client) DefaultQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/default-queue`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/default-queue`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -173,7 +173,7 @@ Only one of the instances of this microservice will respond to each request.
 func (_c *MulticastClient) DefaultQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/default-queue`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/default-queue`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -185,7 +185,7 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 func (_c *Client) CacheLoad(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/cache-load`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-load`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -201,7 +201,7 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 func (_c *MulticastClient) CacheLoad(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/cache-load`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-load`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -213,7 +213,7 @@ CacheStore stores an element in the distributed cache of the microservice.
 func (_c *Client) CacheStore(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/cache-store`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-store`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -229,7 +229,7 @@ CacheStore stores an element in the distributed cache of the microservice.
 func (_c *MulticastClient) CacheStore(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/cache-store`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-store`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)

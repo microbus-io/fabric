@@ -7,7 +7,7 @@ import (
 
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -80,7 +80,7 @@ func (h *Handler) validate() error {
 	if strings.Contains(h.Path, "`") {
 		return errors.Newf("backquote not allowed in path '%s' in '%s'", h.Path, h.Name())
 	}
-	joined := sub.JoinHostAndPath("example.com", h.Path)
+	joined := httpx.JoinHostAndPath("example.com", h.Path)
 	_, err := utils.ParseURL(joined)
 	if err != nil {
 		return errors.Newf("invalid path '%s' in '%s'", h.Path, h.Name())

@@ -28,9 +28,9 @@ var (
 	_ strings.Reader
 	_ time.Duration
 	_ errors.TracedError
+	_ httpx.BodyReader
 	_ pub.Request
 	_ sub.Subscription
-	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is eventsink.example.
@@ -126,7 +126,7 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/registered`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -169,7 +169,7 @@ func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/registered`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)

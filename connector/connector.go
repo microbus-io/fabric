@@ -15,6 +15,7 @@ import (
 	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frag"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/rand"
@@ -325,7 +326,7 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, desc 
 	})
 	cancel()
 	if err != nil {
-		err = errors.Trace(err, sub.JoinHostAndPath(c.hostName, path))
+		err = errors.Trace(err, httpx.JoinHostAndPath(c.hostName, path))
 		c.LogError(ctx, desc, log.Error(err), log.String("path", path))
 	}
 	return err

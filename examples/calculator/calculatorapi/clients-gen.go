@@ -28,9 +28,9 @@ var (
 	_ strings.Reader
 	_ time.Duration
 	_ errors.TracedError
+	_ httpx.BodyReader
 	_ pub.Request
 	_ sub.Subscription
-	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is calculator.example.
@@ -138,7 +138,7 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/arithmetic`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -209,7 +209,7 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/square`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -281,7 +281,7 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/distance`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -327,7 +327,7 @@ func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEch
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/arithmetic`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -364,7 +364,7 @@ func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/square`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -401,7 +401,7 @@ func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, 
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/distance`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)

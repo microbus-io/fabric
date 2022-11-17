@@ -5,7 +5,7 @@
 func (_c *Client) {{ .Name }}(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -21,7 +21,7 @@ func (_c *Client) {{ .Name }}(ctx context.Context, options ...pub.Option) (res *
 func (_c *MulticastClient) {{ .Name }}(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)

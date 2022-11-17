@@ -3,6 +3,7 @@
 package {{ .PackageSuffix }}
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -26,6 +27,7 @@ import (
 )
 
 var (
+	_ bytes.Buffer
 	_ context.Context
 	_ fmt.Stringer
 	_ io.Reader

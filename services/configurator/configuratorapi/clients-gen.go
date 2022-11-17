@@ -28,9 +28,9 @@ var (
 	_ strings.Reader
 	_ time.Duration
 	_ errors.TracedError
+	_ httpx.BodyReader
 	_ pub.Request
 	_ sub.Subscription
-	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is configurator.sys.
@@ -128,7 +128,7 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/values`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -194,7 +194,7 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/refresh`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -263,7 +263,7 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/sync`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -307,7 +307,7 @@ func (_c *Client) Values(ctx context.Context, names []string) (values map[string
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/values`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -341,7 +341,7 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/refresh`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -375,7 +375,7 @@ func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[stri
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/sync`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)

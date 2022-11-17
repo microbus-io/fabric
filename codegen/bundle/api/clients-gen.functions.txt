@@ -50,7 +50,7 @@ func (_c *Multicast
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -98,7 +98,7 @@ func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -150,7 +150,7 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 		}
 		return nil
 	}
-	path := sub.JoinHostAndPath(_c.host, `{{ .Path }}`)
+	path := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
 	if handler == nil {
 		return _c.svc.Unsubscribe(path)
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUtils_BodyReader(t *testing.T) {
+func TestHttpx_BodyReader(t *testing.T) {
 	bin := []byte("Lorem Ipsum")
 	br := NewBodyReader(bin)
 	bout, err := io.ReadAll(br)

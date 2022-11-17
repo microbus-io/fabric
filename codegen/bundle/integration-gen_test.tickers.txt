@@ -1,25 +1,32 @@
 {{ range .Tickers }}
+// {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
-	Error   func(t *testing.T, errContains string)
-	NoError func(t *testing.T)
+	err error
+
+	Error   func(t *testing.T, errContains string) *{{ .Name }}TestCase
+	NoError func(t *testing.T) *{{ .Name }}TestCase
 }
 
+// Get returns the result of executing {{ .Name }}.
+func (tc *{{ .Name }}TestCase) Get() (err error) {
+	return tc.err
+}
+
+// {{ .Name }} executes the ticker and returns a corresponding test case.
 func {{ .Name }}(ctx context.Context) *{{ .Name }}TestCase {
-	tc := &{{ .Name }}TestCase{
-		Error: func(t *testing.T, errContains string) {
-			err := utils.CatchPanic(func () error {
-				return Svc.{{ .Name }}(ctx)
-			})
-			if assert.Error(t, err) {
-				assert.Contains(t, err.Error(), errContains)
-			}
-		},
-		NoError: func(t *testing.T) {
-			err := utils.CatchPanic(func () error {
-				return Svc.{{ .Name }}(ctx)
-			})
-			assert.NoError(t, err)
-		},
+	tc := &{{ .Name }}TestCase{}
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.{{ .Name }}(ctx)
+	})
+	tc.Error = func(t *testing.T, errContains string) *{{ .Name }}TestCase {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+		return tc
+	}
+	tc.NoError = func(t *testing.T) *{{ .Name }}TestCase {
+		assert.NoError(t, tc.err)
+		return tc
 	}
 	return tc
 }

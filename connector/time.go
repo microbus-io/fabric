@@ -70,7 +70,8 @@ func (c *Connector) runTickers() {
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *cb.Callback) {
 	if c.deployment == TESTINGAPP {
-		return // Tickers don't run during test suite execution
+		c.LogDebug(c.Lifetime(), "Ticker disabled while testing", log.String("name", job.Name))
+		return
 	}
 	c.tickersLock.Lock()
 	if job.Ticker == nil {

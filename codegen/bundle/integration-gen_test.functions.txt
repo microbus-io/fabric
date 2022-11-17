@@ -1,62 +1,53 @@
 {{ range (JoinHandlers .Functions .Sinks) }}
 {{- $t := .Signature.TestingT }}
+// {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
-	Expect  func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }})
-	Error   func(t *testing.T, errContains string)
-	NoError func(t *testing.T)
-	Assert  func(t *testing.T, asserter func({{ $t }} *testing.T, {{ .Out }}))
+	{{- range .Signature.OutputArgs }}
+	{{ .Name }} {{ .Type }}
+	{{- end }}
+	err error
+
+	Expect  func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase
+	Error   func(t *testing.T, errContains string) *{{ .Name }}TestCase
+	NoError func(t *testing.T) *{{ .Name }}TestCase
 }
 
+// Get returns the result of executing {{ .Name }}.
+func (tc *{{ .Name }}TestCase) Get() ({{ .Out }}) {
+	return {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err
+}
+
+// {{ .Name }} executes the function and returns a corresponding test case.
 func {{ .Name }}({{ .In }}) *{{ .Name }}TestCase {
-	tc := &{{ .Name }}TestCase{
-		Expect: func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, _{{ .Name }} {{ .Type }}{{ end }}) {
+	tc := &{{ .Name }}TestCase{}
+	tc.err = utils.CatchPanic(func() error {
+		{{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+		return tc.err
+	})
+	tc.Expect = func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
+		{{- if .Signature.OutputArgs }}
+		if assert.NoError({{ $t }}, tc.err) {
 			{{- range .Signature.OutputArgs }}
-			var {{ .Name }} {{ .Type }}
-			{{- end }}
-			var err error
-			err = utils.CatchPanic(func() error {
-				{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
-				return err
-			})
-			{{- if .Signature.OutputArgs }}
-			if assert.NoError({{ $t }}, err) {
-				{{- range .Signature.OutputArgs }}
-				assert.Equal({{ $t }}, _{{ .Name }}, {{ .Name }})
-				{{- end}}
-			}
+			{{- if eq .Type "time.Time" }}
+			assert.True({{ $t }}, {{ .Name }}.Equal(tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, tc.{{ .Name }})
 			{{- else }}
-			assert.NoError(t, err)
-			{{- end}}
-		},
-		Error: func({{ $t }} *testing.T, errContains string) {
-			var err error
-			err = utils.CatchPanic(func() error {
-				{{ range .Signature.OutputArgs }}_, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
-				return err
-			})
-			if assert.Error({{ $t }}, err) {
-				assert.Contains({{ $t }}, err.Error(), errContains)
-			}
-		},
-		NoError: func({{ $t }} *testing.T) {
-			var err error
-			err = utils.CatchPanic(func() error {
-				{{ range .Signature.OutputArgs }}_, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
-				return err
-			})
-			assert.NoError({{ $t }}, err)
-		},
-		Assert: func({{ $t }} *testing.T, asserter func({{ $t }} *testing.T, {{ .Out }})) {
-			{{- range .Signature.OutputArgs }}
-			var {{ .Name }} {{ .Type }}
-			{{- end }}
-			var err error
-			err = utils.CatchPanic(func() error {
-				{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
-				return err
-			})
-			asserter({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err)
-		},
+			assert.Equal({{ $t }}, {{ .Name }}, tc.{{ .Name }})
+			{{- end}}{{ end }}
+		}
+		{{- else }}
+		assert.NoError(t, tc.err)
+		{{- end}}
+		return tc
+	}
+	tc.Error = func({{ $t }} *testing.T, errContains string) *{{ .Name }}TestCase {
+		if assert.Error({{ $t }}, tc.err) {
+			assert.Contains({{ $t }}, tc.err.Error(), errContains)
+		}
+		return tc
+	}
+	tc.NoError = func({{ $t }} *testing.T) *{{ .Name }}TestCase {
+		assert.NoError({{ $t }}, tc.err)
+		return tc
 	}
 	return tc
 }

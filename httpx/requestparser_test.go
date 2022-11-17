@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUtils_RequestParserQueryArgs(t *testing.T) {
+func TestHttpx_RequestParserQueryArgs(t *testing.T) {
 	t.Parallel()
 
 	var data struct {
@@ -39,7 +39,7 @@ func TestUtils_RequestParserQueryArgs(t *testing.T) {
 	assert.Equal(t, "", data.E)
 }
 
-func TestUtils_RequestParserOverrideJSON(t *testing.T) {
+func TestHttpx_RequestParserOverrideJSON(t *testing.T) {
 	t.Parallel()
 
 	var data struct {
@@ -65,7 +65,7 @@ func TestUtils_RequestParserOverrideJSON(t *testing.T) {
 	assert.Equal(t, 1, data.Y)
 }
 
-func TestUtils_RequestParserOverrideFormData(t *testing.T) {
+func TestHttpx_RequestParserOverrideFormData(t *testing.T) {
 	t.Parallel()
 
 	var data struct {

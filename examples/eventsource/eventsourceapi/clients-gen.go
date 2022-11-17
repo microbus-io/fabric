@@ -28,9 +28,9 @@ var (
 	_ strings.Reader
 	_ time.Duration
 	_ errors.TracedError
+	_ httpx.BodyReader
 	_ pub.Request
 	_ sub.Subscription
-	_ httpx.BodyReader
 )
 
 // The default host name addressed by the clients is eventsource.example.
@@ -168,7 +168,7 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/register`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -238,7 +238,7 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -305,7 +305,7 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:417/on-registered`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -349,7 +349,7 @@ func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/register`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	)
@@ -393,7 +393,7 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 		}
 		return nil
 	}
-	path := sub.JoinHostAndPath(_c.host, `:417/on-allow-register`)
+	path := httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)
 	if handler == nil {
 		return _c.svc.Unsubscribe(path)
 	}
@@ -425,7 +425,7 @@ func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (er
 		}
 		return nil
 	}
-	path := sub.JoinHostAndPath(_c.host, `:417/on-registered`)
+	path := httpx.JoinHostAndPath(_c.host, `:417/on-registered`)
 	if handler == nil {
 		return _c.svc.Unsubscribe(path)
 	}
