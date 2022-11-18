@@ -8,11 +8,23 @@ The Hello microservice demonstrates the various capabilities of a microservice.
 package hello
 
 import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
 	"github.com/microbus-io/fabric/examples/hello/intermediate"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
 )
 
 var (
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ *connector.Connector
+	_ errors.TracedError
 	_ helloapi.Client
 )
 
@@ -44,4 +56,106 @@ With initializes the config properties of the microservice for testings purposes
 func (svc *Service) With(initializers ...Initializer) *Service {
 	svc.Intermediate.With(initializers...)
 	return svc
+}
+
+// Mockable is a mockable version of the hello.example microservice.
+type Mockable struct {
+	*Service
+
+    MockOnStartup func(ctx context.Context) (err error)
+    MockOnShutdown func(ctx context.Context) (err error)
+	MockHello func(w http.ResponseWriter, r *http.Request) (err error)
+	MockEcho func(w http.ResponseWriter, r *http.Request) (err error)
+	MockPing func(w http.ResponseWriter, r *http.Request) (err error)
+	MockCalculator func(w http.ResponseWriter, r *http.Request) (err error)
+	MockBusJPEG func(w http.ResponseWriter, r *http.Request) (err error)
+	MockTickTock func(ctx context.Context) (err error)
+}
+
+// NewMockable creates a new mockable version of the hello.example microservice.
+func NewMockable() *Mockable {
+	m := &Mockable{Service: &Service{}}
+	m.Intermediate = intermediate.New(m, Version)
+	return m
+}
+
+// OnStartup is called when the microservice is started up.
+func (m *Mockable) OnStartup(ctx context.Context) (err error) {
+	if m.Deployment() != connector.LOCAL && m.Deployment() != connector.TESTINGAPP {
+		return errors.Newf("mockable used in '%s' deployment", m.Deployment())
+	}
+    if m.MockOnStartup != nil {
+        return m.MockOnStartup(ctx)
+    }
+	return m.Service.OnStartup(ctx)
+}
+
+// OnShutdown is called when the microservice is shut down.
+func (m *Mockable) OnShutdown(ctx context.Context) (err error) {
+    if m.MockOnShutdown != nil {
+        return m.MockOnShutdown(ctx)
+    }
+	return m.Service.OnShutdown(ctx)
+}
+
+/*
+Hello prints a greeting.
+*/
+func (m *Mockable) Hello(w http.ResponseWriter, r *http.Request) (err error) {
+    if m.MockHello != nil {
+        return m.MockHello(w, r)
+    }
+	return m.Service.Hello(w, r)
+}
+
+/*
+Echo back the incoming request in wire format.
+*/
+func (m *Mockable) Echo(w http.ResponseWriter, r *http.Request) (err error) {
+    if m.MockEcho != nil {
+        return m.MockEcho(w, r)
+    }
+	return m.Service.Echo(w, r)
+}
+
+/*
+Ping all microservices and list them.
+*/
+func (m *Mockable) Ping(w http.ResponseWriter, r *http.Request) (err error) {
+    if m.MockPing != nil {
+        return m.MockPing(w, r)
+    }
+	return m.Service.Ping(w, r)
+}
+
+/*
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+*/
+func (m *Mockable) Calculator(w http.ResponseWriter, r *http.Request) (err error) {
+    if m.MockCalculator != nil {
+        return m.MockCalculator(w, r)
+    }
+	return m.Service.Calculator(w, r)
+}
+
+/*
+BusJPEG serves an image from the embedded resources.
+*/
+func (m *Mockable) BusJPEG(w http.ResponseWriter, r *http.Request) (err error) {
+    if m.MockBusJPEG != nil {
+        return m.MockBusJPEG(w, r)
+    }
+	return m.Service.BusJPEG(w, r)
+}
+
+/*
+TickTock is executed every 10 seconds.
+*/
+func (m *Mockable) TickTock(ctx context.Context) (err error) {
+    if m.MockTickTock != nil {
+        return m.MockTickTock(ctx)
+    }
+	return m.Service.TickTock(ctx)
 }

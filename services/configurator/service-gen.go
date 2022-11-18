@@ -8,11 +8,23 @@ The Configurator is a system microservice that centralizes the dissemination of 
 package configurator
 
 import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
 	"github.com/microbus-io/fabric/services/configurator/intermediate"
 	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
 )
 
 var (
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ *connector.Connector
+	_ errors.TracedError
 	_ configuratorapi.Client
 )
 
@@ -24,4 +36,84 @@ func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.New(s, Version)
 	return s
+}
+
+// Mockable is a mockable version of the configurator.sys microservice.
+type Mockable struct {
+	*Service
+
+    MockOnStartup func(ctx context.Context) (err error)
+    MockOnShutdown func(ctx context.Context) (err error)
+	MockValues func(ctx context.Context, names []string) (values map[string]string, err error)
+	MockRefresh func(ctx context.Context) (err error)
+	MockSync func(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error)
+	MockPeriodicRefresh func(ctx context.Context) (err error)
+}
+
+// NewMockable creates a new mockable version of the configurator.sys microservice.
+func NewMockable() *Mockable {
+	m := &Mockable{Service: &Service{}}
+	m.Intermediate = intermediate.New(m, Version)
+	return m
+}
+
+// OnStartup is called when the microservice is started up.
+func (m *Mockable) OnStartup(ctx context.Context) (err error) {
+	if m.Deployment() != connector.LOCAL && m.Deployment() != connector.TESTINGAPP {
+		return errors.Newf("mockable used in '%s' deployment", m.Deployment())
+	}
+    if m.MockOnStartup != nil {
+        return m.MockOnStartup(ctx)
+    }
+	return m.Service.OnStartup(ctx)
+}
+
+// OnShutdown is called when the microservice is shut down.
+func (m *Mockable) OnShutdown(ctx context.Context) (err error) {
+    if m.MockOnShutdown != nil {
+        return m.MockOnShutdown(ctx)
+    }
+	return m.Service.OnShutdown(ctx)
+}
+
+/*
+Values returns the values associated with the specified config property names for the caller microservice.
+*/
+func (m *Mockable) Values(ctx context.Context, names []string) (values map[string]string, err error) {
+    if m.MockValues != nil {
+        return m.MockValues(ctx, names)
+    }
+	return m.Service.Values(ctx, names)
+}
+
+/*
+Refresh tells all microservices to contact the configurator and refresh their configs.
+An error is returned if any of the values sent to the microservices fails validation.
+*/
+func (m *Mockable) Refresh(ctx context.Context) (err error) {
+    if m.MockRefresh != nil {
+        return m.MockRefresh(ctx)
+    }
+	return m.Service.Refresh(ctx)
+}
+
+/*
+Sync is used to synchronize values among replica peers of the configurator.
+*/
+func (m *Mockable) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
+    if m.MockSync != nil {
+        return m.MockSync(ctx, timestamp, values)
+    }
+	return m.Service.Sync(ctx, timestamp, values)
+}
+
+/*
+PeriodicRefresh tells all microservices to contact the configurator and refresh their configs.
+An error is returned if any of the values sent to the microservices fails validation.
+*/
+func (m *Mockable) PeriodicRefresh(ctx context.Context) (err error) {
+    if m.MockPeriodicRefresh != nil {
+        return m.MockPeriodicRefresh(ctx)
+    }
+	return m.Service.PeriodicRefresh(ctx)
 }

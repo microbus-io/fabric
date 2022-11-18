@@ -8,11 +8,23 @@ The event sink microservice handles events that are fired by the event source mi
 package eventsink
 
 import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
 	"github.com/microbus-io/fabric/examples/eventsink/intermediate"
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 )
 
 var (
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ *connector.Connector
+	_ errors.TracedError
 	_ eventsinkapi.Client
 )
 
@@ -25,3 +37,72 @@ func NewService() *Service {
 	s.Intermediate = intermediate.New(s, Version)
 	return s
 }
+
+// Mockable is a mockable version of the eventsink.example microservice.
+type Mockable struct {
+	*Service
+
+    MockOnStartup func(ctx context.Context) (err error)
+    MockOnShutdown func(ctx context.Context) (err error)
+	MockRegistered func(ctx context.Context) (emails []string, err error)
+	MockOnAllowRegister func(ctx context.Context, email string) (allow bool, err error)
+	MockOnRegistered func(ctx context.Context, email string) (err error)
+}
+
+// NewMockable creates a new mockable version of the eventsink.example microservice.
+func NewMockable() *Mockable {
+	m := &Mockable{Service: &Service{}}
+	m.Intermediate = intermediate.New(m, Version)
+	return m
+}
+
+// OnStartup is called when the microservice is started up.
+func (m *Mockable) OnStartup(ctx context.Context) (err error) {
+	if m.Deployment() != connector.LOCAL && m.Deployment() != connector.TESTINGAPP {
+		return errors.Newf("mockable used in '%s' deployment", m.Deployment())
+	}
+    if m.MockOnStartup != nil {
+        return m.MockOnStartup(ctx)
+    }
+	return m.Service.OnStartup(ctx)
+}
+
+// OnShutdown is called when the microservice is shut down.
+func (m *Mockable) OnShutdown(ctx context.Context) (err error) {
+    if m.MockOnShutdown != nil {
+        return m.MockOnShutdown(ctx)
+    }
+	return m.Service.OnShutdown(ctx)
+}
+
+/*
+Registered returns the list of registered users.
+*/
+func (m *Mockable) Registered(ctx context.Context) (emails []string, err error) {
+    if m.MockRegistered != nil {
+        return m.MockRegistered(ctx)
+    }
+	return m.Service.Registered(ctx)
+}
+
+/*
+OnAllowRegister blocks registrations from certain email providers
+as well as duplicate registrations.
+*/
+func (m *Mockable) OnAllowRegister(ctx context.Context, email string) (allow bool, err error) {
+    if m.MockOnAllowRegister != nil {
+        return m.MockOnAllowRegister(ctx, email)
+    }
+	return m.Service.OnAllowRegister(ctx, email)
+}
+
+/*
+OnRegistered keeps track of registrations.
+*/
+func (m *Mockable) OnRegistered(ctx context.Context, email string) (err error) {
+    if m.MockOnRegistered != nil {
+        return m.MockOnRegistered(ctx, email)
+    }
+	return m.Service.OnRegistered(ctx, email)
+}
+

@@ -115,7 +115,7 @@ func (c *Connector) Startup() (err error) {
 
 	// Validate that clock is not changed except for development purposes
 	if c.Deployment() != LOCAL && c.Deployment() != TESTINGAPP && c.clockSet {
-		err = errors.Newf("clock can't be changed in %s deployment", PROD)
+		err = errors.Newf("clock can't be changed in %s deployment", c.Deployment())
 		return err
 	}
 

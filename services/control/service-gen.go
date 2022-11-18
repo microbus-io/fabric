@@ -9,11 +9,23 @@ The microservice itself does nothing and should not be included in applications.
 package control
 
 import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
 	"github.com/microbus-io/fabric/services/control/intermediate"
 	"github.com/microbus-io/fabric/services/control/controlapi"
 )
 
 var (
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ *connector.Connector
+	_ errors.TracedError
 	_ controlapi.Client
 )
 
@@ -26,3 +38,60 @@ func NewService() *Service {
 	s.Intermediate = intermediate.New(s, Version)
 	return s
 }
+
+// Mockable is a mockable version of the control.sys microservice.
+type Mockable struct {
+	*Service
+
+    MockOnStartup func(ctx context.Context) (err error)
+    MockOnShutdown func(ctx context.Context) (err error)
+	MockPing func(ctx context.Context) (pong int, err error)
+	MockConfigRefresh func(ctx context.Context) (err error)
+}
+
+// NewMockable creates a new mockable version of the control.sys microservice.
+func NewMockable() *Mockable {
+	m := &Mockable{Service: &Service{}}
+	m.Intermediate = intermediate.New(m, Version)
+	return m
+}
+
+// OnStartup is called when the microservice is started up.
+func (m *Mockable) OnStartup(ctx context.Context) (err error) {
+	if m.Deployment() != connector.LOCAL && m.Deployment() != connector.TESTINGAPP {
+		return errors.Newf("mockable used in '%s' deployment", m.Deployment())
+	}
+    if m.MockOnStartup != nil {
+        return m.MockOnStartup(ctx)
+    }
+	return m.Service.OnStartup(ctx)
+}
+
+// OnShutdown is called when the microservice is shut down.
+func (m *Mockable) OnShutdown(ctx context.Context) (err error) {
+    if m.MockOnShutdown != nil {
+        return m.MockOnShutdown(ctx)
+    }
+	return m.Service.OnShutdown(ctx)
+}
+
+/*
+Ping responds to the message with a pong.
+*/
+func (m *Mockable) Ping(ctx context.Context) (pong int, err error) {
+    if m.MockPing != nil {
+        return m.MockPing(ctx)
+    }
+	return m.Service.Ping(ctx)
+}
+
+/*
+ConfigRefresh pulls the latest config values from the configurator service.
+*/
+func (m *Mockable) ConfigRefresh(ctx context.Context) (err error) {
+    if m.MockConfigRefresh != nil {
+        return m.MockConfigRefresh(ctx)
+    }
+	return m.Service.ConfigRefresh(ctx)
+}
+

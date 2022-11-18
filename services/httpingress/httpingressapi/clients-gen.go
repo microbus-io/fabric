@@ -23,14 +23,14 @@ import (
 
 var (
 	_ context.Context
-	_ json.Decoder
-	_ http.Request
+	_ *json.Decoder
+	_ *http.Request
 	_ strings.Reader
 	_ time.Duration
-	_ errors.TracedError
-	_ pub.Request
-	_ sub.Subscription
-	_ httpx.BodyReader
+	_ *errors.TracedError
+	_ *httpx.BodyReader
+	_ pub.Option
+	_ sub.Option
 )
 
 // The default host name addressed by the clients is http.ingress.sys.

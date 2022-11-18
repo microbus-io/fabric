@@ -4,11 +4,12 @@ type {{ .Name }}TestCase struct {
 	res *http.Response
 	err error
 	
-	StatusOK     func(t *testing.T) *{{ .Name }}TestCase
-	StatusCode   func(t *testing.T, statusCode int) *{{ .Name }}TestCase
-	BodyContains func(t *testing.T, bodyContains any) *{{ .Name }}TestCase
-	Error        func(t *testing.T, errContains string) *{{ .Name }}TestCase
-	NoError      func(t *testing.T) *{{ .Name }}TestCase
+	StatusOK        func(t *testing.T) *{{ .Name }}TestCase
+	StatusCode      func(t *testing.T, statusCode int) *{{ .Name }}TestCase
+	BodyContains    func(t *testing.T, bodyContains any) *{{ .Name }}TestCase
+	BodyNotContains func(t *testing.T, bodyNotContains any) *{{ .Name }}TestCase
+	Error           func(t *testing.T, errContains string) *{{ .Name }}TestCase
+	NoError         func(t *testing.T) *{{ .Name }}TestCase
 }
 
 // Get returns the result of executing {{ .Name }}.
@@ -65,6 +66,21 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 			default:
 				vv := fmt.Sprintf("%v", v)
 				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
+			}
+		}
+		return tc
+	}
+	tc.BodyNotContains = func(t *testing.T, bodyNotContains any) *{{ .Name }}TestCase {
+		if assert.NoError(t, tc.err) {
+			body := tc.res.Body.(*httpx.BodyReader).Bytes()
+			switch v := bodyNotContains.(type) {
+			case []byte:
+				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+			case string:
+				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+			default:
+				vv := fmt.Sprintf("%v", v)
+				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 			}
 		}
 		return tc

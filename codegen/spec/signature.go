@@ -92,6 +92,9 @@ func (sig *Signature) validate() error {
 	if !utils.IsUpperCaseIdentifier(sig.Name) {
 		return errors.Newf("handler '%s' must start with uppercase in '%s'", sig.Name, sig.OrigString)
 	}
+	if strings.HasPrefix(sig.Name, "Mock") {
+		return errors.Newf("handler '%s' must not start with 'Mock' in '%s'", sig.Name, sig.OrigString)
+	}
 
 	allArgs := []*Argument{}
 	allArgs = append(allArgs, sig.InputArgs...)

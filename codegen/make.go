@@ -215,7 +215,7 @@ func (gen *Generator) makeIntermediate() error {
 		return errors.Trace(err)
 	}
 
-	// intermediate.go
+	// intermediate-gen.go
 	fileName := filepath.Join(gen.WorkDir, "intermediate", "intermediate-gen.go")
 	tt, err := LoadTemplate(
 		"intermediate/intermediate-gen.txt",
@@ -373,7 +373,10 @@ func (gen *Generator) makeImplementation() error {
 
 	// Overwrite service-gen.go
 	fileName := filepath.Join(gen.WorkDir, "service-gen.go")
-	tt, err := LoadTemplate("service-gen.txt")
+	tt, err := LoadTemplate(
+		"service-gen.txt",
+		"service-gen.mockable.txt",
+	)
 	if err != nil {
 		return errors.Trace(err)
 	}

@@ -10,12 +10,24 @@ Package {{ .PackageSuffix }} implements the {{ .General.Host }} microservice.
 package {{ .PackageSuffix }}
 
 import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
 	"{{ .Package }}/intermediate"
 	"{{ .Package }}/{{ .PackageSuffix }}api"
 )
 
 var (
-	_ {{ .PackageSuffix }}api.Client
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ *connector.Connector
+	_ *errors.TracedError
+	_ *{{ .PackageSuffix }}api.Client
 )
 
 // The default host name of the microservice is {{ .General.Host }}.

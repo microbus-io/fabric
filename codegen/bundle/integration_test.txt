@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	_ testing.T
+	_ *testing.T
 	_ assert.TestingT
-	_ {{ .PackageSuffix }}api.Client
+	_ *{{ .PackageSuffix }}api.Client
 )
 
 // Initialize starts up the testing app.
@@ -20,7 +20,7 @@ func Initialize() error {
 	
 	// Include all downstream microservices in the testing app.
 	// Use .With(options) to initialize microservices with appropriate config values.
-	// Downstream microservices are detected and added automatically. Comment them out if unneeded.
+	// Mockable versions of downstream microservices are automatically added. Comment them out if unneeded.
 	App.Include(
 		Configurator,
 		Svc.With(),

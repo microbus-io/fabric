@@ -12,9 +12,9 @@ import (
 
 var (
 	_ context.Context
-	_ http.Request
-	_ errors.TracedError
-	_ {{ .PackageSuffix }}api.Client
+	_ *http.Request
+	_ *errors.TracedError
+	_ *{{ .PackageSuffix }}api.Client
 )
 
 /*

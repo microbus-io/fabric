@@ -36,18 +36,18 @@ import (
 
 var (
 	_ context.Context
-	_ embed.FS
-	_ json.Decoder
+	_ *embed.FS
+	_ *json.Decoder
 	_ fmt.Stringer
-	_ http.Request
+	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
 
-	_ cb.Callback
-	_ cfg.Config
-	_ errors.TracedError
+	_ cb.Option
+	_ cfg.Option
+	_ *errors.TracedError
 	_ sub.Option
-	_ httpx.ResponseRecorder
+	_ *httpx.ResponseRecorder
 
 	_ {{ .PackageSuffix }}api.Client
 )
@@ -62,16 +62,12 @@ type ToDo interface {
 	OnChanged{{ .Name }}(ctx context.Context) (err error)
 	{{- end}}{{- end}}
 
-	{{- range .Functions}}
+	{{- range (JoinHandlers .Functions .Sinks)}}
 	{{ .Name }}({{ .In }}) ({{ .Out }})
 	{{- end}}
 
 	{{- range .Webs}}
 	{{ .Name }}(w http.ResponseWriter, r *http.Request) (err error)
-	{{- end}}
-
-	{{- range .Sinks}}
-	{{ .Name }}({{ .In }}) ({{ .Out }})
 	{{- end}}
 
 	{{- range .Tickers}}

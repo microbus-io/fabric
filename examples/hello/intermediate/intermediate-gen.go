@@ -29,18 +29,18 @@ import (
 
 var (
 	_ context.Context
-	_ embed.FS
-	_ json.Decoder
+	_ *embed.FS
+	_ *json.Decoder
 	_ fmt.Stringer
-	_ http.Request
+	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
 
-	_ cb.Callback
-	_ cfg.Config
-	_ errors.TracedError
+	_ cb.Option
+	_ cfg.Option
+	_ *errors.TracedError
 	_ sub.Option
-	_ httpx.ResponseRecorder
+	_ *httpx.ResponseRecorder
 
 	_ helloapi.Client
 )
@@ -110,7 +110,7 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is fired when the config of the microservice changed.
+// doOnConfigChanged is called when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	return nil
 }

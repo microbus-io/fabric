@@ -8,11 +8,23 @@ The Calculator microservice performs simple mathematical operations.
 package calculator
 
 import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
 	"github.com/microbus-io/fabric/examples/calculator/intermediate"
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
 )
 
 var (
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ *connector.Connector
+	_ errors.TracedError
 	_ calculatorapi.Client
 )
 
@@ -25,3 +37,72 @@ func NewService() *Service {
 	s.Intermediate = intermediate.New(s, Version)
 	return s
 }
+
+// Mockable is a mockable version of the calculator.example microservice.
+type Mockable struct {
+	*Service
+
+    MockOnStartup func(ctx context.Context) (err error)
+    MockOnShutdown func(ctx context.Context) (err error)
+	MockArithmetic func(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error)
+	MockSquare func(ctx context.Context, x int) (xEcho int, result int, err error)
+	MockDistance func(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error)
+}
+
+// NewMockable creates a new mockable version of the calculator.example microservice.
+func NewMockable() *Mockable {
+	m := &Mockable{Service: &Service{}}
+	m.Intermediate = intermediate.New(m, Version)
+	return m
+}
+
+// OnStartup is called when the microservice is started up.
+func (m *Mockable) OnStartup(ctx context.Context) (err error) {
+	if m.Deployment() != connector.LOCAL && m.Deployment() != connector.TESTINGAPP {
+		return errors.Newf("mockable used in '%s' deployment", m.Deployment())
+	}
+    if m.MockOnStartup != nil {
+        return m.MockOnStartup(ctx)
+    }
+	return m.Service.OnStartup(ctx)
+}
+
+// OnShutdown is called when the microservice is shut down.
+func (m *Mockable) OnShutdown(ctx context.Context) (err error) {
+    if m.MockOnShutdown != nil {
+        return m.MockOnShutdown(ctx)
+    }
+	return m.Service.OnShutdown(ctx)
+}
+
+/*
+Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
+*/
+func (m *Mockable) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
+    if m.MockArithmetic != nil {
+        return m.MockArithmetic(ctx, x, op, y)
+    }
+	return m.Service.Arithmetic(ctx, x, op, y)
+}
+
+/*
+Square prints the square of the integer x.
+*/
+func (m *Mockable) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
+    if m.MockSquare != nil {
+        return m.MockSquare(ctx, x)
+    }
+	return m.Service.Square(ctx, x)
+}
+
+/*
+Distance calculates the distance between two points.
+It demonstrates the use of the defined type Point.
+*/
+func (m *Mockable) Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error) {
+    if m.MockDistance != nil {
+        return m.MockDistance(ctx, p1, p2)
+    }
+	return m.Service.Distance(ctx, p1, p2)
+}
+
