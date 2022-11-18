@@ -24,8 +24,8 @@ var (
 	_ *http.Request
 	_ time.Duration
 	_ *connector.Connector
-	_ errors.TracedError
-	_ eventsourceapi.Client
+	_ *errors.TracedError
+	_ *eventsourceapi.Client
 )
 
 // The default host name of the microservice is eventsource.example.
@@ -37,49 +37,3 @@ func NewService() *Service {
 	s.Intermediate = intermediate.New(s, Version)
 	return s
 }
-
-// Mockable is a mockable version of the eventsource.example microservice.
-type Mockable struct {
-	*Service
-
-    MockOnStartup func(ctx context.Context) (err error)
-    MockOnShutdown func(ctx context.Context) (err error)
-	MockRegister func(ctx context.Context, email string) (allowed bool, err error)
-}
-
-// NewMockable creates a new mockable version of the eventsource.example microservice.
-func NewMockable() *Mockable {
-	m := &Mockable{Service: &Service{}}
-	m.Intermediate = intermediate.New(m, Version)
-	return m
-}
-
-// OnStartup is called when the microservice is started up.
-func (m *Mockable) OnStartup(ctx context.Context) (err error) {
-	if m.Deployment() != connector.LOCAL && m.Deployment() != connector.TESTINGAPP {
-		return errors.Newf("mockable used in '%s' deployment", m.Deployment())
-	}
-    if m.MockOnStartup != nil {
-        return m.MockOnStartup(ctx)
-    }
-	return m.Service.OnStartup(ctx)
-}
-
-// OnShutdown is called when the microservice is shut down.
-func (m *Mockable) OnShutdown(ctx context.Context) (err error) {
-    if m.MockOnShutdown != nil {
-        return m.MockOnShutdown(ctx)
-    }
-	return m.Service.OnShutdown(ctx)
-}
-
-/*
-Register attempts to register a new user.
-*/
-func (m *Mockable) Register(ctx context.Context, email string) (allowed bool, err error) {
-    if m.MockRegister != nil {
-        return m.MockRegister(ctx, email)
-    }
-	return m.Service.Register(ctx, email)
-}
-

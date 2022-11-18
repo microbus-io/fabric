@@ -298,10 +298,7 @@ func (gen *Generator) makeImplementation() error {
 
 	// Overwrite service-gen.go
 	fileName := filepath.Join(gen.WorkDir, "service-gen.go")
-	tt, err := LoadTemplate(
-		"service-gen.txt",
-		"service-gen.mockable.txt",
-	)
+	tt, err := LoadTemplate("service-gen.txt")
 	if err != nil {
 		return errors.Trace(err)
 	}

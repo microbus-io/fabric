@@ -24,8 +24,8 @@ var (
 	_ *http.Request
 	_ time.Duration
 	_ *connector.Connector
-	_ errors.TracedError
-	_ messagingapi.Client
+	_ *errors.TracedError
+	_ *messagingapi.Client
 )
 
 // The default host name of the microservice is messaging.example.
@@ -37,97 +37,3 @@ func NewService() *Service {
 	s.Intermediate = intermediate.New(s, Version)
 	return s
 }
-
-// Mockable is a mockable version of the messaging.example microservice.
-type Mockable struct {
-	*Service
-
-    MockOnStartup func(ctx context.Context) (err error)
-    MockOnShutdown func(ctx context.Context) (err error)
-	MockHome func(w http.ResponseWriter, r *http.Request) (err error)
-	MockNoQueue func(w http.ResponseWriter, r *http.Request) (err error)
-	MockDefaultQueue func(w http.ResponseWriter, r *http.Request) (err error)
-	MockCacheLoad func(w http.ResponseWriter, r *http.Request) (err error)
-	MockCacheStore func(w http.ResponseWriter, r *http.Request) (err error)
-}
-
-// NewMockable creates a new mockable version of the messaging.example microservice.
-func NewMockable() *Mockable {
-	m := &Mockable{Service: &Service{}}
-	m.Intermediate = intermediate.New(m, Version)
-	return m
-}
-
-// OnStartup is called when the microservice is started up.
-func (m *Mockable) OnStartup(ctx context.Context) (err error) {
-	if m.Deployment() != connector.LOCAL && m.Deployment() != connector.TESTINGAPP {
-		return errors.Newf("mockable used in '%s' deployment", m.Deployment())
-	}
-    if m.MockOnStartup != nil {
-        return m.MockOnStartup(ctx)
-    }
-	return m.Service.OnStartup(ctx)
-}
-
-// OnShutdown is called when the microservice is shut down.
-func (m *Mockable) OnShutdown(ctx context.Context) (err error) {
-    if m.MockOnShutdown != nil {
-        return m.MockOnShutdown(ctx)
-    }
-	return m.Service.OnShutdown(ctx)
-}
-
-/*
-Home demonstrates making requests using multicast and unicast request/response patterns.
-*/
-func (m *Mockable) Home(w http.ResponseWriter, r *http.Request) (err error) {
-    if m.MockHome != nil {
-        return m.MockHome(w, r)
-    }
-	return m.Service.Home(w, r)
-}
-
-/*
-NoQueue demonstrates how the NoQueue subscription option is used to create
-a multicast request/response communication pattern.
-All instances of this microservice will respond to each request.
-*/
-func (m *Mockable) NoQueue(w http.ResponseWriter, r *http.Request) (err error) {
-    if m.MockNoQueue != nil {
-        return m.MockNoQueue(w, r)
-    }
-	return m.Service.NoQueue(w, r)
-}
-
-/*
-DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
-a unicast request/response communication pattern.
-Only one of the instances of this microservice will respond to each request.
-*/
-func (m *Mockable) DefaultQueue(w http.ResponseWriter, r *http.Request) (err error) {
-    if m.MockDefaultQueue != nil {
-        return m.MockDefaultQueue(w, r)
-    }
-	return m.Service.DefaultQueue(w, r)
-}
-
-/*
-CacheLoad looks up an element in the distributed cache of the microservice.
-*/
-func (m *Mockable) CacheLoad(w http.ResponseWriter, r *http.Request) (err error) {
-    if m.MockCacheLoad != nil {
-        return m.MockCacheLoad(w, r)
-    }
-	return m.Service.CacheLoad(w, r)
-}
-
-/*
-CacheStore stores an element in the distributed cache of the microservice.
-*/
-func (m *Mockable) CacheStore(w http.ResponseWriter, r *http.Request) (err error) {
-    if m.MockCacheStore != nil {
-        return m.MockCacheStore(w, r)
-    }
-	return m.Service.CacheStore(w, r)
-}
-
