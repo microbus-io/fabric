@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -27,42 +26,6 @@ func (gen *Generator) makeIntegration() error {
 
 	// Fully qualify the types outside of the API directory
 	gen.specs.FullyQualifyTypes()
-
-	// Scan .go files for use of clients of downstream services
-	gen.Printer.Debug("Scanning for downstream dependencies")
-	dependencies, err := scanFiles(
-		gen.WorkDir,
-		func(file fs.DirEntry) bool {
-			return strings.HasSuffix(file.Name(), ".go") &&
-				!strings.HasSuffix(file.Name(), "_test.go") &&
-				!strings.HasSuffix(file.Name(), "-gen.go")
-		},
-		`\s+"([a-z0-9\.\/\-]+api)"`, // "xxx.com/yyy-io/zzzapi"
-	)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	delete(dependencies, gen.specs.Package+"/"+gen.specs.PackageSuffix()+"api")
-	gen.Printer.Indent()
-
-	dedup := PkgDedup{}
-	for k := range dependencies {
-		k := filepath.Dir(k)
-		dedup.Add(k)
-	}
-	for _, sink := range gen.specs.Sinks {
-		dedup.Add(sink.Source)
-	}
-
-	gen.specs.Dependencies = []*spec.Dependency{}
-	for pkg, alias := range dedup {
-		gen.Printer.Debug(pkg)
-		gen.specs.Dependencies = append(gen.specs.Dependencies, &spec.Dependency{
-			Package: pkg,
-			Alias:   alias,
-		})
-	}
-	gen.Printer.Unindent()
 
 	// integration-gen_test.go
 	fileName := filepath.Join(gen.WorkDir, "integration-gen_test.go")
@@ -153,44 +116,6 @@ func (gen *Generator) makeIntegration() error {
 			}
 		}
 		gen.Printer.Unindent()
-	}
-
-	// Add downstream services to app
-	if len(gen.specs.Dependencies) > 0 {
-		fileName = filepath.Join(gen.WorkDir, "integration_test.go")
-		body, err := os.ReadFile(fileName)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		p := bytes.Index(body, []byte("\n\tApp.Include(\n"))
-		if p > 0 {
-			var insert bytes.Buffer
-			q := bytes.Index(body[p:], []byte("\n\t)\n"))
-			if q > 0 {
-				gen.Printer.Debug("Adding downstream services to app")
-				gen.Printer.Indent()
-				for _, dep := range gen.specs.Dependencies {
-					svcVarName := capitalizeIdentifier(dep.Alias) + "Svc"
-					if !bytes.Contains(body[p:p+q], []byte(svcVarName)) {
-						insert.WriteString("\n\t\t")
-						insert.WriteString(svcVarName)
-						insert.WriteString(".With(),")
-						gen.Printer.Debug("%s", svcVarName)
-					}
-				}
-				gen.Printer.Unindent()
-				if insert.Len() > 0 {
-					var newBody bytes.Buffer
-					newBody.Write(body[:p+q])
-					newBody.Write(insert.Bytes())
-					newBody.Write(body[p+q:])
-					err := os.WriteFile(fileName, newBody.Bytes(), 0666)
-					if err != nil {
-						return errors.Trace(err)
-					}
-				}
-			}
-		}
 	}
 
 	return nil

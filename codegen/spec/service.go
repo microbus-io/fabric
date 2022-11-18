@@ -9,8 +9,7 @@ import (
 
 // Service is the spec of the microservice parsed from service.yaml.
 type Service struct {
-	Package      string        `yaml:"-"`
-	Dependencies []*Dependency `yaml:"-"`
+	Package string `yaml:"-"`
 
 	General   General    `yaml:"general"`
 	Configs   []*Handler `yaml:"configs"`

@@ -21,9 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"{{ .Package }}/{{ .PackageSuffix }}api"
-	{{- range .Dependencies }}
-	{{ .Alias }} "{{ .Package }}"
-	{{- end }}
 )
 
 var (
@@ -48,10 +45,6 @@ var (
 	Configurator *configurator.Mockable
 	// Svc is the {{ .General.Host }} microservice being tested.
 	Svc *Mockable
-	{{- range .Dependencies }}
-	// {{ CapitalizeIdentifier .Alias }}Svc is a downstream dependency.
-	{{ CapitalizeIdentifier .Alias }}Svc *{{ .Alias }}.Mockable
-	{{- end }}
 )
 
 func TestMain(m *testing.M) {
@@ -62,9 +55,6 @@ func TestMain(m *testing.M) {
 		App = application.NewTesting()
 		Configurator = configurator.NewMockable()
 		Svc = NewMockable()
-		{{- range .Dependencies }}
-		{{ CapitalizeIdentifier .Alias }}Svc = {{ .Alias }}.NewMockable()
-		{{- end }}
 		err := Initialize()
 		if err != nil {
 			return err
