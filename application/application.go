@@ -140,17 +140,18 @@ func (app *Application) Startup() error {
 	// Start services in parallel
 	startErrs := make(chan error, len(app.services))
 	var wg sync.WaitGroup
-	for i, s := range app.services {
+	var delay time.Duration
+	for _, s := range app.services {
 		if s.IsStarted() {
 			continue
 		}
 		s := s
-		i := i
 		wg.Add(1)
+		delay += 2 * time.Millisecond
 		go func() {
+			time.Sleep(delay)
 			defer wg.Done()
-			err := errors.New("failed to start")
-			delay := time.Duration(2*i) * time.Millisecond
+			err := errors.Newf("'%s' failed to start", s.HostName())
 			for {
 				select {
 				case <-exit:
@@ -189,13 +190,16 @@ func (app *Application) Shutdown() error {
 	// Shutdown services in parallel, except for configurators
 	shutdownErrs := make(chan error, len(app.services))
 	var wg sync.WaitGroup
+	var delay time.Duration
 	for _, s := range app.services {
 		if !s.IsStarted() || s.HostName() == configuratorapi.HostName {
 			continue
 		}
 		s := s
 		wg.Add(1)
+		delay += 2 * time.Millisecond
 		go func() {
+			time.Sleep(delay)
 			shutdownErrs <- s.Shutdown()
 			wg.Done()
 		}()
