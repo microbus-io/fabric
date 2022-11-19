@@ -18,9 +18,8 @@ var (
 func Initialize() error {
     // TO{{/**/}}DO: Initialize testing app
 	
-	// Include all downstream microservices in the testing app.
-	// Use .With(options) to initialize microservices with appropriate config values.
-	// Mockable versions of downstream microservices are automatically added. Comment them out if unneeded.
+	// Include all downstream microservices in the testing app
+	// Use .With(options) to initialize with appropriate config values
 	App.Include(
 		Configurator,
 		Svc.With(),
@@ -31,8 +30,7 @@ func Initialize() error {
 		return err
 	}
 
-	// You may call any of the microservices after the app is started,
-	// for example to populate data shared among all tests.
+	// You may call any of the microservices after the app is started
 
 	return nil
 }

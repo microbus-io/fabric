@@ -153,10 +153,16 @@ func Header(name string, value string) WebOption {
 	return WebOption(pub.Header(name, value))
 }
 
-// QueryArg add the query argument to the request.
+// QueryArg adds the query argument to the request.
 // The same argument may have multiple values.
-func QueryArg(name string, value string) WebOption {
+func QueryArg(name string, value any) WebOption {
 	return WebOption(pub.QueryArg(name, value))
+}
+
+// Query adds the escaped query arguments to the request.
+// The same argument may have multiple values.
+func Query(escapedQueryArgs string) WebOption {
+	return WebOption(pub.Query(escapedQueryArgs string))
 }
 
 // Body sets the body of the request.

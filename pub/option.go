@@ -2,6 +2,7 @@ package pub
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/url"
 	"strings"
@@ -120,15 +121,16 @@ func Header(name, value string) Option {
 	}
 }
 
-// QueryArg add the query argument to the request.
+// QueryArg adds the query argument to the request.
 // The same argument may have multiple values.
-func QueryArg(name, value string) Option {
+func QueryArg(name string, value any) Option {
 	return func(req *Request) error {
 		if value != "" {
 			if len(req.queryArgs) > 0 {
 				req.queryArgs += "&"
 			}
-			req.queryArgs += url.QueryEscape(name) + "=" + url.QueryEscape(value)
+			v := fmt.Sprintf("%v", value)
+			req.queryArgs += url.QueryEscape(name) + "=" + url.QueryEscape(v)
 			if req.URL != "" {
 				u, err := utils.ParseURL(req.URL)
 				if err != nil {
@@ -137,7 +139,32 @@ func QueryArg(name, value string) Option {
 				if len(u.RawQuery) > 0 {
 					u.RawQuery += "&"
 				}
-				u.RawQuery += url.QueryEscape(name) + "=" + url.QueryEscape(value)
+				u.RawQuery += url.QueryEscape(name) + "=" + url.QueryEscape(v)
+				req.URL = u.String()
+			}
+		}
+		return nil
+	}
+}
+
+// Query adds the escaped query arguments to the request.
+// The same argument may have multiple values.
+func Query(escapedQueryArgs string) Option {
+	return func(req *Request) error {
+		if escapedQueryArgs != "" {
+			if len(req.queryArgs) > 0 {
+				req.queryArgs += "&"
+			}
+			req.queryArgs += escapedQueryArgs
+			if req.URL != "" {
+				u, err := utils.ParseURL(req.URL)
+				if err != nil {
+					return errors.Trace(err)
+				}
+				if len(u.RawQuery) > 0 {
+					u.RawQuery += "&"
+				}
+				u.RawQuery += escapedQueryArgs
 				req.URL = u.String()
 			}
 		}

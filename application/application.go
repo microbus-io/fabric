@@ -92,10 +92,8 @@ func (app *Application) Services() []connector.Service {
 	return res
 }
 
-// Services returns the microservices included in this app that match the host name.
-// The result is a new array of a limited interface of the microservices
-// that provides means to identify the host of the microservice and start and stop it.
-// Casting is needed in order to access the full microservice functionality.
+// ServicesByHost returns the microservices included in this app that match the host name.
+// If no microservices match the host name, an empty array is returned.
 func (app *Application) ServicesByHost(host string) []connector.Service {
 	app.mux.Lock()
 	res := []connector.Service{}
@@ -106,6 +104,16 @@ func (app *Application) ServicesByHost(host string) []connector.Service {
 	}
 	app.mux.Unlock()
 	return res
+}
+
+// ServiceByHost returns one of the microservices included in this app that match the host name.
+// If no microservices match the host name, nil is returned.
+func (app *Application) ServiceByHost(host string) connector.Service {
+	services := app.ServicesByHost(host)
+	if len(services) > 0 {
+		return services[rand.Intn(len(services))]
+	}
+	return nil
 }
 
 // Startup all unstarted microservices included in this app.
