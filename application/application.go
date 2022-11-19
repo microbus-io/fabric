@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
@@ -14,7 +15,7 @@ import (
 
 // Application is a collection of microservices that run in a single process and share the same lifecycle.
 type Application struct {
-	services       []Service
+	services       []connector.Service
 	sig            chan os.Signal
 	plane          string
 	deployment     string
@@ -27,7 +28,7 @@ type Application struct {
 // started up or shut down with the app.
 // Inclusion by itself does not startup or shutdown the microservices.
 // Explicit action is required.
-func New(services ...Service) *Application {
+func New(services ...connector.Service) *Application {
 	app := &Application{
 		sig:            make(chan os.Signal, 1),
 		startupTimeout: time.Second * 20,
@@ -43,7 +44,7 @@ func New(services ...Service) *Application {
 // Explicit action is required.
 // A random plane of communication is used to isolate the app from other apps.
 // Tickers of microservices do not run in the TESTINGAPP deployment environment.
-func NewTesting(services ...Service) *Application {
+func NewTesting(services ...connector.Service) *Application {
 	app := &Application{
 		sig:            make(chan os.Signal, 1),
 		plane:          rand.AlphaNum64(12),
@@ -59,7 +60,7 @@ func NewTesting(services ...Service) *Application {
 // started up or shut down with the app.
 // Inclusion by itself does not startup or shutdown the microservices.
 // Explicit action is required.
-func (app *Application) Include(services ...Service) {
+func (app *Application) Include(services ...connector.Service) {
 	app.mux.Lock()
 	for _, s := range services {
 		s.SetPlane(app.plane)
@@ -72,7 +73,7 @@ func (app *Application) Include(services ...Service) {
 // Join sets the plane and deployment of the microservices to that of the app.
 // This allows microservices to be temporarily joined to the app without being
 // permanently included in its lifecycle management.
-func (app *Application) Join(services ...Service) {
+func (app *Application) Join(services ...connector.Service) {
 	for _, s := range services {
 		s.SetPlane(app.plane)
 		s.SetDeployment(app.deployment)
@@ -83,9 +84,9 @@ func (app *Application) Join(services ...Service) {
 // The result is a new array of a limited interface of the microservices
 // that provides means to identify the host of the microservice and start and stop it.
 // Casting is needed in order to access the full microservice functionality.
-func (app *Application) Services() []Service {
+func (app *Application) Services() []connector.Service {
 	app.mux.Lock()
-	res := make([]Service, len(app.services))
+	res := make([]connector.Service, len(app.services))
 	copy(res, app.services)
 	app.mux.Unlock()
 	return res
@@ -95,9 +96,9 @@ func (app *Application) Services() []Service {
 // The result is a new array of a limited interface of the microservices
 // that provides means to identify the host of the microservice and start and stop it.
 // Casting is needed in order to access the full microservice functionality.
-func (app *Application) ServicesByHost(host string) []Service {
+func (app *Application) ServicesByHost(host string) []connector.Service {
 	app.mux.Lock()
-	res := []Service{}
+	res := []connector.Service{}
 	for _, s := range app.services {
 		if s.HostName() == host {
 			res = append(res, s)

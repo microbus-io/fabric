@@ -47,22 +47,12 @@ func (svc *Intermediate) {{ .Name }}() (
 }
 {{- end}}
 
-// Initializer initializes a config property of the microservice.
-type Initializer func(svc *Intermediate) error
-
-// With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
-	for _, i := range initializers {
-		i(svc)
-	}
-	return svc
-}
 {{ range .Configs}}
 // {{ .Name }} initializes the {{ .Name }} config property of the microservice.
 func {{ .Name }}(
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
-) Initializer {
-	return func(svc *Intermediate) error{
+) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
 		return svc.InitConfig("{{ .Name }}", fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
 	}
 }

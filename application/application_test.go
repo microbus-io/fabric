@@ -231,8 +231,8 @@ func TestApplication_Services(t *testing.T) {
 	beta2 := connector.New("beta.services.application")
 
 	app := New(alpha, beta1, beta2)
-	assert.Equal(t, []Service{alpha, beta1, beta2}, app.Services())
-	assert.Equal(t, []Service{beta1, beta2}, app.ServicesByHost("beta.services.application"))
+	assert.Equal(t, []connector.Service{alpha, beta1, beta2}, app.Services())
+	assert.Equal(t, []connector.Service{beta1, beta2}, app.ServicesByHost("beta.services.application"))
 }
 
 func TestApplication_Run(t *testing.T) {

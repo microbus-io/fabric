@@ -15,8 +15,8 @@ import (
 func TestConfigurator_ManyMicroservices(t *testing.T) {
 	t.Parallel()
 
-	configSvc := NewService()
-	services := []application.Service{
+	configSvc := NewService().(*Service)
+	services := []connector.Service{
 		configSvc,
 	}
 	for i := 0; i < 16; i++ {
@@ -80,7 +80,7 @@ many.microservices.configurator:
 func TestConfigurator_Callback(t *testing.T) {
 	t.Parallel()
 
-	configSvc := NewService()
+	configSvc := NewService().(*Service)
 
 	con := connector.New("callback.configurator")
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
@@ -122,7 +122,7 @@ func TestConfigurator_PeerSync(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Start the first peer
-	config1 := NewService()
+	config1 := NewService().(*Service)
 	config1.SetPlane(plane)
 	config1.loadYAML(`
 www.example.com:
@@ -148,7 +148,7 @@ www.example.com:
 	assert.Equal(t, "Bar", con.Config("Foo"))
 
 	// Start the second peer
-	config2 := NewService()
+	config2 := NewService().(*Service)
 	config2.SetPlane(plane)
 	config2.loadYAML(`
 www.example.com:

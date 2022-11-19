@@ -35,13 +35,11 @@ var (
 	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
-
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
-	_ sub.Option
 	_ *httpx.ResponseRecorder
-
+	_ sub.Option
 	_ httpingressapi.Client
 )
 
@@ -59,8 +57,8 @@ type Intermediate struct {
 	impl ToDo
 }
 
-// New creates a new intermediate service.
-func New(impl ToDo, version int) *Intermediate {
+// NewService creates a new intermediate service.
+func NewService(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
 		Connector: connector.New("http.ingress.sys"),
 		impl: impl,
@@ -117,27 +115,17 @@ func (svc *Intermediate) Port() (port int) {
 	return int(_i)
 }
 
-// Initializer initializes a config property of the microservice.
-type Initializer func(svc *Intermediate) error
-
-// With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
-	for _, i := range initializers {
-		i(svc)
-	}
-	return svc
-}
 
 // TimeBudget initializes the TimeBudget config property of the microservice.
-func TimeBudget(budget time.Duration) Initializer {
-	return func(svc *Intermediate) error{
+func TimeBudget(budget time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
 		return svc.InitConfig("TimeBudget", fmt.Sprintf("%v", budget))
 	}
 }
 
 // Port initializes the Port config property of the microservice.
-func Port(port int) Initializer {
-	return func(svc *Intermediate) error{
+func Port(port int) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
 		return svc.InitConfig("Port", fmt.Sprintf("%v", port))
 	}
 }

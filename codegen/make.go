@@ -155,6 +155,20 @@ func (gen *Generator) makeIntermediate() error {
 		return errors.Trace(err)
 	}
 	gen.Printer.Debug("intermediate/intermediate-gen.go")
+
+	// mock-gen.go
+	fileName = filepath.Join(gen.WorkDir, "intermediate", "mock-gen.go")
+	tt, err = LoadTemplate(
+		"intermediate/mock-gen.txt",
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = tt.Overwrite(fileName, gen.specs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	gen.Printer.Debug("intermediate/mock-gen.go")
 	return nil
 }
 

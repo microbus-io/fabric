@@ -200,3 +200,17 @@ func (c *Connector) resetConfigs() {
 	}
 	c.configLock.Unlock()
 }
+
+func (c *Connector) With(options ...func(Service) error) Service {
+	if c.started {
+		c.captureInitErr(errors.New("already started"))
+		return c
+	}
+	for _, opt := range options {
+		err := opt(c)
+		if err != nil {
+			c.captureInitErr(errors.Trace(err))
+		}
+	}
+	return c
+}

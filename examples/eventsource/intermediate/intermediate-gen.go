@@ -35,13 +35,11 @@ var (
 	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
-
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
-	_ sub.Option
 	_ *httpx.ResponseRecorder
-
+	_ sub.Option
 	_ eventsourceapi.Client
 )
 
@@ -60,8 +58,8 @@ type Intermediate struct {
 	impl ToDo
 }
 
-// New creates a new intermediate service.
-func New(impl ToDo, version int) *Intermediate {
+// NewService creates a new intermediate service.
+func NewService(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
 		Connector: connector.New("eventsource.example"),
 		impl: impl,
@@ -89,16 +87,6 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	return nil
 }
 
-// Initializer initializes a config property of the microservice.
-type Initializer func(svc *Intermediate) error
-
-// With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
-	for _, i := range initializers {
-		i(svc)
-	}
-	return svc
-}
 
 // doRegister handles marshaling for the Register function.
 func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) error {

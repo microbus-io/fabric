@@ -24,7 +24,7 @@ var (
 	_ context.Context
 	_ *http.Request
 	_ time.Duration
-	_ *connector.Connector
+	_ connector.Service
 	_ *errors.TracedError
 	_ *controlapi.Client
 )
@@ -33,8 +33,17 @@ var (
 const HostName = "control.sys"
 
 // NewService creates a new control.sys microservice.
-func NewService() *Service {
+func NewService() connector.Service {
 	s := &Service{}
-	s.Intermediate = intermediate.New(s, Version)
+	s.Intermediate = intermediate.NewService(s, Version)
 	return s
+}
+
+// Mock is a mockable version of the control.sys microservice,
+// allowing functions, sinks and web handlers to be mocked.
+type Mock = intermediate.Mock
+
+// New creates a new mockable version of the microservice.
+func NewMock() *Mock {
+	return intermediate.NewMock(Version)
 }

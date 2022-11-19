@@ -35,13 +35,11 @@ var (
 	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
-
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
-	_ sub.Option
 	_ *httpx.ResponseRecorder
-
+	_ sub.Option
 	_ helloapi.Client
 )
 
@@ -65,8 +63,8 @@ type Intermediate struct {
 	impl ToDo
 }
 
-// New creates a new intermediate service.
-func New(impl ToDo, version int) *Intermediate {
+// NewService creates a new intermediate service.
+func NewService(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
 		Connector: connector.New("hello.example"),
 		impl: impl,
@@ -132,27 +130,17 @@ func (svc *Intermediate) Repeat() (count int) {
 	return int(_i)
 }
 
-// Initializer initializes a config property of the microservice.
-type Initializer func(svc *Intermediate) error
-
-// With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
-	for _, i := range initializers {
-		i(svc)
-	}
-	return svc
-}
 
 // Greeting initializes the Greeting config property of the microservice.
-func Greeting(greeting string) Initializer {
-	return func(svc *Intermediate) error{
+func Greeting(greeting string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
 		return svc.InitConfig("Greeting", fmt.Sprintf("%v", greeting))
 	}
 }
 
 // Repeat initializes the Repeat config property of the microservice.
-func Repeat(count int) Initializer {
-	return func(svc *Intermediate) error{
+func Repeat(count int) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
 		return svc.InitConfig("Repeat", fmt.Sprintf("%v", count))
 	}
 }
