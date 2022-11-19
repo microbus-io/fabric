@@ -19,7 +19,7 @@ func TestApplication_StartStop(t *testing.T) {
 
 	alpha := connector.New("alpha.start.stop.application")
 	beta := connector.New("beta.start.stop.application")
-	app := New(alpha, beta)
+	app := NewTesting(alpha, beta)
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
@@ -41,7 +41,7 @@ func TestApplication_Interrupt(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("interrupt.application")
-	app := New(con)
+	app := NewTesting(con)
 
 	ch := make(chan bool)
 	go func() {
@@ -143,7 +143,7 @@ func TestApplication_DependencyStart(t *testing.T) {
 		return nil
 	})
 
-	app := New(alpha, beta)
+	app := NewTesting(alpha, beta)
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -171,7 +171,7 @@ func TestApplication_FailStart(t *testing.T) {
 	// Beta starts without a hitch
 	beta := connector.New("beta.fail.start.application")
 
-	app := New(alpha, beta)
+	app := NewTesting(alpha, beta)
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -240,7 +240,7 @@ func TestApplication_Run(t *testing.T) {
 
 	con := connector.New("run.application")
 	config := configurator.NewService()
-	app := New(con, config)
+	app := NewTesting(con, config)
 
 	go func() {
 		err := app.Run()
@@ -256,4 +256,32 @@ func TestApplication_Run(t *testing.T) {
 	time.Sleep(time.Second)
 	assert.False(t, con.IsStarted())
 	assert.False(t, config.IsStarted())
+}
+
+func TestApplication_Replace(t *testing.T) {
+	t.Parallel()
+
+	alpha := connector.New("replace.application")
+	beta := connector.New("replace.application")
+
+	app := NewTesting(alpha)
+	err := app.Startup()
+	assert.NoError(t, err)
+	assert.True(t, alpha.IsStarted())
+	assert.Equal(t, 1, len(app.Services()))
+	assert.Same(t, alpha, app.Services()[0])
+
+	restore, err := app.Replace(beta)
+	assert.NoError(t, err)
+	assert.False(t, alpha.IsStarted())
+	assert.True(t, beta.IsStarted())
+	assert.Equal(t, 1, len(app.Services()))
+	assert.Same(t, alpha, app.Services()[0])
+
+	err = restore()
+	assert.NoError(t, err)
+	assert.True(t, alpha.IsStarted())
+	assert.False(t, beta.IsStarted())
+	assert.Equal(t, 1, len(app.Services()))
+	assert.Same(t, alpha, app.Services()[0])
 }
