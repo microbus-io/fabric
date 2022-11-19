@@ -6,12 +6,12 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	// ctx := Context()
 	/*
-	{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
-	{{- if .Signature.OutputArgs }}
-		.Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }})
-	{{- end }}
-		.NoError(t)
-		.Error(t, errContains)
+		{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+		{{- if .Signature.OutputArgs }}
+			.Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }})
+		{{- end }}
+			.NoError(t)
+			.Error(t, errContains)
 	*/
 }
 {{ end }}
@@ -22,13 +22,13 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	// ctx := Context()
 	/*
-	{{ .Name }}(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v))
-		.StatusOK(t)
-		.StatusCode(t, statusCode)
-		.BodyContains(t, bodyContains)
-		.BodyNotContains(t, bodyNotContains)
-		.NoError(t)
-		.Error(t, errContains)
+		{{ .Name }}(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v))
+			.StatusOK(t)
+			.StatusCode(t, statusCode)
+			.BodyContains(t, bodyContains)
+			.BodyNotContains(t, bodyNotContains)
+			.NoError(t)
+			.Error(t, errContains)
 	*/
 }
 {{ end }}
@@ -39,9 +39,9 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	// ctx := Context()
 	/*
-	{{ .Name }}(ctx)
-		.NoError(t)
-		.Error(t, errContains)
+		{{ .Name }}(ctx)
+			.NoError(t)
+			.Error(t, errContains)
 	*/
 }
 {{ end }}

@@ -162,7 +162,7 @@ func QueryArg(name string, value any) WebOption {
 // Query adds the escaped query arguments to the request.
 // The same argument may have multiple values.
 func Query(escapedQueryArgs string) WebOption {
-	return WebOption(pub.Query(escapedQueryArgs string))
+	return WebOption(pub.Query(escapedQueryArgs))
 }
 
 // Body sets the body of the request.
