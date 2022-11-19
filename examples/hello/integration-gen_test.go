@@ -40,9 +40,9 @@ var (
 )
 
 var (
-	// App manages the lifecycle of the microservices used in the test.
+	// App manages the lifecycle of the microservices used in the test
 	App *application.Application
-	// Svc is the hello.example microservice being tested.
+	// Svc is the hello.example microservice being tested
 	Svc *Service
 )
 
