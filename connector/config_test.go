@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnector_InitConfig(t *testing.T) {
+func TestConnector_SetConfig(t *testing.T) {
 	t.Parallel()
 
 	plane := rand.AlphaNum64(12)
@@ -29,14 +29,14 @@ func TestConnector_InitConfig(t *testing.T) {
 	defer mockCfg.Shutdown()
 
 	// Connector
-	con := New("init.config.connector")
+	con := New("set.config.connector")
 	con.SetPlane(plane)
 
-	err = con.DefineConfig("s")
+	err = con.DefineConfig("s", cfg.DefaultValue("default"))
 	assert.NoError(t, err)
 
-	assert.Equal(t, "", con.Config("s"))
-	err = con.InitConfig("s", "string")
+	assert.Equal(t, "default", con.Config("s"))
+	err = con.SetConfig("s", "string")
 	assert.NoError(t, err)
 	assert.Equal(t, "string", con.Config("s"))
 
@@ -44,12 +44,15 @@ func TestConnector_InitConfig(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	assert.Equal(t, "string", con.Config("s"))
+	assert.Equal(t, "default", con.Config("s")) // Reset after fetching from configurator
 
-	err = con.InitConfig("s", "something")
-	assert.Error(t, err)
+	err = con.SetConfig("s", "something")
+	assert.NoError(t, err)
+	assert.Equal(t, "something", con.Config("s"))
 
-	assert.Equal(t, "string", con.Config("s"))
+	err = con.ResetConfig("s")
+	assert.NoError(t, err)
+	assert.Equal(t, "default", con.Config("s"))
 }
 
 func TestConnector_FetchConfig(t *testing.T) {

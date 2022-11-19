@@ -5,7 +5,8 @@ import "context"
 // Service is the interface of the connector that is exposed to applications.
 // It includes the initialization and lifecycle methods of the connector.
 type Service interface {
-	InitConfig(name string, value string) error
+	SetConfig(name string, value any) error
+	ResetConfig(name string) error
 	ID() string
 	SetHostName(hostName string) error
 	HostName() string

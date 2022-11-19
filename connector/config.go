@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/microbus-io/fabric/cb"
@@ -31,7 +32,7 @@ func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...
 
 // DefineConfig defines a property used to configure the microservice.
 // Properties must be defined before the service starts.
-// Property names are case-insensitive.
+// Config property names are case-insensitive.
 func (c *Connector) DefineConfig(name string, options ...cfg.Option) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
@@ -67,27 +68,77 @@ func (c *Connector) Config(name string) (value string) {
 	return ""
 }
 
-// InitConfig sets the default value of a previously defined property.
-// Properties can be initialized only before the microservice starts
-// and therefore before values are fetched from the configurator microservice.
-// Property names are case-insensitive.
-func (c *Connector) InitConfig(name string, value string) error {
-	if c.started {
-		return c.captureInitErr(errors.New("already started"))
-	}
-
+// SetConfig sets the value of a previously defined config property.
+// This value will be overridden on the next fetch of configs from the configurator system microservice.
+// Fetching configs is disabled in the TESTINGAPP environment.
+// Config property names are case-insensitive.
+func (c *Connector) SetConfig(name string, value any) error {
 	c.configLock.Lock()
-	defer c.configLock.Unlock()
-
 	config, ok := c.configs[strings.ToLower(name)]
+	c.configLock.Unlock()
 	if !ok {
 		return nil
 	}
-	if !cfg.Validate(config.Validation, value) {
-		return c.captureInitErr(errors.Newf("invalid value '%s' for config property '%s'", value, name))
+	v := fmt.Sprintf("%v", value)
+	if !cfg.Validate(config.Validation, v) {
+		return c.captureInitErr(errors.Newf("invalid value '%s' for config property '%s'", v, name))
 	}
-	config.DefaultValue = value
-	config.Value = value
+	origValue := config.Value
+	config.Value = v
+
+	// Call the callback function, if provided
+	if c.onConfigChanged != nil && config.Value != origValue {
+		err := c.doCallback(
+			c.lifetimeCtx,
+			c.onConfigChanged.TimeBudget,
+			"Config changed callback",
+			":0/on-config-changed",
+			func(ctx context.Context) error {
+				f := func(n string) bool {
+					return strings.EqualFold(n, name)
+				}
+				return c.onConfigChanged.Handler.(ConfigChangedHandler)(ctx, f)
+			},
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+// ResetConfig resets the value of a previously defined config property to its default value.
+// This value will be overridden on the next fetch of configs from the configurator system microservice.
+// Fetching configs is disabled in the TESTINGAPP environment.
+// Config property names are case-insensitive.
+func (c *Connector) ResetConfig(name string) error {
+	c.configLock.Lock()
+	config, ok := c.configs[strings.ToLower(name)]
+	c.configLock.Unlock()
+	if !ok {
+		return nil
+	}
+	origValue := config.Value
+	config.Value = config.DefaultValue
+
+	// Call the callback function, if provided
+	if c.onConfigChanged != nil && config.Value != origValue {
+		err := c.doCallback(
+			c.lifetimeCtx,
+			c.onConfigChanged.TimeBudget,
+			"Config changed callback",
+			":0/on-config-changed",
+			func(ctx context.Context) error {
+				f := func(n string) bool {
+					return strings.EqualFold(n, name)
+				}
+				return c.onConfigChanged.Handler.(ConfigChangedHandler)(ctx, f)
+			},
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	return nil
 }
 
@@ -117,6 +168,10 @@ func (c *Connector) logConfigs() {
 func (c *Connector) refreshConfig(ctx context.Context) error {
 	if !c.started {
 		return errors.New("not started")
+	}
+	if c.deployment == TESTINGAPP {
+		c.LogDebug(c.Lifetime(), "Configurator disabled while testing")
+		return nil
 	}
 
 	c.configLock.Lock()
@@ -192,15 +247,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 	return nil
 }
 
-// resetConfigs resets the values of the config to the default value.
-func (c *Connector) resetConfigs() {
-	c.configLock.Lock()
-	for _, config := range c.configs {
-		config.Value = config.DefaultValue
-	}
-	c.configLock.Unlock()
-}
-
+// With is a convenience function to apply options to a connector during its initialization.
 func (c *Connector) With(options ...func(Service) error) Service {
 	if c.started {
 		c.captureInitErr(errors.New("already started"))

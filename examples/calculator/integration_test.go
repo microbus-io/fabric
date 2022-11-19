@@ -19,8 +19,7 @@ func Initialize() error {
 	// Include all downstream microservices in the testing app
 	// Use .With(options) to initialize with appropriate config values
 	App.Include(
-		Configurator,
-		Svc.With(),
+		Svc,
 	)
 
 	err := App.Startup()

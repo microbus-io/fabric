@@ -1,47 +1,48 @@
 {{- $pkg := CapitalizeIdentifier .PackageSuffix }}
-{{- range (JoinHandlers .Functions .Sinks) }}
+{{- range (JoinHandlers .Functions .Sinks) }}{{- if not .Exists }}
 {{- $t := .Signature.TestingT }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
-	// ctx := Context()
 	/*
-		{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+		{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
 		{{- if .Signature.OutputArgs }}
-			.Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }})
+			Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }}).
 		{{- end }}
-			.NoError(t)
-			.Error(t, errContains)
+			NoError(t).
+			Error(t, errContains)
 	*/
+	// ctx := Context()
 }
-{{ end }}
+{{ end }}{{ end }}
 
-{{- range .Webs }}
+{{- range .Webs }}{{- if not .Exists }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
-	// ctx := Context()
 	/*
-		{{ .Name }}(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v))
-			.StatusOK(t)
-			.StatusCode(t, statusCode)
-			.BodyContains(t, bodyContains)
-			.BodyNotContains(t, bodyNotContains)
-			.NoError(t)
-			.Error(t, errContains)
+		{{ .Name }}(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			StatusOK(t).
+			StatusCode(t, statusCode).
+			BodyContains(t, bodyContains).
+			BodyNotContains(t, bodyNotContains).
+			HeaderContains(t, headerName, valueContains).
+			NoError(t).
+			Error(t, errContains)
 	*/
+	// ctx := Context()
 }
-{{ end }}
+{{ end }}{{ end }}
 
-{{- range .Tickers }}
+{{- range .Tickers }}{{- if not .Exists }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
-	// ctx := Context()
 	/*
-		{{ .Name }}(ctx)
-			.NoError(t)
-			.Error(t, errContains)
+		{{ .Name }}(ctx).
+			NoError(t).
+			Error(t, errContains)
 	*/
+	// ctx := Context()
 }
-{{ end }}
+{{ end }}{{ end }}

@@ -53,7 +53,7 @@ func {{ .Name }}(
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
 ) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.InitConfig("{{ .Name }}", fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
+		return svc.SetConfig("{{ .Name }}", fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
 	}
 }
 {{ end }}

@@ -119,13 +119,13 @@ func (svc *Intermediate) Port() (port int) {
 // TimeBudget initializes the TimeBudget config property of the microservice.
 func TimeBudget(budget time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.InitConfig("TimeBudget", fmt.Sprintf("%v", budget))
+		return svc.SetConfig("TimeBudget", fmt.Sprintf("%v", budget))
 	}
 }
 
 // Port initializes the Port config property of the microservice.
 func Port(port int) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.InitConfig("Port", fmt.Sprintf("%v", port))
+		return svc.SetConfig("Port", fmt.Sprintf("%v", port))
 	}
 }

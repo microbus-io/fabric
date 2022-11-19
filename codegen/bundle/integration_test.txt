@@ -19,10 +19,16 @@ func Initialize() error {
     // TO{{/**/}}DO: Initialize testing app
 	
 	// Include all downstream microservices in the testing app
-	// Use .With(options) to initialize with appropriate config values
+	// Use .With(...) to initialize with appropriate config values
 	App.Include(
-		Configurator,
-		Svc.With(),
+		Svc
+		{{- if .Configs }}.With(
+		{{- range .Configs }}
+		// {{ .Name }}({{ with index .Signature.OutputArgs 0 }}{{ .Name }}{{ end }}),
+		{{- end}}
+		){{ end -}}
+		,
+		// downstream.NewService().With(),
 	)
 
 	err := App.Startup()

@@ -1,4 +1,83 @@
-{{ $host := .General.Host }}{{ range .Webs }}
+{{ if .Webs }}
+type WebOption func(req *pub.Request) error
+
+// GET sets the method of the request.
+func GET() WebOption {
+	return WebOption(pub.Method("GET"))
+}
+
+// DELETE sets the method of the request.
+func DELETE() WebOption {
+	return WebOption(pub.Method("DELETE"))
+}
+
+// HEAD sets the method of the request.
+func HEAD() WebOption {
+	return WebOption(pub.Method("HEAD"))
+}
+
+// POST sets the method and body of the request.
+func POST(body any) WebOption {
+	return func(req *pub.Request) error {
+		pub.Method("POST")(req)
+		return pub.Body(body)(req)
+	}
+}
+
+// PUT sets the method and body of the request.
+func PUT(body any) WebOption {
+	return func(req *pub.Request) error {
+		pub.Method("PUT")(req)
+		return pub.Body(body)(req)
+	}
+}
+
+// PATCH sets the method and body of the request.
+func PATCH(body any) WebOption {
+	return func(req *pub.Request) error {
+		pub.Method("PATCH")(req)
+		return pub.Body(body)(req)
+	}
+}
+
+// Method sets the method of the request.
+func Method(method string) WebOption {
+	return WebOption(pub.Method(method))
+}
+
+// Header add the header to the request.
+// The same header may have multiple values.
+func Header(name string, value string) WebOption {
+	return WebOption(pub.Header(name, value))
+}
+
+// QueryArg adds the query argument to the request.
+// The same argument may have multiple values.
+func QueryArg(name string, value any) WebOption {
+	return WebOption(pub.QueryArg(name, value))
+}
+
+// Query adds the escaped query arguments to the request.
+// The same argument may have multiple values.
+func Query(escapedQueryArgs string) WebOption {
+	return WebOption(pub.Query(escapedQueryArgs))
+}
+
+// Body sets the body of the request.
+// Arguments of type io.Reader, []byte and string are serialized in binary form.
+// url.Values is serialized as form data.
+// All other types are serialized as JSON.
+func Body(body any) WebOption {
+	return WebOption(pub.Body(body))
+}
+
+// ContentType sets the Content-Type header.
+func ContentType(contentType string) WebOption {
+	return WebOption(pub.ContentType(contentType))
+}
+{{ end }}
+
+{{- $host := .General.Host }}{{ range .Webs }}
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	res *http.Response
@@ -8,6 +87,7 @@ type {{ .Name }}TestCase struct {
 	StatusCode      func(t *testing.T, statusCode int) *{{ .Name }}TestCase
 	BodyContains    func(t *testing.T, bodyContains any) *{{ .Name }}TestCase
 	BodyNotContains func(t *testing.T, bodyNotContains any) *{{ .Name }}TestCase
+	HeaderContains  func(t *testing.T, headerName string, valueContains string) *{{ .Name }}TestCase
 	Error           func(t *testing.T, errContains string) *{{ .Name }}TestCase
 	NoError         func(t *testing.T) *{{ .Name }}TestCase
 }
@@ -82,6 +162,12 @@ func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase
 				vv := fmt.Sprintf("%v", v)
 				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 			}
+		}
+		return tc
+	}
+	tc.HeaderContains = func(t *testing.T, headerName string, valueContains string) *{{ .Name }}TestCase {
+		if assert.NoError(t, tc.err) {
+			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
 		return tc
 	}

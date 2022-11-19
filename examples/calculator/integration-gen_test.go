@@ -9,14 +9,13 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/microbus-io/fabric/application"
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/services/configurator"
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/stretchr/testify/assert"
@@ -32,6 +31,7 @@ var (
 	_ *http.Request
 	_ os.File
 	_ time.Time
+	_ strings.Builder
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ utils.InfiniteChan[int]
@@ -42,8 +42,6 @@ var (
 var (
 	// App manages the lifecycle of the microservices used in the test.
 	App *application.Application
-	// Configurator is the configurator system microservice.
-	Configurator connector.Service
 	// Svc is the calculator.example microservice being tested.
 	Svc *Service
 )
@@ -54,7 +52,6 @@ func TestMain(m *testing.M) {
 	// Initialize the application
 	err := func() error {
 		App = application.NewTesting()
-		Configurator = configurator.NewService()
 		Svc = NewService().(*Service)
 		err := Initialize()
 		if err != nil {
@@ -99,83 +96,6 @@ func TestMain(m *testing.M) {
 // Context creates a new context for a test.
 func Context() context.Context {
 	return context.Background()
-}
-
-type WebOption func(req *pub.Request) error
-
-// GET sets the method of the request.
-func GET() WebOption {
-	return WebOption(pub.Method("GET"))
-}
-
-// DELETE sets the method of the request.
-func DELETE() WebOption {
-	return WebOption(pub.Method("DELETE"))
-}
-
-// HEAD sets the method of the request.
-func HEAD() WebOption {
-	return WebOption(pub.Method("HEAD"))
-}
-
-// POST sets the method and body of the request.
-func POST(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("POST")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PUT sets the method and body of the request.
-func PUT(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PUT")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PATCH sets the method and body of the request.
-func PATCH(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PATCH")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// Method sets the method of the request.
-func Method(method string) WebOption {
-	return WebOption(pub.Method(method))
-}
-
-// Header add the header to the request.
-// The same header may have multiple values.
-func Header(name string, value string) WebOption {
-	return WebOption(pub.Header(name, value))
-}
-
-// QueryArg adds the query argument to the request.
-// The same argument may have multiple values.
-func QueryArg(name string, value any) WebOption {
-	return WebOption(pub.QueryArg(name, value))
-}
-
-// Query adds the escaped query arguments to the request.
-// The same argument may have multiple values.
-func Query(escapedQueryArgs string) WebOption {
-	return WebOption(pub.Query(escapedQueryArgs))
-}
-
-// Body sets the body of the request.
-// Arguments of type io.Reader, []byte and string are serialized in binary form.
-// url.Values is serialized as form data.
-// All other types are serialized as JSON.
-func Body(body any) WebOption {
-	return WebOption(pub.Body(body))
-}
-
-// ContentType sets the Content-Type header.
-func ContentType(contentType string) WebOption {
-	return WebOption(pub.ContentType(contentType))
 }
 
 // ArithmeticTestCase assists in asserting against the results of executing Arithmetic.

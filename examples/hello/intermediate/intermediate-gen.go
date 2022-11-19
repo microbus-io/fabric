@@ -134,13 +134,13 @@ func (svc *Intermediate) Repeat() (count int) {
 // Greeting initializes the Greeting config property of the microservice.
 func Greeting(greeting string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.InitConfig("Greeting", fmt.Sprintf("%v", greeting))
+		return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
 	}
 }
 
 // Repeat initializes the Repeat config property of the microservice.
 func Repeat(count int) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.InitConfig("Repeat", fmt.Sprintf("%v", count))
+		return svc.SetConfig("Repeat", fmt.Sprintf("%v", count))
 	}
 }

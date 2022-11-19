@@ -162,7 +162,7 @@ func TestConnector_InitError(t *testing.T) {
 	con = New("init.error.connector")
 	err = con.DefineConfig("Hundred", cfg.DefaultValue("1"), cfg.Validation("int [1,100]"))
 	assert.NoError(t, err)
-	err = con.InitConfig("Hundred", "101")
+	err = con.SetConfig("Hundred", "101")
 	assert.Error(t, err)
 	err = con.Startup()
 	assert.Error(t, err)
