@@ -1,4 +1,4 @@
-package frag
+package httpx
 
 import (
 	"io"
@@ -12,32 +12,32 @@ import (
 	"github.com/microbus-io/fabric/frame"
 )
 
-// DefragRequest merges together multiple fragments back into a single HTTP request
-type DefragRequest struct {
-	fragments    map[int]*http.Request
+// DefragResponse merges together multiple fragments back into a single HTTP response
+type DefragResponse struct {
+	fragments    map[int]*http.Response
 	maxIndex     int32
 	lock         sync.Mutex
 	lastActivity time.Time
 }
 
-// NewDefragRequest creates a new request integrator.
-func NewDefragRequest() *DefragRequest {
-	return &DefragRequest{
-		fragments:    map[int]*http.Request{},
+// NewDefragResponse creates a new response integrator.
+func NewDefragResponse() *DefragResponse {
+	return &DefragResponse{
+		fragments:    map[int]*http.Response{},
 		lastActivity: time.Now(),
 	}
 }
 
 // LastActivity indicates how long ago was the last fragment added.
-func (st *DefragRequest) LastActivity() time.Duration {
+func (st *DefragResponse) LastActivity() time.Duration {
 	st.lock.Lock()
 	d := time.Since(st.lastActivity)
 	st.lock.Unlock()
 	return d
 }
 
-// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP request.
-func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
+// Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP response.
+func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
 	maxIndex := int(atomic.LoadInt32(&st.maxIndex))
 	if maxIndex == 1 {
 		return st.fragments[1], nil
@@ -49,7 +49,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 		return nil, nil
 	}
 
-	// Serialize the bodies of all fragments.
+	// Serialize the bodies of all fragments
 	bodies := []io.Reader{}
 	var contentLength int64
 	for i := 1; i <= maxIndex; i++ {
@@ -81,7 +81,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 }
 
 // Add a fragment to be integrated.
-func (st *DefragRequest) Add(r *http.Request) error {
+func (st *DefragResponse) Add(r *http.Response) error {
 	st.lock.Lock()
 	index, max := frame.Of(r).Fragment()
 	st.fragments[index] = r

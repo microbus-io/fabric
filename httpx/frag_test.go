@@ -1,4 +1,4 @@
-package frag
+package httpx
 
 import (
 	"bytes"
@@ -8,12 +8,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFrag_Request(t *testing.T) {
+func TestHttpx_Request(t *testing.T) {
 	t.Parallel()
 
 	// Using BodyReader
@@ -31,7 +30,7 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	body := []byte(rand.AlphaNum64(int(bodySize)))
 	var bodyReader io.Reader
 	if optimized {
-		bodyReader = httpx.NewBodyReader(body)
+		bodyReader = NewBodyReader(body)
 	} else {
 		bodyReader = bytes.NewReader(body)
 	}
@@ -81,7 +80,7 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	assert.Equal(t, "Bar", foo)
 }
 
-func TestFrag_Response(t *testing.T) {
+func TestHttpx_Response(t *testing.T) {
 	t.Parallel()
 
 	// Using BodyReader
@@ -100,7 +99,7 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 
 	var res *http.Response
 	if optimized {
-		rec := httpx.NewResponseRecorder()
+		rec := NewResponseRecorder()
 		rec.Header().Set("Foo", "Bar")
 		n, err := rec.Write(body)
 		assert.NoError(t, err)

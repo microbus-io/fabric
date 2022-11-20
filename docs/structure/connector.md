@@ -22,6 +22,6 @@ The `connector` package includes a separate source file for each functional area
 * `logger.go` provides a JSON logger for the microservice
 * `publish.go` deals with outbound messaging
 * `subjects.go` crafts the NATS subjects (topics) that a microservice subscribes to or publishes to
-* `service.go` defines the public interface of a microservice
+* `service.go` defines the public interface of the `Connector`
 * `subscribe.go` deals with inbound message handling
 * `time.go` introduces tickers and a mockable clock to the microservice

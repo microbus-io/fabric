@@ -36,14 +36,13 @@ Review each of the major project packages to get oriented in the code structure:
 
 * [application](docs/structure/application.md) ✨ - A collector of microservices that run in a single process and share the same lifecycle
 * [cb](docs/structure/cb.md) - Options for callbacks
-* [cfg](docs/structure/cb.md) - Options for defining config properties
+* [cfg](docs/structure/cfg.md) - Options for defining config properties
 * [clock](docs/structure/clock.md) ✨ - An abstraction of the functions in the standard library time package to allow for mocking
 * [codegen](docs/structure/codegen.md) - The code generator
 * [connector](docs/structure/connector.md) ✨ - The primary construct of the framework and the basis for all microservices
 * [dlru](docs/structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
 * [errors](docs/structure/errors.md) - An enhancement of Go's standard `errors` package 
 * [examples](docs/structure/examples.md) - Demo microservices 
-* [frag](docs/structure/frag.md) - Means to break large HTTP requests and responses into fragments that can then be reassembled
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](docs/structure/httpx.md) 🎁 - Various HTTP utilities
 * [log](docs/structure/log.md) - Fields for attaching data to log messages

@@ -14,7 +14,6 @@ import (
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
@@ -59,9 +58,9 @@ type Connector struct {
 	maxFragmentSize  int64
 	multicastChanCap int
 
-	requestDefrags      map[string]*frag.DefragRequest
+	requestDefrags      map[string]*httpx.DefragRequest
 	requestDefragsLock  sync.Mutex
-	responseDefrags     map[string]*frag.DefragResponse
+	responseDefrags     map[string]*httpx.DefragResponse
 	responseDefragsLock sync.Mutex
 
 	knownResponders *lru.Cache[string, map[string]bool]
@@ -90,8 +89,8 @@ func NewConnector() *Connector {
 		networkHop:       250 * time.Millisecond,
 		maxCallDepth:     64,
 		subs:             map[string]*sub.Subscription{},
-		requestDefrags:   map[string]*frag.DefragRequest{},
-		responseDefrags:  map[string]*frag.DefragResponse{},
+		requestDefrags:   map[string]*httpx.DefragRequest{},
+		responseDefrags:  map[string]*httpx.DefragResponse{},
 		clock:            clock.NewClockReference(clock.New()),
 		tickers:          map[string]*cb.Callback{},
 		lifetimeCtx:      context.Background(),

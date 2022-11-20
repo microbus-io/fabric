@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/microbus-io/fabric/frame"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,4 +46,12 @@ func TestHttpx_ResponseRecorder(t *testing.T) {
 	err = result.Write(&buf)
 	assert.NoError(t, err)
 	assert.Equal(t, "HTTP/1.1 409 Conflict\r\nContent-Length: 26\r\nFoo: Baz\r\n\r\nLorem Ipsum Dolor Sit Amet", buf.String())
+}
+
+func TestHttpx_FrameOfResponseRecorder(t *testing.T) {
+	utilsRecorder := NewResponseRecorder()
+	utilsRecorder.Header().Set(frame.HeaderMsgId, "123")
+	assert.Equal(t, "123", frame.Of(utilsRecorder).MessageID())
+	httpResponse := utilsRecorder.Result()
+	assert.Equal(t, "123", frame.Of(httpResponse).MessageID())
 }

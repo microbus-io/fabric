@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
@@ -324,7 +323,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	}
 
 	// Send back the response, in fragments if needed
-	fragger, err := frag.NewFragResponse(httpResponse, c.maxFragmentSize)
+	fragger, err := httpx.NewFragResponse(httpResponse, c.maxFragmentSize)
 	if err != nil {
 		return errors.Trace(err)
 	}
