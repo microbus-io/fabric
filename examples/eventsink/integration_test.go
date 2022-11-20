@@ -48,7 +48,8 @@ func TestEventsink_Registered(t *testing.T) {
 		Registered(ctx).
 			Expect(t, emails).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, emails, err))
 	*/
 	ctx := Context()
 	Registered(ctx).Expect(t, []string{})
@@ -68,7 +69,8 @@ func TestEventsink_OnAllowRegister(t *testing.T) {
 		OnAllowRegister(ctx, email).
 			Expect(t, allow).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, allow, err))
 	*/
 	ctx := Context()
 	OnAllowRegister(ctx, "nancy@gmail.com").Expect(t, false)

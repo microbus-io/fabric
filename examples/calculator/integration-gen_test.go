@@ -132,6 +132,11 @@ func (tc *ArithmeticTestCase) NoError(t *testing.T) *ArithmeticTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *ArithmeticTestCase) Assert(t *testing.T, asserter func(t *testing.T, xEcho int, opEcho string, yEcho int, result int, err error)) {
+	asserter(t, tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err)
+}
+
 // Get returns the result of executing Arithmetic.
 func (tc *ArithmeticTestCase) Get() (xEcho int, opEcho string, yEcho int, result int, err error) {
 	return tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err
@@ -177,6 +182,11 @@ func (tc *SquareTestCase) NoError(t *testing.T) *SquareTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *SquareTestCase) Assert(t *testing.T, asserter func(t *testing.T, xEcho int, result int, err error)) {
+	asserter(t, tc.xEcho, tc.result, tc.err)
+}
+
 // Get returns the result of executing Square.
 func (tc *SquareTestCase) Get() (xEcho int, result int, err error) {
 	return tc.xEcho, tc.result, tc.err
@@ -218,6 +228,11 @@ func (tc *DistanceTestCase) Error(t *testing.T, errContains string) *DistanceTes
 func (tc *DistanceTestCase) NoError(t *testing.T) *DistanceTestCase {
 	assert.NoError(t, tc.err)
 	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *DistanceTestCase) Assert(t *testing.T, asserter func(t *testing.T, d float64, err error)) {
+	asserter(t, tc.d, tc.err)
 }
 
 // Get returns the result of executing Distance.

@@ -253,6 +253,11 @@ func (tc *HomeTestCase) NoError(t *testing.T) *HomeTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *HomeTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
+}
+
 // Get returns the result of executing Home.
 func (tc *HomeTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
@@ -363,6 +368,11 @@ func (tc *NoQueueTestCase) Error(t *testing.T, errContains string) *NoQueueTestC
 func (tc *NoQueueTestCase) NoError(t *testing.T) *NoQueueTestCase {
 	assert.NoError(t, tc.err)
 	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *NoQueueTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
 }
 
 // Get returns the result of executing NoQueue.
@@ -477,6 +487,11 @@ func (tc *DefaultQueueTestCase) NoError(t *testing.T) *DefaultQueueTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *DefaultQueueTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
+}
+
 // Get returns the result of executing DefaultQueue.
 func (tc *DefaultQueueTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
@@ -589,6 +604,11 @@ func (tc *CacheLoadTestCase) NoError(t *testing.T) *CacheLoadTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *CacheLoadTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
+}
+
 // Get returns the result of executing CacheLoad.
 func (tc *CacheLoadTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
@@ -699,6 +719,11 @@ func (tc *CacheStoreTestCase) Error(t *testing.T, errContains string) *CacheStor
 func (tc *CacheStoreTestCase) NoError(t *testing.T) *CacheStoreTestCase {
 	assert.NoError(t, tc.err)
 	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *CacheStoreTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
 }
 
 // Get returns the result of executing CacheStore.

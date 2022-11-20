@@ -39,6 +39,11 @@ func (tc *{{ .Name }}TestCase) NoError({{ $t }} *testing.T) *{{ .Name }}TestCase
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *{{ .Name }}TestCase) Assert({{ $t }} *testing.T, asserter func({{ $t }} *testing.T, {{ .Out }})) {
+	asserter({{ $t }}, {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err)
+}
+
 // Get returns the result of executing {{ .Name }}.
 func (tc *{{ .Name }}TestCase) Get() ({{ .Out }}) {
 	return {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err

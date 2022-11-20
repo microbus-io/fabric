@@ -9,8 +9,9 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 		{{- if .Signature.OutputArgs }}
 			Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }}).
 		{{- end }}
-			NoError(t).
-			Error(t, errContains)
+			NoError({{ $t }}).
+			Error({{ $t }}, errContains).
+			Assert({{ $t }}, func({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err))
 	*/
 	// ctx := Context()
 }
@@ -28,7 +29,8 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	// ctx := Context()
 }
@@ -41,7 +43,8 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	/*
 		{{ .Name }}(ctx).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, err)
 	*/
 	// ctx := Context()
 }

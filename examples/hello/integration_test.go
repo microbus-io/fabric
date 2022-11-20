@@ -3,6 +3,7 @@ package hello
 import (
 	"bytes"
 	"io"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,21 +59,22 @@ func TestHello_Hello(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	Hello(ctx, GET()).
 		BodyContains(t, Svc.Greeting()).
-		BodyNotContains(t, "Maria")
+		BodyNotContains(t, "Maria").
+		Assert(t, func(t *testing.T, res *http.Response, err error) {
+			assert.NoError(t, err)
+			body, err := io.ReadAll(res.Body)
+			assert.NoError(t, err)
+			assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
+		})
 	Hello(ctx, GET(), QueryArg("name", "Maria")).
 		BodyContains(t, Svc.Greeting()).
 		BodyContains(t, "Maria")
-
-	res, err := Hello(ctx, GET()).Get()
-	assert.NoError(t, err)
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
 }
 
 func TestHello_Echo(t *testing.T) {
@@ -85,7 +87,8 @@ func TestHello_Echo(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	Echo(ctx, POST("PostBody"), Header("Echo123", "EchoEchoEcho"), QueryArg("echo", "123")).
@@ -104,7 +107,8 @@ func TestHello_Ping(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	Ping(ctx, GET()).BodyContains(t, Svc.ID()+"."+Svc.HostName())
@@ -120,7 +124,8 @@ func TestHello_Calculator(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	Calculator(ctx, GET(), Query("x=5&op=*&y=80")).BodyContains(t, "400")
@@ -137,7 +142,8 @@ func TestHello_BusJPEG(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	img, err := Svc.Resources().ReadFile("bus.jpeg")
@@ -153,7 +159,8 @@ func TestHello_TickTock(t *testing.T) {
 	/*
 		TickTock(ctx).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, err))
 	*/
 	ctx := Context()
 	TickTock(ctx).NoError(t)

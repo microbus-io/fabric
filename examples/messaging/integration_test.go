@@ -47,7 +47,8 @@ func TestMessaging_Home(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	Home(ctx, GET()).
@@ -65,7 +66,8 @@ func TestMessaging_NoQueue(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	NoQueue(ctx, GET()).
@@ -83,7 +85,8 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	DefaultQueue(ctx, GET()).
@@ -101,7 +104,8 @@ func TestMessaging_CacheLoad(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	CacheLoad(ctx, GET(), QueryArg("key", "load")).
@@ -126,7 +130,8 @@ func TestMessaging_CacheStore(t *testing.T) {
 			BodyNotContains(t, bodyNotContains).
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
-			Error(t, errContains)
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
 	CacheStore(ctx, GET(), QueryArg("key", "store1"), QueryArg("value", "myvalue1")).

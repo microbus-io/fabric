@@ -253,6 +253,11 @@ func (tc *HelloTestCase) NoError(t *testing.T) *HelloTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *HelloTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
+}
+
 // Get returns the result of executing Hello.
 func (tc *HelloTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
@@ -363,6 +368,11 @@ func (tc *EchoTestCase) Error(t *testing.T, errContains string) *EchoTestCase {
 func (tc *EchoTestCase) NoError(t *testing.T) *EchoTestCase {
 	assert.NoError(t, tc.err)
 	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *EchoTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
 }
 
 // Get returns the result of executing Echo.
@@ -477,6 +487,11 @@ func (tc *PingTestCase) NoError(t *testing.T) *PingTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *PingTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
+}
+
 // Get returns the result of executing Ping.
 func (tc *PingTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
@@ -587,6 +602,11 @@ func (tc *CalculatorTestCase) Error(t *testing.T, errContains string) *Calculato
 func (tc *CalculatorTestCase) NoError(t *testing.T) *CalculatorTestCase {
 	assert.NoError(t, tc.err)
 	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *CalculatorTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
 }
 
 // Get returns the result of executing Calculator.
@@ -701,6 +721,11 @@ func (tc *BusJPEGTestCase) NoError(t *testing.T) *BusJPEGTestCase {
 	return tc
 }
 
+// Assert asserts using a provided function.
+func (tc *BusJPEGTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+	asserter(t, tc.res, tc.err)
+}
+
 // Get returns the result of executing BusJPEG.
 func (tc *BusJPEGTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
@@ -752,6 +777,11 @@ func (tc *TickTockTestCase) Error(t *testing.T, errContains string) *TickTockTes
 func (tc *TickTockTestCase) NoError(t *testing.T) *TickTockTestCase {
 	assert.NoError(t, tc.err)
 	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *TickTockTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) {
+	asserter(t, tc.err)
 }
 
 // Get returns the result of executing TickTock.
