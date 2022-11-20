@@ -1,4 +1,4 @@
-# Microbus.io fabric : Milestone 11
+# Microbus.io fabric : Milestone 12
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
@@ -8,7 +8,7 @@
 
 `Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices. Microservices over a bus = microbus.
 
-The framework's philosophy can be broken into three areas:
+The framework's philosophy touches on three conceptual areas:
 
 * Common runtime - The framework specifies rules that all microservices need to comply with during runtime. This includes things like how microservices [communicate](docs/tech/unicast.md), how they report metrics, where they [pull config values](docs/tech/configuration.md) from, how they get deployed, etc. A common set of rules is important for interoperability, maintainability and stability of the system
 * RAD tools - The framework leverages [code generation](docs/tech/codegen.md) for the rapid development of microservices with the intent that application developers focus on the business logic rather than on boilerplate code. Developer productivity is directly correlated to customer value
@@ -24,9 +24,9 @@ The framework's philosophy can be broken into three areas:
 
 👉 Follow the step-by-step guide and [build your first microservice](docs/first-service.md)!
 
-👉 Discover the power of [code generation](docs/tech/codegen.md). It's totally RAD, dude!
+👉 Discover the full power of [code generation](docs/tech/codegen.md). It's totally RAD, dude!
 
-👉 Learn how to develop thorough [integration tests](docs/tech/integrationtesting.md) 🎁 and achieve high code coverage.
+👉 Learn how to write thorough [integration tests](docs/tech/integrationtesting.md) 🎁 and achieve high code coverage.
 
 👉 Venture out and [explore more on your own](docs/self-explore.md).
 
@@ -58,7 +58,7 @@ Review each of the major project packages to get oriented in the code structure:
 
 ## 👩‍💻 Technical Deep Dive
 
-Get a deeper understanding of the principals and philosophy of `Microbus`:
+Go deep into the principals and philosophy of `Microbus`:
 
 * [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service

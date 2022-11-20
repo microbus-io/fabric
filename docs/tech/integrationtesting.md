@@ -1,10 +1,10 @@
 # Integration Testing
 
-## Testing Application
+## Testing App
 
-Thorough testing is an important cornerstone of good software. Testing a microservice is generally difficult because it almost always depends on downstream microservices which are not easy to spin up during testing. Common workarounds include mocking the downstream microservices or testing against a live test deployment environment. These workarounds each come with their own drawbacks. A mock doesn't test the actual internal business logic of the microservice and it obscures changes made to it over time. A live test environment addresses these limitations but it is a single point of failure that can block an entire development team when it's down. It may also become inconsistent over time and is expensive to run 24/7.
+Thorough testing is an important cornerstone of good software. Testing a microservice is generally difficult because it almost always depends on downstream microservices which are not easy to spin up during testing. Common workarounds include mocking the downstream microservices or testing against a live test deployment environment but each of these comes with its own drawbacks. A mock doesn't test the actual internal business logic of the microservice, obscuring changes made to it over time. A live test environment doesn't suffer from the drawbacks of a mock but it is a single point of failure that can block an entire development team when it's down. It also tends to become inconsistent over time and is expensive to run 24/7.
 
-`Microbus` takes a different approach and spins up the actual downstream microservices along with the microservice being tested. The microservices are collected into an isolated [`Application`](../structure/application.md) that is started up for the duration of running the test suite and shutdown immediately thereafter. The microservices communicate via NATS on a random [plane of communications](./unicast.md), which keeps them isolated from other test suites that may run in parallel.
+`Microbus` takes a different approach and spins up the actual downstream microservices along with the microservice being tested into a single process. The microservices are collected into an isolated [`Application`](../structure/application.md) that is started up for the duration of running the test suite and shutdown immediately thereafter. The microservices communicate via NATS on a random [plane of communications](./unicast.md), which keeps them isolated from other test suites that may run in parallel.
 
 Mocks can be added to the application when it's impractical to run the actual downstream microservice, for example if that microservice is calling a third-party web service such as a payment processor. The preference however should be to include the actual microservice whenever possible and not rely on mocks. Note that in `Microbus` microservices are mocked rather than clients. The upstream microservice still sends messages over NATS which are responded to by the mock.
 
@@ -45,7 +45,7 @@ func Initialize() error {
 
 ### Testing a Functional Endpoint
 
-For each endpoint, the testing harness `integration-gen_test.go` defines an equivalent test case which invokes the underlying endpoint and provides asserters on the result. In the following example, `Arithmetic` calls `Svc.Arithmetic` behind the scenes and returns a `ArithmeticTestCase` with asserters that are customized for its return values. It only takes the developer but a few lines of code to run various test cases against the endpoint.
+For each endpoint, the testing harness `integration-gen_test.go` defines a corresponding test case which invokes the underlying endpoint and provides asserters on the result. In the following example, `Arithmetic` calls `Svc.Arithmetic` behind the scenes and returns an `ArithmeticTestCase` with asserters that are customized for its return values. It only takes the developer but a few lines of code to run various test cases against the endpoint.
 
 ```go
 func TestCalculator_Arithmetic(t *testing.T) {
@@ -117,7 +117,7 @@ func TestHello_TickTock(t *testing.T) {
 
 ### Testing Config Callbacks
 
-Config properties that define a callback to handle changes are similarly tested.
+Callbacks that handle changes to config property values are similarly tested.
 
 ```go
 func TestExample_OnChangedConnectionString(t *testing.T) {
@@ -135,7 +135,7 @@ func TestExample_OnChangedConnectionString(t *testing.T) {
 
 ### Skipping Tests
 
-Removing a test will be overwritten on the next run of the code generator, so disabling a test is best achieved by placing a call to `t.Skip()` along with an explanation of why the test was skipped.
+A removed test will be regenerated on the next run of the code generator, so disabling a test is best achieved by placing a call to `t.Skip()` along with an explanation of why the test was skipped.
 
 ```go
 func TestEventsink_OnRegistered(t *testing.T) {
@@ -143,15 +143,15 @@ func TestEventsink_OnRegistered(t *testing.T) {
 }
 ```
 
-### Parallel
+### Parallelism
 
-The code generator specifies to run all tests in parallel by default. The assumption is that tests written in a single test suite are implemented as to not interfere with one another. Commenting out `t.Parallel()` runs a test separately from other tests, however the order of execution of tests is not guaranteed and care must be taken to reset the state at the end of a test that may interfere with another.
+The code generator specifies to run all tests in parallel by default. The assumption is that tests written in a single test suite are implemented as to not interfere with one another. Commenting out `t.Parallel()` runs that test separately from other tests, however the order of execution of tests is not guaranteed and care must be taken to reset the state at the end of a test that may interfere with another.
 
 ## Mocking
 
-Often enough using the actual microservice is not possible because it depends on a resource that is not available in the testing environment. For example, a microservice that makes requests to a third-party web service should be mocked in order to avoid a failure with that service blocking development.
+Sometimes, using the actual microservice is not possible because it depends on a resource that is not available in the testing environment. For example, a microservice that makes requests to a third-party web service should be mocked in order to avoid depending on that service for development.
 
-In order easily mock microservices, the code generator creates a `Mock` for every microservice. This mock includes type-safe methods for mocking all the endpoints of the microservice. If mocking is going to be the same for all tests, the mock can be permanently included in the application in the initialization phase.
+In order to more easily mock microservices, the code generator creates a `Mock` for every microservice. This mock includes type-safe methods for mocking all the endpoints of the microservice. If mocking is going to be the same for all tests, the mock can be permanently included in the application in the initialization phase.
 
 ```go
 // Initialize starts up the testing app.
@@ -181,7 +181,7 @@ func Initialize() error {
 }
 ```
 
-If mocking is going to be different for individual tests, the mock should be temporarily joined to each test instead. More likely than not, these tests should not run in parallel. In the following fictitious example, the `ChargeUser` endpoint of the `payment` microservice is calling a downstream microservice `webpay` that wraps the functionality of a third-party payment processor cloud service. `webpay` is mocked to fail payments over $200 and emulate an error if the amount is $503.
+If mocking is going to be different for individual tests, a mock should be temporarily joined to the app in each relevant test instead. More likely than not, these tests should not run in parallel. In the following fictitious example, the `ChargeUser` endpoint of the `payment` microservice is calling a downstream microservice `webpay` that wraps the functionality of a third-party payment processor cloud service. `webpay` is mocked to fail payments over $200 and emulate an error if the amount is $503.
 
 ```go
 func TestPayment_ChargeUser(t *testing.T) {
@@ -200,16 +200,16 @@ func TestPayment_ChargeUser(t *testing.T) {
 		if amount >= 200 {
 			return false, 100, nil
 		}
-        if amount == 503 {
-            return false, 0, errors.New("service unavailable")
-        }
+		if amount == 503 {
+			return false, 0, errors.New("service unavailable")
+		}
 		return true, 100, nil
 	}
 
-    // Temporarily join the mock to the app
+	// Temporarily join the mock to the app
 	App.Join(mockWebPaySvc)
-    mockWebPaySvc.Startup()
-    defer mockWebPaySvc.Shutdown()
+	mockWebPaySvc.Startup()
+	defer mockWebPaySvc.Shutdown()
 
 	ctx := Context()
 	ChargeUser(ctx, "123", 500).Expect(t, false)
