@@ -199,9 +199,7 @@ func TestPub_Apply(t *testing.T) {
 func TestPub_QueryArgs(t *testing.T) {
 	t.Parallel()
 
-	req, err := NewRequest([]Option{
-		GET("https://www.example.com:443/path?a=1"),
-	}...)
+	req, err := NewRequest(GET("https://www.example.com:443/path?a=1"))
 	assert.NoError(t, err)
 	httpReq, err := toHTTP(req)
 	assert.NoError(t, err)
@@ -224,4 +222,10 @@ func TestPub_QueryArgs(t *testing.T) {
 	httpReq, err = toHTTP(req)
 	assert.NoError(t, err)
 	assert.Equal(t, "https://zzz.example.com:123/newpath?b=2&a=3", httpReq.URL.String())
+
+	err = req.Apply(Query("m=5&n=6"))
+	assert.NoError(t, err)
+	httpReq, err = toHTTP(req)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://zzz.example.com:123/newpath?b=2&a=3&m=5&n=6", httpReq.URL.String())
 }

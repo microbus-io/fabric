@@ -195,3 +195,26 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 	dur := time.Since(t0)
 	assert.True(t, dur < interval)
 }
+
+func TestConnector_TickersDisabledInTestingApp(t *testing.T) {
+	t.Parallel()
+
+	con := New("tickers.disabled.in.testing.app.connector")
+	con.SetDeployment(TESTINGAPP)
+
+	interval := 200 * time.Millisecond
+	count := 0
+	con.StartTicker("myticker", interval, func(ctx context.Context) error {
+		count++
+		return nil
+	})
+
+	assert.Zero(t, count)
+
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	time.Sleep(5 * interval)
+	assert.Zero(t, count)
+}
