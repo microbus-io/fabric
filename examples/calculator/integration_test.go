@@ -41,7 +41,7 @@ func Terminate() error {
 	return nil
 }
 
-func TestCalculator_Arithmeticx(t *testing.T) {
+func TestCalculator_Arithmetic(t *testing.T) {
 	t.Parallel()
 	/*
 		Arithmetic(ctx, x, op, y).
@@ -61,7 +61,7 @@ func TestCalculator_Arithmeticx(t *testing.T) {
 	Arithmetic(ctx, 15, "z", 0).Error(t, "operator")
 }
 
-func TestCalculator_Squarex(t *testing.T) {
+func TestCalculator_Square(t *testing.T) {
 	t.Parallel()
 	/*
 		Square(ctx, x).
@@ -76,7 +76,7 @@ func TestCalculator_Squarex(t *testing.T) {
 	Square(ctx, -8).Expect(t, -8, 64)
 }
 
-func TestCalculator_Distancex(t *testing.T) {
+func TestCalculator_Distance(t *testing.T) {
 	t.Parallel()
 	/*
 		Distance(ctx, p1, p2).
@@ -89,43 +89,4 @@ func TestCalculator_Distancex(t *testing.T) {
 	Distance(ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).Expect(t, 5)
 	Distance(ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).Expect(t, 10)
 	Distance(ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 0, Y: 0}).Expect(t, 0)
-}
-
-func TestCalculator_Arithmetic(t *testing.T) {
-	// TODO: Test Arithmetic
-	t.Parallel()
-	/*
-		Arithmetic(ctx, x, op, y).
-			Expect(t, xEcho, opEcho, yEcho, result).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, xEcho, opEcho, yEcho, result, err))
-	*/
-	// ctx := Context()
-}
-
-func TestCalculator_Square(t *testing.T) {
-	// TODO: Test Square
-	t.Parallel()
-	/*
-		Square(ctx, x).
-			Expect(t, xEcho, result).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, xEcho, result, err))
-	*/
-	// ctx := Context()
-}
-
-func TestCalculator_Distance(t *testing.T) {
-	// TODO: Test Distance
-	t.Parallel()
-	/*
-		Distance(ctx, p1, p2).
-			Expect(t, d).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, d, err))
-	*/
-	// ctx := Context()
 }

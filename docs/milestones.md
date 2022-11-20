@@ -79,3 +79,12 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Code generation of event sources
 * Code generation of event sinks
 * Use `InfiniteChan`s to avoid blocking messaging channels in high-load situations
+
+[Milestone 12](https://github.com/microbus-io/fabric/tree/milestone/12):
+
+* Improvements to how the `Application` manages the lifecycle of microservices
+* Code generation of an integration test harness
+* Code generation of a mockable stub for microservices
+* Restarting of microservices that were previously shutdown
+* `TESTINGAPP` deployment environment in which tickers are disabled and the configurator ignored
+* Integration tests for the example microservices

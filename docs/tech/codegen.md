@@ -297,6 +297,10 @@ result, err := downstreamapi.NewClient(upstreamSvc).Add(ctx, x, y)
 
 For microservices that fire events (i.e. event sources), the API package implements a `MulticastTrigger` and a `Hook`. `MulticastTrigger` is used to facilitate the triggering of events and should generally be used only by the microservice itself. `Hook` is used to facilitate other microservices in subscribing to the events of this microservice.
 
+## Integration Testing
+
+Placeholder [integration tests](./integrationtesting.md) are generated for each of the microservice's handlers to encourage developers to test each of them and achieve high code coverage.
+
 ## Embedded Resources
 
 A `resources` directory is automatically created with a `//go:embed` directive to allow microservices to bundle resource files along with the executable. The `embed.FS` is made available via `svc.Resources()`.
@@ -319,8 +323,11 @@ The code generator creates quite a few files and sub-directories in the director
     types-gen.go
   intermediate
     intermediate-gen.go
+    mock-gen.go
   resources
     embed-gen.go
+  integration_test.go
+  integration-gen_test.go
   service-gen.go
   service.go
   version-gen_test.go
@@ -333,7 +340,9 @@ The `app` directory hosts `package main` of an `Application` that runs the micro
 
 The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. `MulticastTrigger` and `Hook` are defined if the microservice is a source of events. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
-The `intermediate` directory (and package) defines the `Intermediate` which serves as the base of the microservice via anonymous inclusion. The `Intermediate` in turn extends the [`Connector`](../structure/connector.md).
+The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices for that can be used in [integration testing](./integrationtesting.md) when a live version of the microservice cannot.
+
+`integration-gen_test.go` is a testing harness that that facilitates the implementation of integration tests. Those are expected to be implemented in `integration_test.go`
 
 The `resources` directory is a place to put static files to be embedded (linked) into the executable of the microservice. Templates, images, scripts, etc. are some examples of what can potentially be embedded.
 
@@ -355,7 +364,7 @@ func (svc *Service) DoSomething(ctx context.Context) (err error) {
 }
 ```
 
-In addition to the standard `OnStartup` and `OnShutdown` callbacks, the code generator creates an empty function in `service.go` for each and every web handler, functional handler, ticker or config change callback defined in `service.yaml` as described earlier.
+In addition to the standard `OnStartup` and `OnShutdown` callbacks, the code generator creates an empty function in `service.go` for each and every web handler, functional handler, event sink, ticker or config change callback defined in `service.yaml` as described earlier.
 
 ```go
 // OnStartup is called when the microservice is started up.

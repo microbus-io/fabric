@@ -257,31 +257,3 @@ func TestApplication_Run(t *testing.T) {
 	assert.False(t, con.IsStarted())
 	assert.False(t, config.IsStarted())
 }
-
-func TestApplication_Replace(t *testing.T) {
-	t.Parallel()
-
-	alpha := connector.New("replace.application")
-	beta := connector.New("replace.application")
-
-	app := NewTesting(alpha)
-	err := app.Startup()
-	assert.NoError(t, err)
-	assert.True(t, alpha.IsStarted())
-	assert.Equal(t, 1, len(app.Services()))
-	assert.Same(t, alpha, app.Services()[0])
-
-	restore, err := app.Replace(beta)
-	assert.NoError(t, err)
-	assert.False(t, alpha.IsStarted())
-	assert.True(t, beta.IsStarted())
-	assert.Equal(t, 1, len(app.Services()))
-	assert.Same(t, alpha, app.Services()[0])
-
-	err = restore()
-	assert.NoError(t, err)
-	assert.True(t, alpha.IsStarted())
-	assert.False(t, beta.IsStarted())
-	assert.Equal(t, 1, len(app.Services()))
-	assert.Same(t, alpha, app.Services()[0])
-}

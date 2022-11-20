@@ -8,7 +8,7 @@ Configuration properties must first be defined by the microservice using `Define
 
 ```go
 con.New("www.example.com")
-con.DefineConfig("Foo", cfg.DefaultValue("Bar"), cfg.Validation("str [A-Za-z]+"))
+con.DefineConfig("Foo", cfg.DefaultValue("Bar"), cfg.Validation("str ^[A-Za-z]+$"))
 ```
 
 Immediately upon startup, the microservice contacts the configurator microservice to ask for the values of its configuration properties. If an override value is available at the configurator, it is set as the new value of the config property; otherwise, the default value of the config property is set instead.
@@ -29,3 +29,7 @@ con.SetOnConfigChanged(func (ctx context.Context, changed func(string) bool) err
 	return nil
 })
 ```
+
+Note that the fetching config values from the configurator is disabled in the `TESTINGAPP` deployment environment.
+
+Config values can be set programmatically using `SetConfig`, however such values will be overridden on the next fetch of config from the configurator. It is advisable to limit use of this action to testing scenarios when fetching values from the configurator is disabled.

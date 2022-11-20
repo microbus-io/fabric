@@ -3,7 +3,7 @@
 The `Microbus` framework uses environment variables for various purposes:
 
 * Initializing the connection to NATS
-* Identifying the deployment environment (`PROD`, `LAB`, `LOCAL`)
+* Identifying the deployment environment (`PROD`, `LAB`, `LOCAL`, `TESTINGAPP`)
 * Designating a plane of communication
 
 ## NATS Connection
@@ -16,7 +16,8 @@ Before connecting to NATS, a microservice can't communicate with other microserv
 
 * `PROD` for production deployments
 * `LAB` for fully-functional non-production deployments such as dev integration, testing, staging, etc.
-* `LOCAL` for when developing locally or when running applications inside a testing application
+* `LOCAL` when developing locally
+* `TESTINGAPP` when running inside a testing application
 
 The deployment environment impacts certain aspects of the framework such as the log format and log verbosity level.
 
