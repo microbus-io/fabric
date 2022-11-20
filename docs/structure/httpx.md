@@ -8,9 +8,7 @@ Package `httpx` includes various HTTP utilities.
 
 `ParseRequestData` parses the body and query arguments of an incoming request and populates a data object that represents its input arguments. This type of parsing is used in the generated code of the microservice to process functional requests.
 
-The `frag` package implements means to break large HTTP requests and responses into fragments that can then be reassembled. Fragmentation is required because NATS sets a limit (1MB by default) to the size for messages that can be transferred on the bus.
-
-`FragRequest` and its counterpart `DefragRequest` break and reassemble (respectively) large `http.Request`s. `FragResponse` and its counterpart `DefragResponse` break and reassemble (respectively) large `http.Response`s. Fragmentation is required because NATS sets a limit (1MB by default) to the size for messages that can travel on the bus. During fragmentation, fragments are added the control header `Microbus-Fragment` that specifies the index of the fragment out of the total number of fragments. This information is later used to reassemble the fragments on the destination.
+`FragRequest` and its counterpart `DefragRequest` break and reassemble (respectively) large `http.Request`s. `FragResponse` and its counterpart `DefragResponse` break and reassemble (respectively) large `http.Response`s. Fragmentation is required because NATS sets a limit (1MB by default) to the size for messages that can travel on the bus. During fragmentation, a control header `Microbus-Fragment` that specifies the index of the fragment out of the total number of fragments is added to the fragments. This information is later used to reassemble the fragments on the other end.
 
 Here's an example of an HTTP request that was fragmented into 3 fragments of up to 128 bytes each. The client starts by sending the first fragment. Notice the header `Microbus-Fragment: 1/3` indicating this is the first of three fragments.
 

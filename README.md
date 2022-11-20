@@ -41,7 +41,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [codegen](docs/structure/codegen.md) - The code generator
 * [connector](docs/structure/connector.md) ✨ - The primary construct of the framework and the basis for all microservices
 * [dlru](docs/structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
-* [errors](docs/structure/errors.md) - An enhancement of Go's standard `errors` package 
+* [errors](docs/structure/errors.md) - An enhancement of the standard `errors` package
 * [examples](docs/structure/examples.md) - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](docs/structure/httpx.md) 🎁 - Various HTTP utilities
@@ -50,14 +50,14 @@ Review each of the major project packages to get oriented in the code structure:
 * [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/configurator](docs/structure/services-configurator.md) - The configurator system microservice
-* [services/control](docs/structure/services-control.md) - Client API for the [control subscriptions](docs/tech/controlsubs.md)
+* [services/control](docs/structure/services-control.md) - Client API for the `:888` control subscriptions
 * [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy system microservice
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
 * [utils](docs/structure/utils.md) ✨ - Various independent utility classes and functions
 
 ## 👩‍💻 Technical Deep Dive
 
-Go deep into the principals and philosophy of `Microbus`:
+Go deep into the philosophy and implementation of `Microbus`:
 
 * [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
 * [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
