@@ -1,4 +1,4 @@
-{{- range .Configs }}{{- if .Callback }}{{- if not .Exists }}
+{{- range .Configs }}{{ if .Callback }}{{ if not .Exists }}
 // OnChanged{{ .Name }} is triggered when the value of the {{ .Name }} config property changes.
 func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
     // TO{{/**/}}DO: Implement OnChanged{{ .Name }}
@@ -6,7 +6,7 @@ func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
 }
 {{ end }}{{ end }}{{ end }}
 
-{{- range (JoinHandlers .Functions .Sinks) }}{{- if not .Exists }}
+{{- range (JoinHandlers .Functions .Sinks) }}{{ if not .Exists }}
 /*
 {{ .Description }}
 */
@@ -26,7 +26,7 @@ func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err err
 }
 {{ end }}{{ end }}
 
-{{- range .Tickers }}{{- if not .Exists }}
+{{- range .Tickers }}{{ if not .Exists }}
 /*
 {{ .Description }}
 */

@@ -127,8 +127,9 @@ func (tc *RegisterTestCase) NoError(t *testing.T) *RegisterTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *RegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allowed bool, err error)) {
+func (tc *RegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
 	asserter(t, tc.allowed, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Register.

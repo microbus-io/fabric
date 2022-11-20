@@ -127,8 +127,9 @@ func (tc *RegisteredTestCase) NoError(t *testing.T) *RegisteredTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *RegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, emails []string, err error)) {
+func (tc *RegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, emails []string, err error)) *RegisteredTestCase {
 	asserter(t, tc.emails, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Registered.
@@ -175,8 +176,9 @@ func (tc *OnAllowRegisterTestCase) NoError(t *testing.T) *OnAllowRegisterTestCas
 }
 
 // Assert asserts using a provided function.
-func (tc *OnAllowRegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allow bool, err error)) {
+func (tc *OnAllowRegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allow bool, err error)) *OnAllowRegisterTestCase {
 	asserter(t, tc.allow, tc.err)
+	return tc
 }
 
 // Get returns the result of executing OnAllowRegister.
@@ -220,8 +222,9 @@ func (tc *OnRegisteredTestCase) NoError(t *testing.T) *OnRegisteredTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *OnRegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) {
+func (tc *OnRegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnRegisteredTestCase {
 	asserter(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing OnRegistered.

@@ -36,7 +36,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 }
 {{ end }}{{ end }}
 
-{{- range .Tickers }}{{- if not .Exists }}
+{{- range .Tickers }}{{ if not .Exists }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
@@ -49,3 +49,17 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// ctx := Context()
 }
 {{ end }}{{ end }}
+
+{{- range .Configs }}{{ if .Callback }}{{ if not .Exists }}
+func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test OnChanged{{ .Name }}
+	t.Parallel()
+	/*
+		OnChanged{{ .Name }}(ctx).
+			NoError(t).
+			Error(t, errContains).
+			Assert(t, err)
+	*/
+	// ctx := Context()
+}
+{{ end }}{{ end }}{{ end }}

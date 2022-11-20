@@ -254,8 +254,9 @@ func (tc *HelloTestCase) NoError(t *testing.T) *HelloTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *HelloTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+func (tc *HelloTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *HelloTestCase {
 	asserter(t, tc.res, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Hello.
@@ -371,8 +372,9 @@ func (tc *EchoTestCase) NoError(t *testing.T) *EchoTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *EchoTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+func (tc *EchoTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *EchoTestCase {
 	asserter(t, tc.res, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Echo.
@@ -488,8 +490,9 @@ func (tc *PingTestCase) NoError(t *testing.T) *PingTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *PingTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+func (tc *PingTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *PingTestCase {
 	asserter(t, tc.res, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Ping.
@@ -605,8 +608,9 @@ func (tc *CalculatorTestCase) NoError(t *testing.T) *CalculatorTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *CalculatorTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+func (tc *CalculatorTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *CalculatorTestCase {
 	asserter(t, tc.res, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Calculator.
@@ -722,8 +726,9 @@ func (tc *BusJPEGTestCase) NoError(t *testing.T) *BusJPEGTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *BusJPEGTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) {
+func (tc *BusJPEGTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *BusJPEGTestCase {
 	asserter(t, tc.res, tc.err)
+	return tc
 }
 
 // Get returns the result of executing BusJPEG.
@@ -780,8 +785,9 @@ func (tc *TickTockTestCase) NoError(t *testing.T) *TickTockTestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *TickTockTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) {
+func (tc *TickTockTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *TickTockTestCase {
 	asserter(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing TickTock.

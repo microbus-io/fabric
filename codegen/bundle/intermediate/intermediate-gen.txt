@@ -56,7 +56,7 @@ type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
 
-	{{- range .Configs}}{{- if .Callback}}
+	{{- range .Configs}}{{ if .Callback}}
 	OnChanged{{ .Name }}(ctx context.Context) (err error)
 	{{- end}}{{- end}}
 

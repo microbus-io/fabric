@@ -19,8 +19,9 @@ func (tc *{{ .Name }}TestCase) NoError(t *testing.T) *{{ .Name }}TestCase {
 }
 
 // Assert asserts using a provided function.
-func (tc *{{ .Name }}TestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) {
+func (tc *{{ .Name }}TestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *{{ .Name }}TestCase {
 	asserter(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing {{ .Name }}.
