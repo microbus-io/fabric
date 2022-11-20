@@ -86,5 +86,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Code generation of an integration test harness
 * Code generation of a mockable stub for microservices
 * Restarting of microservices that were previously shutdown
-* `TESTINGAPP` deployment environment in which tickers are disabled and the configurator ignored
+* `TESTINGAPP` deployment environment in which tickers and the configurator are disabled
 * Integration tests for the example microservices
