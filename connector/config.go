@@ -87,7 +87,7 @@ func (c *Connector) SetConfig(name string, value any) error {
 	config.Value = v
 
 	// Call the callback function, if provided
-	if c.onConfigChanged != nil && config.Value != origValue {
+	if c.started && c.onConfigChanged != nil && config.Value != origValue {
 		err := c.doCallback(
 			c.lifetimeCtx,
 			c.onConfigChanged.TimeBudget,
@@ -122,7 +122,7 @@ func (c *Connector) ResetConfig(name string) error {
 	config.Value = config.DefaultValue
 
 	// Call the callback function, if provided
-	if c.onConfigChanged != nil && config.Value != origValue {
+	if c.started && c.onConfigChanged != nil && config.Value != origValue {
 		err := c.doCallback(
 			c.lifetimeCtx,
 			c.onConfigChanged.TimeBudget,
@@ -226,7 +226,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 	c.configLock.Unlock()
 
 	// Call the callback function, if provided
-	if c.onConfigChanged != nil && len(changed) > 0 {
+	if c.started && c.onConfigChanged != nil && len(changed) > 0 {
 		err = c.doCallback(
 			c.lifetimeCtx,
 			c.onConfigChanged.TimeBudget,
