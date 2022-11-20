@@ -6,10 +6,37 @@ type {{ .Name }}TestCase struct {
 	{{ .Name }} {{ .Type }}
 	{{- end }}
 	err error
+}
 
-	Expect  func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase
-	Error   func(t *testing.T, errContains string) *{{ .Name }}TestCase
-	NoError func(t *testing.T) *{{ .Name }}TestCase
+// Expect asserts no error and exact return values.
+func (tc *{{ .Name }}TestCase) Expect({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
+	{{- if .Signature.OutputArgs }}
+	if assert.NoError({{ $t }}, tc.err) {
+		{{- range .Signature.OutputArgs }}
+		{{- if eq .Type "time.Time" }}
+		assert.True({{ $t }}, {{ .Name }}.Equal(tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, tc.{{ .Name }})
+		{{- else }}
+		assert.Equal({{ $t }}, {{ .Name }}, tc.{{ .Name }})
+		{{- end}}{{ end }}
+	}
+	{{- else }}
+	assert.NoError(t, tc.err)
+	{{- end}}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *{{ .Name }}TestCase) Error({{ $t }} *testing.T, errContains string) *{{ .Name }}TestCase {
+	if assert.Error({{ $t }}, tc.err) {
+		assert.Contains({{ $t }}, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *{{ .Name }}TestCase) NoError({{ $t }} *testing.T) *{{ .Name }}TestCase {
+	assert.NoError({{ $t }}, tc.err)
+	return tc
 }
 
 // Get returns the result of executing {{ .Name }}.
@@ -24,31 +51,6 @@ func {{ .Name }}({{ .In }}) *{{ .Name }}TestCase {
 		{{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
 		return tc.err
 	})
-	tc.Expect = func({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
-		{{- if .Signature.OutputArgs }}
-		if assert.NoError({{ $t }}, tc.err) {
-			{{- range .Signature.OutputArgs }}
-			{{- if eq .Type "time.Time" }}
-			assert.True({{ $t }}, {{ .Name }}.Equal(tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, tc.{{ .Name }})
-			{{- else }}
-			assert.Equal({{ $t }}, {{ .Name }}, tc.{{ .Name }})
-			{{- end}}{{ end }}
-		}
-		{{- else }}
-		assert.NoError(t, tc.err)
-		{{- end}}
-		return tc
-	}
-	tc.Error = func({{ $t }} *testing.T, errContains string) *{{ .Name }}TestCase {
-		if assert.Error({{ $t }}, tc.err) {
-			assert.Contains({{ $t }}, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func({{ $t }} *testing.T) *{{ .Name }}TestCase {
-		assert.NoError({{ $t }}, tc.err)
-		return tc
-	}
 	return tc
 }
 {{ end }}

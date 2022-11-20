@@ -2,12 +2,12 @@
 
 package configurator
 
-const Version = 27
+const Version = 29
 const SourceCodeSHA256 = "019de46dae6ec8ba1c86e2649e2661f558038fd58041508751b179cb68c31f3f"
-const Timestamp = "2022-11-19T00:55:07.542226Z"
+const Timestamp = "2022-11-20T01:00:47.287472Z"
 
 /* {
-	"ver": 27,
+	"ver": 29,
 	"sha256": "019de46dae6ec8ba1c86e2649e2661f558038fd58041508751b179cb68c31f3f",
-	"ts": "2022-11-19T00:55:07.542226Z"
+	"ts": "2022-11-20T01:00:47.287472Z"
 } */

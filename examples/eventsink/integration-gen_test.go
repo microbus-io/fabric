@@ -102,10 +102,28 @@ func Context() context.Context {
 type RegisteredTestCase struct {
 	emails []string
 	err error
+}
 
-	Expect  func(t *testing.T, emails []string) *RegisteredTestCase
-	Error   func(t *testing.T, errContains string) *RegisteredTestCase
-	NoError func(t *testing.T) *RegisteredTestCase
+// Expect asserts no error and exact return values.
+func (tc *RegisteredTestCase) Expect(t *testing.T, emails []string) *RegisteredTestCase {
+	if assert.NoError(t, tc.err) {
+		assert.Equal(t, emails, tc.emails)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *RegisteredTestCase) Error(t *testing.T, errContains string) *RegisteredTestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *RegisteredTestCase) NoError(t *testing.T) *RegisteredTestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Registered.
@@ -120,22 +138,6 @@ func Registered(ctx context.Context) *RegisteredTestCase {
 		tc.emails, tc.err = Svc.Registered(ctx)
 		return tc.err
 	})
-	tc.Expect = func(t *testing.T, emails []string) *RegisteredTestCase {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, emails, tc.emails)
-		}
-		return tc
-	}
-	tc.Error = func(t *testing.T, errContains string) *RegisteredTestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *RegisteredTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }
 
@@ -143,10 +145,28 @@ func Registered(ctx context.Context) *RegisteredTestCase {
 type OnAllowRegisterTestCase struct {
 	allow bool
 	err error
+}
 
-	Expect  func(t *testing.T, allow bool) *OnAllowRegisterTestCase
-	Error   func(t *testing.T, errContains string) *OnAllowRegisterTestCase
-	NoError func(t *testing.T) *OnAllowRegisterTestCase
+// Expect asserts no error and exact return values.
+func (tc *OnAllowRegisterTestCase) Expect(t *testing.T, allow bool) *OnAllowRegisterTestCase {
+	if assert.NoError(t, tc.err) {
+		assert.Equal(t, allow, tc.allow)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *OnAllowRegisterTestCase) Error(t *testing.T, errContains string) *OnAllowRegisterTestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnAllowRegisterTestCase) NoError(t *testing.T) *OnAllowRegisterTestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing OnAllowRegister.
@@ -161,32 +181,32 @@ func OnAllowRegister(ctx context.Context, email string) *OnAllowRegisterTestCase
 		tc.allow, tc.err = Svc.OnAllowRegister(ctx, email)
 		return tc.err
 	})
-	tc.Expect = func(t *testing.T, allow bool) *OnAllowRegisterTestCase {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, allow, tc.allow)
-		}
-		return tc
-	}
-	tc.Error = func(t *testing.T, errContains string) *OnAllowRegisterTestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *OnAllowRegisterTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }
 
 // OnRegisteredTestCase assists in asserting against the results of executing OnRegistered.
 type OnRegisteredTestCase struct {
 	err error
+}
 
-	Expect  func(t *testing.T) *OnRegisteredTestCase
-	Error   func(t *testing.T, errContains string) *OnRegisteredTestCase
-	NoError func(t *testing.T) *OnRegisteredTestCase
+// Expect asserts no error and exact return values.
+func (tc *OnRegisteredTestCase) Expect(t *testing.T) *OnRegisteredTestCase {
+	assert.NoError(t, tc.err)
+	return tc
+}
+
+// Error asserts an error.
+func (tc *OnRegisteredTestCase) Error(t *testing.T, errContains string) *OnRegisteredTestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnRegisteredTestCase) NoError(t *testing.T) *OnRegisteredTestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing OnRegistered.
@@ -201,19 +221,5 @@ func OnRegistered(ctx context.Context, email string) *OnRegisteredTestCase {
 		tc.err = Svc.OnRegistered(ctx, email)
 		return tc.err
 	})
-	tc.Expect = func(t *testing.T) *OnRegisteredTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
-	tc.Error = func(t *testing.T, errContains string) *OnRegisteredTestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *OnRegisteredTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }

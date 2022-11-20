@@ -40,9 +40,9 @@ var (
 )
 
 var (
-	// App manages the lifecycle of the microservices used in the test.
+	// App manages the lifecycle of the microservices used in the test
 	App *application.Application
-	// Svc is the calculator.example microservice being tested.
+	// Svc is the calculator.example microservice being tested
 	Svc *Service
 )
 
@@ -105,10 +105,31 @@ type ArithmeticTestCase struct {
 	yEcho int
 	result int
 	err error
+}
 
-	Expect  func(t *testing.T, xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase
-	Error   func(t *testing.T, errContains string) *ArithmeticTestCase
-	NoError func(t *testing.T) *ArithmeticTestCase
+// Expect asserts no error and exact return values.
+func (tc *ArithmeticTestCase) Expect(t *testing.T, xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
+	if assert.NoError(t, tc.err) {
+		assert.Equal(t, xEcho, tc.xEcho)
+		assert.Equal(t, opEcho, tc.opEcho)
+		assert.Equal(t, yEcho, tc.yEcho)
+		assert.Equal(t, result, tc.result)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *ArithmeticTestCase) Error(t *testing.T, errContains string) *ArithmeticTestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *ArithmeticTestCase) NoError(t *testing.T) *ArithmeticTestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Arithmetic.
@@ -123,25 +144,6 @@ func Arithmetic(ctx context.Context, x int, op string, y int) *ArithmeticTestCas
 		tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err = Svc.Arithmetic(ctx, x, op, y)
 		return tc.err
 	})
-	tc.Expect = func(t *testing.T, xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, xEcho, tc.xEcho)
-			assert.Equal(t, opEcho, tc.opEcho)
-			assert.Equal(t, yEcho, tc.yEcho)
-			assert.Equal(t, result, tc.result)
-		}
-		return tc
-	}
-	tc.Error = func(t *testing.T, errContains string) *ArithmeticTestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *ArithmeticTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }
 
@@ -150,10 +152,29 @@ type SquareTestCase struct {
 	xEcho int
 	result int
 	err error
+}
 
-	Expect  func(t *testing.T, xEcho int, result int) *SquareTestCase
-	Error   func(t *testing.T, errContains string) *SquareTestCase
-	NoError func(t *testing.T) *SquareTestCase
+// Expect asserts no error and exact return values.
+func (tc *SquareTestCase) Expect(t *testing.T, xEcho int, result int) *SquareTestCase {
+	if assert.NoError(t, tc.err) {
+		assert.Equal(t, xEcho, tc.xEcho)
+		assert.Equal(t, result, tc.result)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *SquareTestCase) Error(t *testing.T, errContains string) *SquareTestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *SquareTestCase) NoError(t *testing.T) *SquareTestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Square.
@@ -168,23 +189,6 @@ func Square(ctx context.Context, x int) *SquareTestCase {
 		tc.xEcho, tc.result, tc.err = Svc.Square(ctx, x)
 		return tc.err
 	})
-	tc.Expect = func(t *testing.T, xEcho int, result int) *SquareTestCase {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, xEcho, tc.xEcho)
-			assert.Equal(t, result, tc.result)
-		}
-		return tc
-	}
-	tc.Error = func(t *testing.T, errContains string) *SquareTestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *SquareTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }
 
@@ -192,10 +196,28 @@ func Square(ctx context.Context, x int) *SquareTestCase {
 type DistanceTestCase struct {
 	d float64
 	err error
+}
 
-	Expect  func(t *testing.T, d float64) *DistanceTestCase
-	Error   func(t *testing.T, errContains string) *DistanceTestCase
-	NoError func(t *testing.T) *DistanceTestCase
+// Expect asserts no error and exact return values.
+func (tc *DistanceTestCase) Expect(t *testing.T, d float64) *DistanceTestCase {
+	if assert.NoError(t, tc.err) {
+		assert.Equal(t, d, tc.d)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *DistanceTestCase) Error(t *testing.T, errContains string) *DistanceTestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *DistanceTestCase) NoError(t *testing.T) *DistanceTestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Distance.
@@ -210,21 +232,5 @@ func Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Poin
 		tc.d, tc.err = Svc.Distance(ctx, p1, p2)
 		return tc.err
 	})
-	tc.Expect = func(t *testing.T, d float64) *DistanceTestCase {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, d, tc.d)
-		}
-		return tc
-	}
-	tc.Error = func(t *testing.T, errContains string) *DistanceTestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *DistanceTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }

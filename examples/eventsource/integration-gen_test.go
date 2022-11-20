@@ -102,10 +102,28 @@ func Context() context.Context {
 type RegisterTestCase struct {
 	allowed bool
 	err error
+}
 
-	Expect  func(t *testing.T, allowed bool) *RegisterTestCase
-	Error   func(t *testing.T, errContains string) *RegisterTestCase
-	NoError func(t *testing.T) *RegisterTestCase
+// Expect asserts no error and exact return values.
+func (tc *RegisterTestCase) Expect(t *testing.T, allowed bool) *RegisterTestCase {
+	if assert.NoError(t, tc.err) {
+		assert.Equal(t, allowed, tc.allowed)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *RegisterTestCase) Error(t *testing.T, errContains string) *RegisterTestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *RegisterTestCase) NoError(t *testing.T) *RegisterTestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing Register.
@@ -120,21 +138,5 @@ func Register(ctx context.Context, email string) *RegisterTestCase {
 		tc.allowed, tc.err = Svc.Register(ctx, email)
 		return tc.err
 	})
-	tc.Expect = func(t *testing.T, allowed bool) *RegisterTestCase {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, allowed, tc.allowed)
-		}
-		return tc
-	}
-	tc.Error = func(t *testing.T, errContains string) *RegisterTestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *RegisterTestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }

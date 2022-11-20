@@ -2,9 +2,20 @@
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	err error
+}
 
-	Error   func(t *testing.T, errContains string) *{{ .Name }}TestCase
-	NoError func(t *testing.T) *{{ .Name }}TestCase
+// Error asserts an error.
+func (tc *{{ .Name }}TestCase) Error(t *testing.T, errContains string) *{{ .Name }}TestCase {
+	if assert.Error(t, tc.err) {
+		assert.Contains(t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *{{ .Name }}TestCase) NoError(t *testing.T) *{{ .Name }}TestCase {
+	assert.NoError(t, tc.err)
+	return tc
 }
 
 // Get returns the result of executing {{ .Name }}.
@@ -18,16 +29,6 @@ func {{ .Name }}(ctx context.Context) *{{ .Name }}TestCase {
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.{{ .Name }}(ctx)
 	})
-	tc.Error = func(t *testing.T, errContains string) *{{ .Name }}TestCase {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-		return tc
-	}
-	tc.NoError = func(t *testing.T) *{{ .Name }}TestCase {
-		assert.NoError(t, tc.err)
-		return tc
-	}
 	return tc
 }
 {{ end }}
