@@ -53,6 +53,7 @@ func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
 		Hello(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -64,6 +65,7 @@ func TestHello_Hello(t *testing.T) {
 	*/
 	ctx := Context()
 	Hello(ctx, GET()).
+		Name("without name arg").
 		BodyContains(t, Svc.Greeting()).
 		BodyNotContains(t, "Maria").
 		Assert(t, func(t *testing.T, res *http.Response, err error) {
@@ -73,6 +75,7 @@ func TestHello_Hello(t *testing.T) {
 			assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
 		})
 	Hello(ctx, GET(), QueryArg("name", "Maria")).
+		Name("with name arg").
 		BodyContains(t, Svc.Greeting()).
 		BodyContains(t, "Maria")
 }
@@ -81,6 +84,7 @@ func TestHello_Echo(t *testing.T) {
 	t.Parallel()
 	/*
 		Echo(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -101,6 +105,7 @@ func TestHello_Ping(t *testing.T) {
 	t.Parallel()
 	/*
 		Ping(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -118,6 +123,7 @@ func TestHello_Calculator(t *testing.T) {
 	t.Parallel()
 	/*
 		Calculator(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -136,6 +142,7 @@ func TestHello_BusJPEG(t *testing.T) {
 	t.Parallel()
 	/*
 		BusJPEG(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -158,6 +165,7 @@ func TestHello_TickTock(t *testing.T) {
 	t.Parallel()
 	/*
 		TickTock(ctx).
+			Name(testName).
 			NoError(t).
 			Error(t, errContains).
 			Assert(t, func(t, err))

@@ -41,6 +41,7 @@ func TestMessaging_Home(t *testing.T) {
 	t.Parallel()
 	/*
 		Home(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -52,6 +53,7 @@ func TestMessaging_Home(t *testing.T) {
 	*/
 	ctx := Context()
 	Home(ctx, GET()).
+		Name("all replicas").
 		BodyContains(t, Svc.ID()).
 		BodyContains(t, Svc2.ID())
 }
@@ -60,6 +62,7 @@ func TestMessaging_NoQueue(t *testing.T) {
 	t.Parallel()
 	/*
 		NoQueue(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -79,6 +82,7 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 	t.Parallel()
 	/*
 		DefaultQueue(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -98,6 +102,7 @@ func TestMessaging_CacheLoad(t *testing.T) {
 	t.Parallel()
 	/*
 		CacheLoad(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -108,15 +113,19 @@ func TestMessaging_CacheLoad(t *testing.T) {
 			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
-	CacheLoad(ctx, GET(), QueryArg("key", "load")).
+	CacheLoad(ctx, GET(), QueryArg("key", "l1")).
+		Name("load not found").
 		BodyContains(t, "found: no")
-	CacheStore(ctx, GET(), QueryArg("key", "load"), QueryArg("value", "myvalue")).
+	CacheStore(ctx, GET(), QueryArg("key", "l1"), QueryArg("value", "val-l1")).
+		Name("store l1").
 		NoError(t)
-	CacheLoad(ctx, GET(), QueryArg("key", "load")).
+	CacheLoad(ctx, GET(), QueryArg("key", "l1")).
+		Name("load found").
 		BodyContains(t, "found: yes").
-		BodyContains(t, "myvalue")
+		BodyContains(t, "val-l1")
 
 	CacheLoad(ctx, GET()).
+		Name("no key arg on load").
 		Error(t, "missing")
 }
 
@@ -124,6 +133,7 @@ func TestMessaging_CacheStore(t *testing.T) {
 	t.Parallel()
 	/*
 		CacheStore(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
 			StatusOK(t).
 			StatusCode(t, statusCode).
 			BodyContains(t, bodyContains).
@@ -134,25 +144,36 @@ func TestMessaging_CacheStore(t *testing.T) {
 			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context()
-	CacheStore(ctx, GET(), QueryArg("key", "store1"), QueryArg("value", "myvalue1")).
-		BodyContains(t, "myvalue1").
+	CacheStore(ctx, GET(), QueryArg("key", "s1"), QueryArg("value", "s1-val")).
+		Name("store s1").
+		BodyContains(t, "s1-val").
 		BodyContains(t, Svc.ID())
-	CacheStore(ctx, GET(), QueryArg("key", "store2"), QueryArg("value", "myvalue2")).
-		BodyContains(t, "myvalue2").
+	CacheStore(ctx, GET(), QueryArg("key", "s2"), QueryArg("value", "s2-val")).
+		Name("store s2").
+		BodyContains(t, "s2-val").
 		BodyContains(t, Svc.ID())
-	CacheLoad(ctx, GET(), QueryArg("key", "store1")).
-		BodyContains(t, "found: yes")
-	CacheLoad(ctx, GET(), QueryArg("key", "store2")).
-		BodyContains(t, "found: yes")
-	CacheLoad(ctx, GET(), QueryArg("key", "store3")).
+	CacheLoad(ctx, GET(), QueryArg("key", "s1")).
+		Name("load s1").
+		BodyContains(t, "found: yes").
+		BodyContains(t, "s1-val")
+	CacheLoad(ctx, GET(), QueryArg("key", "s2")).
+		Name("load s2").
+		BodyContains(t, "found: yes").
+		BodyContains(t, "s2-val")
+	CacheLoad(ctx, GET(), QueryArg("key", "s3")).
+		Name("load s3").
 		BodyContains(t, "found: no")
 
 	CacheStore(ctx, GET()).
+		Name("no key and value args on store").
 		Error(t, "missing")
-	CacheStore(ctx, GET(), QueryArg("key", "storex")).
+	CacheStore(ctx, GET(), QueryArg("key", "x")).
+		Name("no key arg on store").
 		Error(t, "missing")
-	CacheStore(ctx, GET(), QueryArg("value", "myvaluex")).
+	CacheStore(ctx, GET(), QueryArg("value", "val-x")).
+		Name("no value arg on store").
 		Error(t, "missing")
-	CacheLoad(ctx, GET(), QueryArg("key", "storex")).
+	CacheLoad(ctx, GET(), QueryArg("key", "x")).
+		Name("no x").
 		BodyContains(t, "found: no")
 }

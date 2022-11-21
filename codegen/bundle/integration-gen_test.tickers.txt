@@ -1,26 +1,39 @@
 {{ range .Tickers }}
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
+	testName string
 	err error
+}
+
+// Name sets a name to the test case.
+func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
+	tc.testName = testName
+	return tc
 }
 
 // Error asserts an error.
 func (tc *{{ .Name }}TestCase) Error(t *testing.T, errContains string) *{{ .Name }}TestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *{{ .Name }}TestCase) NoError(t *testing.T) *{{ .Name }}TestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc.testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *{{ .Name }}TestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *{{ .Name }}TestCase {
-	asserter(t, tc.err)
+	t.Run(tc.testName, func(t *testing.T) {
+		asserter(t, tc.err)
+	})
 	return tc
 }
 

@@ -47,13 +47,14 @@ func TestEventsource_Register(t *testing.T) {
 	t.Parallel()
 	/*
 		Register(ctx, email).
+			Name(testName).
 			Expect(t, allowed).
 			NoError(t).
 			Error(t, errContains).
 			Assert(t, func(t, allowed, err))
 	*/
 	ctx := Context()
-	Register(ctx, "brian@hotmail.com").Expect(t, false)
-	Register(ctx, "brian@example.com").Expect(t, true)
-	Register(ctx, "brian@example.com").Expect(t, false)
+	Register(ctx, "brian@hotmail.com").Name("decline hotmail.com").Expect(t, false)
+	Register(ctx, "brian@example.com").Name("accept example.com").Expect(t, true)
+	Register(ctx, "brian@example.com").Name("decline dup").Expect(t, false)
 }

@@ -46,17 +46,22 @@ func TestEventsink_Registered(t *testing.T) {
 	t.Parallel()
 	/*
 		Registered(ctx).
+			Name(testName).
 			Expect(t, emails).
 			NoError(t).
 			Error(t, errContains).
 			Assert(t, func(t, emails, err))
 	*/
 	ctx := Context()
-	Registered(ctx).Expect(t, []string{})
+	registered, err := Registered(ctx).Get()
+	assert.NoError(t, err)
+	assert.NotContains(t, registered, "jose@example.com")
+	assert.NotContains(t, registered, "maria@example.com")
+	assert.NotContains(t, registered, "lee@example.com")
 	OnRegistered(ctx, "jose@example.com").NoError(t)
 	OnRegistered(ctx, "maria@example.com").NoError(t)
 	OnRegistered(ctx, "lee@example.com").NoError(t)
-	registered, err := Registered(ctx).Get()
+	registered, err = Registered(ctx).Get()
 	assert.NoError(t, err)
 	assert.Contains(t, registered, "jose@example.com")
 	assert.Contains(t, registered, "maria@example.com")
@@ -67,18 +72,19 @@ func TestEventsink_OnAllowRegister(t *testing.T) {
 	t.Parallel()
 	/*
 		OnAllowRegister(ctx, email).
+			Name(testName).
 			Expect(t, allow).
 			NoError(t).
 			Error(t, errContains).
 			Assert(t, func(t, allow, err))
 	*/
 	ctx := Context()
-	OnAllowRegister(ctx, "nancy@gmail.com").Expect(t, false)
-	OnAllowRegister(ctx, "nancy@hotmail.com").Expect(t, false)
+	OnAllowRegister(ctx, "nancy@gmail.com").Name("disallow gmail.com").Expect(t, false)
+	OnAllowRegister(ctx, "nancy@hotmail.com").Name("disallow hotmail.com").Expect(t, false)
 
-	OnAllowRegister(ctx, "nancy@example.com").Expect(t, true)
-	OnRegistered(ctx, "nancy@example.com")
-	OnAllowRegister(ctx, "nancy@example.com").Expect(t, false)
+	OnAllowRegister(ctx, "nancy@example.com").Name("allow hotmail.com").Expect(t, true)
+	OnRegistered(ctx, "nancy@example.com").NoError(t)
+	OnAllowRegister(ctx, "nancy@example.com").Name("disallow dup").Expect(t, false)
 }
 
 func TestEventsink_OnRegistered(t *testing.T) {

@@ -100,35 +100,50 @@ func Context() context.Context {
 
 // RegisterTestCase assists in asserting against the results of executing Register.
 type RegisterTestCase struct {
+	_testName string
 	allowed bool
 	err error
 }
 
+// Name sets a name to the test case.
+func (tc *RegisterTestCase) Name(testName string) *RegisterTestCase {
+	tc._testName = testName
+	return tc
+}
+
 // Expect asserts no error and exact return values.
 func (tc *RegisterTestCase) Expect(t *testing.T, allowed bool) *RegisterTestCase {
-	if assert.NoError(t, tc.err) {
-		assert.Equal(t, allowed, tc.allowed)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, allowed, tc.allowed)
+		}
+	})
 	return tc
 }
 
 // Error asserts an error.
 func (tc *RegisterTestCase) Error(t *testing.T, errContains string) *RegisterTestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *RegisterTestCase) NoError(t *testing.T) *RegisterTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *RegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
-	asserter(t, tc.allowed, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		asserter(t, tc.allowed, tc.err)
+	})
 	return tc
 }
 

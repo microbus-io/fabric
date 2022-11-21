@@ -100,6 +100,7 @@ func Context() context.Context {
 
 // ArithmeticTestCase assists in asserting against the results of executing Arithmetic.
 type ArithmeticTestCase struct {
+	_testName string
 	xEcho int
 	opEcho string
 	yEcho int
@@ -107,34 +108,48 @@ type ArithmeticTestCase struct {
 	err error
 }
 
+// Name sets a name to the test case.
+func (tc *ArithmeticTestCase) Name(testName string) *ArithmeticTestCase {
+	tc._testName = testName
+	return tc
+}
+
 // Expect asserts no error and exact return values.
 func (tc *ArithmeticTestCase) Expect(t *testing.T, xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
-	if assert.NoError(t, tc.err) {
-		assert.Equal(t, xEcho, tc.xEcho)
-		assert.Equal(t, opEcho, tc.opEcho)
-		assert.Equal(t, yEcho, tc.yEcho)
-		assert.Equal(t, result, tc.result)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, xEcho, tc.xEcho)
+			assert.Equal(t, opEcho, tc.opEcho)
+			assert.Equal(t, yEcho, tc.yEcho)
+			assert.Equal(t, result, tc.result)
+		}
+	})
 	return tc
 }
 
 // Error asserts an error.
 func (tc *ArithmeticTestCase) Error(t *testing.T, errContains string) *ArithmeticTestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *ArithmeticTestCase) NoError(t *testing.T) *ArithmeticTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *ArithmeticTestCase) Assert(t *testing.T, asserter func(t *testing.T, xEcho int, opEcho string, yEcho int, result int, err error)) *ArithmeticTestCase {
-	asserter(t, tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		asserter(t, tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err)
+	})
 	return tc
 }
 
@@ -155,37 +170,52 @@ func Arithmetic(ctx context.Context, x int, op string, y int) *ArithmeticTestCas
 
 // SquareTestCase assists in asserting against the results of executing Square.
 type SquareTestCase struct {
+	_testName string
 	xEcho int
 	result int
 	err error
 }
 
+// Name sets a name to the test case.
+func (tc *SquareTestCase) Name(testName string) *SquareTestCase {
+	tc._testName = testName
+	return tc
+}
+
 // Expect asserts no error and exact return values.
 func (tc *SquareTestCase) Expect(t *testing.T, xEcho int, result int) *SquareTestCase {
-	if assert.NoError(t, tc.err) {
-		assert.Equal(t, xEcho, tc.xEcho)
-		assert.Equal(t, result, tc.result)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, xEcho, tc.xEcho)
+			assert.Equal(t, result, tc.result)
+		}
+	})
 	return tc
 }
 
 // Error asserts an error.
 func (tc *SquareTestCase) Error(t *testing.T, errContains string) *SquareTestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *SquareTestCase) NoError(t *testing.T) *SquareTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *SquareTestCase) Assert(t *testing.T, asserter func(t *testing.T, xEcho int, result int, err error)) *SquareTestCase {
-	asserter(t, tc.xEcho, tc.result, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		asserter(t, tc.xEcho, tc.result, tc.err)
+	})
 	return tc
 }
 
@@ -206,35 +236,50 @@ func Square(ctx context.Context, x int) *SquareTestCase {
 
 // DistanceTestCase assists in asserting against the results of executing Distance.
 type DistanceTestCase struct {
+	_testName string
 	d float64
 	err error
 }
 
+// Name sets a name to the test case.
+func (tc *DistanceTestCase) Name(testName string) *DistanceTestCase {
+	tc._testName = testName
+	return tc
+}
+
 // Expect asserts no error and exact return values.
 func (tc *DistanceTestCase) Expect(t *testing.T, d float64) *DistanceTestCase {
-	if assert.NoError(t, tc.err) {
-		assert.Equal(t, d, tc.d)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, d, tc.d)
+		}
+	})
 	return tc
 }
 
 // Error asserts an error.
 func (tc *DistanceTestCase) Error(t *testing.T, errContains string) *DistanceTestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *DistanceTestCase) NoError(t *testing.T) *DistanceTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *DistanceTestCase) Assert(t *testing.T, asserter func(t *testing.T, d float64, err error)) *DistanceTestCase {
-	asserter(t, tc.d, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		asserter(t, tc.d, tc.err)
+	})
 	return tc
 }
 

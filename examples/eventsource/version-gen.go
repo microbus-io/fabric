@@ -2,12 +2,12 @@
 
 package eventsource
 
-const Version = 39
+const Version = 40
 const SourceCodeSHA256 = "a9afe677e61cee2cfdb933df38f7f8da3b21e58cc02b9ee8326c6d7b93e5104b"
-const Timestamp = "2022-11-20T03:14:27.199997Z"
+const Timestamp = "2022-11-21T18:18:45.445667Z"
 
 /* {
-	"ver": 39,
+	"ver": 40,
 	"sha256": "a9afe677e61cee2cfdb933df38f7f8da3b21e58cc02b9ee8326c6d7b93e5104b",
-	"ts": "2022-11-20T03:14:27.199997Z"
+	"ts": "2022-11-21T18:18:45.445667Z"
 } */

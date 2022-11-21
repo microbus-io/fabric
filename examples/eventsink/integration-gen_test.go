@@ -100,35 +100,50 @@ func Context() context.Context {
 
 // RegisteredTestCase assists in asserting against the results of executing Registered.
 type RegisteredTestCase struct {
+	_testName string
 	emails []string
 	err error
 }
 
+// Name sets a name to the test case.
+func (tc *RegisteredTestCase) Name(testName string) *RegisteredTestCase {
+	tc._testName = testName
+	return tc
+}
+
 // Expect asserts no error and exact return values.
 func (tc *RegisteredTestCase) Expect(t *testing.T, emails []string) *RegisteredTestCase {
-	if assert.NoError(t, tc.err) {
-		assert.Equal(t, emails, tc.emails)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, emails, tc.emails)
+		}
+	})
 	return tc
 }
 
 // Error asserts an error.
 func (tc *RegisteredTestCase) Error(t *testing.T, errContains string) *RegisteredTestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *RegisteredTestCase) NoError(t *testing.T) *RegisteredTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *RegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, emails []string, err error)) *RegisteredTestCase {
-	asserter(t, tc.emails, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		asserter(t, tc.emails, tc.err)
+	})
 	return tc
 }
 
@@ -149,35 +164,50 @@ func Registered(ctx context.Context) *RegisteredTestCase {
 
 // OnAllowRegisterTestCase assists in asserting against the results of executing OnAllowRegister.
 type OnAllowRegisterTestCase struct {
+	_testName string
 	allow bool
 	err error
 }
 
+// Name sets a name to the test case.
+func (tc *OnAllowRegisterTestCase) Name(testName string) *OnAllowRegisterTestCase {
+	tc._testName = testName
+	return tc
+}
+
 // Expect asserts no error and exact return values.
 func (tc *OnAllowRegisterTestCase) Expect(t *testing.T, allow bool) *OnAllowRegisterTestCase {
-	if assert.NoError(t, tc.err) {
-		assert.Equal(t, allow, tc.allow)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, allow, tc.allow)
+		}
+	})
 	return tc
 }
 
 // Error asserts an error.
 func (tc *OnAllowRegisterTestCase) Error(t *testing.T, errContains string) *OnAllowRegisterTestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnAllowRegisterTestCase) NoError(t *testing.T) *OnAllowRegisterTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnAllowRegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allow bool, err error)) *OnAllowRegisterTestCase {
-	asserter(t, tc.allow, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		asserter(t, tc.allow, tc.err)
+	})
 	return tc
 }
 
@@ -198,32 +228,47 @@ func OnAllowRegister(ctx context.Context, email string) *OnAllowRegisterTestCase
 
 // OnRegisteredTestCase assists in asserting against the results of executing OnRegistered.
 type OnRegisteredTestCase struct {
+	_testName string
 	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnRegisteredTestCase) Name(testName string) *OnRegisteredTestCase {
+	tc._testName = testName
+	return tc
 }
 
 // Expect asserts no error and exact return values.
 func (tc *OnRegisteredTestCase) Expect(t *testing.T) *OnRegisteredTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Error asserts an error.
 func (tc *OnRegisteredTestCase) Error(t *testing.T, errContains string) *OnRegisteredTestCase {
-	if assert.Error(t, tc.err) {
-		assert.Contains(t, tc.err.Error(), errContains)
-	}
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnRegisteredTestCase) NoError(t *testing.T) *OnRegisteredTestCase {
-	assert.NoError(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnRegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnRegisteredTestCase {
-	asserter(t, tc.err)
+	t.Run(tc._testName, func(t *testing.T) {
+		asserter(t, tc.err)
+	})
 	return tc
 }
 
