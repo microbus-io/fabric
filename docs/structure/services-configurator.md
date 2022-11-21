@@ -1,6 +1,6 @@
 # Package `services/configurator`
 
-The configurator is a system microservice of `Microbus` and it must be included with practically all applications. Microservices that define config properties will not start if they cannot reach the configurator. This is why you'll see it listed practically all apps, such as in `examples/main/main.go`:
+The configurator is a system microservice of `Microbus` and it must be included with practically all applications. Microservices that define config properties will not start if they cannot reach the configurator. This is why you'll see the configurator included in most self-contained apps, such as in `examples/main/main.go`:
 
 ```go
 func main() {
