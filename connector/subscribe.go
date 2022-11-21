@@ -15,6 +15,7 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
 
@@ -287,18 +288,15 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Call the handler
 	httpRecorder := httpx.NewResponseRecorder()
-	handlerErr := c.doCallback(
-		ctx,
-		0,
-		"Handling request",
-		s.Path,
-		func(_ context.Context) error {
-			return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
-		},
-	)
+	handlerErr := utils.CatchPanic(func() error {
+		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
+	})
 	cancel()
 
 	if handlerErr != nil {
+		handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
+		c.LogError(ctx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
+
 		// Prepare an error response instead
 		httpRecorder = httpx.NewResponseRecorder()
 		httpRecorder.Header().Set("Content-Type", "application/json")
