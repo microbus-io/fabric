@@ -8,21 +8,41 @@ The Calculator microservice performs simple mathematical operations.
 package calculator
 
 import (
-	"github.com/microbus-io/fabric/examples/calculator/intermediate"
+	"context"
+	"net/http"
+	"time"
 
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
+	"github.com/microbus-io/fabric/examples/calculator/intermediate"
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
 )
 
 var (
-	_ calculatorapi.Client
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ connector.Service
+	_ *errors.TracedError
+	_ *calculatorapi.Client
 )
 
 // The default host name of the microservice is calculator.example.
 const HostName = "calculator.example"
 
 // NewService creates a new calculator.example microservice.
-func NewService() *Service {
+func NewService() connector.Service {
 	s := &Service{}
-	s.Intermediate = intermediate.New(s, Version)
+	s.Intermediate = intermediate.NewService(s, Version)
 	return s
+}
+
+// Mock is a mockable version of the calculator.example microservice,
+// allowing functions, sinks and web handlers to be mocked.
+type Mock = intermediate.Mock
+
+// New creates a new mockable version of the microservice.
+func NewMock() *Mock {
+	return intermediate.NewMock(Version)
 }

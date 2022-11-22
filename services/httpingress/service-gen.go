@@ -8,26 +8,44 @@ The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.
 package httpingress
 
 import (
-	"github.com/microbus-io/fabric/services/httpingress/intermediate"
+	"context"
+	"net/http"
+	"time"
 
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
+	"github.com/microbus-io/fabric/services/httpingress/intermediate"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
 )
 
 var (
-	_ httpingressapi.Client
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ connector.Service
+	_ *errors.TracedError
+	_ *httpingressapi.Client
 )
 
 // The default host name of the microservice is http.ingress.sys.
 const HostName = "http.ingress.sys"
 
 // NewService creates a new http.ingress.sys microservice.
-func NewService() *Service {
+func NewService() connector.Service {
 	s := &Service{}
-	s.Intermediate = intermediate.New(s, Version)
+	s.Intermediate = intermediate.NewService(s, Version)
 	return s
 }
 
-type Initializer = intermediate.Initializer
+// Mock is a mockable version of the http.ingress.sys microservice,
+// allowing functions, sinks and web handlers to be mocked.
+type Mock = intermediate.Mock
+
+// New creates a new mockable version of the microservice.
+func NewMock() *Mock {
+	return intermediate.NewMock(Version)
+}
 
 // Config initializers
 var (
@@ -36,13 +54,3 @@ var (
 	// Port initializes the Port config property of the microservice
 	Port = intermediate.Port
 )
-
-/*
-With initializes the config properties of the microservice for testings purposes.
-
-	httpingressSvc := httpingress.NewService().With(...)
-*/
-func (svc *Service) With(initializers ...Initializer) *Service {
-	svc.Intermediate.With(initializers...)
-	return svc
-}

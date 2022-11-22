@@ -2,12 +2,13 @@ package configurator
 
 import (
 	"context"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,18 +16,29 @@ import (
 func TestConfigurator_ManyMicroservices(t *testing.T) {
 	t.Parallel()
 
-	configSvc := NewService()
-	services := []application.Service{
+	plane := rand.AlphaNum64(12)
+
+	configSvc := NewService().(*Service)
+	configSvc.SetPlane(plane)
+	services := []connector.Service{
 		configSvc,
 	}
-	for i := 0; i < 16; i++ {
+	n := 16
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
 		con := connector.New("many.microservices.configurator")
+		con.SetPlane(plane)
 		con.DefineConfig("foo", cfg.DefaultValue("bar"))
 		con.DefineConfig("moo")
+		con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
+			con.LogDebug(ctx, "Config changed", log.String("foo", con.Config("foo")))
+			wg.Done()
+			return nil
+		})
 		services = append(services, con)
 	}
 
-	app := application.NewTesting(services...)
+	app := application.New(services...)
 	err := app.Startup()
 	assert.NoError(t, err)
 	defer app.Shutdown()
@@ -44,12 +56,10 @@ many.microservices.configurator:
 `)
 	assert.NoError(t, err)
 
+	wg.Add(n)
 	err = configSvc.Refresh(configSvc.Lifetime())
 	assert.NoError(t, err)
-
-	// Known responders optimization might cause some of the microservices to be missed
-	// and not return synchronously, but they still get the request
-	time.Sleep(200 * time.Millisecond)
+	wg.Wait()
 
 	for i := 1; i < len(services); i++ {
 		assert.Equal(t, "baz", services[i].(*connector.Connector).Config("foo"))
@@ -64,12 +74,10 @@ many.microservices.configurator:
 `)
 	assert.NoError(t, err)
 
+	wg.Add(n)
 	err = configSvc.Refresh(configSvc.Lifetime())
 	assert.NoError(t, err)
-
-	// Known responders optimization might cause some of the microservices to be missed
-	// and not return synchronously, but they still get the request
-	time.Sleep(200 * time.Millisecond)
+	wg.Wait()
 
 	for i := 1; i < len(services); i++ {
 		assert.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
@@ -80,22 +88,28 @@ many.microservices.configurator:
 func TestConfigurator_Callback(t *testing.T) {
 	t.Parallel()
 
-	configSvc := NewService()
+	plane := rand.AlphaNum64(12)
+
+	configSvc := NewService().(*Service)
+	configSvc.SetPlane(plane)
 
 	con := connector.New("callback.configurator")
+	con.SetPlane(plane)
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
-	callbackCalled := false
+	var wg sync.WaitGroup
 	err := con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
 		assert.True(t, changed("foo"))
-		callbackCalled = true
+		wg.Done()
 		return nil
 	})
 	assert.NoError(t, err)
 
-	app := application.NewTesting(configSvc, con)
-	err = app.Startup()
+	err = configSvc.Startup()
 	assert.NoError(t, err)
-	defer app.Shutdown()
+	defer configSvc.Shutdown()
+	err = con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
 
 	assert.Equal(t, "bar", con.Config("foo"))
 
@@ -105,15 +119,12 @@ callback.configurator:
 `)
 
 	// Force a refresh
+	wg.Add(1)
 	err = configSvc.Refresh(configSvc.Lifetime())
 	assert.NoError(t, err)
-
-	// Known responders optimization might cause some of the microservices to be missed
-	// and not return synchronously, but they still get the request
-	time.Sleep(200 * time.Millisecond)
+	wg.Wait()
 
 	assert.Equal(t, "baz", con.Config("foo"))
-	assert.True(t, callbackCalled)
 }
 
 func TestConfigurator_PeerSync(t *testing.T) {
@@ -122,7 +133,7 @@ func TestConfigurator_PeerSync(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Start the first peer
-	config1 := NewService()
+	config1 := NewService().(*Service)
 	config1.SetPlane(plane)
 	config1.loadYAML(`
 www.example.com:
@@ -148,7 +159,7 @@ www.example.com:
 	assert.Equal(t, "Bar", con.Config("Foo"))
 
 	// Start the second peer
-	config2 := NewService()
+	config2 := NewService().(*Service)
 	config2.SetPlane(plane)
 	config2.loadYAML(`
 www.example.com:

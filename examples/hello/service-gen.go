@@ -8,26 +8,44 @@ The Hello microservice demonstrates the various capabilities of a microservice.
 package hello
 
 import (
-	"github.com/microbus-io/fabric/examples/hello/intermediate"
+	"context"
+	"net/http"
+	"time"
 
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
+	"github.com/microbus-io/fabric/examples/hello/intermediate"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
 )
 
 var (
-	_ helloapi.Client
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ connector.Service
+	_ *errors.TracedError
+	_ *helloapi.Client
 )
 
 // The default host name of the microservice is hello.example.
 const HostName = "hello.example"
 
 // NewService creates a new hello.example microservice.
-func NewService() *Service {
+func NewService() connector.Service {
 	s := &Service{}
-	s.Intermediate = intermediate.New(s, Version)
+	s.Intermediate = intermediate.NewService(s, Version)
 	return s
 }
 
-type Initializer = intermediate.Initializer
+// Mock is a mockable version of the hello.example microservice,
+// allowing functions, sinks and web handlers to be mocked.
+type Mock = intermediate.Mock
+
+// New creates a new mockable version of the microservice.
+func NewMock() *Mock {
+	return intermediate.NewMock(Version)
+}
 
 // Config initializers
 var (
@@ -36,13 +54,3 @@ var (
 	// Repeat initializes the Repeat config property of the microservice
 	Repeat = intermediate.Repeat
 )
-
-/*
-With initializes the config properties of the microservice for testings purposes.
-
-	helloSvc := hello.NewService().With(...)
-*/
-func (svc *Service) With(initializers ...Initializer) *Service {
-	svc.Intermediate.With(initializers...)
-	return svc
-}

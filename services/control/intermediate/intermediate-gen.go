@@ -21,8 +21,8 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/control/resources"
 	"github.com/microbus-io/fabric/services/control/controlapi"
@@ -30,19 +30,17 @@ import (
 
 var (
 	_ context.Context
-	_ embed.FS
-	_ json.Decoder
+	_ *embed.FS
+	_ *json.Decoder
 	_ fmt.Stringer
-	_ http.Request
+	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
-
-	_ cb.Callback
-	_ cfg.Config
-	_ errors.TracedError
+	_ cb.Option
+	_ cfg.Option
+	_ *errors.TracedError
+	_ *httpx.ResponseRecorder
 	_ sub.Option
-	_ utils.ResponseRecorder
-
 	_ controlapi.Client
 )
 
@@ -62,8 +60,8 @@ type Intermediate struct {
 	impl ToDo
 }
 
-// New creates a new intermediate service.
-func New(impl ToDo, version int) *Intermediate {
+// NewService creates a new intermediate service.
+func NewService(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
 		Connector: connector.New("control.sys"),
 		impl: impl,
@@ -88,27 +86,17 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is fired when the config of the microservice changed.
+// doOnConfigChanged is called when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	return nil
 }
 
-// Initializer initializes a config property of the microservice.
-type Initializer func(svc *Intermediate) error
-
-// With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
-	for _, i := range initializers {
-		i(svc)
-	}
-	return svc
-}
 
 // doPing handles marshaling for the Ping function.
 func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.PingIn
 	var o controlapi.PingOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
@@ -130,7 +118,7 @@ func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.ConfigRefreshIn
 	var o controlapi.ConfigRefreshOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}

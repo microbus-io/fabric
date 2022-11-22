@@ -1,0 +1,69 @@
+{{- $pkg := CapitalizeIdentifier .PackageSuffix }}
+{{- range (JoinHandlers .Functions .Sinks) }}{{- if not .Exists }}
+{{- $t := .Signature.TestingT }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
+	t.Parallel()
+	/*
+		{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
+			Name(testName).
+		{{- if .Signature.OutputArgs }}
+			Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }}).
+		{{- end }}
+			NoError({{ $t }}).
+			Error({{ $t }}, errContains).
+			Assert({{ $t }}, func({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err))
+	*/
+	// ctx := Context()
+}
+{{ end }}{{ end }}
+
+{{- range .Webs }}{{- if not .Exists }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
+	t.Parallel()
+	/*
+		{{ .Name }}(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
+			StatusOK(t).
+			StatusCode(t, statusCode).
+			BodyContains(t, bodyContains).
+			BodyNotContains(t, bodyNotContains).
+			HeaderContains(t, headerName, valueContains).
+			NoError(t).
+			Error(t, errContains).
+			Assert(t, func(t, httpResponse, err))
+	*/
+	// ctx := Context()
+}
+{{ end }}{{ end }}
+
+{{- range .Tickers }}{{ if not .Exists }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
+	t.Parallel()
+	/*
+		{{ .Name }}(ctx).
+			Name(testName).
+			NoError(t).
+			Error(t, errContains).
+			Assert(t, err)
+	*/
+	// ctx := Context()
+}
+{{ end }}{{ end }}
+
+{{- range .Configs }}{{ if .Callback }}{{ if not .Exists }}
+func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test OnChanged{{ .Name }}
+	t.Parallel()
+	/*
+		OnChanged{{ .Name }}(ctx).
+			Name(testName).
+			NoError(t).
+			Error(t, errContains).
+			Assert(t, err)
+	*/
+	// ctx := Context()
+}
+{{ end }}{{ end }}{{ end }}

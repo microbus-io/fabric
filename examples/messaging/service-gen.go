@@ -8,21 +8,41 @@ The Messaging microservice demonstrates service-to-service communication pattern
 package messaging
 
 import (
-	"github.com/microbus-io/fabric/examples/messaging/intermediate"
+	"context"
+	"net/http"
+	"time"
 
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
+	"github.com/microbus-io/fabric/examples/messaging/intermediate"
 	"github.com/microbus-io/fabric/examples/messaging/messagingapi"
 )
 
 var (
-	_ messagingapi.Client
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ connector.Service
+	_ *errors.TracedError
+	_ *messagingapi.Client
 )
 
 // The default host name of the microservice is messaging.example.
 const HostName = "messaging.example"
 
 // NewService creates a new messaging.example microservice.
-func NewService() *Service {
+func NewService() connector.Service {
 	s := &Service{}
-	s.Intermediate = intermediate.New(s, Version)
+	s.Intermediate = intermediate.NewService(s, Version)
 	return s
+}
+
+// Mock is a mockable version of the messaging.example microservice,
+// allowing functions, sinks and web handlers to be mocked.
+type Mock = intermediate.Mock
+
+// New creates a new mockable version of the microservice.
+func NewMock() *Mock {
+	return intermediate.NewMock(Version)
 }

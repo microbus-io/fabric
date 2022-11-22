@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/httpx"
 )
 
 // defragRequest assembles all fragments of an incoming HTTP request and returns the integrated HTTP request.
@@ -23,7 +23,7 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 	c.requestDefragsLock.Lock()
 	defragger, ok := c.requestDefrags[fragKey]
 	if !ok {
-		defragger = frag.NewDefragRequest()
+		defragger = httpx.NewDefragRequest()
 		c.requestDefrags[fragKey] = defragger
 		// Timeout if fragments stop arriving
 		go func() {
@@ -74,7 +74,7 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 	c.responseDefragsLock.Lock()
 	defragger, ok := c.responseDefrags[fragKey]
 	if !ok {
-		defragger = frag.NewDefragResponse()
+		defragger = httpx.NewDefragResponse()
 		c.responseDefrags[fragKey] = defragger
 		// Timeout if fragments stop arriving
 		go func() {

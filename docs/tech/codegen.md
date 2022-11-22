@@ -34,6 +34,7 @@ The `general` section of `service.yaml` defines the `host` name of the microserv
 #
 # host - The host name of the microservice
 # description - A human-friendly description of the microservice
+# integrationTests - Whether or not to generate integration tests (defaults to true)
 general:
   host: email.communication.xyz
   description: The email service delivers emails to recipients.
@@ -132,7 +133,7 @@ Along with the host name of the service, the `path` defines the URL to this endp
 `events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. [Events](../tech/events.md) are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `OnUserDeleted(id string)` could be an event fired by a user management microservice.
 
 ```yaml
-# Events
+# Event sources
 #
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
@@ -161,8 +162,8 @@ The `signature` defines the event name (which must start with the word `On` foll
 #
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# event - The event name to handle (defaults to the function name)
-# source - A path to the microservice that is the source of the event
+# event - The name of the event at the source (defaults to the function name)
+# source - The package path of the microservice that is the source of the event
 # forHost - For an event source with an overridden host name
 # queue - The subscription queue
 #   default - Load balanced (default)
@@ -174,7 +175,7 @@ sinks:
     source: package/path/of/another/microservice
 ```
 
-The `signature` of an event sink must match that of the event source to the letter. The only exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if different event sources use the same name for their events. That becomes necessary because handler function names must be unique in the scope of the sink microservice.
+The `signature` of an event sink must match that of the event source. The one exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if different event sources use the same name for their events. That becomes necessary because handler function names must be unique in the scope of the sink microservice.
 
 ```yaml
 sinks:
@@ -271,7 +272,8 @@ Complex types may contain other complex types in which case those nested types a
 # name - All non-primitive types used in functions must be accounted for
 # description - Documentation
 # define - Define a new type with the specified fields (name: type)
-# import - A path to another microservice that defines the type
+# import - The name of the imported type (defaults to the function name)
+# source - The package path of the microservice that defines the type
 types:
   - name:
     description:
@@ -280,6 +282,7 @@ types:
   - name:
     description:
     import:
+    source:
 ```
 
 ## Clients
@@ -291,6 +294,12 @@ With clients, an upstream microservice remotely calling a downstream microservic
 ```go
 result, err := downstreamapi.NewClient(upstreamSvc).Add(ctx, x, y)
 ```
+
+For microservices that fire events (i.e. event sources), the API package implements a `MulticastTrigger` and a `Hook`. `MulticastTrigger` is used to facilitate the triggering of events and should generally be used only by the microservice itself. `Hook` is used to facilitate other microservices in subscribing to the events of this microservice.
+
+## Integration Testing
+
+Placeholder [integration tests](./integrationtesting.md) are generated for each of the microservice's handlers to encourage developers to test each of them and achieve high code coverage.
 
 ## Embedded Resources
 
@@ -314,8 +323,11 @@ The code generator creates quite a few files and sub-directories in the director
     types-gen.go
   intermediate
     intermediate-gen.go
+    mock-gen.go
   resources
     embed-gen.go
+  integration_test.go
+  integration-gen_test.go
   service-gen.go
   service.go
   version-gen_test.go
@@ -326,9 +338,11 @@ Files that include `-gen` in their name are fully code generated and should not 
 
 The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the host name of the service, with dots replaced by hyphens.
 
-The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
+The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. `MulticastTrigger` and `Hook` are defined if the microservice is a source of events. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
-The `intermediate` directory (and package) defines the `Intermediate` which serves as the base of the microservice via anonymous inclusion. The `Intermediate` in turn extends the [`Connector`](../structure/connector.md).
+The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices for that can be used in [integration testing](./integrationtesting.md) when a live version of the microservice cannot.
+
+`integration-gen_test.go` is a testing harness that that facilitates the implementation of integration tests. Those are expected to be implemented in `integration_test.go`
 
 The `resources` directory is a place to put static files to be embedded (linked) into the executable of the microservice. Templates, images, scripts, etc. are some examples of what can potentially be embedded.
 
@@ -350,7 +364,7 @@ func (svc *Service) DoSomething(ctx context.Context) (err error) {
 }
 ```
 
-In addition to the standard `OnStartup` and `OnShutdown` callbacks, the code generator creates an empty function in `service.go` for each and every web handler, functional handler, ticker or config change callback defined in `service.yaml` as described earlier.
+In addition to the standard `OnStartup` and `OnShutdown` callbacks, the code generator creates an empty function in `service.go` for each and every web handler, functional handler, event sink, ticker or config change callback defined in `service.yaml` as described earlier.
 
 ```go
 // OnStartup is called when the microservice is started up.

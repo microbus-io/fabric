@@ -7,92 +7,60 @@ import (
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/services/configurator"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApplication_StartStop(t *testing.T) {
 	t.Parallel()
 
-	alpha := connector.New("alpha.startstop.application")
-	beta := connector.New("beta.startstop.application")
-	app := New(alpha, beta)
+	alpha := connector.New("alpha.start.stop.application")
+	beta := connector.New("beta.start.stop.application")
+	app := NewTesting(alpha, beta)
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
-	assert.False(t, app.IsStarted())
 
 	err := app.Startup()
 	assert.NoError(t, err)
 
 	assert.True(t, alpha.IsStarted())
 	assert.True(t, beta.IsStarted())
-	assert.True(t, app.IsStarted())
 
 	err = app.Shutdown()
 	assert.NoError(t, err)
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
-	assert.False(t, app.IsStarted())
 }
 
 func TestApplication_Interrupt(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("interrupt.application")
-	app := New(con)
+	app := NewTesting(con)
 
 	ch := make(chan bool)
 	go func() {
-		err := app.Run()
+		err := app.Startup()
 		assert.NoError(t, err)
+		go func() {
+			app.WaitForInterrupt()
+			err := app.Shutdown()
+			assert.NoError(t, err)
+			ch <- true
+		}()
 		ch <- true
 	}()
 
-	for !app.IsStarted() {
-		time.Sleep(50 * time.Microsecond)
-	}
-	assert.True(t, app.IsStarted())
-
+	<-ch
+	assert.True(t, con.IsStarted())
 	app.Interrupt()
-
-	for app.IsStarted() {
-		time.Sleep(50 * time.Microsecond)
-	}
-	assert.False(t, app.IsStarted())
-}
-
-func TestApplication_NotStartedInterrupt(t *testing.T) {
-	t.Parallel()
-
-	con := connector.New("not.started.interrupt.application")
-	app := New(con)
-
-	err := app.WaitForInterrupt()
-	assert.Error(t, err)
-	err = app.Interrupt()
-	assert.Error(t, err)
-
-	err = app.Startup()
-	assert.NoError(t, err)
-
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		err := app.Interrupt()
-		assert.NoError(t, err)
-	}()
-	err = app.WaitForInterrupt()
-	assert.NoError(t, err)
-
-	err = app.Shutdown()
-	assert.NoError(t, err)
-
-	err = app.WaitForInterrupt()
-	assert.Error(t, err)
-	err = app.Interrupt()
-	assert.Error(t, err)
+	<-ch
+	assert.False(t, con.IsStarted())
 }
 
 func TestApplication_NoConflict(t *testing.T) {
@@ -101,7 +69,7 @@ func TestApplication_NoConflict(t *testing.T) {
 	ctx := context.Background()
 
 	// Create first testing app
-	alpha := connector.New("noconflict.application")
+	alpha := connector.New("no.conflict.application")
 	alpha.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("alpha"))
 		return nil
@@ -109,7 +77,7 @@ func TestApplication_NoConflict(t *testing.T) {
 	appAlpha := NewTesting(alpha)
 
 	// Create second testing app
-	beta := connector.New("noconflict.application")
+	beta := connector.New("no.conflict.application")
 	beta.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("beta"))
 		return nil
@@ -126,12 +94,12 @@ func TestApplication_NoConflict(t *testing.T) {
 
 	// Assert different planes of communication
 	assert.NotEqual(t, alpha.Plane(), beta.Plane())
-	assert.Equal(t, "LOCAL", alpha.Deployment())
-	assert.Equal(t, "LOCAL", beta.Deployment())
+	assert.Equal(t, connector.TESTINGAPP, alpha.Deployment())
+	assert.Equal(t, connector.TESTINGAPP, beta.Deployment())
 
 	// Alpha should never see beta
 	for i := 0; i < 32; i++ {
-		response, err := alpha.GET(ctx, "https://noconflict.application/id")
+		response, err := alpha.GET(ctx, "https://no.conflict.application/id")
 		assert.NoError(t, err)
 		body, err := io.ReadAll(response.Body)
 		assert.NoError(t, err)
@@ -140,7 +108,7 @@ func TestApplication_NoConflict(t *testing.T) {
 
 	// Beta should never see alpha
 	for i := 0; i < 32; i++ {
-		response, err := beta.GET(ctx, "https://noconflict.application/id")
+		response, err := beta.GET(ctx, "https://no.conflict.application/id")
 		assert.NoError(t, err)
 		body, err := io.ReadAll(response.Body)
 		assert.NoError(t, err)
@@ -148,32 +116,144 @@ func TestApplication_NoConflict(t *testing.T) {
 	}
 }
 
-func TestApplication_Clock(t *testing.T) {
+func TestApplication_DependencyStart(t *testing.T) {
 	t.Parallel()
 
-	con := connector.New("clock.application")
-	app := New(con)
+	startupTimeout := time.Second * 2
 
-	mockClock1 := clock.NewMockAtNow()
-	err := app.SetClock(mockClock1)
+	// Alpha is dependent on beta to start
+	failCount := 0
+	alpha := connector.New("alpha.dependency.start.application")
+	alpha.SetOnStartup(func(ctx context.Context) error {
+		_, err := alpha.Request(ctx, pub.GET("https://beta.dependency.start.application/ok"))
+		if err != nil {
+			failCount++
+			return errors.Trace(err)
+		}
+		return nil
+	})
+
+	// Beta takes a bit of time to start
+	beta := connector.New("beta.dependency.start.application")
+	beta.Subscribe("/ok", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+	beta.SetOnStartup(func(ctx context.Context) error {
+		time.Sleep(startupTimeout / 2)
+		return nil
+	})
+
+	app := NewTesting(alpha, beta)
+	app.startupTimeout = startupTimeout
+	t0 := time.Now()
+	err := app.Startup()
+	dur := time.Since(t0)
 	assert.NoError(t, err)
+	assert.True(t, failCount > 0)
+	assert.True(t, dur >= startupTimeout/2)
 
-	err = app.Startup()
-	assert.NoError(t, err)
+	app.Shutdown()
+}
 
-	mockClock2 := clock.NewMockAtNow()
-	err = app.SetClock(mockClock2)
-	assert.NoError(t, err)
+func TestApplication_FailStart(t *testing.T) {
+	t.Parallel()
 
-	assert.Equal(t, mockClock2, con.Clock().(*clock.ClockReference).Get())
+	startupTimeout := time.Second
+
+	// Alpha fails to start
+	failCount := 0
+	alpha := connector.New("alpha.fail.start.application")
+	alpha.SetOnStartup(func(ctx context.Context) error {
+		failCount++
+		return errors.New("oops")
+	})
+
+	// Beta starts without a hitch
+	beta := connector.New("beta.fail.start.application")
+
+	app := NewTesting(alpha, beta)
+	app.startupTimeout = startupTimeout
+	t0 := time.Now()
+	err := app.Startup()
+	dur := time.Since(t0)
+	assert.Error(t, err)
+	assert.True(t, failCount > 0)
+	assert.True(t, dur >= startupTimeout)
+	assert.True(t, beta.IsStarted())
+	assert.False(t, alpha.IsStarted())
 
 	err = app.Shutdown()
 	assert.NoError(t, err)
+	assert.False(t, beta.IsStarted())
+	assert.False(t, alpha.IsStarted())
 }
 
-func TestApplication_Interface(t *testing.T) {
+func TestApplication_JoinInclude(t *testing.T) {
 	t.Parallel()
 
-	c := connector.New("example")
-	_ = Service(c)
+	alpha := connector.New("alpha.join.include.application")
+	beta := connector.New("beta.join.include.application")
+	gamma := connector.New("gamma.join.include.application")
+
+	app := NewTesting(alpha)
+	app.Include(beta)
+	app.Join(gamma)
+
+	assert.Equal(t, alpha.Plane(), beta.Plane())
+	assert.Equal(t, alpha.Plane(), gamma.Plane())
+
+	err := app.Startup()
+	assert.NoError(t, err)
+	assert.True(t, alpha.IsStarted())
+	assert.True(t, beta.IsStarted())
+	assert.False(t, gamma.IsStarted())
+
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	assert.True(t, gamma.IsStarted())
+
+	err = app.Shutdown()
+	assert.NoError(t, err)
+	assert.False(t, alpha.IsStarted())
+	assert.False(t, beta.IsStarted())
+	assert.True(t, gamma.IsStarted())
+
+	err = gamma.Shutdown()
+	assert.NoError(t, err)
+	assert.False(t, gamma.IsStarted())
+}
+
+func TestApplication_Services(t *testing.T) {
+	t.Parallel()
+
+	alpha := connector.New("alpha.services.application")
+	beta1 := connector.New("beta.services.application")
+	beta2 := connector.New("beta.services.application")
+
+	app := New(alpha, beta1, beta2)
+	assert.Equal(t, []connector.Service{alpha, beta1, beta2}, app.Services())
+	assert.Equal(t, []connector.Service{beta1, beta2}, app.ServicesByHost("beta.services.application"))
+}
+
+func TestApplication_Run(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("run.application")
+	config := configurator.NewService()
+	app := NewTesting(con, config)
+
+	go func() {
+		err := app.Run()
+		assert.NoError(t, err)
+	}()
+
+	time.Sleep(time.Second)
+	assert.True(t, con.IsStarted())
+	assert.True(t, config.IsStarted())
+
+	app.Interrupt()
+
+	time.Sleep(time.Second)
+	assert.False(t, con.IsStarted())
+	assert.False(t, config.IsStarted())
 }

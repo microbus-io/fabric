@@ -18,6 +18,8 @@ type Request struct {
 	Body       io.Reader
 	TimeBudget time.Duration
 	Multicast  bool
+
+	queryArgs string
 }
 
 // NewRequest constructs a new request from the provided options.

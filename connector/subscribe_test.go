@@ -209,8 +209,8 @@ func TestConnector_Unsubscribe(t *testing.T) {
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub2")
 	assert.NoError(t, err)
 
-	// Unsubscribe all
-	err = con.UnsubscribeAll()
+	// Deactivate all
+	err = con.deactivateSubs()
 	assert.NoError(t, err)
 
 	// Send requests

@@ -1,0 +1,51 @@
+package {{ .PackageSuffix }}
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"{{ .Package }}/{{ .PackageSuffix }}api"
+)
+
+var (
+	_ *testing.T
+	_ assert.TestingT
+	_ *{{ .PackageSuffix }}api.Client
+)
+
+// Initialize starts up the testing app.
+func Initialize() error {
+    // TO{{/**/}}DO: Initialize testing app
+	
+	// Include all downstream microservices in the testing app
+	// Use .With(...) to initialize with appropriate config values
+	App.Include(
+		Svc
+		{{- if .Configs }}.With(
+		{{- range .Configs }}
+		// {{ .Name }}({{ with index .Signature.OutputArgs 0 }}{{ .Name }}{{ end }}),
+		{{- end}}
+		){{ end -}}
+		,
+		// downstream.NewService().With(),
+	)
+
+	err := App.Startup()
+	if err != nil {
+		return err
+	}
+
+	// You may call any of the microservices after the app is started
+
+	return nil
+}
+
+// Terminate shuts down the testing app.
+func Terminate() error {
+	err := App.Shutdown()
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -56,6 +56,9 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	h.Path = strings.Replace(h.Path, "...", utils.ToKebabCase(h.Name()), 1)
 	h.Queue = strings.ToLower(h.Queue)
+	if h.Queue == "" {
+		h.Queue = "default"
+	}
 
 	if h.Event == "" {
 		h.Event = h.Name()
@@ -71,13 +74,13 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // validate validates the data after unmarshaling.
 func (h *Handler) validate() error {
-	if h.Queue != "" && h.Queue != "default" && h.Queue != "none" {
+	if h.Queue != "default" && h.Queue != "none" {
 		return errors.Newf("invalid queue '%s' in '%s'", h.Queue, h.Name())
 	}
 	if strings.Contains(h.Path, "`") {
 		return errors.Newf("backquote not allowed in path '%s' in '%s'", h.Path, h.Name())
 	}
-	joined := sub.JoinHostAndPath("example.com", h.Path)
+	joined := httpx.JoinHostAndPath("example.com", h.Path)
 	_, err := utils.ParseURL(joined)
 	if err != nil {
 		return errors.Newf("invalid path '%s' in '%s'", h.Path, h.Name())
@@ -217,7 +220,7 @@ func (h *Handler) Out() string {
 func (h *Handler) SourceSuffix() string {
 	p := strings.LastIndex(h.Source, "/")
 	if p < 0 {
-		p = -1
+		return h.Source
 	}
 	return h.Source[p+1:]
 }

@@ -16,20 +16,21 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
 )
 
 var (
 	_ context.Context
-	_ json.Decoder
-	_ http.Request
+	_ *json.Decoder
+	_ *http.Request
 	_ strings.Reader
 	_ time.Duration
-
-	_ errors.TracedError
-	_ pub.Request
-	_ sub.Subscription
+	_ *errors.TracedError
+	_ *httpx.BodyReader
+	_ pub.Option
+	_ sub.Option
 )
 
 // The default host name addressed by the clients is eventsource.example.
@@ -40,6 +41,8 @@ const HostName = "eventsource.example"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the eventsource.example microservice.
@@ -90,7 +93,7 @@ type MulticastTrigger struct {
 	host string
 }
 
-// NewMulticastTrigger creates a new multicast trigger to the eventsource.example microservice.
+// NewMulticastTrigger creates a new multicast trigger of the eventsource.example microservice.
 func NewMulticastTrigger(caller Service) *MulticastTrigger {
 	return &MulticastTrigger{
 		svc:  caller,
@@ -104,17 +107,37 @@ func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
 	return _c
 }
 
-// RegisterIn are the input arguments of the Register function.
+// Hook assists in the subscription to the events of the eventsource.example microservice.
+type Hook struct {
+	svc  Service
+	host string
+}
+
+// NewHook creates a new hook to the events of the eventsource.example microservice.
+func NewHook(caller Service) *Hook {
+	return &Hook{
+		svc:  caller,
+		host: "eventsource.example",
+	}
+}
+
+// ForHost replaces the default host name of this hook.
+func (_c *Hook) ForHost(host string) *Hook {
+	_c.host = host
+	return _c
+}
+
+// RegisterIn are the input arguments of Register.
 type RegisterIn struct {
 	Email string `json:"email"`
 }
 
-// RegisterOut are the return values of the Register function.
+// RegisterOut are the return values of Register.
 type RegisterOut struct {
 	Allowed bool `json:"allowed"`
 }
 
-// RegisterResponse is the response of the Register function.
+// RegisterResponse is the response to Register.
 type RegisterResponse struct {
 	data RegisterOut
 	HTTPResponse *http.Response
@@ -125,40 +148,6 @@ type RegisterResponse struct {
 func (_out *RegisterResponse) Get() (allowed bool, err error) {
 	allowed = _out.data.Allowed
 	err = _out.err
-	return
-}
-
-/*
-Register attempts to register a new user.
-*/
-func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
-	_in := RegisterIn{
-		email,
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/register`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out RegisterOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	allowed = _out.Allowed
 	return
 }
 
@@ -179,7 +168,7 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/register`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -207,23 +196,17 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 	return _res
 }
 
-// OnAllowRegisterHandler is a handler of the OnAllowRegister event.
-type OnAllowRegisterHandler func (ctx context.Context, email string) (allow bool, err error)
-
-// OnAllowRegisterPath is the URL path of the OnAllowRegister event.
-const OnAllowRegisterPath = ":417/on-allow-register"
-
-// OnAllowRegisterIn are the input arguments of the OnAllowRegister event.
+// OnAllowRegisterIn are the input arguments of OnAllowRegister.
 type OnAllowRegisterIn struct {
 	Email string `json:"email"`
 }
 
-// OnAllowRegisterOut are the return values of the OnAllowRegister event.
+// OnAllowRegisterOut are the return values of OnAllowRegister.
 type OnAllowRegisterOut struct {
 	Allow bool `json:"allow"`
 }
 
-// OnAllowRegisterResponse is the response to the OnAllowRegister event.
+// OnAllowRegisterResponse is the response to OnAllowRegister.
 type OnAllowRegisterResponse struct {
 	data OnAllowRegisterOut
 	HTTPResponse *http.Response
@@ -255,7 +238,7 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -283,22 +266,16 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 	return _res
 }
 
-// OnRegisteredHandler is a handler of the OnRegistered event.
-type OnRegisteredHandler func (ctx context.Context, email string) (err error)
-
-// OnRegisteredPath is the URL path of the OnRegistered event.
-const OnRegisteredPath = ":417/on-registered"
-
-// OnRegisteredIn are the input arguments of the OnRegistered event.
+// OnRegisteredIn are the input arguments of OnRegistered.
 type OnRegisteredIn struct {
 	Email string `json:"email"`
 }
 
-// OnRegisteredOut are the return values of the OnRegistered event.
+// OnRegisteredOut are the return values of OnRegistered.
 type OnRegisteredOut struct {
 }
 
-// OnRegisteredResponse is the response to the OnRegistered event.
+// OnRegisteredResponse is the response to OnRegistered.
 type OnRegisteredResponse struct {
 	data OnRegisteredOut
 	HTTPResponse *http.Response
@@ -328,7 +305,7 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:417/on-registered`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -354,4 +331,103 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 		close(_res)
 	}()
 	return _res
+}
+
+/*
+Register attempts to register a new user.
+*/
+func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
+	_in := RegisterIn{
+		email,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out RegisterOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	allowed = _out.Allowed
+	return
+}
+
+/*
+OnAllowRegister is called before a user is allowed to register.
+Event sinks are given the opportunity to block the registration.
+*/
+func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) (allow bool, err error), options ...sub.Option) error {
+	doOnAllowRegister := func(w http.ResponseWriter, r *http.Request) error {
+		var i OnAllowRegisterIn
+		var o OnAllowRegisterOut
+		err := httpx.ParseRequestData(r, &i)
+		if err!=nil {
+			return errors.Trace(err)
+		}
+		o.Allow, err = handler(
+			r.Context(),
+			i.Email,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(o)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	path := httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)
+	if handler == nil {
+		return _c.svc.Unsubscribe(path)
+	}
+	return _c.svc.Subscribe(path, doOnAllowRegister, options...)
+}
+
+/*
+OnRegistered is called when a user is successfully registered.
+*/
+func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (err error), options ...sub.Option) error {
+	doOnRegistered := func(w http.ResponseWriter, r *http.Request) error {
+		var i OnRegisteredIn
+		var o OnRegisteredOut
+		err := httpx.ParseRequestData(r, &i)
+		if err!=nil {
+			return errors.Trace(err)
+		}
+		err = handler(
+			r.Context(),
+			i.Email,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(o)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	path := httpx.JoinHostAndPath(_c.host, `:417/on-registered`)
+	if handler == nil {
+		return _c.svc.Unsubscribe(path)
+	}
+	return _c.svc.Subscribe(path, doOnRegistered, options...)
 }

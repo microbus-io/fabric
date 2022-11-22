@@ -1,4 +1,4 @@
-package {{ .ShortPackage }}
+package {{ .PackageSuffix }}
 
 import (
 	"context"
@@ -7,14 +7,14 @@ import (
 	"github.com/microbus-io/fabric/errors"
 
 	"{{ .Package }}/intermediate"
-	"{{ .Package }}/{{ .ShortPackage }}api"
+	"{{ .Package }}/{{ .PackageSuffix }}api"
 )
 
 var (
-	_ errors.TracedError
-	_ http.Request
-
-	_ {{ .ShortPackage }}api.Client
+	_ context.Context
+	_ *http.Request
+	_ *errors.TracedError
+	_ *{{ .PackageSuffix }}api.Client
 )
 
 /*
@@ -26,14 +26,18 @@ Service implements the {{ .General.Host }} microservice.
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
+
+	// TO{{/**/}}DO: Define microservice state variables
 }
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	return // TO{{/**/}}DO: OnStartup
+	// TO{{/**/}}DO: Implement OnStartup
+	return errors.New("not implemented")
 }
 
 // OnShutdown is called when the microservice is shut down.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
-	return // TO{{/**/}}DO: OnShutdown
+	// TO{{/**/}}DO: Implement OnShutdown
+	return errors.New("not implemented")
 }

@@ -1,0 +1,77 @@
+{{ range (JoinHandlers .Functions .Sinks) }}
+{{- $t := .Signature.TestingT }}
+// {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
+type {{ .Name }}TestCase struct {
+	_testName string
+	{{- range .Signature.OutputArgs }}
+	{{ .Name }} {{ .Type }}
+	{{- end }}
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
+	tc._testName = testName
+	return tc
+}
+
+// Expect asserts no error and exact return values.
+func (tc *{{ .Name }}TestCase) Expect({{ $t }} *testing.T {{- range .Signature.OutputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
+	t.Run(tc._testName, func({{ $t }} *testing.T) {
+		{{- if .Signature.OutputArgs }}
+		if assert.NoError({{ $t }}, tc.err) {
+			{{- range .Signature.OutputArgs }}
+			{{- if eq .Type "time.Time" }}
+			assert.True({{ $t }}, {{ .Name }}.Equal(tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, tc.{{ .Name }})
+			{{- else }}
+			assert.Equal({{ $t }}, {{ .Name }}, tc.{{ .Name }})
+			{{- end}}{{ end }}
+		}
+		{{- else }}
+		assert.NoError(t, tc.err)
+		{{- end}}
+	})
+	return tc
+}
+
+// Error asserts an error.
+func (tc *{{ .Name }}TestCase) Error({{ $t }} *testing.T, errContains string) *{{ .Name }}TestCase {
+	t.Run(tc._testName, func({{ $t }} *testing.T) {
+		if assert.Error({{ $t }}, tc.err) {
+			assert.Contains({{ $t }}, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *{{ .Name }}TestCase) NoError({{ $t }} *testing.T) *{{ .Name }}TestCase {
+	t.Run(tc._testName, func({{ $t }} *testing.T) {
+		assert.NoError({{ $t }}, tc.err)
+	})
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *{{ .Name }}TestCase) Assert({{ $t }} *testing.T, asserter func({{ $t }} *testing.T, {{ .Out }})) *{{ .Name }}TestCase {
+	t.Run(tc._testName, func({{ $t }} *testing.T) {
+		asserter({{ $t }}, {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err)
+	})
+	return tc
+}
+
+// Get returns the result of executing {{ .Name }}.
+func (tc *{{ .Name }}TestCase) Get() ({{ .Out }}) {
+	return {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err
+}
+
+// {{ .Name }} executes the function and returns a corresponding test case.
+func {{ .Name }}({{ .In }}) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{}
+	tc.err = utils.CatchPanic(func() error {
+		{{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+		return tc.err
+	})
+	return tc
+}
+{{ end }}

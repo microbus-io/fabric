@@ -16,20 +16,21 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
 )
 
 var (
 	_ context.Context
-	_ json.Decoder
-	_ http.Request
+	_ *json.Decoder
+	_ *http.Request
 	_ strings.Reader
 	_ time.Duration
-
-	_ errors.TracedError
-	_ pub.Request
-	_ sub.Subscription
+	_ *errors.TracedError
+	_ *httpx.BodyReader
+	_ pub.Option
+	_ sub.Option
 )
 
 // The default host name addressed by the clients is eventsink.example.
@@ -40,6 +41,8 @@ const HostName = "eventsink.example"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the eventsink.example microservice.
@@ -84,16 +87,16 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// RegisteredIn are the input arguments of the Registered function.
+// RegisteredIn are the input arguments of Registered.
 type RegisteredIn struct {
 }
 
-// RegisteredOut are the return values of the Registered function.
+// RegisteredOut are the return values of Registered.
 type RegisteredOut struct {
 	Emails []string `json:"emails"`
 }
 
-// RegisteredResponse is the response of the Registered function.
+// RegisteredResponse is the response to Registered.
 type RegisteredResponse struct {
 	data RegisteredOut
 	HTTPResponse *http.Response
@@ -104,39 +107,6 @@ type RegisteredResponse struct {
 func (_out *RegisteredResponse) Get() (emails []string, err error) {
 	emails = _out.data.Emails
 	err = _out.err
-	return
-}
-
-/*
-Registered returns the list of registered users.
-*/
-func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
-	_in := RegisteredIn{
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/registered`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out RegisteredOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	emails = _out.Emails
 	return
 }
 
@@ -156,7 +126,7 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/registered`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -182,4 +152,37 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 		close(_res)
 	}()
 	return _res
+}
+
+/*
+Registered returns the list of registered users.
+*/
+func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
+	_in := RegisteredIn{
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out RegisteredOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	emails = _out.Emails
+	return
 }

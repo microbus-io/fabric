@@ -16,20 +16,21 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
 )
 
 var (
 	_ context.Context
-	_ json.Decoder
-	_ http.Request
+	_ *json.Decoder
+	_ *http.Request
 	_ strings.Reader
 	_ time.Duration
-
-	_ errors.TracedError
-	_ pub.Request
-	_ sub.Subscription
+	_ *errors.TracedError
+	_ *httpx.BodyReader
+	_ pub.Option
+	_ sub.Option
 )
 
 // The default host name addressed by the clients is hello.example.
@@ -40,6 +41,8 @@ const HostName = "hello.example"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the hello.example microservice.
@@ -90,7 +93,7 @@ Hello prints a greeting.
 func (_c *Client) Hello(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/hello`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/hello`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -106,7 +109,7 @@ Hello prints a greeting.
 func (_c *MulticastClient) Hello(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/hello`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/hello`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -118,7 +121,7 @@ Echo back the incoming request in wire format.
 func (_c *Client) Echo(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/echo`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/echo`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -134,7 +137,7 @@ Echo back the incoming request in wire format.
 func (_c *MulticastClient) Echo(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/echo`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/echo`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -146,7 +149,7 @@ Ping all microservices and list them.
 func (_c *Client) Ping(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/ping`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/ping`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -162,7 +165,7 @@ Ping all microservices and list them.
 func (_c *MulticastClient) Ping(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/ping`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/ping`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -176,7 +179,7 @@ a call from one microservice to another.
 func (_c *Client) Calculator(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/calculator`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/calculator`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -194,7 +197,7 @@ a call from one microservice to another.
 func (_c *MulticastClient) Calculator(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/calculator`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/calculator`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)
@@ -206,7 +209,7 @@ BusJPEG serves an image from the embedded resources.
 func (_c *Client) BusJPEG(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
 	}
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
@@ -222,7 +225,7 @@ BusJPEG serves an image from the embedded resources.
 func (_c *MulticastClient) BusJPEG(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)

@@ -113,9 +113,9 @@ func (c *Connector) Startup() (err error) {
 	}
 	c.LogInfo(c.lifetimeCtx, "Startup")
 
-	// Validate that clock is not changed in PROD
-	if c.Deployment() == PROD && c.clockSet {
-		err = errors.Newf("clock can't be changed in %s deployment", PROD)
+	// Validate that clock is not changed except for development purposes
+	if c.Deployment() != LOCAL && c.Deployment() != TESTINGAPP && c.clockSet {
+		err = errors.Newf("clock can't be changed in %s deployment", c.Deployment())
 		return err
 	}
 
@@ -194,7 +194,7 @@ func (c *Connector) Startup() (err error) {
 	time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 
 	// Run all tickers
-	c.runAllTickers()
+	c.runTickers()
 
 	return nil
 }
@@ -209,13 +209,13 @@ func (c *Connector) Shutdown() error {
 	var lastErr error
 
 	// Stop all tickers
-	err := c.StopAllTickers()
+	err := c.stopTickers()
 	if err != nil {
 		lastErr = errors.Trace(err)
 	}
 
 	// Unsubscribe all handlers
-	err = c.UnsubscribeAll()
+	err = c.deactivateSubs()
 	if err != nil {
 		lastErr = errors.Trace(err)
 	}

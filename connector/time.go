@@ -17,6 +17,7 @@ import (
 type TickerHandler func(ctx context.Context) error
 
 // StartTicker initiates a recurring job at a set interval.
+// Tickers do not run when the connector is running in the TESTINGAPP deployment environment.
 func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler, options ...cb.Option) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return c.captureInitErr(errors.Trace(err))
@@ -45,36 +46,22 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler Tic
 	return nil
 }
 
-// StopTicker terminates a recurring job.
-func (c *Connector) StopTicker(name string) error {
-	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
-
-	if job, ok := c.tickers[strings.ToLower(name)]; ok {
-		if job.Ticker != nil {
-			job.Ticker.Stop()
-		}
-		delete(c.tickers, strings.ToLower(name))
-	}
-	return nil
-}
-
-// StopAllTickers terminates all recurring jobs.
-func (c *Connector) StopAllTickers() error {
+// stopTickers terminates all recurring jobs.
+func (c *Connector) stopTickers() error {
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 
 	for _, job := range c.tickers {
 		if job.Ticker != nil {
 			job.Ticker.Stop()
+			job.Ticker = nil
 		}
 	}
-	c.tickers = map[string]*cb.Callback{}
 	return nil
 }
 
-// runAllTickers starts goroutines to run all tickers.
-func (c *Connector) runAllTickers() {
+// runTickers starts goroutines to run all tickers.
+func (c *Connector) runTickers() {
 	for _, job := range c.tickers {
 		c.runTicker(job)
 	}
@@ -82,15 +69,22 @@ func (c *Connector) runAllTickers() {
 
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *cb.Callback) {
+	if c.deployment == TESTINGAPP {
+		c.LogDebug(c.Lifetime(), "Ticker disabled while testing", log.String("name", job.Name))
+		return
+	}
+	c.tickersLock.Lock()
 	if job.Ticker == nil {
 		job.Ticker = time.NewTicker(job.Interval)
 	} else {
-		// Already running
-		return
+		c.tickersLock.Unlock()
+		return // Already running
 	}
+	ticker := job.Ticker
+	c.tickersLock.Unlock()
 	go func() {
 		c.LogDebug(c.Lifetime(), "Ticker started", log.String("name", job.Name))
-		for range job.Ticker.C {
+		for range ticker.C {
 			if !c.started {
 				continue
 			}
@@ -115,7 +109,7 @@ func (c *Connector) runTicker(job *cb.Callback) {
 			done := false
 			for !done {
 				select {
-				case <-job.Ticker.C:
+				case <-ticker.C:
 					skipped++
 				default:
 					done = true
@@ -142,10 +136,6 @@ func (c *Connector) Now() time.Time {
 // SetClock sets an alternative clock for this connector,
 // primarily to be used to inject a mock clock for testing.
 func (c *Connector) SetClock(newClock clock.Clock) error {
-	if c.Deployment() == PROD {
-		return errors.Newf("clock can't be changed in %s deployment", PROD)
-	}
-
 	c.tickersLock.Lock()
 	defer c.tickersLock.Unlock()
 

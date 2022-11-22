@@ -1,0 +1,159 @@
+{{ range (JoinHandlers .Functions .Events) }}
+// {{ .Name }}In are the input arguments of {{ .Name }}.
+type {{ .Name }}In struct {
+	{{- range .Signature.InputArgs }}
+	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
+	{{- end }}
+}
+
+// {{ .Name }}Out are the return values of {{ .Name }}.
+type {{ .Name }}Out struct {
+	{{- range .Signature.OutputArgs }}
+	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ if eq .Name "httpStatusCode" }}-{{ else }}{{ .Name }}{{ end }}"`
+	{{- end }}
+}
+
+// {{ .Name }}Response is the response to {{ .Name }}.
+type {{ .Name }}Response struct {
+	data {{ .Name }}Out
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *{{ .Name }}Response) Get() ({{ .Out }}) {
+	{{- range .Signature.OutputArgs }}
+	{{ .Name }} = _out.data.{{ CapitalizeIdentifier .Name }}
+	{{- end }}
+	err = _out.err
+	return
+}
+
+/*
+{{ .Description }}
+*/
+func (_c *Multicast
+{{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
+) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
+	_in := {{ .Name }}In{
+		{{- range .Signature.InputArgs }}
+		{{ .Name }},
+		{{- end }}
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		_res := make(chan *{{ .Name }}Response, 1)
+		_res <- &{{ .Name }}Response{err: errors.Trace(_err)}
+		close(_res)
+		return _res
+	}
+
+	_opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *{{ .Name }}Response, cap(_ch))
+	go func() {
+		for _i := range _ch {
+			var _r {{ .Name }}Response
+			_httpRes, _err := _i.Get()
+			_r.HTTPResponse = _httpRes
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			} else {
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				if _err != nil {
+					_r.err = errors.Trace(_err)
+				}
+			}
+			_res <- &_r
+		}
+		close(_res)
+	}()
+	return _res
+}
+{{ end }}
+
+{{- range .Functions }}
+/*
+{{ .Description }}
+*/
+func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
+	_in := {{ .Name }}In{
+		{{- range .Signature.InputArgs }}
+		{{ .Name }},
+		{{- end }}
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out {{ .Name }}Out
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	{{- range .Signature.OutputArgs }}
+	{{ .Name }} = _out.{{ CapitalizeIdentifier .Name }}
+	{{- end }}
+	return
+}
+{{ end }}
+
+{{- range .Events }}
+/*
+{{ .Description }}
+*/
+func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub.Option) error {
+	do{{ .Name }} := func(w http.ResponseWriter, r *http.Request) error {
+		var i {{ .Name }}In
+		var o {{ .Name }}Out
+		err := httpx.ParseRequestData(r, &i)
+		if err!=nil {
+			return errors.Trace(err)
+		}
+		{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = handler(
+			r.Context(),
+			{{- range .Signature.InputArgs }}
+			i.{{ CapitalizeIdentifier .Name }},
+			{{- end}}
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}
+		w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
+		{{- end}}{{- end}}
+		err = json.NewEncoder(w).Encode(o)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	path := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
+	if handler == nil {
+		return _c.svc.Unsubscribe(path)
+	}
+	return _c.svc.Subscribe(path, do{{ .Name }}, options...)
+}
+{{ end }}

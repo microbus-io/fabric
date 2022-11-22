@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
@@ -84,21 +84,6 @@ func (c *Connector) Unsubscribe(path string) error {
 	return errors.Trace(err)
 }
 
-// UnsubscribeAll removes all handlers
-func (c *Connector) UnsubscribeAll() error {
-	c.subsLock.Lock()
-	var lastErr error
-	for _, sub := range c.subs {
-		lastErr = c.deactivateSub(sub)
-	}
-	c.subs = map[string]*sub.Subscription{}
-	c.subsLock.Unlock()
-	if c.IsStarted() {
-		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
-	}
-	return errors.Trace(lastErr)
-}
-
 // activateSub will subscribe to NATS
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	handler := func(msg *nats.Msg) {
@@ -142,7 +127,21 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 	return nil
 }
 
-// deactivateSub will unsubscribe from NATS
+// deactivateSubs unsubscribes from NATS.
+func (c *Connector) deactivateSubs() error {
+	c.subsLock.Lock()
+	var lastErr error
+	for _, sub := range c.subs {
+		lastErr = c.deactivateSub(sub)
+	}
+	c.subsLock.Unlock()
+	if c.IsStarted() {
+		time.Sleep(20 * time.Millisecond) // Give time for subscription deactivation by NATS
+	}
+	return errors.Trace(lastErr)
+}
+
+// deactivateSub unsubscribes from NATS.
 func (c *Connector) deactivateSub(s *sub.Subscription) error {
 	var lastErr error
 	if s.HostSub != nil {
@@ -288,21 +287,18 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	httpReq = httpReq.WithContext(ctx)
 
 	// Call the handler
-	httpRecorder := utils.NewResponseRecorder()
-	handlerErr := c.doCallback(
-		ctx,
-		0,
-		"Handling request",
-		s.Path,
-		func(_ context.Context) error {
-			return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
-		},
-	)
+	httpRecorder := httpx.NewResponseRecorder()
+	handlerErr := utils.CatchPanic(func() error {
+		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
+	})
 	cancel()
 
 	if handlerErr != nil {
+		handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
+		c.LogError(ctx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
+
 		// Prepare an error response instead
-		httpRecorder = utils.NewResponseRecorder()
+		httpRecorder = httpx.NewResponseRecorder()
 		httpRecorder.Header().Set("Content-Type", "application/json")
 		body, err := json.MarshalIndent(handlerErr, "", "\t")
 		if err != nil {
@@ -325,7 +321,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	}
 
 	// Send back the response, in fragments if needed
-	fragger, err := frag.NewFragResponse(httpResponse, c.maxFragmentSize)
+	fragger, err := httpx.NewFragResponse(httpResponse, c.maxFragmentSize)
 	if err != nil {
 		return errors.Trace(err)
 	}

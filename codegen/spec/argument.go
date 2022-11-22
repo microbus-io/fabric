@@ -39,6 +39,9 @@ func (arg *Argument) validate() error {
 	if !utils.IsLowerCaseIdentifier(arg.Name) {
 		return errors.Newf("name '%s' must start with lowercase", arg.Name)
 	}
+	if arg.Name == "testingT" {
+		return errors.New("name 'testingT' is reserved")
+	}
 
 	t := arg.Type
 	for {

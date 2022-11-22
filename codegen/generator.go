@@ -126,6 +126,10 @@ func (gen *Generator) Run() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
+		err = gen.makeIntegration()
+		if err != nil {
+			return errors.Trace(err)
+		}
 		err = gen.makeRefreshSignature()
 		if err != nil {
 			return errors.Trace(err)

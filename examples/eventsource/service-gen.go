@@ -8,21 +8,41 @@ The event source microservice fires events that are caught by the event sink mic
 package eventsource
 
 import (
-	"github.com/microbus-io/fabric/examples/eventsource/intermediate"
+	"context"
+	"net/http"
+	"time"
 
+	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
+
+	"github.com/microbus-io/fabric/examples/eventsource/intermediate"
 	"github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 )
 
 var (
-	_ eventsourceapi.Client
+	_ context.Context
+	_ *http.Request
+	_ time.Duration
+	_ connector.Service
+	_ *errors.TracedError
+	_ *eventsourceapi.Client
 )
 
 // The default host name of the microservice is eventsource.example.
 const HostName = "eventsource.example"
 
 // NewService creates a new eventsource.example microservice.
-func NewService() *Service {
+func NewService() connector.Service {
 	s := &Service{}
-	s.Intermediate = intermediate.New(s, Version)
+	s.Intermediate = intermediate.NewService(s, Version)
 	return s
+}
+
+// Mock is a mockable version of the eventsource.example microservice,
+// allowing functions, sinks and web handlers to be mocked.
+type Mock = intermediate.Mock
+
+// New creates a new mockable version of the microservice.
+func NewMock() *Mock {
+	return intermediate.NewMock(Version)
 }

@@ -201,7 +201,7 @@ types:
   - name: User
     define:
       x: int
-    import: package/path/of/another/microservice
+    source: package/path/of/another/microservice
 `,
 		"ambiguous type specification",
 		// --------------------
@@ -234,9 +234,9 @@ types:
 		`
 types:
   - name: User
-    import: https://www.example.com
+    source: https://www.example.com
 `,
-		"invalid import path",
+		"invalid import source path",
 		// --------------------
 		`
 types:
@@ -439,7 +439,7 @@ types:
       x: int
       y: int
   - name: Imported
-    import: from/somewhere/else
+    source: from/somewhere/else
 `
 	var svc Service
 	err := yaml.Unmarshal([]byte(code), &svc)

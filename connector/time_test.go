@@ -21,10 +21,10 @@ func TestConnector_NoMockClockInProd(t *testing.T) {
 	err := con.SetClock(mockClock)
 	assert.NoError(t, err)
 
-	// Should fail when deployment is set to PROD
+	// OK before service was started
 	con.SetDeployment(PROD)
 	err = con.SetClock(mockClock)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 
 	// Should fail to start with the mock clock set
 	err = con.Startup()
@@ -143,51 +143,6 @@ func TestConnector_TickerPendingOps(t *testing.T) {
 	assert.Zero(t, con.pendingOps)
 }
 
-func TestConnector_StopTicker(t *testing.T) {
-	t.Parallel()
-
-	con := New("stop.ticker.connector")
-
-	interval := 200 * time.Millisecond
-	countAfter := 0
-	con.StartTicker("after", interval, func(ctx context.Context) error {
-		countAfter++
-		return nil
-	})
-	countBefore := 0
-	con.StartTicker("before", interval, func(ctx context.Context) error {
-		countBefore++
-		return nil
-	})
-
-	// Stop ticker before startup
-	con.StopTicker("before")
-
-	assert.Zero(t, countAfter)
-	assert.Zero(t, countBefore)
-
-	err := con.Startup()
-	assert.NoError(t, err)
-	defer con.Shutdown()
-
-	time.Sleep(interval + interval/2) // at 1.5 intervals
-	assert.Equal(t, 1, countAfter)
-	assert.Zero(t, countBefore)
-	time.Sleep(interval) // at 2.5 intervals
-	assert.Equal(t, 2, countAfter)
-	assert.Zero(t, countBefore)
-
-	// Stop ticker after startup
-	con.StopTicker("after")
-
-	time.Sleep(interval) // at 3.5 intervals
-	assert.Equal(t, 2, countAfter)
-	assert.Zero(t, countBefore)
-	time.Sleep(interval) // at 4.5 intervals
-	assert.Equal(t, 2, countAfter)
-	assert.Zero(t, countBefore)
-}
-
 func TestConnector_TickerTimeout(t *testing.T) {
 	t.Parallel()
 
@@ -239,4 +194,27 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 	<-end
 	dur := time.Since(t0)
 	assert.True(t, dur < interval)
+}
+
+func TestConnector_TickersDisabledInTestingApp(t *testing.T) {
+	t.Parallel()
+
+	con := New("tickers.disabled.in.testing.app.connector")
+	con.SetDeployment(TESTINGAPP)
+
+	interval := 200 * time.Millisecond
+	count := 0
+	con.StartTicker("myticker", interval, func(ctx context.Context) error {
+		count++
+		return nil
+	})
+
+	assert.Zero(t, count)
+
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	time.Sleep(5 * interval)
+	assert.Zero(t, count)
 }

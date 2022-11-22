@@ -1,7 +1,6 @@
 package spec
 
 import (
-	"path/filepath"
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
@@ -40,6 +39,7 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
 	return nil
 }
 
@@ -50,7 +50,7 @@ func (s *Service) FullyQualifyTypes() {
 	}
 	s.fullyQualified = true
 
-	apiPkg := s.ShortPackage() + "api."
+	apiPkg := s.PackageSuffix() + "api."
 	for _, w := range s.Functions {
 		for _, a := range w.Signature.InputArgs {
 			endType := a.EndType()
@@ -74,7 +74,7 @@ func (s *Service) ShorthandTypes() {
 	}
 	s.fullyQualified = false
 
-	apiPkg := s.ShortPackage() + "api."
+	apiPkg := s.PackageSuffix() + "api."
 	for _, w := range s.Functions {
 		for _, a := range w.Signature.InputArgs {
 			endType := a.EndType()
@@ -169,9 +169,13 @@ func (s *Service) validate() error {
 	return nil
 }
 
-// ShortPackage returns only the last portion of the full package path.
-func (s *Service) ShortPackage() string {
-	return strings.TrimPrefix(s.Package, filepath.Dir(s.Package)+"/")
+// PackageSuffix returns only the last portion of the full package path.
+func (s *Service) PackageSuffix() string {
+	p := strings.LastIndex(s.Package, "/")
+	if p < 0 {
+		return s.Package
+	}
+	return s.Package[p+1:]
 }
 
 // AllHandlers returns an array holding all handlers of all types.
@@ -190,7 +194,7 @@ func (s *Service) AllHandlers() []*Handler {
 func (s *Service) ImportedTypes() []*Type {
 	var result []*Type
 	for _, t := range s.Types {
-		if t.Import != "" {
+		if t.Source != "" {
 			result = append(result, t)
 		}
 	}

@@ -7,20 +7,19 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 
-	"github.com/microbus-io/fabric/examples/calculator/intermediate"
-
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
+	"github.com/microbus-io/fabric/examples/calculator/intermediate"
 )
 
 var (
-	_ errors.TracedError
+	_ context.Context
 	_ http.Request
-
+	_ errors.TracedError
 	_ calculatorapi.Client
 )
 
 /*
-Service implements the "calculator.example" microservice.
+Service implements the calculator.example microservice.
 
 The Calculator microservice performs simple mathematical operations.
 */

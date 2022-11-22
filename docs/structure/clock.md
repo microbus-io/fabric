@@ -5,7 +5,7 @@ is a real-time clock which simply wraps the `time` package's functions. The
 second is a mock clock which will only change when
 programmatically adjusted and is ideal for testing time-sensitive functions.
 
-A mock clock can be assigned to a `Connector` or to an `Application`, but not in a `PROD` deployment environment. The mock clock is for the application developer to test time-sensitive code. It plays no part in any of the framework functions, such as ticker execution schedule or timeout management.
+A mock clock can be assigned to a `Connector` in the `LOCAL` or `TESTINGAPP` deployment environments. The mock clock is for the application developer to test time-sensitive code. It plays no part in any of the framework functions, such as ticker execution schedule or timeout management.
 
 For example:
 

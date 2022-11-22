@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frag"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
@@ -33,6 +33,7 @@ func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error)
 
 // POST makes a POST request.
 // Body of type io.Reader, []byte and string is serialized in binary form.
+// url.Values is serialized as form data.
 // All other types are serialized as JSON.
 func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Response, error) {
 	return c.Request(ctx, []pub.Option{
@@ -129,7 +130,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
 
 	// Fragment large requests
-	fragger, err := frag.NewFragRequest(httpReq, c.maxFragmentSize)
+	fragger, err := httpx.NewFragRequest(httpReq, c.maxFragmentSize)
 	if err != nil {
 		err = errors.Trace(err, req.Canonical())
 		output.Push(pub.NewErrorResponse(err))

@@ -7,8 +7,9 @@ import (
 
 // General are general properties of the microservice.
 type General struct {
-	Host        string `yaml:"host"`
-	Description string `yaml:"description"`
+	Host             string `yaml:"host"`
+	Description      string `yaml:"description"`
+	IntegrationTests bool   `yaml:"integrationTests"`
 }
 
 // UnmarshalYAML parses and validates the YAML.
@@ -16,6 +17,7 @@ func (g *General) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Unmarshal
 	type different General
 	var x different
+	x.IntegrationTests = true // Default
 	err := unmarshal(&x)
 	if err != nil {
 		return errors.Trace(err)

@@ -22,34 +22,32 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"{{ .Package }}/resources"
-	"{{ .Package }}/{{ .ShortPackage }}api"
+	"{{ .Package }}/{{ .PackageSuffix }}api"
 
 	{{- if .Sinks }}
 	{{ range $i, $s := .Sinks }}
-	{{ .SourceSuffix }}api{{ $i }} "{{ .Source }}/{{ .SourceSuffix }}api"
+	{{ .SourceSuffix }}api{{ Add $i 1 }} "{{ .Source }}/{{ .SourceSuffix }}api"
 	{{- end}}{{end}}
 )
 
 var (
 	_ context.Context
-	_ embed.FS
-	_ json.Decoder
+	_ *embed.FS
+	_ *json.Decoder
 	_ fmt.Stringer
-	_ http.Request
+	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
-
-	_ cb.Callback
-	_ cfg.Config
-	_ errors.TracedError
+	_ cb.Option
+	_ cfg.Option
+	_ *errors.TracedError
+	_ *httpx.ResponseRecorder
 	_ sub.Option
-	_ utils.ResponseRecorder
-
-	_ {{ .ShortPackage }}api.Client
+	_ {{ .PackageSuffix }}api.Client
 )
 
 // ToDo defines the interface that the microservice must implement.
@@ -58,20 +56,16 @@ type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
 
-	{{- range .Configs}}{{- if .Callback}}
+	{{- range .Configs}}{{ if .Callback}}
 	OnChanged{{ .Name }}(ctx context.Context) (err error)
 	{{- end}}{{- end}}
 
-	{{- range .Functions}}
+	{{- range (JoinHandlers .Functions .Sinks)}}
 	{{ .Name }}({{ .In }}) ({{ .Out }})
 	{{- end}}
 
 	{{- range .Webs}}
 	{{ .Name }}(w http.ResponseWriter, r *http.Request) (err error)
-	{{- end}}
-
-	{{- range .Sinks}}
-	{{ .Name }}({{ .In }}) ({{ .Out }})
 	{{- end}}
 
 	{{- range .Tickers}}
@@ -86,8 +80,8 @@ type Intermediate struct {
 	impl ToDo
 }
 
-// New creates a new intermediate service.
-func New(impl ToDo, version int) *Intermediate {
+// NewService creates a new intermediate service.
+func NewService(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
 		Connector: connector.New("{{ .General.Host }}"),
 		impl: impl,
@@ -126,19 +120,19 @@ func New(impl ToDo, version int) *Intermediate {
 	{{- if .Webs }}
 	
 	// Webs
-	{{- range .Webs}}
-	svc.Subscribe(`{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+	{{- range .Webs }}
+	svc.Subscribe(`{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
 	{{- end }}{{ end }}
 
 	{{- if .Sinks }}
 	
 	// Sinks
 	{{- range $i, $s := .Sinks }}
-	pathOf{{ .Name }} := {{ .SourceSuffix }}api{{ $i }}.{{ .Event }}Path
-	{{- if .ForHost }}
-	pathOf{{ .Name }} = sub.JoinHostAndPath("{{ .ForHost }}", pathOf{{ .Name }})
-	{{- end }}
-	svc.Subscribe(pathOf{{ .Name }}, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+	{{ .SourceSuffix }}api{{ Add $i 1 }}.NewHook(svc).
+	{{- if .ForHost }}ForHost(`{{ .ForHost }}`).{{ end }}
+	{{- .Event }}(svc.impl.{{ .Name }}
+	{{- if eq .Queue "none"}}, sub.NoQueue(){{ end -}}
+	)
 	{{- end }}{{ end }}
 
 	{{- if .Tickers }}

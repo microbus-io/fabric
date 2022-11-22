@@ -56,7 +56,7 @@ types:
       x: float
       y: float
   - name: Type2
-    import: from/somewhere/else
+    source: from/somewhere/else
 webs:
   - signature: Web1()
   - signature: Web2()
@@ -100,7 +100,7 @@ tickers:
 	)
 	fileContains(
 		filepath.Join(dir+"api", "clients-gen.go"),
-		"Func1(ctx", "Func2(ctx", "Web1(ctx", "Web2(ctx", "OnEvent1(ctx", "OnEvent2(ctx",
+		"Func1(ctx", "Func2(ctx", "Web1(ctx", "Web2(ctx", "OnEvent1(ctx", "OnEvent2(ctx", "OnEvent1(handler", "OnEvent2(handler",
 	)
 	fileContains(
 		filepath.Join(dir+"api", "types-gen.go"),
@@ -112,7 +112,6 @@ tickers:
 		"svc.impl.Func1", "svc.impl.Func1",
 		") doFunc1(w", ") doFunc2(w",
 		"svc.impl.OnSink1", "svc.impl.OnSink2",
-		") doOnSink1(w", ") doOnSink2(w",
 		"svc.impl.Web1", "svc.impl.Web2",
 		"svc.StartTicker(",
 		"svc.impl.Ticker1", "svc.impl.Ticker2",

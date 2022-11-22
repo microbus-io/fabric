@@ -20,8 +20,8 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/hello/resources"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
@@ -29,19 +29,17 @@ import (
 
 var (
 	_ context.Context
-	_ embed.FS
-	_ json.Decoder
+	_ *embed.FS
+	_ *json.Decoder
 	_ fmt.Stringer
-	_ http.Request
+	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
-
-	_ cb.Callback
-	_ cfg.Config
-	_ errors.TracedError
+	_ cb.Option
+	_ cfg.Option
+	_ *errors.TracedError
+	_ *httpx.ResponseRecorder
 	_ sub.Option
-	_ utils.ResponseRecorder
-
 	_ helloapi.Client
 )
 
@@ -65,8 +63,8 @@ type Intermediate struct {
 	impl ToDo
 }
 
-// New creates a new intermediate service.
-func New(impl ToDo, version int) *Intermediate {
+// NewService creates a new intermediate service.
+func NewService(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
 		Connector: connector.New("hello.example"),
 		impl: impl,
@@ -110,7 +108,7 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is fired when the config of the microservice changed.
+// doOnConfigChanged is called when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	return nil
 }
@@ -132,27 +130,17 @@ func (svc *Intermediate) Repeat() (count int) {
 	return int(_i)
 }
 
-// Initializer initializes a config property of the microservice.
-type Initializer func(svc *Intermediate) error
-
-// With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
-	for _, i := range initializers {
-		i(svc)
-	}
-	return svc
-}
 
 // Greeting initializes the Greeting config property of the microservice.
-func Greeting(greeting string) Initializer {
-	return func(svc *Intermediate) error{
-		return svc.InitConfig("Greeting", fmt.Sprintf("%v", greeting))
+func Greeting(greeting string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
 	}
 }
 
 // Repeat initializes the Repeat config property of the microservice.
-func Repeat(count int) Initializer {
-	return func(svc *Intermediate) error{
-		return svc.InitConfig("Repeat", fmt.Sprintf("%v", count))
+func Repeat(count int) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("Repeat", fmt.Sprintf("%v", count))
 	}
 }

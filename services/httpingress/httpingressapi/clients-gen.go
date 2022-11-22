@@ -16,20 +16,21 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
 )
 
 var (
 	_ context.Context
-	_ json.Decoder
-	_ http.Request
+	_ *json.Decoder
+	_ *http.Request
 	_ strings.Reader
 	_ time.Duration
-
-	_ errors.TracedError
-	_ pub.Request
-	_ sub.Subscription
+	_ *errors.TracedError
+	_ *httpx.BodyReader
+	_ pub.Option
+	_ sub.Option
 )
 
 // The default host name addressed by the clients is http.ingress.sys.
@@ -40,6 +41,8 @@ const HostName = "http.ingress.sys"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the http.ingress.sys microservice.

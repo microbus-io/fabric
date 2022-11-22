@@ -14,7 +14,7 @@ import (
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frag"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/rand"
@@ -58,9 +58,9 @@ type Connector struct {
 	maxFragmentSize  int64
 	multicastChanCap int
 
-	requestDefrags      map[string]*frag.DefragRequest
+	requestDefrags      map[string]*httpx.DefragRequest
 	requestDefragsLock  sync.Mutex
-	responseDefrags     map[string]*frag.DefragResponse
+	responseDefrags     map[string]*httpx.DefragResponse
 	responseDefragsLock sync.Mutex
 
 	knownResponders *lru.Cache[string, map[string]bool]
@@ -89,8 +89,8 @@ func NewConnector() *Connector {
 		networkHop:       250 * time.Millisecond,
 		maxCallDepth:     64,
 		subs:             map[string]*sub.Subscription{},
-		requestDefrags:   map[string]*frag.DefragRequest{},
-		responseDefrags:  map[string]*frag.DefragResponse{},
+		requestDefrags:   map[string]*httpx.DefragRequest{},
+		responseDefrags:  map[string]*httpx.DefragResponse{},
 		clock:            clock.NewClockReference(clock.New()),
 		tickers:          map[string]*cb.Callback{},
 		lifetimeCtx:      context.Background(),
@@ -175,15 +175,17 @@ func (c *Connector) Version() int {
 
 // Deployment environments
 const (
-	PROD  string = "PROD"  // PROD for a production environment
-	LAB   string = "LAB"   // LAB for all non-production environments such as dev integration, test, staging, etc.
-	LOCAL string = "LOCAL" // LOCAL when developing on the local machine or running inside a testing app
+	PROD       string = "PROD"       // PROD for a production environment
+	LAB        string = "LAB"        // LAB for all non-production environments such as dev integration, test, staging, etc.
+	LOCAL      string = "LOCAL"      // LOCAL when developing on the local machine
+	TESTINGAPP string = "TESTINGAPP" // TESTINGAPP when running inside a testing app
 )
 
 // Deployment indicates what deployment environment the microservice is running in:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine or running unit tests
+// LOCAL when developing on the local machine;
+// TESTINGAPP when running inside a testing app.
 func (c *Connector) Deployment() string {
 	return c.deployment
 }
@@ -195,13 +197,14 @@ func (c *Connector) Deployment() string {
 // Valid values are:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
-// LOCAL when developing on the local machine or running unit tests
+// LOCAL when developing on the local machine;
+// TESTINGAPP when running inside a testing app.
 func (c *Connector) SetDeployment(deployment string) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
 	deployment = strings.ToUpper(deployment)
-	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL {
+	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL && deployment != TESTINGAPP {
 		return c.captureInitErr(errors.Newf("invalid deployment '%s'", deployment))
 	}
 	c.deployment = deployment
@@ -322,7 +325,7 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, desc 
 	})
 	cancel()
 	if err != nil {
-		err = errors.Trace(err, sub.JoinHostAndPath(c.hostName, path))
+		err = errors.Trace(err, httpx.JoinHostAndPath(c.hostName, path))
 		c.LogError(ctx, desc, log.Error(err), log.String("path", path))
 	}
 	return err

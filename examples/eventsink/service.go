@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/microbus-io/fabric/errors"
 
@@ -26,6 +27,7 @@ The Event Sink microservice handles an event that is fired by the Event source m
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
 
+	mux           sync.Mutex
 	registrations map[string]bool
 }
 
@@ -49,10 +51,9 @@ func (svc *Service) OnAllowRegister(ctx context.Context, email string) (allow bo
 	if strings.HasSuffix(email, "@gmail.com") || strings.HasSuffix(email, "@hotmail.com") {
 		return false, nil
 	}
-	if svc.registrations[email] {
-		return false, nil
-	}
-	return true, nil
+	svc.mux.Lock()
+	defer svc.mux.Unlock()
+	return !svc.registrations[email], nil
 }
 
 /*
@@ -60,7 +61,9 @@ OnRegistered keeps track of registrations.
 */
 func (svc *Service) OnRegistered(ctx context.Context, email string) (err error) {
 	email = strings.ToLower(email)
+	svc.mux.Lock()
 	svc.registrations[email] = true
+	svc.mux.Unlock()
 	return nil
 }
 
@@ -69,8 +72,10 @@ Registered returns the list of registered users.
 */
 func (svc *Service) Registered(ctx context.Context) (emails []string, err error) {
 	emails = []string{}
+	svc.mux.Lock()
 	for k := range svc.registrations {
 		emails = append(emails, k)
 	}
+	svc.mux.Unlock()
 	return emails, nil
 }

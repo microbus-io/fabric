@@ -16,20 +16,21 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
 )
 
 var (
 	_ context.Context
-	_ json.Decoder
-	_ http.Request
+	_ *json.Decoder
+	_ *http.Request
 	_ strings.Reader
 	_ time.Duration
-
-	_ errors.TracedError
-	_ pub.Request
-	_ sub.Subscription
+	_ *errors.TracedError
+	_ *httpx.BodyReader
+	_ pub.Option
+	_ sub.Option
 )
 
 // The default host name addressed by the clients is configurator.sys.
@@ -40,6 +41,8 @@ const HostName = "configurator.sys"
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
+	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(path string) error
 }
 
 // Client is an interface to calling the endpoints of the configurator.sys microservice.
@@ -84,17 +87,17 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// ValuesIn are the input arguments of the Values function.
+// ValuesIn are the input arguments of Values.
 type ValuesIn struct {
 	Names []string `json:"names"`
 }
 
-// ValuesOut are the return values of the Values function.
+// ValuesOut are the return values of Values.
 type ValuesOut struct {
 	Values map[string]string `json:"values"`
 }
 
-// ValuesResponse is the response of the Values function.
+// ValuesResponse is the response to Values.
 type ValuesResponse struct {
 	data ValuesOut
 	HTTPResponse *http.Response
@@ -105,40 +108,6 @@ type ValuesResponse struct {
 func (_out *ValuesResponse) Get() (values map[string]string, err error) {
 	values = _out.data.Values
 	err = _out.err
-	return
-}
-
-/*
-Values returns the values associated with the specified config property names for the caller microservice.
-*/
-func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
-	_in := ValuesIn{
-		names,
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/values`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out ValuesOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	values = _out.Values
 	return
 }
 
@@ -159,7 +128,7 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/values`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -187,15 +156,15 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 	return _res
 }
 
-// RefreshIn are the input arguments of the Refresh function.
+// RefreshIn are the input arguments of Refresh.
 type RefreshIn struct {
 }
 
-// RefreshOut are the return values of the Refresh function.
+// RefreshOut are the return values of Refresh.
 type RefreshOut struct {
 }
 
-// RefreshResponse is the response of the Refresh function.
+// RefreshResponse is the response to Refresh.
 type RefreshResponse struct {
 	data RefreshOut
 	HTTPResponse *http.Response
@@ -205,39 +174,6 @@ type RefreshResponse struct {
 // Get retrieves the return values.
 func (_out *RefreshResponse) Get() (err error) {
 	err = _out.err
-	return
-}
-
-/*
-Refresh tells all microservices to contact the configurator and refresh their configs.
-An error is returned if any of the values sent to the microservices fails validation.
-*/
-func (_c *Client) Refresh(ctx context.Context) (err error) {
-	_in := RefreshIn{
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/refresh`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out RefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
 	return
 }
 
@@ -258,7 +194,7 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/refresh`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -286,17 +222,17 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 	return _res
 }
 
-// SyncIn are the input arguments of the Sync function.
+// SyncIn are the input arguments of Sync.
 type SyncIn struct {
 	Timestamp time.Time `json:"timestamp"`
 	Values map[string]map[string]string `json:"values"`
 }
 
-// SyncOut are the return values of the Sync function.
+// SyncOut are the return values of Sync.
 type SyncOut struct {
 }
 
-// SyncResponse is the response of the Sync function.
+// SyncResponse is the response to Sync.
 type SyncResponse struct {
 	data SyncOut
 	HTTPResponse *http.Response
@@ -306,40 +242,6 @@ type SyncResponse struct {
 // Get retrieves the return values.
 func (_out *SyncResponse) Get() (err error) {
 	err = _out.err
-	return
-}
-
-/*
-Sync is used to synchronize values among replica peers of the configurator.
-*/
-func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
-	_in := SyncIn{
-		timestamp,
-		values,
-	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/sync`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
-	)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	var _out SyncOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
 	return
 }
 
@@ -361,7 +263,7 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 
 	_opts := []pub.Option{
 		pub.Method("POST"),
-		pub.URL(sub.JoinHostAndPath(_c.host, `:443/sync`)),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
 		pub.Body(_body),
 		pub.Header("Content-Type", "application/json"),
 	}
@@ -387,4 +289,105 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 		close(_res)
 	}()
 	return _res
+}
+
+/*
+Values returns the values associated with the specified config property names for the caller microservice.
+*/
+func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
+	_in := ValuesIn{
+		names,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out ValuesOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	values = _out.Values
+	return
+}
+
+/*
+Refresh tells all microservices to contact the configurator and refresh their configs.
+An error is returned if any of the values sent to the microservices fails validation.
+*/
+func (_c *Client) Refresh(ctx context.Context) (err error) {
+	_in := RefreshIn{
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out RefreshOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	return
+}
+
+/*
+Sync is used to synchronize values among replica peers of the configurator.
+*/
+func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
+	_in := SyncIn{
+		timestamp,
+		values,
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out SyncOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	return
 }

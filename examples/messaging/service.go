@@ -30,12 +30,12 @@ type Service struct {
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	return // TODO: OnStartup
+	return nil
 }
 
 // OnShutdown is called when the microservice is shut down.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
-	return // TODO: OnShutdown
+	return nil
 }
 
 /*

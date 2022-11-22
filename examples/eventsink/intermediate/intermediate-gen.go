@@ -20,31 +20,29 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/eventsink/resources"
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 	
-	eventsourceapi0 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 	eventsourceapi1 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
+	eventsourceapi2 "github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 )
 
 var (
 	_ context.Context
-	_ embed.FS
-	_ json.Decoder
+	_ *embed.FS
+	_ *json.Decoder
 	_ fmt.Stringer
-	_ http.Request
+	_ *http.Request
 	_ strconv.NumError
 	_ time.Duration
-
-	_ cb.Callback
-	_ cfg.Config
-	_ errors.TracedError
+	_ cb.Option
+	_ cfg.Option
+	_ *errors.TracedError
+	_ *httpx.ResponseRecorder
 	_ sub.Option
-	_ utils.ResponseRecorder
-
 	_ eventsinkapi.Client
 )
 
@@ -65,8 +63,8 @@ type Intermediate struct {
 	impl ToDo
 }
 
-// New creates a new intermediate service.
-func New(impl ToDo, version int) *Intermediate {
+// NewService creates a new intermediate service.
+func NewService(impl ToDo, version int) *Intermediate {
 	svc := &Intermediate{
 		Connector: connector.New("eventsink.example"),
 		impl: impl,
@@ -82,10 +80,8 @@ func New(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`:443/registered`, svc.doRegistered)
 	
 	// Sinks
-	pathOfOnAllowRegister := eventsourceapi0.OnAllowRegisterPath
-	svc.Subscribe(pathOfOnAllowRegister, svc.doOnAllowRegister)
-	pathOfOnRegistered := eventsourceapi1.OnRegisteredPath
-	svc.Subscribe(pathOfOnRegistered, svc.doOnRegistered)
+	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.impl.OnAllowRegister)
+	eventsourceapi2.NewHook(svc).OnRegistered(svc.impl.OnRegistered)
 
 	return svc
 }
@@ -95,82 +91,22 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is fired when the config of the microservice changed.
+// doOnConfigChanged is called when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	return nil
 }
 
-// Initializer initializes a config property of the microservice.
-type Initializer func(svc *Intermediate) error
-
-// With initializes the config properties of the microservice for testings purposes.
-func (svc *Intermediate) With(initializers ...Initializer) *Intermediate {
-	for _, i := range initializers {
-		i(svc)
-	}
-	return svc
-}
 
 // doRegistered handles marshaling for the Registered function.
 func (svc *Intermediate) doRegistered(w http.ResponseWriter, r *http.Request) error {
 	var i eventsinkapi.RegisteredIn
 	var o eventsinkapi.RegisteredOut
-	err := utils.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i)
 	if err!=nil {
 		return errors.Trace(err)
 	}
 	o.Emails, err = svc.impl.Registered(
 		r.Context(),
-	)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
-}
-
-// doOnAllowRegister handles marshaling for the OnAllowRegister event sink.
-func (svc *Intermediate) doOnAllowRegister(w http.ResponseWriter, r *http.Request) error {
-	var i eventsourceapi0.OnAllowRegisterIn
-	var o eventsourceapi0.OnAllowRegisterOut
-	err := utils.ParseRequestData(r, &i)
-	if err!=nil {
-		return errors.Trace(err)
-	}
-	// A compilation error here indicates that the signature of the event sink doesn't match that of the event source
-	fn := eventsourceapi0.OnAllowRegisterHandler(svc.impl.OnAllowRegister)
-	o.Allow, err = fn(
-		r.Context(),
-		i.Email,
-	)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
-}
-
-// doOnRegistered handles marshaling for the OnRegistered event sink.
-func (svc *Intermediate) doOnRegistered(w http.ResponseWriter, r *http.Request) error {
-	var i eventsourceapi1.OnRegisteredIn
-	var o eventsourceapi1.OnRegisteredOut
-	err := utils.ParseRequestData(r, &i)
-	if err!=nil {
-		return errors.Trace(err)
-	}
-	// A compilation error here indicates that the signature of the event sink doesn't match that of the event source
-	fn := eventsourceapi1.OnRegisteredHandler(svc.impl.OnRegistered)
-	err = fn(
-		r.Context(),
-		i.Email,
 	)
 	if err != nil {
 		return errors.Trace(err)
