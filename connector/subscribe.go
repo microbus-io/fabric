@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -288,10 +289,33 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Call the handler
 	httpRecorder := httpx.NewResponseRecorder()
+	handlerStartTime := time.Now()
 	handlerErr := utils.CatchPanic(func() error {
 		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
 	})
 	cancel()
+
+	failed := handlerErr != nil // && errors.Extend(handlerErr).IsErrorSeverity()
+
+	_ = c.ObserveMetric(
+		"fabric_handler_duration_seconds",
+		time.Since(handlerStartTime).Seconds(),
+		s.Canonical(),
+		strconv.Itoa(s.Port),
+		httpReq.Method,
+		strconv.Itoa(httpRecorder.Result().StatusCode),
+		strconv.FormatBool(failed),
+	)
+
+	_ = c.ObserveMetric(
+		"fabric_handler_size_bytes",
+		float64(httpRecorder.Result().ContentLength),
+		s.Canonical(),
+		strconv.Itoa(s.Port),
+		httpReq.Method,
+		strconv.Itoa(httpRecorder.Result().StatusCode),
+		strconv.FormatBool(failed),
+	)
 
 	if handlerErr != nil {
 		handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))

@@ -17,10 +17,12 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
+	mtr "github.com/microbus-io/fabric/metric"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -43,6 +45,12 @@ type Connector struct {
 	pendingOps      int32
 	onStartupCalled bool
 	initErr         error
+	initTime        time.Time
+
+	registry       *prometheus.Registry
+	metricsHandler http.Handler
+	metricDefs     map[string]mtr.Metric
+	metricLock     sync.RWMutex
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription
@@ -97,12 +105,16 @@ func NewConnector() *Connector {
 		knownResponders:  lru.NewCache[string, map[string]bool](),
 		postRequestData:  lru.NewCache[string, string](),
 		multicastChanCap: 32,
+		initTime:         time.Now(),
+		metricDefs:       make(map[string]mtr.Metric),
 	}
 
 	c.knownResponders.SetMaxWeight(16 * 1024)
 	c.knownResponders.SetMaxAge(24 * time.Hour)
 	c.postRequestData.SetMaxWeight(256 * 1024)
 	c.postRequestData.SetMaxAge(time.Minute)
+
+	_ = c.newRegistry()
 
 	return c
 }

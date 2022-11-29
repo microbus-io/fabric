@@ -2,6 +2,7 @@ package connector
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/sub"
@@ -23,6 +24,11 @@ func (c *Connector) subscribeControl() error {
 		{
 			path:    "config-refresh",
 			handler: c.handleControlConfigRefresh,
+			options: []sub.Option{sub.NoQueue()},
+		},
+		{
+			path:    "metrics",
+			handler: c.handleMetrics,
 			options: []sub.Option{sub.NoQueue()},
 		},
 	}
@@ -55,5 +61,17 @@ func (c *Connector) handleControlConfigRefresh(w http.ResponseWriter, r *http.Re
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{}"))
+	return nil
+}
+
+// handleMetrics responds to the :888/metrics control request with collected metrics.
+func (c *Connector) handleMetrics(w http.ResponseWriter, r *http.Request) error {
+	_ = c.ObserveMetric("fabric_uptime_duration_seconds_total", time.Now().Sub(c.initTime).Seconds())
+
+	if c.metricsHandler != nil {
+		c.metricsHandler.ServeHTTP(w, r)
+	} else {
+		w.WriteHeader(http.StatusNotImplemented)
+	}
 	return nil
 }
