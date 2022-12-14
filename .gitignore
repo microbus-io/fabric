@@ -20,3 +20,4 @@ nats-server
 
 # Other
 .DS_Store
+__debug_bin

@@ -6,14 +6,14 @@ import (
 )
 
 // BodyReader is used to wrap bytes in a closer+reader
-// while allowing access to the underlying bytes
+// while allowing access to the underlying bytes.
 type BodyReader struct {
 	bytes  []byte
 	reader io.Reader
 }
 
 // NewBodyReader creates a new closer+reader for the request body
-// while allowing access to the underlying bytes
+// while allowing access to the underlying bytes.
 func NewBodyReader(b []byte) *BodyReader {
 	return &BodyReader{
 		bytes:  b,
@@ -21,17 +21,22 @@ func NewBodyReader(b []byte) *BodyReader {
 	}
 }
 
-// Read implements the io.Reader interface
+// Read implements the io.Reader interface.
 func (br *BodyReader) Read(p []byte) (n int, err error) {
 	return br.reader.Read(p)
 }
 
-// Read implements the io.Closer interface
+// Read implements the io.Closer interface.
 func (br *BodyReader) Close() error {
 	return nil
 }
 
-// Bytes gives access to the underlying bytes
+// Bytes gives access to the underlying bytes.
 func (br *BodyReader) Bytes() []byte {
 	return br.bytes
+}
+
+// Reset resets the underlying reader to the beginning.
+func (br *BodyReader) Reset() {
+	br.reader = bytes.NewReader(br.bytes)
 }

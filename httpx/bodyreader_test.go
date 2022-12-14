@@ -14,6 +14,11 @@ func TestHttpx_BodyReader(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bin, bout)
 	assert.Equal(t, bin, br.Bytes())
+	br.Reset()
+	bout, err = io.ReadAll(br)
+	assert.NoError(t, err)
+	assert.Equal(t, bin, bout)
+	assert.Equal(t, bin, br.Bytes())
 	err = br.Close()
 	assert.NoError(t, err)
 }
