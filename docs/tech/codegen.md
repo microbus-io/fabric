@@ -316,7 +316,7 @@ The code generator creates quite a few files and sub-directories in the director
 ```
 {service}
   app
-    {hyphenated-host-name}
+    {service}
       main-gen.go
   {service}api
     clients-gen.go
@@ -336,7 +336,7 @@ The code generator creates quite a few files and sub-directories in the director
 
 Files that include `-gen` in their name are fully code generated and should not be edited.
 
-The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the host name of the service, with dots replaced by hyphens.
+The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the package name of the microservice.
 
 The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. `MulticastTrigger` and `Hook` are defined if the microservice is a source of events. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
