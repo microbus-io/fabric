@@ -95,7 +95,7 @@ tickers:
 	}
 
 	fileContains(
-		filepath.Join("app", "test-full-generation", "main-gen.go"),
+		filepath.Join("app", dir, "main-gen.go"),
 		"func main", dir+".NewService()",
 	)
 	fileContains(
