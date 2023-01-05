@@ -19,12 +19,12 @@ type Shard struct {
 }
 
 // open opens the connection to the database of the shard.
-func (s *Shard) open(driverName, dataSourceName string) error {
+func (s *Shard) open(driver string, dataSource string) error {
 	if s.DB != nil {
 		return nil
 	}
 	// See https://github.com/go-sql-driver/mysql#dsn-data-source-name
-	cfg, err := mysql.ParseDSN(dataSourceName)
+	cfg, err := mysql.ParseDSN(dataSource)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -35,7 +35,7 @@ func (s *Shard) open(driverName, dataSourceName string) error {
 	cfg.Params["timeout"] = "4s"
 	cfg.Params["readTimeout"] = "8s"
 	cfg.Params["writeTimeout"] = "8s"
-	s.DB, err = sql.Open(driverName, cfg.FormatDSN())
+	s.DB, err = sql.Open(driver, cfg.FormatDSN())
 	if err != nil {
 		return errors.Trace(err)
 	}

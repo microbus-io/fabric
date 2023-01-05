@@ -78,7 +78,7 @@ func (db *TestingDB) Close() error {
 	}
 
 	// Delete the temporary databases
-	rootDB, err := sql.Open(db.driverName, db.dbHost)
+	rootDB, err := sql.Open(db.driver, db.dbHost)
 	if err != nil {
 		return errors.Trace(err)
 	}

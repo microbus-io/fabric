@@ -177,7 +177,7 @@ func Test_MaxOpenConnections(t *testing.T) {
 
 	// Add a DB client so connection limits are increased
 	assert.Equal(t, 1, testingDB.refCount)
-	db2, err := Open(testingDB.DriverName(), testingDB.DataSourceFormat())
+	db2, err := Open(testingDB.Driver(), testingDB.DataSource())
 	assert.NoError(t, err)
 	assert.Equal(t, 2, testingDB.refCount)
 
@@ -200,7 +200,7 @@ func Test_MaxOpenConnections(t *testing.T) {
 func Test_Singleton(t *testing.T) {
 	t.Parallel()
 
-	db2, err := Open(testingDB.DriverName(), testingDB.DataSourceFormat())
+	db2, err := Open(testingDB.Driver(), testingDB.DataSource())
 	assert.NoError(t, err)
 	defer db2.Close()
 	assert.Equal(t, testingDB.DB, db2)

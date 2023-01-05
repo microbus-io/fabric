@@ -19,35 +19,35 @@ var (
 
 // DB is a sharded database.
 type DB struct {
-	driverName       string
-	dataSourceFormat string
-	shards           map[int]*Shard
-	refCount         int
-	mux              sync.Mutex
+	driver     string
+	dataSource string
+	shards     map[int]*Shard
+	refCount   int
+	mux        sync.Mutex
 }
 
 /*
 Open creates a sharded database and opens up connections to all its shards.
 
-Driver name is the database driver name that will be used to open the connections.
+The database driver name will be used to open the connections.
 Only "mysql" is supported at this time.
 
-The data source format string is a data source string that includes %d indicating
-where to insert the shard index. For example:
+The data source name must include %d indicating where to insert the shard index.
+For example:
 
 	// A different host per shard
 	username:password@tcp(shard%d.mysql.host:3306)/db
 	// A different database name per shard on a single host
 	username:password@tcp(localhost:3306)/db%d
 */
-func Open(driverName string, dataSourceFormat string) (*DB, error) {
-	if !strings.Contains(dataSourceFormat, "%d") {
-		return nil, errors.New("missing '%d' in data source name")
+func Open(driver string, dataSource string) (*DB, error) {
+	if !strings.Contains(dataSource, "%d") {
+		return nil, errors.New("missing '%d' in data source")
 	}
 	singletonMux.Lock()
 	defer singletonMux.Unlock()
 
-	cached, ok := singletonsMap[driverName+"|"+dataSourceFormat]
+	cached, ok := singletonsMap[driver+"|"+dataSource]
 	if ok {
 		cached.mux.Lock()
 		defer cached.mux.Unlock()
@@ -57,7 +57,7 @@ func Open(driverName string, dataSourceFormat string) (*DB, error) {
 	}
 
 	// Open connection to shard 1
-	shard1, err := sql.Open(driverName, fmt.Sprintf(dataSourceFormat, 1))
+	shard1, err := sql.Open(driver, fmt.Sprintf(dataSource, 1))
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -111,23 +111,23 @@ func Open(driverName string, dataSourceFormat string) (*DB, error) {
 
 	// Open all shards
 	for _, shard := range shards {
-		err = shard.open(driverName, fmt.Sprintf(dataSourceFormat, shard.shardIndex))
+		err = shard.open(driver, fmt.Sprintf(dataSource, shard.shardIndex))
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 	}
 
 	db := &DB{
-		driverName:       driverName,
-		dataSourceFormat: dataSourceFormat,
-		shards:           map[int]*Shard{},
-		refCount:         1,
+		driver:     driver,
+		dataSource: dataSource,
+		shards:     map[int]*Shard{},
+		refCount:   1,
 	}
 	for _, shard := range shards {
 		db.shards[shard.shardIndex] = shard
 	}
 	db.adjustConnectionLimits()
-	singletonsMap[driverName+"|"+dataSourceFormat] = db
+	singletonsMap[driver+"|"+dataSource] = db
 	return db, nil
 }
 
@@ -145,7 +145,7 @@ func (db *DB) Close() error {
 			shard.DB.Close()
 			shard.DB = nil
 		}
-		delete(singletonsMap, db.driverName+"|"+db.dataSourceFormat)
+		delete(singletonsMap, db.driver+"|"+db.dataSource)
 		return nil
 	}
 	db.adjustConnectionLimits()
@@ -172,14 +172,14 @@ func (db *DB) Shards() map[int]*Shard {
 	return clone
 }
 
-// DataSourceFormat is the data source format used to create this database.
-func (db *DB) DataSourceFormat() string {
-	return db.dataSourceFormat
+// DataSource is the data source name used to create this database.
+func (db *DB) DataSource() string {
+	return db.dataSource
 }
 
-// DriverName is the name of the database driver used to create this database.
-func (db *DB) DriverName() string {
-	return db.driverName
+// Driver is the name of the database driver used to create this database.
+func (db *DB) Driver() string {
+	return db.driver
 }
 
 // Shard returns the shard specified by its index (one-based).
@@ -252,7 +252,7 @@ func (db *DB) RegisterShard(shardIndex int, locked bool) error {
 		shardIndex: shardIndex,
 		locked:     locked,
 	}
-	err = newShard.open(db.driverName, fmt.Sprintf(db.dataSourceFormat, shardIndex))
+	err = newShard.open(db.driver, fmt.Sprintf(db.dataSource, shardIndex))
 	if err != nil {
 		return errors.Trace(err)
 	}
