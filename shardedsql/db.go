@@ -5,15 +5,16 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
 )
 
 var (
-	singletons sync.Map
+	singletonsMap = map[string]*DB{}
+	singletonMux  sync.Mutex
 )
 
 // DB is a sharded database.
@@ -21,7 +22,7 @@ type DB struct {
 	driverName       string
 	dataSourceFormat string
 	shards           map[int]*Shard
-	refCount         int32
+	refCount         int
 	mux              sync.Mutex
 }
 
@@ -40,10 +41,19 @@ where to insert the shard index. For example:
 	username:password@tcp(localhost:3306)/db%d
 */
 func Open(driverName string, dataSourceFormat string) (*DB, error) {
-	cached, ok := singletons.Load(driverName + "|" + dataSourceFormat)
+	if !strings.Contains(dataSourceFormat, "%d") {
+		return nil, errors.New("missing '%d' in data source name")
+	}
+	singletonMux.Lock()
+	defer singletonMux.Unlock()
+
+	cached, ok := singletonsMap[driverName+"|"+dataSourceFormat]
 	if ok {
-		cached.(*DB).incrementRefCount(1)
-		return cached.(*DB), nil
+		cached.mux.Lock()
+		defer cached.mux.Unlock()
+		cached.refCount++
+		cached.adjustConnectionLimits()
+		return cached, nil
 	}
 
 	// Open connection to shard 1
@@ -56,7 +66,7 @@ func Open(driverName string, dataSourceFormat string) (*DB, error) {
 	_, err = shard1.Exec(
 		`CREATE TABLE IF NOT EXISTS microbus_shards (
 			id INT NOT NULL,
-			locked TINYINT NOT NULL DEFAULT 1,
+			locked BOOL NOT NULL DEFAULT FALSE,
 			PRIMARY KEY (id)
 		)`)
 	if err != nil {
@@ -75,7 +85,7 @@ func Open(driverName string, dataSourceFormat string) (*DB, error) {
 		return nil, errors.Trace(err)
 	}
 	// Register shard 1
-	_, err = shard1.Exec(`INSERT IGNORE INTO microbus_shards (id, locked) VALUES (1, 0)`)
+	_, err = shard1.Exec(`INSERT IGNORE INTO microbus_shards (id, locked) VALUES (1, FALSE)`)
 	if err != nil {
 		shard1.Close()
 		return nil, errors.Trace(err)
@@ -111,44 +121,54 @@ func Open(driverName string, dataSourceFormat string) (*DB, error) {
 		driverName:       driverName,
 		dataSourceFormat: dataSourceFormat,
 		shards:           map[int]*Shard{},
+		refCount:         1,
 	}
 	for _, shard := range shards {
 		db.shards[shard.shardIndex] = shard
 	}
-	actual, loaded := singletons.LoadOrStore(driverName+"|"+dataSourceFormat, db)
-	if loaded {
-		for _, shard := range shards {
-			shard.DB.Close()
-		}
-	}
-	db = actual.(*DB)
-	db.incrementRefCount(1)
+	db.adjustConnectionLimits()
+	singletonsMap[driverName+"|"+dataSourceFormat] = db
 	return db, nil
 }
 
 // Close releases the reference to this database.
 // The connections themselves are not closed because they may be in use by other clients.
 func (db *DB) Close() error {
-	db.incrementRefCount(-1)
+	singletonMux.Lock()
+	defer singletonMux.Unlock()
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	db.refCount--
+	if db.refCount == 0 {
+		for _, shard := range db.shards {
+			shard.DB.Close()
+			shard.DB = nil
+		}
+		delete(singletonsMap, db.driverName+"|"+db.dataSourceFormat)
+		return nil
+	}
+	db.adjustConnectionLimits()
 	return nil
 }
 
 // NumShards is the total number of shards.
 func (db *DB) NumShards() int {
 	db.mux.Lock()
-	n := len(db.shards)
-	db.mux.Unlock()
-	return n
+	defer db.mux.Unlock()
+
+	return len(db.shards)
 }
 
 // Shards returns a list of all registered shards.
 func (db *DB) Shards() map[int]*Shard {
 	db.mux.Lock()
+	defer db.mux.Unlock()
+
 	clone := make(map[int]*Shard, len(db.shards))
 	for index, shard := range db.shards {
 		clone[index] = shard
 	}
-	db.mux.Unlock()
 	return clone
 }
 
@@ -166,9 +186,9 @@ func (db *DB) DriverName() string {
 // The shard is a connection to a database.
 func (db *DB) Shard(index int) *Shard {
 	db.mux.Lock()
-	sh := db.shards[index]
-	db.mux.Unlock()
-	return sh
+	defer db.mux.Unlock()
+
+	return db.shards[index]
 }
 
 // ShardOf returns the shard that maps to the sharding key.
@@ -214,17 +234,16 @@ func (db *DB) Allocate() (shardingKey int, err error) {
 
 // RegisterShard registers a new shard.
 func (db *DB) RegisterShard(shardIndex int, locked bool) error {
-	if db.Shard(shardIndex) != nil {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	if db.shards[shardIndex] != nil {
 		// Shard already registered
 		return nil
 	}
 
-	shard1 := db.Shard(1)
-	lockedVal := 0
-	if locked {
-		lockedVal = 1
-	}
-	_, err := shard1.Exec(`INSERT IGNORE INTO microbus_shards (id, locked) VALUES (?, ?)`, shardIndex, lockedVal)
+	shard1 := db.shards[1]
+	_, err := shard1.Exec(`INSERT IGNORE INTO microbus_shards (id, locked) VALUES (?, ?)`, shardIndex, locked)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -237,10 +256,8 @@ func (db *DB) RegisterShard(shardIndex int, locked bool) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	db.mux.Lock()
 	db.shards[shardIndex] = newShard
-	db.mux.Unlock()
-	db.incrementRefCount(0)
+	db.adjustConnectionLimits()
 
 	return nil
 }
@@ -263,19 +280,17 @@ func (db *DB) RegisterShard(shardIndex int, locked bool) error {
 //	...
 //	1025	33	68
 //	...
-func (db *DB) connectionLimits(refCount int32) (maxOpen, maxIdle int) {
+func (db *DB) connectionLimits(refCount int) (maxOpen, maxIdle int) {
 	maxIdleF := math.Ceil(math.Sqrt(float64(refCount)))
 	maxOpenF := math.Ceil(maxIdleF*2) + 2
 	return int(maxOpenF), int(maxIdleF)
 }
 
-// incrementRefCount keeps track of the number of clients using the database and accordingly adjusts
-// the maximum number of connections in the idle connection pool,
+// adjustConnectionLimits adjusts the maximum number of connections in the idle connection pool,
 // and the maximum number of open connections to the database.
-func (db *DB) incrementRefCount(increment int) {
-	newVal := atomic.AddInt32(&db.refCount, int32(increment))
-	maxOpen, maxIdle := db.connectionLimits(newVal)
-	for _, shard := range db.Shards() {
+func (db *DB) adjustConnectionLimits() {
+	maxOpen, maxIdle := db.connectionLimits(db.refCount)
+	for _, shard := range db.shards {
 		shard.SetMaxOpenConns(maxOpen)
 		shard.SetMaxIdleConns(maxIdle)
 	}

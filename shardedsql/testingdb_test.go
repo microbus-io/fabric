@@ -33,9 +33,20 @@ func Test_OpenClose(t *testing.T) {
 	}
 	assert.Equal(t, testingDB.NumShards(), found)
 
+	// Validate the connections to all the shards
+	for _, shard := range testingDB.Shards() {
+		err = shard.Ping()
+		assert.NoError(t, err)
+	}
+
 	// Close the testing database
 	err = testingDB.Close()
 	assert.NoError(t, err)
+
+	// Validate the connections were closed
+	for _, shard := range testingDB.Shards() {
+		assert.Nil(t, shard.DB)
+	}
 
 	// All databases should have been deleted
 	rows, err = root.Query("SHOW DATABASES")

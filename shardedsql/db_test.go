@@ -176,11 +176,10 @@ func Test_MaxOpenConnections(t *testing.T) {
 	cancel()
 
 	// Add a DB client so connection limits are increased
-	assert.Equal(t, int32(1), testingDB.refCount)
+	assert.Equal(t, 1, testingDB.refCount)
 	db2, err := Open(testingDB.DriverName(), testingDB.DataSourceFormat())
 	assert.NoError(t, err)
-	defer db2.Close()
-	assert.Equal(t, int32(2), testingDB.refCount)
+	assert.Equal(t, 2, testingDB.refCount)
 
 	maxOpen, _ = testingDB.connectionLimits(testingDB.refCount)
 	assert.True(t, maxOpen > len(openRows))
@@ -193,6 +192,9 @@ func Test_MaxOpenConnections(t *testing.T) {
 	for _, rows := range openRows {
 		rows.Close()
 	}
+
+	db2.Close()
+	assert.Equal(t, 1, testingDB.refCount)
 }
 
 func Test_Singleton(t *testing.T) {
