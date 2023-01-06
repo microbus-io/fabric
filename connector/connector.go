@@ -36,8 +36,8 @@ type Connector struct {
 	description string
 	version     int
 
-	onStartup       *cb.Callback
-	onShutdown      *cb.Callback
+	onStartup       []*cb.Callback
+	onShutdown      []*cb.Callback
 	lifetimeCtx     context.Context
 	ctxCancel       context.CancelFunc
 	pendingOps      int32
@@ -68,7 +68,7 @@ type Connector struct {
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
-	onConfigChanged *cb.Callback
+	onConfigChanged []*cb.Callback
 
 	logger *zap.Logger
 
