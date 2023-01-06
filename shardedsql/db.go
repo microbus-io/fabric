@@ -345,13 +345,16 @@ func (db *DB) ExecContext(ctx context.Context, shardingKey int, query string, ar
 }
 
 // MigrateSchema migrates the schema of all shards in parallel.
-func (db *DB) MigrateSchema(ctx context.Context, migrations []*SchemaMigration) (err error) {
+// The statements are guaranteed to run in order of the sequence number within the context of a
+// globally unique name. Good practice is to use the name of the owner microservice.
+// Sequence names are limited to 256 ASCII characters.
+func (db *DB) MigrateSchema(ctx context.Context, statementSequence *StatementSequence) (err error) {
 	shards := db.Shards()
 	errs := make(chan error, len(shards))
 	for _, shard := range shards {
 		shard := shard
 		go func() {
-			e := shard.MigrateSchema(ctx, migrations)
+			e := shard.MigrateSchema(ctx, statementSequence)
 			errs <- errors.Trace(e)
 		}()
 	}

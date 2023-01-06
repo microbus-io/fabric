@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,37 +26,20 @@ func Test_Migrations(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	migrations := []*SchemaMigration{
-		// The order of the list should not matter if sequences are in order
-		{
-			Name:      "migrations",
-			Sequence:  22,
-			Statement: `ALTER TABLE migrations ADD v INTEGER`,
-		},
-		{
-			Name:      "migrations",
-			Sequence:  11,
-			Statement: `CREATE TABLE migrations (k INTEGER)`,
-		},
-	}
+	migrations := NewStatementSequence("migrations")
+	// The order of insertion should not matter
+	migrations.Insert(22, "ALTER TABLE migrations ADD v INTEGER")
+	migrations.Insert(11, "CREATE TABLE migrations (k INTEGER)")
 	err := testingDB.MigrateSchema(ctx, migrations)
 	assert.NoError(t, err)
 
 	// Add a new migration after executing the first two
-	migrations = append(migrations, &SchemaMigration{
-		Name:      "migrations",
-		Sequence:  33,
-		Statement: `ALTER TABLE migrations ADD w INTEGER`,
-	})
+	migrations.Insert(33, "ALTER TABLE migrations ADD w INTEGER")
 	err = testingDB.MigrateSchema(ctx, migrations)
 	assert.NoError(t, err)
 
 	// Migrations with a lower sequence than the high watermark should not be executed
-	migrations = append(migrations, &SchemaMigration{
-		Name:      "migrations",
-		Sequence:  32,
-		Statement: `DROP TABLE migrations`,
-	})
+	migrations.Insert(32, "DROP TABLE migrations")
 	err = testingDB.MigrateSchema(ctx, migrations)
 	assert.NoError(t, err)
 
@@ -65,11 +51,11 @@ func Test_Migrations(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 3, count)
 
-		// Migration 32 should not be complete but should still be listed in the database
+		// Migration 32 should not added to the database at all
 		row = sh.QueryRow("SELECT COUNT(*) FROM microbus_schema_migrations WHERE name='migrations' AND completed=FALSE")
 		err = row.Scan(&count)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, count)
+		assert.Equal(t, 0, count)
 
 		// The table should exist with all 3 columns
 		_, err = sh.Exec("INSERT INTO migrations (k,v,w) VALUES (?,?,?)", i, i, i)
@@ -81,13 +67,8 @@ func Test_FailingMigration(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	migrations := []*SchemaMigration{
-		{
-			Name:      "failingmigration",
-			Sequence:  999,
-			Statement: `INVALID SQL`,
-		},
-	}
+	migrations := NewStatementSequence("failingmigration")
+	migrations.Insert(999, "INVALID SQL")
 	err := testingDB.MigrateSchema(ctx, migrations)
 	assert.Error(t, err)
 
@@ -97,7 +78,7 @@ func Test_FailingMigration(t *testing.T) {
 		var count int
 		err = row.Scan(&count)
 		assert.NoError(t, err)
-		assert.Equal(t, len(migrations), count)
+		assert.Equal(t, 1, count)
 	}
 }
 
@@ -105,13 +86,8 @@ func Test_Sharding(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	migrations := []*SchemaMigration{
-		{
-			Name:      "sharding",
-			Sequence:  1,
-			Statement: `CREATE TABLE sharding (k INTEGER AUTO_INCREMENT, v INTEGER, PRIMARY KEY (k))`,
-		},
-	}
+	migrations := NewStatementSequence("sharding")
+	migrations.Insert(1, "CREATE TABLE sharding (k INTEGER, v INTEGER, PRIMARY KEY (k))")
 	err := testingDB.MigrateSchema(ctx, migrations)
 	assert.NoError(t, err)
 
@@ -122,32 +98,33 @@ func Test_Sharding(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Add a record to the shard
-		res, err := sh.Exec("INSERT INTO sharding (v) VALUES (?)", i)
+		res, err := sh.Exec("INSERT INTO sharding (k, v) VALUES (?, ?)", shardingKey, i)
 		assert.NoError(t, err)
-		insertID, err := res.LastInsertId()
+		affected, err := res.RowsAffected()
 		assert.NoError(t, err)
+		assert.Equal(t, int64(1), affected)
 
 		// Query
-		rows, err := testingDB.Query(shardingKey, "SELECT k FROM sharding WHERE k=?", insertID)
+		rows, err := testingDB.Query(shardingKey, "SELECT k FROM sharding WHERE k=?", shardingKey)
 		assert.NoError(t, err)
 		assert.True(t, rows.Next())
-		var k int64
+		var k int
 		err = rows.Scan(&k)
-		assert.NoError(t, err, "shard", i)
-		assert.Equal(t, insertID, k)
+		assert.NoError(t, err)
+		assert.Equal(t, shardingKey, k)
 		assert.False(t, rows.Next())
 
 		// QueryRow
-		row, err := testingDB.QueryRow(shardingKey, "SELECT k FROM sharding WHERE k=?", insertID)
+		row, err := testingDB.QueryRow(shardingKey, "SELECT k FROM sharding WHERE k=?", shardingKey)
 		assert.NoError(t, err)
 		err = row.Scan(&k)
 		assert.NoError(t, err)
-		assert.Equal(t, insertID, k)
+		assert.Equal(t, shardingKey, k)
 
 		// Execute
-		res, err = testingDB.Exec(shardingKey, "DELETE FROM sharding WHERE k=?", insertID)
+		res, err = testingDB.Exec(shardingKey, "DELETE FROM sharding WHERE k=?", shardingKey)
 		assert.NoError(t, err)
-		affected, err := res.RowsAffected()
+		affected, err = res.RowsAffected()
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), affected)
 	}
@@ -157,13 +134,8 @@ func Test_MaxOpenConnections(t *testing.T) {
 	// No parallel
 
 	ctx := context.Background()
-	migrations := []*SchemaMigration{
-		{
-			Name:      "maxopenconnections",
-			Sequence:  1,
-			Statement: `CREATE TABLE maxopenconnections (k INTEGER AUTO_INCREMENT, PRIMARY KEY (k))`,
-		},
-	}
+	migrations := NewStatementSequence("maxopenconnections")
+	migrations.Insert(1, "CREATE TABLE maxopenconnections (k INTEGER AUTO_INCREMENT, PRIMARY KEY (k))")
 	err := testingDB.MigrateSchema(ctx, migrations)
 	assert.NoError(t, err)
 
@@ -219,4 +191,53 @@ func Test_Singleton(t *testing.T) {
 	assert.NoError(t, err)
 	defer db2.Close()
 	assert.Equal(t, testingDB.DB, db2)
+}
+
+func Test_Concurrent(t *testing.T) {
+	// No parallel
+
+	ctx := context.Background()
+	migrations := NewStatementSequence("concurrent")
+	migrations.Insert(1, "CREATE TABLE concurrent (k INTEGER, num INTEGER, PRIMARY KEY (k))")
+	err := testingDB.MigrateSchema(ctx, migrations)
+	assert.NoError(t, err)
+
+	// 32 workers are competing for only 4 pooled connections
+	var executions int32
+	var wg sync.WaitGroup
+	finishAt := time.Now().Add(time.Second)
+	for i := 0; i < 32; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for time.Now().Before(finishAt) {
+				k, err := testingDB.Allocate()
+				assert.NoError(t, err)
+
+				res, err := testingDB.ExecContext(ctx, k, "INSERT INTO concurrent (k, num) VALUES (?, 1)", k)
+				assert.NoError(t, err)
+				affected, err := res.RowsAffected()
+				assert.NoError(t, err)
+				assert.Equal(t, int64(1), affected)
+				atomic.AddInt32(&executions, 1)
+
+				k = rand.Intn(k) + 1
+				res, err = testingDB.ExecContext(ctx, k, "UPDATE concurrent SET num=num+1 WHERE k=?", k)
+				assert.NoError(t, err)
+				affected, err = res.RowsAffected() // may be 0 due to race condition
+				assert.NoError(t, err)
+				atomic.AddInt32(&executions, int32(affected))
+			}
+		}()
+	}
+	wg.Wait()
+
+	for _, shard := range testingDB.Shards() {
+		row := shard.QueryRow("SELECT SUM(num) FROM concurrent")
+		var sum int32
+		err := row.Scan(&sum)
+		assert.NoError(t, err)
+		executions -= sum
+	}
+	assert.Equal(t, int32(0), executions)
 }

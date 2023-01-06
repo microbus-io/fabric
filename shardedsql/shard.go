@@ -3,8 +3,6 @@ package shardedsql
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -115,7 +113,10 @@ func (s *Shard) QueryRow(query string, args ...interface{}) *sql.Row {
 
 // MigrateSchema compares the migrations against the list of migrations already executed,
 // then executes the new migrations in order.
-func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration) error {
+// The statements are guaranteed to run in order of the sequence number within the context of a
+// globally unique name. Good practice is to use the name of the owner microservice.
+// Sequence names are limited to 256 ASCII characters.
+func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementSequence) error {
 	// Init the schema migration table
 	_, err := s.Exec(
 		`CREATE TABLE IF NOT EXISTS microbus_schema_migrations (
@@ -130,62 +131,43 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 		return errors.Trace(err)
 	}
 
-	// Query the migrations already in the database
-	inDatabase := map[string]bool{}
-	watermark := 0
-	rows, err := s.QueryContext(ctx, "SELECT name, seq, completed FROM microbus_schema_migrations")
+	// Query for the high watermark
+	var nullableWatermark sql.NullInt32
+	row := s.QueryRowContext(ctx, "SELECT MAX(seq) FROM microbus_schema_migrations WHERE name=? AND completed=TRUE", statementSequence.Name)
+	err = row.Scan(&nullableWatermark)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var name string
-		var seq int
-		var completed bool
-		err = rows.Scan(&name, &seq, &completed)
+	watermark := 0
+	if nullableWatermark.Valid {
+		watermark = int(nullableWatermark.Int32)
+	}
+
+	// Execute the migrations
+	sequenceNumbersToRun := statementSequence.Order()
+	for len(sequenceNumbersToRun) > 0 {
+		seqNum := sequenceNumbersToRun[0]
+		if seqNum <= watermark {
+			sequenceNumbersToRun = sequenceNumbersToRun[1:]
+			continue
+		}
+
+		// Insert new migrations into the database first
+		// Ignore duplicate key violations
+		_, err = s.ExecContext(ctx, `INSERT IGNORE INTO microbus_schema_migrations (name, seq, locked_until) VALUES (?, ?, NOW(3))`, statementSequence.Name, seqNum)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		inDatabase[fmt.Sprintf("%s|%d", name, seq)] = completed
-		if completed && seq > watermark {
-			watermark = seq
-		}
-	}
-
-	// Insert new migrations into the database first
-	// Ignore duplicate key violations
-	migrationsToRun := []*SchemaMigration{}
-	for _, m := range migrations {
-		completed, existing := inDatabase[fmt.Sprintf("%s|%d", m.Name, m.Sequence)]
-		if !existing {
-			_, err = s.ExecContext(ctx, `INSERT IGNORE INTO microbus_schema_migrations (name, seq, locked_until) VALUES (?, ?, NOW(3))`, m.Name, m.Sequence)
-			if err != nil {
-				return errors.Trace(err)
-			}
-		}
-		if (!existing || !completed) && m.Sequence > watermark {
-			migrationsToRun = append(migrationsToRun, m)
-		}
-	}
-
-	// Sort by order of execution
-	sort.Slice(migrationsToRun, func(i, j int) bool {
-		return migrationsToRun[i].Sequence < migrationsToRun[j].Sequence
-	})
-
-	// Execute the migrations
-	for len(migrationsToRun) > 0 {
-		m := migrationsToRun[0]
 
 		// See if completed by another process
-		row := s.QueryRowContext(ctx, "SELECT completed FROM microbus_schema_migrations WHERE name=? AND seq=?", m.Name, m.Sequence)
+		row := s.QueryRowContext(ctx, "SELECT completed FROM microbus_schema_migrations WHERE name=? AND seq=?", statementSequence.Name, seqNum)
 		var completed bool
 		err := row.Scan(&completed)
 		if err != nil {
 			return errors.Trace(err)
 		}
 		if completed {
-			migrationsToRun = migrationsToRun[1:]
+			sequenceNumbersToRun = sequenceNumbersToRun[1:]
 			continue
 		}
 
@@ -193,7 +175,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 		res, err := s.ExecContext(ctx,
 			`UPDATE microbus_schema_migrations SET locked_until=DATE_ADD(NOW(3), INTERVAL 15 SECOND)
 			WHERE name=? AND seq=? AND locked_until<NOW(3) AND completed=FALSE`,
-			m.Name, m.Sequence)
+			statementSequence.Name, seqNum)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -209,7 +191,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 		// Obtained lock, execute migration in a goroutine
 		done := make(chan error)
 		go func() {
-			statement := strings.ReplaceAll(m.Statement, "\r", "")
+			statement := strings.ReplaceAll(statementSequence.Statements[seqNum], "\r", "")
 			for _, stmt := range strings.Split(statement, ";\n") {
 				stmt = strings.TrimSpace(stmt)
 				if stmt == "" {
@@ -234,7 +216,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 				// Extend the lock while the migration is in progress
 				_, err = s.ExecContext(ctx,
 					`UPDATE microbus_schema_migrations SET locked_until=DATE_ADD(NOW(3), INTERVAL 15 SECOND) WHERE name=? AND seq=?`,
-					m.Name, m.Sequence)
+					statementSequence.Name, seqNum)
 				if err != nil {
 					exit = true
 				}
@@ -245,18 +227,18 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 			// Release the lock
 			_, _ = s.ExecContext(ctx,
 				`UPDATE microbus_schema_migrations SET locked_until=NOW(3) WHERE name=? AND seq=?`,
-				m.Name, m.Sequence)
-			return errors.Trace(err, m.Statement)
+				statementSequence.Name, seqNum)
+			return errors.Trace(err, statementSequence.Statements[seqNum])
 		}
 
 		// Mark as complete
 		_, err = s.ExecContext(ctx,
 			`UPDATE microbus_schema_migrations SET locked_until=NOW(3), completed_on=NOW(3), completed=TRUE WHERE name=? AND seq=?`,
-			m.Name, m.Sequence)
+			statementSequence.Name, seqNum)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		migrationsToRun = migrationsToRun[1:]
+		sequenceNumbersToRun = sequenceNumbersToRun[1:]
 	}
 	return nil
 }

@@ -13,7 +13,7 @@ func (svc *Intermediate) mysqlOnStartup(ctx context.Context) (err error) {
 		}
 		svc.LogInfo(ctx, "Opened MySQL database", log.String("db", "{{ .Databases.MySQL }}"))
 
-		migrations := []*shardedsql.SchemaMigration{}
+		migrations := shardedsql.NewStatementSequence(svc.HostName())
 		scripts, _ := svc.Resources().ReadDir("mysql")
 		for _, script := range scripts {
 			if script.IsDir() || filepath.Ext(script.Name())!=".sql" {
@@ -24,11 +24,7 @@ func (svc *Intermediate) mysqlOnStartup(ctx context.Context) (err error) {
 				continue
 			}
 			statement, _ := svc.Resources().ReadFile(filepath.Join("mysql", script.Name()))
-			migrations = append(migrations, &shardedsql.SchemaMigration {
-				Name: svc.HostName(),
-				Sequence: number,
-				Statement: string(statement),
-			})
+			migrations.Insert(number, string(statement))
 		}
 		err = svc.dbMySQL.MigrateSchema(ctx, migrations)
 		if err != nil {
