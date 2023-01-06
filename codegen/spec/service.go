@@ -12,6 +12,7 @@ type Service struct {
 	Package string `yaml:"-"`
 
 	General   General    `yaml:"general"`
+	Databases Databases  `yaml:"databases"`
 	Configs   []*Handler `yaml:"configs"`
 	Types     []*Type    `yaml:"types"`
 	Functions []*Handler `yaml:"functions"`

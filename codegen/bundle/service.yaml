@@ -8,6 +8,12 @@ general:
   host:
   description:
 
+# Databases
+#
+# mysql - A name for the MySQL database
+databases:
+  # mysql: MySQL
+
 # Config properties
 #
 # signature - Func() (val Type)

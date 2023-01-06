@@ -146,6 +146,7 @@ func (gen *Generator) makeIntermediate() error {
 	tt, err := LoadTemplate(
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-gen.configs.txt",
+		"intermediate/intermediate-gen.mysql.txt",
 		"intermediate/intermediate-gen.functions.txt",
 	)
 	if err != nil {

@@ -118,7 +118,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 	// Init the schema migration table
 	_, err := s.Exec(
 		`CREATE TABLE IF NOT EXISTS microbus_schema_migrations (
-			name VARCHAR(128) CHARACTER SET ascii NOT NULL,
+			name VARCHAR(256) CHARACTER SET ascii NOT NULL,
 			seq INT NOT NULL,
 			completed BOOL NOT NULL DEFAULT FALSE,
 			completed_on DATETIME(3),
