@@ -51,7 +51,7 @@ func NewCache[K comparable, V any]() *Cache[K, V] {
 		buckets:   []*bucket[K, V]{},
 		maxWeight: 16384,
 		maxAge:    time.Hour,
-		clock:     clock.New(),
+		clock:     clock.NewClock(),
 	}
 
 	// Prepare buckets

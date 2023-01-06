@@ -91,7 +91,7 @@ func NewConnector() *Connector {
 		subs:             map[string]*sub.Subscription{},
 		requestDefrags:   map[string]*httpx.DefragRequest{},
 		responseDefrags:  map[string]*httpx.DefragResponse{},
-		clock:            clock.NewClockReference(clock.New()),
+		clock:            clock.NewClockReference(clock.NewClock()),
 		tickers:          map[string]*cb.Callback{},
 		lifetimeCtx:      context.Background(),
 		knownResponders:  lru.NewCache[string, map[string]bool](),

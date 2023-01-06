@@ -10,6 +10,8 @@ import (
 	"github.com/microbus-io/fabric/rand"
 )
 
+const testingNumShards = 3
+
 /*
 TestingDB is a temporary sharded database to be used for testing purposes.
 By default, it
@@ -43,7 +45,7 @@ func (db *TestingDB) Open(driverName string) (err error) {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	for i := 1; i < 3; i++ {
+	for i := 1; i <= testingNumShards; i++ {
 		_, err = rootDB.Exec("DROP DATABASE IF EXISTS " + fmt.Sprintf(db.dbNameFormat, i))
 		if err != nil {
 			rootDB.Close()
@@ -63,7 +65,7 @@ func (db *TestingDB) Open(driverName string) (err error) {
 		return errors.Trace(err)
 	}
 	// Register the shards
-	for i := 1; i < 3; i++ {
+	for i := 1; i <= testingNumShards; i++ {
 		db.RegisterShard(i, false)
 	}
 	return nil
@@ -83,7 +85,7 @@ func (db *TestingDB) Close() error {
 		return errors.Trace(err)
 	}
 	defer rootDB.Close()
-	for i := 1; i <= 3; i++ {
+	for i := 1; i <= testingNumShards; i++ {
 		_, err = rootDB.Exec("DROP DATABASE IF EXISTS " + fmt.Sprintf(db.dbNameFormat, i))
 		if err != nil {
 			return errors.Trace(err)

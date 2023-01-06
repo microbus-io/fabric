@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -131,6 +132,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 
 	// Query the migrations already in the database
 	inDatabase := map[string]bool{}
+	watermark := 0
 	rows, err := s.QueryContext(ctx, "SELECT name, seq, completed FROM microbus_schema_migrations")
 	if err != nil {
 		return errors.Trace(err)
@@ -145,6 +147,9 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 			return errors.Trace(err)
 		}
 		inDatabase[fmt.Sprintf("%s|%d", name, seq)] = completed
+		if completed && seq > watermark {
+			watermark = seq
+		}
 	}
 
 	// Insert new migrations into the database first
@@ -158,7 +163,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 				return errors.Trace(err)
 			}
 		}
-		if !existing || !completed {
+		if (!existing || !completed) && m.Sequence > watermark {
 			migrationsToRun = append(migrationsToRun, m)
 		}
 	}
@@ -204,8 +209,19 @@ func (s *Shard) MigrateSchema(ctx context.Context, migrations []*SchemaMigration
 		// Obtained lock, execute migration in a goroutine
 		done := make(chan error)
 		go func() {
-			_, e := s.ExecContext(ctx, m.Statement)
-			done <- e
+			statement := strings.ReplaceAll(m.Statement, "\r", "")
+			for _, stmt := range strings.Split(statement, ";\n") {
+				stmt = strings.TrimSpace(stmt)
+				if stmt == "" {
+					continue
+				}
+				_, e := s.ExecContext(ctx, stmt)
+				if e != nil {
+					done <- e
+					return
+				}
+			}
+			done <- nil
 		}()
 
 		// Wait for it to finish

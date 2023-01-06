@@ -48,13 +48,28 @@ func Test_Migrations(t *testing.T) {
 	err = testingDB.MigrateSchema(ctx, migrations)
 	assert.NoError(t, err)
 
+	// Migrations with a lower sequence than the high watermark should not be executed
+	migrations = append(migrations, &SchemaMigration{
+		Name:      "migrations",
+		Sequence:  32,
+		Statement: `DROP TABLE migrations`,
+	})
+	err = testingDB.MigrateSchema(ctx, migrations)
+	assert.NoError(t, err)
+
 	for i, sh := range testingDB.Shards() {
-		// All migrations should complete
+		// Migrations 11,22,33 should complete
 		row := sh.QueryRow("SELECT COUNT(*) FROM microbus_schema_migrations WHERE name='migrations' AND completed=TRUE")
 		var count int
 		err = row.Scan(&count)
 		assert.NoError(t, err)
-		assert.Equal(t, len(migrations), count)
+		assert.Equal(t, 3, count)
+
+		// Migration 32 should not be complete but should still be listed in the database
+		row = sh.QueryRow("SELECT COUNT(*) FROM microbus_schema_migrations WHERE name='migrations' AND completed=FALSE")
+		err = row.Scan(&count)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, count)
 
 		// The table should exist with all 3 columns
 		_, err = sh.Exec("INSERT INTO migrations (k,v,w) VALUES (?,?,?)", i, i, i)

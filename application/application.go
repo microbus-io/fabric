@@ -21,6 +21,7 @@ type Application struct {
 	deployment     string
 	mux            sync.Mutex
 	startupTimeout time.Duration
+	withInits      []func(connector.Service) error
 }
 
 // New creates a new app with a collection of microservices.
@@ -73,6 +74,8 @@ func (app *Application) Include(services ...connector.Service) {
 // Join sets the plane and deployment of the microservices to that of the app.
 // This allows microservices to be temporarily joined to the app without being
 // permanently included in its lifecycle management.
+// Joined microservices are not included in the app and do not get started up
+// or shut down by the app.
 func (app *Application) Join(services ...connector.Service) {
 	for _, s := range services {
 		s.SetPlane(app.plane)
@@ -116,13 +119,18 @@ func (app *Application) ServiceByHost(host string) connector.Service {
 	return nil
 }
 
-// Startup all unstarted microservices included in this app.
+// Startup starts all unstarted microservices included in this app.
 // Configurators are started first, followed by other microservices in parallel.
 // If an error is returned, there is no guarantee as to the state of the microservices:
 // some microservices may have been started while others not.
 func (app *Application) Startup() error {
 	app.mux.Lock()
 	defer app.mux.Unlock()
+
+	// Init the services
+	for _, s := range app.services {
+		s.With(app.withInits...)
+	}
 
 	// Start configurators first
 	for _, s := range app.services {
@@ -188,7 +196,7 @@ func (app *Application) Startup() error {
 	return lastErr
 }
 
-// Shutdown all started microservices included in this app.
+// Shutdown shuts down all started microservices included in this app.
 // The configurator is shut down last, after other microservices in parallel.
 // If an error is returned, there is no guarantee as to the state of the microservices:
 // some microservices may have been shut down while others not.
@@ -262,4 +270,10 @@ func (app *Application) Run() error {
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+// With adds initializers that are called on each of the included services
+// before they started up.
+func (app *Application) With(inits ...func(connector.Service) error) {
+	app.withInits = append(app.withInits, inits...)
 }
