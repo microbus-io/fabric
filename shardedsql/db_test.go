@@ -3,6 +3,7 @@ package shardedsql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -16,7 +17,11 @@ import (
 var testingDB TestingDB
 
 func TestMain(m *testing.M) {
-	testingDB.Open("mysql")
+	err := testingDB.Open("mysql")
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+		os.Exit(2)
+	}
 	code := m.Run()
 	testingDB.Close()
 	os.Exit(code)
