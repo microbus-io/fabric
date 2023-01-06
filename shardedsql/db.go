@@ -38,7 +38,7 @@ For example:
 	// A different host per shard
 	username:password@tcp(shard%d.mysql.host:3306)/db
 	// A different database name per shard on a single host
-	username:password@tcp(localhost:3306)/db%d
+	username:password@tcp(127.0.0.1:3306)/db%d
 */
 func Open(driver string, dataSource string) (*DB, error) {
 	if !strings.Contains(dataSource, "%d") {

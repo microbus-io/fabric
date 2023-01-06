@@ -17,7 +17,7 @@ TestingDB is a temporary sharded database to be used for testing purposes.
 By default, it
 It uses the following data source pattern to create 3 shards in a single database server:
 
-	root:secret1234@tcp(localhost:3306)/testing_{hhmmss}_{random}_%d
+	root:secret1234@tcp(127.0.0.1:3306)/testing_{hhmmss}_{random}_%d
 
 Usage:
 
@@ -33,11 +33,11 @@ type TestingDB struct {
 
 /*
 TestingDB creates a new sharded database for testing purposes.
-It attempts to connect to the database on localhost on the default port (3306 for MySQL),
+It attempts to connect to the database on 127.0.0.1 on the default port (3306 for MySQL),
 using the default admin user ("root" for MySQL) with password "secret1234".
 */
 func (db *TestingDB) Open(driverName string) (err error) {
-	db.dbHost = "root:secret1234@tcp(localhost:3306)/"
+	db.dbHost = "root:secret1234@tcp(127.0.0.1:3306)/"
 	db.dbNameFormat = "testing_" + time.Now().Format("150405") + "_" + rand.AlphaNum32(6) + "_%d"
 
 	// Create 3 databases, one per shard
