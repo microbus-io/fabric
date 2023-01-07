@@ -106,4 +106,16 @@ func TestFrame_GetSet(t *testing.T) {
 	fi, fm = f.Fragment()
 	assert.Equal(t, fi, 1)
 	assert.Equal(t, fm, 1)
+
+	assert.Equal(t, 0, f.Tenant())
+	f.SetTenant(-1)
+	assert.Equal(t, 0, f.Tenant())
+	f.SetTenant(1)
+	assert.Equal(t, 1, f.Tenant())
+
+	assert.Equal(t, 0, f.Actor())
+	f.SetActor(-1)
+	assert.Equal(t, 0, f.Actor())
+	f.SetActor(1)
+	assert.Equal(t, 1, f.Actor())
 }

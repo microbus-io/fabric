@@ -20,6 +20,8 @@ const (
 	HeaderTimestamp   = HeaderPrefix + "Timestamp"
 	HeaderQueue       = HeaderPrefix + "Queue"
 	HeaderFragment    = HeaderPrefix + "Fragment"
+	HeaderTenant      = HeaderPrefix + "Tenant"
+	HeaderActor       = HeaderPrefix + "Actor"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -241,4 +243,40 @@ func (f Frame) SetFragment(index int, max int) {
 	} else {
 		f.h.Set(HeaderFragment, strconv.Itoa(index)+"/"+strconv.Itoa(max))
 	}
+}
+
+// Tenant returns the tenant ID. Valid tenant IDs are greater than or equal to 1.
+// Tenants are a way to group users, e.g. a tenant can be an organization or company with multiple users.
+func (f Frame) Tenant() int {
+	tenantId, err := strconv.Atoi(f.h.Get(HeaderTenant))
+	if err != nil {
+		return 0
+	}
+	return tenantId
+}
+
+// SetTenant sets the tenant ID. Tenant IDs should be greater than or equal to 1.
+func (f Frame) SetTenant(tenantId int) {
+	if tenantId < 1 {
+		return
+	}
+	f.h.Set(HeaderTenant, strconv.Itoa(tenantId))
+}
+
+// Actor returns the actor ID. Valid actor IDs are greater than or equal to 1.
+// Actors are the users that reside within a tenant or orgamization.
+func (f Frame) Actor() int {
+	actorId, err := strconv.Atoi(f.h.Get(HeaderActor))
+	if err != nil {
+		return 0
+	}
+	return actorId
+}
+
+// SetActor sets the actor ID. Actor IDs should be greater than or equal to 1.
+func (f Frame) SetActor(actorId int) {
+	if actorId < 1 {
+		return
+	}
+	f.h.Set(HeaderActor, strconv.Itoa(actorId))
 }
