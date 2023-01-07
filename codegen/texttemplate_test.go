@@ -20,6 +20,8 @@ func TestCodegen_CapitalizeIdentifier(t *testing.T) {
 		"a":          "A",
 		"A":          "A",
 		"":           "",
+		"id":         "ID",
+		"xId":        "XId",
 	}
 	for id, expected := range testCases {
 		assert.Equal(t, expected, capitalizeIdentifier(id))

@@ -51,9 +51,13 @@ func TestNullTime_Format(t *testing.T) {
 	s1 := jt1.Format(time.RFC3339)
 	assert.Equal(t, "", s1)
 
-	jt2, err := Parse(time.RFC3339, "")
+	jt2, err := ParseNullTime(time.RFC3339, "")
 	assert.NoError(t, err)
 	assert.True(t, jt1.Equal(jt2.Time))
+
+	jt3 := MustParseNullTimeUTC("", "2015-01-14T11:12:13Z")
+	s3 := jt3.Format(time.RFC3339)
+	assert.Equal(t, "2015-01-14T11:12:13Z", s3)
 }
 
 func TestNullTime_UnmarshalJSONEmpty(t *testing.T) {
@@ -102,4 +106,17 @@ func TestNullTime_UnmarshalJSON(t *testing.T) {
 	err = json.Unmarshal(b, &jt3)
 	assert.NoError(t, err)
 	assert.True(t, jt2.Equal(jt3.Time))
+}
+
+func TestNullTime_ParseNullTime(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, time.Date(2015, 1, 2, 0, 0, 0, 0, time.UTC), MustParseNullTime("", "2015-01-02").Time)
+	assert.Equal(t, time.Date(2015, 1, 2, 0, 0, 0, 0, time.UTC), MustParseNullTimeUTC("", "2015-01-02").Time)
+	assert.Equal(t, time.Date(2015, 1, 2, 11, 12, 13, 0, time.UTC), MustParseNullTime("", "2015-01-02T11:12:13").Time)
+	assert.Equal(t, time.Date(2015, 1, 2, 11, 12, 13, 0, time.UTC), MustParseNullTimeUTC("", "2015-01-02T11:12:13").Time)
+	assert.Equal(t, time.Date(2015, 1, 2, 11, 12, 13, 0, time.UTC), MustParseNullTime("", "2015-01-02 11:12:13").Time)
+	assert.Equal(t, time.Date(2015, 1, 2, 11, 12, 13, 0, time.UTC), MustParseNullTimeUTC("", "2015-01-02 11:12:13").Time)
+	assert.Equal(t, time.Date(2015, 1, 2, 11, 12, 13, 0, time.UTC), MustParseNullTime("", "2015-01-02T11:12:13Z").Time)
+	assert.Equal(t, time.Date(2015, 1, 2, 11, 12, 13, 500000, time.UTC), MustParseNullTime("", "2015-01-02T11:12:13.000500000Z").Time)
 }

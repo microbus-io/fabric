@@ -8,7 +8,7 @@ import (
     {{- if .ImportedTypes}}
     {{ end }}
     {{- range $i, $t := .ImportedTypes }}
-    {{ .SourceSuffix }}api{{ Add $i 1 }} "{{ .Source }}/{{ .SourceSuffix }}api"
+    import{{ Add $i 1 }}_{{ .ImportPackageSuffix }} "{{ .ImportPackage }}"
     {{- end }}
 )
 
@@ -21,7 +21,7 @@ var (
 /*
 {{ .Description }}
 */
-type {{ .Name }} = {{ .SourceSuffix }}api{{ Add $i 1 }}.{{ .Import }}
+type {{ .Name }} = import{{ Add $i 1 }}_{{ .ImportPackageSuffix }}.{{ .ImportType }}
 
 {{- end }}
 

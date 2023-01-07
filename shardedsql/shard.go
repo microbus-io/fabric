@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 )
 
@@ -22,7 +23,6 @@ func (s *Shard) open(driver string, dataSource string) error {
 	if s.DB != nil {
 		return nil
 	}
-	// See https://github.com/go-sql-driver/mysql#dsn-data-source-name
 	cfg, err := mysql.ParseDSN(dataSource)
 	if err != nil {
 		return errors.Trace(err)
@@ -30,6 +30,7 @@ func (s *Shard) open(driver string, dataSource string) error {
 	if cfg.Params == nil {
 		cfg.Params = map[string]string{}
 	}
+	// See https://github.com/go-sql-driver/mysql#dsn-data-source-name
 	cfg.Params["parseTime"] = "true"
 	cfg.Params["timeout"] = "4s"
 	cfg.Params["readTimeout"] = "8s"
@@ -55,36 +56,38 @@ func (s *Shard) ShardIndex() int {
 	return s.shardIndex
 }
 
-// ExecContext executes a query without returning any rows. The args are for any placeholder parameters in the query.
-func (s *Shard) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	// Convert all time arguments to UTC
+// argsToUTC converts time arguments to UTC in order to avoid issues with time zone conversion.
+// See https://dev.mysql.com/doc/refman/8.0/en/datetime.html .
+func argsToUTC(args []any) []any {
 	for i, a := range args {
-		if tm, ok := a.(time.Time); ok {
-			args[i] = tm.UTC()
+		switch v := a.(type) {
+		case time.Time:
+			args[i] = v.UTC()
+		case clock.NullTime:
+			args[i] = clock.NewNullTimeUTC(v.Time)
 		}
 	}
-	return s.DB.ExecContext(ctx, query, args...)
+	return args
+}
+
+// ExecContext executes a query without returning any rows. The args are for any placeholder parameters in the query.
+func (s *Shard) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return s.DB.ExecContext(ctx, query, argsToUTC(args)...)
 }
 
 // Exec executes a query without returning any rows. The args are for any placeholder parameters in the query.
 func (s *Shard) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return s.ExecContext(context.Background(), query, args...)
+	return s.DB.Exec(query, argsToUTC(args)...)
 }
 
 // QueryContext executes a query that returns rows, typically a SELECT. The args are for any placeholder parameters in the query.
 func (s *Shard) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	// Convert all time arguments to UTC
-	for i, a := range args {
-		if tm, ok := a.(time.Time); ok {
-			args[i] = tm.UTC()
-		}
-	}
-	return s.DB.QueryContext(ctx, query, args...)
+	return s.DB.QueryContext(ctx, query, argsToUTC(args)...)
 }
 
 // Query executes a query that returns rows, typically a SELECT. The args are for any placeholder parameters in the query.
 func (s *Shard) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return s.QueryContext(context.Background(), query, args...)
+	return s.DB.Query(query, argsToUTC(args)...)
 }
 
 // QueryRowContext executes a query that is expected to return at most one row.
@@ -93,13 +96,7 @@ func (s *Shard) Query(query string, args ...interface{}) (*sql.Rows, error) {
 // If the query selects no rows, the *Row's Scan will return ErrNoRows.
 // Otherwise, the *Row's Scan scans the first selected row and discards the rest.
 func (s *Shard) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	// Convert all time arguments to UTC
-	for i, a := range args {
-		if tm, ok := a.(time.Time); ok {
-			args[i] = tm.UTC()
-		}
-	}
-	return s.DB.QueryRowContext(ctx, query, args...)
+	return s.DB.QueryRowContext(ctx, query, argsToUTC(args)...)
 }
 
 // QueryRow executes a query that is expected to return at most one row.
@@ -108,7 +105,33 @@ func (s *Shard) QueryRowContext(ctx context.Context, query string, args ...inter
 // If the query selects no rows, the *Row's Scan will return ErrNoRows.
 // Otherwise, the *Row's Scan scans the first selected row and discards the rest.
 func (s *Shard) QueryRow(query string, args ...interface{}) *sql.Row {
-	return s.QueryRowContext(context.Background(), query, args...)
+	return s.DB.QueryRow(query, argsToUTC(args)...)
+}
+
+// Prepare creates a prepared statement for later queries or executions.
+// Multiple queries or executions may be run concurrently from the
+// returned statement.
+// The caller must call the statement's Close method
+// when the statement is no longer needed.
+//
+// Prepare uses context.Background internally; to specify the context, use
+// PrepareContext.
+func (s *Shard) Prepare(query string) (*Stmt, error) {
+	stmt, err := s.DB.Prepare(query)
+	return &Stmt{stmt}, errors.Trace(err)
+}
+
+// PrepareContext creates a prepared statement for later queries or executions.
+// Multiple queries or executions may be run concurrently from the
+// returned statement.
+// The caller must call the statement's Close method
+// when the statement is no longer needed.
+//
+// The provided context is used for the preparation of the statement, not for the
+// execution of the statement.
+func (s *Shard) PrepareContext(ctx context.Context, query string) (*Stmt, error) {
+	stmt, err := s.DB.PrepareContext(ctx, query)
+	return &Stmt{stmt}, errors.Trace(err)
 }
 
 // MigrateSchema compares the migrations against the list of migrations already executed,

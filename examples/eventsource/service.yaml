@@ -70,6 +70,21 @@ events:
   - signature: OnRegistered(email string)
     description: OnRegistered is called when a user is successfully registered.
 
+# Event sinks
+#
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# event - The name of the event at the source (defaults to the function name)
+# source - The package path of the microservice that is the source of the event
+# forHost - For an event source with an overridden host name
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+sinks:
+  # - signature:
+  #   description:
+  #   source: package/path/of/another/microservice
+
 # Web handlers
 #
 # signature - Func()
@@ -105,8 +120,7 @@ tickers:
 # name - All non-primitive types used in functions must be accounted for
 # description - Documentation
 # define - Define a new type with the specified fields (name: type)
-# import - The name of the imported type (defaults to the function name)
-# source - The package path of the microservice that defines the type
+# import - The package path of the imported type
 types:
   # - name: DefinedType
   #   description:
@@ -114,16 +128,9 @@ types:
   #     fieldName: Type
   # - name: ImportedType
   #   description:
-  #   source: package/path/of/another/microservice
+  #   import: package/path/of/a/remote/type/ImportedType
 
-# Event sinks
+# Databases
 #
-# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
-# description - Documentation
-# event - The name of the event at the source (defaults to the function name)
-# source - The package path of the microservice that is the source of the event
-# forHost - For an event source with an overridden host name
-# queue - The subscription queue
-#   default - Load balanced (default)
-#   none - Pervasive
-sinks:
+# mysql - A name for the MySQL database
+databases:

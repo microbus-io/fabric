@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
 )
@@ -57,9 +58,54 @@ func Open(driver string, dataSource string) (*DB, error) {
 	}
 
 	// Open connection to shard 1
-	shard1, err := sql.Open(driver, fmt.Sprintf(dataSource, 1))
+	cfg, err := mysql.ParseDSN(fmt.Sprintf(dataSource, 1))
 	if err != nil {
 		return nil, errors.Trace(err)
+	}
+	if cfg.Params == nil {
+		cfg.Params = map[string]string{}
+	}
+	// See https://github.com/go-sql-driver/mysql#dsn-data-source-name
+	cfg.Params["parseTime"] = "true"
+	cfg.Params["timeout"] = "4s"
+	cfg.Params["readTimeout"] = "8s"
+	cfg.Params["writeTimeout"] = "8s"
+	shard1, err := sql.Open(driver, cfg.FormatDSN())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	err = shard1.Ping()
+	if err != nil {
+		var sqlErr *mysql.MySQLError
+		if !errors.As(err, &sqlErr) || sqlErr.Number != 1049 {
+			return nil, errors.Trace(err)
+		}
+
+		// Unknown database, create new one
+		dbName := cfg.DBName
+		cfg.DBName = "" // Connect to no particular database
+		shardRoot, err := sql.Open(driver, cfg.FormatDSN())
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		_, err = shardRoot.Exec("CREATE DATABASE IF NOT EXISTS " + dbName)
+		if err != nil {
+			shardRoot.Close()
+			return nil, errors.Trace(err)
+		}
+		shardRoot.Close()
+
+		// Retry
+		cfg.DBName = dbName
+		shard1, err = sql.Open(driver, cfg.FormatDSN())
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		err = shard1.Ping()
+		if err != nil {
+			shard1.Close()
+			return nil, errors.Trace(err)
+		}
 	}
 
 	// Init the shards table
@@ -307,7 +353,7 @@ func (db *DB) Query(shardingKey int, query string, args ...interface{}) (*sql.Ro
 func (db *DB) QueryContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (*sql.Rows, error) {
 	shard, err := db.ShardOf(shardingKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	return shard.QueryContext(ctx, query, args...)
 }
@@ -323,7 +369,7 @@ func (db *DB) QueryRow(shardingKey int, query string, args ...interface{}) (*sql
 func (db *DB) QueryRowContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (*sql.Row, error) {
 	shard, err := db.ShardOf(shardingKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	return shard.QueryRowContext(ctx, query, args...), nil
 }
@@ -339,7 +385,7 @@ func (db *DB) Exec(shardingKey int, query string, args ...interface{}) (sql.Resu
 func (db *DB) ExecContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (sql.Result, error) {
 	shard, err := db.ShardOf(shardingKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	return shard.ExecContext(ctx, query, args...)
 }

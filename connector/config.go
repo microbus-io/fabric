@@ -153,7 +153,11 @@ func (c *Connector) logConfigs() {
 	for _, config := range c.configs {
 		value := config.Value
 		if config.Secret {
-			value = strings.Repeat("*", len(value))
+			n := len(value)
+			if n > 16 {
+				n = 16
+			}
+			value = strings.Repeat("*", n)
 		}
 		if len([]rune(value)) > 40 {
 			value = string([]rune(value)[:40]) + "..."

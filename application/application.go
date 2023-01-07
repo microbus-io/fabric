@@ -50,7 +50,7 @@ func NewTesting(services ...connector.Service) *Application {
 		sig:            make(chan os.Signal, 1),
 		plane:          rand.AlphaNum64(12),
 		deployment:     "TESTINGAPP",
-		startupTimeout: time.Second * 20,
+		startupTimeout: time.Second * 8,
 	}
 	app.Include(services...)
 	return app
@@ -180,7 +180,7 @@ func (app *Application) Startup() error {
 					if err == nil {
 						return
 					}
-					delay = app.startupTimeout / 10 // Try again every 2 seconds
+					delay = app.startupTimeout / 10 // Try again up to 10 times
 				}
 			}
 		}()

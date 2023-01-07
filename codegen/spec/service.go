@@ -195,7 +195,7 @@ func (s *Service) AllHandlers() []*Handler {
 func (s *Service) ImportedTypes() []*Type {
 	var result []*Type
 	for _, t := range s.Types {
-		if t.Source != "" {
+		if t.Import != "" {
 			result = append(result, t)
 		}
 	}

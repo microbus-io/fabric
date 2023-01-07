@@ -16,6 +16,7 @@ import (
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,7 @@ var (
 	_ strings.Builder
 	_ *httpx.BodyReader
 	_ pub.Option
+	_ *shardedsql.DB
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *eventsinkapi.Client
@@ -51,9 +53,10 @@ func TestMain(m *testing.M) {
 
 	// Initialize the application
 	err := func() error {
+		var err error
 		App = application.NewTesting()
 		Svc = NewService().(*Service)
-		err := Initialize()
+		err = Initialize()
 		if err != nil {
 			return err
 		}
@@ -75,12 +78,13 @@ func TestMain(m *testing.M) {
 
 	// Terminate the app
 	err = func() error {
+		var err error
 		var lastErr error
 		err = Terminate()
 		if err != nil {
 			lastErr = err
 		}
-		err := App.Shutdown()
+		err = App.Shutdown()
 		if err != nil {
 			lastErr = err
 		}

@@ -19,7 +19,7 @@ var testingDB TestingDB
 func TestMain(m *testing.M) {
 	err := testingDB.Open("mysql")
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		fmt.Fprintf(os.Stderr, "--- FAIL: %+v\n", err)
 		os.Exit(2)
 	}
 	code := m.Run()

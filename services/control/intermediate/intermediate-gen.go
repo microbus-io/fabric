@@ -14,7 +14,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
@@ -22,6 +24,8 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"github.com/microbus-io/fabric/services/control/resources"
@@ -34,12 +38,16 @@ var (
 	_ *json.Decoder
 	_ fmt.Stringer
 	_ *http.Request
+	_ filepath.WalkFunc
 	_ strconv.NumError
+	_ strings.Reader
 	_ time.Duration
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
+	_ *log.Field
+	_ *shardedsql.DB
 	_ sub.Option
 	_ controlapi.Client
 )
@@ -66,13 +74,13 @@ func NewService(impl ToDo, version int) *Intermediate {
 		Connector: connector.New("control.sys"),
 		impl: impl,
 	}
-	
 	svc.SetVersion(version)
 	svc.SetDescription(`This microservice is created for the sake of generating the client API for the :888 control subscriptions.
 The microservice itself does nothing and should not be included in applications.`)
+
+	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Functions
 	svc.Subscribe(`:888/ping`, svc.doPing)
@@ -86,12 +94,10 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is called when the config of the microservice changed.
-func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
+// doOnConfigChanged is called when the config of the microservice changes.
+func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
-
-
 // doPing handles marshaling for the Ping function.
 func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.PingIn
