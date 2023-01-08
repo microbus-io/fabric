@@ -68,7 +68,7 @@ The `/arithmetic` endpoint takes query arguments `x` and `y` of type integer, an
 
 http://localhost:8080/calculator.example/arithmetic?x=5&op=*&y=-8 produces:
 
-```
+```json
 {"xEcho":5,"opEcho":"*","yEcho":-8,"result":-40}
 ```
 
@@ -76,7 +76,7 @@ The `/square` endpoint takes a single integer `x` and prints its square.
 
 http://localhost:8080/calculator.example/square?x=55 produces:
 
-```
+```json
 {"xEcho":55,"result":3025}
 ```
 
@@ -114,7 +114,7 @@ type Point struct {
 Dot notation can be used in URL query arguments to denote values of nested fields.
 http://localhost:8080/calculator.example/distance?p1.x=0&p1.y=0&p2.x=3&p2.y=4 produces the result:
 
-```
+```json
 {"d":5}
 ```
 
@@ -222,3 +222,61 @@ Try the following URLs in order:
 * http://localhost:8080/eventsource.example/register?email=hi@example.com : example.com domain is allowed.
 * http://localhost:8080/eventsource.example/register?email=hi@gmail.com : gmail.com domain is disallowed.
 * http://localhost:8080/eventsource.example/register?email=hi@example.com : dup registration is disallowed.
+
+## Database
+
+The `directory.example` microservice is an example of a microservice that provides a CRUD API backed by a MySQL database. If you don't have a MySQL database running already, you may use Docker to install and run it locally:
+
+```cmd
+docker pull mysql
+docker run -p 3306:3306 --name mysql1 -e MYSQL_ROOT_PASSWORD=secret1234 -d mysql
+```
+
+The connection string to this database is pulled from `examples/main/config.yaml` by the configurator and served to the `directory.example` microservice. Uncomment the appropriate line and edit it as necessary to point to the location of your MySQL database.
+
+```yaml
+all:
+  # MySQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples_shard%d"
+```
+
+Note that the `%d` at the end of the database name is important. It's used to denote the database shard number and will be filled with the number `1`.
+
+To `Create` a new person in the directory:
+
+http://localhost:8080/directory.example/create?person.firstName=Harry&person.lastName=Potter&person.email=harry.potter@hogwarts.edu.wiz
+
+```json
+{"created":{"birthday":null,"email":"harry.potter@hogwarts.edu.wiz","firstName":"Harry","key":{"seq":1},"lastName":"Potter"}}
+```
+
+To `Update` a record:
+
+http://localhost:8080/directory.example/update?person.key.seq=1&person.firstName=Harry&person.lastName=Potter&person.email=harry.potter@hogwarts.edu.wiz&person.birthday=1980-07-31
+
+```json
+{"updated":{"birthday":"1980-07-31T00:00:00Z","email":"harry.potter@hogwarts.edu.wiz","firstName":"Harry","key":{"seq":1},"lastName":"Potter"},"ok":true}
+```
+
+To `List` all keys:
+
+http://localhost:8080/directory.example/list
+
+```json
+{"keys":[{"seq":1}]}
+```
+
+To `Load` a record:
+
+http://localhost:8080/directory.example/load?key.seq=1
+
+```json
+{"person":{"birthday":"1980-07-30T00:00:00Z","email":"harry.potter@hogwarts.edu.wiz","firstName":"Harry","key":{"seq":1},"lastName":"Potter"},"ok":true}
+```
+
+To `Delete` a record:
+
+http://localhost:8080/directory.example/delete?key.seq=1
+
+```json
+{"ok":true}
+```

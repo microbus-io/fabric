@@ -1,9 +1,11 @@
 package clock
 
 import (
-	"bytes"
 	"database/sql/driver"
+	"strings"
 	"time"
+
+	"github.com/microbus-io/fabric/errors"
 )
 
 /*
@@ -107,11 +109,19 @@ func (nt NullTime) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON overrides JSON deserialization,
 // interpreting "null" and "" as the zero time.
 func (nt *NullTime) UnmarshalJSON(b []byte) error {
-	if bytes.Equal(b, []byte(`""`)) || bytes.Equal(b, []byte("null")) {
+	s := string(b)
+	if s == "" || s == "null" {
 		nt.Time = time.Time{}
 		return nil
 	}
-	return nt.Time.UnmarshalJSON(b)
+	s = strings.TrimPrefix(s, `"`)
+	s = strings.TrimSuffix(s, `"`)
+	tm, err := ParseNullTime("", s)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	nt.Time = tm.Time
+	return nil
 }
 
 // Scan implements the Scanner interface.

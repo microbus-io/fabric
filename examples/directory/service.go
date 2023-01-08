@@ -65,28 +65,26 @@ func (svc *Service) Create(ctx context.Context, person *directoryapi.Person) (cr
 /*
 Update updates the person's data in the directory.
 */
-func (svc *Service) Update(ctx context.Context, person *directoryapi.Person) (err error) {
+func (svc *Service) Update(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error) {
 	shard1 := svc.DBMySQL().Shard(1) // No sharding in this example
 
 	err = person.Validate()
 	if err != nil {
-		return errors.Trace(err)
+		return nil, false, errors.Trace(err)
 	}
 	res, err := shard1.ExecContext(ctx,
 		`UPDATE directory_persons SET first_name=?, last_name=?, email_address=?, birthday=? WHERE person_id=?`,
 		person.FirstName, person.LastName, person.Email, person.Birthday, person.Key.Seq,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return nil, false, errors.Trace(err)
 	}
 	affected, err := res.RowsAffected()
-	if err != nil {
-		return errors.Trace(err)
+	if err == nil && affected == 1 {
+		return person, true, nil
 	}
-	if affected != 1 {
-		return errors.New("person not found")
-	}
-	return nil
+	// Zero may be returned if no value was updated so need to verify using load
+	return svc.Load(ctx, person.Key)
 }
 
 /*
@@ -114,17 +112,18 @@ func (svc *Service) Load(ctx context.Context, key directoryapi.PersonKey) (perso
 /*
 Delete removes a person from the directory.
 */
-func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (err error) {
+func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error) {
 	shard1 := svc.DBMySQL().Shard(1) // No sharding in this example
 
-	_, err = shard1.ExecContext(ctx,
+	res, err := shard1.ExecContext(ctx,
 		`DELETE FROM directory_persons WHERE person_id=?`,
 		key.Seq,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return false, errors.Trace(err)
 	}
-	return nil
+	affected, _ := res.RowsAffected()
+	return affected == 1, nil
 }
 
 /*
@@ -147,4 +146,26 @@ func (svc *Service) LoadByEmail(ctx context.Context, email string) (person *dire
 		return nil, false, errors.Trace(err)
 	}
 	return person, true, nil
+}
+
+/*
+List returns the keys of all the persons in the directory.
+*/
+func (svc *Service) List(ctx context.Context) (keys []directoryapi.PersonKey, err error) {
+	shard1 := svc.DBMySQL().Shard(1) // No sharding in this simple example
+
+	rows, err := shard1.QueryContext(ctx, `SELECT person_id FROM directory_persons`)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var key directoryapi.PersonKey
+		err = rows.Scan(&key.Seq)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		keys = append(keys, key)
+	}
+	return keys, nil
 }

@@ -33,9 +33,10 @@ type Mock struct {
 	*connector.Connector
 	MockCreate func(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error)
 	MockLoad func(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error)
-	MockDelete func(ctx context.Context, key directoryapi.PersonKey) (err error)
-	MockUpdate func(ctx context.Context, person *directoryapi.Person) (err error)
+	MockDelete func(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error)
+	MockUpdate func(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error)
 	MockLoadByEmail func(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error)
+	MockList func(ctx context.Context) (keys []directoryapi.PersonKey, err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -53,6 +54,7 @@ func NewMock(version int) *Mock {
 	svc.Subscribe(`:443/delete`, svc.doDelete)
 	svc.Subscribe(`:443/update`, svc.doUpdate)
 	svc.Subscribe(`:443/load-by-email`, svc.doLoadByEmail)
+	svc.Subscribe(`:443/list`, svc.doList)
 
 	return svc
 }
@@ -128,7 +130,7 @@ func (svc *Mock) doDelete(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.MockDelete(
+	o.Ok, err = svc.MockDelete(
 		r.Context(),
 		i.Key,
 	)
@@ -154,7 +156,7 @@ func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.MockUpdate(
+	o.Updated, o.Ok, err = svc.MockUpdate(
 		r.Context(),
 		i.Person,
 	)
@@ -183,6 +185,31 @@ func (svc *Mock) doLoadByEmail(w http.ResponseWriter, r *http.Request) error {
 	o.Person, o.Ok, err = svc.MockLoadByEmail(
 		r.Context(),
 		i.Email,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doList handles marshaling for the List function.
+func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) error {
+	if svc.MockList == nil {
+		return errors.New("mocked endpoint 'List' not implemented")
+	}
+	var i directoryapi.ListIn
+	var o directoryapi.ListOut
+	err := httpx.ParseRequestData(r, &i)
+	if err!=nil {
+		return errors.Trace(err)
+	}
+	o.Keys, err = svc.MockList(
+		r.Context(),
 	)
 	if err != nil {
 		return errors.Trace(err)

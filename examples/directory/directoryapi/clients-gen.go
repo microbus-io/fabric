@@ -234,6 +234,7 @@ type DeleteIn struct {
 
 // DeleteOut are the return values of Delete.
 type DeleteOut struct {
+	Ok bool `json:"ok"`
 }
 
 // DeleteResponse is the response to Delete.
@@ -244,7 +245,8 @@ type DeleteResponse struct {
 }
 
 // Get retrieves the return values.
-func (_out *DeleteResponse) Get() (err error) {
+func (_out *DeleteResponse) Get() (ok bool, err error) {
+	ok = _out.data.Ok
 	err = _out.err
 	return
 }
@@ -301,6 +303,8 @@ type UpdateIn struct {
 
 // UpdateOut are the return values of Update.
 type UpdateOut struct {
+	Updated *Person `json:"updated"`
+	Ok bool `json:"ok"`
 }
 
 // UpdateResponse is the response to Update.
@@ -311,7 +315,9 @@ type UpdateResponse struct {
 }
 
 // Get retrieves the return values.
-func (_out *UpdateResponse) Get() (err error) {
+func (_out *UpdateResponse) Get() (updated *Person, ok bool, err error) {
+	updated = _out.data.Updated
+	ok = _out.data.Ok
 	err = _out.err
 	return
 }
@@ -432,6 +438,73 @@ func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _optio
 	return _res
 }
 
+// ListIn are the input arguments of List.
+type ListIn struct {
+}
+
+// ListOut are the return values of List.
+type ListOut struct {
+	Keys []PersonKey `json:"keys"`
+}
+
+// ListResponse is the response to List.
+type ListResponse struct {
+	data ListOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *ListResponse) Get() (keys []PersonKey, err error) {
+	keys = _out.data.Keys
+	err = _out.err
+	return
+}
+
+/*
+List returns the keys of all the persons in the directory.
+*/
+func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-chan *ListResponse {
+	_in := ListIn{
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		_res := make(chan *ListResponse, 1)
+		_res <- &ListResponse{err: errors.Trace(_err)}
+		close(_res)
+		return _res
+	}
+
+	_opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/list`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *ListResponse, cap(_ch))
+	go func() {
+		for _i := range _ch {
+			var _r ListResponse
+			_httpRes, _err := _i.Get()
+			_r.HTTPResponse = _httpRes
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			} else {
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				if _err != nil {
+					_r.err = errors.Trace(_err)
+				}
+			}
+			_res <- &_r
+		}
+		close(_res)
+	}()
+	return _res
+}
+
 /*
 Create registers the person in the directory.
 */
@@ -504,7 +577,7 @@ func (_c *Client) Load(ctx context.Context, key PersonKey) (person *Person, ok b
 /*
 Delete removes a person from the directory.
 */
-func (_c *Client) Delete(ctx context.Context, key PersonKey) (err error) {
+func (_c *Client) Delete(ctx context.Context, key PersonKey) (ok bool, err error) {
 	_in := DeleteIn{
 		key,
 	}
@@ -531,13 +604,14 @@ func (_c *Client) Delete(ctx context.Context, key PersonKey) (err error) {
 		err = errors.Trace(_err)
 		return
 	}
+	ok = _out.Ok
 	return
 }
 
 /*
 Update updates the person's data in the directory.
 */
-func (_c *Client) Update(ctx context.Context, person *Person) (err error) {
+func (_c *Client) Update(ctx context.Context, person *Person) (updated *Person, ok bool, err error) {
 	_in := UpdateIn{
 		person,
 	}
@@ -564,6 +638,8 @@ func (_c *Client) Update(ctx context.Context, person *Person) (err error) {
 		err = errors.Trace(_err)
 		return
 	}
+	updated = _out.Updated
+	ok = _out.Ok
 	return
 }
 
@@ -599,5 +675,38 @@ func (_c *Client) LoadByEmail(ctx context.Context, email string) (person *Person
 	}
 	person = _out.Person
 	ok = _out.Ok
+	return
+}
+
+/*
+List returns the keys of all the persons in the directory.
+*/
+func (_c *Client) List(ctx context.Context) (keys []PersonKey, err error) {
+	_in := ListIn{
+	}
+	_body, _err := json.Marshal(_in)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/list`)),
+		pub.Body(_body),
+		pub.Header("Content-Type", "application/json"),
+	)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	var _out ListOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	keys = _out.Keys
 	return
 }

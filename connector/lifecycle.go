@@ -20,6 +20,7 @@ type StartupHandler func(ctx context.Context) error
 type ShutdownHandler func(ctx context.Context) error
 
 // SetOnStartup adds a function to be called during the starting up of the microservice.
+// Startup callbacks are called in the order they were added.
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) error {
 	if c.started {
@@ -34,6 +35,8 @@ func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) e
 }
 
 // SetOnShutdown adds a function to be called during the shutting down of the microservice.
+// Shutdown callbacks are called in the reverse order they were added,
+// whether of the status of a corresponding startup callback.
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnShutdown(handler ShutdownHandler, options ...cb.Option) error {
 	if c.started {

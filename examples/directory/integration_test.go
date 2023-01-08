@@ -65,6 +65,10 @@ func TestDirectory_CRUD(t *testing.T) {
 		Expect(t, person, true)
 	LoadByEmail(ctx, person.Email).
 		Expect(t, person, true)
+	List(ctx).
+		Assert(t, func(t *testing.T, keys []directoryapi.PersonKey, err error) {
+			assert.Contains(t, keys, person.Key)
+		})
 
 	person.Email = "harry.potter@gryffindor.wiz"
 	Update(ctx, person).
@@ -132,6 +136,10 @@ func TestDirectory_Create(t *testing.T) {
 			assert.Equal(t, person.Email, created.Email)
 			assert.NotZero(t, created.Key.Seq)
 		})
+	List(ctx).
+		Assert(t, func(t *testing.T, keys []directoryapi.PersonKey, err error) {
+			assert.Contains(t, keys, person.Key)
+		})
 
 	Create(ctx, person).
 		Error(t, "Duplicate")
@@ -186,5 +194,9 @@ func TestDirectory_LoadByEmail(t *testing.T) {
 }
 
 func TestDirectory_Delete(t *testing.T) {
+	t.Skip() // Tested elsewhere
+}
+
+func TestDirectory_List(t *testing.T) {
 	t.Skip() // Tested elsewhere
 }

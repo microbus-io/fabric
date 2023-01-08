@@ -88,3 +88,12 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Restarting of microservices that were previously shutdown
 * `TESTINGAPP` deployment environment in which tickers and the configurator are disabled
 * Integration tests for the example microservices
+
+[Milestone 13](https://github.com/microbus-io/fabric/tree/milestone/13):
+
+* Sharded MySQL database
+* Sharding key allocation management
+* Differential schema migration
+* Code generation of MySQL boilerplate code
+* Allow attaching multiple lifecycle and config change callbacks to the `Connector`
+* `NullTime` utility to better handle serialization of the zero time value

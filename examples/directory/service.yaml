@@ -81,12 +81,14 @@ functions:
     description: Create registers the person in the directory.
   - signature: Load(key PersonKey) (person *Person, ok bool)
     description: Load looks up a person in the directory.
-  - signature: Delete(key PersonKey)
+  - signature: Delete(key PersonKey) (ok bool)
     description: Delete removes a person from the directory.
-  - signature: Update(person *Person)
+  - signature: Update(person *Person) (updated *Person, ok bool)
     description: Update updates the person's data in the directory.
   - signature: LoadByEmail(email string) (person *Person, ok bool)
     description: LoadByEmail looks up a person in the directory by their email.
+  - signature: List() (keys []PersonKey)
+    description: List returns the keys of all the persons in the directory.
 
 # Event sources
 #

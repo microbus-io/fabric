@@ -17,6 +17,7 @@ import (
 type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) error
 
 // SetOnConfigChanged adds a function to be called when a new config was received from the configurator.
+// Callbacks are called in the order they were added.
 func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...cb.Option) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))

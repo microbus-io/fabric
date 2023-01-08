@@ -58,9 +58,10 @@ type ToDo interface {
 	OnShutdown(ctx context.Context) (err error)
 	Create(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error)
 	Load(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error)
-	Delete(ctx context.Context, key directoryapi.PersonKey) (err error)
-	Update(ctx context.Context, person *directoryapi.Person) (err error)
+	Delete(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error)
+	Update(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error)
 	LoadByEmail(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error)
+	List(ctx context.Context) (keys []directoryapi.PersonKey, err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -100,6 +101,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`:443/delete`, svc.doDelete)
 	svc.Subscribe(`:443/update`, svc.doUpdate)
 	svc.Subscribe(`:443/load-by-email`, svc.doLoadByEmail)
+	svc.Subscribe(`:443/list`, svc.doList)
 
 	return svc
 }
@@ -240,7 +242,7 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.impl.Delete(
+	o.Ok, err = svc.impl.Delete(
 		r.Context(),
 		i.Key,
 	)
@@ -263,7 +265,7 @@ func (svc *Intermediate) doUpdate(w http.ResponseWriter, r *http.Request) error 
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.impl.Update(
+	o.Updated, o.Ok, err = svc.impl.Update(
 		r.Context(),
 		i.Person,
 	)
@@ -289,6 +291,28 @@ func (svc *Intermediate) doLoadByEmail(w http.ResponseWriter, r *http.Request) e
 	o.Person, o.Ok, err = svc.impl.LoadByEmail(
 		r.Context(),
 		i.Email,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doList handles marshaling for the List function.
+func (svc *Intermediate) doList(w http.ResponseWriter, r *http.Request) error {
+	var i directoryapi.ListIn
+	var o directoryapi.ListOut
+	err := httpx.ParseRequestData(r, &i)
+	if err!=nil {
+		return errors.Trace(err)
+	}
+	o.Keys, err = svc.impl.List(
+		r.Context(),
 	)
 	if err != nil {
 		return errors.Trace(err)
