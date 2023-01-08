@@ -123,7 +123,7 @@ func (svc *Intermediate) mysqlOnStartup(ctx context.Context) (err error) {
 	}
 	dataSource := svc.MySQL()
 	if dataSource != "" {
-		svc.dbMySQL, err = shardedsql.Open("mysql", dataSource)
+		svc.dbMySQL, err = shardedsql.Open(ctx, "mysql", dataSource)
 		if err != nil {
 			return errors.Trace(err)
 		}

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 )
@@ -18,34 +17,6 @@ type Shard struct {
 	locked     bool
 }
 
-// open opens the connection to the database of the shard.
-func (s *Shard) open(driver string, dataSource string) error {
-	if s.DB != nil {
-		return nil
-	}
-	cfg, err := mysql.ParseDSN(dataSource)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if cfg.Params == nil {
-		cfg.Params = map[string]string{}
-	}
-	// See https://github.com/go-sql-driver/mysql#dsn-data-source-name
-	cfg.Params["parseTime"] = "true"
-	cfg.Params["timeout"] = "4s"
-	cfg.Params["readTimeout"] = "8s"
-	cfg.Params["writeTimeout"] = "8s"
-	s.DB, err = sql.Open(driver, cfg.FormatDSN())
-	if err != nil {
-		return errors.Trace(err)
-	}
-	err = s.Ping()
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
-}
-
 // Close is a noop because the lifecycle of the shard connection is managed.
 func (s *Shard) Close() error {
 	return nil
@@ -54,6 +25,11 @@ func (s *Shard) Close() error {
 // ShardIndex is the index of the shard.
 func (s *Shard) ShardIndex() int {
 	return s.shardIndex
+}
+
+// Locked indicates if the shard accepts new allocation of sharding keys.
+func (s *Shard) Locked() bool {
+	return s.locked
 }
 
 // argsToUTC converts time arguments to UTC in order to avoid issues with time zone conversion.

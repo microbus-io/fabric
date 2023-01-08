@@ -87,6 +87,16 @@ func Test_FailingMigration(t *testing.T) {
 	}
 }
 
+func Test_UnknownShard(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	shard := testingDB.ShardOf(ctx, -1)
+	assert.Nil(t, shard)
+	shard = testingDB.Shard(-1)
+	assert.Nil(t, shard)
+}
+
 func Test_Sharding(t *testing.T) {
 	t.Parallel()
 
@@ -99,8 +109,8 @@ func Test_Sharding(t *testing.T) {
 	for i := 0; i < 32; i++ {
 		shardingKey, err := testingDB.Allocate()
 		assert.NoError(t, err)
-		sh, err := testingDB.ShardOf(shardingKey)
-		assert.NoError(t, err)
+		sh := testingDB.ShardOf(ctx, shardingKey)
+		assert.NotNil(t, sh)
 
 		// Add a record to the shard
 		res, err := sh.Exec("INSERT INTO sharding (k, v) VALUES (?, ?)", shardingKey, i)
@@ -169,7 +179,7 @@ func Test_MaxOpenConnections(t *testing.T) {
 
 	// Add a DB client so connection limits are increased
 	assert.Equal(t, 1, testingDB.refCount)
-	db2, err := Open(testingDB.Driver(), testingDB.DataSource())
+	db2, err := Open(ctx, testingDB.Driver(), testingDB.DataSource())
 	assert.NoError(t, err)
 	assert.Equal(t, 2, testingDB.refCount)
 
@@ -192,7 +202,8 @@ func Test_MaxOpenConnections(t *testing.T) {
 func Test_Singleton(t *testing.T) {
 	t.Parallel()
 
-	db2, err := Open(testingDB.Driver(), testingDB.DataSource())
+	ctx := context.Background()
+	db2, err := Open(ctx, testingDB.Driver(), testingDB.DataSource())
 	assert.NoError(t, err)
 	defer db2.Close()
 	assert.Equal(t, testingDB.DB, db2)

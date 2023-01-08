@@ -7,9 +7,11 @@ import (
 	"math"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/rand"
 )
 
@@ -25,6 +27,7 @@ type DB struct {
 	shards     map[int]*Shard
 	refCount   int
 	mux        sync.Mutex
+	cache      *lru.Cache[int, int]
 }
 
 /*
@@ -37,11 +40,11 @@ The data source name must include %d indicating where to insert the shard index.
 For example:
 
 	// A different host per shard
-	username:password@tcp(shard%d.mysql.host:3306)/db
+	username:password@tcp(mysql-shard%d.host:3306)/db
 	// A different database name per shard on a single host
-	username:password@tcp(127.0.0.1:3306)/db%d
+	username:password@tcp(mysql.host:3306)/db%d
 */
-func Open(driver string, dataSource string) (*DB, error) {
+func Open(ctx context.Context, driver string, dataSource string) (*DB, error) {
 	if !strings.Contains(dataSource, "%d") {
 		return nil, errors.New("missing '%d' in data source")
 	}
@@ -58,120 +61,87 @@ func Open(driver string, dataSource string) (*DB, error) {
 	}
 
 	// Open connection to shard 1
-	cfg, err := mysql.ParseDSN(fmt.Sprintf(dataSource, 1))
+	db1, err := openDatabase(ctx, driver, fmt.Sprintf(dataSource, 1))
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	if cfg.Params == nil {
-		cfg.Params = map[string]string{}
-	}
-	// See https://github.com/go-sql-driver/mysql#dsn-data-source-name
-	cfg.Params["parseTime"] = "true"
-	cfg.Params["timeout"] = "4s"
-	cfg.Params["readTimeout"] = "8s"
-	cfg.Params["writeTimeout"] = "8s"
-	shard1, err := sql.Open(driver, cfg.FormatDSN())
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-	err = shard1.Ping()
-	if err != nil {
-		var sqlErr *mysql.MySQLError
-		if !errors.As(err, &sqlErr) || sqlErr.Number != 1049 {
-			return nil, errors.Trace(err)
-		}
-
-		// Unknown database, create new one
-		dbName := cfg.DBName
-		cfg.DBName = "" // Connect to no particular database
-		shardRoot, err := sql.Open(driver, cfg.FormatDSN())
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		_, err = shardRoot.Exec("CREATE DATABASE IF NOT EXISTS " + dbName)
-		if err != nil {
-			shardRoot.Close()
-			return nil, errors.Trace(err)
-		}
-		shardRoot.Close()
-
-		// Retry
-		cfg.DBName = dbName
-		shard1, err = sql.Open(driver, cfg.FormatDSN())
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		err = shard1.Ping()
-		if err != nil {
-			shard1.Close()
-			return nil, errors.Trace(err)
-		}
-	}
-
 	// Init the shards table
-	_, err = shard1.Exec(
+	_, err = db1.ExecContext(ctx,
 		`CREATE TABLE IF NOT EXISTS microbus_shards (
 			id INT NOT NULL,
 			locked BOOL NOT NULL DEFAULT FALSE,
 			PRIMARY KEY (id)
 		)`)
 	if err != nil {
-		shard1.Close()
+		db1.Close()
 		return nil, errors.Trace(err)
 	}
 	// Init the sharding keys table
-	_, err = shard1.Exec(
+	_, err = db1.ExecContext(ctx,
 		`CREATE TABLE IF NOT EXISTS microbus_sharding_keys (
 			id BIGINT NOT NULL AUTO_INCREMENT,
 			shard_id INT NOT NULL,
 			PRIMARY KEY (id)
 		)`)
 	if err != nil {
-		shard1.Close()
+		db1.Close()
 		return nil, errors.Trace(err)
 	}
 	// Register shard 1
-	_, err = shard1.Exec(`INSERT IGNORE INTO microbus_shards (id, locked) VALUES (1, FALSE)`)
+	_, err = db1.ExecContext(ctx, `INSERT IGNORE INTO microbus_shards (id, locked) VALUES (1, FALSE)`)
 	if err != nil {
-		shard1.Close()
+		db1.Close()
 		return nil, errors.Trace(err)
 	}
 
-	// Identify all shards
-	rows, err := shard1.Query(`SELECT id, locked FROM microbus_shards`)
-	if err != nil {
-		shard1.Close()
-		return nil, errors.Trace(err)
-	}
-	shards := []*Shard{}
-	for rows.Next() {
-		shard := &Shard{}
-		err = rows.Scan(&shard.shardIndex, &shard.locked)
-		if err != nil {
-			shard1.Close()
-			return nil, errors.Trace(err)
-		}
-		shards = append(shards, shard)
-	}
-	shard1.Close()
-
-	// Open all shards
-	for _, shard := range shards {
-		err = shard.open(driver, fmt.Sprintf(dataSource, shard.shardIndex))
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-	}
-
+	// Prepare the database struct
 	db := &DB{
 		driver:     driver,
 		dataSource: dataSource,
-		shards:     map[int]*Shard{},
 		refCount:   1,
+		cache:      lru.NewCache[int, int](),
+		shards: map[int]*Shard{
+			1: {
+				shardIndex: 1,
+				locked:     false,
+				DB:         db1,
+			},
+		},
 	}
-	for _, shard := range shards {
-		db.shards[shard.shardIndex] = shard
+	db.cache.SetMaxWeight(1024 * 1024)
+	db.cache.SetMaxAge(time.Hour * 24)
+
+	// Open the rest of the shards
+	rows, err := db1.QueryContext(ctx, `SELECT id, locked FROM microbus_shards WHERE id!=1`)
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
+	for rows.Next() {
+		var shard Shard
+		err = rows.Scan(&shard.shardIndex, &shard.locked)
+		if err != nil {
+			rows.Close()
+			db1.Close()
+			return nil, errors.Trace(err)
+		}
+		db.shards[shard.shardIndex] = &shard
+	}
+	for _, shard := range db.shards {
+		if shard.DB != nil {
+			continue
+		}
+		shard.DB, err = openDatabase(ctx, db.driver, fmt.Sprintf(db.dataSource, shard.shardIndex))
+		if err != nil {
+			for _, shardToClose := range db.shards {
+				if shardToClose.DB != nil {
+					shardToClose.DB.Close()
+					shardToClose.DB = nil
+				}
+			}
+			return nil, errors.Trace(err)
+		}
+	}
+
 	db.adjustConnectionLimits()
 	singletonsMap[driver+"|"+dataSource] = db
 	return db, nil
@@ -237,16 +207,22 @@ func (db *DB) Shard(index int) *Shard {
 	return db.shards[index]
 }
 
-// ShardOf returns the shard that maps to the sharding key.
-func (db *DB) ShardOf(shardingKey int) (*Shard, error) {
+// ShardOf returns the shard that maps to the sharding key, or nil if the key has not been allocated to
+// a shard or if the shard is unknown.
+func (db *DB) ShardOf(ctx context.Context, shardingKey int) *Shard {
+	if cachedIndex, ok := db.cache.Load(shardingKey); ok {
+		return db.Shard(cachedIndex)
+	}
 	shard1 := db.Shard(1)
-	row := shard1.QueryRow(`SELECT shard_id FROM microbus_sharding_keys WHERE id=?`, shardingKey)
+	row := shard1.QueryRowContext(ctx, `SELECT shard_id FROM microbus_sharding_keys WHERE id=?`, shardingKey)
 	var shardIndex int
 	err := row.Scan(&shardIndex)
 	if err != nil {
-		return nil, errors.Trace(err)
+		// Possibly sql.ErrNoRows
+		return nil
 	}
-	return db.Shard(shardIndex), nil
+	db.cache.Store(shardingKey, shardIndex)
+	return db.Shard(shardIndex)
 }
 
 // Allocate creates a new sharding key and assigns it to a random unlocked shard.
@@ -263,11 +239,15 @@ func (db *DB) Allocate() (shardingKey int, err error) {
 		return 0, errors.New("all shards are locked")
 	}
 	// Random shard
-	// TODO: weighted random
 	randomShardIndex := unlocked[rand.Intn(len(unlocked))]
+	return db.AllocateTo(randomShardIndex)
+}
 
+// AllocateTo creates a new sharding key and assigns it to a specified shard.
+// The key is assigned even if the shard is locked.
+func (db *DB) AllocateTo(shardIndex int) (shardingKey int, err error) {
 	shard1 := db.Shard(1)
-	res, err := shard1.Exec(`INSERT INTO microbus_sharding_keys (shard_id) VALUES (?)`, randomShardIndex)
+	res, err := shard1.Exec(`INSERT INTO microbus_sharding_keys (shard_id) VALUES (?)`, shardIndex)
 	if err != nil {
 		return 0, errors.Trace(err)
 	}
@@ -275,37 +255,67 @@ func (db *DB) Allocate() (shardingKey int, err error) {
 	if err != nil {
 		return 0, errors.Trace(err)
 	}
+	db.cache.Store(int(lastInsertID), shardIndex)
 	return int(lastInsertID), nil
 }
 
-// RegisterShard registers a new shard.
-func (db *DB) RegisterShard(shardIndex int, locked bool) error {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-
-	if db.shards[shardIndex] != nil {
-		// Shard already registered
-		return nil
-	}
-
-	shard1 := db.shards[1]
-	_, err := shard1.Exec(`INSERT IGNORE INTO microbus_shards (id, locked) VALUES (?, ?)`, shardIndex, locked)
+// openHost opens the connection to the shard's server without selecting a specific database.
+func openHost(ctx context.Context, driver string, dataSource string) (*sql.DB, error) {
+	cfg, err := mysql.ParseDSN(dataSource)
 	if err != nil {
-		return errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
+	cfg.DBName = ""
+	return openDatabase(ctx, driver, cfg.FormatDSN())
+}
 
-	newShard := &Shard{
-		shardIndex: shardIndex,
-		locked:     locked,
-	}
-	err = newShard.open(db.driver, fmt.Sprintf(db.dataSource, shardIndex))
+// openDatabase opens the connection to the shard's database.
+func openDatabase(ctx context.Context, driver string, dataSource string) (*sql.DB, error) {
+	cfg, err := mysql.ParseDSN(dataSource)
 	if err != nil {
-		return errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
-	db.shards[shardIndex] = newShard
-	db.adjustConnectionLimits()
+	if cfg.Params == nil {
+		cfg.Params = map[string]string{}
+	}
+	// See https://github.com/go-sql-driver/mysql#dsn-data-source-name
+	cfg.Params["parseTime"] = "true"
+	cfg.Params["timeout"] = "4s"
+	cfg.Params["readTimeout"] = "8s"
+	cfg.Params["writeTimeout"] = "8s"
+	sqlDB, err := sql.Open(driver, cfg.FormatDSN())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	err = sqlDB.Ping()
+	if err != nil && cfg.DBName != "" {
+		var sqlErr *mysql.MySQLError
+		if !errors.As(err, &sqlErr) || sqlErr.Number != 1049 {
+			return nil, errors.Trace(err)
+		}
 
-	return nil
+		// Unknown database, create new one
+		cfg, err := mysql.ParseDSN(dataSource)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		dbRoot, err := openHost(ctx, driver, dataSource)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		_, err = dbRoot.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+cfg.DBName)
+		dbRoot.Close()
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		// Retry
+		sqlDB, err = openDatabase(ctx, driver, dataSource)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+	return sqlDB, nil
 }
 
 // connectionLimits returns the maximum number of connections in the idle connection pool,
@@ -351,10 +361,7 @@ func (db *DB) Query(shardingKey int, query string, args ...interface{}) (*sql.Ro
 // QueryContext calls QueryContext on the shard matching the sharding key.
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) QueryContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (*sql.Rows, error) {
-	shard, err := db.ShardOf(shardingKey)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+	shard := db.ShardOf(ctx, shardingKey)
 	return shard.QueryContext(ctx, query, args...)
 }
 
@@ -367,10 +374,7 @@ func (db *DB) QueryRow(shardingKey int, query string, args ...interface{}) (*sql
 // QueryRowContext calls QueryRowContext on the shard matching the sharding key.
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) QueryRowContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (*sql.Row, error) {
-	shard, err := db.ShardOf(shardingKey)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+	shard := db.ShardOf(ctx, shardingKey)
 	return shard.QueryRowContext(ctx, query, args...), nil
 }
 
@@ -383,10 +387,7 @@ func (db *DB) Exec(shardingKey int, query string, args ...interface{}) (sql.Resu
 // ExecContext calls ExecContext on the shard matching the sharding key.
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) ExecContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (sql.Result, error) {
-	shard, err := db.ShardOf(shardingKey)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+	shard := db.ShardOf(ctx, shardingKey)
 	return shard.ExecContext(ctx, query, args...)
 }
 

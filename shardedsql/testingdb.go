@@ -1,7 +1,7 @@
 package shardedsql
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -10,7 +10,7 @@ import (
 	"github.com/microbus-io/fabric/rand"
 )
 
-const testingNumShards = 3
+const numTestingShards = 3
 
 /*
 TestingDB is a temporary sharded database to be used for testing purposes.
@@ -37,42 +37,36 @@ It attempts to connect to the database on 127.0.0.1 on the default port (3306 fo
 using the default admin user ("root" for MySQL) with password "secret1234".
 */
 func (db *TestingDB) Open(driverName string) (err error) {
+	ctx := context.Background()
+
 	db.dbHost = "root:secret1234@tcp(127.0.0.1:3306)/"
 	db.dbNameFormat = "testing_" + time.Now().Format("150405") + "_" + rand.AlphaNum32(6) + "_%d"
 
-	// Create 3 databases, one per shard
-	rootDB, err := sql.Open(driverName, db.dbHost)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	for i := 1; i <= testingNumShards; i++ {
-		_, err = rootDB.Exec("DROP DATABASE IF EXISTS " + fmt.Sprintf(db.dbNameFormat, i))
-		if err != nil {
-			rootDB.Close()
-			return errors.Trace(err)
-		}
-		_, err = rootDB.Exec("CREATE DATABASE " + fmt.Sprintf(db.dbNameFormat, i))
-		if err != nil {
-			rootDB.Close()
-			return errors.Trace(err)
-		}
-	}
-	rootDB.Close()
-
 	// Open the sharded database
-	db.DB, err = Open(driverName, db.dbHost+db.dbNameFormat)
+	shardedDB, err := Open(ctx, driverName, db.dbHost+db.dbNameFormat)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	// Register the shards
-	for i := 1; i <= testingNumShards; i++ {
-		db.RegisterShard(i, false)
+
+	// Register two more shards
+	_, err = shardedDB.Shard(1).ExecContext(ctx, `INSERT IGNORE INTO microbus_shards (id,locked) VALUES (2,FALSE),(3,FALSE)`)
+	shardedDB.Close()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Reopen the database so the new shards are discovered
+	db.DB, err = Open(ctx, driverName, db.dbHost+db.dbNameFormat)
+	if err != nil {
+		return errors.Trace(err)
 	}
 	return nil
 }
 
 // Close cleans up after testing is done.
 func (db *TestingDB) Close() error {
+	ctx := context.Background()
+
 	// Close the sharded database
 	err := db.DB.Close()
 	if err != nil {
@@ -80,20 +74,20 @@ func (db *TestingDB) Close() error {
 	}
 
 	// Delete the temporary databases
-	rootDB, err := sql.Open(db.driver, db.dbHost)
+	dbRoot, err := openHost(ctx, db.driver, db.dbHost)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	defer rootDB.Close()
-	for i := 1; i <= testingNumShards; i++ {
-		_, err = rootDB.Exec("DROP DATABASE IF EXISTS " + fmt.Sprintf(db.dbNameFormat, i))
+	defer dbRoot.Close()
+	for i := 1; i <= numTestingShards; i++ {
+		_, err = dbRoot.ExecContext(ctx, "DROP DATABASE IF EXISTS "+fmt.Sprintf(db.dbNameFormat, i))
 		if err != nil {
 			return errors.Trace(err)
 		}
 	}
 
 	// Delete leftover testing databases not from the last 2 hours
-	rows, err := rootDB.Query("SHOW DATABASES")
+	rows, err := dbRoot.QueryContext(ctx, "SHOW DATABASES")
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -101,6 +95,7 @@ func (db *TestingDB) Close() error {
 	now := time.Now()
 	thisHour := now.Format("15")
 	prevHour := now.Add(time.Duration(-time.Hour)).Format("15")
+	var toDrop []string
 	for rows.Next() {
 		var x string
 		err = rows.Scan(&x)
@@ -108,10 +103,13 @@ func (db *TestingDB) Close() error {
 			strings.HasPrefix(x, "testing_") &&
 			!strings.HasPrefix(x, "testing_"+thisHour) &&
 			!strings.HasPrefix(x, "testing_"+prevHour) {
-			_, err = rootDB.Exec("DROP DATABASE IF EXISTS " + x)
-			if err != nil {
-				return errors.Trace(err)
-			}
+			toDrop = append(toDrop, x)
+		}
+	}
+	for _, x := range toDrop {
+		_, err = dbRoot.ExecContext(ctx, "DROP DATABASE IF EXISTS "+x)
+		if err != nil {
+			return errors.Trace(err)
 		}
 	}
 	return nil

@@ -34,6 +34,7 @@ func Test_OpenClose(t *testing.T) {
 	assert.Equal(t, testingDB.NumShards(), found)
 
 	// Validate the connections to all the shards
+	assert.Equal(t, numTestingShards, testingDB.NumShards())
 	for _, shard := range testingDB.Shards() {
 		err = shard.Ping()
 		assert.NoError(t, err)
