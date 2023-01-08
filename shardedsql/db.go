@@ -45,6 +45,9 @@ For example:
 	username:password@tcp(mysql.host:3306)/db%d
 */
 func Open(ctx context.Context, driver string, dataSource string) (*DB, error) {
+	if driver != "mysql" {
+		return nil, errors.Newf("driver '%s' is not supported", driver)
+	}
 	if !strings.Contains(dataSource, "%d") {
 		return nil, errors.New("missing '%d' in data source")
 	}

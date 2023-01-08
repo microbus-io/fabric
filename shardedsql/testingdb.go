@@ -13,9 +13,11 @@ import (
 const numTestingShards = 3
 
 /*
-TestingDB is a temporary sharded database to be used for testing purposes.
-By default, it
-It uses the following data source pattern to create 3 shards in a single database server:
+TestingDB is a new sharded database for testing purposes.
+It connects to the database on 127.0.0.1 on the default port (3306 for MySQL)
+using the default admin user ("root" for MySQL) with password "secret1234".
+
+For MySQL, it uses the following data source name pattern:
 
 	root:secret1234@tcp(127.0.0.1:3306)/testing_{hhmmss}_{random}_%d
 
