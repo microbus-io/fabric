@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: go.sum
       - name: "Show version"
         run: go version
       - name: "Run tests"
