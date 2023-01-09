@@ -70,6 +70,9 @@ func (db *TestingDB) Close() error {
 	ctx := context.Background()
 
 	// Close the sharded database
+	if db.DB == nil {
+		return nil
+	}
 	err := db.DB.Close()
 	if err != nil {
 		return errors.Trace(err)
