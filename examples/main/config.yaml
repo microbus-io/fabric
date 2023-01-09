@@ -6,5 +6,5 @@ http.ingress.sys:
 #  Port: 8080
 #  TimeBudget: 20s
 
-all:
-  # MySQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples_shard%d"
+# all:
+#   MySQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples_shard%d"

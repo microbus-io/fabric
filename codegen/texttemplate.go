@@ -102,6 +102,7 @@ var acronyms = map[string]bool{
 	"api":   true,
 	"css":   true,
 	"id":    true,
+	"sql":   true,
 }
 
 // capitalizeIdentifier capitalizes a lowercase identifier.
