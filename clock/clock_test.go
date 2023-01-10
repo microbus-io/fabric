@@ -50,7 +50,7 @@ func (c *counter) get() uint32 {
 // Ensure that the clock's After channel sends at the correct time.
 func TestClock_After(t *testing.T) {
 	start := time.Now()
-	<-New().After(20 * time.Millisecond)
+	<-NewClock().After(20 * time.Millisecond)
 	dur := time.Since(start)
 
 	if dur < 20*time.Millisecond || dur > 40*time.Millisecond {
@@ -65,7 +65,7 @@ func TestClock_AfterFunc(t *testing.T) {
 
 	wg.Add(1)
 	start := time.Now()
-	New().AfterFunc(20*time.Millisecond, func() {
+	NewClock().AfterFunc(20*time.Millisecond, func() {
 		ok = true
 		wg.Done()
 	})
@@ -83,7 +83,7 @@ func TestClock_AfterFunc(t *testing.T) {
 // Ensure that the clock's time matches the standary library.
 func TestClock_Now(t *testing.T) {
 	a := time.Now().Round(time.Second)
-	b := New().Now().Round(time.Second)
+	b := NewClock().Now().Round(time.Second)
 	if !a.Equal(b) {
 		t.Errorf("not equal: %s != %s", a, b)
 	}
@@ -92,7 +92,7 @@ func TestClock_Now(t *testing.T) {
 // Ensure that the clock sleeps for the appropriate amount of time.
 func TestClock_Sleep(t *testing.T) {
 	start := time.Now()
-	New().Sleep(20 * time.Millisecond)
+	NewClock().Sleep(20 * time.Millisecond)
 	dur := time.Since(start)
 
 	if dur < 20*time.Millisecond || dur > 40*time.Millisecond {
@@ -103,7 +103,7 @@ func TestClock_Sleep(t *testing.T) {
 // Ensure that the clock ticks correctly.
 func TestClock_Tick(t *testing.T) {
 	start := time.Now()
-	c := New().Tick(20 * time.Millisecond)
+	c := NewClock().Tick(20 * time.Millisecond)
 	<-c
 	<-c
 	dur := time.Since(start)
@@ -116,7 +116,7 @@ func TestClock_Tick(t *testing.T) {
 // Ensure that the clock's ticker ticks correctly.
 func TestClock_Ticker(t *testing.T) {
 	start := time.Now()
-	ticker := New().Ticker(50 * time.Millisecond)
+	ticker := NewClock().Ticker(50 * time.Millisecond)
 	<-ticker.C
 	<-ticker.C
 	dur := time.Since(start)
@@ -128,7 +128,7 @@ func TestClock_Ticker(t *testing.T) {
 
 // Ensure that the clock's ticker can stop correctly.
 func TestClock_Ticker_Stp(t *testing.T) {
-	ticker := New().Ticker(20 * time.Millisecond)
+	ticker := NewClock().Ticker(20 * time.Millisecond)
 	<-ticker.C
 	ticker.Stop()
 	select {
@@ -141,7 +141,7 @@ func TestClock_Ticker_Stp(t *testing.T) {
 // Ensure that the clock's ticker can reset correctly.
 func TestClock_Ticker_Rst(t *testing.T) {
 	start := time.Now()
-	ticker := New().Ticker(20 * time.Millisecond)
+	ticker := NewClock().Ticker(20 * time.Millisecond)
 	<-ticker.C
 	ticker.Reset(5 * time.Millisecond)
 	<-ticker.C
@@ -155,7 +155,7 @@ func TestClock_Ticker_Rst(t *testing.T) {
 // Ensure that the clock's timer waits correctly.
 func TestClock_Timer(t *testing.T) {
 	start := time.Now()
-	timer := New().Timer(20 * time.Millisecond)
+	timer := NewClock().Timer(20 * time.Millisecond)
 	<-timer.C
 	dur := time.Since(start)
 
@@ -170,7 +170,7 @@ func TestClock_Timer(t *testing.T) {
 
 // Ensure that the clock's timer can be stopped.
 func TestClock_Timer_Stop(t *testing.T) {
-	timer := New().Timer(20 * time.Millisecond)
+	timer := NewClock().Timer(20 * time.Millisecond)
 	if !timer.Stop() {
 		t.Fatal("timer not running")
 	}
@@ -187,7 +187,7 @@ func TestClock_Timer_Stop(t *testing.T) {
 // Ensure that the clock's timer can be reset.
 func TestClock_Timer_Reset(t *testing.T) {
 	start := time.Now()
-	timer := New().Timer(10 * time.Millisecond)
+	timer := NewClock().Timer(10 * time.Millisecond)
 	if !timer.Reset(20 * time.Millisecond) {
 		t.Fatal("timer not running")
 	}

@@ -40,6 +40,21 @@ general:
   description: The email service delivers emails to recipients.
 ```
 
+### Databases
+
+The `databases` section indicates if the microservices uses any databases.
+The name of the database is used to pull the data source name (a.k.a. connection string)
+from a configuration property with that name. Unless the application uses multiple
+databases the recommendation is to name the database the same as its kind.
+
+```yaml
+# Databases
+#
+# mysql - A name for the MySQL database
+databases:
+  mysql: MySQL
+```
+
 ### Configs
 
 The `configs` section is used to define the [configuration](./configuration.md) properties of the microservices. Config properties get their values in runtime from the [configurator](../structure/services-configurator.md) system microservice. 
@@ -82,6 +97,29 @@ If `callback` is set to `true`, a callback function will be generated and called
 func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
     return
 }
+```
+
+### Types
+
+All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to their fully-qualified path.
+
+Complex types may contain other complex types in which case those nested types also must be declared.
+
+```yaml
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - The package path of the imported type
+types:
+  - name:
+    description:
+    define:
+      fieldName: Type
+  - name:
+    description:
+    import:
 ```
 
 ### Functions
@@ -172,7 +210,7 @@ sinks:
   - signature:
     description:
     event:
-    source: package/path/of/another/microservice
+    source:
 ```
 
 The `signature` of an event sink must match that of the event source. The one exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if different event sources use the same name for their events. That becomes necessary because handler function names must be unique in the scope of the sink microservice.
@@ -258,31 +296,6 @@ TickerHandler is an example of a ticker handler.
 func (svc *Service) TickerHandler(ctx context.Context) (err error) {
     return nil
 }
-```
-
-### Types
-
-All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to the fully-qualified path of their package.
-
-Complex types may contain other complex types in which case those nested types also must be declared.
-
-```yaml
-# Types
-#
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The name of the imported type (defaults to the function name)
-# source - The package path of the microservice that defines the type
-types:
-  - name:
-    description:
-    define:
-      fieldName: Type
-  - name:
-    description:
-    import:
-    source:
 ```
 
 ## Clients

@@ -1,6 +1,6 @@
 
-// doOnConfigChanged is called when the config of the microservice changed.
-func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
+// doOnConfigChanged is called when the config of the microservice changes.
+func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	{{- range .Configs}}{{ if .Callback}}
 	if changed("{{ .Name}}") {
 		err := svc.impl.OnChanged{{ .Name}}(ctx)
@@ -45,9 +45,7 @@ func (svc *Intermediate) {{ .Name }}() (
 
 	{{- end }}
 }
-{{- end}}
 
-{{ range .Configs}}
 // {{ .Name }} initializes the {{ .Name }} config property of the microservice.
 func {{ .Name }}(
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}

@@ -49,6 +49,7 @@ func NewMock() *Mock {
 
 // Config initializers
 var (
+	_ int
 	// Greeting initializes the Greeting config property of the microservice
 	Greeting = intermediate.Greeting
 	// Repeat initializes the Repeat config property of the microservice

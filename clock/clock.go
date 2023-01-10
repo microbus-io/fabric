@@ -54,8 +54,8 @@ type Clock interface {
 	WithTimeout(parent context.Context, t time.Duration) (context.Context, context.CancelFunc)
 }
 
-// New returns an instance of a real-time clock.
-func New() Clock {
+// NewClock returns an instance of a real-time clock.
+func NewClock() Clock {
 	return &clock{}
 }
 

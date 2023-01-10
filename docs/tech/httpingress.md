@@ -2,8 +2,7 @@
 
 Think of NATS as a closed garden that requires a special key to access. In order to send and receive messages over NATS, it's necessary to use the NATS libraries to connect to NATS. This is basically what the `Connector` is facilitating for service-to-service calls.
 
-Practically all systems will require interaction from a source that is outside the NATS bus. The most common scenario is perhaps a request generated from a web browser to a public API endpoint. In this case, something needs to bridge the gap between the incoming real HTTP request and the HTTP messages that travel over the bus. This is exactly the role of the HTTP ingress proxy.
-
+Practically all applications require interaction from a source that is outside the NATS bus. The most common scenario is perhaps a request generated from a web browser to a public API endpoint. In this case, something needs to bridge the gap between the incoming real HTTP request and the HTTP messages that travel over the bus. This is exactly the role of the HTTP ingress proxy.
 
 <img src="httpingress-1.svg" width="840">
 

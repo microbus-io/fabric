@@ -32,8 +32,9 @@ type storeOptions interface {
 type StoreOption func(opts storeOptions)
 
 // Weight sets the weight of the element stored in the cache.
-// It must be greater than 0 and cannot exceed the cache's maximum weight limit.
-// Elements are evicted when the total weight exceeds the cache's limit.
+// It must be 1 or greater and cannot exceed the cache's maximum weight limit.
+// The default weight is 1.
+// Elements are evicted when the total weight of all elements exceeds the cache's capacity.
 func Weight(weight int) StoreOption {
 	return func(opts storeOptions) {
 		if weight > 0 {

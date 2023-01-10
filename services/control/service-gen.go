@@ -47,3 +47,8 @@ type Mock = intermediate.Mock
 func NewMock() *Mock {
 	return intermediate.NewMock(Version)
 }
+
+// Config initializers
+var (
+	_ int
+)

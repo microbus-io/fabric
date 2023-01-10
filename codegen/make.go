@@ -146,6 +146,7 @@ func (gen *Generator) makeIntermediate() error {
 	tt, err := LoadTemplate(
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-gen.configs.txt",
+		"intermediate/intermediate-gen.mysql.txt",
 		"intermediate/intermediate-gen.functions.txt",
 	)
 	if err != nil {
@@ -200,6 +201,30 @@ func (gen *Generator) makeResources() error {
 		return errors.Trace(err)
 	}
 	gen.Printer.Debug("resources/embed-gen.go")
+
+	if gen.specs.Databases.MySQL != "" {
+		// Create the directory
+		dir := filepath.Join(gen.WorkDir, "resources", "mysql")
+		_, err := os.Stat(dir)
+		if errors.Is(err, os.ErrNotExist) {
+			os.Mkdir(dir, os.ModePerm)
+			gen.Printer.Debug("mkdir resources/mysql")
+		} else if err != nil {
+			return errors.Trace(err)
+		}
+
+		// doc.go
+		fileName := filepath.Join(gen.WorkDir, "resources", "mysql", "doc.go")
+		tt, err := LoadTemplate("resources/mysql/doc.txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = tt.Overwrite(fileName, gen.specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		gen.Printer.Debug("resources/mysql/doc.go")
+	}
 
 	return nil
 }

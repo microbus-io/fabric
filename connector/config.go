@@ -16,17 +16,17 @@ import (
 // StartupHandler handles the OnStartup callback.
 type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) error
 
-// SetOnConfigChanged sets a function to be called when a new config was received from the configurator.
+// SetOnConfigChanged adds a function to be called when a new config was received from the configurator.
+// Callbacks are called in the order they were added.
 func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...cb.Option) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-
 	callback, err := cb.NewCallback("onconfigchanged", handler, options...)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
-	c.onConfigChanged = callback
+	c.onConfigChanged = append(c.onConfigChanged, callback)
 	return nil
 }
 
@@ -87,21 +87,23 @@ func (c *Connector) SetConfig(name string, value any) error {
 	config.Value = v
 
 	// Call the callback function, if provided
-	if c.started && c.onConfigChanged != nil && config.Value != origValue {
-		err := c.doCallback(
-			c.lifetimeCtx,
-			c.onConfigChanged.TimeBudget,
-			"Config changed callback",
-			":0/on-config-changed",
-			func(ctx context.Context) error {
-				f := func(n string) bool {
-					return strings.EqualFold(n, name)
-				}
-				return c.onConfigChanged.Handler.(ConfigChangedHandler)(ctx, f)
-			},
-		)
-		if err != nil {
-			return errors.Trace(err)
+	if c.started && config.Value != origValue {
+		for i := 0; i < len(c.onConfigChanged); i++ {
+			err := c.doCallback(
+				c.lifetimeCtx,
+				c.onConfigChanged[i].TimeBudget,
+				"Config changed callback",
+				":0/on-config-changed",
+				func(ctx context.Context) error {
+					f := func(n string) bool {
+						return strings.EqualFold(n, name)
+					}
+					return c.onConfigChanged[i].Handler.(ConfigChangedHandler)(ctx, f)
+				},
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
 		}
 	}
 	return nil
@@ -122,21 +124,23 @@ func (c *Connector) ResetConfig(name string) error {
 	config.Value = config.DefaultValue
 
 	// Call the callback function, if provided
-	if c.started && c.onConfigChanged != nil && config.Value != origValue {
-		err := c.doCallback(
-			c.lifetimeCtx,
-			c.onConfigChanged.TimeBudget,
-			"Config changed callback",
-			":0/on-config-changed",
-			func(ctx context.Context) error {
-				f := func(n string) bool {
-					return strings.EqualFold(n, name)
-				}
-				return c.onConfigChanged.Handler.(ConfigChangedHandler)(ctx, f)
-			},
-		)
-		if err != nil {
-			return errors.Trace(err)
+	if c.started && config.Value != origValue {
+		for i := 0; i < len(c.onConfigChanged); i++ {
+			err := c.doCallback(
+				c.lifetimeCtx,
+				c.onConfigChanged[i].TimeBudget,
+				"Config changed callback",
+				":0/on-config-changed",
+				func(ctx context.Context) error {
+					f := func(n string) bool {
+						return strings.EqualFold(n, name)
+					}
+					return c.onConfigChanged[i].Handler.(ConfigChangedHandler)(ctx, f)
+				},
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
 		}
 	}
 	return nil
@@ -150,7 +154,11 @@ func (c *Connector) logConfigs() {
 	for _, config := range c.configs {
 		value := config.Value
 		if config.Secret {
-			value = strings.Repeat("*", len(value))
+			n := len(value)
+			if n > 16 {
+				n = 16
+			}
+			value = strings.Repeat("*", n)
 		}
 		if len([]rune(value)) > 40 {
 			value = string([]rune(value)[:40]) + "..."
@@ -226,21 +234,23 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 	c.configLock.Unlock()
 
 	// Call the callback function, if provided
-	if c.started && c.onConfigChanged != nil && len(changed) > 0 {
-		err = c.doCallback(
-			c.lifetimeCtx,
-			c.onConfigChanged.TimeBudget,
-			"Config changed callback",
-			":0/on-config-changed",
-			func(ctx context.Context) error {
-				f := func(name string) bool {
-					return changed[strings.ToLower(name)]
-				}
-				return c.onConfigChanged.Handler.(ConfigChangedHandler)(ctx, f)
-			},
-		)
-		if err != nil {
-			return errors.Trace(err)
+	if len(changed) > 0 {
+		for i := 0; i < len(c.onConfigChanged); i++ {
+			err = c.doCallback(
+				c.lifetimeCtx,
+				c.onConfigChanged[i].TimeBudget,
+				"Config changed callback",
+				":0/on-config-changed",
+				func(ctx context.Context) error {
+					f := func(name string) bool {
+						return changed[strings.ToLower(name)]
+					}
+					return c.onConfigChanged[i].Handler.(ConfigChangedHandler)(ctx, f)
+				},
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
 		}
 	}
 

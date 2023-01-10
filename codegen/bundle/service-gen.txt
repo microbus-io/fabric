@@ -49,13 +49,15 @@ func NewMock() *Mock {
 	return intermediate.NewMock(Version)
 }
 
-{{- if .Configs }}
-
 // Config initializers
 var (
+	_ int
 	{{- range .Configs}}
 	// {{ .Name }} initializes the {{ .Name }} config property of the microservice
 	{{ .Name }} = intermediate.{{ .Name }}
 	{{- end}}
+	{{- if .Databases.MySQL }}
+	// {{ .Databases.MySQL }} initializes the {{ .Databases.MySQL }} config property of the microservice
+	{{ .Databases.MySQL }} = intermediate.{{ .Databases.MySQL }}
+	{{- end }}
 )
-{{- end }}

@@ -19,33 +19,34 @@ type StartupHandler func(ctx context.Context) error
 // StartupHandler handles the OnShutdown callback.
 type ShutdownHandler func(ctx context.Context) error
 
-// SetOnStartup sets a function to be called during the starting up of the microservice.
+// SetOnStartup adds a function to be called during the starting up of the microservice.
+// Startup callbacks are called in the order they were added.
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-
 	callback, err := cb.NewCallback("onstartup", handler, options...)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
-	c.onStartup = callback
+	c.onStartup = append(c.onStartup, callback)
 	return nil
 }
 
-// SetOnShutdown sets a function to be called during the shutting down of the microservice.
+// SetOnShutdown adds a function to be called during the shutting down of the microservice.
+// Shutdown callbacks are called in the reverse order they were added,
+// whether of the status of a corresponding startup callback.
 // The default one minute timeout can be overridden by the appropriate option.
 func (c *Connector) SetOnShutdown(handler ShutdownHandler, options ...cb.Option) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-
 	callback, err := cb.NewCallback("onshutdown", handler, options...)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
-	c.onShutdown = callback
+	c.onShutdown = append(c.onShutdown, callback)
 	return nil
 }
 
@@ -155,16 +156,16 @@ func (c *Connector) Startup() (err error) {
 		return err
 	}
 
-	// Call the callback function, if provided
+	// Call the callback functions in order
 	c.onStartupCalled = true
-	if c.onStartup != nil {
+	for i := 0; i < len(c.onStartup); i++ {
 		err = c.doCallback(
 			c.lifetimeCtx,
-			c.onStartup.TimeBudget,
+			c.onStartup[i].TimeBudget,
 			"Startup callback",
 			":0/on-startup",
 			func(ctx context.Context) error {
-				return c.onStartup.Handler.(StartupHandler)(ctx)
+				return c.onStartup[i].Handler.(StartupHandler)(ctx)
 			},
 		)
 		if err != nil {
@@ -249,19 +250,21 @@ func (c *Connector) Shutdown() error {
 		c.LogWarn(c.lifetimeCtx, "Unable to drain pending operations", log.Int32("ops", undrained))
 	}
 
-	// Call the callback function, if provided
-	if c.onShutdown != nil && c.onStartupCalled {
-		err = c.doCallback(
-			c.lifetimeCtx,
-			c.onShutdown.TimeBudget,
-			"Shutdown callback",
-			":0/on-shutdown",
-			func(ctx context.Context) error {
-				return c.onShutdown.Handler.(ShutdownHandler)(ctx)
-			},
-		)
-		if err != nil {
-			lastErr = errors.Trace(err)
+	// Call the callback functions in reverse order
+	if c.onStartupCalled {
+		for i := len(c.onShutdown) - 1; i >= 0; i-- {
+			err = c.doCallback(
+				c.lifetimeCtx,
+				c.onShutdown[i].TimeBudget,
+				"Shutdown callback",
+				":0/on-shutdown",
+				func(ctx context.Context) error {
+					return c.onShutdown[i].Handler.(ShutdownHandler)(ctx)
+				},
+			)
+			if err != nil {
+				lastErr = errors.Trace(err)
+			}
 		}
 	}
 

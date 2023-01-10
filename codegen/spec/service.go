@@ -12,6 +12,7 @@ type Service struct {
 	Package string `yaml:"-"`
 
 	General   General    `yaml:"general"`
+	Databases Databases  `yaml:"databases"`
 	Configs   []*Handler `yaml:"configs"`
 	Types     []*Type    `yaml:"types"`
 	Functions []*Handler `yaml:"functions"`
@@ -194,7 +195,7 @@ func (s *Service) AllHandlers() []*Handler {
 func (s *Service) ImportedTypes() []*Type {
 	var result []*Type
 	for _, t := range s.Types {
-		if t.Source != "" {
+		if t.Import != "" {
 			result = append(result, t)
 		}
 	}

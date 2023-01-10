@@ -13,7 +13,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
@@ -21,6 +23,8 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"github.com/microbus-io/fabric/examples/hello/resources"
@@ -33,12 +37,16 @@ var (
 	_ *json.Decoder
 	_ fmt.Stringer
 	_ *http.Request
+	_ filepath.WalkFunc
 	_ strconv.NumError
+	_ strings.Reader
 	_ time.Duration
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
+	_ *log.Field
+	_ *shardedsql.DB
 	_ sub.Option
 	_ helloapi.Client
 )
@@ -69,14 +77,15 @@ func NewService(impl ToDo, version int) *Intermediate {
 		Connector: connector.New("hello.example"),
 		impl: impl,
 	}
-	
 	svc.SetVersion(version)
 	svc.SetDescription(`The Hello microservice demonstrates the various capabilities of a microservice.`)
+
+	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Configs
+	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"Greeting",
 		cfg.Description(`Greeting to use.`),
@@ -108,8 +117,8 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is called when the config of the microservice changed.
-func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
+// doOnConfigChanged is called when the config of the microservice changes.
+func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
 
@@ -121,6 +130,14 @@ func (svc *Intermediate) Greeting() (greeting string) {
 	return _val
 }
 
+// Greeting initializes the Greeting config property of the microservice.
+func Greeting(greeting string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
+	}
+}
+
+
 /*
 Repeat indicates how many times to display the greeting.
 */
@@ -128,14 +145,6 @@ func (svc *Intermediate) Repeat() (count int) {
 	_val := svc.Config("Repeat")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
-}
-
-
-// Greeting initializes the Greeting config property of the microservice.
-func Greeting(greeting string) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
-		return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
-	}
 }
 
 // Repeat initializes the Repeat config property of the microservice.

@@ -56,7 +56,7 @@ types:
       x: float
       y: float
   - name: Type2
-    source: from/somewhere/else
+    import: from/somewhere/else/Type2
 webs:
   - signature: Web1()
   - signature: Web2()
