@@ -17,7 +17,7 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
-	mtr "github.com/microbus-io/fabric/metric"
+	mtr "github.com/microbus-io/fabric/mtr"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
@@ -105,7 +105,6 @@ func NewConnector() *Connector {
 		knownResponders:  lru.NewCache[string, map[string]bool](),
 		postRequestData:  lru.NewCache[string, string](),
 		multicastChanCap: 32,
-		initTime:         time.Now(),
 		metricDefs:       make(map[string]mtr.Metric),
 	}
 
@@ -160,6 +159,12 @@ func (c *Connector) HostName() string {
 // SetDescription sets a human-friendly description of the microservice.
 func (c *Connector) SetDescription(description string) error {
 	c.description = description
+	return nil
+}
+
+// SetInitTime sets the time where the microservice has completed startup and become operational.
+func (c *Connector) SetInitTime(initTime time.Time) error {
+	c.initTime = initTime
 	return nil
 }
 

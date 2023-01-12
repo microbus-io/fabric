@@ -13,6 +13,7 @@ type Service struct {
 
 	General   General    `yaml:"general"`
 	Configs   []*Handler `yaml:"configs"`
+	Metrics   []*Handler `yaml:"metrics"`
 	Types     []*Type    `yaml:"types"`
 	Functions []*Handler `yaml:"functions"`
 	Events    []*Handler `yaml:"events"`

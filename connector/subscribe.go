@@ -298,18 +298,8 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	failed := handlerErr != nil // && errors.Extend(handlerErr).IsErrorSeverity()
 
 	_ = c.ObserveMetric(
-		"fabric_handler_duration_seconds",
+		"microbus_response_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
-		s.Canonical(),
-		strconv.Itoa(s.Port),
-		httpReq.Method,
-		strconv.Itoa(httpRecorder.Result().StatusCode),
-		strconv.FormatBool(failed),
-	)
-
-	_ = c.ObserveMetric(
-		"fabric_handler_size_bytes",
-		float64(httpRecorder.Result().ContentLength),
 		s.Canonical(),
 		strconv.Itoa(s.Port),
 		httpReq.Method,
@@ -331,6 +321,16 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpRecorder.WriteHeader(http.StatusInternalServerError)
 		httpRecorder.Write(body)
 	}
+
+	_ = c.ObserveMetric(
+		"microbus_response_size_bytes",
+		float64(httpRecorder.Result().ContentLength), // TODO(rduncan) Verify ContentLength is accurate
+		s.Canonical(),
+		strconv.Itoa(s.Port),
+		httpReq.Method,
+		strconv.Itoa(httpRecorder.Result().StatusCode),
+		strconv.FormatBool(failed),
+	)
 
 	// Set control headers on the response
 	httpResponse := httpRecorder.Result()

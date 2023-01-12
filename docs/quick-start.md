@@ -60,16 +60,16 @@ The [Todo Tree extension](https://marketplace.visualstudio.com/items?itemName=Gr
 
 Metrics will not be available by default in a local environment. Docker Desktop will need to be installed in order to run a Promethues in a container. For more information on metrics see [Metrics](docs/tech/metrics.md) 
 
-To support and test Metrics when running locally, using a docker image is recommended. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) if not already installed and pull the latest Prometheus docker image.
+To support and test metrics when running locally, using a docker image is recommended. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) if not already installed and pull the latest Prometheus docker image.
 
 ```cmd
 docker pull prom/prometheus
 ```
 
-Make sure the metrics service are started and then start the prometheus container with the following command:
+Make sure the metrics microservice are started and then start the Prometheus container with the following command:
 
 ```cmd
 docker run -p 9090:9090 -v path/to/github.com/microbus-io/fabric/examples/main/prometheus.yaml:/etc/prometheus/prometheus.yml prom/prometheus
 ```
 
-The provided sample examples/main/prometheus.yaml will scrape from the metrics service every 15 seconds. You can verify by navigating to http://localhost:9090/graph and executing `service_uptime_duration_seconds_total` in the query box. If successful, you should see the current uptime of the metrics service.
+The provided sample examples/main/prometheus.yaml will scrape from the metrics microservice every 15 seconds. You can verify by navigating to http://localhost:9090/graph and executing `service_uptime_duration_seconds_total` in the query box. If successful, you should see the current uptime of the metrics microservice.

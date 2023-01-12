@@ -20,6 +20,7 @@ The `connector` package includes a separate source file for each functional area
 * `fragment.go` orchestrates the fragmentation and defragmentation of large requests and responses
 * `lifecycle.go` implements the `Startup` and `Shutdown` logic
 * `logger.go` provides a JSON logger for the microservice
+* `metrics.go` deals with prometheus metrics
 * `publish.go` deals with outbound messaging
 * `subjects.go` crafts the NATS subjects (topics) that a microservice subscribes to or publishes to
 * `service.go` defines the public interface of the `Connector`

@@ -47,6 +47,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [httpx](docs/structure/httpx.md) 🎁 - Various HTTP utilities
 * [log](docs/structure/log.md) - Fields for attaching data to log messages
 * [lru](docs/structure/lru.md) - An LRU with with limits on age and weight
+* [mtr](docs/structure/mtr.md) - Support for standard and custom metrics
 * [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/configurator](docs/structure/services-configurator.md) - The configurator system microservice

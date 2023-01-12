@@ -2,53 +2,56 @@ package connector
 
 import (
 	"sort"
+	"strconv"
 
 	"github.com/microbus-io/fabric/errors"
-	mtr "github.com/microbus-io/fabric/metric"
+	mtr "github.com/microbus-io/fabric/mtr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// newRegistry creates a new Prometheus registry, or overwrites the current registry if it already exists.
+// Standard metrics common across all microservices are also created and registered here.
 func (c *Connector) newRegistry() error {
 	c.registry = prometheus.NewRegistry()
 	c.metricsHandler = promhttp.HandlerFor(c.registry, promhttp.HandlerOpts{})
 
 	c.DefineHistogram(
-		"fabric_handler_duration_seconds",
+		"microbus_response_duration_seconds",
 		"Handler processing duration, in seconds",
 		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
 		[]string{"handler", "port", "method", "code", "error"},
 	)
 	c.DefineHistogram(
-		"fabric_handler_size_bytes",
+		"microbus_response_size_bytes",
 		"Handler response size, in bytes",
 		[]float64{1024, 4 * 1024, 16 * 1024, 64 * 1024, 256 * 1024, 1024 * 1024, 4 * 1024 * 1024},
 		[]string{"handler", "port", "method", "code", "error"},
 	)
 	c.DefineHistogram(
-		"fabric_request_duration_seconds",
+		"microbus_request_duration_seconds",
 		"Request roundtrip duration, in seconds",
 		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
 		[]string{"method", "host", "port", "path", "error"},
 	)
 	c.DefineHistogram(
-		"fabric_ack_duration_seconds",
+		"microbus_ack_duration_seconds",
 		"Ack roundtrip duration, in seconds",
 		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
 		[]string{"method", "host", "port", "path"},
 	)
 	c.DefineCounter(
-		"fabric_log_messages_total",
+		"microbus_log_messages_total",
 		"Number of log messages recorded",
 		[]string{"message", "severity"},
 	)
 	c.DefineGauge(
-		"fabric_uptime_duration_seconds_total",
+		"microbus_uptime_duration_seconds_total",
 		"Duration of time since connector was established, in seconds",
 		[]string{},
 	)
 	c.DefineHistogram(
-		"fabric_late_reply_duration_seconds",
+		"microbus_late_reply_duration_seconds",
 		"Late reply roundtrip duration, in seconds",
 		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
 		[]string{"op", "host"},
@@ -57,6 +60,7 @@ func (c *Connector) newRegistry() error {
 	return nil
 }
 
+// DefineHistogram defines a new histogram metric in Prometheus and stores it in the connector's name -> metric mapping.
 func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels []string) error {
 
 	if len(buckets) < 1 {
@@ -94,6 +98,7 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 	return errors.Trace(err, name)
 }
 
+// DefineCounter defines a new counter metric in Prometheus and stores it in the connector's name -> metric mapping.
 func (c *Connector) DefineCounter(name, help string, labels []string) error {
 	if c.registry == nil {
 		return nil
@@ -118,6 +123,7 @@ func (c *Connector) DefineCounter(name, help string, labels []string) error {
 	return errors.Trace(err, name)
 }
 
+// DefineGauge defines a new gauge metric in Prometheus and stores it in the connector's name -> metric mapping.
 func (c *Connector) DefineGauge(name, help string, labels []string) error {
 	if c.registry == nil {
 		return nil
@@ -142,14 +148,37 @@ func (c *Connector) DefineGauge(name, help string, labels []string) error {
 	return errors.Trace(err, name)
 }
 
-func (c *Connector) ObserveMetric(name string, val float64, labels ...string) error {
+// IncrementMetric adds the given value to a counter or gauge metric.
+// The name and labels must match a previously defined metric.
+// Gauge metrics support subtraction by use of a negative value.
+// Counter metrics only allow addition and a negative value will result in an error.
+func (c *Connector) IncrementMetric(name string, val float64, labels ...string) error {
 	if c.registry == nil {
 		return nil
 	}
+	c.metricLock.RLock()
+	defer c.metricLock.RUnlock()
 	m, ok := c.metricDefs[name]
 	if !ok {
 		return errors.Newf("unknown metric '%s'", name)
 	}
-	err := m.Observe(val, append([]string{"service", "ver", "id"}, labels...)...)
+
+	err := m.Add(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
+	return errors.Trace(err, name)
+}
+
+// ObserveMetric observes the given value using a histogram or summary, or sets it as a gauge's value.
+// The name and labels must match a previously defined metric.
+func (c *Connector) ObserveMetric(name string, val float64, labels ...string) error {
+	if c.registry == nil {
+		return nil
+	}
+	c.metricLock.Lock()
+	defer c.metricLock.Unlock()
+	m, ok := c.metricDefs[name]
+	if !ok {
+		return errors.Newf("unknown metric '%s'", name)
+	}
+	err := m.Observe(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
 	return errors.Trace(err, name)
 }

@@ -31,6 +31,23 @@ configs:
   #   default:
   #   validation:
 
+# Metrics
+# signature - A Go function signature. Example:
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) ... unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) ... accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of metric: "Histogram", "Gauge" or "Counter" (default)
+# alias - The name of the metric to register with Prometheus
+# buckets - Bucket boundaries for histograms
+metrics:
+  # - signature:
+  #   description:
+  #   kind:
+
 # Functions
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)

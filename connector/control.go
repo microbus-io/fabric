@@ -66,7 +66,7 @@ func (c *Connector) handleControlConfigRefresh(w http.ResponseWriter, r *http.Re
 
 // handleMetrics responds to the :888/metrics control request with collected metrics.
 func (c *Connector) handleMetrics(w http.ResponseWriter, r *http.Request) error {
-	_ = c.ObserveMetric("fabric_uptime_duration_seconds_total", time.Now().Sub(c.initTime).Seconds())
+	_ = c.ObserveMetric("microbus_uptime_duration_seconds_total", time.Since(c.initTime).Seconds())
 
 	if c.metricsHandler != nil {
 		c.metricsHandler.ServeHTTP(w, r)

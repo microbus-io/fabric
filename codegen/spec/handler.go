@@ -34,6 +34,11 @@ type Handler struct {
 	Callback   bool   `yaml:"callback"`
 	Secret     bool   `yaml:"secret"`
 
+	// Metrics
+	Kind    string    `json:"kind" yaml:"kind"`
+	Alias   string    `json:"alias" yaml:"alias"`
+	Buckets []float64 `json:"buckets" yaml:"buckets"`
+
 	// Ticker
 	Interval   time.Duration `yaml:"interval"`
 	TimeBudget time.Duration `yaml:"timeBudget"`

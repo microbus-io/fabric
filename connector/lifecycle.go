@@ -196,6 +196,8 @@ func (c *Connector) Startup() (err error) {
 	// Run all tickers
 	c.runTickers()
 
+	c.SetInitTime(time.Now())
+
 	return nil
 }
 
