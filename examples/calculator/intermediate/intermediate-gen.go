@@ -149,12 +149,10 @@ func (svc *Intermediate) IncrementMemoryUsageBytes(b int) error {
 	xb := float64(b)
 	return svc.IncrementMetric("calculator_memory_usage_bytes", xb)
 }
-
-// doOnConfigChanged is called when the config of the microservice changed.
-func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
+// doOnConfigChanged is called when the config of the microservice changes.
+func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
-
 // doArithmetic handles marshaling for the Arithmetic function.
 func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.ArithmeticIn

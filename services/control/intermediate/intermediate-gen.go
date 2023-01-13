@@ -80,8 +80,8 @@ The microservice itself does nothing and should not be included in applications.
 
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
-	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+	svc.SetOnShutdown(svc.impl.OnShutdown)	
+
 	// Functions
 	svc.Subscribe(`:888/ping`, svc.doPing)
 	svc.Subscribe(`:888/config-refresh`, svc.doConfigRefresh)
@@ -93,7 +93,6 @@ The microservice itself does nothing and should not be included in applications.
 func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
-
 // doOnConfigChanged is called when the config of the microservice changes.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
