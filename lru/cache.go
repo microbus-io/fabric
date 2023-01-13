@@ -45,13 +45,13 @@ type Cache[K comparable, V any] struct {
 	clock         clock.Clock
 }
 
-// NewCache creates a new LRU cache.
+// NewCache creates a new LRU cache with a weight capacity of 16384 and a maximum age of 1hr.
 func NewCache[K comparable, V any]() *Cache[K, V] {
 	c := &Cache[K, V]{
 		buckets:   []*bucket[K, V]{},
 		maxWeight: 16384,
 		maxAge:    time.Hour,
-		clock:     clock.New(),
+		clock:     clock.NewClock(),
 	}
 
 	// Prepare buckets
@@ -284,9 +284,8 @@ func (c *Cache[K, V]) Len() int {
 	return count
 }
 
-// SetMaxAge sets the age limit of elements in this cache.
-// Elements that are bumped have their life span reset and will therefore
-// survive longer.
+// SetMaxAge sets the total weight limit of elements in this cache.
+// If not specified, elements default to a weight of 1.
 func (c *Cache[K, V]) SetMaxWeight(weight int) error {
 	if weight < 0 {
 		return errors.New("negative weight")

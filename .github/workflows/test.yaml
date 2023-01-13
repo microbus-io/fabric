@@ -1,5 +1,7 @@
 name: "Test"
 on:
+  pull_request:
+    types: [opened, reopened]
   push:
     branches:
       - "main"
@@ -8,6 +10,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: "Run tests"
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "secret1234"
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@v3
       - name: Create Nats cluster
@@ -17,6 +27,8 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: go.sum
       - name: "Show version"
         run: go version
       - name: "Run tests"

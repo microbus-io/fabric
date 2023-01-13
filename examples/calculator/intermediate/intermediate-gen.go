@@ -13,7 +13,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
@@ -21,6 +23,8 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"github.com/microbus-io/fabric/examples/calculator/resources"
@@ -33,12 +37,16 @@ var (
 	_ *json.Decoder
 	_ fmt.Stringer
 	_ *http.Request
+	_ filepath.WalkFunc
 	_ strconv.NumError
+	_ strings.Reader
 	_ time.Duration
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
+	_ *log.Field
+	_ *shardedsql.DB
 	_ sub.Option
 	_ calculatorapi.Client
 )
@@ -66,12 +74,12 @@ func NewService(impl ToDo, version int) *Intermediate {
 		Connector: connector.New("calculator.example"),
 		impl: impl,
 	}
-	
 	svc.SetVersion(version)
 	svc.SetDescription(`The Calculator microservice performs simple mathematical operations.`)
+
+	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 
 	// Metrics
 	svc.DefineHistogram(
@@ -141,11 +149,11 @@ func (svc *Intermediate) IncrementMemoryUsageBytes(b int) error {
 	xb := float64(b)
 	return svc.IncrementMetric("calculator_memory_usage_bytes", xb)
 }
+
 // doOnConfigChanged is called when the config of the microservice changed.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
 	return nil
 }
-
 
 // doArithmetic handles marshaling for the Arithmetic function.
 func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) error {

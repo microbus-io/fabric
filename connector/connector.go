@@ -38,8 +38,8 @@ type Connector struct {
 	description string
 	version     int
 
-	onStartup       *cb.Callback
-	onShutdown      *cb.Callback
+	onStartup       []*cb.Callback
+	onShutdown      []*cb.Callback
 	lifetimeCtx     context.Context
 	ctxCancel       context.CancelFunc
 	pendingOps      int32
@@ -76,7 +76,7 @@ type Connector struct {
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
-	onConfigChanged *cb.Callback
+	onConfigChanged []*cb.Callback
 
 	logger *zap.Logger
 
@@ -99,7 +99,7 @@ func NewConnector() *Connector {
 		subs:             map[string]*sub.Subscription{},
 		requestDefrags:   map[string]*httpx.DefragRequest{},
 		responseDefrags:  map[string]*httpx.DefragResponse{},
-		clock:            clock.NewClockReference(clock.New()),
+		clock:            clock.NewClockReference(clock.NewClock()),
 		tickers:          map[string]*cb.Callback{},
 		lifetimeCtx:      context.Background(),
 		knownResponders:  lru.NewCache[string, map[string]bool](),

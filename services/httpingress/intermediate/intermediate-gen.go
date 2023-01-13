@@ -13,7 +13,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
@@ -21,6 +23,8 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"github.com/microbus-io/fabric/services/httpingress/resources"
@@ -33,12 +37,16 @@ var (
 	_ *json.Decoder
 	_ fmt.Stringer
 	_ *http.Request
+	_ filepath.WalkFunc
 	_ strconv.NumError
+	_ strings.Reader
 	_ time.Duration
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
+	_ *log.Field
+	_ *shardedsql.DB
 	_ sub.Option
 	_ httpingressapi.Client
 )
@@ -63,14 +71,15 @@ func NewService(impl ToDo, version int) *Intermediate {
 		Connector: connector.New("http.ingress.sys"),
 		impl: impl,
 	}
-	
 	svc.SetVersion(version)
 	svc.SetDescription(`The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.`)
+
+	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Configs
+	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"TimeBudget",
 		cfg.Description(`TimeBudget specifies the time out for incoming requests.`),
@@ -92,8 +101,8 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is called when the config of the microservice changed.
-func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
+// doOnConfigChanged is called when the config of the microservice changes.
+func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
 
@@ -106,6 +115,14 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	return _dur
 }
 
+// TimeBudget initializes the TimeBudget config property of the microservice.
+func TimeBudget(budget time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("TimeBudget", fmt.Sprintf("%v", budget))
+	}
+}
+
+
 /*
 Port is the HTTP port on which to listen for incoming requests.
 */
@@ -113,14 +130,6 @@ func (svc *Intermediate) Port() (port int) {
 	_val := svc.Config("Port")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
-}
-
-
-// TimeBudget initializes the TimeBudget config property of the microservice.
-func TimeBudget(budget time.Duration) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
-		return svc.SetConfig("TimeBudget", fmt.Sprintf("%v", budget))
-	}
 }
 
 // Port initializes the Port config property of the microservice.

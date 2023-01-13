@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/examples/calculator"
+	"github.com/microbus-io/fabric/examples/directory"
 	"github.com/microbus-io/fabric/examples/eventsink"
 	"github.com/microbus-io/fabric/examples/eventsource"
 	"github.com/microbus-io/fabric/examples/hello"
@@ -27,6 +28,7 @@ func main() {
 		calculator.NewService(),
 		eventsource.NewService(),
 		eventsink.NewService(),
+		directory.NewService(),
 	)
 	app.Run()
 }

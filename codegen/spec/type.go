@@ -13,7 +13,6 @@ type Type struct {
 	Description string            `yaml:"description"`
 	Define      map[string]string `yaml:"define"`
 	Import      string            `yaml:"import"`
-	Source      string            `yaml:"source"`
 }
 
 // UnmarshalYAML parses the handler.
@@ -29,11 +28,8 @@ func (t *Type) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	// Post processing
 	ifEmpty := t.Name + " is a complex type."
-	if t.Source != "" {
-		if t.Import == "" {
-			t.Import = t.Name
-		}
-		ifEmpty = t.Name + " refers to " + t.Import + " at " + t.Source + "."
+	if t.Import != "" {
+		ifEmpty = t.Name + " refers to " + t.Import + "."
 	}
 	t.Description = conformDesc(
 		t.Description,
@@ -60,17 +56,17 @@ func (t *Type) validate() error {
 	if !match {
 		return errors.Newf("invalid type name '%s'", t.Name)
 	}
-	if t.Source == "" && len(t.Define) == 0 {
+	if t.Import == "" && len(t.Define) == 0 {
 		return errors.Newf("missing type specification '%s'", t.Name)
 	}
-	if t.Source != "" && len(t.Define) > 0 {
+	if t.Import != "" && len(t.Define) > 0 {
 		return errors.Newf("ambiguous type specification '%s'", t.Name)
 	}
 
-	if t.Source != "" {
-		match, _ = regexp.MatchString(`^[a-z][a-zA-Z0-9\.\-]*(/[a-z][a-zA-Z0-9\.\-]*)*$`, t.Source)
+	if t.Import != "" {
+		match, _ = regexp.MatchString(`^([a-z][a-zA-Z0-9\.\-]*)(/[a-z][a-zA-Z0-9\.\-]*)*(/[A-Z][a-zA-Z0-9\.\-]*)$`, t.Import)
 		if !match {
-			return errors.Newf("invalid import source path '%s' in '%s'", t.Source, t.Name)
+			return errors.Newf("invalid import path '%s' in '%s'", t.Import, t.Name)
 		}
 	}
 
@@ -88,12 +84,33 @@ func (t *Type) validate() error {
 	return nil
 }
 
-// SourceSuffix returns the last piece of the import package path,
-// which is expected to point to a microservice.
-func (t *Type) SourceSuffix() string {
-	p := strings.LastIndex(t.Source, "/")
+// ImportType returns the last piece of the import path, which is the name of the type.
+// "path/to/a/remote/Type" returns "Type".
+func (t *Type) ImportType() string {
+	p := strings.LastIndex(t.Import, "/")
 	if p < 0 {
-		return t.Source
+		return t.Import
 	}
-	return t.Source[p+1:]
+	return t.Import[p+1:]
+}
+
+// ImportPackage returns the import path, excluding the type name.
+// "path/to/a/remote/Type" returns "path/to/a/remote".
+func (t *Type) ImportPackage() string {
+	p := strings.LastIndex(t.Import, "/")
+	if p < 0 {
+		return ""
+	}
+	return t.Import[:p]
+}
+
+// ImportPackageSuffix returns the last portion of the package path.
+// "path/to/a/remote/Type" returns "remote".
+func (t *Type) ImportPackageSuffix() string {
+	pkg := t.ImportPackage()
+	p := strings.LastIndex(pkg, "/")
+	if p < 0 {
+		return pkg
+	}
+	return pkg[p+1:]
 }

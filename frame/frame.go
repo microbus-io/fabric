@@ -58,6 +58,20 @@ func Of(r any) Frame {
 	return Frame{h}
 }
 
+// Get returns an arbitrary header.
+func (f Frame) Get(name string) string {
+	return f.h.Get(name)
+}
+
+// Set sets the value of an arbitrary header.
+func (f Frame) Set(name string, value string) {
+	if value == "" {
+		f.h.Del(name)
+	} else {
+		f.h.Set(name, value)
+	}
+}
+
 // OpCode indicates the type of the control message.
 func (f Frame) OpCode() string {
 	return f.h.Get(HeaderOpCode)

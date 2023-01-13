@@ -56,7 +56,7 @@ types:
       x: float
       y: float
   - name: Type2
-    source: from/somewhere/else
+    import: from/somewhere/else/Type2
 webs:
   - signature: Web1()
   - signature: Web2()
@@ -95,7 +95,7 @@ tickers:
 	}
 
 	fileContains(
-		filepath.Join("app", "test-full-generation", "main-gen.go"),
+		filepath.Join("app", dir, "main-gen.go"),
 		"func main", dir+".NewService()",
 	)
 	fileContains(

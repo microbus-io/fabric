@@ -8,6 +8,12 @@ general:
   host:
   description:
 
+# Databases
+#
+# mysql - A name for the MySQL database
+databases:
+  # mysql: MySQL
+
 # Config properties
 #
 # signature - Func() (val Type)
@@ -31,22 +37,20 @@ configs:
   #   default:
   #   validation:
 
-# Metrics
-# signature - A Go function signature. Example:
-#   RequestDurationSeconds(dur time.Duration, method string, success bool)
-#   MemoryUsageBytes(b int64)
-#   DistanceMiles(miles float64, countryCode int)
-#   RequestsCount(count int, domain string) ... unit-less accumulating count
-#   CPUSecondsTotal(dur time.Duration) ... accumulating count with unit
-#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
 # description - Documentation
-# kind - The kind of metric: "Histogram", "Gauge" or "Counter" (default)
-# alias - The name of the metric to register with Prometheus
-# buckets - Bucket boundaries for histograms
-metrics:
-  # - signature:
+# define - Define a new type with the specified fields (name: type)
+# import - The package path of the imported type
+types:
+  # - name: DefinedType
   #   description:
-  #   kind:
+  #   define:
+  #     fieldName: Type
+  # - name: ImportedType
+  #   description:
+  #   import: package/path/of/a/remote/type/ImportedType
 
 # Functions
 #
@@ -128,18 +132,20 @@ tickers:
   #   description:
   #   interval:
 
-# Types
+# Metrics
 #
-# name - All non-primitive types used in functions must be accounted for
+# signature - A Go function signature. Example:
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) ... unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) ... accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
 # description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The name of the imported type (defaults to the function name)
-# source - The package path of the microservice that defines the type
-types:
-  # - name: DefinedType
+# kind - The kind of metric: "Histogram", "Gauge" or "Counter" (default)
+# alias - The name of the metric to register with Prometheus
+# buckets - Bucket boundaries for histograms
+metrics:
+  # - signature:
   #   description:
-  #   define:
-  #     fieldName: Type
-  # - name: ImportedType
-  #   description:
-  #   source: package/path/of/another/microservice
+  #   kind:

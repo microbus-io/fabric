@@ -15,7 +15,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
@@ -23,6 +25,8 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"{{ .Package }}/resources"
@@ -40,12 +44,16 @@ var (
 	_ *json.Decoder
 	_ fmt.Stringer
 	_ *http.Request
+	_ filepath.WalkFunc
 	_ strconv.NumError
+	_ strings.Reader
 	_ time.Duration
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
+	_ *log.Field
+	_ *shardedsql.DB
 	_ sub.Option
 	_ {{ .PackageSuffix }}api.Client
 )
@@ -78,6 +86,9 @@ type ToDo interface {
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
+	{{- if .Databases.MySQL }}
+	dbMySQL *shardedsql.DB
+	{{- end }}
 }
 
 // NewService creates a new intermediate service.
@@ -86,16 +97,30 @@ func NewService(impl ToDo, version int) *Intermediate {
 		Connector: connector.New("{{ .General.Host }}"),
 		impl: impl,
 	}
-	
 	svc.SetVersion(version)
 	svc.SetDescription(`{{ .General.Description }}`)
+	
+	{{- if .Databases.MySQL }}
+
+	// MySQL
+	svc.SetOnStartup(svc.mysqlOnStartup)
+	svc.SetOnShutdown(svc.mysqlOnShutdown)
+	svc.DefineConfig(
+		"{{ .Databases.MySQL }}",
+		cfg.Description("{{ .Databases.MySQL }} is the connection string to the sharded MySQL database."),
+		cfg.Secret(),
+	)
+	svc.SetOnConfigChanged(svc.mysqlOnConfigChanged)
+	{{- end }}
+
+	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 
 	{{- if .Configs }}
 	
 	// Configs
+	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	{{- range .Configs }}
 	svc.DefineConfig(
 		"{{ .Name }}",

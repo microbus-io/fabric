@@ -40,6 +40,21 @@ general:
   description: The email service delivers emails to recipients.
 ```
 
+### Databases
+
+The `databases` section indicates if the microservices uses any databases.
+The name of the database is used to pull the data source name (a.k.a. connection string)
+from a configuration property with that name. Unless the application uses multiple
+databases the recommendation is to name the database the same as its kind.
+
+```yaml
+# Databases
+#
+# mysql - A name for the MySQL database
+databases:
+  mysql: MySQL
+```
+
 ### Configs
 
 The `configs` section is used to define the [configuration](./configuration.md) properties of the microservices. Config properties get their values in runtime from the [configurator](../structure/services-configurator.md) system microservice. 
@@ -82,6 +97,29 @@ If `callback` is set to `true`, a callback function will be generated and called
 func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
     return
 }
+```
+
+### Types
+
+All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to their fully-qualified path.
+
+Complex types may contain other complex types in which case those nested types also must be declared.
+
+```yaml
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - The package path of the imported type
+types:
+  - name:
+    description:
+    define:
+      fieldName: Type
+  - name:
+    description:
+    import:
 ```
 
 ### Functions
@@ -172,7 +210,7 @@ sinks:
   - signature:
     description:
     event:
-    source: package/path/of/another/microservice
+    source:
 ```
 
 The `signature` of an event sink must match that of the event source. The one exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if different event sources use the same name for their events. That becomes necessary because handler function names must be unique in the scope of the sink microservice.
@@ -260,31 +298,6 @@ func (svc *Service) TickerHandler(ctx context.Context) (err error) {
 }
 ```
 
-### Types
-
-All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to the fully-qualified path of their package.
-
-Complex types may contain other complex types in which case those nested types also must be declared.
-
-```yaml
-# Types
-#
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The name of the imported type (defaults to the function name)
-# source - The package path of the microservice that defines the type
-types:
-  - name:
-    description:
-    define:
-      fieldName: Type
-  - name:
-    description:
-    import:
-    source:
-```
-
 ## Clients
 
 In addition to the server side of things, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to reduce the chance of cyclical dependencies between upstream and downstream microservices.
@@ -316,7 +329,7 @@ The code generator creates quite a few files and sub-directories in the director
 ```
 {service}
   app
-    {hyphenated-host-name}
+    {service}
       main-gen.go
   {service}api
     clients-gen.go
@@ -336,7 +349,7 @@ The code generator creates quite a few files and sub-directories in the director
 
 Files that include `-gen` in their name are fully code generated and should not be edited.
 
-The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the host name of the service, with dots replaced by hyphens.
+The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the package name of the microservice.
 
 The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. `MulticastTrigger` and `Hook` are defined if the microservice is a source of events. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 

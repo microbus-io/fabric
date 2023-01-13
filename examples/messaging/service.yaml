@@ -55,8 +55,7 @@ functions:
 # name - All non-primitive types used in functions must be accounted for
 # description - Documentation
 # define - Define a new type with the specified fields (name: type)
-# import - The name of the imported type (defaults to the function name)
-# source - The package path of the microservice that defines the type
+# import - The package path of the imported type
 types:
   # - name: DefinedType
   #   description:
@@ -64,7 +63,7 @@ types:
   #     fieldName: Type
   # - name: ImportedType
   #   description:
-  #   source: package/path/of/another/microservice
+  #   import: package/path/of/a/remote/type/ImportedType
 
 # Web handlers
 #
@@ -125,6 +124,8 @@ tickers:
 #   :417 - Root path
 #   https://example.com:417/path
 events:
+  # - signature:
+  #   description:
 
 # Event sinks
 #
@@ -137,3 +138,11 @@ events:
 #   default - Load balanced (default)
 #   none - Pervasive
 sinks:
+  # - signature:
+  #   description:
+  #   source: package/path/of/another/microservice
+
+# Databases
+#
+# mysql - A name for the MySQL database
+databases:

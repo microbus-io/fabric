@@ -146,6 +146,7 @@ func (gen *Generator) makeIntermediate() error {
 	tt, err := LoadTemplate(
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-gen.configs.txt",
+		"intermediate/intermediate-gen.mysql.txt",
 		"intermediate/intermediate-gen.functions.txt",
 	)
 	if err != nil {
@@ -201,6 +202,30 @@ func (gen *Generator) makeResources() error {
 	}
 	gen.Printer.Debug("resources/embed-gen.go")
 
+	if gen.specs.Databases.MySQL != "" {
+		// Create the directory
+		dir := filepath.Join(gen.WorkDir, "resources", "mysql")
+		_, err := os.Stat(dir)
+		if errors.Is(err, os.ErrNotExist) {
+			os.Mkdir(dir, os.ModePerm)
+			gen.Printer.Debug("mkdir resources/mysql")
+		} else if err != nil {
+			return errors.Trace(err)
+		}
+
+		// doc.go
+		fileName := filepath.Join(gen.WorkDir, "resources", "mysql", "doc.go")
+		tt, err := LoadTemplate("resources/mysql/doc.txt")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = tt.Overwrite(fileName, gen.specs)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		gen.Printer.Debug("resources/mysql/doc.go")
+	}
+
 	return nil
 }
 
@@ -220,18 +245,17 @@ func (gen *Generator) makeApp() error {
 		return errors.Trace(err)
 	}
 
-	hyphenated := strings.ReplaceAll(gen.specs.General.Host, ".", "-")
-	dir = filepath.Join(gen.WorkDir, "app", hyphenated)
+	dir = filepath.Join(gen.WorkDir, "app", gen.specs.PackageSuffix())
 	_, err = os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
 		os.Mkdir(dir, os.ModePerm)
-		gen.Printer.Debug("mkdir app/%s", hyphenated)
+		gen.Printer.Debug("mkdir app/%s", gen.specs.PackageSuffix())
 	} else if err != nil {
 		return errors.Trace(err)
 	}
 
 	// main-gen.go
-	fileName := filepath.Join(gen.WorkDir, "app", hyphenated, "main-gen.go")
+	fileName := filepath.Join(gen.WorkDir, "app", gen.specs.PackageSuffix(), "main-gen.go")
 	tt, err := LoadTemplate("app/main-gen.txt")
 	if err != nil {
 		return errors.Trace(err)
@@ -240,7 +264,7 @@ func (gen *Generator) makeApp() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	gen.Printer.Debug("app/%s/main-gen.go", hyphenated)
+	gen.Printer.Debug("app/%s/main-gen.go", gen.specs.PackageSuffix())
 
 	return nil
 }

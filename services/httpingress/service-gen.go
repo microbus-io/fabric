@@ -49,6 +49,7 @@ func NewMock() *Mock {
 
 // Config initializers
 var (
+	_ int
 	// TimeBudget initializes the TimeBudget config property of the microservice
 	TimeBudget = intermediate.TimeBudget
 	// Port initializes the Port config property of the microservice

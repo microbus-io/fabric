@@ -31,6 +31,21 @@ configs:
   #   default:
   #   validation:
 
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - The package path of the imported type
+types:
+  # - name: DefinedType
+  #   description:
+  #   define:
+  #     fieldName: Type
+  # - name: ImportedType
+  #   description:
+  #   import: package/path/of/a/remote/type/ImportedType
+
 # Functions
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
@@ -117,18 +132,7 @@ tickers:
   #   description:
   #   interval:
 
-# Types
+# Databases
 #
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The name of the imported type (defaults to the function name)
-# source - The package path of the microservice that defines the type
-types:
-  # - name: DefinedType
-  #   description:
-  #   define:
-  #     fieldName: Type
-  # - name: ImportedType
-  #   description:
-  #   source: package/path/of/another/microservice
+# mysql - A name for the MySQL database
+databases:

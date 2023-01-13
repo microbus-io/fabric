@@ -82,6 +82,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Use the first segment of the URI as the host name to contact
 	uri := r.URL.RequestURI()
 	internalURL := "https:/" + uri
+	internalHost := strings.Split(uri, "/")[1]
 
 	// Skip favicon.ico to reduce noise
 	if uri == "/favicon.ico" {
@@ -119,6 +120,11 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	// Set proxy headers
+	options = append(options, pub.Header("X-Forwarded-Host", r.Host))
+	options = append(options, pub.Header("X-Forwarded-For", r.RemoteAddr))
+	options = append(options, pub.Header("X-Forwarded-Trimmed-Prefix", "/"+internalHost))
 
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)

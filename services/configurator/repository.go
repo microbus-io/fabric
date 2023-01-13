@@ -57,11 +57,11 @@ func (r *repository) Value(host string, name string) (value string, ok bool) {
 	if r.values == nil {
 		return "", false
 	}
+	host = strings.TrimSpace(strings.ToLower(host))
+	name = strings.TrimSpace(strings.ToLower(name))
 	if r.values["all"] != nil {
 		value, ok = r.values["all"][name]
 	}
-	host = strings.TrimSpace(strings.ToLower(host))
-	name = strings.TrimSpace(strings.ToLower(name))
 	segments := strings.Split(host, ".")
 	for i := len(segments) - 1; i >= 0; i-- {
 		domain := strings.Join(segments[i:], ".")
