@@ -50,10 +50,6 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 Collect returns the latest aggregated metrics.
 */
 func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) {
-	var wg sync.WaitGroup
-	var delay time.Duration
-	var lock sync.Mutex
-
 	host := r.URL.Query().Get("service")
 	if host == "" {
 		host = "all"
@@ -87,13 +83,11 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 
 	w.Header().Set("Content-Type", "text/plain")
 
-	for pingRes := range controlapi.NewClient(svc).ForHost(host).PingServices(r.Context()) {
-		pong, err := pingRes.Get()
-		if err != nil {
-			return errors.Trace(err)
-		}
+	var delay time.Duration
+	var lock sync.Mutex
+	var wg sync.WaitGroup
+	for serviceInfo := range controlapi.NewMulticastClient(svc).ForHost(host).PingServices(r.Context()) {
 		wg.Add(1)
-
 		go func(s string, delay time.Duration) {
 			defer wg.Done()
 			time.Sleep(delay) // Stagger requests to avoid all of them coming back at the same time
@@ -132,10 +126,9 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				}
 				rCloser.Close()
 			}
-		}(pong.Service, delay)
+		}(serviceInfo.HostName, delay)
 		delay += 2 * time.Millisecond
 	}
-
 	wg.Wait()
 	if wCloser != nil {
 		wCloser.Close()
