@@ -280,32 +280,41 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		return nil
 	}
 
-	// Prepare the context
-	// Set the context's timeout to the time budget reduced by a network hop
-	frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
-	ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
-	httpReq = httpReq.WithContext(ctx)
-
-	// Call the handler
+	// Execute the request
 	httpRecorder := httpx.NewResponseRecorder()
-	handlerErr := utils.CatchPanic(func() error {
-		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
-	})
-	cancel()
+	var handlerErr error
+	corsPreflight := (httpReq.Method == "OPTIONS" && httpReq.Header.Get("Origin") != "")
+	if corsPreflight {
+		// CORS preflight requests are returned empty
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+		httpRecorder.WriteHeader(http.StatusNoContent)
+	} else {
+		// Prepare the context
+		// Set the context's timeout to the time budget reduced by a network hop
+		frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
+		ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
+		httpReq = httpReq.WithContext(ctx)
 
-	if handlerErr != nil {
-		handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
-		c.LogError(ctx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
+		// Call the handler
+		handlerErr = utils.CatchPanic(func() error {
+			return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
+		})
+		cancel()
 
-		// Prepare an error response instead
-		httpRecorder = httpx.NewResponseRecorder()
-		httpRecorder.Header().Set("Content-Type", "application/json")
-		body, err := json.MarshalIndent(handlerErr, "", "\t")
-		if err != nil {
-			return errors.Trace(err)
+		if handlerErr != nil {
+			handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
+			c.LogError(frameCtx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
+
+			// Prepare an error response instead
+			httpRecorder = httpx.NewResponseRecorder()
+			httpRecorder.Header().Set("Content-Type", "application/json")
+			body, err := json.MarshalIndent(handlerErr, "", "\t")
+			if err != nil {
+				return errors.Trace(err)
+			}
+			httpRecorder.WriteHeader(http.StatusInternalServerError)
+			httpRecorder.Write(body)
 		}
-		httpRecorder.WriteHeader(http.StatusInternalServerError)
-		httpRecorder.Write(body)
 	}
 
 	// Set control headers on the response

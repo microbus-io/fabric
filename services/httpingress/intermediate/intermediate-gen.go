@@ -56,6 +56,9 @@ var (
 type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
+	OnChangedPorts(ctx context.Context) (err error)
+	OnChangedAllowedOrigins(ctx context.Context) (err error)
+	OnChangedPortMappings(ctx context.Context) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -82,15 +85,42 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"TimeBudget",
-		cfg.Description(`TimeBudget specifies the time out for incoming requests.`),
+		cfg.Description(`TimeBudget specifies the timeout for incoming requests.`),
 		cfg.Validation(`dur [1s,5m]`),
 		cfg.DefaultValue(`20s`),
 	)
 	svc.DefineConfig(
-		"Port",
-		cfg.Description(`Port is the HTTP port on which to listen for incoming requests.`),
-		cfg.Validation(`int [1,65535]`),
-		cfg.DefaultValue(`8080`),
+		"Ports",
+		cfg.Description(`Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.`),
+		cfg.DefaultValue(`8080,443,80`),
+	)
+	svc.DefineConfig(
+		"MaxBodySize",
+		cfg.Description(`MaxBodySize specifies the maximum size of the request body, in MB.`),
+		cfg.Validation(`int [1,1024]`),
+		cfg.DefaultValue(`20`),
+	)
+	svc.DefineConfig(
+		"AllowedOrigins",
+		cfg.Description(`AllowedOrigins is a comma-separated list of CORS origins to allow requests from.`),
+		cfg.DefaultValue(`*`),
+	)
+	svc.DefineConfig(
+		"PortMappings",
+		cfg.Description(`PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+HTTP port, y is the requested NATS port, and z is the port to serve.
+An incoming HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+request https://servicehost:z/path .
+Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+port y without change. Specific rules take precedence over * rules.
+The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+HTTP ports 443 and 80 to only internal port 443.`),
+		cfg.DefaultValue(`8080:*->*, 443:*->443, 80:*->443`),
+	)
+	svc.DefineConfig(
+		"RedirectRoot",
+		cfg.Description(`RedirectRoot defines the internal URL to redirect requests to the root path.
+The URL must be fully qualified, for example, "https://home.service/welcome-page".`),
 	)
 
 	return svc
@@ -103,11 +133,29 @@ func (svc *Intermediate) Resources() embed.FS {
 
 // doOnConfigChanged is called when the config of the microservice changes.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
+	if changed("Ports") {
+		err := svc.impl.OnChangedPorts(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("AllowedOrigins") {
+		err := svc.impl.OnChangedAllowedOrigins(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("PortMappings") {
+		err := svc.impl.OnChangedPortMappings(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	return nil
 }
 
 /*
-TimeBudget specifies the time out for incoming requests.
+TimeBudget specifies the timeout for incoming requests.
 */
 func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	_val := svc.Config("TimeBudget")
@@ -124,17 +172,89 @@ func TimeBudget(budget time.Duration) (func(connector.Service) error) {
 
 
 /*
-Port is the HTTP port on which to listen for incoming requests.
+Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.
 */
-func (svc *Intermediate) Port() (port int) {
-	_val := svc.Config("Port")
+func (svc *Intermediate) Ports() (port string) {
+	_val := svc.Config("Ports")
+	return _val
+}
+
+// Ports initializes the Ports config property of the microservice.
+func Ports(port string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("Ports", fmt.Sprintf("%v", port))
+	}
+}
+
+
+/*
+MaxBodySize specifies the maximum size of the request body, in MB.
+*/
+func (svc *Intermediate) MaxBodySize() (megaBytes int) {
+	_val := svc.Config("MaxBodySize")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
 
-// Port initializes the Port config property of the microservice.
-func Port(port int) (func(connector.Service) error) {
+// MaxBodySize initializes the MaxBodySize config property of the microservice.
+func MaxBodySize(megaBytes int) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.SetConfig("Port", fmt.Sprintf("%v", port))
+		return svc.SetConfig("MaxBodySize", fmt.Sprintf("%v", megaBytes))
+	}
+}
+
+
+/*
+AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+*/
+func (svc *Intermediate) AllowedOrigins() (origins string) {
+	_val := svc.Config("AllowedOrigins")
+	return _val
+}
+
+// AllowedOrigins initializes the AllowedOrigins config property of the microservice.
+func AllowedOrigins(origins string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("AllowedOrigins", fmt.Sprintf("%v", origins))
+	}
+}
+
+
+/*
+PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+HTTP port, y is the requested NATS port, and z is the port to serve.
+An incoming HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+request https://servicehost:z/path .
+Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+port y without change. Specific rules take precedence over * rules.
+The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+HTTP ports 443 and 80 to only internal port 443.
+*/
+func (svc *Intermediate) PortMappings() (mappings string) {
+	_val := svc.Config("PortMappings")
+	return _val
+}
+
+// PortMappings initializes the PortMappings config property of the microservice.
+func PortMappings(mappings string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("PortMappings", fmt.Sprintf("%v", mappings))
+	}
+}
+
+
+/*
+RedirectRoot defines the internal URL to redirect requests to the root path.
+The URL must be fully qualified, for example, "https://home.service/welcome-page".
+*/
+func (svc *Intermediate) RedirectRoot() (toURL string) {
+	_val := svc.Config("RedirectRoot")
+	return _val
+}
+
+// RedirectRoot initializes the RedirectRoot config property of the microservice.
+func RedirectRoot(toURL string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("RedirectRoot", fmt.Sprintf("%v", toURL))
 	}
 }

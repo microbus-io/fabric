@@ -28,13 +28,37 @@ general:
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
   - signature: TimeBudget() (budget time.Duration)
-    description: TimeBudget specifies the time out for incoming requests.
+    description: TimeBudget specifies the timeout for incoming requests.
     default: 20s
     validation: dur [1s,5m]
-  - signature: Port() (port int)
-    description: Port is the HTTP port on which to listen for incoming requests.
-    default: 8080
-    validation: int [1,65535]
+  - signature: Ports() (port string)
+    description: Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.
+    default: 8080,443,80
+    callback: true
+  - signature: MaxBodySize() (megaBytes int)
+    description: MaxBodySize specifies the maximum size of the request body, in MB.
+    default: 20
+    validation: int [1,1024]
+  - signature: AllowedOrigins() (origins string)
+    description: AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+    default: "*"
+    callback: true
+  - signature: PortMappings() (mappings string)
+    description: |
+      PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+      HTTP port, y is the requested NATS port, and z is the port to serve.
+      An incoming HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+      request https://servicehost:z/path .
+      Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+      port y without change. Specific rules take precedence over * rules.
+      The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+      HTTP ports 443 and 80 to only internal port 443.
+    default: 8080:*->*, 443:*->443, 80:*->443
+    callback: true
+  - signature: RedirectRoot() (toURL string)
+    description: |-
+      RedirectRoot defines the internal URL to redirect requests to the root path.
+      The URL must be fully qualified, for example, "https://home.service/welcome-page".
 
 # Types
 #

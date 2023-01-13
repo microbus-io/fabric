@@ -93,9 +93,9 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	frame.Of(req.Header).SetOpCode(frame.OpCodeRequest)
 
 	// Copy X-Forwarded headers (set by ingress proxy)
-	for _, fwdHdr := range []string{"X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Trimmed-Prefix"} {
-		if frame.Of(req.Header).Get(fwdHdr) == "" {
-			v := frame.Of(ctx).Get(fwdHdr)
+	for _, fwdHdr := range []string{"X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Prefix"} {
+		v := frame.Of(ctx).Get(fwdHdr)
+		if v != "" && frame.Of(req.Header).Get(fwdHdr) == "" {
 			frame.Of(req.Header).Set(fwdHdr, v)
 		}
 	}

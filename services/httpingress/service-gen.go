@@ -52,6 +52,14 @@ var (
 	_ int
 	// TimeBudget initializes the TimeBudget config property of the microservice
 	TimeBudget = intermediate.TimeBudget
-	// Port initializes the Port config property of the microservice
-	Port = intermediate.Port
+	// Ports initializes the Ports config property of the microservice
+	Ports = intermediate.Ports
+	// MaxBodySize initializes the MaxBodySize config property of the microservice
+	MaxBodySize = intermediate.MaxBodySize
+	// AllowedOrigins initializes the AllowedOrigins config property of the microservice
+	AllowedOrigins = intermediate.AllowedOrigins
+	// PortMappings initializes the PortMappings config property of the microservice
+	PortMappings = intermediate.PortMappings
+	// RedirectRoot initializes the RedirectRoot config property of the microservice
+	RedirectRoot = intermediate.RedirectRoot
 )
