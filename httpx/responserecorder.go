@@ -36,7 +36,6 @@ func (rr *ResponseRecorder) Write(b []byte) (int, error) {
 		rr.bytes = b
 		return len(b), nil
 	}
-
 	if rr.body == nil {
 		rr.body = &bytes.Buffer{}
 		rr.body.Write(rr.bytes)
@@ -73,4 +72,14 @@ func (rr *ResponseRecorder) Result() *http.Response {
 	}
 	rr.header.Set("Content-Length", strconv.FormatInt(res.ContentLength, 10))
 	return res
+}
+
+// ContentLength returns the total number of bytes written to the body of the response.
+func (rr *ResponseRecorder) ContentLength() int {
+	if rr.bytes != nil {
+		return len(rr.bytes)
+	} else if rr.body != nil {
+		return rr.body.Len()
+	}
+	return 0
 }

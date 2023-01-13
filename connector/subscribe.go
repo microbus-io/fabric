@@ -323,7 +323,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	_ = c.ObserveMetric(
 		"microbus_response_size_bytes",
-		float64(httpRecorder.Result().ContentLength),
+		float64(httpRecorder.ContentLength()),
 		s.Canonical(),
 		strconv.Itoa(s.Port),
 		httpReq.Method,

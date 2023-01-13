@@ -8,6 +8,12 @@ general:
   host: messaging.example
   description: The Messaging microservice demonstrates service-to-service communication patterns.
 
+# Databases
+#
+# mysql - A name for the MySQL database
+databases:
+  # mysql: MySQL
+
 # Config properties
 #
 # signature - Func() (val Type)
@@ -31,6 +37,21 @@ configs:
   #   default:
   #   validation:
 
+# Types
+#
+# name - All non-primitive types used in functions must be accounted for
+# description - Documentation
+# define - Define a new type with the specified fields (name: type)
+# import - The package path of the imported type
+types:
+  # - name: DefinedType
+  #   description:
+  #   define:
+  #     fieldName: Type
+  # - name: ImportedType
+  #   description:
+  #   import: package/path/of/a/remote/type/ImportedType
+
 # Functions
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
@@ -49,21 +70,6 @@ configs:
 functions:
   # - signature:
   #   description:
-
-# Types
-#
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The package path of the imported type
-types:
-  # - name: DefinedType
-  #   description:
-  #   define:
-  #     fieldName: Type
-  # - name: ImportedType
-  #   description:
-  #   import: package/path/of/a/remote/type/ImportedType
 
 # Web handlers
 #
@@ -142,7 +148,20 @@ sinks:
   #   description:
   #   source: package/path/of/another/microservice
 
-# Databases
+# Metrics
 #
-# mysql - A name for the MySQL database
-databases:
+# signature - Func(measure Type, label Type, label Type)
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# alias - The name of the metric to register with Prometheus
+# buckets - Bucket boundaries for histograms [x,y,z,...]
+metrics:
+  # - signature:
+  #   description:
+  #   kind:

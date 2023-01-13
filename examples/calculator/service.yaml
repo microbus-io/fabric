@@ -138,17 +138,17 @@ tickers:
 
 # Metrics
 #
-# signature - A Go function signature. Example:
+# signature - Func(measure Type, label Type, label Type)
 #   RequestDurationSeconds(dur time.Duration, method string, success bool)
 #   MemoryUsageBytes(b int64)
 #   DistanceMiles(miles float64, countryCode int)
-#   RequestsCount(count int, domain string) ... unit-less accumulating count
-#   CPUSecondsTotal(dur time.Duration) ... accumulating count with unit
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
 #   See https://prometheus.io/docs/practices/naming/ for naming best practices
 # description - Documentation
-# kind - The kind of metric: "Histogram", "Gauge" or "Counter" (default)
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
 # alias - The name of the metric to register with Prometheus
-# buckets - Bucket boundaries for histograms
+# buckets - Bucket boundaries for histograms [x,y,z,...]
 metrics:
   - signature: ArithmeticResult(num int, op string)
     description: ArithmeticResult tracks the results of arithmetic operations.
