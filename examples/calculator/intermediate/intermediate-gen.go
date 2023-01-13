@@ -79,30 +79,30 @@ func NewService(impl ToDo, version int) *Intermediate {
 
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
-	svc.SetOnShutdown(svc.impl.OnShutdown)
-
-	// Metrics
-	svc.DefineHistogram(
-		`calculator_arithmetic_result`,
-		`Tracks the results of arithmetic operations.`,
-		[]float64{ 0, 10, 100, 1000, 100000 },
-		[]string{ "op" },
-	)
-	svc.DefineCounter(
-		`calculator_arithmetic_success`,
-		`The number of successful arithmetic calculations`,
-		[]string{ "op" },
-	)
-	svc.DefineGauge(
-		`calculator_memory_usage_bytes`,
-		`The memory usage in bytes`,
-		[]string{  },
-	)	
+	svc.SetOnShutdown(svc.impl.OnShutdown)	
 
 	// Functions
 	svc.Subscribe(`:443/arithmetic`, svc.doArithmetic)
 	svc.Subscribe(`:443/square`, svc.doSquare)
 	svc.Subscribe(`:443/distance`, svc.doDistance)
+
+	// Metrics
+	svc.Definehistogram(
+		`calculator_arithmetic_result`,
+		`ArithmeticResult tracks the results of arithmetic operations.`,
+		[]float64{ 0, 10, 100, 1000, 100000 },
+		[]string{ "op" },
+	)
+	svc.Definecounter(
+		`calculator_arithmetic_success`,
+		`ArithmeticSuccess tracks the number of successful arithmetic calculations.`,
+		[]string{ "op" },
+	)
+	svc.Definegauge(
+		`calculator_memory_usage_bytes`,
+		`MemoryUsageBytes tracks the memory usage in bytes.`,
+		[]string{  },
+	)
 
 	return svc
 }
@@ -112,43 +112,6 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-/*
-ObserveArithmeticResult observes a value of the "calculator_arithmetic_result" metric.
-Tracks the results of arithmetic operations.
-*/
-func (svc *Intermediate) ObserveArithmeticResult(num int, op string) error {
-	xnum := float64(num)
-	xop := fmt.Sprintf("%v", op)
-	return svc.ObserveMetric("calculator_arithmetic_result", xnum, xop)
-}
-
-/*
-IncrementArithmeticSuccess increments the value of the "calculator_arithmetic_success" metric.
-The number of successful arithmetic calculations
-*/
-func (svc *Intermediate) IncrementArithmeticSuccess(num int, op string) error {
-	xnum := float64(num)
-	xop := op
-	return svc.IncrementMetric("calculator_arithmetic_success", xnum, xop)
-}
-
-/*
-ObserveMemoryUsageBytes observes a value of the "calculator_memory_usage_bytes" metric.
-The memory usage in bytes
-*/
-func (svc *Intermediate) ObserveMemoryUsageBytes(b int) error {
-	xb := float64(b)
-	return svc.ObserveMetric("calculator_memory_usage_bytes", xb)
-}
-
-/*
-IncrementMemoryUsageBytes increments the value of the "calculator_memory_usage_bytes" metric.
-The memory usage in bytes
-*/
-func (svc *Intermediate) IncrementMemoryUsageBytes(b int) error {
-	xb := float64(b)
-	return svc.IncrementMetric("calculator_memory_usage_bytes", xb)
-}
 // doOnConfigChanged is called when the config of the microservice changes.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
@@ -223,4 +186,42 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+/*
+ObserveArithmeticResult observes the current value of the "calculator_arithmetic_result" metric.
+ArithmeticResult tracks the results of arithmetic operations.
+*/
+func (svc *Intermediate) ObserveArithmeticResult(num int, op string) error {
+	xnum := float64(num)
+	xop := fmt.Sprintf("%v", op)
+	return svc.ObserveMetric("calculator_arithmetic_result", xnum, xop)
+}
+
+/*
+IncrementArithmeticSuccess increments the value of the "calculator_arithmetic_success" metric.
+ArithmeticSuccess tracks the number of successful arithmetic calculations.
+*/
+func (svc *Intermediate) IncrementArithmeticSuccess(num int, op string) error {
+	xnum := float64(num)
+	xop := fmt.Sprintf("%v", op)
+	return svc.IncrementMetric("calculator_arithmetic_success", xnum, xop)
+}
+
+/*
+ObserveMemoryUsageBytes observes the current value of the "calculator_memory_usage_bytes" metric.
+MemoryUsageBytes tracks the memory usage in bytes.
+*/
+func (svc *Intermediate) ObserveMemoryUsageBytes(b int) error {
+	xb := float64(b)
+	return svc.ObserveMetric("calculator_memory_usage_bytes", xb)
+}
+
+/*
+IncrementMemoryUsageBytes increments the value of the "calculator_memory_usage_bytes" metric.
+MemoryUsageBytes tracks the memory usage in bytes.
+*/
+func (svc *Intermediate) IncrementMemoryUsageBytes(b int) error {
+	xb := float64(b)
+	return svc.IncrementMetric("calculator_memory_usage_bytes", xb)
 }

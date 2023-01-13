@@ -77,7 +77,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+
 	// Configs
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(

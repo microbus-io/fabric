@@ -3,17 +3,17 @@
 package calculatorapi
 
 import (
-    "time"
+	"time"
 )
 
 var (
-    _ time.Duration
+	_ time.Duration
 )
 
 /*
 Point is a 2D (X,Y) coordinate.
 */
 type Point struct {
-    X float64 `json:"x"`
-    Y float64 `json:"y"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }

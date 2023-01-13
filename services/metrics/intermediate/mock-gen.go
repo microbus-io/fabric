@@ -54,7 +54,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
-    return nil
+	return nil
 }
 
 // doCollect handles the Collect web handler.
@@ -63,5 +63,5 @@ func (svc *Mock) doCollect(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'Collect' not implemented")
 	}
 	err = svc.MockCollect(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
