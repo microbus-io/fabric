@@ -96,9 +96,9 @@ func NewService(impl ToDo, version int) *Intermediate {
 	)
 	svc.DefineConfig(
 		"MaxBodySize",
-		cfg.Description(`MaxBodySize specifies the maximum size of the request body, in MB.`),
-		cfg.Validation(`int [1,1024]`),
-		cfg.DefaultValue(`20`),
+		cfg.Description(`MaxBodySize specifies the maximum size of the request body, in bytes.`),
+		cfg.Validation(`int [1024,]`),
+		cfg.DefaultValue(`33554432`),
 	)
 	svc.DefineConfig(
 		"AllowedOrigins",
@@ -188,18 +188,18 @@ func Ports(port string) (func(connector.Service) error) {
 
 
 /*
-MaxBodySize specifies the maximum size of the request body, in MB.
+MaxBodySize specifies the maximum size of the request body, in bytes.
 */
-func (svc *Intermediate) MaxBodySize() (megaBytes int) {
+func (svc *Intermediate) MaxBodySize() (bytes int) {
 	_val := svc.Config("MaxBodySize")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
 
 // MaxBodySize initializes the MaxBodySize config property of the microservice.
-func MaxBodySize(megaBytes int) (func(connector.Service) error) {
+func MaxBodySize(bytes int) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.SetConfig("MaxBodySize", fmt.Sprintf("%v", megaBytes))
+		return svc.SetConfig("MaxBodySize", fmt.Sprintf("%v", bytes))
 	}
 }
 

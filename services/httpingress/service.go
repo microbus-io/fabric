@@ -143,7 +143,12 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := svc.serveHTTP(w, r)
 	if err != nil {
 		uri := r.URL.RequestURI()
-		w.WriteHeader(http.StatusInternalServerError)
+		statusCode := http.StatusInternalServerError
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			statusCode = http.StatusRequestEntityTooLarge
+		}
+		w.WriteHeader(statusCode)
 		if svc.Deployment() != connector.PROD {
 			w.Write([]byte(fmt.Sprintf("%+v", err)))
 		} else {
@@ -210,7 +215,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
 
 	// Prepare the internal request options
-	r.Body = http.MaxBytesReader(w, r.Body, int64(1024*1024*svc.MaxBodySize()))
+	r.Body = http.MaxBytesReader(w, r.Body, int64(svc.MaxBodySize()))
 	defer r.Body.Close()
 	options := []pub.Option{
 		pub.Method(r.Method),
@@ -293,11 +298,13 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 			(contentEncoding == "" || contentEncoding == "identity") {
 			acceptEncoding := r.Header.Get("Accept-Encoding")
 			if strings.Contains(acceptEncoding, "gzip") {
+				w.Header().Del("Content-Length")
 				w.Header().Set("Content-Encoding", "gzip")
 				gzipper := gzip.NewWriter(w)
 				writer = gzipper
 				closer = gzipper
 			} else if strings.Contains(acceptEncoding, "deflate") {
+				w.Header().Del("Content-Length")
 				w.Header().Set("Content-Encoding", "deflate")
 				deflater, _ := flate.NewWriter(w, flate.DefaultCompression)
 				writer = deflater
@@ -312,7 +319,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Write back the body
 	if internalRes.Body != nil {
 		_, err = io.Copy(writer, internalRes.Body)
-		closer.Close()
+		if closer != nil {
+			closer.Close()
+		}
 		if err != nil {
 			return errors.Trace(err)
 		}

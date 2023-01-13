@@ -257,12 +257,8 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 	return nil
 }
 
-// With is a convenience function to apply options to a connector during its initialization.
+// With applies options to a connector during initialization and testing.
 func (c *Connector) With(options ...func(Service) error) Service {
-	if c.started {
-		c.captureInitErr(errors.New("already started"))
-		return c
-	}
 	for _, opt := range options {
 		err := opt(c)
 		if err != nil {

@@ -7,7 +7,6 @@
 general:
   host: http.ingress.sys
   description: The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.
-  integrationTests: false
 
 # Config properties
 #
@@ -35,10 +34,10 @@ configs:
     description: Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.
     default: 8080,443,80
     callback: true
-  - signature: MaxBodySize() (megaBytes int)
-    description: MaxBodySize specifies the maximum size of the request body, in MB.
-    default: 20
-    validation: int [1,1024]
+  - signature: MaxBodySize() (bytes int)
+    description: MaxBodySize specifies the maximum size of the request body, in bytes.
+    default: 33554432
+    validation: int [1024,]
   - signature: AllowedOrigins() (origins string)
     description: AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
     default: "*"
