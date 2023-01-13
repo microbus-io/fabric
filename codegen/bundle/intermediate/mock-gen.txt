@@ -88,7 +88,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
-    return nil
+	return nil
 }
 {{/**/}}
 
@@ -133,7 +133,7 @@ func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) (err erro
 		return errors.New("mocked endpoint '{{ .Name }}' not implemented")
 	}
 	err = svc.Mock{{ .Name }}(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 {{ end }}
 

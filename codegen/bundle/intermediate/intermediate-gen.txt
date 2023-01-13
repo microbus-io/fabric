@@ -131,23 +131,9 @@ func NewService(impl ToDo, version int) *Intermediate {
 		{{- if .Default }}
 		cfg.DefaultValue(`{{ .Default }}`),{{ end }}
 		{{- if .Secret }}
-		cfg.Secret(),{{ end }}	
+		cfg.Secret(),{{ end }}
 	)
 	{{- end }}{{ end }}
-	
-
-	{{- if .Metrics }}
-
-	// Metrics
-	{{- range .Metrics}}
-	svc.Define{{.Kind}}(
-		`{{.Alias}}`,
-		`{{.Description}}`,
-		{{- if .Buckets}}
-		[]float64{ {{range $i, $elem := .Buckets}}{{if $i}}, {{end}}{{.}}{{end}} },{{end}}
-		[]string{ {{range $i, $elem := .Signature.InputArgs}}{{if gt $i 1}}, {{end}}{{if gt $i 0}}"{{.Name}}"{{end}}{{end}} },
-	)
-	{{- end}}{{ end }}
 
 	{{- if .Functions }}	
 
@@ -185,6 +171,20 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.StartTicker("{{ .Name }}", interval{{ .Name }}, svc.impl.{{ .Name }}{{if .TimeBudget }}, cb.TimeBudget(timeBudget{{ .Name }}){{end}})
 	{{- end }}{{ end }}
 
+	{{- if .Metrics }}
+
+	// Metrics
+	{{- range .Metrics }}
+	svc.Define{{ .Kind }}(
+		`{{ .Alias }}`,
+		`{{ .Description }}`,
+		{{- if .Buckets }}
+		[]float64{ {{range $i, $elem := .Buckets}}{{if $i}}, {{end}}{{.}}{{end}} },
+		{{- end}}
+		[]string{ {{range $i, $elem := .Signature.InputArgs}}{{if gt $i 1}}, {{end}}{{if gt $i 0}}"{{.Name}}"{{end}}{{end}} },
+	)
+	{{- end}}{{ end }}
+
 	return svc
 }
 
@@ -192,35 +192,3 @@ func NewService(impl ToDo, version int) *Intermediate {
 func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
-
-{{- range .Metrics}}{{if or (eq .Kind "Histogram") (eq .Kind "Gauge")}}
-
-/*
-Observe{{.Name}} observes a value of the "{{.Alias}}" metric.
-{{.Description}}
-*/
-func (svc *Intermediate) Observe{{.Name}}({{range $i, $elem := .Signature.InputArgs}}{{if $i}}, {{end}}{{$elem.Name}} {{$elem.Type}}{{end}}) error {
-	{{range $i, $elem := .Signature.InputArgs}}{{if $i -}}
-	x{{$elem.Name}} := fmt.Sprintf("%v", {{$elem.Name}})
-	{{else -}}
-	x{{$elem.Name}} := {{if eq $elem.Type "time.Duration"}}{{$elem.Name}}.Seconds(){{else}}float64({{$elem.Name}}){{end}}
-	{{end}}{{end -}}
-	return svc.ObserveMetric("{{.Alias}}"{{range .Signature.InputArgs}}, x{{.Name}}{{end}})
-}
-{{- end}}
-
-{{- if or (eq .Kind "Counter") (eq .Kind "Gauge")}}
-
-/*
-Increment{{.Name}} increments the value of the "{{.Alias}}" metric.
-{{.Description}}
-*/
-func (svc *Intermediate) Increment{{.Name}}({{range $i, $elem := .Signature.InputArgs}}{{if $i}}, {{end}}{{$elem.Name}} {{$elem.Type}}{{end}}) error {
-	{{range $i, $elem := .Signature.InputArgs}}{{if $i -}}
-	x{{$elem.Name}} := {{if eq $elem.Type "string"}}{{$elem.Name}}{{else}}fmt.Sprintf("%v", {{$elem.Name}}){{end}}
-	{{else -}}
-	x{{$elem.Name}} := {{if eq $elem.Type "time.Duration"}}{{$elem.Name}}.Seconds(){{else}}float64({{$elem.Name}}){{end}}
-	{{end}}{{end -}}
-	return svc.IncrementMetric("{{.Alias}}"{{range .Signature.InputArgs}}, x{{.Name}}{{end}})
-}
-{{- end}}{{end}}

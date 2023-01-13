@@ -295,8 +295,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	})
 	cancel()
 
-	failed := handlerErr != nil // && errors.Extend(handlerErr).IsErrorSeverity()
-
+	failed := handlerErr != nil
 	_ = c.ObserveMetric(
 		"microbus_response_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
@@ -324,7 +323,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	_ = c.ObserveMetric(
 		"microbus_response_size_bytes",
-		float64(httpRecorder.Result().ContentLength), // TODO(rduncan) Verify ContentLength is accurate
+		float64(httpRecorder.Result().ContentLength),
 		s.Canonical(),
 		strconv.Itoa(s.Port),
 		httpReq.Method,

@@ -17,7 +17,7 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
-	mtr "github.com/microbus-io/fabric/mtr"
+	"github.com/microbus-io/fabric/mtr"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
@@ -45,12 +45,12 @@ type Connector struct {
 	pendingOps      int32
 	onStartupCalled bool
 	initErr         error
-	initTime        time.Time
+	startupTime     time.Time
 
-	registry       *prometheus.Registry
-	metricsHandler http.Handler
-	metricDefs     map[string]mtr.Metric
-	metricLock     sync.RWMutex
+	metricsRegistry *prometheus.Registry
+	metricsHandler  http.Handler
+	metricDefs      map[string]mtr.Metric
+	metricLock      sync.RWMutex
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription
@@ -105,7 +105,7 @@ func NewConnector() *Connector {
 		knownResponders:  lru.NewCache[string, map[string]bool](),
 		postRequestData:  lru.NewCache[string, string](),
 		multicastChanCap: 32,
-		metricDefs:       make(map[string]mtr.Metric),
+		metricDefs:       map[string]mtr.Metric{},
 	}
 
 	c.knownResponders.SetMaxWeight(16 * 1024)
@@ -113,7 +113,7 @@ func NewConnector() *Connector {
 	c.postRequestData.SetMaxWeight(256 * 1024)
 	c.postRequestData.SetMaxAge(time.Minute)
 
-	_ = c.newRegistry()
+	c.newMetricsRegistry()
 
 	return c
 }
@@ -159,12 +159,6 @@ func (c *Connector) HostName() string {
 // SetDescription sets a human-friendly description of the microservice.
 func (c *Connector) SetDescription(description string) error {
 	c.description = description
-	return nil
-}
-
-// SetInitTime sets the time where the microservice has completed startup and become operational.
-func (c *Connector) SetInitTime(initTime time.Time) error {
-	c.initTime = initTime
 	return nil
 }
 

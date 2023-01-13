@@ -52,24 +52,20 @@ Try the following URLs in your browser:
 
 Feel free to experiment with different values for the query arguments.
 
-## Configure IDE
+## Prometheus Setup
 
-The [Todo Tree extension](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree) is recommended for VS Code users.
-
-## Metrics Local Setup
-
-Metrics will not be available by default in a local environment. Docker Desktop will need to be installed in order to run a Promethues in a container. For more information on metrics see [Metrics](docs/tech/metrics.md) 
-
-To support and test metrics when running locally, using a docker image is recommended. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) if not already installed and pull the latest Prometheus docker image.
+[Metrics](docs/tech/metrics.md) in `Microbus` are collected by [Prometheus](https://prometheus.io). Installing Prometheus locally is required to enable collection of metrics for local development.
 
 ```cmd
 docker pull prom/prometheus
+
+docker run -p 9090:9090 -v path/to/examples/main/prometheus.yaml:/etc/prometheus/prometheus.yml prom/prometheus
 ```
 
-Make sure the metrics microservice are started and then start the Prometheus container with the following command:
+Make sure the metrics system microservice is included in your app and started in order for Prometheus to be able to collect metrics from your microservices.
 
-```cmd
-docker run -p 9090:9090 -v path/to/github.com/microbus-io/fabric/examples/main/prometheus.yaml:/etc/prometheus/prometheus.yml prom/prometheus
-```
+The provided sample `examples/main/prometheus.yaml` instructs Prometheus to scrape metrics from the metrics system microservice every 15 seconds. To verify, navigate to http://localhost:9090/graph and execute the query `service_uptime_duration_seconds_total`. If successful, you should see the uptime of the running microservices.
 
-The provided sample examples/main/prometheus.yaml will scrape from the metrics microservice every 15 seconds. You can verify by navigating to http://localhost:9090/graph and executing `service_uptime_duration_seconds_total` in the query box. If successful, you should see the current uptime of the metrics microservice.
+## Configure IDE
+
+The [Todo Tree extension](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree) is recommended for VS Code users.

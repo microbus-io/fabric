@@ -151,15 +151,15 @@ tickers:
 # buckets - Bucket boundaries for histograms
 metrics:
   - signature: ArithmeticResult(num int, op string)
-    description: Tracks the results of arithmetic operations.
-    kind: Histogram
+    description: ArithmeticResult tracks the results of arithmetic operations.
+    kind: histogram
     alias: calculator_arithmetic_result
     buckets: [0,10,100,1000,100000]
   - signature: ArithmeticSuccess(num int, op string)
-    description: The number of successful arithmetic calculations
-    kind: Counter
+    description: ArithmeticSuccess tracks the number of successful arithmetic calculations.
+    kind: counter
     alias: calculator_arithmetic_success
   - signature: MemoryUsageBytes(b int64)
-    description: The memory usage in bytes
-    kind: Gauge
+    description: MemoryUsageBytes tracks the memory usage in bytes.
+    kind: gauge
     alias: calculator_memory_usage_bytes

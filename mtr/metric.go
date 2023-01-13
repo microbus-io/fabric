@@ -6,28 +6,30 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// Metric is an interface that defines operations for the various Prometheus metric types.
+// TODO: Prometheus collectors should not be exposed through wrappers
+
+// Metric is an interface that defines operations for the metric collectors.
 type Metric interface {
 	Observe(val float64, labels ...string) error
 	Add(val float64, labels ...string) error
 }
 
-// Histogram wraps the Prometheus Histogram metric type.
+// Histogram collects metrics in a histogram.
 type Histogram struct {
 	HistogramVec *prometheus.HistogramVec
 }
 
-// Gauge wraps the Prometheus Gauge metric type.
+// Gauge collects metrics in a gauge.
 type Gauge struct {
 	GaugeVec *prometheus.GaugeVec
 }
 
-// Counter wraps the Prometheus Counter metric type.
+// Counter collects metrics in a counter.
 type Counter struct {
 	CounterVec *prometheus.CounterVec
 }
 
-// Observe observes the given value using a Histogram.
+// Observe collects the value in the appropriate bucket of the histogram.
 func (h *Histogram) Observe(val float64, labels ...string) error {
 	histogram, err := h.HistogramVec.GetMetricWithLabelValues(labels...)
 	if err != nil {
@@ -37,7 +39,7 @@ func (h *Histogram) Observe(val float64, labels ...string) error {
 	return nil
 }
 
-// Observe observes the given value by setting it as a Gauge's value.
+// Observe sets the current value of the gauge.
 func (g *Gauge) Observe(val float64, labels ...string) error {
 	gauge, err := g.GaugeVec.GetMetricWithLabelValues(labels...)
 	if err != nil {
@@ -47,17 +49,17 @@ func (g *Gauge) Observe(val float64, labels ...string) error {
 	return nil
 }
 
-// Observe observes the given value using a Counter.
+// Observe observes the current value.
 func (c *Counter) Observe(val float64, labels ...string) error {
 	return errors.New("counter does not support 'Observe' operation")
 }
 
-// Add is not supported by the Histogram metric type.
+// Add increments the current value.
 func (h *Histogram) Add(val float64, labels ...string) error {
 	return errors.New("histogram does not support 'Add' operation")
 }
 
-// Add adds the given value to the Gauge.
+// Add increments the current value of the gage.
 func (g *Gauge) Add(val float64, labels ...string) error {
 	gauge, err := g.GaugeVec.GetMetricWithLabelValues(labels...)
 	if err != nil {
@@ -67,7 +69,8 @@ func (g *Gauge) Add(val float64, labels ...string) error {
 	return nil
 }
 
-// Add adds the given value to the Counter.
+// Add increments the value of the counter.
+// Counters can only increase and the value cannot be negative.
 func (c *Counter) Add(val float64, labels ...string) error {
 	counter, err := c.CounterVec.GetMetricWithLabelValues(labels...)
 	if err != nil {

@@ -1,43 +1,13 @@
 # Package `mtr`
 
-The `mtr` package defines the components needed to support standard and custom Prometheus metrics. The [collection types](https://prometheus.io/docs/concepts/metric_types/) supported are `Counter`, `Gauge`, and `Histogram`. `Summary` type is not currently supported. 
+The `mtr` package defines the components needed to support standard and custom Prometheus metrics. The [collector types](https://prometheus.io/docs/concepts/metric_types/) supported are `Counter`, `Gauge`, and `Histogram`. The `Summary` collector type is currently not supported. 
 
-Valid operations on the collection types are either `Add`, `Observe`, or both. 
-* Counter	Add
-* Histogram	Observe
-* Guage		Add | Observe
+Valid operations on the collector types are `Increment`, `Observe`, or both. 
 
-The Prometheus library collection objects for a specific named collection are stored in a Map located in the `Connector`. Once retrieved, the metric can be incremented or observed as needed.
+| Type | Increment | Observe |
+|---|---|---
+| Counter | Yes | |
+| Histogram | | Yes |
+| Guage | Yes | Yes |
 
-Example:
-
-```go
-func (c *Connector) IncrementMetric(name string, val float64, labels ...string) error {
-	if c.registry == nil {
-		return nil
-	}
-	c.metricLock.RLock()
-	defer c.metricLock.RUnlock()
-	m, ok := c.metricDefs[name]
-	if !ok {
-		return errors.Newf("unknown metric '%s'", name)
-	}
-
-	err := m.Add(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
-	return errors.Trace(err, name)
-}
-
-func (c *Connector) ObserveMetric(name string, val float64, labels ...string) error {
-	if c.registry == nil {
-		return nil
-	}
-	c.metricLock.Lock()
-	defer c.metricLock.Unlock()
-	m, ok := c.metricDefs[name]
-	if !ok {
-		return errors.Newf("unknown metric '%s'", name)
-	}
-	err := m.Observe(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
-	return errors.Trace(err, name)
-}
-```
+Once defined using either `DefineCounter`, `DefineHistorgram` or `DefineGauge`, a metric can be incremented or observed using either  `IncrementMetric` or `ObserveMetric`, as appropriate.

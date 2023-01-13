@@ -132,6 +132,9 @@ func (s *Service) validate() error {
 	for _, w := range s.Sinks {
 		w.Type = "sink"
 	}
+	for _, w := range s.Metrics {
+		w.Type = "metric"
+	}
 	for _, h := range s.AllHandlers() {
 		err := h.validate()
 		if err != nil {
