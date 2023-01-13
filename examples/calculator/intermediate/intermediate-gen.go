@@ -87,18 +87,18 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`:443/distance`, svc.doDistance)
 
 	// Metrics
-	svc.Definehistogram(
+	svc.DefineHistogram(
 		`calculator_arithmetic_result`,
 		`ArithmeticResult tracks the results of arithmetic operations.`,
 		[]float64{ 0, 10, 100, 1000, 100000 },
 		[]string{ "op" },
 	)
-	svc.Definecounter(
+	svc.DefineCounter(
 		`calculator_arithmetic_success`,
 		`ArithmeticSuccess tracks the number of successful arithmetic calculations.`,
 		[]string{ "op" },
 	)
-	svc.Definegauge(
+	svc.DefineGauge(
 		`calculator_memory_usage_bytes`,
 		`MemoryUsageBytes tracks the memory usage in bytes.`,
 		[]string{  },

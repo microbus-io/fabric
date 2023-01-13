@@ -175,7 +175,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 
 	// Metrics
 	{{- range .Metrics }}
-	svc.Define{{ .Kind }}(
+	svc.Define{{ CapitalizeIdentifier .Kind }}(
 		`{{ .Alias }}`,
 		`{{ .Description }}`,
 		{{- if .Buckets }}
