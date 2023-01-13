@@ -30,6 +30,9 @@ func (_c *MulticastClient) PingServices(ctx context.Context, options ...pub.Opti
 	go func() {
 		seen := map[string]bool{}
 		for pingRes := range ch {
+			if pingRes.err != nil {
+				continue
+			}
 			frame := frame.Of(pingRes.HTTPResponse)
 			info := &ServiceInfo{
 				HostName: frame.FromHost(),
@@ -53,6 +56,9 @@ func (_c *MulticastClient) PingVersions(ctx context.Context, options ...pub.Opti
 	go func() {
 		seen := map[string]bool{}
 		for pingRes := range ch {
+			if pingRes.err != nil {
+				continue
+			}
 			frame := frame.Of(pingRes.HTTPResponse)
 			info := &ServiceInfo{
 				HostName: frame.FromHost(),
@@ -76,6 +82,9 @@ func (_c *MulticastClient) PingInstances(ctx context.Context, options ...pub.Opt
 	filtered := make(chan *ServiceInfo, cap(ch))
 	go func() {
 		for pingRes := range ch {
+			if pingRes.err != nil {
+				continue
+			}
 			frame := frame.Of(pingRes.HTTPResponse)
 			info := &ServiceInfo{
 				HostName: frame.FromHost(),
