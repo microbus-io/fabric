@@ -77,8 +77,8 @@ func NewService(impl ToDo, version int) *Intermediate {
 
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
-	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+	svc.SetOnShutdown(svc.impl.OnShutdown)	
+
 	// Functions
 	svc.Subscribe(`:443/register`, svc.doRegister)
 

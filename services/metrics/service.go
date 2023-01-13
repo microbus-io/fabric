@@ -50,10 +50,6 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 Collect returns the latest aggregated metrics.
 */
 func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) {
-	var wg sync.WaitGroup
-	var delay time.Duration
-	var lock sync.Mutex
-
 	host := r.URL.Query().Get("service")
 	if host == "" {
 		host = "all"
@@ -65,14 +61,14 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 
 	// Zip
 	var writer io.Writer
-	var wcloser io.Closer
+	var wCloser io.Closer
 	writer = w
-	if strings.Index(r.Header.Get("Accept-Encoding"), "gzip") >= 0 {
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		zipper, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if zipper != nil {
 			w.Header().Set("Content-Encoding", "gzip")
 			writer = zipper
-			wcloser = zipper // Gzip writer must be closed to flush buffer
+			wCloser = zipper // Gzip writer must be closed to flush buffer
 		}
 	}
 
@@ -80,20 +76,18 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 	timeout := pub.Noop()
 	secs := r.Header.Get("X-Prometheus-Scrape-Timeout-Seconds")
 	if secs != "" {
-		if s, err := strconv.ParseInt(secs, 10, 0); err == nil {
+		if s, err := strconv.Atoi(secs); err == nil {
 			timeout = pub.TimeBudget(time.Duration(s) * time.Second)
 		}
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
 
-	for pingRes := range controlapi.NewClient(svc).ForHost(host).PingServices(r.Context()) {
-		pong, err := pingRes.Get()
-		if err != nil {
-			return errors.Trace(err)
-		}
+	var delay time.Duration
+	var lock sync.Mutex
+	var wg sync.WaitGroup
+	for serviceInfo := range controlapi.NewMulticastClient(svc).ForHost(host).PingServices(r.Context()) {
 		wg.Add(1)
-
 		go func(s string, delay time.Duration) {
 			defer wg.Done()
 			time.Sleep(delay) // Stagger requests to avoid all of them coming back at the same time
@@ -111,9 +105,9 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				}
 
 				var reader io.Reader
-				var rcloser io.Closer
+				var rCloser io.Closer
 				reader = res.Body
-				rcloser = res.Body
+				rCloser = res.Body
 				if res.Header.Get("Content-Encoding") == "gzip" {
 					unzipper, err := gzip.NewReader(res.Body)
 					if err != nil {
@@ -121,7 +115,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 						continue
 					}
 					reader = unzipper
-					rcloser = unzipper
+					rCloser = unzipper
 				}
 
 				lock.Lock()
@@ -130,15 +124,14 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				if err != nil {
 					svc.LogWarn(r.Context(), "Copying metrics", log.Error(err))
 				}
-				rcloser.Close()
+				rCloser.Close()
 			}
-		}(pong.Service, delay)
+		}(serviceInfo.HostName, delay)
 		delay += 2 * time.Millisecond
 	}
-
 	wg.Wait()
-	if wcloser != nil {
-		wcloser.Close()
+	if wCloser != nil {
+		wCloser.Close()
 	}
 
 	return nil

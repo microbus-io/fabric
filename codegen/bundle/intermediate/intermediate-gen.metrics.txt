@@ -1,0 +1,33 @@
+{{- range .Metrics }}
+
+{{- if .Observable }}
+/*
+Observe{{ .Name }} observes the current value of the "{{ .Alias }}" metric.
+{{ .Description }}
+*/
+func (svc *Intermediate) Observe{{ .Name }}({{ range $i, $elem := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) error {
+	{{ range $i, $elem := .Signature.InputArgs }}{{ if $i -}}
+	x{{ .Name }} := fmt.Sprintf("%v", {{ .Name }})
+	{{ else -}}
+	x{{ .Name }} := {{if eq .Type "time.Duration" }}{{ .Name }}.Seconds(){{ else }}float64({{ .Name }}){{ end }}
+	{{ end }}{{ end -}}
+	return svc.ObserveMetric("{{ .Alias }}"{{ range .Signature.InputArgs }}, x{{ .Name }}{{ end }})
+}
+{{ end }}
+
+{{- if .Incrementable }}
+/*
+Increment{{ .Name }} increments the value of the "{{ .Alias }}" metric.
+{{ .Description }}
+*/
+func (svc *Intermediate) Increment{{ .Name }}({{ range $i, $elem := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) error {
+	{{ range $i, $elem := .Signature.InputArgs }}{{ if $i -}}
+	x{{ .Name }} := fmt.Sprintf("%v", {{ .Name }})
+	{{ else -}}
+	x{{ .Name }} := {{if eq .Type "time.Duration" }}{{ .Name }}.Seconds(){{ else }}float64({{ .Name }}){{ end }}
+	{{ end }}{{ end -}}
+	return svc.IncrementMetric("{{ .Alias }}"{{ range .Signature.InputArgs }}, x{{ .Name }}{{ end }})
+}
+{{ end }}
+
+{{- end }}

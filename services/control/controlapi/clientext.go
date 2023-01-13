@@ -9,49 +9,89 @@ package controlapi
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 )
 
-// Pong is returned as a response to a ping.
-type Pong struct {
-	Service string
+// ServiceInfo is a descriptor of the microservice that answers the ping.
+type ServiceInfo struct {
+	HostName string
+	Version  int
+	ID       string
 }
 
-// PingPongResponse holds a single response of a call to Ping.
-// Use the Get method to obtain the return values.
-type PingPongResponse struct {
-	pong *Pong
-	err  error
-}
-
-// Get obtains the return values of the call to TokenValidate.
-func (_r *PingPongResponse) Get() (pong *Pong, err error) {
-	return _r.pong, _r.err
-}
-
-// PingServices performs a ping and dedups the result on a per-service basis.
-func (_c *Client) PingServices(ctx context.Context, options ...pub.Option) <-chan *PingPongResponse {
-	ch := NewMulticastClient(_c.svc).ForHost(_c.host).Ping(ctx, options...)
-	filtered := make(chan *PingPongResponse, cap(ch))
+// PingServices performs a ping and returns service info for microservices on the network.
+// Results are deduped on a per-service basis.
+func (_c *MulticastClient) PingServices(ctx context.Context, options ...pub.Option) <-chan *ServiceInfo {
+	ch := _c.Ping(ctx, options...)
+	filtered := make(chan *ServiceInfo, cap(ch))
 	go func() {
 		seen := map[string]bool{}
 		for pingRes := range ch {
 			if pingRes.err != nil {
-				pingRes.err = errors.Trace(pingRes.err)
-				filtered <- &PingPongResponse{err: errors.Trace(pingRes.err)}
 				continue
 			}
-			from := frame.Of(pingRes.HTTPResponse).FromHost()
-			if seen[from] {
+			frame := frame.Of(pingRes.HTTPResponse)
+			info := &ServiceInfo{
+				HostName: frame.FromHost(),
+			}
+			if seen[info.HostName] {
 				continue
 			}
-			seen[from] = true
-			filtered <- &PingPongResponse{pong: &Pong{
-				Service: from,
-			}}
+			seen[info.HostName] = true
+			filtered <- info
+		}
+		close(filtered)
+	}()
+	return filtered
+}
+
+// PingVersions performs a ping and returns service info for microservice versions on the network.
+// Results are deduped on a per-version basis.
+func (_c *MulticastClient) PingVersions(ctx context.Context, options ...pub.Option) <-chan *ServiceInfo {
+	ch := _c.Ping(ctx, options...)
+	filtered := make(chan *ServiceInfo, cap(ch))
+	go func() {
+		seen := map[string]bool{}
+		for pingRes := range ch {
+			if pingRes.err != nil {
+				continue
+			}
+			frame := frame.Of(pingRes.HTTPResponse)
+			info := &ServiceInfo{
+				HostName: frame.FromHost(),
+				Version:  frame.FromVersion(),
+			}
+			key := fmt.Sprintf("%s:%d", info.HostName, info.Version)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			filtered <- info
+		}
+		close(filtered)
+	}()
+	return filtered
+}
+
+// PingInstances performs a ping and returns service info for all instances on the network.
+func (_c *MulticastClient) PingInstances(ctx context.Context, options ...pub.Option) <-chan *ServiceInfo {
+	ch := _c.Ping(ctx, options...)
+	filtered := make(chan *ServiceInfo, cap(ch))
+	go func() {
+		for pingRes := range ch {
+			if pingRes.err != nil {
+				continue
+			}
+			frame := frame.Of(pingRes.HTTPResponse)
+			info := &ServiceInfo{
+				HostName: frame.FromHost(),
+				Version:  frame.FromVersion(),
+				ID:       frame.FromID(),
+			}
+			filtered <- info
 		}
 		close(filtered)
 	}()

@@ -197,7 +197,7 @@ func (c *Connector) Startup() (err error) {
 	// Run all tickers
 	c.runTickers()
 
-	c.SetInitTime(time.Now())
+	c.startupTime = time.Now().UTC()
 
 	return nil
 }

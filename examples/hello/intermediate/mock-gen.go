@@ -62,7 +62,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
-    return nil
+	return nil
 }
 
 // doHello handles the Hello web handler.
@@ -71,7 +71,7 @@ func (svc *Mock) doHello(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'Hello' not implemented")
 	}
 	err = svc.MockHello(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doEcho handles the Echo web handler.
@@ -80,7 +80,7 @@ func (svc *Mock) doEcho(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'Echo' not implemented")
 	}
 	err = svc.MockEcho(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doPing handles the Ping web handler.
@@ -89,7 +89,7 @@ func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'Ping' not implemented")
 	}
 	err = svc.MockPing(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doCalculator handles the Calculator web handler.
@@ -98,7 +98,7 @@ func (svc *Mock) doCalculator(w http.ResponseWriter, r *http.Request) (err error
 		return errors.New("mocked endpoint 'Calculator' not implemented")
 	}
 	err = svc.MockCalculator(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doBusJPEG handles the BusJPEG web handler.
@@ -107,5 +107,5 @@ func (svc *Mock) doBusJPEG(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'BusJPEG' not implemented")
 	}
 	err = svc.MockBusJPEG(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }

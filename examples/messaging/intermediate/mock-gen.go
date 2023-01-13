@@ -62,7 +62,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
-    return nil
+	return nil
 }
 
 // doHome handles the Home web handler.
@@ -71,7 +71,7 @@ func (svc *Mock) doHome(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'Home' not implemented")
 	}
 	err = svc.MockHome(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doNoQueue handles the NoQueue web handler.
@@ -80,7 +80,7 @@ func (svc *Mock) doNoQueue(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'NoQueue' not implemented")
 	}
 	err = svc.MockNoQueue(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doDefaultQueue handles the DefaultQueue web handler.
@@ -89,7 +89,7 @@ func (svc *Mock) doDefaultQueue(w http.ResponseWriter, r *http.Request) (err err
 		return errors.New("mocked endpoint 'DefaultQueue' not implemented")
 	}
 	err = svc.MockDefaultQueue(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doCacheLoad handles the CacheLoad web handler.
@@ -98,7 +98,7 @@ func (svc *Mock) doCacheLoad(w http.ResponseWriter, r *http.Request) (err error)
 		return errors.New("mocked endpoint 'CacheLoad' not implemented")
 	}
 	err = svc.MockCacheLoad(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }
 
 // doCacheStore handles the CacheStore web handler.
@@ -107,5 +107,5 @@ func (svc *Mock) doCacheStore(w http.ResponseWriter, r *http.Request) (err error
 		return errors.New("mocked endpoint 'CacheStore' not implemented")
 	}
 	err = svc.MockCacheStore(w, r)
-    return errors.Trace(err)
+	return errors.Trace(err)
 }

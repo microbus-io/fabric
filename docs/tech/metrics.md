@@ -5,44 +5,47 @@ Metrics within the `Microbus` framework relies on Prometheus and operates on a p
 ## Standard Metrics
 
 All services by default expose a minimal set of metrics pertaining to the handling of incoming and outgoing requests. These include:
+
 * The current service uptime in seconds
 * The size of the response message to incoming requests
-* The internal processing time of any incoming requests
+* The internal processing time of incoming requests
 * Late reply message duration
-* The total duration of any outgoing requests
-* Time to request ackowledgement
+* The total duration of outgoing requests
+* Duration to acknowledgement
 * Total log messages recorded
 
-
 ## Application Metrics
-In addition, developers are free to add any other custom application metrics that may be useful. These can be defined in the `service.yaml` under the metrics section.
+
+In addition, application developers are free to add arbitrary metrics that are pertinent to their application. These can be defined in `service.yaml` under the metrics section.
 
 ```yaml
 # Metrics
-# signature - A Go function signature. Example:
+#
+# signature - Func(measure Type, label Type, label Type)
 #   RequestDurationSeconds(dur time.Duration, method string, success bool)
 #   MemoryUsageBytes(b int64)
 #   DistanceMiles(miles float64, countryCode int)
-#   RequestsTotal(count int, domain string) ... unit-less accumulating count
-#   CPUSecondsTotal(dur time.Duration) ... accumulating count with unit
-# description - Go-doc description of the endpoint
-# kind - The kind of metric: "Histogram", "Gauge" or "Counter" (default)
-# alias - Override the name of the metric to convey to Prometheus
-# buckets - Bucket boundaries, for histograms
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# alias - The name of the metric to register with Prometheus
+# buckets - Bucket boundaries for histograms [x,y,z,...]
 metrics:
   - signature: Likes(num int, postId string)
     description: Likes counts the number of likes for a given post.
-    kind: Counter
+    kind: counter
     alias: myapp_message_post_number_of_likes
 ```
 
 With regard to alias names, see [naming best practices](https://prometheus.io/docs/practices/naming/) for best practices.
 
-The [collection types](https://prometheus.io/docs/concepts/metric_types/) supported are:
+The [collector types](https://prometheus.io/docs/concepts/metric_types/) supported are:
+
 * Counter
 * Histogram
 * Guage
-
 
 ## Code Examples
 
@@ -54,8 +57,6 @@ func (svc *Intermediate) IncrementLikes(num int, postId string) error {
 	return svc.IncrementMetric("myapp_message_post_number_of_likes", xnum, xpostId)
 }
 
-// ...
-
 func (svc *Intermediate) MyFunc() error {
   // ...
 
@@ -64,7 +65,6 @@ func (svc *Intermediate) MyFunc() error {
   if err != nil {
     return errors.Trace(err)
   }
-  // ...
   return nil
 }
 ```

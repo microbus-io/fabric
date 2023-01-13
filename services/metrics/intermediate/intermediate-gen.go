@@ -13,7 +13,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/cb"
@@ -21,6 +23,8 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"github.com/microbus-io/fabric/services/metrics/resources"
@@ -33,12 +37,16 @@ var (
 	_ *json.Decoder
 	_ fmt.Stringer
 	_ *http.Request
+	_ filepath.WalkFunc
 	_ strconv.NumError
+	_ strings.Reader
 	_ time.Duration
 	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
+	_ *log.Field
+	_ *shardedsql.DB
 	_ sub.Option
 	_ metricsapi.Client
 )
@@ -64,12 +72,12 @@ func NewService(impl ToDo, version int) *Intermediate {
 		Connector: connector.New("metrics.sys"),
 		impl: impl,
 	}
-	
 	svc.SetVersion(version)
 	svc.SetDescription(`The Metrics service is a system microservice that aggregates metrics from other microservices and makes them available for collection.`)
+
+	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	
 	// Webs
 	svc.Subscribe(`:443/collect`, svc.impl.Collect)
@@ -82,8 +90,7 @@ func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
 
-// doOnConfigChanged is called when the config of the microservice changed.
-func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) error {
+// doOnConfigChanged is called when the config of the microservice changes.
+func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
-

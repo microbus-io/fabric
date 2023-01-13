@@ -93,6 +93,7 @@ The microservice itself does nothing and should not be included in applications.
 func (svc *Intermediate) Resources() embed.FS {
 	return resources.FS
 }
+
 // doOnConfigChanged is called when the config of the microservice changes.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil

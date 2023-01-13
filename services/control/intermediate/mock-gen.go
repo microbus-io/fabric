@@ -57,7 +57,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
-    return nil
+	return nil
 }
 
 // doPing handles marshaling for the Ping function.
