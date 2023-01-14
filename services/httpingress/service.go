@@ -1,6 +1,7 @@
 package httpingress
 
 import (
+	"bytes"
 	"compress/flate"
 	"compress/gzip"
 	"context"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
@@ -40,6 +42,7 @@ type Service struct {
 	mux            sync.Mutex
 	allowedOrigins map[string]bool
 	portMappings   map[string]string
+	reqMemoryUsed  int64
 }
 
 // OnStartup is called when the microservice is started up.
@@ -150,8 +153,8 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		statusCode := errors.Convert(err).StatusCode
 		if statusCode == 0 {
 			statusCode = http.StatusInternalServerError
-			var maxBytesError *http.MaxBytesError
-			if errors.As(err, &maxBytesError) {
+			if err.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
+				err.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
 				statusCode = http.StatusRequestEntityTooLarge
 			}
 		}
@@ -222,13 +225,18 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 
 	svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
 
+	// Read the body fully
+	body, err := svc.readRequestBody(r)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	defer svc.releaseRequestBody(body)
+
 	// Prepare the internal request options
-	r.Body = http.MaxBytesReader(w, r.Body, int64(svc.MaxBodySize()))
-	defer r.Body.Close()
 	options := []pub.Option{
 		pub.Method(r.Method),
 		pub.URL(internalURL),
-		pub.Body(r.Body),
+		pub.Body(body),
 		pub.Unicast(),
 	}
 
@@ -250,6 +258,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 	}
+
+	// Overwrite the Content-Length header
+	options = append(options, pub.ContentLength(len(body)))
 
 	// Set proxy headers, if there's no upstream proxy
 	if r.Header.Get("X-Forwarded-Host") == "" {
@@ -348,6 +359,63 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 	return nil
+}
+
+// readRequestBody reads the body of the request into memory, within the memory limit
+// set for the proxy.
+func (svc *Service) readRequestBody(r *http.Request) (body []byte, err error) {
+	if r.Body == nil || r.ContentLength == 0 {
+		return []byte{}, nil
+	}
+	defer r.Body.Close()
+	limit := int64(svc.RequestMemoryLimit()) * 1024 * 1024
+	limit /= 2 // Because body is duplicated when creating the NATS request
+	if r.ContentLength > 0 {
+		used := atomic.LoadInt64(&svc.reqMemoryUsed)
+		if used+r.ContentLength > limit {
+			err = errors.New("insufficient memory")
+			errors.Convert(err).StatusCode = http.StatusRequestEntityTooLarge
+			return nil, errors.Trace(err)
+		}
+	}
+	bufSize := r.ContentLength
+	if bufSize < 0 || bufSize > 64*1024 {
+		// Max 64KB
+		bufSize = 64 * 1024
+	}
+	var result bytes.Buffer
+	buf := make([]byte, bufSize)
+	nn := 0
+	done := false
+	for !done {
+		n, err := io.ReadFull(r.Body, buf)
+		if err == io.EOF {
+			break
+		}
+		if err == io.ErrUnexpectedEOF {
+			err = nil
+			done = true
+		}
+		if err != nil {
+			atomic.AddInt64(&svc.reqMemoryUsed, -int64(nn))
+			return nil, errors.Trace(err)
+		}
+		nn += n
+		used := atomic.AddInt64(&svc.reqMemoryUsed, int64(n))
+		if used > limit {
+			atomic.AddInt64(&svc.reqMemoryUsed, -int64(nn))
+			err = errors.New("insufficient memory")
+			errors.Convert(err).StatusCode = http.StatusRequestEntityTooLarge
+			return nil, errors.Trace(err)
+		}
+		result.Write(buf[:n])
+	}
+	return result.Bytes(), nil
+}
+
+// releaseRequestBody should be called when the request is done to update the used memory counter.
+func (svc *Service) releaseRequestBody(body []byte) {
+	atomic.AddInt64(&svc.reqMemoryUsed, -int64(len(body)))
 }
 
 // OnChangedAllowedOrigins is triggered when the value of the AllowedOrigins config property changes.

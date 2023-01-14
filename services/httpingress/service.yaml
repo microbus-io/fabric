@@ -34,10 +34,10 @@ configs:
     description: Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.
     default: 8080
     callback: true
-  - signature: MaxBodySize() (bytes int)
-    description: MaxBodySize specifies the maximum size of the request body, in bytes.
-    default: 33554432
-    validation: int [1024,]
+  - signature: RequestMemoryLimit() (megaBytes int)
+    description: RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
+    default: 4096
+    validation: int [1,]
   - signature: AllowedOrigins() (origins string)
     description: AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
     default: "*"

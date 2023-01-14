@@ -95,10 +95,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 		cfg.DefaultValue(`8080`),
 	)
 	svc.DefineConfig(
-		"MaxBodySize",
-		cfg.Description(`MaxBodySize specifies the maximum size of the request body, in bytes.`),
-		cfg.Validation(`int [1024,]`),
-		cfg.DefaultValue(`33554432`),
+		"RequestMemoryLimit",
+		cfg.Description(`RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.`),
+		cfg.Validation(`int [1,]`),
+		cfg.DefaultValue(`4096`),
 	)
 	svc.DefineConfig(
 		"AllowedOrigins",
@@ -188,18 +188,18 @@ func Ports(port string) (func(connector.Service) error) {
 
 
 /*
-MaxBodySize specifies the maximum size of the request body, in bytes.
+RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
 */
-func (svc *Intermediate) MaxBodySize() (bytes int) {
-	_val := svc.Config("MaxBodySize")
+func (svc *Intermediate) RequestMemoryLimit() (megaBytes int) {
+	_val := svc.Config("RequestMemoryLimit")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
 
-// MaxBodySize initializes the MaxBodySize config property of the microservice.
-func MaxBodySize(bytes int) (func(connector.Service) error) {
+// RequestMemoryLimit initializes the RequestMemoryLimit config property of the microservice.
+func RequestMemoryLimit(megaBytes int) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.SetConfig("MaxBodySize", fmt.Sprintf("%v", bytes))
+		return svc.SetConfig("RequestMemoryLimit", fmt.Sprintf("%v", megaBytes))
 	}
 }
 

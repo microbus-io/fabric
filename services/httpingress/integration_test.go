@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
@@ -31,7 +32,6 @@ func Initialize() error {
 		Svc.With(
 			TimeBudget(time.Second*2),
 			Ports("4040,4443"),
-			MaxBodySize(16*1024),
 			AllowedOrigins("allowed.origin"),
 			PortMappings("4040:*->*, 4443:*->443"),
 			RedirectRoot("https://root.page/home"),
@@ -99,12 +99,24 @@ func TestHttpingress_Ports(t *testing.T) {
 	}
 }
 
-func TestHttpingress_MaxBodySize(t *testing.T) {
-	t.Parallel()
+func TestHttpingress_RequestMemoryLimit(t *testing.T) {
+	// No parallel
+	memLimit := Svc.RequestMemoryLimit()
+	Svc.With(RequestMemoryLimit(1))
+	defer Svc.With(RequestMemoryLimit(memLimit))
 
-	con := connector.New("max.body.size")
+	entered := make(chan bool)
+	done := make(chan bool)
+	con := connector.New("request.memory.limit")
 	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
-		w.Write([]byte("ok"))
+		b, _ := io.ReadAll(r.Body)
+		w.Write(b)
+		return nil
+	})
+	con.Subscribe("hold", func(w http.ResponseWriter, r *http.Request) error {
+		entered <- true
+		<-done
+		w.Write([]byte("done"))
 		return nil
 	})
 	App.Join(con)
@@ -113,19 +125,50 @@ func TestHttpingress_MaxBodySize(t *testing.T) {
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
-	payload := rand.AlphaNum64(8 * 1024)
-	res, err := client.Post("http://localhost:4040/max.body.size/ok", "text/plain", strings.NewReader(payload))
+
+	// Small request at 25% of capacity
+	assert.Zero(t, Svc.reqMemoryUsed)
+	payload := rand.AlphaNum64(Svc.RequestMemoryLimit() * 1024 * 1024 / 4)
+	res, err := client.Post("http://localhost:4040/request.memory.limit/ok", "text/plain", strings.NewReader(payload))
 	if assert.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+			assert.Equal(t, payload, string(b))
 		}
 	}
-	payload = rand.AlphaNum64(32 * 1024)
-	res, err = client.Post("http://localhost:4040/max.body.size/ok", "text/plain", strings.NewReader(payload))
+
+	// Big request at 55% of capacity
+	assert.Zero(t, Svc.reqMemoryUsed)
+	payload = rand.AlphaNum64(Svc.RequestMemoryLimit() * 1024 * 1024 * 55 / 100)
+	res, err = client.Post("http://localhost:4040/request.memory.limit/ok", "text/plain", strings.NewReader(payload))
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	}
+
+	// Two small requests that together are over 50% of capacity
+	assert.Zero(t, Svc.reqMemoryUsed)
+	payload = rand.AlphaNum64(Svc.RequestMemoryLimit() * 1024 * 1024 / 3)
+	returned := make(chan bool)
+	go func() {
+		res, err = client.Post("http://localhost:4040/request.memory.limit/hold", "text/plain", strings.NewReader(payload))
+		returned <- true
+	}()
+	<-entered
+	assert.NotZero(t, Svc.reqMemoryUsed)
+	res, err = client.Post("http://localhost:4040/request.memory.limit/ok", "text/plain", strings.NewReader(payload))
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+	}
+	done <- true
+	<-returned
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "done", string(b))
+		}
+	}
+
+	assert.Zero(t, Svc.reqMemoryUsed)
 }
 
 func TestHttpingress_Compression(t *testing.T) {
@@ -413,5 +456,70 @@ func TestHttpingress_AuthToken(t *testing.T) {
 		if assert.NoError(t, err) {
 			assert.Equal(t, "", string(b))
 		}
+	}
+}
+
+func TestHttpingress_ParseForm(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("parse.form")
+	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+		err := r.ParseForm()
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Write([]byte("ok"))
+		return nil
+	})
+	con.Subscribe("more", func(w http.ResponseWriter, r *http.Request) error {
+		r.Body = http.MaxBytesReader(w, r.Body, 12*1024*1024)
+		err := r.ParseForm()
+		if err != nil {
+			return errors.Trace(err)
+		}
+		w.Write([]byte("ok"))
+		return nil
+	})
+	App.Join(con)
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{Timeout: time.Second * 2}
+
+	// Under 10MB
+	var buf bytes.Buffer
+	buf.WriteString("x=")
+	buf.WriteString(rand.AlphaNum64(9 * 1024 * 1024))
+	res, err := client.Post("http://localhost:4040/parse.form/ok", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "ok", string(b))
+		}
+	}
+
+	// Go sets a 10MB limit on forms by default
+	// https://go.dev/src/net/http/request.go#L1258
+	buf.WriteString(rand.AlphaNum64(2 * 1024 * 1024)) // Now 11MB
+	res, err = client.Post("http://localhost:4040/parse.form/ok", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+	}
+
+	// MaxBytesReader can be used to extend the limit
+	res, err = client.Post("http://localhost:4040/parse.form/more", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "ok", string(b))
+		}
+	}
+
+	// Going above the MaxBytesReader limit
+	buf.WriteString(rand.AlphaNum64(2 * 1024 * 1024)) // Now 13MB
+	res, err = client.Post("http://localhost:4040/parse.form/more", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	}
 }

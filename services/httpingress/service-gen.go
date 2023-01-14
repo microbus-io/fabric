@@ -54,8 +54,8 @@ var (
 	TimeBudget = intermediate.TimeBudget
 	// Ports initializes the Ports config property of the microservice
 	Ports = intermediate.Ports
-	// MaxBodySize initializes the MaxBodySize config property of the microservice
-	MaxBodySize = intermediate.MaxBodySize
+	// RequestMemoryLimit initializes the RequestMemoryLimit config property of the microservice
+	RequestMemoryLimit = intermediate.RequestMemoryLimit
 	// AllowedOrigins initializes the AllowedOrigins config property of the microservice
 	AllowedOrigins = intermediate.AllowedOrigins
 	// PortMappings initializes the PortMappings config property of the microservice
