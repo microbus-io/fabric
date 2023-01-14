@@ -158,7 +158,7 @@ func (svc *Service) PeriodicRefresh(ctx context.Context) (err error) {
 	ch := svc.Publish(ctx, pub.GET("https://all:888/config-refresh"))
 	for i := range ch {
 		_, err := i.Get()
-		if err != nil && err.Error() != "ack timeout" {
+		if err != nil && errors.Convert(err).StatusCode != http.StatusNotFound {
 			lastErr = errors.Trace(err)
 			svc.LogError(ctx, "Updating config", log.Error(lastErr))
 		}

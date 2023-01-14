@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
@@ -118,10 +119,13 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 			secure = false
 		}
 
+		// https://pkg.go.dev/net/http?utm_source=godoc#Server
 		httpServer := &http.Server{
 			Addr:              ":" + port,
 			Handler:           svc,
-			ReadHeaderTimeout: svc.TimeBudget(),
+			ReadHeaderTimeout: time.Minute,
+			ReadTimeout:       time.Minute * 5, // Enough for 750MB at 20Mbps
+			WriteTimeout:      time.Minute * 5,
 		}
 		svc.httpServers[portInt] = httpServer
 		if secure {
@@ -143,16 +147,19 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := svc.serveHTTP(w, r)
 	if err != nil {
 		uri := r.URL.RequestURI()
-		statusCode := http.StatusInternalServerError
-		var maxBytesError *http.MaxBytesError
-		if errors.As(err, &maxBytesError) {
-			statusCode = http.StatusRequestEntityTooLarge
+		statusCode := errors.Convert(err).StatusCode
+		if statusCode == 0 {
+			statusCode = http.StatusInternalServerError
+			var maxBytesError *http.MaxBytesError
+			if errors.As(err, &maxBytesError) {
+				statusCode = http.StatusRequestEntityTooLarge
+			}
 		}
 		w.WriteHeader(statusCode)
 		if svc.Deployment() != connector.PROD {
 			w.Write([]byte(fmt.Sprintf("%+v", err)))
 		} else {
-			w.Write([]byte("Internal server error"))
+			w.Write([]byte(http.StatusText(statusCode)))
 		}
 		svc.LogError(ctx, "Serving", log.Error(err), log.String("uri", uri))
 	}
@@ -186,8 +193,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	if uri == "/" {
 		redirectTo := svc.RedirectRoot()
 		if redirectTo == "" {
-			w.WriteHeader(http.StatusNotFound)
-			return nil
+			err := errors.New("no root")
+			errors.Convert(err).StatusCode = http.StatusNotFound
+			return errors.Trace(err)
 		}
 		redirectTo = strings.TrimPrefix(redirectTo, "https:/")
 		redirectTo = strings.TrimPrefix(redirectTo, "http:/")
@@ -201,9 +209,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	origin := r.Header.Get("Origin")
 	if origin != "" {
 		if !svc.allowedOrigins["*"] && !svc.allowedOrigins[origin] {
-			svc.LogWarn(ctx, "Disallowed origin", log.String("origin", origin))
-			w.WriteHeader(http.StatusForbidden)
-			return nil
+			err := errors.New("disallowed origin", origin)
+			errors.Convert(err).StatusCode = http.StatusForbidden
+			return errors.Trace(err)
 		}
 	}
 
@@ -255,6 +263,19 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 	prefix := r.Header.Get("X-Forwarded-Prefix")
 	options = append(options, pub.Header("X-Forwarded-Prefix", prefix+"/"+internalHost))
+
+	// Authentication token
+	authz := r.Header.Get("Authorization")
+	if strings.HasPrefix(authz, "Bearer ") {
+		options = append(options, pub.Header(frame.HeaderAuthToken, strings.TrimPrefix(authz, "Bearer")))
+	} else {
+		for _, cookie := range r.Cookies() {
+			if strings.ToLower(cookie.Name) == "authtoken" || strings.ToLower(cookie.Name) == "token" {
+				options = append(options, pub.Header(frame.HeaderAuthToken, cookie.Value))
+				break
+			}
+		}
+	}
 
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)

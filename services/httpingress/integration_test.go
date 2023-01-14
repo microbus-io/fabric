@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
 )
@@ -186,7 +187,7 @@ func TestHttpingress_PortMapping(t *testing.T) {
 	}
 	res, err = client.Get("http://localhost:4040/port.mapping:555/ok443")
 	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+		assert.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
 
 	// External port 4443 maps all requests to internal port 443
@@ -196,7 +197,7 @@ func TestHttpingress_PortMapping(t *testing.T) {
 	}
 	res, err = client.Get("http://localhost:4443/port.mapping:555/ok555")
 	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+		assert.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
 	res, err = client.Get("http://localhost:4443/port.mapping:555/ok443")
 	if assert.NoError(t, err) {
@@ -352,5 +353,65 @@ func TestHttpingress_CORS(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusNoContent, res.StatusCode)
 		assert.Equal(t, count, callCount)
+	}
+}
+
+func TestHttpingress_AuthToken(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("auth.token")
+	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+		authToken := frame.Of(r).AuthToken()
+		w.Write([]byte(authToken))
+		return nil
+	})
+	App.Join(con)
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{Timeout: time.Second * 2}
+
+	// Request with authorization bearer token
+	req, err := http.NewRequest("GET", "http://localhost:4040/auth.token/ok", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer 12345ABCDE")
+	res, err := client.Do(req)
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "12345ABCDE", string(b))
+		}
+	}
+
+	// Request with cookie
+	req, err = http.NewRequest("GET", "http://localhost:4040/auth.token/ok", nil)
+	assert.NoError(t, err)
+	req.AddCookie(&http.Cookie{
+		Name:     "AuthToken",
+		Value:    "12345ABCDE",
+		Path:     "/",
+		MaxAge:   3600,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteNoneMode,
+	})
+	res, err = client.Do(req)
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "12345ABCDE", string(b))
+		}
+	}
+
+	// Vanilla request
+	req, err = http.NewRequest("GET", "http://localhost:4040/auth.token/ok", nil)
+	assert.NoError(t, err)
+	res, err = client.Do(req)
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "", string(b))
+		}
 	}
 }

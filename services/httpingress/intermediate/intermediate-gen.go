@@ -92,7 +92,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.DefineConfig(
 		"Ports",
 		cfg.Description(`Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.`),
-		cfg.DefaultValue(`8080,443,80`),
+		cfg.DefaultValue(`8080`),
 	)
 	svc.DefineConfig(
 		"MaxBodySize",

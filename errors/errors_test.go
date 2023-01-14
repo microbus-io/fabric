@@ -73,18 +73,15 @@ func TestErrors_Convert(t *testing.T) {
 
 	tracedErr := Convert(err)
 	assert.Error(t, tracedErr)
-	assert.Empty(t, tracedErr.(*TracedError).stack)
+	assert.Empty(t, tracedErr.stack)
 
-	_, ok := tracedErr.(*TracedError)
-	assert.True(t, ok)
-
-	tracedErr = Trace(tracedErr, "annotate!")
+	err = Trace(tracedErr, "annotate!")
+	tracedErr = Convert(err)
 	assert.Error(t, tracedErr)
-	assert.Len(t, tracedErr.(*TracedError).stack, 1)
+	assert.Len(t, tracedErr.stack, 1)
 
-	err = Convert(nil)
-	assert.NoError(t, err)
-	assert.Nil(t, err)
+	tracedErr = Convert(nil)
+	assert.Nil(t, tracedErr)
 }
 
 func TestErrors_JSON(t *testing.T) {

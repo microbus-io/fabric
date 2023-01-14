@@ -45,7 +45,7 @@ func TraceUp(err error, levels int, annotations ...string) error {
 	if err == nil {
 		return nil
 	}
-	tracedErr := Convert(err).(*TracedError)
+	tracedErr := Convert(err)
 	file, function, line, ok := RuntimeTrace(1 + levels)
 	if ok {
 		tracedErr.stack = append(tracedErr.stack, &trace{
@@ -61,7 +61,7 @@ func TraceUp(err error, levels int, annotations ...string) error {
 // Convert converts an error to one that supports stack tracing.
 // If the error already supports this, it is returned as it is.
 // Note: Trace should be called to include the error's trace in the stack.
-func Convert(err error) error {
+func Convert(err error) *TracedError {
 	if err == nil {
 		return nil
 	}

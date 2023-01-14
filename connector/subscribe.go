@@ -267,7 +267,9 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
 	if budget <= c.networkHop {
-		return errors.New("timeout")
+		err = errors.New("timeout")
+		errors.Convert(err).StatusCode = http.StatusRequestTimeout
+		return err
 	}
 
 	// Integrate fragments together

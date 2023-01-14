@@ -20,6 +20,7 @@ const (
 	HeaderTimestamp   = HeaderPrefix + "Timestamp"
 	HeaderQueue       = HeaderPrefix + "Queue"
 	HeaderFragment    = HeaderPrefix + "Fragment"
+	HeaderAuthToken   = HeaderPrefix + "Auth-Token"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -240,5 +241,19 @@ func (f Frame) SetFragment(index int, max int) {
 		f.h.Del(HeaderFragment)
 	} else {
 		f.h.Set(HeaderFragment, strconv.Itoa(index)+"/"+strconv.Itoa(max))
+	}
+}
+
+// AuthToken is the auth token identifying the actor.
+func (f Frame) AuthToken() string {
+	return f.h.Get(HeaderAuthToken)
+}
+
+// SetAuthToken sets the auth token identifying the actor.
+func (f Frame) SetAuthToken(op string) {
+	if op == "" {
+		f.h.Del(HeaderAuthToken)
+	} else {
+		f.h.Set(HeaderAuthToken, op)
 	}
 }

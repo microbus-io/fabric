@@ -32,7 +32,7 @@ configs:
     validation: dur [1s,5m]
   - signature: Ports() (port string)
     description: Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.
-    default: 8080,443,80
+    default: 8080
     callback: true
   - signature: MaxBodySize() (bytes int)
     description: MaxBodySize specifies the maximum size of the request body, in bytes.
