@@ -28,6 +28,14 @@ func New(text string, annotations ...string) error {
 	return TraceUp(stderrors.New(text), 1, annotations...)
 }
 
+// Newc creates a new error with an HTTP status code, capturing the current stack location.
+// Optionally annotations may be attached
+func Newc(statusCode int, text string, annotations ...string) error {
+	err := TraceUp(stderrors.New(text), 1, annotations...)
+	err.(*TracedError).StatusCode = statusCode
+	return err
+}
+
 // Newf formats a new error, capturing the current stack location
 func Newf(format string, a ...any) error {
 	return TraceUp(fmt.Errorf(format, a...), 1)
