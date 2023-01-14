@@ -46,7 +46,11 @@ func (svc *Intermediate) {{ .Name }}() (
 	{{- end }}
 }
 
-// {{ .Name }} initializes the {{ .Name }} config property of the microservice.
+/*
+{{ .Name }} initializes the {{ .Name }} config property of the microservice
+when used as an argument to With.
+{{ .Description }}
+*/
 func {{ .Name }}(
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
 ) (func(connector.Service) error) {

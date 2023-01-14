@@ -202,7 +202,11 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	return _dur
 }
 
-// TimeBudget initializes the TimeBudget config property of the microservice.
+/*
+TimeBudget initializes the TimeBudget config property of the microservice
+when used as an argument to With.
+TimeBudget specifies the timeout for handling a request, after it has been read.
+*/
 func TimeBudget(budget time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("TimeBudget", fmt.Sprintf("%v", budget))
@@ -218,7 +222,11 @@ func (svc *Intermediate) Ports() (port string) {
 	return _val
 }
 
-// Ports initializes the Ports config property of the microservice.
+/*
+Ports initializes the Ports config property of the microservice
+when used as an argument to With.
+Ports is a comma-separated list of HTTP ports on which to listen for requests.
+*/
 func Ports(port string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("Ports", fmt.Sprintf("%v", port))
@@ -235,7 +243,11 @@ func (svc *Intermediate) RequestMemoryLimit() (megaBytes int) {
 	return int(_i)
 }
 
-// RequestMemoryLimit initializes the RequestMemoryLimit config property of the microservice.
+/*
+RequestMemoryLimit initializes the RequestMemoryLimit config property of the microservice
+when used as an argument to With.
+RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
+*/
 func RequestMemoryLimit(megaBytes int) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("RequestMemoryLimit", fmt.Sprintf("%v", megaBytes))
@@ -251,7 +263,11 @@ func (svc *Intermediate) AllowedOrigins() (origins string) {
 	return _val
 }
 
-// AllowedOrigins initializes the AllowedOrigins config property of the microservice.
+/*
+AllowedOrigins initializes the AllowedOrigins config property of the microservice
+when used as an argument to With.
+AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+*/
 func AllowedOrigins(origins string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("AllowedOrigins", fmt.Sprintf("%v", origins))
@@ -274,7 +290,18 @@ func (svc *Intermediate) PortMappings() (mappings string) {
 	return _val
 }
 
-// PortMappings initializes the PortMappings config property of the microservice.
+/*
+PortMappings initializes the PortMappings config property of the microservice
+when used as an argument to With.
+PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+HTTP port, y is the requested NATS port, and z is the port to serve.
+An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+request https://servicehost:z/path .
+Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+port y without change. Specific rules take precedence over * rules.
+The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+HTTP ports 443 and 80 to only internal port 443.
+*/
 func PortMappings(mappings string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("PortMappings", fmt.Sprintf("%v", mappings))
@@ -291,7 +318,12 @@ func (svc *Intermediate) RedirectRoot() (toURL string) {
 	return _val
 }
 
-// RedirectRoot initializes the RedirectRoot config property of the microservice.
+/*
+RedirectRoot initializes the RedirectRoot config property of the microservice
+when used as an argument to With.
+RedirectRoot defines the internal URL to redirect requests to the root path.
+The URL must be fully qualified, for example, "https://home.service/welcome-page".
+*/
 func RedirectRoot(toURL string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("RedirectRoot", fmt.Sprintf("%v", toURL))
@@ -308,7 +340,11 @@ func (svc *Intermediate) ReadTimeout() (timeout time.Duration) {
 	return _dur
 }
 
-// ReadTimeout initializes the ReadTimeout config property of the microservice.
+/*
+ReadTimeout initializes the ReadTimeout config property of the microservice
+when used as an argument to With.
+ReadTimeout specifies the timeout for fully reading a request.
+*/
 func ReadTimeout(timeout time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("ReadTimeout", fmt.Sprintf("%v", timeout))
@@ -325,7 +361,11 @@ func (svc *Intermediate) WriteTimeout() (timeout time.Duration) {
 	return _dur
 }
 
-// WriteTimeout initializes the WriteTimeout config property of the microservice.
+/*
+WriteTimeout initializes the WriteTimeout config property of the microservice
+when used as an argument to With.
+WriteTimeout specifies the timeout for fully writing the response to a request.
+*/
 func WriteTimeout(timeout time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("WriteTimeout", fmt.Sprintf("%v", timeout))
@@ -342,7 +382,11 @@ func (svc *Intermediate) ReadHeaderTimeout() (timeout time.Duration) {
 	return _dur
 }
 
-// ReadHeaderTimeout initializes the ReadHeaderTimeout config property of the microservice.
+/*
+ReadHeaderTimeout initializes the ReadHeaderTimeout config property of the microservice
+when used as an argument to With.
+ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
+*/
 func ReadHeaderTimeout(timeout time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))

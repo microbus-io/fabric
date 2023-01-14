@@ -111,12 +111,11 @@ func PATCH(url string) Option {
 	}
 }
 
-// Header adds the header to the request.
-// The same header may have multiple values.
+// Header sets the header of the request. It overwrites any previously set value.
 func Header(name, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
-			req.Header.Add(name, value)
+			req.Header.Set(name, value)
 		}
 		return nil
 	}

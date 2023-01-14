@@ -2,12 +2,12 @@
 
 package calculator
 
-const Version = 59
-const SourceCodeSHA256 = "7f12c4d4f2919789a3d844726ff0e269b336c2f27541ffa556fab53d75c7faf8"
-const Timestamp = "2023-01-07T19:49:42.259783Z"
+const Version = 60
+const SourceCodeSHA256 = "55534194c8831b437d8fa52243ab986be33578338cf46b7fe2e51919a90ba0ad"
+const Timestamp = "2023-01-14T20:16:16.413929Z"
 
 /* {
-	"ver": 59,
-	"sha256": "7f12c4d4f2919789a3d844726ff0e269b336c2f27541ffa556fab53d75c7faf8",
-	"ts": "2023-01-07T19:49:42.259783Z"
+	"ver": 60,
+	"sha256": "55534194c8831b437d8fa52243ab986be33578338cf46b7fe2e51919a90ba0ad",
+	"ts": "2023-01-14T20:16:16.413929Z"
 } */

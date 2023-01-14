@@ -118,19 +118,10 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 	_in := ValuesIn{
 		names,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *ValuesResponse, 1)
-		_res <- &ValuesResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -184,19 +175,10 @@ An error is returned if any of the values sent to the microservices fails valida
 func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshResponse {
 	_in := RefreshIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *RefreshResponse, 1)
-		_res <- &RefreshResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -253,19 +235,10 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 		timestamp,
 		values,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *SyncResponse, 1)
-		_res <- &SyncResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -298,18 +271,11 @@ func (_c *Client) Values(ctx context.Context, names []string) (values map[string
 	_in := ValuesIn{
 		names,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -332,18 +298,11 @@ An error is returned if any of the values sent to the microservices fails valida
 func (_c *Client) Refresh(ctx context.Context) (err error) {
 	_in := RefreshIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -366,18 +325,11 @@ func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[stri
 		timestamp,
 		values,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)

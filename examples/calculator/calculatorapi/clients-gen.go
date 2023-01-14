@@ -128,19 +128,10 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 		op,
 		y,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *ArithmeticResponse, 1)
-		_res <- &ArithmeticResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -199,19 +190,10 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 	_in := SquareIn{
 		x,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *SquareResponse, 1)
-		_res <- &SquareResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -271,19 +253,10 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 		p1,
 		p2,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *DistanceResponse, 1)
-		_res <- &DistanceResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -318,18 +291,11 @@ func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEch
 		op,
 		y,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -355,18 +321,11 @@ func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err
 	_in := SquareIn{
 		x,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -392,18 +351,11 @@ func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, 
 		p1,
 		p2,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
