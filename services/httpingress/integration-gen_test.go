@@ -257,3 +257,159 @@ func OnChangedPortMappings(ctx context.Context) *OnChangedPortMappingsTestCase {
 	})
 	return tc
 }
+
+// OnChangedReadTimeoutTestCase assists in asserting against the results of executing OnChangedReadTimeout.
+type OnChangedReadTimeoutTestCase struct {
+	testName string
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnChangedReadTimeoutTestCase) Name(testName string) *OnChangedReadTimeoutTestCase {
+	tc.testName = testName
+	return tc
+}
+
+// Error asserts an error.
+func (tc *OnChangedReadTimeoutTestCase) Error(t *testing.T, errContains string) *OnChangedReadTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnChangedReadTimeoutTestCase) NoError(t *testing.T) *OnChangedReadTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *OnChangedReadTimeoutTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedReadTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		asserter(t, tc.err)
+	})
+	return tc
+}
+
+// Get returns the result of executing ReadTimeout.
+func (tc *OnChangedReadTimeoutTestCase) Get() (err error) {
+	return tc.err
+}
+
+// OnChangedReadTimeout executes the on changed callback and returns a corresponding test case.
+func OnChangedReadTimeout(ctx context.Context) *OnChangedReadTimeoutTestCase {
+	tc := &OnChangedReadTimeoutTestCase{}
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.OnChangedReadTimeout(ctx)
+	})
+	return tc
+}
+
+// OnChangedWriteTimeoutTestCase assists in asserting against the results of executing OnChangedWriteTimeout.
+type OnChangedWriteTimeoutTestCase struct {
+	testName string
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnChangedWriteTimeoutTestCase) Name(testName string) *OnChangedWriteTimeoutTestCase {
+	tc.testName = testName
+	return tc
+}
+
+// Error asserts an error.
+func (tc *OnChangedWriteTimeoutTestCase) Error(t *testing.T, errContains string) *OnChangedWriteTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnChangedWriteTimeoutTestCase) NoError(t *testing.T) *OnChangedWriteTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *OnChangedWriteTimeoutTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedWriteTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		asserter(t, tc.err)
+	})
+	return tc
+}
+
+// Get returns the result of executing WriteTimeout.
+func (tc *OnChangedWriteTimeoutTestCase) Get() (err error) {
+	return tc.err
+}
+
+// OnChangedWriteTimeout executes the on changed callback and returns a corresponding test case.
+func OnChangedWriteTimeout(ctx context.Context) *OnChangedWriteTimeoutTestCase {
+	tc := &OnChangedWriteTimeoutTestCase{}
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.OnChangedWriteTimeout(ctx)
+	})
+	return tc
+}
+
+// OnChangedReadHeaderTimeoutTestCase assists in asserting against the results of executing OnChangedReadHeaderTimeout.
+type OnChangedReadHeaderTimeoutTestCase struct {
+	testName string
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnChangedReadHeaderTimeoutTestCase) Name(testName string) *OnChangedReadHeaderTimeoutTestCase {
+	tc.testName = testName
+	return tc
+}
+
+// Error asserts an error.
+func (tc *OnChangedReadHeaderTimeoutTestCase) Error(t *testing.T, errContains string) *OnChangedReadHeaderTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnChangedReadHeaderTimeoutTestCase) NoError(t *testing.T) *OnChangedReadHeaderTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *OnChangedReadHeaderTimeoutTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedReadHeaderTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		asserter(t, tc.err)
+	})
+	return tc
+}
+
+// Get returns the result of executing ReadHeaderTimeout.
+func (tc *OnChangedReadHeaderTimeoutTestCase) Get() (err error) {
+	return tc.err
+}
+
+// OnChangedReadHeaderTimeout executes the on changed callback and returns a corresponding test case.
+func OnChangedReadHeaderTimeout(ctx context.Context) *OnChangedReadHeaderTimeoutTestCase {
+	tc := &OnChangedReadHeaderTimeoutTestCase{}
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.OnChangedReadHeaderTimeout(ctx)
+	})
+	return tc
+}

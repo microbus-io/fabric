@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
@@ -67,6 +66,11 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 
 // OnChangedPorts is triggered when the value of the Ports config property changes.
 func (svc *Service) OnChangedPorts(ctx context.Context) (err error) {
+	return svc.restartHTTPServers(ctx)
+}
+
+// restartHTTPServers stops and then restarts the HTTP servers.
+func (svc *Service) restartHTTPServers(ctx context.Context) (err error) {
 	svc.stopHTTPServers(ctx)
 	err = svc.startHTTPServers(ctx)
 	if err != nil {
@@ -75,7 +79,7 @@ func (svc *Service) OnChangedPorts(ctx context.Context) (err error) {
 	return nil
 }
 
-// stopHTTPServers stop the running HTTP servers.
+// stopHTTPServers stops the running HTTP servers.
 func (svc *Service) stopHTTPServers(ctx context.Context) (err error) {
 	svc.mux.Lock()
 	defer svc.mux.Unlock()
@@ -126,9 +130,9 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 		httpServer := &http.Server{
 			Addr:              ":" + port,
 			Handler:           svc,
-			ReadHeaderTimeout: time.Minute,
-			ReadTimeout:       time.Minute * 5, // Enough for 750MB at 20Mbps
-			WriteTimeout:      time.Minute * 5,
+			ReadHeaderTimeout: svc.ReadHeaderTimeout(),
+			ReadTimeout:       svc.ReadTimeout(),
+			WriteTimeout:      svc.WriteTimeout(),
 		}
 		svc.httpServers[portInt] = httpServer
 		if secure {
@@ -151,12 +155,8 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		uri := r.URL.RequestURI()
 		statusCode := errors.Convert(err).StatusCode
-		if statusCode == 0 {
+		if statusCode <= 0 || statusCode >= 1000 {
 			statusCode = http.StatusInternalServerError
-			if err.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
-				err.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
-				statusCode = http.StatusRequestEntityTooLarge
-			}
 		}
 		w.WriteHeader(statusCode)
 		if svc.Deployment() != connector.PROD {
@@ -196,9 +196,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	if uri == "/" {
 		redirectTo := svc.RedirectRoot()
 		if redirectTo == "" {
-			err := errors.New("no root")
-			errors.Convert(err).StatusCode = http.StatusNotFound
-			return errors.Trace(err)
+			return errors.Newc(http.StatusNotFound, "no root")
 		}
 		redirectTo = strings.TrimPrefix(redirectTo, "https:/")
 		redirectTo = strings.TrimPrefix(redirectTo, "http:/")
@@ -212,9 +210,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	origin := r.Header.Get("Origin")
 	if origin != "" {
 		if !svc.allowedOrigins["*"] && !svc.allowedOrigins[origin] {
-			err := errors.New("disallowed origin", origin)
-			errors.Convert(err).StatusCode = http.StatusForbidden
-			return errors.Trace(err)
+			return errors.Newc(http.StatusForbidden, "disallowed origin", origin)
 		}
 	}
 
@@ -373,9 +369,7 @@ func (svc *Service) readRequestBody(r *http.Request) (body []byte, err error) {
 	if r.ContentLength > 0 {
 		used := atomic.LoadInt64(&svc.reqMemoryUsed)
 		if used+r.ContentLength > limit {
-			err = errors.New("insufficient memory")
-			errors.Convert(err).StatusCode = http.StatusRequestEntityTooLarge
-			return nil, errors.Trace(err)
+			return nil, errors.Newc(http.StatusRequestEntityTooLarge, "insufficient memory")
 		}
 	}
 	bufSize := r.ContentLength
@@ -404,9 +398,7 @@ func (svc *Service) readRequestBody(r *http.Request) (body []byte, err error) {
 		used := atomic.AddInt64(&svc.reqMemoryUsed, int64(n))
 		if used > limit {
 			atomic.AddInt64(&svc.reqMemoryUsed, -int64(nn))
-			err = errors.New("insufficient memory")
-			errors.Convert(err).StatusCode = http.StatusRequestEntityTooLarge
-			return nil, errors.Trace(err)
+			return nil, errors.Newc(http.StatusRequestEntityTooLarge, "insufficient memory")
 		}
 		result.Write(buf[:n])
 	}
@@ -485,4 +477,19 @@ func resolveInternalURL(externalURL *url.URL, portMappings map[string]string) (n
 	}
 	u.Host = strings.TrimSuffix(u.Host, ":443")
 	return u
+}
+
+// OnChangedReadTimeout is triggered when the value of the ReadTimeout config property changes.
+func (svc *Service) OnChangedReadTimeout(ctx context.Context) (err error) {
+	return svc.restartHTTPServers(ctx)
+}
+
+// OnChangedWriteTimeout is triggered when the value of the WriteTimeout config property changes.
+func (svc *Service) OnChangedWriteTimeout(ctx context.Context) (err error) {
+	return svc.restartHTTPServers(ctx)
+}
+
+// OnChangedReadHeaderTimeout is triggered when the value of the ReadHeaderTimeout config property changes.
+func (svc *Service) OnChangedReadHeaderTimeout(ctx context.Context) (err error) {
+	return svc.restartHTTPServers(ctx)
 }

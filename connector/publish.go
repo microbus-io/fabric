@@ -74,8 +74,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	}
 	// Check if there's enough time budget
 	if req.TimeBudget <= c.networkHop {
-		err = errors.New("timeout", req.Canonical())
-		errors.Convert(err).StatusCode = http.StatusRequestTimeout
+		err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
@@ -83,8 +82,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	// Limit number of hops
 	depth := frame.Of(ctx).CallDepth()
 	if depth >= c.maxCallDepth {
-		err = errors.New("call depth overflow", req.Canonical())
-		errors.Convert(err).StatusCode = http.StatusLoopDetected
+		err = errors.Newc(http.StatusLoopDetected, "call depth overflow", req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
@@ -327,8 +325,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		// Timeout timer
 		case <-timeoutTimer.C:
 			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
-			err = errors.New("timeout", req.Canonical())
-			errors.Convert(err).StatusCode = http.StatusRequestTimeout
+			err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
 			output.Push(pub.NewErrorResponse(err))
 			c.postRequestData.Store("timeout:"+msgID, subject)
 			// Known responders optimization
@@ -342,8 +339,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		case <-ackTimer.C:
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
-				err = errors.New("ack timeout", req.Canonical())
-				errors.Convert(err).StatusCode = http.StatusNotFound
+				err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
 				output.Push(pub.NewErrorResponse(err))
 				// Known responders optimization
 				if req.Multicast {

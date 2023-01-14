@@ -62,4 +62,10 @@ var (
 	PortMappings = intermediate.PortMappings
 	// RedirectRoot initializes the RedirectRoot config property of the microservice
 	RedirectRoot = intermediate.RedirectRoot
+	// ReadTimeout initializes the ReadTimeout config property of the microservice
+	ReadTimeout = intermediate.ReadTimeout
+	// WriteTimeout initializes the WriteTimeout config property of the microservice
+	WriteTimeout = intermediate.WriteTimeout
+	// ReadHeaderTimeout initializes the ReadHeaderTimeout config property of the microservice
+	ReadHeaderTimeout = intermediate.ReadHeaderTimeout
 )

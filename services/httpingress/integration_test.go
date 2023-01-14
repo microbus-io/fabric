@@ -57,18 +57,6 @@ func Terminate() error {
 	return nil
 }
 
-func TestHttpingress_OnChangedPorts(t *testing.T) {
-	t.Skip() // Not tested
-}
-
-func TestHttpingress_OnChangedAllowedOrigins(t *testing.T) {
-	t.Skip() // Not tested
-}
-
-func TestHttpingress_OnChangedPortMappings(t *testing.T) {
-	t.Skip() // Not tested
-}
-
 func TestHttpingress_Ports(t *testing.T) {
 	t.Parallel()
 
@@ -522,4 +510,28 @@ func TestHttpingress_ParseForm(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	}
+}
+
+func TestHttpingress_OnChangedPorts(t *testing.T) {
+	t.Skip() // Not tested
+}
+
+func TestHttpingress_OnChangedAllowedOrigins(t *testing.T) {
+	t.Skip() // Not tested
+}
+
+func TestHttpingress_OnChangedPortMappings(t *testing.T) {
+	t.Skip() // Not tested
+}
+
+func TestHttpingress_OnChangedReadTimeout(t *testing.T) {
+	t.Skip() // Not tested
+}
+
+func TestHttpingress_OnChangedWriteTimeout(t *testing.T) {
+	t.Skip() // Not tested
+}
+
+func TestHttpingress_OnChangedReadHeaderTimeout(t *testing.T) {
+	t.Skip() // Not tested
 }

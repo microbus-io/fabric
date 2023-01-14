@@ -267,9 +267,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
 	if budget <= c.networkHop {
-		err = errors.New("timeout")
-		errors.Convert(err).StatusCode = http.StatusRequestTimeout
-		return err
+		return errors.Newc(http.StatusRequestTimeout, "timeout")
 	}
 
 	// Integrate fragments together
@@ -305,6 +303,12 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 		if handlerErr != nil {
 			handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
+			if errors.Convert(handlerErr).StatusCode == 0 {
+				if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
+					handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
+					errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
+				}
+			}
 			c.LogError(frameCtx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
 
 			// Prepare an error response instead

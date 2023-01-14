@@ -59,6 +59,9 @@ type ToDo interface {
 	OnChangedPorts(ctx context.Context) (err error)
 	OnChangedAllowedOrigins(ctx context.Context) (err error)
 	OnChangedPortMappings(ctx context.Context) (err error)
+	OnChangedReadTimeout(ctx context.Context) (err error)
+	OnChangedWriteTimeout(ctx context.Context) (err error)
+	OnChangedReadHeaderTimeout(ctx context.Context) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -85,13 +88,13 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"TimeBudget",
-		cfg.Description(`TimeBudget specifies the timeout for incoming requests.`),
-		cfg.Validation(`dur [1s,5m]`),
+		cfg.Description(`TimeBudget specifies the timeout for handling a request, after it has been read.`),
+		cfg.Validation(`dur [1s,]`),
 		cfg.DefaultValue(`20s`),
 	)
 	svc.DefineConfig(
 		"Ports",
-		cfg.Description(`Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.`),
+		cfg.Description(`Ports is a comma-separated list of HTTP ports on which to listen for requests.`),
 		cfg.DefaultValue(`8080`),
 	)
 	svc.DefineConfig(
@@ -109,7 +112,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 		"PortMappings",
 		cfg.Description(`PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
 HTTP port, y is the requested NATS port, and z is the port to serve.
-An incoming HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
 request https://servicehost:z/path .
 Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
 port y without change. Specific rules take precedence over * rules.
@@ -121,6 +124,24 @@ HTTP ports 443 and 80 to only internal port 443.`),
 		"RedirectRoot",
 		cfg.Description(`RedirectRoot defines the internal URL to redirect requests to the root path.
 The URL must be fully qualified, for example, "https://home.service/welcome-page".`),
+	)
+	svc.DefineConfig(
+		"ReadTimeout",
+		cfg.Description(`ReadTimeout specifies the timeout for fully reading a request.`),
+		cfg.Validation(`dur [1s,]`),
+		cfg.DefaultValue(`5m`),
+	)
+	svc.DefineConfig(
+		"WriteTimeout",
+		cfg.Description(`WriteTimeout specifies the timeout for fully writing the response to a request.`),
+		cfg.Validation(`dur [1s,]`),
+		cfg.DefaultValue(`5m`),
+	)
+	svc.DefineConfig(
+		"ReadHeaderTimeout",
+		cfg.Description(`ReadHeaderTimeout specifies the timeout for fully reading the header of a request.`),
+		cfg.Validation(`dur [1s,]`),
+		cfg.DefaultValue(`20s`),
 	)
 
 	return svc
@@ -151,11 +172,29 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 			return errors.Trace(err)
 		}
 	}
+	if changed("ReadTimeout") {
+		err := svc.impl.OnChangedReadTimeout(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("WriteTimeout") {
+		err := svc.impl.OnChangedWriteTimeout(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("ReadHeaderTimeout") {
+		err := svc.impl.OnChangedReadHeaderTimeout(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	return nil
 }
 
 /*
-TimeBudget specifies the timeout for incoming requests.
+TimeBudget specifies the timeout for handling a request, after it has been read.
 */
 func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	_val := svc.Config("TimeBudget")
@@ -172,7 +211,7 @@ func TimeBudget(budget time.Duration) (func(connector.Service) error) {
 
 
 /*
-Ports is a comma-separated list of HTTP ports on which to listen for incoming requests.
+Ports is a comma-separated list of HTTP ports on which to listen for requests.
 */
 func (svc *Intermediate) Ports() (port string) {
 	_val := svc.Config("Ports")
@@ -223,7 +262,7 @@ func AllowedOrigins(origins string) (func(connector.Service) error) {
 /*
 PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
 HTTP port, y is the requested NATS port, and z is the port to serve.
-An incoming HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
 request https://servicehost:z/path .
 Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
 port y without change. Specific rules take precedence over * rules.
@@ -256,5 +295,56 @@ func (svc *Intermediate) RedirectRoot() (toURL string) {
 func RedirectRoot(toURL string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("RedirectRoot", fmt.Sprintf("%v", toURL))
+	}
+}
+
+
+/*
+ReadTimeout specifies the timeout for fully reading a request.
+*/
+func (svc *Intermediate) ReadTimeout() (timeout time.Duration) {
+	_val := svc.Config("ReadTimeout")
+	_dur, _ := time.ParseDuration(_val)
+	return _dur
+}
+
+// ReadTimeout initializes the ReadTimeout config property of the microservice.
+func ReadTimeout(timeout time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("ReadTimeout", fmt.Sprintf("%v", timeout))
+	}
+}
+
+
+/*
+WriteTimeout specifies the timeout for fully writing the response to a request.
+*/
+func (svc *Intermediate) WriteTimeout() (timeout time.Duration) {
+	_val := svc.Config("WriteTimeout")
+	_dur, _ := time.ParseDuration(_val)
+	return _dur
+}
+
+// WriteTimeout initializes the WriteTimeout config property of the microservice.
+func WriteTimeout(timeout time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("WriteTimeout", fmt.Sprintf("%v", timeout))
+	}
+}
+
+
+/*
+ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
+*/
+func (svc *Intermediate) ReadHeaderTimeout() (timeout time.Duration) {
+	_val := svc.Config("ReadHeaderTimeout")
+	_dur, _ := time.ParseDuration(_val)
+	return _dur
+}
+
+// ReadHeaderTimeout initializes the ReadHeaderTimeout config property of the microservice.
+func ReadHeaderTimeout(timeout time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))
 	}
 }
