@@ -1,23 +1,23 @@
-# Metrics
+# Package `services/metrics`
 
-Metrics within the `Microbus` framework relies on Prometheus and operates on a pull model. Prometheus pulls metrics from the metrics system microservice, which in turn pulls and aggregates metrics from all running microservices in the current deployment.
+The `Microbus` framework relies on `Prometheus` for the collection of metrics. `Prometheus` pulls metrics from the metrics system microservice, which in turn pulls and aggregates metrics from all microservices it can reach on the NATS bus.
 
-<img src="metrics-1.svg" width="600">
+<img src="services-metrics-1.svg" width="600">
 
 ## Standard Metrics
 
-All services by default expose a minimal set of metrics pertaining to the handling of incoming and outgoing requests. These include:
+By default, all microservices produce a standard set of metrics:
 
-* The current service uptime in seconds
-* The size of the response message to incoming requests
-* The internal processing time of incoming requests
-* The total duration of outgoing requests
-* Duration to acknowledgement
-* Total log messages recorded
+* The microservice's uptime
+* Histogram of the processing time of incoming requests
+* Histogram of the size of the response to incoming requests
+* Count of the result of outgoing requests
+* Histogram of time to receive an acknowledgement from a downstream microservice
+* Count of log messages recorded
 
 ## Application Metrics
 
-In addition, application developers are free to add arbitrary metrics that are pertinent to their application. These can be defined in `service.yaml` under the metrics section.
+In addition, application developers are able to define and collect arbitrary metrics that are pertinent to their specific application, using the `DefineMetric`, `ObserveMetric` and `IncrementMetric` methods of the `Connector`. [Code generation](../tech/codegen.md) can be used to assist in the definition of metrics.
 
 ```yaml
 # Metrics

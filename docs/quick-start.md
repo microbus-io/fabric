@@ -54,7 +54,7 @@ Feel free to experiment with different values for the query arguments.
 
 ## Prometheus Setup
 
-[Metrics](docs/tech/metrics.md) in `Microbus` are collected by [Prometheus](https://prometheus.io). Installing Prometheus locally is required to enable collection of metrics for local development.
+[Metrics](docs/structure/services-metrics.md) in `Microbus` are collected by [`Prometheus`](https://prometheus.io). Installing `Prometheus` locally is required to enable collection of metrics for local development.
 
 ```cmd
 docker pull prom/prometheus
@@ -68,14 +68,14 @@ The provided sample `examples/main/prometheus.yaml` instructs Prometheus to scra
 
 ## Grafana Setup
 
-[Metrics](docs/tech/metrics.md) collected by [Prometheus](https://prometheus.io) can be viewed in Grafana Dashboards for greater insight into the microbus system. Installing Grafana locally is required to view Prometheus metrics in a graph format.
+Metrics collected by [`Prometheus`](https://prometheus.io) can be viewed in `Grafana` dashboards for greater insight into the `Microbus` system. Installing `Grafana` locally is required to view `Prometheus` metrics in a graph format.
 
 ```cmd
 docker pull grafana/grafana
 docker run -d --name=grafana -p 3000:3000 grafana/grafana
 ```
 
-Grafana and Prometheus need to be connected to the same docker network in order to communicate with eachother. Make sure the Prometheus and Grafana containers are both started before proceeding.
+`Grafana` and `Prometheus` need to be connected to the same Docker network in order to communicate with each other. Make sure the `Prometheus` and `Grafana` containers are both started before proceeding.
 
 ```cmd
 docker network create microbus-network
