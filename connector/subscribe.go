@@ -320,7 +320,11 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			httpRecorder.WriteHeader(http.StatusInternalServerError)
+			statusCode := errors.Convert(handlerErr).StatusCode
+			if statusCode == 0 {
+				statusCode = http.StatusInternalServerError
+			}
+			httpRecorder.WriteHeader(statusCode)
 			httpRecorder.Write(body)
 		}
 	}
