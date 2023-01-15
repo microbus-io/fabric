@@ -268,7 +268,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
 	if budget <= c.networkHop {
-		return errors.New("timeout")
+		return errors.Newc(http.StatusRequestTimeout, "timeout")
 	}
 
 	// Integrate fragments together
@@ -281,58 +281,73 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		return nil
 	}
 
-	// Prepare the context
-	// Set the context's timeout to the time budget reduced by a network hop
-	frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
-	ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
-	httpReq = httpReq.WithContext(ctx)
-
-	// Call the handler
-	httpRecorder := httpx.NewResponseRecorder()
+	// Execute the request
 	handlerStartTime := time.Now()
-	handlerErr := utils.CatchPanic(func() error {
-		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
-	})
-	cancel()
+	httpRecorder := httpx.NewResponseRecorder()
+	var handlerErr error
+	corsPreflight := (httpReq.Method == "OPTIONS" && httpReq.Header.Get("Origin") != "")
+	if corsPreflight {
+		// CORS preflight requests are returned empty
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+		httpRecorder.WriteHeader(http.StatusNoContent)
+	} else {
+		// Prepare the context
+		// Set the context's timeout to the time budget reduced by a network hop
+		frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
+		ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
+		httpReq = httpReq.WithContext(ctx)
 
-	failed := handlerErr != nil
+		// Call the handler
+		handlerErr = utils.CatchPanic(func() error {
+			return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
+		})
+		cancel()
+
+		if handlerErr != nil {
+			handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
+			if errors.Convert(handlerErr).StatusCode == 0 {
+				if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
+					handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
+					errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
+				}
+			}
+			c.LogError(frameCtx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
+
+			// Prepare an error response instead
+			httpRecorder = httpx.NewResponseRecorder()
+			httpRecorder.Header().Set("Content-Type", "application/json")
+			body, err := json.MarshalIndent(handlerErr, "", "\t")
+			if err != nil {
+				return errors.Trace(err)
+			}
+			httpRecorder.WriteHeader(http.StatusInternalServerError)
+			httpRecorder.Write(body)
+		}
+	}
+
+	httpResponse := httpRecorder.Result()
+
+	// Meter
 	_ = c.ObserveMetric(
 		"microbus_response_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
 		s.Canonical(),
 		strconv.Itoa(s.Port),
 		httpReq.Method,
-		strconv.Itoa(httpRecorder.Result().StatusCode),
-		strconv.FormatBool(failed),
+		strconv.Itoa(httpResponse.StatusCode),
+		strconv.FormatBool(handlerErr != nil),
 	)
-
-	if handlerErr != nil {
-		handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
-		c.LogError(ctx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
-
-		// Prepare an error response instead
-		httpRecorder = httpx.NewResponseRecorder()
-		httpRecorder.Header().Set("Content-Type", "application/json")
-		body, err := json.MarshalIndent(handlerErr, "", "\t")
-		if err != nil {
-			return errors.Trace(err)
-		}
-		httpRecorder.WriteHeader(http.StatusInternalServerError)
-		httpRecorder.Write(body)
-	}
-
 	_ = c.ObserveMetric(
 		"microbus_response_size_bytes",
 		float64(httpRecorder.ContentLength()),
 		s.Canonical(),
 		strconv.Itoa(s.Port),
 		httpReq.Method,
-		strconv.Itoa(httpRecorder.Result().StatusCode),
-		strconv.FormatBool(failed),
+		strconv.Itoa(httpResponse.StatusCode),
+		strconv.FormatBool(handlerErr != nil),
 	)
 
 	// Set control headers on the response
-	httpResponse := httpRecorder.Result()
 	frame.Of(httpResponse).SetMessageID(msgID)
 	frame.Of(httpResponse).SetFromHost(c.hostName)
 	frame.Of(httpResponse).SetFromID(c.id)

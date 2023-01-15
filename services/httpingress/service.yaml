@@ -7,7 +7,6 @@
 general:
   host: http.ingress.sys
   description: The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.
-  integrationTests: false
 
 # Databases
 #
@@ -34,13 +33,54 @@ databases:
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
   - signature: TimeBudget() (budget time.Duration)
-    description: TimeBudget specifies the time out for incoming requests.
+    description: TimeBudget specifies the timeout for handling a request, after it has been read.
     default: 20s
-    validation: dur [1s,5m]
-  - signature: Port() (port int)
-    description: Port is the HTTP port on which to listen for incoming requests.
+    validation: dur [1s,]
+  - signature: Ports() (port string)
+    description: Ports is a comma-separated list of HTTP ports on which to listen for requests.
     default: 8080
-    validation: int [1,65535]
+    callback: true
+  - signature: RequestMemoryLimit() (megaBytes int)
+    description: RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
+    default: 4096
+    validation: int [1,]
+  - signature: AllowedOrigins() (origins string)
+    description: |-
+      AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+      The * origin can be used to allow CORS request from all origins.
+    default: "*"
+    callback: true
+  - signature: PortMappings() (mappings string)
+    description: |
+      PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+      HTTP port, y is the requested NATS port, and z is the port to serve.
+      An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+      request https://servicehost:z/path .
+      Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+      port y without change. Specific rules take precedence over * rules.
+      The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+      HTTP ports 443 and 80 to only internal port 443.
+    default: 8080:*->*, 443:*->443, 80:*->443
+    callback: true
+  - signature: RedirectRoot() (toURL string)
+    description: |-
+      RedirectRoot defines the internal URL to redirect requests to the root path.
+      The URL must be fully qualified, for example, "https://home.service/welcome-page".
+  - signature: ReadTimeout() (timeout time.Duration)
+    description: ReadTimeout specifies the timeout for fully reading a request.
+    default: 5m
+    validation: dur [1s,]
+    callback: true
+  - signature: WriteTimeout() (timeout time.Duration)
+    description: WriteTimeout specifies the timeout for fully writing the response to a request.
+    default: 5m
+    validation: dur [1s,]
+    callback: true
+  - signature: ReadHeaderTimeout() (timeout time.Duration)
+    description: ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
+    default: 20s
+    validation: dur [1s,]
+    callback: true
 
 # Types
 #

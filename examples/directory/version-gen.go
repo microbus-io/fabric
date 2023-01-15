@@ -3,11 +3,11 @@
 package directory
 
 const Version = 24
-const SourceCodeSHA256 = "f41f637d6d14a67a245acef7b15d96a1c157bca8a0a3eb7742c792ceda02b113"
-const Timestamp = "2023-01-15T03:28:40.71565Z"
+const SourceCodeSHA256 = "74ade91ed2270e00c6fcaaf9d798c7c2ca046452c5dbbfd40f68734d61163ae5"
+const Timestamp = "2023-01-15T01:32:03.654496Z"
 
 /* {
 	"ver": 24,
-	"sha256": "f41f637d6d14a67a245acef7b15d96a1c157bca8a0a3eb7742c792ceda02b113",
-	"ts": "2023-01-15T03:28:40.71565Z"
+	"sha256": "74ade91ed2270e00c6fcaaf9d798c7c2ca046452c5dbbfd40f68734d61163ae5",
+	"ts": "2023-01-15T01:32:03.654496Z"
 } */

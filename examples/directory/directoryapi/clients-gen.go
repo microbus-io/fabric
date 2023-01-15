@@ -118,19 +118,10 @@ func (_c *MulticastClient) Create(ctx context.Context, person *Person, _options 
 	_in := CreateIn{
 		person,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *CreateResponse, 1)
-		_res <- &CreateResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/create`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -189,19 +180,10 @@ func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...
 	_in := LoadIn{
 		key,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *LoadResponse, 1)
-		_res <- &LoadResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -258,19 +240,10 @@ func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options .
 	_in := DeleteIn{
 		key,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *DeleteResponse, 1)
-		_res <- &DeleteResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/delete`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -329,19 +302,10 @@ func (_c *MulticastClient) Update(ctx context.Context, person *Person, _options 
 	_in := UpdateIn{
 		person,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *UpdateResponse, 1)
-		_res <- &UpdateResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/update`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -400,19 +364,10 @@ func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _optio
 	_in := LoadByEmailIn{
 		email,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *LoadByEmailResponse, 1)
-		_res <- &LoadByEmailResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load-by-email`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -467,19 +422,10 @@ List returns the keys of all the persons in the directory.
 func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-chan *ListResponse {
 	_in := ListIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *ListResponse, 1)
-		_res <- &ListResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/list`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -512,18 +458,11 @@ func (_c *Client) Create(ctx context.Context, person *Person) (created *Person, 
 	_in := CreateIn{
 		person,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/create`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -546,18 +485,11 @@ func (_c *Client) Load(ctx context.Context, key PersonKey) (person *Person, ok b
 	_in := LoadIn{
 		key,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -581,18 +513,11 @@ func (_c *Client) Delete(ctx context.Context, key PersonKey) (ok bool, err error
 	_in := DeleteIn{
 		key,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/delete`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -615,18 +540,11 @@ func (_c *Client) Update(ctx context.Context, person *Person) (updated *Person, 
 	_in := UpdateIn{
 		person,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/update`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -650,18 +568,11 @@ func (_c *Client) LoadByEmail(ctx context.Context, email string) (person *Person
 	_in := LoadByEmailIn{
 		email,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load-by-email`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -684,18 +595,11 @@ List returns the keys of all the persons in the directory.
 func (_c *Client) List(ctx context.Context) (keys []PersonKey, err error) {
 	_in := ListIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/list`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)

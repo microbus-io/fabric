@@ -103,6 +103,7 @@ func (svc *Intermediate) Resources() embed.FS {
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
+
 // doRegistered handles marshaling for the Registered function.
 func (svc *Intermediate) doRegistered(w http.ResponseWriter, r *http.Request) error {
 	var i eventsinkapi.RegisteredIn

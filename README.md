@@ -2,7 +2,7 @@
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
-<img src="docs/gopher-on-bus.png" width=256>
+<img src="docs/gopher-on-bus.png" width="256">
 
 ## 🚌 Introduction
 
@@ -24,7 +24,7 @@ The framework's philosophy touches on three conceptual areas:
 
 👉 Follow the step-by-step guide and [build your first microservice](docs/first-service.md)!
 
-👉 Discover the full power of [code generation](docs/tech/codegen.md) ✨. It's totally RAD, dude!
+👉 Discover the full power of [code generation](docs/tech/codegen.md). It's totally RAD, dude!
 
 👉 Learn how to write thorough [integration tests](docs/tech/integrationtesting.md) and achieve high code coverage.
 

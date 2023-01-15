@@ -40,19 +40,10 @@ func (_c *Multicast
 		{{ .Name }},
 		{{- end }}
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *{{ .Name }}Response, 1)
-		_res <- &{{ .Name }}Response{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -89,18 +80,11 @@ func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 		{{ .Name }},
 		{{- end }}
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)

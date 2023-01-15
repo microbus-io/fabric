@@ -148,8 +148,7 @@ func Method(method string) WebOption {
 	return WebOption(pub.Method(method))
 }
 
-// Header add the header to the request.
-// The same header may have multiple values.
+// Header sets the header of the request. It overwrites any previously set value.
 func Header(name string, value string) WebOption {
 	return WebOption(pub.Header(name, value))
 }

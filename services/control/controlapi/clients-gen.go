@@ -117,19 +117,10 @@ Ping responds to the message with a pong.
 func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingResponse {
 	_in := PingIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *PingResponse, 1)
-		_res <- &PingResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -182,19 +173,10 @@ ConfigRefresh pulls the latest config values from the configurator service.
 func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshResponse {
 	_in := ConfigRefreshIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *ConfigRefreshResponse, 1)
-		_res <- &ConfigRefreshResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -226,18 +208,11 @@ Ping responds to the message with a pong.
 func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 	_in := PingIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)
@@ -259,18 +234,11 @@ ConfigRefresh pulls the latest config values from the configurator service.
 func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 	_in := ConfigRefreshIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)

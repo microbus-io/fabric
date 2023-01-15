@@ -116,6 +116,7 @@ func (svc *Intermediate) Resources() embed.FS {
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
+
 // doArithmetic handles marshaling for the Arithmetic function.
 func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.ArithmeticIn

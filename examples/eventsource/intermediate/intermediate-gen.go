@@ -94,6 +94,7 @@ func (svc *Intermediate) Resources() embed.FS {
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
+
 // doRegister handles marshaling for the Register function.
 func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) error {
 	var i eventsourceapi.RegisterIn
