@@ -170,9 +170,23 @@ func (h *Handler) validate() error {
 			argNames[arg.Name] = true
 		}
 	case "metric":
-		// TODO: validate first arg is numeric or duration, no return value
-		// TODO: validate label types are acceptable (no complex types)
-		// TODO: validate no duplicate arg names
+		if len(h.Signature.OutputArgs) != 0 {
+			return errors.Newf("return values not allowed in '%s'", h.Signature.OrigString)
+		}
+		if len(h.Signature.InputArgs) == 0 {
+			return errors.Newf("at least one argument expected in '%s'", h.Signature.OrigString)
+		}
+		argNames := map[string]bool{}
+		for _, arg := range h.Signature.InputArgs {
+			if argNames[arg.Name] {
+				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
+			}
+			argNames[arg.Name] = true
+		}
+		t := h.Signature.InputArgs[0].Type
+		if t != "int" && t != "time.Duration" && t != "float64" {
+			return errors.Newf("first argument is of a non-numeric type '%s' in '%s'", t, h.Signature.OrigString)
+		}
 	}
 
 	startsWithOn := regexp.MustCompile(`^On[A-Z][a-zA-Z0-9]*$`)
