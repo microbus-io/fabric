@@ -1,5 +1,4 @@
 {{- if .Databases.MySQL }}
-
 // mysqlOnStartup opens the connection to the MySQL database and runs schema migrations.
 func (svc *Intermediate) mysqlOnStartup(ctx context.Context) (err error) {
 	if svc.dbMySQL != nil {

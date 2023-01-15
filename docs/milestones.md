@@ -97,3 +97,13 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Code generation of MySQL boilerplate code
 * Allow attaching multiple lifecycle and config change callbacks to the `Connector`
 * `NullTime` utility to better handle serialization of the zero time value
+
+[Milestone 14](https://github.com/microbus-io/fabric/tree/milestone/14):
+
+* Extended `TracedError` with HTTP status code
+* Handle CORS preflight and origin
+* HTTP ingress protections: memory usage limit, read timeout, read header timeout, write timeout
+* Compress if seeing `Accept-Encoding` header 
+* Handle `X-Forwarded` headers
+* TLS in HTTP ingress
+* Multiple HTTP ports for HTTP ingress, with mapping for internal ports

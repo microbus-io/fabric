@@ -39,7 +39,9 @@ configs:
     default: 4096
     validation: int [1,]
   - signature: AllowedOrigins() (origins string)
-    description: AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+    description: |-
+      AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+      The * origin can be used to allow CORS request from all origins.
     default: "*"
     callback: true
   - signature: PortMappings() (mappings string)

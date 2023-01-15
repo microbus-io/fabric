@@ -131,8 +131,6 @@ func (svc *Intermediate) Greeting() (greeting string) {
 }
 
 /*
-Greeting initializes the Greeting config property of the microservice
-when used as an argument to With.
 Greeting to use.
 */
 func Greeting(greeting string) (func(connector.Service) error) {
@@ -140,7 +138,6 @@ func Greeting(greeting string) (func(connector.Service) error) {
 		return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
 	}
 }
-
 
 /*
 Repeat indicates how many times to display the greeting.
@@ -152,8 +149,6 @@ func (svc *Intermediate) Repeat() (count int) {
 }
 
 /*
-Repeat initializes the Repeat config property of the microservice
-when used as an argument to With.
 Repeat indicates how many times to display the greeting.
 */
 func Repeat(count int) (func(connector.Service) error) {

@@ -11,9 +11,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	{{- end}}{{- end}}
 	return nil
 }
-
-{{- range .Configs}}
-
+{{ range .Configs}}
 /*
 {{ .Description }}
 */
@@ -47,8 +45,6 @@ func (svc *Intermediate) {{ .Name }}() (
 }
 
 /*
-{{ .Name }} initializes the {{ .Name }} config property of the microservice
-when used as an argument to With.
 {{ .Description }}
 */
 func {{ .Name }}(
