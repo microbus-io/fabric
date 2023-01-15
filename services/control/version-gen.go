@@ -2,12 +2,12 @@
 
 package control
 
-const Version = 40
-const SourceCodeSHA256 = "d89fa70be05038810d1e23312f2f527dfccf3211f3df8c604270a94308c6cd6b"
-const Timestamp = "2023-01-13T03:16:16.924887Z"
+const Version = 42
+const SourceCodeSHA256 = "a94a3ff32830dcbd49336cedb00cff8273292722aaaa755135121cf9384b8494"
+const Timestamp = "2023-01-15T03:28:42.593338Z"
 
 /* {
-	"ver": 40,
-	"sha256": "d89fa70be05038810d1e23312f2f527dfccf3211f3df8c604270a94308c6cd6b",
-	"ts": "2023-01-13T03:16:16.924887Z"
+	"ver": 42,
+	"sha256": "a94a3ff32830dcbd49336cedb00cff8273292722aaaa755135121cf9384b8494",
+	"ts": "2023-01-15T03:28:42.593338Z"
 } */

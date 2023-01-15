@@ -30,8 +30,8 @@ In addition, application developers are free to add arbitrary metrics that are p
 #   See https://prometheus.io/docs/practices/naming/ for naming best practices
 # description - Documentation
 # kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
-# alias - The name of the metric to register with Prometheus
 # buckets - Bucket boundaries for histograms [x,y,z,...]
+# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
 metrics:
   - signature: Likes(num int, postId string)
     description: Likes counts the number of likes for a given post.

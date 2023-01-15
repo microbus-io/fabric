@@ -2,12 +2,12 @@
 
 package directory
 
-const Version = 22
-const SourceCodeSHA256 = "f17ba0b98f037df83515b86ae59c61bc6a1184e06f83279bc41bcb1cf856fd1c"
-const Timestamp = "2023-01-13T02:38:30.928408Z"
+const Version = 24
+const SourceCodeSHA256 = "f41f637d6d14a67a245acef7b15d96a1c157bca8a0a3eb7742c792ceda02b113"
+const Timestamp = "2023-01-15T03:28:40.71565Z"
 
 /* {
-	"ver": 22,
-	"sha256": "f17ba0b98f037df83515b86ae59c61bc6a1184e06f83279bc41bcb1cf856fd1c",
-	"ts": "2023-01-13T02:38:30.928408Z"
+	"ver": 24,
+	"sha256": "f41f637d6d14a67a245acef7b15d96a1c157bca8a0a3eb7742c792ceda02b113",
+	"ts": "2023-01-15T03:28:40.71565Z"
 } */
