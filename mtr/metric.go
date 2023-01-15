@@ -59,7 +59,7 @@ func (h *Histogram) Add(val float64, labels ...string) error {
 	return errors.New("histogram does not support 'Add' operation")
 }
 
-// Add increments the current value of the gage.
+// Add increments the current value of the gauge.
 func (g *Gauge) Add(val float64, labels ...string) error {
 	gauge, err := g.GaugeVec.GetMetricWithLabelValues(labels...)
 	if err != nil {
