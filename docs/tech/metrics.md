@@ -2,6 +2,8 @@
 
 Metrics within the `Microbus` framework relies on Prometheus and operates on a pull model. Prometheus pulls metrics from the metrics system microservice, which in turn pulls and aggregates metrics from all running microservices in the current deployment.
 
+<img src="metrics-1.svg" width="600">
+
 ## Standard Metrics
 
 All services by default expose a minimal set of metrics pertaining to the handling of incoming and outgoing requests. These include:
@@ -9,7 +11,6 @@ All services by default expose a minimal set of metrics pertaining to the handli
 * The current service uptime in seconds
 * The size of the response message to incoming requests
 * The internal processing time of incoming requests
-* Late reply message duration
 * The total duration of outgoing requests
 * Duration to acknowledgement
 * Total log messages recorded
@@ -30,8 +31,8 @@ In addition, application developers are free to add arbitrary metrics that are p
 #   See https://prometheus.io/docs/practices/naming/ for naming best practices
 # description - Documentation
 # kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
-# alias - The name of the metric to register with Prometheus
 # buckets - Bucket boundaries for histograms [x,y,z,...]
+# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
 metrics:
   - signature: Likes(num int, postId string)
     description: Likes counts the number of likes for a given post.

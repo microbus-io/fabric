@@ -57,12 +57,12 @@ func (c *Connector) newMetricsRegistry() error {
 // The metric can later be observed.
 func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels []string) error {
 	if len(buckets) < 1 {
-		return errors.New("empty buckets")
+		return c.captureInitErr(errors.New("empty buckets"))
 	}
 	sort.Float64s(buckets)
 	for i := 0; i < len(buckets)-1; i++ {
 		if buckets[i+1] <= buckets[i] {
-			return errors.New("buckets must be defined in ascending order")
+			return c.captureInitErr(errors.New("buckets must be defined in ascending order"))
 		}
 	}
 
@@ -72,7 +72,7 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 	c.metricLock.Lock()
 	defer c.metricLock.Unlock()
 	if _, ok := c.metricDefs[name]; ok {
-		return errors.Newf("metric '%s' already defined", name)
+		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
 
 	histogramVec := prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -87,7 +87,7 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 
 	c.metricDefs[name] = m
 	err := c.metricsRegistry.Register(histogramVec)
-	return errors.Trace(err, name)
+	return c.captureInitErr(errors.Trace(err, name))
 }
 
 // DefineCounter defines a new counter metric.
@@ -99,7 +99,7 @@ func (c *Connector) DefineCounter(name, help string, labels []string) error {
 	c.metricLock.Lock()
 	defer c.metricLock.Unlock()
 	if _, ok := c.metricDefs[name]; ok {
-		return errors.Newf("metric '%s' already defined", name)
+		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
 
 	counterVec := prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -113,7 +113,7 @@ func (c *Connector) DefineCounter(name, help string, labels []string) error {
 
 	c.metricDefs[name] = m
 	err := c.metricsRegistry.Register(counterVec)
-	return errors.Trace(err, name)
+	return c.captureInitErr(errors.Trace(err, name))
 }
 
 // DefineGauge defines a new gauge metric.
@@ -125,7 +125,7 @@ func (c *Connector) DefineGauge(name, help string, labels []string) error {
 	c.metricLock.Lock()
 	defer c.metricLock.Unlock()
 	if _, ok := c.metricDefs[name]; ok {
-		return errors.Newf("metric '%s' already defined", name)
+		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
 
 	gaugeVec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -139,7 +139,7 @@ func (c *Connector) DefineGauge(name, help string, labels []string) error {
 
 	c.metricDefs[name] = m
 	err := c.metricsRegistry.Register(gaugeVec)
-	return errors.Trace(err, name)
+	return c.captureInitErr(errors.Trace(err, name))
 }
 
 // IncrementMetric adds the given value to a counter or gauge metric.

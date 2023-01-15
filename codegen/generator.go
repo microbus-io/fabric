@@ -96,11 +96,13 @@ func (gen *Generator) Run() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = yaml.Unmarshal(b, &gen.specs)
+		gen.specs = &spec.Service{
+			Package: pkgPath, // Must be set before parsing
+		}
+		err = yaml.Unmarshal(b, gen.specs)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		gen.specs.Package = pkgPath
 		gen.Printer.Debug("Service.yaml parsed")
 	}
 

@@ -34,12 +34,21 @@ func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	pkg := s.Package
 	*s = Service(x)
+	s.Package = pkg
 
 	// Validate
 	err = s.validate()
 	if err != nil {
 		return errors.Trace(err)
+	}
+
+	// Default alias for metrics (requires the package name)
+	for _, metric := range s.Metrics {
+		if metric.Alias == "" {
+			metric.Alias = utils.ToSnakeCase(s.PackageSuffix() + metric.Name())
+		}
 	}
 
 	return nil
