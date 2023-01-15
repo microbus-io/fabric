@@ -28,16 +28,15 @@ func (c *Connector) newMetricsRegistry() error {
 		[]float64{1024, 4 * 1024, 16 * 1024, 64 * 1024, 256 * 1024, 1024 * 1024, 4 * 1024 * 1024},
 		[]string{"handler", "port", "method", "code", "error"},
 	)
-	c.DefineHistogram(
-		"microbus_request_duration_seconds",
-		"Request roundtrip duration, in seconds",
-		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
-		[]string{"method", "host", "port", "path", "error"},
+	c.DefineCounter(
+		"microbus_request_count_total",
+		"Number of outgoing requests",
+		[]string{"method", "host", "port", "path", "error", "code"},
 	)
 	c.DefineHistogram(
 		"microbus_ack_duration_seconds",
 		"Ack roundtrip duration, in seconds",
-		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
+		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5},
 		[]string{"method", "host", "port", "path"},
 	)
 	c.DefineCounter(
@@ -49,12 +48,6 @@ func (c *Connector) newMetricsRegistry() error {
 		"microbus_uptime_duration_seconds_total",
 		"Duration of time since connector was established, in seconds",
 		[]string{},
-	)
-	c.DefineHistogram(
-		"microbus_late_reply_duration_seconds",
-		"Late reply roundtrip duration, in seconds",
-		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
-		[]string{"op", "host"},
 	)
 
 	return nil
