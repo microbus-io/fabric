@@ -11,7 +11,6 @@ All services by default expose a minimal set of metrics pertaining to the handli
 * The current service uptime in seconds
 * The size of the response message to incoming requests
 * The internal processing time of incoming requests
-* Late reply message duration
 * The total duration of outgoing requests
 * Duration to acknowledgement
 * Total log messages recorded
