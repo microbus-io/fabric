@@ -285,7 +285,7 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 		pub.TimeBudget(budget),
 	)
 	assert.Error(t, err)
-	assert.Contains(t, "ack timeout", err.Error())
+	assert.Equal(t, http.StatusRequestTimeout, errors.Convert(err).StatusCode)
 	assert.True(t, depth >= 7 && depth <= 8, "%d", depth)
 }
 
@@ -321,7 +321,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	)
 	dur = con.Clock().Since(t0)
 	assert.Error(t, err)
-	assert.Contains(t, "ack timeout", err.Error())
+	assert.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
 	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 }
 
@@ -533,7 +533,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 			}
 			respondedOK++
 		} else {
-			assert.Contains(t, err.Error(), "timeout")
+			assert.Equal(t, http.StatusRequestTimeout, errors.Convert(err).StatusCode)
 			respondedErr++
 			assert.Equal(t, 2, respondedOK)
 			dur := slow.Clock().Since(t0)

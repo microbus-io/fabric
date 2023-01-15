@@ -56,6 +56,12 @@ var (
 type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
+	OnChangedPorts(ctx context.Context) (err error)
+	OnChangedAllowedOrigins(ctx context.Context) (err error)
+	OnChangedPortMappings(ctx context.Context) (err error)
+	OnChangedReadTimeout(ctx context.Context) (err error)
+	OnChangedWriteTimeout(ctx context.Context) (err error)
+	OnChangedReadHeaderTimeout(ctx context.Context) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -82,15 +88,61 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"TimeBudget",
-		cfg.Description(`TimeBudget specifies the time out for incoming requests.`),
-		cfg.Validation(`dur [1s,5m]`),
+		cfg.Description(`TimeBudget specifies the timeout for handling a request, after it has been read.`),
+		cfg.Validation(`dur [1s,]`),
 		cfg.DefaultValue(`20s`),
 	)
 	svc.DefineConfig(
-		"Port",
-		cfg.Description(`Port is the HTTP port on which to listen for incoming requests.`),
-		cfg.Validation(`int [1,65535]`),
+		"Ports",
+		cfg.Description(`Ports is a comma-separated list of HTTP ports on which to listen for requests.`),
 		cfg.DefaultValue(`8080`),
+	)
+	svc.DefineConfig(
+		"RequestMemoryLimit",
+		cfg.Description(`RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.`),
+		cfg.Validation(`int [1,]`),
+		cfg.DefaultValue(`4096`),
+	)
+	svc.DefineConfig(
+		"AllowedOrigins",
+		cfg.Description(`AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+The * origin can be used to allow CORS request from all origins.`),
+		cfg.DefaultValue(`*`),
+	)
+	svc.DefineConfig(
+		"PortMappings",
+		cfg.Description(`PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+HTTP port, y is the requested NATS port, and z is the port to serve.
+An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+request https://servicehost:z/path .
+Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+port y without change. Specific rules take precedence over * rules.
+The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+HTTP ports 443 and 80 to only internal port 443.`),
+		cfg.DefaultValue(`8080:*->*, 443:*->443, 80:*->443`),
+	)
+	svc.DefineConfig(
+		"RedirectRoot",
+		cfg.Description(`RedirectRoot defines the internal URL to redirect requests to the root path.
+The URL must be fully qualified, for example, "https://home.service/welcome-page".`),
+	)
+	svc.DefineConfig(
+		"ReadTimeout",
+		cfg.Description(`ReadTimeout specifies the timeout for fully reading a request.`),
+		cfg.Validation(`dur [1s,]`),
+		cfg.DefaultValue(`5m`),
+	)
+	svc.DefineConfig(
+		"WriteTimeout",
+		cfg.Description(`WriteTimeout specifies the timeout for fully writing the response to a request.`),
+		cfg.Validation(`dur [1s,]`),
+		cfg.DefaultValue(`5m`),
+	)
+	svc.DefineConfig(
+		"ReadHeaderTimeout",
+		cfg.Description(`ReadHeaderTimeout specifies the timeout for fully reading the header of a request.`),
+		cfg.Validation(`dur [1s,]`),
+		cfg.DefaultValue(`20s`),
 	)
 
 	return svc
@@ -103,11 +155,47 @@ func (svc *Intermediate) Resources() embed.FS {
 
 // doOnConfigChanged is called when the config of the microservice changes.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
+	if changed("Ports") {
+		err := svc.impl.OnChangedPorts(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("AllowedOrigins") {
+		err := svc.impl.OnChangedAllowedOrigins(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("PortMappings") {
+		err := svc.impl.OnChangedPortMappings(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("ReadTimeout") {
+		err := svc.impl.OnChangedReadTimeout(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("WriteTimeout") {
+		err := svc.impl.OnChangedWriteTimeout(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("ReadHeaderTimeout") {
+		err := svc.impl.OnChangedReadHeaderTimeout(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	return nil
 }
 
 /*
-TimeBudget specifies the time out for incoming requests.
+TimeBudget specifies the timeout for handling a request, after it has been read.
 */
 func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	_val := svc.Config("TimeBudget")
@@ -115,26 +203,169 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	return _dur
 }
 
-// TimeBudget initializes the TimeBudget config property of the microservice.
+/*
+TimeBudget specifies the timeout for handling a request, after it has been read.
+*/
 func TimeBudget(budget time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("TimeBudget", fmt.Sprintf("%v", budget))
 	}
 }
 
+/*
+Ports is a comma-separated list of HTTP ports on which to listen for requests.
+*/
+func (svc *Intermediate) Ports() (port string) {
+	_val := svc.Config("Ports")
+	return _val
+}
 
 /*
-Port is the HTTP port on which to listen for incoming requests.
+Ports is a comma-separated list of HTTP ports on which to listen for requests.
 */
-func (svc *Intermediate) Port() (port int) {
-	_val := svc.Config("Port")
+func Ports(port string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("Ports", fmt.Sprintf("%v", port))
+	}
+}
+
+/*
+RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
+*/
+func (svc *Intermediate) RequestMemoryLimit() (megaBytes int) {
+	_val := svc.Config("RequestMemoryLimit")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
 
-// Port initializes the Port config property of the microservice.
-func Port(port int) (func(connector.Service) error) {
+/*
+RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
+*/
+func RequestMemoryLimit(megaBytes int) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
-		return svc.SetConfig("Port", fmt.Sprintf("%v", port))
+		return svc.SetConfig("RequestMemoryLimit", fmt.Sprintf("%v", megaBytes))
+	}
+}
+
+/*
+AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+The * origin can be used to allow CORS request from all origins.
+*/
+func (svc *Intermediate) AllowedOrigins() (origins string) {
+	_val := svc.Config("AllowedOrigins")
+	return _val
+}
+
+/*
+AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
+The * origin can be used to allow CORS request from all origins.
+*/
+func AllowedOrigins(origins string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("AllowedOrigins", fmt.Sprintf("%v", origins))
+	}
+}
+
+/*
+PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+HTTP port, y is the requested NATS port, and z is the port to serve.
+An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+request https://servicehost:z/path .
+Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+port y without change. Specific rules take precedence over * rules.
+The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+HTTP ports 443 and 80 to only internal port 443.
+*/
+func (svc *Intermediate) PortMappings() (mappings string) {
+	_val := svc.Config("PortMappings")
+	return _val
+}
+
+/*
+PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
+HTTP port, y is the requested NATS port, and z is the port to serve.
+An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
+request https://servicehost:z/path .
+Both x and y can be * to indicate all ports. Setting z to * indicates to serve the requested
+port y without change. Specific rules take precedence over * rules.
+The default mapping grants access to all internal ports via HTTP port 8080 but restricts
+HTTP ports 443 and 80 to only internal port 443.
+*/
+func PortMappings(mappings string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("PortMappings", fmt.Sprintf("%v", mappings))
+	}
+}
+
+/*
+RedirectRoot defines the internal URL to redirect requests to the root path.
+The URL must be fully qualified, for example, "https://home.service/welcome-page".
+*/
+func (svc *Intermediate) RedirectRoot() (toURL string) {
+	_val := svc.Config("RedirectRoot")
+	return _val
+}
+
+/*
+RedirectRoot defines the internal URL to redirect requests to the root path.
+The URL must be fully qualified, for example, "https://home.service/welcome-page".
+*/
+func RedirectRoot(toURL string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("RedirectRoot", fmt.Sprintf("%v", toURL))
+	}
+}
+
+/*
+ReadTimeout specifies the timeout for fully reading a request.
+*/
+func (svc *Intermediate) ReadTimeout() (timeout time.Duration) {
+	_val := svc.Config("ReadTimeout")
+	_dur, _ := time.ParseDuration(_val)
+	return _dur
+}
+
+/*
+ReadTimeout specifies the timeout for fully reading a request.
+*/
+func ReadTimeout(timeout time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("ReadTimeout", fmt.Sprintf("%v", timeout))
+	}
+}
+
+/*
+WriteTimeout specifies the timeout for fully writing the response to a request.
+*/
+func (svc *Intermediate) WriteTimeout() (timeout time.Duration) {
+	_val := svc.Config("WriteTimeout")
+	_dur, _ := time.ParseDuration(_val)
+	return _dur
+}
+
+/*
+WriteTimeout specifies the timeout for fully writing the response to a request.
+*/
+func WriteTimeout(timeout time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("WriteTimeout", fmt.Sprintf("%v", timeout))
+	}
+}
+
+/*
+ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
+*/
+func (svc *Intermediate) ReadHeaderTimeout() (timeout time.Duration) {
+	_val := svc.Config("ReadHeaderTimeout")
+	_dur, _ := time.ParseDuration(_val)
+	return _dur
+}
+
+/*
+ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
+*/
+func ReadHeaderTimeout(timeout time.Duration) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))
 	}
 }

@@ -1,6 +1,6 @@
 # Package `errors`
 
-The `errors` package is an enhancement of Go's standard `errors` package. It augments the standard `error`s to capture and print stack traces. For this purpose, it overrides the standard `errors.New` method and provides a new `errors.Newf` in lieu of `fmt.Error`.
+The `errors` package is an enhancement of Go's standard `errors` package. It augments the standard `error`s to capture and print stack traces. For this purpose, it overrides the standard `errors.New` method and provides a new `errors.Newf` (in lieu of `fmt.Error`).
 
 ```go
 import "github.com/microbus-io/errors"
@@ -18,10 +18,17 @@ If a standard `error` was created by an unaware function, `errors.Trace` is used
 ```go
 import "github.com/microbus-io/errors"
 
-body, err := io.ReadAll("non/existent.file")
-// err is a standard Go error
-err = errors.Trace(err)
-// err is now augmented with the stack trace of this line
+body, err := io.ReadAll("non/existent.file") // err is a standard Go error
+err = errors.Trace(err) // err is now augmented with the stack trace of this line
+```
+
+HTTP status codes can be attached to errors using `errors.Newc` or by converting the error to the underlying `TracedError` struct. The status code is returned to upstream clients.
+
+```go
+notFound := errors.Newc(http.StatusNotFound, "nothing to see here")
+
+body, err := io.ReadAll("non/existent.file") // err is a standard Go error
+errors.Convert(err).StatusCode = http.StatusNotFound
 ```
 
 Both `errors.New` and `errors.Trace` support augmenting errors with optional annotations. Annotations can be added per stack location and do not alter the original error message.

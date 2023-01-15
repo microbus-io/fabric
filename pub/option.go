@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -110,13 +111,20 @@ func PATCH(url string) Option {
 	}
 }
 
-// Header add the header to the request.
-// The same header may have multiple values.
+// Header sets the header of the request. It overwrites any previously set value.
 func Header(name, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
-			req.Header.Add(name, value)
+			req.Header.Set(name, value)
 		}
+		return nil
+	}
+}
+
+// ContentLength sets the Content-Length header of the request.
+func ContentLength(len int) Option {
+	return func(req *Request) error {
+		req.Header.Set("Content-Length", strconv.Itoa(len))
 		return nil
 	}
 }
@@ -176,6 +184,7 @@ func Query(escapedQueryArgs string) Option {
 // Arguments of type io.Reader, []byte and string are serialized in binary form.
 // url.Values is serialized as form data.
 // All other types are serialized as JSON.
+// The Content-Type and Content-Length headers may be set by this function.
 func Body(body any) Option {
 	return func(req *Request) error {
 		if body == nil {
@@ -186,11 +195,16 @@ func Body(body any) Option {
 			req.Body = v
 		case []byte:
 			req.Body = httpx.NewBodyReader(v)
+			req.Header.Set("Content-Length", strconv.Itoa(len(v)))
 		case string:
-			req.Body = httpx.NewBodyReader([]byte(v))
+			b := []byte(v)
+			req.Body = httpx.NewBodyReader(b)
+			req.Header.Set("Content-Length", strconv.Itoa(len(b)))
 		case url.Values:
-			req.Body = httpx.NewBodyReader([]byte(v.Encode()))
+			b := []byte(v.Encode())
+			req.Body = httpx.NewBodyReader(b)
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("Content-Length", strconv.Itoa(len(b)))
 		default:
 			j, err := json.Marshal(body)
 			if err != nil {
@@ -198,6 +212,7 @@ func Body(body any) Option {
 			}
 			req.Body = httpx.NewBodyReader(j)
 			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", strconv.Itoa(len(j)))
 		}
 		return nil
 	}

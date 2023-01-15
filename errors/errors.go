@@ -28,6 +28,14 @@ func New(text string, annotations ...string) error {
 	return TraceUp(stderrors.New(text), 1, annotations...)
 }
 
+// Newc creates a new error with an HTTP status code, capturing the current stack location.
+// Optionally annotations may be attached
+func Newc(statusCode int, text string, annotations ...string) error {
+	err := TraceUp(stderrors.New(text), 1, annotations...)
+	err.(*TracedError).StatusCode = statusCode
+	return err
+}
+
 // Newf formats a new error, capturing the current stack location
 func Newf(format string, a ...any) error {
 	return TraceUp(fmt.Errorf(format, a...), 1)
@@ -45,7 +53,7 @@ func TraceUp(err error, levels int, annotations ...string) error {
 	if err == nil {
 		return nil
 	}
-	tracedErr := Convert(err).(*TracedError)
+	tracedErr := Convert(err)
 	file, function, line, ok := RuntimeTrace(1 + levels)
 	if ok {
 		tracedErr.stack = append(tracedErr.stack, &trace{
@@ -61,7 +69,7 @@ func TraceUp(err error, levels int, annotations ...string) error {
 // Convert converts an error to one that supports stack tracing.
 // If the error already supports this, it is returned as it is.
 // Note: Trace should be called to include the error's trace in the stack.
-func Convert(err error) error {
+func Convert(err error) *TracedError {
 	if err == nil {
 		return nil
 	}

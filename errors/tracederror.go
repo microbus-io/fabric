@@ -11,7 +11,8 @@ import (
 // TracedError is a standard Go error augmented with a stack trace and annotations
 type TracedError struct {
 	error
-	stack []*trace
+	stack      []*trace
+	StatusCode int
 }
 
 // Unwrap returns the underlying error
@@ -23,6 +24,9 @@ func (e *TracedError) Unwrap() error {
 func (e *TracedError) String() string {
 	var b strings.Builder
 	b.WriteString(e.Error())
+	if e.StatusCode != 0 {
+		b.WriteString(fmt.Sprintf(" [%d]", e.StatusCode))
+	}
 	for i, trace := range e.stack {
 		if i == 0 {
 			b.WriteString("\n")
@@ -36,19 +40,22 @@ func (e *TracedError) String() string {
 // MarshalJSON marshals the error to JSON
 func (e *TracedError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		Error string   `json:"error,omitempty"`
-		Stack []*trace `json:"stack,omitempty"`
+		Error      string   `json:"error,omitempty"`
+		Stack      []*trace `json:"stack,omitempty"`
+		StatusCode int      `json:"statusCode,omitempty"`
 	}{
-		Error: e.error.Error(),
-		Stack: e.stack,
+		Error:      e.error.Error(),
+		Stack:      e.stack,
+		StatusCode: e.StatusCode,
 	})
 }
 
 // UnmarshalJSON unmarshals the erro from JSON
 func (e *TracedError) UnmarshalJSON(data []byte) error {
 	j := &struct {
-		Error string   `json:"error"`
-		Stack []*trace `json:"stack"`
+		Error      string   `json:"error"`
+		Stack      []*trace `json:"stack"`
+		StatusCode int      `json:"statusCode,omitempty"`
 	}{}
 	err := json.Unmarshal(data, &j)
 	if err != nil {
@@ -56,6 +63,7 @@ func (e *TracedError) UnmarshalJSON(data []byte) error {
 	}
 	e.error = stderrors.New(j.Error)
 	e.stack = j.Stack
+	e.StatusCode = j.StatusCode
 	return nil
 }
 

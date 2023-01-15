@@ -158,19 +158,10 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 	_in := RegisterIn{
 		email,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *RegisterResponse, 1)
-		_res <- &RegisterResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -228,19 +219,10 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 	_in := OnAllowRegisterIn{
 		email,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *OnAllowRegisterResponse, 1)
-		_res <- &OnAllowRegisterResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -295,19 +277,10 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 	_in := OnRegisteredIn{
 		email,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *OnRegisteredResponse, 1)
-		_res <- &OnRegisteredResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-registered`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -340,18 +313,11 @@ func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err
 	_in := RegisterIn{
 		email,
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)

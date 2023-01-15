@@ -116,19 +116,10 @@ Registered returns the list of registered users.
 func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredResponse {
 	_in := RegisteredIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		_res := make(chan *RegisteredResponse, 1)
-		_res <- &RegisteredResponse{err: errors.Trace(_err)}
-		close(_res)
-		return _res
-	}
-
 	_opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -160,18 +151,11 @@ Registered returns the list of registered users.
 func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
 	_in := RegisteredIn{
 	}
-	_body, _err := json.Marshal(_in)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
-		pub.Body(_body),
-		pub.Header("Content-Type", "application/json"),
+		pub.Body(_in),
 	)
 	if _err != nil {
 		err = errors.Trace(_err)

@@ -2,12 +2,12 @@
 
 package eventsink
 
-const Version = 68
-const SourceCodeSHA256 = "53538c5e80b5ca1cc80de37ee2a91b8833273dc3eca9c0412be43d9e71e11895"
-const Timestamp = "2023-01-07T19:49:42.881024Z"
+const Version = 71
+const SourceCodeSHA256 = "5d37a3f02dc7228606d984513766049a3279cfbaa1c5ab6f41248b37ed80aaee"
+const Timestamp = "2023-01-15T01:32:03.970886Z"
 
 /* {
-	"ver": 68,
-	"sha256": "53538c5e80b5ca1cc80de37ee2a91b8833273dc3eca9c0412be43d9e71e11895",
-	"ts": "2023-01-07T19:49:42.881024Z"
+	"ver": 71,
+	"sha256": "5d37a3f02dc7228606d984513766049a3279cfbaa1c5ab6f41248b37ed80aaee",
+	"ts": "2023-01-15T01:32:03.970886Z"
 } */

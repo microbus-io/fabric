@@ -74,14 +74,16 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	}
 	// Check if there's enough time budget
 	if req.TimeBudget <= c.networkHop {
-		errOutput <- pub.NewErrorResponse(errors.New("timeout", req.Canonical()))
+		err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
+		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
 
 	// Limit number of hops
 	depth := frame.Of(ctx).CallDepth()
 	if depth >= c.maxCallDepth {
-		errOutput <- pub.NewErrorResponse(errors.New("call depth overflow", req.Canonical()))
+		err = errors.Newc(http.StatusLoopDetected, "call depth overflow", req.Canonical())
+		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
 	frame.Of(req.Header).SetCallDepth(depth + 1)
@@ -93,9 +95,9 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	frame.Of(req.Header).SetOpCode(frame.OpCodeRequest)
 
 	// Copy X-Forwarded headers (set by ingress proxy)
-	for _, fwdHdr := range []string{"X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Trimmed-Prefix"} {
-		if frame.Of(req.Header).Get(fwdHdr) == "" {
-			v := frame.Of(ctx).Get(fwdHdr)
+	for _, fwdHdr := range []string{"X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Prefix"} {
+		v := frame.Of(ctx).Get(fwdHdr)
+		if v != "" && frame.Of(req.Header).Get(fwdHdr) == "" {
 			frame.Of(req.Header).Set(fwdHdr, v)
 		}
 	}
@@ -323,7 +325,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		// Timeout timer
 		case <-timeoutTimer.C:
 			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
-			err = errors.New("timeout", req.Canonical())
+			err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
 			output.Push(pub.NewErrorResponse(err))
 			c.postRequestData.Store("timeout:"+msgID, subject)
 			// Known responders optimization
@@ -337,7 +339,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		case <-ackTimer.C:
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
-				err = errors.New("ack timeout", req.Canonical())
+				err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
 				output.Push(pub.NewErrorResponse(err))
 				// Known responders optimization
 				if req.Multicast {

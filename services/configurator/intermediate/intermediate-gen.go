@@ -103,6 +103,7 @@ func (svc *Intermediate) Resources() embed.FS {
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
 }
+
 // doValues handles marshaling for the Values function.
 func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.ValuesIn

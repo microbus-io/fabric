@@ -79,7 +79,7 @@ func ParseURL(u string) (canonical *url.URL, err error) {
 	} else {
 		parsed.Host += ":" + strconv.Itoa(port)
 	}
-	if port < 0 || port > 65535 {
+	if port < 1 || port > 65535 {
 		return nil, errors.Newf("invalid port '%d'", port)
 	}
 
