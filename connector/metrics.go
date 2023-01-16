@@ -49,6 +49,22 @@ func (c *Connector) newMetricsRegistry() error {
 		"Duration of time since connector was established, in seconds",
 		[]string{},
 	)
+	// Distributed cache metrics
+	c.DefineGauge(
+		"microbus_cache_hits_total",
+		"Number of distributed cache hits",
+		[]string{},
+	)
+	c.DefineGauge(
+		"microbus_cache_misses_total",
+		"Number of distributed cache misses",
+		[]string{},
+	)
+	c.DefineGauge(
+		"microbus_cache_weight_total",
+		"Total weight of elements in the distributed cache",
+		[]string{},
+	)
 
 	return nil
 }
