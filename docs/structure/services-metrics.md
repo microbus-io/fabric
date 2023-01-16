@@ -9,11 +9,14 @@ The `Microbus` framework relies on `Prometheus` for the collection of metrics. `
 By default, all microservices produce a standard set of metrics:
 
 * The microservice's uptime
+* Histogram of the execution time of callbacks such as `OnStartup`, `OnShutdown`, tickers, etc.
 * Histogram of the processing time of incoming requests
 * Histogram of the size of the response to incoming requests
 * Count of the result of outgoing requests
 * Histogram of time to receive an acknowledgement from a downstream microservice
 * Count of log messages recorded
+* Count of distributed cache hits and misses
+* Total weight of the distributed cache
 
 ## Application Metrics
 

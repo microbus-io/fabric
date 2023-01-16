@@ -42,6 +42,8 @@ type Cache struct {
 	localCache *lru.Cache[string, []byte]
 	basePath   string
 	svc        Service
+	hits       int64
+	misses     int64
 }
 
 // NewCache starts a new cache for the service at a given path.
@@ -417,6 +419,11 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 				ok = false
 			}
 		}
+		if ok {
+			atomic.AddInt64(&c.hits, 1)
+		} else {
+			atomic.AddInt64(&c.misses, 1)
+		}
 		return value, ok, nil
 	}
 
@@ -445,7 +452,11 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		value = data
 		ok = true
 	}
-
+	if ok {
+		atomic.AddInt64(&c.hits, 1)
+	} else {
+		atomic.AddInt64(&c.misses, 1)
+	}
 	return value, ok, nil
 }
 
@@ -521,4 +532,18 @@ func (c *Cache) StoreJSON(ctx context.Context, key string, value any) error {
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+// Hits returns the total number of cache hits.
+// This number can technically overflow.
+func (c *Cache) Hits() int {
+	hits := atomic.LoadInt64(&c.hits)
+	return int(hits)
+}
+
+// Misses returns the total number of cache misses.
+// This number can technically overflow.
+func (c *Cache) Misses() int {
+	misses := atomic.LoadInt64(&c.misses)
+	return int(misses)
 }

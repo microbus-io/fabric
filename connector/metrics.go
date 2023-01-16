@@ -17,14 +17,20 @@ func (c *Connector) newMetricsRegistry() error {
 	c.metricsHandler = promhttp.HandlerFor(c.metricsRegistry, promhttp.HandlerOpts{})
 
 	c.DefineHistogram(
-		"microbus_response_duration_seconds",
+		"microbus_callback_duration_seconds",
 		"Handler processing duration, in seconds",
+		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
+		[]string{"handler", "error"},
+	)
+	c.DefineHistogram(
+		"microbus_response_duration_seconds",
+		"Response processing duration, in seconds",
 		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
 		[]string{"handler", "port", "method", "code", "error"},
 	)
 	c.DefineHistogram(
 		"microbus_response_size_bytes",
-		"Handler response size, in bytes",
+		"Response size, in bytes",
 		[]float64{1024, 4 * 1024, 16 * 1024, 64 * 1024, 256 * 1024, 1024 * 1024, 4 * 1024 * 1024},
 		[]string{"handler", "port", "method", "code", "error"},
 	)
@@ -46,10 +52,9 @@ func (c *Connector) newMetricsRegistry() error {
 	)
 	c.DefineGauge(
 		"microbus_uptime_duration_seconds_total",
-		"Duration of time since connector was established, in seconds",
+		"Duration since connector was established, in seconds",
 		[]string{},
 	)
-	// Distributed cache metrics
 	c.DefineGauge(
 		"microbus_cache_hits_total",
 		"Number of distributed cache hits",

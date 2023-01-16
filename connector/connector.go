@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -322,7 +323,7 @@ func (c *Connector) DistribCache() *dlru.Cache {
 // doCallback sets up the context and calls a callback, making sure to captures panics.
 // It is used for the on startup, on shutdown, on ticker and on config change situations.
 // The path is used to name this callback in telemetry.
-func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, desc string, path string, callback func(ctx context.Context) error) error {
+func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, name string, callback func(ctx context.Context) error) error {
 	if callback == nil {
 		return nil
 	}
@@ -331,13 +332,20 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, desc 
 	if timeout > 0 {
 		callbackCtx, cancel = context.WithTimeout(ctx, timeout)
 	}
+	startTime := time.Now()
 	err := utils.CatchPanic(func() error {
 		return callback(callbackCtx)
 	})
 	cancel()
 	if err != nil {
-		err = errors.Trace(err, httpx.JoinHostAndPath(c.hostName, path))
-		c.LogError(ctx, desc, log.Error(err), log.String("path", path))
+		err = errors.Trace(err, name)
+		c.LogError(ctx, "Executing callback", log.Error(err), log.String("name", name))
 	}
+	_ = c.ObserveMetric(
+		"microbus_callback_duration_seconds",
+		time.Since(startTime).Seconds(),
+		name,
+		strconv.FormatBool(err != nil),
+	)
 	return err
 }
