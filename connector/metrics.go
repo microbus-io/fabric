@@ -57,17 +57,22 @@ func (c *Connector) newMetricsRegistry() error {
 	)
 	c.DefineGauge(
 		"microbus_cache_hits_total",
-		"Number of distributed cache hits",
+		"Number of distributed cache hits to load operations on the local shard",
 		[]string{},
 	)
 	c.DefineGauge(
 		"microbus_cache_misses_total",
-		"Number of distributed cache misses",
+		"Number of distributed cache misses to load operations on the local shard",
 		[]string{},
 	)
 	c.DefineGauge(
 		"microbus_cache_weight_total",
-		"Total weight of elements in the distributed cache",
+		"Total weight of elements in the local shard of the distributed cache",
+		[]string{},
+	)
+	c.DefineGauge(
+		"microbus_cache_len_total",
+		"Total number of elements in the local shard of the distributed cache",
 		[]string{},
 	)
 

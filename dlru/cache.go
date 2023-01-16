@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -152,16 +153,26 @@ func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 		return c.handleDelete(w, r)
 	case "clear":
 		return c.handleClear(w, r)
+	case "weight":
+		return c.handleWeight(w, r)
+	case "len":
+		return c.handleLen(w, r)
 	default:
 		return errors.Newf("invalid action '%s'", r.URL.Query().Get("do"))
 	}
 }
 
+func (c *Cache) handleWeight(w http.ResponseWriter, r *http.Request) error {
+	w.Write([]byte(strconv.Itoa(c.localCache.Weight())))
+	return nil
+}
+
+func (c *Cache) handleLen(w http.ResponseWriter, r *http.Request) error {
+	w.Write([]byte(strconv.Itoa(c.localCache.Len())))
+	return nil
+}
+
 func (c *Cache) handleClear(w http.ResponseWriter, r *http.Request) error {
-	// Ignore messages from self
-	if frame.Of(r).FromID() == c.svc.ID() {
-		return nil
-	}
 	c.localCache.Clear()
 	return nil
 }
@@ -480,11 +491,57 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
+// Weight is the total memory used by all the shards of the cache.
+func (c *Cache) Weight(ctx context.Context) (int, error) {
+	// Broadcast to all peers (and self)
+	u := fmt.Sprintf("%s/all?do=weight", c.basePath)
+	ch := c.svc.Publish(ctx, pub.Method("GET"), pub.URL(u))
+	totalWeight := 0
+	for r := range ch {
+		res, err := r.Get()
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+		wt, err := strconv.Atoi(string(body))
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+		totalWeight += wt
+	}
+	return totalWeight, nil
+}
+
+// Len is the total number of elements stored in all the shards of the cache.
+func (c *Cache) Len(ctx context.Context) (int, error) {
+	// Broadcast to all peers (and self)
+	u := fmt.Sprintf("%s/all?do=len", c.basePath)
+	ch := c.svc.Publish(ctx, pub.Method("GET"), pub.URL(u))
+	totalLen := 0
+	for r := range ch {
+		res, err := r.Get()
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+		len, err := strconv.Atoi(string(body))
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+		totalLen += len
+	}
+	return totalLen, nil
+}
+
 // Clear the cache.
 func (c *Cache) Clear(ctx context.Context) error {
-	c.localCache.Clear()
-
-	// Broadcast to all peers
+	// Broadcast to all peers (and self)
 	u := fmt.Sprintf("%s/all?do=clear", c.basePath)
 	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
