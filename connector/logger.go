@@ -26,7 +26,7 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 		return
 	}
 	c.logger.Debug(msg, fields...)
-	_ = c.IncrementMetric("nexus_log_messages_total", 1, msg, "DEBUG")
+	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "DEBUG")
 }
 
 /*
@@ -42,7 +42,7 @@ func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field
 		return
 	}
 	c.logger.Info(msg, fields...)
-	_ = c.IncrementMetric("nexus_log_messages_total", 1, msg, "INFO")
+	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "INFO")
 }
 
 /*
@@ -68,7 +68,7 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 			}
 		}
 	}
-	_ = c.IncrementMetric("nexus_log_messages_total", 1, msg, "WARN")
+	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "WARN")
 }
 
 /*
@@ -95,7 +95,7 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 			}
 		}
 	}
-	_ = c.IncrementMetric("nexus_log_messages_total", 1, msg, "ERROR")
+	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "ERROR")
 }
 
 // initLogger initializes a logger to match the deployment environment

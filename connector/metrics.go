@@ -31,13 +31,13 @@ func (c *Connector) newMetricsRegistry() error {
 	c.DefineCounter(
 		"microbus_request_count_total",
 		"Number of outgoing requests",
-		[]string{"method", "host", "port", "path", "error", "code"},
+		[]string{"method", "host", "port", "path", "code", "error"},
 	)
 	c.DefineHistogram(
 		"microbus_ack_duration_seconds",
 		"Ack roundtrip duration, in seconds",
 		[]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5},
-		[]string{"method", "host", "port", "path"},
+		[]string{"host"},
 	)
 	c.DefineCounter(
 		"microbus_log_messages_total",

@@ -327,31 +327,30 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			httpRecorder.WriteHeader(statusCode)
 			httpRecorder.Write(body)
 		}
+
+		// Meter
+		_ = c.ObserveMetric(
+			"microbus_response_duration_seconds",
+			time.Since(handlerStartTime).Seconds(),
+			s.Canonical(),
+			strconv.Itoa(s.Port),
+			httpReq.Method,
+			strconv.Itoa(httpRecorder.StatusCode()),
+			strconv.FormatBool(handlerErr != nil),
+		)
+		_ = c.ObserveMetric(
+			"microbus_response_size_bytes",
+			float64(httpRecorder.ContentLength()),
+			s.Canonical(),
+			strconv.Itoa(s.Port),
+			httpReq.Method,
+			strconv.Itoa(httpRecorder.StatusCode()),
+			strconv.FormatBool(handlerErr != nil),
+		)
 	}
 
-	httpResponse := httpRecorder.Result()
-
-	// Meter
-	_ = c.ObserveMetric(
-		"microbus_response_duration_seconds",
-		time.Since(handlerStartTime).Seconds(),
-		s.Canonical(),
-		strconv.Itoa(s.Port),
-		httpReq.Method,
-		strconv.Itoa(httpResponse.StatusCode),
-		strconv.FormatBool(handlerErr != nil),
-	)
-	_ = c.ObserveMetric(
-		"microbus_response_size_bytes",
-		float64(httpRecorder.ContentLength()),
-		s.Canonical(),
-		strconv.Itoa(s.Port),
-		httpReq.Method,
-		strconv.Itoa(httpResponse.StatusCode),
-		strconv.FormatBool(handlerErr != nil),
-	)
-
 	// Set control headers on the response
+	httpResponse := httpRecorder.Result()
 	frame.Of(httpResponse).SetMessageID(msgID)
 	frame.Of(httpResponse).SetFromHost(c.hostName)
 	frame.Of(httpResponse).SetFromID(c.id)

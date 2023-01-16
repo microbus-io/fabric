@@ -188,8 +188,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		return
 	}
 
-	started := time.Now()
-
+	publishTime := time.Now()
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
 		err = errors.Trace(err, req.Canonical())
@@ -225,7 +224,6 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	defer timeoutTimer.Stop()
 	ackTimer := time.NewTimer(AckTimeout)
 	defer ackTimer.Stop()
-	hasError := false
 	for {
 		select {
 		case response := <-awaitCh.C():
@@ -255,11 +253,8 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 				if seenIDs[fromID] == "" {
 					_ = c.ObserveMetric(
 						"microbus_ack_duration_seconds",
-						time.Since(started).Seconds(),
-						httpReq.Method,
+						time.Since(publishTime).Seconds(),
 						httpReq.URL.Hostname(),
-						strconv.Itoa(port),
-						httpReq.URL.Path,
 					)
 					seenIDs[fromID] = frame.OpCodeAck
 				}
@@ -301,13 +296,13 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 				output.Push(pub.NewHTTPResponse(response))
 				_ = c.IncrementMetric(
 					"microbus_request_count_total",
-					time.Since(started).Seconds(),
+					1,
 					httpReq.Method,
 					httpReq.URL.Hostname(),
 					strconv.Itoa(port),
 					httpReq.URL.Path,
-					strconv.FormatBool(hasError),
 					strconv.Itoa(response.StatusCode),
+					"false",
 				)
 			}
 
@@ -325,16 +320,19 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					err = errors.Trace(reconstitutedError, c.hostName+" -> "+httpReq.URL.Hostname())
 				}
 				output.Push(pub.NewErrorResponse(err))
-				hasError = true
+				statusCode := reconstitutedError.StatusCode
+				if statusCode == 0 {
+					statusCode = http.StatusInternalServerError
+				}
 				_ = c.IncrementMetric(
 					"microbus_request_count_total",
-					time.Since(started).Seconds(),
+					1,
 					httpReq.Method,
 					httpReq.URL.Hostname(),
 					strconv.Itoa(port),
 					httpReq.URL.Path,
-					strconv.FormatBool(hasError),
-					strconv.Itoa(http.StatusInternalServerError),
+					strconv.Itoa(statusCode),
+					"true",
 				)
 			}
 
@@ -361,16 +359,15 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 			err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
 			output.Push(pub.NewErrorResponse(err))
 			c.postRequestData.Store("timeout:"+msgID, subject)
-			hasError = true
 			_ = c.IncrementMetric(
 				"microbus_request_count_total",
-				time.Since(started).Seconds(),
+				1,
 				httpReq.Method,
 				httpReq.URL.Hostname(),
 				strconv.Itoa(port),
 				httpReq.URL.Path,
-				strconv.FormatBool(hasError),
 				strconv.Itoa(http.StatusRequestTimeout),
+				"false",
 			)
 
 			// Known responders optimization
@@ -384,18 +381,18 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		case <-ackTimer.C:
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
+				err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
+				output.Push(pub.NewErrorResponse(err))
 				_ = c.IncrementMetric(
 					"microbus_request_count_total",
-					time.Since(started).Seconds(),
+					1,
 					httpReq.Method,
 					httpReq.URL.Hostname(),
 					strconv.Itoa(port),
 					httpReq.URL.Path,
-					strconv.FormatBool(hasError), // false
 					strconv.Itoa(http.StatusNotFound),
+					"false",
 				)
-				err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
-				output.Push(pub.NewErrorResponse(err))
 				// Known responders optimization
 				if req.Multicast {
 					c.knownResponders.Delete(subject)
