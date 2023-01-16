@@ -33,10 +33,10 @@ databases:
 # callback - "true" to handle the change event (defaults to "false")
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
-  # - signature:
-  #   description:
-  #   default:
-  #   validation:
+  - signature: SecretKey() (secretKey string)
+    description: |-
+      SecretKey must be provided with the request to collect the metrics.
+      This key is required except in local development and tests.
 
 # Types
 #

@@ -50,4 +50,6 @@ func NewMock() *Mock {
 // Config initializers
 var (
 	_ int
+	// SecretKey initializes the SecretKey config property of the microservice
+	SecretKey = intermediate.SecretKey
 )

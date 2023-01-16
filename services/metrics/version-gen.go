@@ -2,12 +2,12 @@
 
 package metrics
 
-const Version = 7
-const SourceCodeSHA256 = "88b372cbfaa189a54f9cd54fcaef1525d2c733b96219170f34d9e729b32c56b3"
-const Timestamp = "2023-01-15T03:28:43.208343Z"
+const Version = 9
+const SourceCodeSHA256 = "d71c6eb687b814086b241a6fa3d9009b3e846e552f689ba14d1e0ba5f7127dd6"
+const Timestamp = "2023-01-16T22:37:24.509465Z"
 
 /* {
-	"ver": 7,
-	"sha256": "88b372cbfaa189a54f9cd54fcaef1525d2c733b96219170f34d9e729b32c56b3",
-	"ts": "2023-01-15T03:28:43.208343Z"
+	"ver": 9,
+	"sha256": "d71c6eb687b814086b241a6fa3d9009b3e846e552f689ba14d1e0ba5f7127dd6",
+	"ts": "2023-01-16T22:37:24.509465Z"
 } */

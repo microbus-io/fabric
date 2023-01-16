@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
@@ -50,6 +51,14 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 Collect returns the latest aggregated metrics.
 */
 func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) {
+	secretKey := r.URL.Query().Get("secretkey")
+	if secretKey == "" {
+		secretKey = r.URL.Query().Get("key")
+	}
+	if secretKey != svc.SecretKey() && svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
+		return errors.Newc(http.StatusNotFound, "incorrect secret key")
+	}
+
 	host := r.URL.Query().Get("service")
 	if host == "" {
 		host = "all"

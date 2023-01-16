@@ -78,6 +78,14 @@ func NewService(impl ToDo, version int) *Intermediate {
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
+
+	// Configs
+	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	svc.DefineConfig(
+		"SecretKey",
+		cfg.Description(`SecretKey must be provided with the request to collect the metrics.
+This key is required except in local development and tests.`),
+	)
 	
 	// Webs
 	svc.Subscribe(`:443/collect`, svc.impl.Collect)
@@ -93,4 +101,23 @@ func (svc *Intermediate) Resources() embed.FS {
 // doOnConfigChanged is called when the config of the microservice changes.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
+}
+
+/*
+SecretKey must be provided with the request to collect the metrics.
+This key is required except in local development and tests.
+*/
+func (svc *Intermediate) SecretKey() (secretKey string) {
+	_val := svc.Config("SecretKey")
+	return _val
+}
+
+/*
+SecretKey must be provided with the request to collect the metrics.
+This key is required except in local development and tests.
+*/
+func SecretKey(secretKey string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("SecretKey", fmt.Sprintf("%v", secretKey))
+	}
 }
