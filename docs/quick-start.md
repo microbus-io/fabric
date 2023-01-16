@@ -52,38 +52,19 @@ Try the following URLs in your browser:
 
 Feel free to experiment with different values for the query arguments.
 
-## Prometheus Setup
+## Metrics Setup
 
-[Metrics](docs/structure/services-metrics.md) in `Microbus` are collected by [`Prometheus`](https://prometheus.io). Installing `Prometheus` locally is required to enable collection of metrics for local development.
+[Metrics](docs/tech/metrics.md) in `Microbus` are collected by [Prometheus](https://prometheus.io) and can be viewed with [Grafana](https://grafana.com/) dashboards for greater insight into the microbus system. A docker compose [yaml file](examples/main/docker/compose.yaml) is provided which will start both Prometheus and Grafana. From the examples/main/docker directory run:
 
 ```cmd
-docker pull prom/prometheus
-
-docker run -h prometheus --name prometheus -p 9090:9090 -v path/to/examples/main/prometheus.yaml:/etc/prometheus/prometheus.yml prom/prometheus
+docker compose up
 ```
 
 Make sure the metrics system microservice is included in your app and started in order for Prometheus to be able to collect metrics from your microservices.
 
-The provided sample `examples/main/prometheus.yaml` instructs Prometheus to scrape metrics from the metrics system microservice every 15 seconds. To verify, navigate to http://localhost:9090/graph and execute the query `service_uptime_duration_seconds_total`. If successful, you should see the uptime of the running microservices.
+The provided sample `examples/main/docker/prometheus.yaml` instructs Prometheus to scrape metrics from the metrics system microservice every 15 seconds. To verify, navigate to http://localhost:9090/graph and execute the query `microbus_uptime_duration_seconds_total`. If successful, you should see the uptime of the running microservices.
 
-## Grafana Setup
-
-Metrics collected by [`Prometheus`](https://prometheus.io) can be viewed in `Grafana` dashboards for greater insight into the `Microbus` system. Installing `Grafana` locally is required to view `Prometheus` metrics in a graph format.
-
-```cmd
-docker pull grafana/grafana
-docker run -d --name=grafana -p 3000:3000 grafana/grafana
-```
-
-`Grafana` and `Prometheus` need to be connected to the same Docker network in order to communicate with each other. Make sure the `Prometheus` and `Grafana` containers are both started before proceeding.
-
-```cmd
-docker network create microbus-network
-docker network connect microbus-network prometheus
-docker network connect microbus-network grafana
-```
-
-TODO: Implement all Prometheus and Grafana setup in Docker Compose.
+To view the Grafana dashboard, navigate to http://localhost:3000 and login with admin:admin. TODO: Create Grafana dashboards
 
 ## Configure IDE
 

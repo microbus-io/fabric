@@ -1,0 +1,24 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - microbus-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - microbus-network
+    depends_on:
+      - prometheus
+    volumes:
+      - ./prometheus-datasource.yaml:/etc/grafana/provisioning/datasources/prometheus-datasource.yml
+
+networks:
+  microbus-network:
