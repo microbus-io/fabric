@@ -7,7 +7,6 @@
 general:
   host: metrics.sys
   description: The Metrics service is a system microservice that aggregates metrics from other microservices and makes them available for collection.
-  integrationTests: false
 
 # Databases
 #

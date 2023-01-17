@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
@@ -55,7 +54,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 	if secretKey == "" {
 		secretKey = r.URL.Query().Get("key")
 	}
-	if secretKey != svc.SecretKey() && svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
+	if secretKey != svc.SecretKey() {
 		return errors.Newc(http.StatusNotFound, "incorrect secret key")
 	}
 
