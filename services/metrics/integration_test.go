@@ -90,7 +90,7 @@ func TestMetrics_Collect(t *testing.T) {
 		BodyContains(t, "two.collect").
 		// The startup callback should take between 100ms and 250ms
 		BodyContains(t, `microbus_callback_duration_seconds_bucket{error="false",handler="onstartup",id="`+con1.ID()+`",service="one.collect",ver="0",le="0.1"} 0`).
-		BodyContains(t, `microbus_callback_duration_seconds_bucket{error="false",handler="onstartup",id="`+con1.ID()+`",service="one.collect",ver="0",le="0.25"} 1`).
+		BodyContains(t, `microbus_callback_duration_seconds_bucket{error="false",handler="onstartup",id="`+con1.ID()+`",service="one.collect",ver="0",le="0.5"} 1`).
 		BodyContains(t, `microbus_log_messages_total{id="`+con1.ID()+`",message="Startup",service="one.collect",severity="INFO",ver="0"} 1`).
 		BodyContains(t, `microbus_uptime_duration_seconds_total{id="`+con1.ID()+`",service="one.collect",ver="0"}`).
 		// Cache should have 1 element of 10 bytes
@@ -105,7 +105,7 @@ func TestMetrics_Collect(t *testing.T) {
 		// The request should take between 100ms and 250ms
 		BodyContains(t, `microbus_request_count_total{code="200",error="false",host="one.collect",id="`+con1.ID()+`",method="GET",path="/ten",port="443",service="one.collect",ver="0"} 1`).
 		BodyContains(t, `microbus_response_duration_seconds_bucket{code="200",error="false",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0",le="0.1"} 0`).
-		BodyContains(t, `microbus_response_duration_seconds_bucket{code="200",error="false",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0",le="0.25"} 1`).
+		BodyContains(t, `microbus_response_duration_seconds_bucket{code="200",error="false",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0",le="0.5"} 1`).
 		// Acks should be logged
 		BodyContains(t, "microbus_ack_duration_seconds_bucket")
 }
