@@ -150,13 +150,6 @@ tickers:
 # buckets - Bucket boundaries for histograms [x,y,z,...]
 # alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
 metrics:
-  - signature: ArithmeticResult(num int, op string)
-    description: ArithmeticResult tracks the results of arithmetic operations.
-    kind: histogram
-    buckets: [0,10,100,1000,100000]
-  - signature: ArithmeticSuccess(num int, op string)
-    description: ArithmeticSuccess tracks the number of successful arithmetic calculations.
+  - signature: OpCount(num int, op string)
+    description: OpCount tracks the types of arithmetic calculations.
     kind: counter
-  - signature: MemoryUsageBytes(b int64)
-    description: MemoryUsageBytes tracks the memory usage in bytes.
-    kind: gauge

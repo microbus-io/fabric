@@ -139,6 +139,7 @@ func (c *Cache) stop(ctx context.Context) error {
 	return nil
 }
 
+// handleAll handles a broadcast when the primary connects with its peers.
 func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from other hosts
 	if frame.Of(r).FromHost() != c.svc.HostName() {
@@ -162,21 +163,25 @@ func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
+// handleWeight handles a broadcast when the primary tries to obtain the weight of the cache held by its peers.
 func (c *Cache) handleWeight(w http.ResponseWriter, r *http.Request) error {
 	w.Write([]byte(strconv.Itoa(c.localCache.Weight())))
 	return nil
 }
 
+// handleLen handles a broadcast when the primary tries to obtain the length of the cache held by its peers.
 func (c *Cache) handleLen(w http.ResponseWriter, r *http.Request) error {
 	w.Write([]byte(strconv.Itoa(c.localCache.Len())))
 	return nil
 }
 
+// handleClear handles a broadcast when the primary tries to clear the cache held by its peers.
 func (c *Cache) handleClear(w http.ResponseWriter, r *http.Request) error {
 	c.localCache.Clear()
 	return nil
 }
 
+// handleDelete handles a broadcast when the primary tries to delete copies held by its peers.
 func (c *Cache) handleDelete(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from self
 	if frame.Of(r).FromID() == c.svc.ID() {

@@ -15,7 +15,6 @@ import (
 func (c *Connector) newMetricsRegistry() error {
 	c.metricsRegistry = prometheus.NewRegistry()
 	c.metricsHandler = promhttp.HandlerFor(c.metricsRegistry, promhttp.HandlerOpts{})
-
 	c.DefineHistogram(
 		"microbus_callback_duration_seconds",
 		"Handler processing duration, in seconds",
@@ -50,17 +49,17 @@ func (c *Connector) newMetricsRegistry() error {
 		"Number of log messages recorded",
 		[]string{"message", "severity"},
 	)
-	c.DefineGauge(
+	c.DefineCounter(
 		"microbus_uptime_duration_seconds_total",
 		"Duration since connector was established, in seconds",
 		[]string{},
 	)
-	c.DefineGauge(
+	c.DefineCounter(
 		"microbus_cache_hits_total",
 		"Number of distributed cache hits to load operations on the local shard",
 		[]string{},
 	)
-	c.DefineGauge(
+	c.DefineCounter(
 		"microbus_cache_misses_total",
 		"Number of distributed cache misses to load operations on the local shard",
 		[]string{},
@@ -75,7 +74,6 @@ func (c *Connector) newMetricsRegistry() error {
 		"Total number of elements in the local shard of the distributed cache",
 		[]string{},
 	)
-
 	return nil
 }
 
@@ -100,20 +98,13 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 	if _, ok := c.metricDefs[name]; ok {
 		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
-
-	histogramVec := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    name,
-		Help:    help,
-		Buckets: buckets,
-	}, append([]string{"service", "ver", "id"}, labels...))
-
-	m := &mtr.Histogram{
-		HistogramVec: histogramVec,
-	}
-
+	m := mtr.NewHistogram(name, help, buckets, append([]string{"service", "ver", "id"}, labels...))
 	c.metricDefs[name] = m
-	err := c.metricsRegistry.Register(histogramVec)
-	return c.captureInitErr(errors.Trace(err, name))
+	err := c.metricsRegistry.Register(m.(prometheus.Collector))
+	if err != nil {
+		return c.captureInitErr(errors.Trace(err, name))
+	}
+	return nil
 }
 
 // DefineCounter defines a new counter metric.
@@ -127,19 +118,13 @@ func (c *Connector) DefineCounter(name, help string, labels []string) error {
 	if _, ok := c.metricDefs[name]; ok {
 		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
-
-	counterVec := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: name,
-		Help: help,
-	}, append([]string{"service", "ver", "id"}, labels...))
-
-	m := &mtr.Counter{
-		CounterVec: counterVec,
-	}
-
+	m := mtr.NewCounter(name, help, append([]string{"service", "ver", "id"}, labels...))
 	c.metricDefs[name] = m
-	err := c.metricsRegistry.Register(counterVec)
-	return c.captureInitErr(errors.Trace(err, name))
+	err := c.metricsRegistry.Register(m.(prometheus.Collector))
+	if err != nil {
+		return c.captureInitErr(errors.Trace(err, name))
+	}
+	return nil
 }
 
 // DefineGauge defines a new gauge metric.
@@ -153,19 +138,13 @@ func (c *Connector) DefineGauge(name, help string, labels []string) error {
 	if _, ok := c.metricDefs[name]; ok {
 		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
-
-	gaugeVec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: name,
-		Help: help,
-	}, append([]string{"service", "ver", "id"}, labels...))
-
-	m := &mtr.Gauge{
-		GaugeVec: gaugeVec,
-	}
-
+	m := mtr.NewGauge(name, help, append([]string{"service", "ver", "id"}, labels...))
 	c.metricDefs[name] = m
-	err := c.metricsRegistry.Register(gaugeVec)
-	return c.captureInitErr(errors.Trace(err, name))
+	err := c.metricsRegistry.Register(m.(prometheus.Collector))
+	if err != nil {
+		return c.captureInitErr(errors.Trace(err, name))
+	}
+	return nil
 }
 
 // IncrementMetric adds the given value to a counter or gauge metric.

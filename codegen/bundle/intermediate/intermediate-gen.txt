@@ -179,11 +179,11 @@ func NewService(impl ToDo, version int) *Intermediate {
 		`{{ .Alias }}`,
 		`{{ .Description }}`,
 		{{- if .Buckets }}
-		[]float64{ {{range $i, $elem := .Buckets}}{{if $i}}, {{end}}{{.}}{{end}} },
-		{{- end}}
-		[]string{ {{range $i, $elem := .Signature.InputArgs}}{{if gt $i 1}}, {{end}}{{if gt $i 0}}"{{.Name}}"{{end}}{{end}} },
+		[]float64{{ "{" }}{{ range $i, $elem := .Buckets }}{{ if $i }}, {{ end }}{{ . }}{{ end }}{{ "}" }},
+		{{- end }}
+		[]string{{ "{" }}{{ range $i, $elem := .Signature.InputArgs }}{{ if gt $i 1 }}, {{ end }}{{ if gt $i 0 }}"{{ .Name }}"{{ end }}{{ end }}{{ "}" }},
 	)
-	{{- end}}{{ end }}
+	{{- end }}{{ end }}
 
 	return svc
 }
