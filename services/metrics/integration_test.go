@@ -52,6 +52,11 @@ func TestMetrics_Collect(t *testing.T) {
 	t.Parallel()
 
 	ctx := Context()
+	Collect(ctx).
+		// All three services should be detected
+		BodyContains(t, "metrics.sys").
+		BodyNotContains(t, "one.collect").
+		BodyNotContains(t, "two.collect")
 
 	// Join two new services
 	con1 := connector.New("one.collect")
@@ -83,12 +88,26 @@ func TestMetrics_Collect(t *testing.T) {
 	con1.DistribCache().Load(ctx, "A")
 	con1.DistribCache().Load(ctx, "B")
 
+	// Loop until the new services are discovered
+	for {
+		tc := Collect(ctx)
+		res, err := tc.Get()
+		assert.NoError(t, err)
+		body, err := io.ReadAll(res.Body)
+		assert.NoError(t, err)
+		if bytes.Contains(body, []byte("metrics.sys")) &&
+			bytes.Contains(body, []byte("one.collect")) &&
+			bytes.Contains(body, []byte("two.collect")) {
+			break
+		}
+	}
+
 	Collect(ctx).
 		// All three services should be detected
 		BodyContains(t, "metrics.sys").
 		BodyContains(t, "one.collect").
 		BodyContains(t, "two.collect").
-		// The startup callback should take between 100ms and 250ms
+		// The startup callback should take between 100ms and 500ms
 		BodyContains(t, `microbus_callback_duration_seconds_bucket{error="false",handler="onstartup",id="`+con1.ID()+`",service="one.collect",ver="0",le="0.1"} 0`).
 		BodyContains(t, `microbus_callback_duration_seconds_bucket{error="false",handler="onstartup",id="`+con1.ID()+`",service="one.collect",ver="0",le="0.5"} 1`).
 		BodyContains(t, `microbus_log_messages_total{id="`+con1.ID()+`",message="Startup",service="one.collect",severity="INFO",ver="0"} 1`).
@@ -102,7 +121,7 @@ func TestMetrics_Collect(t *testing.T) {
 		// The response size is 10 bytes
 		BodyContains(t, `microbus_response_size_bytes_sum{code="200",error="false",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0"} 10`).
 		BodyContains(t, `microbus_response_size_bytes_count{code="200",error="false",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0"} 1`).
-		// The request should take between 100ms and 250ms
+		// The request should take between 100ms and 500ms
 		BodyContains(t, `microbus_request_count_total{code="200",error="false",host="one.collect",id="`+con1.ID()+`",method="GET",path="/ten",port="443",service="one.collect",ver="0"} 1`).
 		BodyContains(t, `microbus_response_duration_seconds_bucket{code="200",error="false",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0",le="0.1"} 0`).
 		BodyContains(t, `microbus_response_duration_seconds_bucket{code="200",error="false",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0",le="0.5"} 1`).
@@ -123,7 +142,7 @@ func TestMetrics_GZip(t *testing.T) {
 		body, err := io.ReadAll(unzipper)
 		unzipper.Close()
 		assert.NoError(t, err)
-		assert.True(t, bytes.Contains(body, []byte("metrics.sys")))
+		assert.True(t, bytes.Contains(body, []byte("microbus_log_messages_total")))
 	})
 }
 
@@ -131,7 +150,9 @@ func TestMetrics_SecretKey(t *testing.T) {
 	// No parallel
 	ctx := Context()
 	Svc.With(SecretKey("secret1234"))
-	Collect(ctx).Error(t, "incorrect secret key")
+	Collect(ctx).
+		Error(t, "incorrect secret key").
+		ErrorCode(t, http.StatusNotFound)
 	Svc.With(SecretKey(""))
 	Collect(ctx).NoError(t)
 }

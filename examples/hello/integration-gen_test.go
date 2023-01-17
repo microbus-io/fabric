@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -33,6 +34,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -269,6 +271,16 @@ func (tc *HelloTestCase) Error(t *testing.T, errContains string) *HelloTestCase 
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *HelloTestCase) ErrorCode(t *testing.T, statusCode int) *HelloTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *HelloTestCase) NoError(t *testing.T) *HelloTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -405,6 +417,16 @@ func (tc *EchoTestCase) Error(t *testing.T, errContains string) *EchoTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *EchoTestCase) ErrorCode(t *testing.T, statusCode int) *EchoTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -551,6 +573,16 @@ func (tc *PingTestCase) Error(t *testing.T, errContains string) *PingTestCase {
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *PingTestCase) ErrorCode(t *testing.T, statusCode int) *PingTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *PingTestCase) NoError(t *testing.T) *PingTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -687,6 +719,16 @@ func (tc *CalculatorTestCase) Error(t *testing.T, errContains string) *Calculato
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *CalculatorTestCase) ErrorCode(t *testing.T, statusCode int) *CalculatorTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -833,6 +875,16 @@ func (tc *BusJPEGTestCase) Error(t *testing.T, errContains string) *BusJPEGTestC
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *BusJPEGTestCase) ErrorCode(t *testing.T, statusCode int) *BusJPEGTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *BusJPEGTestCase) NoError(t *testing.T) *BusJPEGTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -900,6 +952,16 @@ func (tc *TickTockTestCase) Error(t *testing.T, errContains string) *TickTockTes
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *TickTockTestCase) ErrorCode(t *testing.T, statusCode int) *TickTockTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc

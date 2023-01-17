@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -33,6 +34,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -269,6 +271,16 @@ func (tc *HomeTestCase) Error(t *testing.T, errContains string) *HomeTestCase {
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *HomeTestCase) ErrorCode(t *testing.T, statusCode int) *HomeTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *HomeTestCase) NoError(t *testing.T) *HomeTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -405,6 +417,16 @@ func (tc *NoQueueTestCase) Error(t *testing.T, errContains string) *NoQueueTestC
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *NoQueueTestCase) ErrorCode(t *testing.T, statusCode int) *NoQueueTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -551,6 +573,16 @@ func (tc *DefaultQueueTestCase) Error(t *testing.T, errContains string) *Default
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *DefaultQueueTestCase) ErrorCode(t *testing.T, statusCode int) *DefaultQueueTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *DefaultQueueTestCase) NoError(t *testing.T) *DefaultQueueTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -692,6 +724,16 @@ func (tc *CacheLoadTestCase) Error(t *testing.T, errContains string) *CacheLoadT
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *CacheLoadTestCase) ErrorCode(t *testing.T, statusCode int) *CacheLoadTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *CacheLoadTestCase) NoError(t *testing.T) *CacheLoadTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -828,6 +870,16 @@ func (tc *CacheStoreTestCase) Error(t *testing.T, errContains string) *CacheStor
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *CacheStoreTestCase) ErrorCode(t *testing.T, statusCode int) *CacheStoreTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc

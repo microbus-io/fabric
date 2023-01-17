@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -33,6 +34,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -264,6 +266,16 @@ func (tc *CollectTestCase) Error(t *testing.T, errContains string) *CollectTestC
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *CollectTestCase) ErrorCode(t *testing.T, statusCode int) *CollectTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
