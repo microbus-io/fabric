@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"hash"
@@ -51,7 +52,22 @@ func hashDir(h hash.Hash, dir string) error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		_, err = io.Copy(h, f)
+		if filepath.Ext(fileName) == ".go" {
+			// Skip comments before the first "package" statement so that changes to copyright
+			// notices do not affect the hash code
+			var code []byte
+			code, err = io.ReadAll(f)
+			if err == nil {
+				p := bytes.Index(code, []byte("\npackage "))
+				if p > 0 {
+					_, err = h.Write(code[p+1:])
+				} else {
+					_, err = h.Write(code)
+				}
+			}
+		} else {
+			_, err = io.Copy(h, f)
+		}
 		f.Close()
 		if err != nil {
 			return errors.Trace(err)
