@@ -10,22 +10,27 @@ cd github.com/microbus-io
 git clone https://github.com/microbus-io/fabric
 ```
 
-## Run the development environment
+## Setup and Run the Development Environment
 
-The docker environment is self-contained with the following preconfigured services:
+The `Microbus` framework depends on a few third-party services:
 
-* Nats
-* MySql
-* Prometheus
-* Grafana
+* `NATS` is a hard requirement used as the communication transport between microservice
+* `MySQL` is needed for microservices that depend on it, such as the CRUD example
+* `Prometheus` is an optional service that can be used to collect metrics from `Microbus` microservices
+* `Grafana` is an optional service that can visualize metrics collected by `Prometheus`
 
-From the docker folder of this project:
+Use `docker compose` from within the `setup` directory to install the above and set up the development environment.
 
 ```cmd
-docker-compose -f microbus.yaml up
+cd setup
+docker compose -f microbus.yaml -p microbus up
 ```
 
-The `-DV` flags will produce a lot of output. It's recommended to start the NATS server in a separate terminal window to better be able to see the action. Remove these flags from the nats service in the microbus.yaml docker compose file if speed is important, such as when running benchmarks and certain tests.
+`Docker Desktop` should now show the `microbus` application:
+
+<img src="quick-start-1.png" width="825">
+
+The `-DV` (debug and verbose) flags of `NATS` slow down `NATS` considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to run `NATS` in a separate terminal window instead of inside `Docker`.
 
 ## Run the Examples
 
@@ -36,7 +41,7 @@ cd examples/main
 go run main.go
 ```
 
-It is important to set the working directory to `examples/main` so that the `examples/main/env.yaml` file is located.
+It is necessary to set the working directory to `examples/main` so that the `examples/main/env.yaml` file is located.
 
 If you're using Visual Studio Code, simply press `F5`. The `.vscode/launch.json` file includes a launch configuration for running `examples/main`.
 
@@ -57,15 +62,9 @@ Try the following URLs in your browser:
 
 Feel free to experiment with different values for the query arguments.
 
-## Metrics
+To view the metrics collected by [`Prometheus`](https://prometheus.io), go to http://localhost:9090/graph. As an example, you may execute the query `microbus_uptime_duration_seconds_total`.
 
-[Metrics](docs/tech/metrics.md) in `Microbus` are collected by [Prometheus](https://prometheus.io) and can be viewed with [Grafana](https://grafana.com/) dashboards for greater insight into the microbus system. A docker compose [yaml file](docker/microbus.yaml) is provided which will start both Prometheus and Grafana. From the docker directory run:
-
-Make sure that the development environment has been started with docker-compose and the metrics system microservice is included in your app and started in order for Prometheus to be able to collect metrics from your microservices.
-
-The provided sample `docker/prometheus.yaml` instructs Prometheus to scrape metrics from the metrics system microservice every 15 seconds. To verify, navigate to http://localhost:9090/graph and execute the query `microbus_uptime_duration_seconds_total`. If successful, you should see the uptime of the running microservices.
-
-To view the Grafana dashboard, navigate to http://localhost:3000 and login with admin:admin. TODO: Create Grafana dashboards
+To view the same metrics in [`Grafana`](https://grafana.com/) dashboards, go to http://localhost:3000 and login using the credentials `admin`:`admin`.
 
 ## Configure IDE
 

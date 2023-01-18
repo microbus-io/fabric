@@ -151,10 +151,12 @@ func TestConnector_FragLoadBalanced(t *testing.T) {
 	)
 	for r := range ch {
 		res, err := r.Get()
-		assert.NoError(t, err)
-		bodyResponded, err := io.ReadAll(res.Body)
-		assert.NoError(t, err)
-		assert.Equal(t, bodySent, bodyResponded)
+		if assert.NoError(t, err) {
+			bodyResponded, err := io.ReadAll(res.Body)
+			if assert.NoError(t, err) {
+				assert.Equal(t, bodySent, bodyResponded)
+			}
+		}
 	}
 	if alphaBodyReceived != nil {
 		assert.Equal(t, bodySent, alphaBodyReceived)

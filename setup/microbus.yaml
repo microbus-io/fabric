@@ -20,17 +20,15 @@ services:
     volumes:
       - ./grafana:/etc/grafana/provisioning/
   nats:
-    image: nats:2.9.11-alpine3.17
+    image: nats:2-alpine
     ports:
       - "8222:8222"
       - "4222:4222"
-    command: -DV
     networks:
       - microbus-network
   mysql:
-    image: mysql:8.0.32-debian
+    image: mysql:8
     environment:
-      MYSQL_DATABASE: 'microbus_examples_shard'
       MYSQL_ROOT_PASSWORD: 'secret1234'
     restart: always
     ports:
