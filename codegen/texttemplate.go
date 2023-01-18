@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"embed"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
@@ -74,6 +75,22 @@ func (tt *TextTemplate) Execute(data any) ([]byte, error) {
 
 // Overwrite writes the template to the named file, overwriting its content.
 func (tt *TextTemplate) Overwrite(fileName string, data any) error {
+	// Preserve copyright comment at top of file
+	var copyright []byte
+	if filepath.Ext(fileName) == ".go" {
+		code, err := os.ReadFile(fileName)
+		if err == nil {
+			if bytes.HasPrefix(code, []byte("/*")) {
+				p := bytes.Index(code, []byte("*/\n"))
+				if p > 0 {
+					if bytes.Contains(code[:p], []byte("Copyright")) {
+						copyright = code[:p+3]
+					}
+				}
+			}
+		}
+	}
+
 	generated, err := tt.Execute(data)
 	if err != nil {
 		return errors.Trace(err)
@@ -82,8 +99,18 @@ func (tt *TextTemplate) Overwrite(fileName string, data any) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	defer file.Close()
+	if copyright != nil {
+		_, err = file.Write(copyright)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		_, err = file.Write([]byte("\n"))
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	_, err = file.Write(generated)
-	file.Close()
 	if err != nil {
 		return errors.Trace(err)
 	}
