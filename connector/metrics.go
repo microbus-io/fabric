@@ -155,6 +155,9 @@ func (c *Connector) IncrementMetric(name string, val float64, labels ...string) 
 	if c.metricsRegistry == nil {
 		return nil
 	}
+	if val == 0 {
+		return nil
+	}
 	c.metricLock.RLock()
 	defer c.metricLock.RUnlock()
 	m, ok := c.metricDefs[name]
