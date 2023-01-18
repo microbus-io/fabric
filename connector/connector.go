@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -345,7 +344,12 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, name 
 		"microbus_callback_duration_seconds",
 		time.Since(startTime).Seconds(),
 		name,
-		strconv.FormatBool(err != nil),
+		func() string {
+			if err != nil {
+				return "ERROR"
+			}
+			return "OK"
+		}(),
 	)
 	return err
 }

@@ -302,7 +302,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					strconv.Itoa(port),
 					httpReq.URL.Path,
 					strconv.Itoa(response.StatusCode),
-					"false",
+					"OK",
 				)
 			}
 
@@ -332,7 +332,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					strconv.Itoa(port),
 					httpReq.URL.Path,
 					strconv.Itoa(statusCode),
-					"true",
+					"ERROR",
 				)
 			}
 
@@ -367,7 +367,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 				strconv.Itoa(port),
 				httpReq.URL.Path,
 				strconv.Itoa(http.StatusRequestTimeout),
-				"false",
+				"OK",
 			)
 
 			// Known responders optimization
@@ -391,7 +391,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					strconv.Itoa(port),
 					httpReq.URL.Path,
 					strconv.Itoa(http.StatusNotFound),
-					"false",
+					"OK",
 				)
 				// Known responders optimization
 				if req.Multicast {

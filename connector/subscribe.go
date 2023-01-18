@@ -336,7 +336,12 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			strconv.Itoa(s.Port),
 			httpReq.Method,
 			strconv.Itoa(httpRecorder.StatusCode()),
-			strconv.FormatBool(handlerErr != nil),
+			func() string {
+				if handlerErr != nil {
+					return "ERROR"
+				}
+				return "OK"
+			}(),
 		)
 		_ = c.ObserveMetric(
 			"microbus_response_size_bytes",
@@ -345,7 +350,12 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			strconv.Itoa(s.Port),
 			httpReq.Method,
 			strconv.Itoa(httpRecorder.StatusCode()),
-			strconv.FormatBool(handlerErr != nil),
+			func() string {
+				if handlerErr != nil {
+					return "ERROR"
+				}
+				return "OK"
+			}(),
 		)
 	}
 

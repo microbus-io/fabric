@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
@@ -151,7 +152,9 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 // ServeHTTP implements the http.Handler interface
 func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := svc.Lifetime()
-	err := svc.serveHTTP(w, r)
+	handlerStartTime := time.Now()
+	pt := &PassThrough{W: w}
+	err := svc.serveHTTP(pt, r)
 	if err != nil {
 		uri := r.URL.RequestURI()
 		statusCode := errors.Convert(err).StatusCode
@@ -166,6 +169,36 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		svc.LogError(ctx, "Serving", log.Error(err), log.String("uri", uri))
 	}
+
+	// Meter
+	_ = svc.ObserveMetric(
+		"microbus_response_duration_seconds",
+		time.Since(handlerStartTime).Seconds(),
+		"ServeHTTP",
+		r.URL.Port(),
+		r.Method,
+		strconv.Itoa(pt.SC),
+		func() string {
+			if err != nil {
+				return "ERROR"
+			}
+			return "OK"
+		}(),
+	)
+	_ = svc.ObserveMetric(
+		"microbus_response_size_bytes",
+		float64(pt.N),
+		"ServeHTTP",
+		r.URL.Port(),
+		r.Method,
+		strconv.Itoa(pt.SC),
+		func() string {
+			if err != nil {
+				return "ERROR"
+			}
+			return "OK"
+		}(),
+	)
 }
 
 // ServeHTTP forwards incoming HTTP requests to the appropriate microservice on NATS.
