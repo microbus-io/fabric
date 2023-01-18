@@ -76,5 +76,9 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
 
+## 👩‍⚖️ Legal
+
+The `Microbus` framework is distributed under the [Apache 2.0 license](LICENSE) by the `Microbus Open Source Foundation`. Refer to the list of [third-party open source software](docs/third-party-oss.md) for additional licensing information.
+
 🎁 = new
 ✨ = updated

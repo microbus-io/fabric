@@ -114,3 +114,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Metrics system microservice to collect and deliver system metrics to `Prometheus` and `Grafana`
 * Code generation for application custom metrics
 * Quick start with Docker Compose
+
+[Milestone 16](https://github.com/microbus-io/fabric/tree/milestone/16):
+
+* License and copyright notices
