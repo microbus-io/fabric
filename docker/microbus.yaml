@@ -18,7 +18,7 @@ services:
     depends_on:
       - prometheus
     volumes:
-      - ./prometheus-datasource.yaml:/etc/grafana/provisioning/datasources/prometheus-datasource.yml
+      - ./grafana:/etc/grafana/provisioning/
   nats:
     image: nats:2.9.11-alpine3.17
     ports:
