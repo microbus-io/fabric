@@ -51,7 +51,7 @@ func Terminate() error {
 func TestMetrics_Collect(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context()
+	ctx := Context(t)
 	Collect(ctx).
 		// All three services should be detected
 		BodyContains(t, "metrics.sys").
@@ -132,7 +132,7 @@ func TestMetrics_Collect(t *testing.T) {
 func TestMetrics_GZip(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context()
+	ctx := Context(t)
 
 	Collect(ctx, Header("Accept-Encoding", "gzip")).Assert(t, func(t *testing.T, res *http.Response, err error) {
 		assert.NoError(t, err)
@@ -148,7 +148,7 @@ func TestMetrics_GZip(t *testing.T) {
 
 func TestMetrics_SecretKey(t *testing.T) {
 	// No parallel
-	ctx := Context()
+	ctx := Context(t)
 	Svc.With(SecretKey("secret1234"))
 	Collect(ctx).
 		Error(t, "incorrect secret key").

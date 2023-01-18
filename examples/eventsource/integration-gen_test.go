@@ -100,7 +100,7 @@ func TestMain(m *testing.M) {
 }
 
 // Context creates a new context for a test.
-func Context() context.Context {
+func Context(t *testing.T) context.Context {
 	return context.Background()
 }
 

@@ -63,7 +63,7 @@ func TestHello_Hello(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Hello(ctx, GET()).
 		Name("without name arg").
 		BodyContains(t, Svc.Greeting()).
@@ -94,7 +94,7 @@ func TestHello_Echo(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Echo(ctx, POST("PostBody"), Header("Echo123", "EchoEchoEcho"), QueryArg("echo", "123")).
 		BodyContains(t, "Echo123: EchoEchoEcho").
 		BodyContains(t, "?echo=123").
@@ -115,7 +115,7 @@ func TestHello_Ping(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Ping(ctx, GET()).BodyContains(t, Svc.ID()+"."+Svc.HostName())
 }
 
@@ -133,7 +133,7 @@ func TestHello_Calculator(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Calculator(ctx, GET(), Query("x=5&op=*&y=80")).BodyContains(t, "400")
 	Calculator(ctx, GET(), Query("x=500&op=/&y=5")).BodyContains(t, "100")
 }
@@ -152,7 +152,7 @@ func TestHello_BusJPEG(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	img, err := Svc.Resources().ReadFile("bus.jpeg")
 	assert.NoError(t, err)
 	BusJPEG(ctx, GET()).
@@ -170,6 +170,6 @@ func TestHello_TickTock(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	TickTock(ctx).NoError(t)
 }

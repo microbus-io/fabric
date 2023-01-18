@@ -51,7 +51,7 @@ func TestMessaging_Home(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Home(ctx, GET()).
 		Name("all replicas").
 		BodyContains(t, Svc.ID()).
@@ -72,7 +72,7 @@ func TestMessaging_NoQueue(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	NoQueue(ctx, GET()).
 		BodyContains(t, "NoQueue").
 		BodyContains(t, Svc.ID())
@@ -92,7 +92,7 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	DefaultQueue(ctx, GET()).
 		BodyContains(t, "DefaultQueue").
 		BodyContains(t, Svc.ID())
@@ -112,7 +112,7 @@ func TestMessaging_CacheLoad(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	CacheLoad(ctx, GET(), QueryArg("key", "l1")).
 		Name("load not found").
 		BodyContains(t, "found: no")
@@ -143,7 +143,7 @@ func TestMessaging_CacheStore(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	CacheStore(ctx, GET(), QueryArg("key", "s1"), QueryArg("value", "s1-val")).
 		Name("store s1").
 		BodyContains(t, "s1-val").

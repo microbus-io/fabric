@@ -51,7 +51,7 @@ func TestCalculator_Arithmetic(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, xEcho, opEcho, yEcho, result, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Arithmetic(ctx, 3, "-", 8).Name("subtraction").Expect(t, 3, "-", 8, -5)
 	Arithmetic(ctx, -9, "+", 9).Name("addition").Expect(t, -9, "+", 9, 0)
 	Arithmetic(ctx, -9, " ", 9).Name("space for addition").Expect(t, -9, "+", 9, 0)
@@ -72,7 +72,7 @@ func TestCalculator_Square(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, xEcho, result, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Square(ctx, 0).Name("zero").Expect(t, 0, 0)
 	Square(ctx, 5).Name("positive").Expect(t, 5, 25)
 	Square(ctx, -8).Name("negative").Expect(t, -8, 64)
@@ -88,7 +88,7 @@ func TestCalculator_Distance(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, d, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Distance(ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).
 		Name("3-4-5 triangle").Expect(t, 5)
 	Distance(ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).
