@@ -85,6 +85,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 		"SecretKey",
 		cfg.Description(`SecretKey must be provided with the request to collect the metrics.
 This key is required except in local development and tests.`),
+		cfg.Secret(),
 	)
 	
 	// Webs
