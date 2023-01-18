@@ -19,6 +19,30 @@ services:
       - prometheus
     volumes:
       - ./prometheus-datasource.yaml:/etc/grafana/provisioning/datasources/prometheus-datasource.yml
-
+  nats:
+    image: nats:2.9.11-alpine3.17
+    ports:
+      - "8222:8222"
+      - "4222:4222"
+    command: -DV
+    networks:
+      - microbus-network
+  mysql:
+    image: mysql:8.0.32-debian
+    environment:
+      MYSQL_DATABASE: 'microbus_examples_shard'
+      MYSQL_ROOT_PASSWORD: 'secret1234'
+    restart: always
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - microbus-network
 networks:
   microbus-network:
+volumes:
+  db:
+    driver: local

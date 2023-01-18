@@ -10,17 +10,22 @@ cd github.com/microbus-io
 git clone https://github.com/microbus-io/fabric
 ```
 
-## Install and Run NATS
+## Run the development environment
 
-From the root folder of this project:
+The docker environment is self-contained with the following preconfigured services:
+
+* Nats
+* MySql
+* Prometheus
+* Grafana
+
+From the docker folder of this project:
 
 ```cmd
-go get github.com/nats-io/nats-server
-go build github.com/nats-io/nats-server
-./nats-server -D -V
+docker-compose -f microbus.yaml up
 ```
 
-The `-D` and `-V` flags will produce a lot of output. It's recommended to start the NATS server in a separate terminal window to better be able to see the action. Remove these flags if speed is important, such as when running benchmarks and certain tests.
+The `-DV` flags will produce a lot of output. It's recommended to start the NATS server in a separate terminal window to better be able to see the action. Remove these flags from the nats service in the microbus.yaml docker compose file if speed is important, such as when running benchmarks and certain tests.
 
 ## Run the Examples
 
@@ -52,17 +57,13 @@ Try the following URLs in your browser:
 
 Feel free to experiment with different values for the query arguments.
 
-## Metrics Setup
+## Metrics
 
-[Metrics](docs/tech/metrics.md) in `Microbus` are collected by [Prometheus](https://prometheus.io) and can be viewed with [Grafana](https://grafana.com/) dashboards for greater insight into the microbus system. A docker compose [yaml file](examples/main/docker/compose.yaml) is provided which will start both Prometheus and Grafana. From the examples/main/docker directory run:
+[Metrics](docs/tech/metrics.md) in `Microbus` are collected by [Prometheus](https://prometheus.io) and can be viewed with [Grafana](https://grafana.com/) dashboards for greater insight into the microbus system. A docker compose [yaml file](docker/microbus.yaml) is provided which will start both Prometheus and Grafana. From the docker directory run:
 
-```cmd
-docker compose up
-```
+Make sure that the development environment has been started with docker-compose and the metrics system microservice is included in your app and started in order for Prometheus to be able to collect metrics from your microservices.
 
-Make sure the metrics system microservice is included in your app and started in order for Prometheus to be able to collect metrics from your microservices.
-
-The provided sample `examples/main/docker/prometheus.yaml` instructs Prometheus to scrape metrics from the metrics system microservice every 15 seconds. To verify, navigate to http://localhost:9090/graph and execute the query `microbus_uptime_duration_seconds_total`. If successful, you should see the uptime of the running microservices.
+The provided sample `docker/prometheus.yaml` instructs Prometheus to scrape metrics from the metrics system microservice every 15 seconds. To verify, navigate to http://localhost:9090/graph and execute the query `microbus_uptime_duration_seconds_total`. If successful, you should see the uptime of the running microservices.
 
 To view the Grafana dashboard, navigate to http://localhost:3000 and login with admin:admin. TODO: Create Grafana dashboards
 
