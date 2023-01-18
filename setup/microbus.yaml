@@ -40,17 +40,17 @@ services:
       - "4222:4222"
     networks:
       - microbus-network
-  mysql:
-    image: mysql:8
+  mariadb:
+    image: mariadb:10
     environment:
-      MYSQL_ROOT_PASSWORD: 'secret1234'
+      MARIADB_ROOT_PASSWORD: 'secret1234'
     restart: always
     ports:
       - '3306:3306'
     expose:
       - '3306'
     volumes:
-      - db:/var/lib/mysql
+      - db:/var/lib/mariadb
     networks:
       - microbus-network
 networks:

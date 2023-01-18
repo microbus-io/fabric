@@ -111,7 +111,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 15](https://github.com/microbus-io/fabric/tree/milestone/15):
 
 * Support in `Connector` for collecting system metrics
-* Metrics system microservice to collect and deliver system metrics to `Prometheus` and `Grafana`
+* Metrics system microservice that collects and delivers metrics to `Prometheus` and `Grafana`
 * Code generation for application custom metrics
 * Quick start with Docker Compose
 

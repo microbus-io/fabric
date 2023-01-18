@@ -1,7 +1,7 @@
 name: "Test"
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, edited]
   push:
     branches:
       - "main"
@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     name: "Run tests"
     services:
-      mysql:
-        image: mysql:8.0
+      mariadb:
+        image: mariadb:10
         env:
-          MYSQL_ROOT_PASSWORD: "secret1234"
+          MARIADB_ROOT_PASSWORD: "secret1234"
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@v3
       - name: Create Nats cluster
