@@ -17,3 +17,5 @@ limitations under the License.
 //go:generate go run github.com/microbus-io/copyrighter -r
 
 package fabric
+
+import _ "github.com/microbus-io/copyrighter/i"
