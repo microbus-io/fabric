@@ -217,15 +217,15 @@ func (gen *Generator) currentVersion() (*spec.Version, error) {
 		return nil, errors.Trace(err)
 	}
 	body := string(buf)
-	p := strings.Index(body, "/*")
+	p := strings.Index(body, "/* {")
 	if p < 0 {
 		return nil, errors.New("unable to parse version-gen.go")
 	}
-	q := strings.Index(body[p+2:], "*/")
+	q := strings.Index(body[p:], "} */")
 	if q < 0 {
 		return nil, errors.New("unable to parse version-gen.go")
 	}
-	j := body[p+2 : p+2+q]
+	j := body[p+3 : p+q+1]
 	var v spec.Version
 	err = json.Unmarshal([]byte(j), &v)
 	if err != nil {
