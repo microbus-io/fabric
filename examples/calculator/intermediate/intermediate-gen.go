@@ -79,12 +79,19 @@ func NewService(impl ToDo, version int) *Intermediate {
 
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
-	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+	svc.SetOnShutdown(svc.impl.OnShutdown)	
+
 	// Functions
 	svc.Subscribe(`:443/arithmetic`, svc.doArithmetic)
 	svc.Subscribe(`:443/square`, svc.doSquare)
 	svc.Subscribe(`:443/distance`, svc.doDistance)
+
+	// Metrics
+	svc.DefineCounter(
+		`calculator_op_count`,
+		`OpCount tracks the types of arithmetic calculations.`,
+		[]string{"op"},
+	)
 
 	return svc
 }
@@ -169,4 +176,14 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+/*
+IncrementOpCount increments the value of the "calculator_op_count" metric.
+OpCount tracks the types of arithmetic calculations.
+*/
+func (svc *Intermediate) IncrementOpCount(num int, op string) error {
+	xnum := float64(num)
+	xop := fmt.Sprintf("%v", op)
+	return svc.IncrementMetric("calculator_op_count", xnum, xop)
 }

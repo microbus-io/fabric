@@ -162,8 +162,7 @@ func (c *Connector) Startup() (err error) {
 		err = c.doCallback(
 			c.lifetimeCtx,
 			c.onStartup[i].TimeBudget,
-			"Startup callback",
-			":0/on-startup",
+			c.onStartup[i].Name,
 			func(ctx context.Context) error {
 				return c.onStartup[i].Handler.(StartupHandler)(ctx)
 			},
@@ -196,6 +195,8 @@ func (c *Connector) Startup() (err error) {
 
 	// Run all tickers
 	c.runTickers()
+
+	c.startupTime = time.Now().UTC()
 
 	return nil
 }
@@ -256,8 +257,7 @@ func (c *Connector) Shutdown() error {
 			err = c.doCallback(
 				c.lifetimeCtx,
 				c.onShutdown[i].TimeBudget,
-				"Shutdown callback",
-				":0/on-shutdown",
+				c.onShutdown[i].Name,
 				func(ctx context.Context) error {
 					return c.onShutdown[i].Handler.(ShutdownHandler)(ctx)
 				},

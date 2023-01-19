@@ -1,0 +1,46 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - microbus-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - microbus-network
+    depends_on:
+      - prometheus
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/
+  nats:
+    image: nats:2-alpine
+    ports:
+      - "8222:8222"
+      - "4222:4222"
+    networks:
+      - microbus-network
+  mariadb:
+    image: mariadb:10
+    environment:
+      MARIADB_ROOT_PASSWORD: 'secret1234'
+    restart: always
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - db:/var/lib/mariadb
+    networks:
+      - microbus-network
+networks:
+  microbus-network:
+volumes:
+  db:
+    driver: local

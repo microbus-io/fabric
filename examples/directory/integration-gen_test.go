@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -33,6 +34,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -109,7 +111,7 @@ func TestMain(m *testing.M) {
 }
 
 // Context creates a new context for a test.
-func Context() context.Context {
+func Context(t *testing.T) context.Context {
 	return context.Background()
 }
 
@@ -141,6 +143,16 @@ func (tc *CreateTestCase) Error(t *testing.T, errContains string) *CreateTestCas
 	t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *CreateTestCase) ErrorCode(t *testing.T, statusCode int) *CreateTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -212,6 +224,16 @@ func (tc *LoadTestCase) Error(t *testing.T, errContains string) *LoadTestCase {
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *LoadTestCase) ErrorCode(t *testing.T, statusCode int) *LoadTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *LoadTestCase) NoError(t *testing.T) *LoadTestCase {
 	t.Run(tc._testName, func(t *testing.T) {
@@ -271,6 +293,16 @@ func (tc *DeleteTestCase) Error(t *testing.T, errContains string) *DeleteTestCas
 	t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *DeleteTestCase) ErrorCode(t *testing.T, statusCode int) *DeleteTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -342,6 +374,16 @@ func (tc *UpdateTestCase) Error(t *testing.T, errContains string) *UpdateTestCas
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *UpdateTestCase) ErrorCode(t *testing.T, statusCode int) *UpdateTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *UpdateTestCase) NoError(t *testing.T) *UpdateTestCase {
 	t.Run(tc._testName, func(t *testing.T) {
@@ -408,6 +450,16 @@ func (tc *LoadByEmailTestCase) Error(t *testing.T, errContains string) *LoadByEm
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *LoadByEmailTestCase) ErrorCode(t *testing.T, statusCode int) *LoadByEmailTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *LoadByEmailTestCase) NoError(t *testing.T) *LoadByEmailTestCase {
 	t.Run(tc._testName, func(t *testing.T) {
@@ -467,6 +519,16 @@ func (tc *ListTestCase) Error(t *testing.T, errContains string) *ListTestCase {
 	t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *ListTestCase) ErrorCode(t *testing.T, statusCode int) *ListTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc

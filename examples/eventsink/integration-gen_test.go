@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -33,6 +34,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -98,7 +100,7 @@ func TestMain(m *testing.M) {
 }
 
 // Context creates a new context for a test.
-func Context() context.Context {
+func Context(t *testing.T) context.Context {
 	return context.Background()
 }
 
@@ -130,6 +132,16 @@ func (tc *RegisteredTestCase) Error(t *testing.T, errContains string) *Registere
 	t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *RegisteredTestCase) ErrorCode(t *testing.T, statusCode int) *RegisteredTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -199,6 +211,16 @@ func (tc *OnAllowRegisterTestCase) Error(t *testing.T, errContains string) *OnAl
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *OnAllowRegisterTestCase) ErrorCode(t *testing.T, statusCode int) *OnAllowRegisterTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *OnAllowRegisterTestCase) NoError(t *testing.T) *OnAllowRegisterTestCase {
 	t.Run(tc._testName, func(t *testing.T) {
@@ -255,6 +277,16 @@ func (tc *OnRegisteredTestCase) Error(t *testing.T, errContains string) *OnRegis
 	t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *OnRegisteredTestCase) ErrorCode(t *testing.T, statusCode int) *OnRegisteredTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc

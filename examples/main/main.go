@@ -10,6 +10,7 @@ import (
 	"github.com/microbus-io/fabric/examples/messaging"
 	"github.com/microbus-io/fabric/services/configurator"
 	"github.com/microbus-io/fabric/services/httpingress"
+	"github.com/microbus-io/fabric/services/metrics"
 )
 
 /*
@@ -19,6 +20,7 @@ func main() {
 	app := application.New(
 		configurator.NewService(),
 		httpingress.NewService(),
+		metrics.NewService(),
 		hello.NewService(),
 		messaging.NewService(),
 		messaging.NewService(),

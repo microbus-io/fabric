@@ -60,3 +60,8 @@ func ToKebabCase(id string) string {
 	}
 	return sb.String()
 }
+
+// ToSnakeCase converts a CamelCase identifier to snake_case.
+func ToSnakeCase(id string) string {
+	return strings.ReplaceAll(ToKebabCase(id), "-", "_")
+}

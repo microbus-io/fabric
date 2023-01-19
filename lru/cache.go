@@ -43,6 +43,8 @@ type Cache[K comparable, V any] struct {
 	maxWeight     int
 	maxAge        time.Duration
 	clock         clock.Clock
+	hits          int
+	misses        int
 }
 
 // NewCache creates a new LRU cache with a weight capacity of 16384 and a maximum age of 1hr.
@@ -196,7 +198,15 @@ func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 		}
 	}
 	if !found {
+		c.misses++
+		if c.misses < 0 { // Overflow
+			c.misses = 0
+		}
 		return value, false
+	}
+	c.hits++
+	if c.hits < 0 { // Overflow
+		c.hits = 0
 	}
 	if !opts.Bump || foundIn == 0 {
 		return elem.val, true
@@ -282,6 +292,24 @@ func (c *Cache[K, V]) Len() int {
 	}
 	c.lock.Unlock()
 	return count
+}
+
+// Hits returns the total number of cache hits.
+// This number can technically overflow.
+func (c *Cache[K, V]) Hits() int {
+	c.lock.Lock()
+	hits := c.hits
+	c.lock.Unlock()
+	return hits
+}
+
+// Misses returns the total number of cache misses.
+// This number can technically overflow.
+func (c *Cache[K, V]) Misses() int {
+	c.lock.Lock()
+	misses := c.misses
+	c.lock.Unlock()
+	return misses
 }
 
 // SetMaxAge sets the total weight limit of elements in this cache.

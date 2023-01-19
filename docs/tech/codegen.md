@@ -231,7 +231,7 @@ The optional field `forHost` adjusts the subscription to listen to microservices
 
 ### Web Handlers
 
-The `webs` sections defines low-level web handlers which allow the microservice to handle incoming web requests as it sees fit.
+The `webs` section defines low-level web handlers which allow the microservice to handle incoming web requests as it sees fit.
 
 ```yaml
 # Web handlers
@@ -297,6 +297,35 @@ func (svc *Service) TickerHandler(ctx context.Context) (err error) {
     return nil
 }
 ```
+
+### Metrics
+
+The `metrics` section is used to define arbitrary metrics that are pertinent to a specific application. The metrics could be operational in nature (e.g. performance) or have a business purpose (e.g. usage tracking).
+
+```yaml
+# Metrics
+#
+# signature - Func(measure Type, label Type, label Type)
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# buckets - Bucket boundaries for histograms [x,y,z,...]
+# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
+metrics:
+  - signature:
+    description:
+    kind:
+    alias:
+```
+
+Metrics support three [collector types](https://prometheus.io/docs/concepts/metric_types/): counter, histogram and gauge.
+
+The name of the metric is derived from the function signature. It should adhere to the [naming best practices](https://prometheus.io/docs/practices/naming/) if at all possible. A `Prometheus` alias is automatically generated but may be overridden if necessary.
 
 ## Clients
 

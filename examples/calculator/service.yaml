@@ -8,6 +8,12 @@ general:
   host: calculator.example
   description: The Calculator microservice performs simple mathematical operations.
 
+# Databases
+#
+# mysql - A name for the MySQL database
+databases:
+  # mysql: MySQL
+
 # Config properties
 #
 # signature - Func() (val Type)
@@ -130,7 +136,20 @@ tickers:
   #   description:
   #   interval:
 
-# Databases
+# Metrics
 #
-# mysql - A name for the MySQL database
-databases:
+# signature - Func(measure Type, label Type, label Type)
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# buckets - Bucket boundaries for histograms [x,y,z,...]
+# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
+metrics:
+  - signature: OpCount(num int, op string)
+    description: OpCount tracks the types of arithmetic calculations.
+    kind: counter

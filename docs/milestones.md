@@ -107,3 +107,10 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Handle `X-Forwarded` headers
 * TLS in HTTP ingress
 * Multiple HTTP ports for HTTP ingress, with mapping for internal ports
+
+[Milestone 15](https://github.com/microbus-io/fabric/tree/milestone/15):
+
+* Support in `Connector` for collecting system metrics
+* Metrics system microservice that collects and delivers metrics to `Prometheus` and `Grafana`
+* Code generation for application custom metrics
+* Quick start with Docker Compose

@@ -148,6 +148,7 @@ func (gen *Generator) makeIntermediate() error {
 		"intermediate/intermediate-gen.configs.txt",
 		"intermediate/intermediate-gen.mysql.txt",
 		"intermediate/intermediate-gen.functions.txt",
+		"intermediate/intermediate-gen.metrics.txt",
 	)
 	if err != nil {
 		return errors.Trace(err)

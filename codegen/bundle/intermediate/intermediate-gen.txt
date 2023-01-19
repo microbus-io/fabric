@@ -118,7 +118,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 
 	{{- if .Configs }}
-	
+
 	// Configs
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	{{- range .Configs }}
@@ -135,8 +135,8 @@ func NewService(impl ToDo, version int) *Intermediate {
 	)
 	{{- end }}{{ end }}
 
-	{{- if .Functions }}
-	
+	{{- if .Functions }}	
+
 	// Functions
 	{{- range .Functions }}
 	svc.Subscribe(`{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
@@ -169,6 +169,20 @@ func NewService(impl ToDo, version int) *Intermediate {
 	timeBudget{{ .Name }}, _ := time.ParseDuration("{{ .TimeBudget }}")
 	{{- end }}
 	svc.StartTicker("{{ .Name }}", interval{{ .Name }}, svc.impl.{{ .Name }}{{if .TimeBudget }}, cb.TimeBudget(timeBudget{{ .Name }}){{end}})
+	{{- end }}{{ end }}
+
+	{{- if .Metrics }}
+
+	// Metrics
+	{{- range .Metrics }}
+	svc.Define{{ CapitalizeIdentifier .Kind }}(
+		`{{ .Alias }}`,
+		`{{ .Description }}`,
+		{{- if .Buckets }}
+		[]float64{{ "{" }}{{ range $i, $elem := .Buckets }}{{ if $i }}, {{ end }}{{ . }}{{ end }}{{ "}" }},
+		{{- end }}
+		[]string{{ "{" }}{{ range $i, $elem := .Signature.InputArgs }}{{ if gt $i 1 }}, {{ end }}{{ if gt $i 0 }}"{{ .Name }}"{{ end }}{{ end }}{{ "}" }},
+	)
 	{{- end }}{{ end }}
 
 	return svc

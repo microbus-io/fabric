@@ -34,6 +34,11 @@ type Handler struct {
 	Callback   bool   `yaml:"callback"`
 	Secret     bool   `yaml:"secret"`
 
+	// Metrics
+	Kind    string    `json:"kind" yaml:"kind"`
+	Alias   string    `json:"alias" yaml:"alias"`
+	Buckets []float64 `json:"buckets" yaml:"buckets"`
+
 	// Ticker
 	Interval   time.Duration `yaml:"interval"`
 	TimeBudget time.Duration `yaml:"timeBudget"`
@@ -59,6 +64,10 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if h.Queue == "" {
 		h.Queue = "default"
 	}
+	h.Kind = strings.ToLower(h.Kind)
+	if h.Kind == "" {
+		h.Kind = "counter"
+	}
 
 	if h.Event == "" {
 		h.Event = h.Name()
@@ -76,6 +85,9 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (h *Handler) validate() error {
 	if h.Queue != "default" && h.Queue != "none" {
 		return errors.Newf("invalid queue '%s' in '%s'", h.Queue, h.Name())
+	}
+	if h.Kind != "counter" && h.Kind != "gauge" && h.Kind != "histogram" {
+		return errors.Newf("invalid metric kind '%s' in '%s'", h.Kind, h.Name())
 	}
 	if strings.Contains(h.Path, "`") {
 		return errors.Newf("backquote not allowed in path '%s' in '%s'", h.Path, h.Name())
@@ -157,6 +169,24 @@ func (h *Handler) validate() error {
 			}
 			argNames[arg.Name] = true
 		}
+	case "metric":
+		if len(h.Signature.OutputArgs) != 0 {
+			return errors.Newf("return values not allowed in '%s'", h.Signature.OrigString)
+		}
+		if len(h.Signature.InputArgs) == 0 {
+			return errors.Newf("at least one argument expected in '%s'", h.Signature.OrigString)
+		}
+		argNames := map[string]bool{}
+		for _, arg := range h.Signature.InputArgs {
+			if argNames[arg.Name] {
+				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
+			}
+			argNames[arg.Name] = true
+		}
+		t := h.Signature.InputArgs[0].Type
+		if t != "int" && t != "time.Duration" && t != "float64" {
+			return errors.Newf("first argument is of a non-numeric type '%s' in '%s'", t, h.Signature.OrigString)
+		}
 	}
 
 	startsWithOn := regexp.MustCompile(`^On[A-Z][a-zA-Z0-9]*$`)
@@ -223,4 +253,14 @@ func (h *Handler) SourceSuffix() string {
 		return h.Source
 	}
 	return h.Source[p+1:]
+}
+
+// Observable indicates if the metric can be observed.
+func (h *Handler) Observable() bool {
+	return h.Kind == "histogram" || h.Kind == "gauge"
+}
+
+// Incrementable indicates if the metric can be incremented.
+func (h *Handler) Incrementable() bool {
+	return h.Kind == "counter" || h.Kind == "gauge"
 }

@@ -253,3 +253,10 @@ func Multicast() Option {
 		return nil
 	}
 }
+
+// Noop does nothing.
+func Noop() Option {
+	return func(r *Request) error {
+		return nil
+	}
+}

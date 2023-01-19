@@ -182,20 +182,20 @@ func TestDLRU_Rescue(t *testing.T) {
 	wg.Wait()
 }
 
-func TestDLRU_Weight(t *testing.T) {
+func TestDLRU_MaxMemory(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	maxMem := 4096
 
-	alpha := connector.New("weight.dlru")
+	alpha := connector.New("max.memory.dlru")
 	err := alpha.Startup()
 	assert.NoError(t, err)
 	defer alpha.Shutdown()
 	alphaLRU := alpha.DistribCache()
 	alphaLRU.SetMaxMemory(maxMem)
 
-	beta := connector.New("weight.dlru")
+	beta := connector.New("max.memory.dlru")
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer beta.Shutdown()
@@ -241,6 +241,51 @@ func TestDLRU_Weight(t *testing.T) {
 			assert.Equal(t, payload, string(val))
 		}
 	}
+}
+
+func TestDLRU_WeightAndLen(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("weight.and.len.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	alphaLRU := alpha.DistribCache()
+
+	beta := connector.New("weight.and.len.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	betaLRU := beta.DistribCache()
+
+	payload := rand.AlphaNum64(1024)
+	err = alphaLRU.Store(ctx, "A", []byte(payload))
+	assert.NoError(t, err)
+
+	wt, _ := alphaLRU.Weight(ctx)
+	assert.Equal(t, 1024, wt)
+	len, _ := alphaLRU.Len(ctx)
+	assert.Equal(t, 1, len)
+
+	wt, _ = betaLRU.Weight(ctx)
+	assert.Equal(t, 1024, wt)
+	len, _ = betaLRU.Len(ctx)
+	assert.Equal(t, 1, len)
+
+	err = betaLRU.Store(ctx, "B", []byte(payload))
+	assert.NoError(t, err)
+
+	wt, _ = alphaLRU.Weight(ctx)
+	assert.Equal(t, 2048, wt)
+	len, _ = alphaLRU.Len(ctx)
+	assert.Equal(t, 2, len)
+
+	wt, _ = betaLRU.Weight(ctx)
+	assert.Equal(t, 2048, wt)
+	len, _ = betaLRU.Len(ctx)
+	assert.Equal(t, 2, len)
 }
 
 func TestDLRU_Options(t *testing.T) {

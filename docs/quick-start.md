@@ -10,17 +10,27 @@ cd github.com/microbus-io
 git clone https://github.com/microbus-io/fabric
 ```
 
-## Install and Run NATS
+## Setup and Run the Development Environment
 
-From the root folder of this project:
+The `Microbus` framework depends on a few third-party services:
+
+* `NATS` is a hard requirement used as the communication transport between microservice
+* `MariaDB` is needed for microservices that depend on it, such as the CRUD example
+* `Prometheus` is an optional service that can be used to collect metrics from `Microbus` microservices
+* `Grafana` is an optional service that can visualize metrics collected by `Prometheus`
+
+Use `docker compose` from within the `setup` directory to install the above and set up the development environment.
 
 ```cmd
-go get github.com/nats-io/nats-server
-go build github.com/nats-io/nats-server
-./nats-server -D -V
+cd setup
+docker compose -f microbus.yaml -p microbus up
 ```
 
-The `-D` and `-V` flags will produce a lot of output. It's recommended to start the NATS server in a separate terminal window to better be able to see the action. Remove these flags if speed is important, such as when running benchmarks and certain tests.
+`Docker Desktop` should now show the `microbus` application:
+
+<img src="quick-start-1.png" width="825">
+
+The `-DV` (debug and verbose) flags of `NATS` slow down `NATS` considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to run `NATS` in a separate terminal window instead of inside `Docker`.
 
 ## Run the Examples
 
@@ -31,7 +41,7 @@ cd examples/main
 go run main.go
 ```
 
-It is important to set the working directory to `examples/main` so that the `examples/main/env.yaml` file is located.
+It is necessary to set the working directory to `examples/main` so that the `examples/main/env.yaml` file is located.
 
 If you're using Visual Studio Code, simply press `F5`. The `.vscode/launch.json` file includes a launch configuration for running `examples/main`.
 
@@ -51,6 +61,10 @@ Try the following URLs in your browser:
 * http://localhost:8080/messaging.example/cache-load?key=foo
 
 Feel free to experiment with different values for the query arguments.
+
+To view the metrics collected by [`Prometheus`](https://prometheus.io), go to http://localhost:9090/graph. As an example, you may execute the query `microbus_uptime_duration_seconds_total`.
+
+To view the same metrics in [`Grafana`](https://grafana.com/) dashboards, go to http://localhost:3000 and login using the credentials `admin`:`admin`.
 
 ## Configure IDE
 

@@ -57,6 +57,7 @@ func (svc *Service) Arithmetic(ctx context.Context, x int, op string, y int) (xE
 	default:
 		return x, op, y, result, errors.Newf("invalid operator '%s'", op)
 	}
+	svc.IncrementOpCount(1, op)
 	return x, op, y, result, nil
 }
 
@@ -64,6 +65,7 @@ func (svc *Service) Arithmetic(ctx context.Context, x int, op string, y int) (xE
 Square prints the square of the integer x.
 */
 func (svc *Service) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
+	svc.IncrementOpCount(1, "^2")
 	return x, x * x, nil
 }
 

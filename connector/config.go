@@ -92,8 +92,7 @@ func (c *Connector) SetConfig(name string, value any) error {
 			err := c.doCallback(
 				c.lifetimeCtx,
 				c.onConfigChanged[i].TimeBudget,
-				"Config changed callback",
-				":0/on-config-changed",
+				c.onConfigChanged[i].Name,
 				func(ctx context.Context) error {
 					f := func(n string) bool {
 						return strings.EqualFold(n, name)
@@ -129,8 +128,7 @@ func (c *Connector) ResetConfig(name string) error {
 			err := c.doCallback(
 				c.lifetimeCtx,
 				c.onConfigChanged[i].TimeBudget,
-				"Config changed callback",
-				":0/on-config-changed",
+				c.onConfigChanged[i].Name,
 				func(ctx context.Context) error {
 					f := func(n string) bool {
 						return strings.EqualFold(n, name)
@@ -239,8 +237,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 			err = c.doCallback(
 				c.lifetimeCtx,
 				c.onConfigChanged[i].TimeBudget,
-				"Config changed callback",
-				":0/on-config-changed",
+				c.onConfigChanged[i].Name,
 				func(ctx context.Context) error {
 					f := func(name string) bool {
 						return changed[strings.ToLower(name)]

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -281,6 +282,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	}
 
 	// Execute the request
+	handlerStartTime := time.Now()
 	httpRecorder := httpx.NewResponseRecorder()
 	var handlerErr error
 	corsPreflight := (httpReq.Method == "OPTIONS" && httpReq.Header.Get("Origin") != "")
@@ -325,6 +327,36 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			httpRecorder.WriteHeader(statusCode)
 			httpRecorder.Write(body)
 		}
+
+		// Meter
+		_ = c.ObserveMetric(
+			"microbus_response_duration_seconds",
+			time.Since(handlerStartTime).Seconds(),
+			s.Canonical(),
+			strconv.Itoa(s.Port),
+			httpReq.Method,
+			strconv.Itoa(httpRecorder.StatusCode()),
+			func() string {
+				if handlerErr != nil {
+					return "ERROR"
+				}
+				return "OK"
+			}(),
+		)
+		_ = c.ObserveMetric(
+			"microbus_response_size_bytes",
+			float64(httpRecorder.ContentLength()),
+			s.Canonical(),
+			strconv.Itoa(s.Port),
+			httpReq.Method,
+			strconv.Itoa(httpRecorder.StatusCode()),
+			func() string {
+				if handlerErr != nil {
+					return "ERROR"
+				}
+				return "OK"
+			}(),
+		)
 	}
 
 	// Set control headers on the response

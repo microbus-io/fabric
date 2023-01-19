@@ -17,10 +17,12 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
+	"github.com/microbus-io/fabric/mtr"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -43,6 +45,12 @@ type Connector struct {
 	pendingOps      int32
 	onStartupCalled bool
 	initErr         error
+	startupTime     time.Time
+
+	metricsRegistry *prometheus.Registry
+	metricsHandler  http.Handler
+	metricDefs      map[string]mtr.Metric
+	metricLock      sync.RWMutex
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription
@@ -97,12 +105,15 @@ func NewConnector() *Connector {
 		knownResponders:  lru.NewCache[string, map[string]bool](),
 		postRequestData:  lru.NewCache[string, string](),
 		multicastChanCap: 32,
+		metricDefs:       map[string]mtr.Metric{},
 	}
 
 	c.knownResponders.SetMaxWeight(16 * 1024)
 	c.knownResponders.SetMaxAge(24 * time.Hour)
 	c.postRequestData.SetMaxWeight(256 * 1024)
 	c.postRequestData.SetMaxAge(time.Minute)
+
+	c.newMetricsRegistry()
 
 	return c
 }
@@ -311,7 +322,7 @@ func (c *Connector) DistribCache() *dlru.Cache {
 // doCallback sets up the context and calls a callback, making sure to captures panics.
 // It is used for the on startup, on shutdown, on ticker and on config change situations.
 // The path is used to name this callback in telemetry.
-func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, desc string, path string, callback func(ctx context.Context) error) error {
+func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, name string, callback func(ctx context.Context) error) error {
 	if callback == nil {
 		return nil
 	}
@@ -320,13 +331,25 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, desc 
 	if timeout > 0 {
 		callbackCtx, cancel = context.WithTimeout(ctx, timeout)
 	}
+	startTime := time.Now()
 	err := utils.CatchPanic(func() error {
 		return callback(callbackCtx)
 	})
 	cancel()
 	if err != nil {
-		err = errors.Trace(err, httpx.JoinHostAndPath(c.hostName, path))
-		c.LogError(ctx, desc, log.Error(err), log.String("path", path))
+		err = errors.Trace(err, name)
+		c.LogError(ctx, "Executing callback", log.Error(err), log.String("name", name))
 	}
+	_ = c.ObserveMetric(
+		"microbus_callback_duration_seconds",
+		time.Since(startTime).Seconds(),
+		name,
+		func() string {
+			if err != nil {
+				return "ERROR"
+			}
+			return "OK"
+		}(),
+	)
 	return err
 }

@@ -3,17 +3,17 @@
 package {{ .PackageSuffix }}api
 
 import (
-    "time"
+	"time"
 
-    {{- if .ImportedTypes}}
-    {{ end }}
-    {{- range $i, $t := .ImportedTypes }}
-    import{{ Add $i 1 }}_{{ .ImportPackageSuffix }} "{{ .ImportPackage }}"
-    {{- end }}
+	{{- if .ImportedTypes}}
+	{{ end }}
+	{{- range $i, $t := .ImportedTypes }}
+	import{{ Add $i 1 }}_{{ .ImportPackageSuffix }} "{{ .ImportPackage }}"
+	{{- end }}
 )
 
 var (
-    _ time.Duration
+	_ time.Duration
 )
 
 {{- range $i, $t := .ImportedTypes }}
@@ -31,8 +31,8 @@ type {{ .Name }} = import{{ Add $i 1 }}_{{ .ImportPackageSuffix }}.{{ .ImportTyp
 {{ .Description }}
 */
 type {{ .Name }} struct {
-    {{- range $name, $type := .Define }}
-    {{ CapitalizeIdentifier $name }} {{ $type }} `json:"{{ $name }}"`
-    {{- end}}
+	{{- range $name, $type := .Define }}
+	{{ CapitalizeIdentifier $name }} {{ $type }} `json:"{{ $name }}"`
+	{{- end}}
 }
 {{- end }}

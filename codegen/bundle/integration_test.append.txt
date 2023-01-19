@@ -14,7 +14,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			Error({{ $t }}, errContains).
 			Assert({{ $t }}, func({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err))
 	*/
-	// ctx := Context()
+	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
@@ -34,7 +34,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	// ctx := Context()
+	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
@@ -49,7 +49,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, err)
 	*/
-	// ctx := Context()
+	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
@@ -64,6 +64,6 @@ func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, err)
 	*/
-	// ctx := Context()
+	// ctx := Context(t)
 }
 {{ end }}{{ end }}{{ end }}

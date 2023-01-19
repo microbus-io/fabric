@@ -168,6 +168,16 @@ func (tc *{{ .Name }}TestCase) Error(t *testing.T, errContains string) *{{ .Name
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *{{ .Name }}TestCase) ErrorCode(t *testing.T, statusCode int) *{{ .Name }}TestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *{{ .Name }}TestCase) NoError(t *testing.T) *{{ .Name }}TestCase {
 	t.Run(tc.testName, func(t *testing.T) {

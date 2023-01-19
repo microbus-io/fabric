@@ -19,7 +19,7 @@ type ResponseRecorder struct {
 func NewResponseRecorder() *ResponseRecorder {
 	return &ResponseRecorder{
 		header:     make(http.Header),
-		statusCode: 0,
+		statusCode: http.StatusOK,
 	}
 }
 
@@ -36,7 +36,6 @@ func (rr *ResponseRecorder) Write(b []byte) (int, error) {
 		rr.bytes = b
 		return len(b), nil
 	}
-
 	if rr.body == nil {
 		rr.body = &bytes.Buffer{}
 		rr.body.Write(rr.bytes)
@@ -60,9 +59,6 @@ func (rr *ResponseRecorder) Result() *http.Response {
 		StatusCode: rr.statusCode,
 		Header:     rr.header,
 	}
-	if res.StatusCode == 0 {
-		res.StatusCode = http.StatusOK
-	}
 	res.Status = fmt.Sprintf("%03d %s", res.StatusCode, http.StatusText(res.StatusCode))
 	if rr.bytes != nil {
 		res.Body = NewBodyReader(rr.bytes)
@@ -73,4 +69,20 @@ func (rr *ResponseRecorder) Result() *http.Response {
 	}
 	rr.header.Set("Content-Length", strconv.FormatInt(res.ContentLength, 10))
 	return res
+}
+
+// ContentLength returns the total number of bytes written to the body of the response.
+func (rr *ResponseRecorder) ContentLength() int {
+	if rr.bytes != nil {
+		return len(rr.bytes)
+	} else if rr.body != nil {
+		return rr.body.Len()
+	}
+	return 0
+}
+
+// StatusCode returns the status code set for the response.
+// If unset, the default is http.StatusOK 200.
+func (rr *ResponseRecorder) StatusCode() int {
+	return rr.statusCode
 }

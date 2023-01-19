@@ -57,7 +57,7 @@ func TestCalculator_Arithmetic(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, xEcho, opEcho, yEcho, result, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Arithmetic(ctx, 3, "-", 8).Expect(t, 3, "-", 8, -5)
 	Arithmetic(ctx, -9, "+", 9).Expect(t, -9, "+", 9, 0)
 	Arithmetic(ctx, -9, " ", 9).Expect(t, -9, "+", 9, 0)
@@ -87,7 +87,7 @@ func TestHello_Hello(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, httpResponse, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	Hello(ctx, GET()).
 		BodyContains(t, Svc.Greeting()).
 		BodyNotContains(t, "Maria")
@@ -110,7 +110,7 @@ func TestHello_TickTock(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, func(t, err))
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	TickTock(ctx).NoError(t)
 }
 ```
@@ -128,7 +128,7 @@ func TestExample_OnChangedConnectionString(t *testing.T) {
 			Error(t, errContains).
 			Assert(t, err)
 	*/
-	ctx := Context()
+	ctx := Context(t)
 	OnChangedConnectionString(ctx).NoError(t)
 }
 ```
@@ -211,7 +211,7 @@ func TestPayment_ChargeUser(t *testing.T) {
 	mockWebPaySvc.Startup()
 	defer mockWebPaySvc.Shutdown()
 
-	ctx := Context()
+	ctx := Context(t)
 	ChargeUser(ctx, "123", 500).Expect(t, false)
 	ChargeUser(ctx, "123", 100).Expect(t, true)
 	ChargeUser(ctx, "123", 503).Error(t, "service unavailable")

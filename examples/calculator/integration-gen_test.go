@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -33,6 +34,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -98,7 +100,7 @@ func TestMain(m *testing.M) {
 }
 
 // Context creates a new context for a test.
-func Context() context.Context {
+func Context(t *testing.T) context.Context {
 	return context.Background()
 }
 
@@ -136,6 +138,16 @@ func (tc *ArithmeticTestCase) Error(t *testing.T, errContains string) *Arithmeti
 	t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *ArithmeticTestCase) ErrorCode(t *testing.T, statusCode int) *ArithmeticTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -207,6 +219,16 @@ func (tc *SquareTestCase) Error(t *testing.T, errContains string) *SquareTestCas
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *SquareTestCase) ErrorCode(t *testing.T, statusCode int) *SquareTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *SquareTestCase) NoError(t *testing.T) *SquareTestCase {
 	t.Run(tc._testName, func(t *testing.T) {
@@ -266,6 +288,16 @@ func (tc *DistanceTestCase) Error(t *testing.T, errContains string) *DistanceTes
 	t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *DistanceTestCase) ErrorCode(t *testing.T, statusCode int) *DistanceTestCase {
+	t.Run(tc._testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -33,6 +34,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -98,7 +100,7 @@ func TestMain(m *testing.M) {
 }
 
 // Context creates a new context for a test.
-func Context() context.Context {
+func Context(t *testing.T) context.Context {
 	return context.Background()
 }
 
@@ -119,6 +121,16 @@ func (tc *OnChangedPortsTestCase) Error(t *testing.T, errContains string) *OnCha
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedPortsTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedPortsTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -176,6 +188,16 @@ func (tc *OnChangedAllowedOriginsTestCase) Error(t *testing.T, errContains strin
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedAllowedOriginsTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedAllowedOriginsTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *OnChangedAllowedOriginsTestCase) NoError(t *testing.T) *OnChangedAllowedOriginsTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -223,6 +245,16 @@ func (tc *OnChangedPortMappingsTestCase) Error(t *testing.T, errContains string)
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedPortMappingsTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedPortMappingsTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
@@ -280,6 +312,16 @@ func (tc *OnChangedReadTimeoutTestCase) Error(t *testing.T, errContains string) 
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedReadTimeoutTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedReadTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *OnChangedReadTimeoutTestCase) NoError(t *testing.T) *OnChangedReadTimeoutTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -332,6 +374,16 @@ func (tc *OnChangedWriteTimeoutTestCase) Error(t *testing.T, errContains string)
 	return tc
 }
 
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedWriteTimeoutTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedWriteTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
 // NoError asserts no error.
 func (tc *OnChangedWriteTimeoutTestCase) NoError(t *testing.T) *OnChangedWriteTimeoutTestCase {
 	t.Run(tc.testName, func(t *testing.T) {
@@ -379,6 +431,16 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) Error(t *testing.T, errContains st
 	t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedReadHeaderTimeoutTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedReadHeaderTimeoutTestCase {
+	t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
 	})
 	return tc
