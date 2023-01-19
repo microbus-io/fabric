@@ -54,7 +54,7 @@ func TestCodegen_YAMLFile(t *testing.T) {
 	assert.NoError(t, err)
 	onDisk, err := os.ReadFile(filepath.Join(dir, "service.yaml"))
 	assert.NoError(t, err)
-	template, err := bundle.ReadFile("bundle/service.yaml")
+	template, err := bundle.ReadFile("bundle/service.yaml.txt")
 	assert.NoError(t, err)
 	assert.Equal(t, template, onDisk)
 
@@ -73,7 +73,7 @@ func TestCodegen_YAMLFile(t *testing.T) {
 	assert.NoError(t, err)
 	onDisk, err = os.ReadFile(filepath.Join(dir, "service.yaml"))
 	assert.NoError(t, err)
-	template, err = bundle.ReadFile("bundle/service.yaml")
+	template, err = bundle.ReadFile("bundle/service.yaml.txt")
 	assert.NoError(t, err)
 	assert.Equal(t, template, onDisk)
 
@@ -95,7 +95,7 @@ func TestCodegen_YAMLFile(t *testing.T) {
 	// Verify that the file changed
 	onDisk, err = os.ReadFile(filepath.Join(dir, "service.yaml"))
 	assert.NoError(t, err)
-	template, err = bundle.ReadFile("bundle/service.yaml")
+	template, err = bundle.ReadFile("bundle/service.yaml.txt")
 	assert.NoError(t, err)
 	assert.NotEqual(t, template, onDisk)
 
@@ -104,7 +104,7 @@ func TestCodegen_YAMLFile(t *testing.T) {
 	assert.Error(t, err) // Missing host name
 	onDisk, err = os.ReadFile(filepath.Join(dir, "service.yaml"))
 	assert.NoError(t, err)
-	template, err = bundle.ReadFile("bundle/service.yaml")
+	template, err = bundle.ReadFile("bundle/service.yaml.txt")
 	assert.NoError(t, err)
 	assert.Equal(t, template, onDisk)
 }

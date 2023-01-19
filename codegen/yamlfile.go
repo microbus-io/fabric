@@ -61,7 +61,7 @@ func (gen *Generator) prepareServiceYAML() (found bool, err error) {
 
 // createServiceYAML generates a new service.yaml file.
 func (gen *Generator) createServiceYAML() (found bool, err error) {
-	tt, err := LoadTemplate("service.yaml")
+	tt, err := LoadTemplate("service.yaml.txt")
 	if err != nil {
 		return false, errors.Trace(err)
 	}
@@ -76,7 +76,7 @@ func (gen *Generator) createServiceYAML() (found bool, err error) {
 // updateServiceYAML updates the comments and sections to the latest version.
 func (gen *Generator) updateServiceYAML() error {
 	// Read the latest version line by line
-	tt, err := LoadTemplate("service.yaml")
+	tt, err := LoadTemplate("service.yaml.txt")
 	if err != nil {
 		return errors.Trace(err)
 	}
