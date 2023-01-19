@@ -61,7 +61,7 @@ func NewMock(version int) *Mock {
 		Connector: connector.New("directory.example"),
 	}
 	svc.SetVersion(version)
-	svc.SetDescription(`The directory microservice stores personal records in a MySQL database.`)
+	svc.SetDescription(`The directory microservice stores personal records in a SQL database.`)
 	svc.SetOnStartup(svc.doOnStartup)
 	
 	// Functions

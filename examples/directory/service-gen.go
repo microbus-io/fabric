@@ -19,7 +19,7 @@ limitations under the License.
 /*
 Package directory implements the directory.example microservice.
 
-The directory microservice stores personal records in a MySQL database.
+The directory microservice stores personal records in a SQL database.
 */
 package directory
 
@@ -66,6 +66,6 @@ func NewMock() *Mock {
 // Config initializers
 var (
 	_ int
-	// MySQL initializes the MySQL config property of the microservice
-	MySQL = intermediate.MySQL
+	// Maria initializes the Maria config property of the microservice
+	Maria = intermediate.Maria
 )

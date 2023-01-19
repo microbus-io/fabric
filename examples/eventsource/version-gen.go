@@ -18,12 +18,12 @@ limitations under the License.
 
 package eventsource
 
-const Version = 51
-const SourceCodeSHA256 = "a624ad9974ec5e48886919803610319afb3c7632f1f5c69d596f8041969a5618"
-const Timestamp = "2023-01-18T22:06:48.365701Z"
+const Version = 52
+const SourceCodeSHA256 = "1099aaf6e4c68c022d1fc23d86c993cb7e388cfde7de0666a1b494074b995465"
+const Timestamp = "2023-01-19T02:20:39.797648Z"
 
 /* {
-	"ver": 51,
-	"sha256": "a624ad9974ec5e48886919803610319afb3c7632f1f5c69d596f8041969a5618",
-	"ts": "2023-01-18T22:06:48.365701Z"
+	"ver": 52,
+	"sha256": "1099aaf6e4c68c022d1fc23d86c993cb7e388cfde7de0666a1b494074b995465",
+	"ts": "2023-01-19T02:20:39.797648Z"
 } */

@@ -20,7 +20,7 @@ limitations under the License.
 Package directoryapi implements the public API of the directory.example microservice,
 including clients and data structures.
 
-The directory microservice stores personal records in a MySQL database.
+The directory microservice stores personal records in a SQL database.
 */
 package directoryapi
 

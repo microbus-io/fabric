@@ -64,8 +64,8 @@ var (
 	App *application.Application
 	// Svc is the directory.example microservice being tested
 	Svc *Service
-	// DBMySQL is a temporary sharded MySQL database
-	DBMySQL shardedsql.TestingDB
+	// MariaDatabase is a temporary sharded SQL database
+	MariaDatabase shardedsql.TestingDB
 )
 
 func TestMain(m *testing.M) {
@@ -76,11 +76,11 @@ func TestMain(m *testing.M) {
 		var err error
 		App = application.NewTesting()
 		Svc = NewService().(*Service)
-		err = DBMySQL.Open("mysql")
+		err = MariaDatabase.Open("mariadb")
 		if err != nil {
 			return err
 		}
-		App.With(MySQL(DBMySQL.DataSource()))
+		App.With(Maria(MariaDatabase.DataSource()))
 		err = Initialize()
 		if err != nil {
 			return err
@@ -113,7 +113,7 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			lastErr = err
 		}
-		err = DBMySQL.Close()
+		err = MariaDatabase.Close()
 		if err != nil {
 			lastErr = err
 		}

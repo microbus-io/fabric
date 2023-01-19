@@ -87,7 +87,7 @@ type Intermediate struct {
 	*connector.Connector
 	impl ToDo
 	{{- range .Databases }}{{ if .IsSQL }}
-	{{ .Name }}Database *shardedsql.DB
+	db{{ .Name }} *shardedsql.DB
 	{{- end }}{{ end }}
 }
 
