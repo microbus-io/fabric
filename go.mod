@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/go-sql-driver/mysql v1.7.0
-	github.com/microbus-io/copyrighter v0.1.6
+	github.com/microbus-io/copyrighter v0.1.7
 	github.com/nats-io/nats.go v1.23.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/stretchr/testify v1.8.1
