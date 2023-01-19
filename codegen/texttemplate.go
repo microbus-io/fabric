@@ -58,6 +58,7 @@ func LoadTemplate(names ...string) (*TextTemplate, error) {
 func (tt *TextTemplate) Execute(data any) ([]byte, error) {
 	var buf bytes.Buffer
 	funcs := template.FuncMap{
+		"ToLower":              strings.ToLower,
 		"CapitalizeIdentifier": capitalizeIdentifier,
 		"JoinHandlers":         joinHandlers,
 		"Add":                  func(x, y int) int { return x + y },

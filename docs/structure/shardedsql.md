@@ -10,9 +10,9 @@ Opening a `DB` requires a data source name pattern that includes `%d` as a place
 
 ```go
 // A different host for each shard database
-db, err := shardedsql.Open(ctx, "mysql", "username:password@tcp(mysql-shard%d.host:3306)/db")
+db, err := shardedsql.Open(ctx, "mariadb", "username:password@tcp(db-shard%d.host:3306)/db")
 // Same host but a different database for each shard database
-db, err := shardedsql.Open(ctx, "mysql", "username:password@tcp(mysql.host:3306)/db%d")
+db, err := shardedsql.Open(ctx, "mariadb", "username:password@tcp(db.host:3306)/db%d")
 ```
 
 Initially a `DB` includes a single shard: shard number 1. Additional shards are added by registering them in the `microbus_shards` table on shard 1. The `id` column is the index of the shard and the `locked` column indicates whether the shard accepts allocation of new sharding keys or whether it is full.
@@ -69,10 +69,10 @@ Migrations are executed when a microservice starts up, guaranteeing that the pie
 
 ## Testing Database
 
-The `TestingDB` creates a randomly-named sharded database on localhost for development purposes. It is typically used in integration tests of microservices that depend on a database. `TestingDB` connects to the database on 127.0.0.1 on the default port (3306 for MySQL) using the default admin user ("root" for MySQL) with password "secret1234". It creates 3 databases, one for each shard, using the pattern `testing_{hhmmss}_{random}_%d`. These databases are dropped when the database is closed.
+The `TestingDB` creates a randomly-named sharded database on localhost for development purposes. It is typically used in integration tests of microservices that depend on a database. `TestingDB` connects to the database on 127.0.0.1 on the default port (3306 for `MariaDB` and `MySQL`) using the default admin user ("root" for `MariaDB` and `MySQL`) with password `secret1234`. It creates 3 databases, one for each shard, using the pattern `testing_{hhmmss}_{random}_%d`. These databases are dropped when the database is closed.
 
 ```go
 var testingDB TestingDB
-testingDB.Open("mysql")
+testingDB.Open("mariadb")
 defer testingDB.Close()
 ```

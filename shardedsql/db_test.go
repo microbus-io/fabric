@@ -33,7 +33,7 @@ import (
 var testingDB TestingDB
 
 func TestMain(m *testing.M) {
-	err := testingDB.Open("mysql")
+	err := testingDB.Open("mariadb")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "--- FAIL: %+v\n", err)
 		os.Exit(2)

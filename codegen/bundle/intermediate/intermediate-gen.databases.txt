@@ -1,0 +1,73 @@
+{{- range .Databases }}{{ if .IsSQL }}
+// db{{ .Name }}OnStartup opens the connection to the {{ .Name }} database and runs schema migrations.
+func (svc *Intermediate) db{{ .Name }}OnStartup(ctx context.Context) (err error) {
+	if svc.db{{ .Name }} != nil {
+		svc.db{{ .Name }}OnShutdown(ctx)
+	}
+	dataSource := svc.{{ .Name }}()
+	if dataSource != "" {
+		svc.db{{ .Name }}, err = shardedsql.Open(ctx, "{{ .Type }}", dataSource)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		svc.LogInfo(ctx, "Opened database", log.String("db", "{{ .Name }}"))
+
+		migrations := shardedsql.NewStatementSequence(svc.HostName() + " {{ .Name }}")
+		scripts, _ := svc.Resources().ReadDir("{{ ToLower .Name }}")
+		for _, script := range scripts {
+			if script.IsDir() || filepath.Ext(script.Name())!=".sql" {
+				continue
+			}
+			number, err := strconv.Atoi(strings.TrimSuffix(script.Name(), ".sql"))
+			if err != nil {
+				continue
+			}
+			statement, _ := svc.Resources().ReadFile(filepath.Join("{{ ToLower .Name }}", script.Name()))
+			migrations.Insert(number, string(statement))
+		}
+		err = svc.db{{ .Name }}.MigrateSchema(ctx, migrations)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+// db{{ .Name }}OnStartup closes the connection to the {{ .Name }} database.
+func (svc *Intermediate) db{{ .Name }}OnShutdown(ctx context.Context) (err error) {
+	if svc.db{{ .Name }} != nil {
+		svc.db{{ .Name }}.Close()
+		svc.db{{ .Name }} = nil
+		svc.LogInfo(ctx, "Closed database", log.String("db", "{{ .Name }}"))
+	}
+	return nil
+}
+
+// db{{ .Name }}OnConfigChanged reconnects to the {{ .Name }} database when the data source name changes.
+func (svc *Intermediate) db{{ .Name }}OnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
+	if changed("{{ .Name }}") {
+		err = svc.db{{ .Name }}OnStartup(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+// {{ .Name }} is the data source name to the sharded SQL database.
+func (svc *Intermediate) {{ .Name }}() (dsn string) {
+	return svc.Config("{{ .Name }}")
+}
+
+// {{ .Name }} initializes the {{ .Name }} config property of the microservice.
+func {{ .Name }}(dsn string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("{{ .Name }}", dsn)
+	}
+}
+
+// {{ .Name }}Database is the sharded SQL database.
+func (svc *Intermediate) {{ .Name }}Database() *shardedsql.DB {
+	return svc.db{{ .Name }}
+}
+{{ end }}{{ end }}

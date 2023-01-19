@@ -20,13 +20,15 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 general:
   host: directory.example
-  description: The directory microservice stores personal records in a MySQL database.
+  description: The directory microservice stores personal records in a SQL database.
 
 # Databases
 #
-# mysql - A name for the MySQL database
+# name - A name for the database
+# type - The type of the database, "mariadb" or "mysql"
 databases:
-  mysql: MySQL
+  - name: Maria
+    type: mariadb
 
 # Config properties
 #

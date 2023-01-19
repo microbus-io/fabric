@@ -27,9 +27,11 @@ general:
 
 # Databases
 #
-# mysql - A name for the MySQL database
+# name - A name for the database
+# type - The type of the database, "mariadb" or "mysql"
 databases:
-  # mysql: MySQL
+  # - name:
+  #   type: mariadb
 
 # Config properties
 #

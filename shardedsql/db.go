@@ -50,17 +50,20 @@ type DB struct {
 Open creates a sharded database and opens up connections to all its shards.
 
 The database driver name will be used to open the connections.
-Only "mysql" is supported at this time.
+Only "mariadb" and "mysql" are supported at this time.
 
 The data source name must include %d indicating where to insert the shard index.
 For example:
 
 	// A different host per shard
-	username:password@tcp(mysql-shard%d.host:3306)/db
+	username:password@tcp(db-shard%d.host:3306)/db
 	// A different database name per shard on a single host
-	username:password@tcp(mysql.host:3306)/db%d
+	username:password@tcp(db.host:3306)/db%d
 */
 func Open(ctx context.Context, driver string, dataSource string) (*DB, error) {
+	if driver == "mariadb" {
+		driver = "mysql"
+	}
 	if driver != "mysql" {
 		return nil, errors.Newf("driver '%s' is not supported", driver)
 	}

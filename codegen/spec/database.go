@@ -17,25 +17,33 @@ limitations under the License.
 package spec
 
 import (
+	"strings"
+
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/utils"
 )
 
-// Databases are names for the databases used by the microservice.
-type Databases struct {
-	MySQL string `yaml:"mysql"`
+// Database are the databases used by the microservice.
+type Database struct {
+	Name string `yaml:"name"`
+	Type string `yaml:"type"`
 }
 
 // UnmarshalYAML parses and validates the YAML.
-func (db *Databases) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (db *Database) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Unmarshal
-	type different Databases
+	type different Database
 	var x different
 	err := unmarshal(&x)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	*db = Databases(x)
+	*db = Database(x)
+
+	db.Type = strings.ToLower(db.Type)
+	if db.Type == "" {
+		db.Type = "mariadb"
+	}
 
 	// Validate
 	err = db.validate()
@@ -46,9 +54,17 @@ func (db *Databases) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // validate validates the data after unmarshaling.
-func (db *Databases) validate() error {
-	if db.MySQL != "" && !utils.IsUpperCaseIdentifier(db.MySQL) {
-		return errors.Newf("MySQL database name '%s' must start with uppercase", db.MySQL)
+func (db *Database) validate() error {
+	if !utils.IsUpperCaseIdentifier(db.Name) {
+		return errors.Newf("database name '%s' must start with uppercase", db.Name)
+	}
+	if db.Type != "mysql" && db.Type != "mariadb" {
+		return errors.Newf("unsupported database type '%s'", db.Type)
 	}
 	return nil
+}
+
+// IsSQL indicates if the database type is a SQL database.
+func (db *Database) IsSQL() bool {
+	return db.Type == "mysql" || db.Type == "mariadb"
 }

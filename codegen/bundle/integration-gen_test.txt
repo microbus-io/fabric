@@ -48,10 +48,10 @@ var (
 	App *application.Application
 	// Svc is the {{ .General.Host }} microservice being tested
 	Svc *Service
-	{{- if .Databases.MySQL }}
-	// DB{{ .Databases.MySQL }} is a temporary sharded MySQL database
-	DB{{ .Databases.MySQL }} shardedsql.TestingDB
-	{{- end }}
+	{{- range .Databases }}{{ if .IsSQL }}
+	// {{ .Name }}Database is a temporary sharded SQL database
+	{{ .Name }}Database shardedsql.TestingDB
+	{{- end }}{{ end }}
 )
 
 func TestMain(m *testing.M) {
@@ -62,13 +62,13 @@ func TestMain(m *testing.M) {
 		var err error
 		App = application.NewTesting()
 		Svc = NewService().(*Service)
-		{{- if .Databases.MySQL }}
-		err = DB{{ .Databases.MySQL }}.Open("mysql")
+		{{- range .Databases }}{{ if .IsSQL }}
+		err = {{ .Name }}Database.Open("{{ .Type }}")
 		if err != nil {
 			return err
 		}
-		App.With({{ .Databases.MySQL }}(DB{{ .Databases.MySQL }}.DataSource()))
-		{{- end }}
+		App.With({{ .Name }}({{ .Name }}Database.DataSource()))
+		{{- end }}{{ end }}
 		err = Initialize()
 		if err != nil {
 			return err
@@ -101,12 +101,12 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			lastErr = err
 		}
-		{{- if .Databases.MySQL }}
-		err = DB{{ .Databases.MySQL }}.Close()
+		{{- range .Databases }}{{ if .IsSQL }}
+		err = {{ .Name }}Database.Close()
 		if err != nil {
 			lastErr = err
 		}
-		{{- end }}
+		{{- end }}{{ end }}
 		return lastErr
 	}()
 	if err != nil {

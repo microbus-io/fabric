@@ -50,9 +50,11 @@ databases the recommendation is to name the database the same as its kind.
 ```yaml
 # Databases
 #
-# mysql - A name for the MySQL database
+# name - A name for the database
+# type - The type of the database, "mariadb" or "mysql"
 databases:
-  mysql: MySQL
+  - name: Storage
+    type: mariadb
 ```
 
 ### Configs

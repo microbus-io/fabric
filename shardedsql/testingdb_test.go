@@ -26,11 +26,11 @@ import (
 
 func Test_OpenClose(t *testing.T) {
 	var testingDB TestingDB
-	err := testingDB.Open("mysql")
+	err := testingDB.Open("mariadb")
 	assert.NoError(t, err)
 	dbNameFormat := strings.TrimSuffix(testingDB.dbNameFormat, "_%d")
 
-	root, err := sql.Open("mysql", "root:secret1234@tcp(127.0.0.1:3306)/")
+	root, err := sql.Open("mariadb", "root:secret1234@tcp(127.0.0.1:3306)/")
 	assert.NoError(t, err)
 	defer root.Close()
 

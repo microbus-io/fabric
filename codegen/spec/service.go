@@ -27,16 +27,16 @@ import (
 type Service struct {
 	Package string `yaml:"-"`
 
-	General   General    `yaml:"general"`
-	Databases Databases  `yaml:"databases"`
-	Configs   []*Handler `yaml:"configs"`
-	Metrics   []*Handler `yaml:"metrics"`
-	Types     []*Type    `yaml:"types"`
-	Functions []*Handler `yaml:"functions"`
-	Events    []*Handler `yaml:"events"`
-	Sinks     []*Handler `yaml:"sinks"`
-	Webs      []*Handler `yaml:"webs"`
-	Tickers   []*Handler `yaml:"tickers"`
+	General   General     `yaml:"general"`
+	Databases []*Database `yaml:"databases"`
+	Configs   []*Handler  `yaml:"configs"`
+	Metrics   []*Handler  `yaml:"metrics"`
+	Types     []*Type     `yaml:"types"`
+	Functions []*Handler  `yaml:"functions"`
+	Events    []*Handler  `yaml:"events"`
+	Sinks     []*Handler  `yaml:"sinks"`
+	Webs      []*Handler  `yaml:"webs"`
+	Tickers   []*Handler  `yaml:"tickers"`
 
 	fullyQualified bool
 }
