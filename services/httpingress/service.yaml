@@ -78,10 +78,6 @@ configs:
       HTTP ports 443 and 80 to only internal port 443.
     default: 8080:*->*, 443:*->443, 80:*->443
     callback: true
-  - signature: RedirectRoot() (toURL string)
-    description: |-
-      RedirectRoot defines the internal URL to redirect requests to the root path.
-      The URL must be fully qualified, for example, "https://home.service/welcome-page".
   - signature: ReadTimeout() (timeout time.Duration)
     description: ReadTimeout specifies the timeout for fully reading a request.
     default: 5m
@@ -97,6 +93,12 @@ configs:
     default: 20s
     validation: dur [1s,]
     callback: true
+  - signature: Middleware() (viaURL string)
+    description: |-
+      Middleware defines a microservice endpoint to delegate all requests through.
+      The URL of the middleware must be fully qualified, for example,
+      "https://middle.ware/serve" or "https://middle.ware:123".
+      A middleware is required in order to be able to serve the root path or a favicon.
 
 # Types
 #

@@ -30,6 +30,7 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
 )
@@ -42,6 +43,38 @@ var (
 
 // Initialize starts up the testing app.
 func Initialize() error {
+	// Create a middleware microservice
+	middleware := connector.New("middleware.host")
+	middleware.Subscribe("/serve/", func(w http.ResponseWriter, r *http.Request) error {
+		uri := strings.TrimPrefix(r.RequestURI, "/serve")
+		if uri == "/" {
+			w.Write([]byte("Root"))
+			return nil
+		}
+		options := []pub.Option{
+			pub.Method(r.Method),
+			pub.URL("https:/" + uri),
+			pub.Body(r.Body),
+			pub.Unicast(),
+		}
+		for h := range r.Header {
+			options = append(options, pub.Header(h, r.Header.Get(h)))
+		}
+		res, err := middleware.Request(r.Context(), options...)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		for h := range res.Header {
+			w.Header()[h] = res.Header[h]
+		}
+		w.WriteHeader(res.StatusCode)
+		_, err = io.Copy(w, res.Body)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	})
+
 	// Include all downstream microservices in the testing app
 	// Use .With(...) to initialize with appropriate config values
 	App.Include(
@@ -50,8 +83,9 @@ func Initialize() error {
 			Ports("4040,4443"),
 			AllowedOrigins("allowed.origin"),
 			PortMappings("4040:*->*, 4443:*->443"),
-			RedirectRoot("https://root.page/home"),
+			Middleware("https://middleware.host/serve"),
 		),
+		middleware,
 	)
 
 	err := App.Startup()
@@ -311,32 +345,22 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 	}
 }
 
-func TestHttpingress_RootPage(t *testing.T) {
+func TestHttpingress_Root(t *testing.T) {
 	t.Parallel()
-
-	con := connector.New("root.page")
-	con.Subscribe("home", func(w http.ResponseWriter, r *http.Request) error {
-		w.Write([]byte("ok"))
-		return nil
-	})
-	App.Join(con)
-	err := con.Startup()
-	assert.NoError(t, err)
-	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 	res, err := client.Get("http://localhost:4040/")
 	if assert.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+			assert.Equal(t, "Root", string(b))
 		}
 	}
 	res, err = client.Get("http://localhost:4443/")
 	if assert.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+			assert.Equal(t, "Root", string(b))
 		}
 	}
 }
@@ -403,66 +427,6 @@ func TestHttpingress_CORS(t *testing.T) {
 	}
 }
 
-func TestHttpingress_AuthToken(t *testing.T) {
-	t.Parallel()
-
-	con := connector.New("auth.token")
-	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
-		authToken := frame.Of(r).AuthToken()
-		w.Write([]byte(authToken))
-		return nil
-	})
-	App.Join(con)
-	err := con.Startup()
-	assert.NoError(t, err)
-	defer con.Shutdown()
-
-	client := http.Client{Timeout: time.Second * 2}
-
-	// Request with authorization bearer token
-	req, err := http.NewRequest("GET", "http://localhost:4040/auth.token/ok", nil)
-	assert.NoError(t, err)
-	req.Header.Set("Authorization", "Bearer 12345ABCDE")
-	res, err := client.Do(req)
-	if assert.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "12345ABCDE", string(b))
-		}
-	}
-
-	// Request with cookie
-	req, err = http.NewRequest("GET", "http://localhost:4040/auth.token/ok", nil)
-	assert.NoError(t, err)
-	req.AddCookie(&http.Cookie{
-		Name:     "AuthToken",
-		Value:    "12345ABCDE",
-		Path:     "/",
-		MaxAge:   3600,
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteNoneMode,
-	})
-	res, err = client.Do(req)
-	if assert.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "12345ABCDE", string(b))
-		}
-	}
-
-	// Vanilla request
-	req, err = http.NewRequest("GET", "http://localhost:4040/auth.token/ok", nil)
-	assert.NoError(t, err)
-	res, err = client.Do(req)
-	if assert.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "", string(b))
-		}
-	}
-}
-
 func TestHttpingress_ParseForm(t *testing.T) {
 	t.Parallel()
 
@@ -525,6 +489,39 @@ func TestHttpingress_ParseForm(t *testing.T) {
 	res, err = client.Post("http://localhost:4040/parse.form/more", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+	}
+}
+
+func TestHttpingress_Middleware(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("final.destination")
+	con.Subscribe(":555/ok", func(w http.ResponseWriter, r *http.Request) error {
+		// The request should be coming from the middleware
+		assert.Equal(t, "middleware.host", frame.Of(r).FromHost())
+		// Headers should pass through
+		assert.Equal(t, "Bearer 123456", r.Header.Get("Authorization"))
+		// Middleware should not add itself to the prefix
+		assert.Equal(t, "/final.destination:555", r.Header.Get("X-Forwarded-Prefix"))
+		w.Write([]byte("ok"))
+		return nil
+	})
+	App.Join(con)
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{Timeout: time.Second * 2}
+
+	req, err := http.NewRequest("GET", "http://localhost:4040/final.destination:555/ok", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer 123456")
+	res, err := client.Do(req)
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "ok", string(b))
+		}
 	}
 }
 

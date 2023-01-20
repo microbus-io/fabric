@@ -223,6 +223,8 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // ServeHTTP implements the http.Handler interface
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := svc.Lifetime()
+	middleware := svc.Middleware()
+	uri := r.URL.RequestURI()
 
 	// Fill in the gaps
 	r.URL.Host = r.Host
@@ -235,22 +237,13 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Skip favicon.ico to reduce noise
-	uri := r.URL.RequestURI()
-	if uri == "/favicon.ico" {
+	if middleware == "" && uri == "/favicon.ico" {
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
-
-	// Handle the root path
-	if uri == "/" {
-		redirectTo := svc.RedirectRoot()
-		if redirectTo == "" {
-			return errors.Newc(http.StatusNotFound, "no root")
-		}
-		redirectTo = strings.TrimPrefix(redirectTo, "https:/")
-		redirectTo = strings.TrimPrefix(redirectTo, "http:/")
-		prefix := r.Header.Get("X-Forwarded-Prefix")
-		http.Redirect(w, r, prefix+redirectTo, http.StatusFound)
+	// Can't serve root path without a middleware
+	if middleware == "" && uri == "/" {
+		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
 
@@ -264,11 +257,20 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Use the first segment of the URI as the host name to contact
-	u := resolveInternalURL(r.URL, svc.portMappings)
-	internalURL := u.String()
-	internalHost := strings.Split(uri, "/")[1]
-
+	var internalURL string
+	var internalHost string
+	if uri == "/" {
+		internalURL = "/"
+		internalHost = ""
+	} else {
+		u := resolveInternalURL(r.URL, svc.portMappings)
+		internalURL = u.String()
+		internalHost = strings.Split(uri, "/")[1]
+	}
 	svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
+	if middleware != "" {
+		internalURL = middleware + strings.TrimPrefix(internalURL, "https:/")
+	}
 
 	// Read the body fully
 	body, err := svc.readRequestBody(r)
@@ -319,19 +321,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 	prefix := r.Header.Get("X-Forwarded-Prefix")
 	options = append(options, pub.Header("X-Forwarded-Prefix", prefix+"/"+internalHost))
-
-	// Authentication token
-	authz := r.Header.Get("Authorization")
-	if strings.HasPrefix(authz, "Bearer ") {
-		options = append(options, pub.Header(frame.HeaderAuthToken, strings.TrimPrefix(authz, "Bearer")))
-	} else {
-		for _, cookie := range r.Cookies() {
-			if strings.ToLower(cookie.Name) == "authtoken" || strings.ToLower(cookie.Name) == "token" {
-				options = append(options, pub.Header(frame.HeaderAuthToken, cookie.Value))
-				break
-			}
-		}
-	}
 
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)

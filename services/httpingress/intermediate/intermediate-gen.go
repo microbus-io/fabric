@@ -138,11 +138,6 @@ HTTP ports 443 and 80 to only internal port 443.`),
 		cfg.DefaultValue(`8080:*->*, 443:*->443, 80:*->443`),
 	)
 	svc.DefineConfig(
-		"RedirectRoot",
-		cfg.Description(`RedirectRoot defines the internal URL to redirect requests to the root path.
-The URL must be fully qualified, for example, "https://home.service/welcome-page".`),
-	)
-	svc.DefineConfig(
 		"ReadTimeout",
 		cfg.Description(`ReadTimeout specifies the timeout for fully reading a request.`),
 		cfg.Validation(`dur [1s,]`),
@@ -159,6 +154,13 @@ The URL must be fully qualified, for example, "https://home.service/welcome-page
 		cfg.Description(`ReadHeaderTimeout specifies the timeout for fully reading the header of a request.`),
 		cfg.Validation(`dur [1s,]`),
 		cfg.DefaultValue(`20s`),
+	)
+	svc.DefineConfig(
+		"Middleware",
+		cfg.Description(`Middleware defines a microservice endpoint to delegate all requests through.
+The URL of the middleware must be fully qualified, for example,
+"https://middle.ware/serve" or "https://middle.ware:123".
+A middleware is required in order to be able to serve the root path or a favicon.`),
 	)
 
 	return svc
@@ -314,25 +316,6 @@ func PortMappings(mappings string) (func(connector.Service) error) {
 }
 
 /*
-RedirectRoot defines the internal URL to redirect requests to the root path.
-The URL must be fully qualified, for example, "https://home.service/welcome-page".
-*/
-func (svc *Intermediate) RedirectRoot() (toURL string) {
-	_val := svc.Config("RedirectRoot")
-	return _val
-}
-
-/*
-RedirectRoot defines the internal URL to redirect requests to the root path.
-The URL must be fully qualified, for example, "https://home.service/welcome-page".
-*/
-func RedirectRoot(toURL string) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
-		return svc.SetConfig("RedirectRoot", fmt.Sprintf("%v", toURL))
-	}
-}
-
-/*
 ReadTimeout specifies the timeout for fully reading a request.
 */
 func (svc *Intermediate) ReadTimeout() (timeout time.Duration) {
@@ -383,5 +366,28 @@ ReadHeaderTimeout specifies the timeout for fully reading the header of a reques
 func ReadHeaderTimeout(timeout time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))
+	}
+}
+
+/*
+Middleware defines a microservice endpoint to delegate all requests through.
+The URL of the middleware must be fully qualified, for example,
+"https://middle.ware/serve" or "https://middle.ware:123".
+A middleware is required in order to be able to serve the root path or a favicon.
+*/
+func (svc *Intermediate) Middleware() (viaURL string) {
+	_val := svc.Config("Middleware")
+	return _val
+}
+
+/*
+Middleware defines a microservice endpoint to delegate all requests through.
+The URL of the middleware must be fully qualified, for example,
+"https://middle.ware/serve" or "https://middle.ware:123".
+A middleware is required in order to be able to serve the root path or a favicon.
+*/
+func Middleware(viaURL string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("Middleware", fmt.Sprintf("%v", viaURL))
 	}
 }

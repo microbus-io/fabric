@@ -18,10 +18,13 @@ package httpx
 
 import (
 	"bytes"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -70,4 +73,36 @@ func TestHttpx_FrameOfResponseRecorder(t *testing.T) {
 	assert.Equal(t, "123", frame.Of(utilsRecorder).MessageID())
 	httpResponse := utilsRecorder.Result()
 	assert.Equal(t, "123", frame.Of(httpResponse).MessageID())
+}
+
+func TestHttpx_Copy(t *testing.T) {
+	payload := rand.AlphaNum64(256 * 1024)
+
+	recorder := NewResponseRecorder()
+	recorder.Write([]byte(payload))
+	b, err := io.ReadAll(recorder.Result().Body)
+	assert.NoError(t, err)
+	assert.Equal(t, payload, string(b))
+
+	recorder = NewResponseRecorder()
+	n, err := io.Copy(recorder, io.LimitReader(strings.NewReader(payload), int64(len(payload))))
+	assert.NoError(t, err)
+	assert.Equal(t, int(n), len(payload))
+	b, err = io.ReadAll(recorder.Result().Body)
+	assert.NoError(t, err)
+	assert.Equal(t, payload, string(b))
+}
+
+func TestHttpx_ReadFrom(t *testing.T) {
+	payload := rand.AlphaNum64(32 * 1024)
+
+	recorder := NewResponseRecorder()
+	n, err := recorder.ReadFrom(strings.NewReader(payload))
+	assert.NoError(t, err)
+	assert.Equal(t, len(payload), int(n))
+	n, err = recorder.ReadFrom(strings.NewReader(payload))
+	assert.NoError(t, err)
+	assert.Equal(t, len(payload), int(n))
+
+	assert.Equal(t, int(n*2), recorder.body.Len())
 }
