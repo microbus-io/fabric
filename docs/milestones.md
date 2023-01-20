@@ -91,10 +91,10 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 [Milestone 13](https://github.com/microbus-io/fabric/tree/milestone/13):
 
-* Sharded MySQL database
+* Sharded `MySQL` database
 * Sharding key allocation management
 * Differential schema migration
-* Code generation of MySQL boilerplate code
+* Code generation of `MySQL` boilerplate code
 * Allow attaching multiple lifecycle and config change callbacks to the `Connector`
 * `NullTime` utility to better handle serialization of the zero time value
 
@@ -114,3 +114,9 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Metrics system microservice that collects and delivers metrics to `Prometheus` and `Grafana`
 * Code generation for application custom metrics
 * Quick start with Docker Compose
+
+[Milestone 16](https://github.com/microbus-io/fabric/tree/milestone/16):
+
+* License and copyright notices
+* `MariaDB` database support
+* HTTP ingress middleware

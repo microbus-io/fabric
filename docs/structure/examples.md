@@ -6,6 +6,6 @@ The `examples` package holds several examples that demonstrate how the framework
 * [Calculator](./examples-calculator.md) demonstrates functional handlers
 * [Messaging](./examples-messaging.md) demonstrates load-balanced unicast, multicast and direct addressing messaging
 * [Event source and sink](./examples-events.md) shows how events can be used to reverse the dependency between two microservices
-* [Directory](./examples-directory.md) is an example of a microservice that provides a CRUD API backed by a MySQL database
+* [Directory](./examples-directory.md) is an example of a microservice that provides a CRUD API backed by a database
 
 In case you missed it, the [quick start guide](../quick-start.md) explains how to setup your system to run the examples.

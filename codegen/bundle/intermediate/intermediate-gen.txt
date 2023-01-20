@@ -86,9 +86,9 @@ type ToDo interface {
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
-	{{- if .Databases.MySQL }}
-	dbMySQL *shardedsql.DB
-	{{- end }}
+	{{- range .Databases }}{{ if .IsSQL }}
+	db{{ .Name }} *shardedsql.DB
+	{{- end }}{{ end }}
 }
 
 // NewService creates a new intermediate service.
@@ -100,18 +100,18 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetVersion(version)
 	svc.SetDescription(`{{ .General.Description }}`)
 	
-	{{- if .Databases.MySQL }}
+	{{- range .Databases }}{{ if .IsSQL }}
 
-	// MySQL
-	svc.SetOnStartup(svc.mysqlOnStartup)
-	svc.SetOnShutdown(svc.mysqlOnShutdown)
+	// SQL databases
+	svc.SetOnStartup(svc.db{{ .Name }}OnStartup)
+	svc.SetOnShutdown(svc.db{{ .Name }}OnShutdown)
 	svc.DefineConfig(
-		"{{ .Databases.MySQL }}",
-		cfg.Description("{{ .Databases.MySQL }} is the connection string to the sharded MySQL database."),
+		"{{ .Name }}",
+		cfg.Description("{{ .Name }} is the connection string to the sharded SQL database."),
 		cfg.Secret(),
 	)
-	svc.SetOnConfigChanged(svc.mysqlOnConfigChanged)
-	{{- end }}
+	svc.SetOnConfigChanged(svc.db{{ .Name }}OnConfigChanged)
+	{{- end }}{{ end }}
 
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)

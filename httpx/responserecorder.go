@@ -1,10 +1,29 @@
+/*
+Copyright 2023 Microbus LLC and various contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package httpx
 
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/microbus-io/fabric/errors"
 )
 
 // ResponseRecorder is used to record HTTP responses
@@ -32,7 +51,11 @@ func (rr *ResponseRecorder) Header() http.Header {
 // Write writes bytes to the body of the response.
 // It implements the http.ResponseWriter interface
 func (rr *ResponseRecorder) Write(b []byte) (int, error) {
+	if len(rr.bytes) > 0 && len(b) > 0 && &rr.bytes[0] == &b[0] {
+		return 0, errors.New("identical buffer cannot be reused")
+	}
 	if rr.bytes == nil && rr.body == nil {
+		// Optimize and keep the original buffer instead of copying it
 		rr.bytes = b
 		return len(b), nil
 	}
@@ -42,6 +65,20 @@ func (rr *ResponseRecorder) Write(b []byte) (int, error) {
 		rr.bytes = nil
 	}
 	return rr.body.Write(b)
+}
+
+// ReadFrom writes the entire content of the reader as the response body.
+// Without this implementation, using io.Copy to copy into a recorder conflicts with the
+// optimization of keeping the original buffer because io.Copy reuses the same buffer.
+func (rr *ResponseRecorder) ReadFrom(r io.Reader) (n int64, err error) {
+	if rr.body == nil {
+		rr.body = &bytes.Buffer{}
+	}
+	if rr.bytes != nil {
+		rr.body.Write(rr.bytes)
+		rr.bytes = nil
+	}
+	return io.Copy(rr.body, r)
 }
 
 // WriteHeader writes the header to the response.

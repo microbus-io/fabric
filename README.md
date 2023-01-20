@@ -1,4 +1,4 @@
-# Microbus.io fabric : Milestone 15
+# Microbus.io fabric : Milestone 16
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
@@ -75,6 +75,10 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
+
+## 👩‍⚖️ Legal
+
+The `Microbus` framework is distributed under the [Apache 2.0 license](LICENSE). Refer to the list of [third-party open source software](docs/third-party-oss.md) 🎁 for additional licensing information.
 
 🎁 = new
 ✨ = updated

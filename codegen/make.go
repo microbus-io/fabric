@@ -1,3 +1,19 @@
+/*
+Copyright 2023 Microbus LLC and various contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package main
 
 import (
@@ -146,7 +162,7 @@ func (gen *Generator) makeIntermediate() error {
 	tt, err := LoadTemplate(
 		"intermediate/intermediate-gen.txt",
 		"intermediate/intermediate-gen.configs.txt",
-		"intermediate/intermediate-gen.mysql.txt",
+		"intermediate/intermediate-gen.databases.txt",
 		"intermediate/intermediate-gen.functions.txt",
 		"intermediate/intermediate-gen.metrics.txt",
 	)
@@ -203,20 +219,21 @@ func (gen *Generator) makeResources() error {
 	}
 	gen.Printer.Debug("resources/embed-gen.go")
 
-	if gen.specs.Databases.MySQL != "" {
-		// Create the directory
-		dir := filepath.Join(gen.WorkDir, "resources", "mysql")
+	// Database migration
+	for _, db := range gen.specs.Databases {
+		dirName := strings.ToLower(db.Name)
+		dir := filepath.Join(gen.WorkDir, "resources", dirName)
 		_, err := os.Stat(dir)
 		if errors.Is(err, os.ErrNotExist) {
 			os.Mkdir(dir, os.ModePerm)
-			gen.Printer.Debug("mkdir resources/mysql")
+			gen.Printer.Debug("mkdir resources/" + dirName)
 		} else if err != nil {
 			return errors.Trace(err)
 		}
 
 		// doc.go
-		fileName := filepath.Join(gen.WorkDir, "resources", "mysql", "doc.go")
-		tt, err := LoadTemplate("resources/mysql/doc.txt")
+		fileName := filepath.Join(gen.WorkDir, "resources", dirName, "doc.go")
+		tt, err := LoadTemplate("resources/sql/doc.txt")
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -224,7 +241,7 @@ func (gen *Generator) makeResources() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		gen.Printer.Debug("resources/mysql/doc.go")
+		gen.Printer.Debug("resources/" + dirName + "/doc.go")
 	}
 
 	return nil

@@ -1,3 +1,19 @@
+/*
+Copyright 2023 Microbus LLC and various contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package shardedsql
 
 import (
@@ -14,17 +30,17 @@ const numTestingShards = 3
 
 /*
 TestingDB is a new sharded database for testing purposes.
-It connects to the database on 127.0.0.1 on the default port (3306 for MySQL)
-using the default admin user ("root" for MySQL) with password "secret1234".
+It connects to the database on 127.0.0.1 on the default port (3306 for MariaDB and MySQL)
+using the default admin user ("root" for MariaDB and MySQL) with password "secret1234".
 
-For MySQL, it uses the following data source name pattern:
+For MariaDB, it therefore uses the following data source name pattern:
 
 	root:secret1234@tcp(127.0.0.1:3306)/testing_{hhmmss}_{random}_%d
 
 Usage:
 
 	var testingDB TestingDB
-	testingDB.Open("mysql")
+	testingDB.Open("mariadb")
 	defer testingDB.Close()
 */
 type TestingDB struct {
@@ -35,8 +51,8 @@ type TestingDB struct {
 
 /*
 TestingDB creates a new sharded database for testing purposes.
-It attempts to connect to the database on 127.0.0.1 on the default port (3306 for MySQL),
-using the default admin user ("root" for MySQL) with password "secret1234".
+It attempts to connect to the database on 127.0.0.1 on the default port (3306 for MariaDB and MySQL),
+using the default admin user ("root" for MariaDB and MySQL) with password "secret1234".
 */
 func (db *TestingDB) Open(driverName string) (err error) {
 	ctx := context.Background()
