@@ -119,3 +119,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * License and copyright notices
 * `MariaDB` database support
+* HTTP ingress middleware
