@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
@@ -50,6 +51,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
@@ -57,6 +59,10 @@ var (
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *eventsinkapi.Client
+)
+
+var (
+	sequence int
 )
 
 var (
@@ -122,6 +128,7 @@ func Context(t *testing.T) context.Context {
 
 // RegisteredTestCase assists in asserting against the results of executing Registered.
 type RegisteredTestCase struct {
+	_t *testing.T
 	_testName string
 	emails []string
 	err error
@@ -134,8 +141,8 @@ func (tc *RegisteredTestCase) Name(testName string) *RegisteredTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *RegisteredTestCase) Expect(t *testing.T, emails []string) *RegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisteredTestCase) Expect(emails []string) *RegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, emails, tc.emails)
 		}
@@ -144,8 +151,8 @@ func (tc *RegisteredTestCase) Expect(t *testing.T, emails []string) *RegisteredT
 }
 
 // Error asserts an error.
-func (tc *RegisteredTestCase) Error(t *testing.T, errContains string) *RegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisteredTestCase) Error(errContains string) *RegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -154,8 +161,8 @@ func (tc *RegisteredTestCase) Error(t *testing.T, errContains string) *Registere
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *RegisteredTestCase) ErrorCode(t *testing.T, statusCode int) *RegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisteredTestCase) ErrorCode(statusCode int) *RegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -164,16 +171,16 @@ func (tc *RegisteredTestCase) ErrorCode(t *testing.T, statusCode int) *Registere
 }
 
 // NoError asserts no error.
-func (tc *RegisteredTestCase) NoError(t *testing.T) *RegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisteredTestCase) NoError() *RegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *RegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, emails []string, err error)) *RegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisteredTestCase) Assert(asserter func(t *testing.T, emails []string, err error)) *RegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.emails, tc.err)
 	})
 	return tc
@@ -185,8 +192,8 @@ func (tc *RegisteredTestCase) Get() (emails []string, err error) {
 }
 
 // Registered executes the function and returns a corresponding test case.
-func Registered(ctx context.Context) *RegisteredTestCase {
-	tc := &RegisteredTestCase{}
+func Registered(t *testing.T, ctx context.Context) *RegisteredTestCase {
+	tc := &RegisteredTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.emails, tc.err = Svc.Registered(ctx)
 		return tc.err
@@ -196,6 +203,7 @@ func Registered(ctx context.Context) *RegisteredTestCase {
 
 // OnAllowRegisterTestCase assists in asserting against the results of executing OnAllowRegister.
 type OnAllowRegisterTestCase struct {
+	_t *testing.T
 	_testName string
 	allow bool
 	err error
@@ -208,8 +216,8 @@ func (tc *OnAllowRegisterTestCase) Name(testName string) *OnAllowRegisterTestCas
 }
 
 // Expect asserts no error and exact return values.
-func (tc *OnAllowRegisterTestCase) Expect(t *testing.T, allow bool) *OnAllowRegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnAllowRegisterTestCase) Expect(allow bool) *OnAllowRegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, allow, tc.allow)
 		}
@@ -218,8 +226,8 @@ func (tc *OnAllowRegisterTestCase) Expect(t *testing.T, allow bool) *OnAllowRegi
 }
 
 // Error asserts an error.
-func (tc *OnAllowRegisterTestCase) Error(t *testing.T, errContains string) *OnAllowRegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnAllowRegisterTestCase) Error(errContains string) *OnAllowRegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -228,8 +236,8 @@ func (tc *OnAllowRegisterTestCase) Error(t *testing.T, errContains string) *OnAl
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnAllowRegisterTestCase) ErrorCode(t *testing.T, statusCode int) *OnAllowRegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnAllowRegisterTestCase) ErrorCode(statusCode int) *OnAllowRegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -238,16 +246,16 @@ func (tc *OnAllowRegisterTestCase) ErrorCode(t *testing.T, statusCode int) *OnAl
 }
 
 // NoError asserts no error.
-func (tc *OnAllowRegisterTestCase) NoError(t *testing.T) *OnAllowRegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnAllowRegisterTestCase) NoError() *OnAllowRegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnAllowRegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allow bool, err error)) *OnAllowRegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, allow bool, err error)) *OnAllowRegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.allow, tc.err)
 	})
 	return tc
@@ -259,8 +267,8 @@ func (tc *OnAllowRegisterTestCase) Get() (allow bool, err error) {
 }
 
 // OnAllowRegister executes the function and returns a corresponding test case.
-func OnAllowRegister(ctx context.Context, email string) *OnAllowRegisterTestCase {
-	tc := &OnAllowRegisterTestCase{}
+func OnAllowRegister(t *testing.T, ctx context.Context, email string) *OnAllowRegisterTestCase {
+	tc := &OnAllowRegisterTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.allow, tc.err = Svc.OnAllowRegister(ctx, email)
 		return tc.err
@@ -270,6 +278,7 @@ func OnAllowRegister(ctx context.Context, email string) *OnAllowRegisterTestCase
 
 // OnRegisteredTestCase assists in asserting against the results of executing OnRegistered.
 type OnRegisteredTestCase struct {
+	_t *testing.T
 	_testName string
 	err error
 }
@@ -281,16 +290,16 @@ func (tc *OnRegisteredTestCase) Name(testName string) *OnRegisteredTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *OnRegisteredTestCase) Expect(t *testing.T) *OnRegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnRegisteredTestCase) Expect() *OnRegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Error asserts an error.
-func (tc *OnRegisteredTestCase) Error(t *testing.T, errContains string) *OnRegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnRegisteredTestCase) Error(errContains string) *OnRegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -299,8 +308,8 @@ func (tc *OnRegisteredTestCase) Error(t *testing.T, errContains string) *OnRegis
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnRegisteredTestCase) ErrorCode(t *testing.T, statusCode int) *OnRegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnRegisteredTestCase) ErrorCode(statusCode int) *OnRegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -309,16 +318,16 @@ func (tc *OnRegisteredTestCase) ErrorCode(t *testing.T, statusCode int) *OnRegis
 }
 
 // NoError asserts no error.
-func (tc *OnRegisteredTestCase) NoError(t *testing.T) *OnRegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnRegisteredTestCase) NoError() *OnRegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnRegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnRegisteredTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, err error)) *OnRegisteredTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -330,8 +339,8 @@ func (tc *OnRegisteredTestCase) Get() (err error) {
 }
 
 // OnRegistered executes the function and returns a corresponding test case.
-func OnRegistered(ctx context.Context, email string) *OnRegisteredTestCase {
-	tc := &OnRegisteredTestCase{}
+func OnRegistered(t *testing.T, ctx context.Context, email string) *OnRegisteredTestCase {
+	tc := &OnRegisteredTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.err = Svc.OnRegistered(ctx, email)
 		return tc.err

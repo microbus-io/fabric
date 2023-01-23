@@ -69,50 +69,50 @@ func TestDirectory_CRUD(t *testing.T) {
 		Email:     "harry.potter@hogwarts.edu.wiz",
 		Birthday:  clock.MustParseNullTimeUTC("", "1980-07-31"),
 	}
-	Create(ctx, person).
-		Assert(t, func(t *testing.T, created *directoryapi.Person, err error) {
+	Create(t, ctx, person).
+		Assert(func(t *testing.T, created *directoryapi.Person, err error) {
 			assert.Equal(t, person.FirstName, created.FirstName)
 			assert.Equal(t, person.LastName, created.LastName)
 			assert.Equal(t, person.Email, created.Email)
 			assert.NotZero(t, created.Key.Seq)
 		})
 
-	Load(ctx, person.Key).
-		Expect(t, person, true)
-	LoadByEmail(ctx, person.Email).
-		Expect(t, person, true)
-	List(ctx).
-		Assert(t, func(t *testing.T, keys []directoryapi.PersonKey, err error) {
+	Load(t, ctx, person.Key).
+		Expect(person, true)
+	LoadByEmail(t, ctx, person.Email).
+		Expect(person, true)
+	List(t, ctx).
+		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
 			assert.Contains(t, keys, person.Key)
 		})
 
 	person.Email = "harry.potter@gryffindor.wiz"
-	Update(ctx, person).
-		NoError(t)
+	Update(t, ctx, person).
+		NoError()
 
-	Load(ctx, person.Key).
-		Expect(t, person, true).
-		Assert(t, func(t *testing.T, person *directoryapi.Person, ok bool, err error) {
+	Load(t, ctx, person.Key).
+		Expect(person, true).
+		Assert(func(t *testing.T, person *directoryapi.Person, ok bool, err error) {
 			assert.Equal(t, "harry.potter@gryffindor.wiz", person.Email)
 		})
-	LoadByEmail(ctx, person.Email).
-		Expect(t, person, true)
+	LoadByEmail(t, ctx, person.Email).
+		Expect(person, true)
 
 	dupPerson := &directoryapi.Person{
 		FirstName: "Harry",
 		LastName:  "Potter",
 		Email:     "harry.potter@gryffindor.wiz",
 	}
-	Create(ctx, dupPerson).
-		Error(t, "")
+	Create(t, ctx, dupPerson).
+		Error("")
 
-	Delete(ctx, person.Key).
-		NoError(t)
+	Delete(t, ctx, person.Key).
+		NoError()
 
-	Load(ctx, person.Key).
-		Expect(t, nil, false)
-	LoadByEmail(ctx, person.Email).
-		Expect(t, nil, false)
+	Load(t, ctx, person.Key).
+		Expect(nil, false)
+	LoadByEmail(t, ctx, person.Email).
+		Expect(nil, false)
 }
 
 func TestDirectory_Create(t *testing.T) {
@@ -126,39 +126,39 @@ func TestDirectory_Create(t *testing.T) {
 		Email:     "tom.riddle@hogwarts.edu.wiz",
 		Birthday:  clock.MustParseNullTimeUTC("", "1926-12-31"),
 	}
-	Create(ctx, person).
-		Error(t, "empty")
+	Create(t, ctx, person).
+		Error("empty")
 	person.FirstName = "Tom"
 
 	person.LastName = ""
-	Create(ctx, person).
-		Error(t, "empty")
+	Create(t, ctx, person).
+		Error("empty")
 	person.LastName = "Riddle"
 
 	person.Email = ""
-	Create(ctx, person).
-		Error(t, "empty")
+	Create(t, ctx, person).
+		Error("empty")
 	person.Email = "tom.riddle@hogwarts.edu.wiz"
 
 	person.Birthday = clock.NewNullTime(time.Now().AddDate(1, 0, 0))
-	Create(ctx, person).
-		Error(t, "birthday")
+	Create(t, ctx, person).
+		Error("birthday")
 	person.Birthday = clock.NullTime{}
 
-	Create(ctx, person).
-		Assert(t, func(t *testing.T, created *directoryapi.Person, err error) {
+	Create(t, ctx, person).
+		Assert(func(t *testing.T, created *directoryapi.Person, err error) {
 			assert.Equal(t, person.FirstName, created.FirstName)
 			assert.Equal(t, person.LastName, created.LastName)
 			assert.Equal(t, person.Email, created.Email)
 			assert.NotZero(t, created.Key.Seq)
 		})
-	List(ctx).
-		Assert(t, func(t *testing.T, keys []directoryapi.PersonKey, err error) {
+	List(t, ctx).
+		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
 			assert.Contains(t, keys, person.Key)
 		})
 
-	Create(ctx, person).
-		Error(t, "Duplicate")
+	Create(t, ctx, person).
+		Error("Duplicate")
 }
 
 func TestDirectory_Load(t *testing.T) {
@@ -174,35 +174,35 @@ func TestDirectory_Update(t *testing.T) {
 		LastName:  "Weasley",
 		Email:     "ron.weasley@hogwarts.edu.wiz",
 	}
-	Create(ctx, person).
-		NoError(t)
+	Create(t, ctx, person).
+		NoError()
 
 	person.FirstName = ""
-	Update(ctx, person).
-		Error(t, "empty")
+	Update(t, ctx, person).
+		Error("empty")
 	person.FirstName = "Ron"
 
 	person.LastName = ""
-	Update(ctx, person).
-		Error(t, "empty")
+	Update(t, ctx, person).
+		Error("empty")
 	person.LastName = "Weasley"
 
 	person.Email = ""
-	Update(ctx, person).
-		Error(t, "empty")
+	Update(t, ctx, person).
+		Error("empty")
 	person.Email = "ron.weasley@hogwarts.edu.wiz"
 
 	person.Birthday = clock.NewNullTime(time.Now().AddDate(1, 0, 0))
-	Create(ctx, person).
-		Error(t, "birthday")
+	Create(t, ctx, person).
+		Error("birthday")
 	person.Birthday = clock.NullTime{}
 
 	person.Birthday = clock.MustParseNullTimeUTC("", "1980-03-01")
-	Update(ctx, person).
-		NoError(t)
+	Update(t, ctx, person).
+		NoError()
 
-	Load(ctx, person.Key).
-		Expect(t, person, true)
+	Load(t, ctx, person.Key).
+		Expect(person, true)
 }
 
 func TestDirectory_LoadByEmail(t *testing.T) {

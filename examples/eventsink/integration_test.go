@@ -61,23 +61,23 @@ func Terminate() error {
 func TestEventsink_Registered(t *testing.T) {
 	t.Parallel()
 	/*
-		Registered(ctx).
+		Registered(t, ctx).
 			Name(testName).
-			Expect(t, emails).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, emails, err))
+			Expect(emails).
+			NoError().
+			Error(errContains).
+			Assert(func(t, emails, err))
 	*/
 	ctx := Context(t)
-	registered, err := Registered(ctx).Get()
+	registered, err := Registered(t, ctx).Get()
 	assert.NoError(t, err)
 	assert.NotContains(t, registered, "jose@example.com")
 	assert.NotContains(t, registered, "maria@example.com")
 	assert.NotContains(t, registered, "lee@example.com")
-	OnRegistered(ctx, "jose@example.com").NoError(t)
-	OnRegistered(ctx, "maria@example.com").NoError(t)
-	OnRegistered(ctx, "lee@example.com").NoError(t)
-	registered, err = Registered(ctx).Get()
+	OnRegistered(t, ctx, "jose@example.com").NoError()
+	OnRegistered(t, ctx, "maria@example.com").NoError()
+	OnRegistered(t, ctx, "lee@example.com").NoError()
+	registered, err = Registered(t, ctx).Get()
 	assert.NoError(t, err)
 	assert.Contains(t, registered, "jose@example.com")
 	assert.Contains(t, registered, "maria@example.com")
@@ -89,18 +89,18 @@ func TestEventsink_OnAllowRegister(t *testing.T) {
 	/*
 		OnAllowRegister(ctx, email).
 			Name(testName).
-			Expect(t, allow).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, allow, err))
+			Expect(allow).
+			NoError().
+			Error(errContains).
+			Assert(func(t, allow, err))
 	*/
 	ctx := Context(t)
-	OnAllowRegister(ctx, "nancy@gmail.com").Name("disallow gmail.com").Expect(t, false)
-	OnAllowRegister(ctx, "nancy@hotmail.com").Name("disallow hotmail.com").Expect(t, false)
+	OnAllowRegister(t, ctx, "nancy@gmail.com").Name("disallow gmail.com").Expect(false)
+	OnAllowRegister(t, ctx, "nancy@hotmail.com").Name("disallow hotmail.com").Expect(false)
 
-	OnAllowRegister(ctx, "nancy@example.com").Name("allow hotmail.com").Expect(t, true)
-	OnRegistered(ctx, "nancy@example.com").NoError(t)
-	OnAllowRegister(ctx, "nancy@example.com").Name("disallow dup").Expect(t, false)
+	OnAllowRegister(t, ctx, "nancy@example.com").Name("allow hotmail.com").Expect(true)
+	OnRegistered(t, ctx, "nancy@example.com").NoError()
+	OnAllowRegister(t, ctx, "nancy@example.com").Name("disallow dup").Expect(false)
 }
 
 func TestEventsink_OnRegistered(t *testing.T) {

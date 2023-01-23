@@ -18,12 +18,12 @@ limitations under the License.
 
 package directory
 
-const Version = 35
+const Version = 41
 const SourceCodeSHA256 = "5039d90ed72994e05e62fe61e2ec5460d15a09d3b2c92f99746ff3672517ad96"
-const Timestamp = "2023-01-19T20:53:35.489739Z"
+const Timestamp = "2023-01-23T19:06:52.869399Z"
 
 /* {
-	"ver": 35,
+	"ver": 41,
 	"sha256": "5039d90ed72994e05e62fe61e2ec5460d15a09d3b2c92f99746ff3672517ad96",
-	"ts": "2023-01-19T20:53:35.489739Z"
+	"ts": "2023-01-23T19:06:52.869399Z"
 } */

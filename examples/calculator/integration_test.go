@@ -60,55 +60,55 @@ func Terminate() error {
 func TestCalculator_Arithmetic(t *testing.T) {
 	t.Parallel()
 	/*
-		Arithmetic(ctx, x, op, y).
+		Arithmetic(t, ctx, x, op, y).
 			Name(testName).
-			Expect(t, xEcho, opEcho, yEcho, result).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, xEcho, opEcho, yEcho, result, err))
+			Expect(xEcho, opEcho, yEcho, result).
+			NoError().
+			Error(errContains).
+			Assert(func(t, xEcho, opEcho, yEcho, result, err))
 	*/
 	ctx := Context(t)
-	Arithmetic(ctx, 3, "-", 8).Name("subtraction").Expect(t, 3, "-", 8, -5)
-	Arithmetic(ctx, -9, "+", 9).Name("addition").Expect(t, -9, "+", 9, 0)
-	Arithmetic(ctx, -9, " ", 9).Name("space for addition").Expect(t, -9, "+", 9, 0)
-	Arithmetic(ctx, 5, "*", 5).Name("multiplication").Expect(t, 5, "*", 5, 25)
-	Arithmetic(ctx, 5, "*", -6).Name("multiplication negative").Expect(t, 5, "*", -6, -30)
-	Arithmetic(ctx, 15, "/", 5).Name("division").Expect(t, 15, "/", 5, 3)
-	Arithmetic(ctx, 15, "/", 0).Name("division by zero").Error(t, "zero")
-	Arithmetic(ctx, 15, "z", 0).Name("invalid op").Error(t, "operator")
+	Arithmetic(t, ctx, 3, "-", 8).Name("subtraction").Expect(3, "-", 8, -5)
+	Arithmetic(t, ctx, -9, "+", 9).Name("addition").Expect(-9, "+", 9, 0)
+	Arithmetic(t, ctx, -9, " ", 9).Name("space for addition").Expect(-9, "+", 9, 0)
+	Arithmetic(t, ctx, 5, "*", 5).Name("multiplication").Expect(5, "*", 5, 25)
+	Arithmetic(t, ctx, 5, "*", -6).Name("multiplication negative").Expect(5, "*", -6, -30)
+	Arithmetic(t, ctx, 15, "/", 5).Name("division").Expect(15, "/", 5, 3)
+	Arithmetic(t, ctx, 15, "/", 0).Name("division by zero").Error("zero")
+	Arithmetic(t, ctx, 15, "z", 0).Name("invalid op").Error("operator")
 }
 
 func TestCalculator_Square(t *testing.T) {
 	t.Parallel()
 	/*
-		Square(ctx, x).
+		Square(t, ctx, x).
 			Name(testName).
-			Expect(t, xEcho, result).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, xEcho, result, err))
+			Expect( xEcho, result).
+			NoError().
+			Error(errContains).
+			Assert(func(t, xEcho, result, err))
 	*/
 	ctx := Context(t)
-	Square(ctx, 0).Name("zero").Expect(t, 0, 0)
-	Square(ctx, 5).Name("positive").Expect(t, 5, 25)
-	Square(ctx, -8).Name("negative").Expect(t, -8, 64)
+	Square(t, ctx, 0).Name("zero").Expect(0, 0)
+	Square(t, ctx, 5).Name("positive").Expect(5, 25)
+	Square(t, ctx, -8).Name("negative").Expect(-8, 64)
 }
 
 func TestCalculator_Distance(t *testing.T) {
 	t.Parallel()
 	/*
-		Distance(ctx, p1, p2).
+		Distance(t, ctx, p1, p2).
 			Name(testName).
-			Expect(t, d).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, d, err))
+			Expect(td).
+			NoError().
+			Error(errContains).
+			Assert(func(t, d, err))
 	*/
 	ctx := Context(t)
-	Distance(ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).
-		Name("3-4-5 triangle").Expect(t, 5)
-	Distance(ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).
-		Name("straight line").Expect(t, 10)
-	Distance(ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 0, Y: 0}).
-		Name("same point").Expect(t, 0)
+	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).
+		Name("3-4-5 triangle").Expect(5)
+	Distance(t, ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).
+		Name("straight line").Expect(10)
+	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 0, Y: 0}).
+		Name("same point").Expect(0)
 }

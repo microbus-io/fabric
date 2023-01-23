@@ -128,6 +128,7 @@ func Context(t *testing.T) context.Context {
 
 // RegisterTestCase assists in asserting against the results of executing Register.
 type RegisterTestCase struct {
+	_t *testing.T
 	_testName string
 	allowed bool
 	err error
@@ -140,8 +141,8 @@ func (tc *RegisterTestCase) Name(testName string) *RegisterTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *RegisterTestCase) Expect(t *testing.T, allowed bool) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) Expect(allowed bool) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, allowed, tc.allowed)
 		}
@@ -150,8 +151,8 @@ func (tc *RegisterTestCase) Expect(t *testing.T, allowed bool) *RegisterTestCase
 }
 
 // Error asserts an error.
-func (tc *RegisterTestCase) Error(t *testing.T, errContains string) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) Error(errContains string) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -160,8 +161,8 @@ func (tc *RegisterTestCase) Error(t *testing.T, errContains string) *RegisterTes
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *RegisterTestCase) ErrorCode(t *testing.T, statusCode int) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) ErrorCode(statusCode int) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -170,16 +171,16 @@ func (tc *RegisterTestCase) ErrorCode(t *testing.T, statusCode int) *RegisterTes
 }
 
 // NoError asserts no error.
-func (tc *RegisterTestCase) NoError(t *testing.T) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) NoError() *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *RegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) Assert(asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.allowed, tc.err)
 	})
 	return tc
@@ -191,8 +192,8 @@ func (tc *RegisterTestCase) Get() (allowed bool, err error) {
 }
 
 // Register executes the function and returns a corresponding test case.
-func Register(ctx context.Context, email string) *RegisterTestCase {
-	tc := &RegisterTestCase{}
+func Register(t *testing.T, ctx context.Context, email string) *RegisterTestCase {
+	tc := &RegisterTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.allowed, tc.err = Svc.Register(ctx, email)
 		return tc.err
@@ -202,9 +203,9 @@ func Register(ctx context.Context, email string) *RegisterTestCase {
 
 // OnAllowRegisterTestCase assists in asserting against the results of executing OnAllowRegister.
 type OnAllowRegisterTestCase struct {
+	_t *testing.T
 	_testName string
     _asserters []func(*testing.T)
-    _ts []*testing.T
     ctx context.Context
 	email string
 	allow bool
@@ -225,8 +226,7 @@ func (tc *OnAllowRegisterTestCase) Return(allow bool, err error) *OnAllowRegiste
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
-func (tc *OnAllowRegisterTestCase) Expect(t *testing.T, email string) *OnAllowRegisterTestCase {
-	tc._ts = append(tc._ts, t)
+func (tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCase {
     tc._asserters = append(tc._asserters, func(t *testing.T) {
         assert.Equal(t, email, tc.email)
     })
@@ -234,8 +234,7 @@ func (tc *OnAllowRegisterTestCase) Expect(t *testing.T, email string) *OnAllowRe
 }
 
 // Assert sets a custom function to assert the input args of the event sink.
-func (tc *OnAllowRegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, ctx context.Context, email string)) *OnAllowRegisterTestCase {
-	tc._ts = append(tc._ts, t)
+func (tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnAllowRegisterTestCase {
 	tc._asserters = append(tc._asserters, func(t *testing.T) {
 		asserter(t, tc.ctx, tc.email)
     })
@@ -243,16 +242,16 @@ func (tc *OnAllowRegisterTestCase) Assert(t *testing.T, asserter func(t *testing
 }
 
 // OnAllowRegister sets an event listener and returns a corresponding test case.
-func OnAllowRegister() *OnAllowRegisterTestCase {
-	tc := &OnAllowRegisterTestCase{}
+func OnAllowRegister(t *testing.T) *OnAllowRegisterTestCase {
+	tc := &OnAllowRegisterTestCase{_t : t}
     sequence ++
 	con := connector.New(fmt.Sprintf("%s.%d", "OnAllowRegister", sequence))
 	eventsourceapi.NewHook(con).OnAllowRegister(func(ctx context.Context, email string) (allow bool, err error) {
 		eventsourceapi.NewHook(con).OnAllowRegister(nil)
 		tc.ctx = ctx
         tc.email = email
-		for i := range tc._ts {
-			tc._ts[i].Run(tc._testName, tc._asserters[i])
+		for _, asserter := range tc._asserters {
+			tc._t.Run(tc._testName, asserter)
 		}
 		return tc.allow, tc.err
 	})
@@ -263,9 +262,9 @@ func OnAllowRegister() *OnAllowRegisterTestCase {
 
 // OnRegisteredTestCase assists in asserting against the results of executing OnRegistered.
 type OnRegisteredTestCase struct {
+	_t *testing.T
 	_testName string
     _asserters []func(*testing.T)
-    _ts []*testing.T
     ctx context.Context
 	email string
 	err error
@@ -284,8 +283,7 @@ func (tc *OnRegisteredTestCase) Return(err error) *OnRegisteredTestCase {
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
-func (tc *OnRegisteredTestCase) Expect(t *testing.T, email string) *OnRegisteredTestCase {
-	tc._ts = append(tc._ts, t)
+func (tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
     tc._asserters = append(tc._asserters, func(t *testing.T) {
         assert.Equal(t, email, tc.email)
     })
@@ -293,8 +291,7 @@ func (tc *OnRegisteredTestCase) Expect(t *testing.T, email string) *OnRegistered
 }
 
 // Assert sets a custom function to assert the input args of the event sink.
-func (tc *OnRegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T, ctx context.Context, email string)) *OnRegisteredTestCase {
-	tc._ts = append(tc._ts, t)
+func (tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnRegisteredTestCase {
 	tc._asserters = append(tc._asserters, func(t *testing.T) {
 		asserter(t, tc.ctx, tc.email)
     })
@@ -302,16 +299,16 @@ func (tc *OnRegisteredTestCase) Assert(t *testing.T, asserter func(t *testing.T,
 }
 
 // OnRegistered sets an event listener and returns a corresponding test case.
-func OnRegistered() *OnRegisteredTestCase {
-	tc := &OnRegisteredTestCase{}
+func OnRegistered(t *testing.T) *OnRegisteredTestCase {
+	tc := &OnRegisteredTestCase{_t : t}
     sequence ++
 	con := connector.New(fmt.Sprintf("%s.%d", "OnRegistered", sequence))
 	eventsourceapi.NewHook(con).OnRegistered(func(ctx context.Context, email string) (err error) {
 		eventsourceapi.NewHook(con).OnRegistered(nil)
 		tc.ctx = ctx
         tc.email = email
-		for i := range tc._ts {
-			tc._ts[i].Run(tc._testName, tc._asserters[i])
+		for _, asserter := range tc._asserters {
+			tc._t.Run(tc._testName, asserter)
 		}
 		return tc.err
 	})

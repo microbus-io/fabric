@@ -68,11 +68,11 @@ func TestMetrics_Collect(t *testing.T) {
 	t.Parallel()
 
 	ctx := Context(t)
-	Collect(ctx).
+	Collect(t, ctx).
 		// All three services should be detected
-		BodyContains(t, "metrics.sys").
-		BodyNotContains(t, "one.collect").
-		BodyNotContains(t, "two.collect")
+		BodyContains("metrics.sys").
+		BodyNotContains("one.collect").
+		BodyNotContains("two.collect")
 
 	// Join two new services
 	con1 := connector.New("one.collect")
@@ -106,7 +106,7 @@ func TestMetrics_Collect(t *testing.T) {
 
 	// Loop until the new services are discovered
 	for {
-		tc := Collect(ctx)
+		tc := Collect(t, ctx)
 		res, err := tc.Get()
 		assert.NoError(t, err)
 		body, err := io.ReadAll(res.Body)
@@ -118,31 +118,31 @@ func TestMetrics_Collect(t *testing.T) {
 		}
 	}
 
-	Collect(ctx).
+	Collect(t, ctx).
 		// All three services should be detected
-		BodyContains(t, "metrics.sys").
-		BodyContains(t, "one.collect").
-		BodyContains(t, "two.collect").
+		BodyContains("metrics.sys").
+		BodyContains("one.collect").
+		BodyContains("two.collect").
 		// The startup callback should take between 100ms and 500ms
-		BodyContains(t, `microbus_callback_duration_seconds_bucket{error="OK",handler="onstartup",id="`+con1.ID()+`",service="one.collect",ver="0",le="0.1"} 0`).
-		BodyContains(t, `microbus_callback_duration_seconds_bucket{error="OK",handler="onstartup",id="`+con1.ID()+`",service="one.collect",ver="0",le="0.5"} 1`).
-		BodyContains(t, `microbus_log_messages_total{id="`+con1.ID()+`",message="Startup",service="one.collect",severity="INFO",ver="0"} 1`).
-		BodyContains(t, `microbus_uptime_duration_seconds_total{id="`+con1.ID()+`",service="one.collect",ver="0"}`).
+		BodyContains(`microbus_callback_duration_seconds_bucket{error="OK",handler="onstartup",id="` + con1.ID() + `",service="one.collect",ver="0",le="0.1"} 0`).
+		BodyContains(`microbus_callback_duration_seconds_bucket{error="OK",handler="onstartup",id="` + con1.ID() + `",service="one.collect",ver="0",le="0.5"} 1`).
+		BodyContains(`microbus_log_messages_total{id="` + con1.ID() + `",message="Startup",service="one.collect",severity="INFO",ver="0"} 1`).
+		BodyContains(`microbus_uptime_duration_seconds_total{id="` + con1.ID() + `",service="one.collect",ver="0"}`).
 		// Cache should have 1 element of 10 bytes
-		BodyContains(t, `microbus_cache_weight_total{id="`+con1.ID()+`",service="one.collect",ver="0"} 10`).
-		BodyContains(t, `microbus_cache_len_total{id="`+con1.ID()+`",service="one.collect",ver="0"} 1`).
-		BodyContains(t, `microbus_cache_misses_total{id="`+con1.ID()+`",service="one.collect",ver="0"} 1`).
-		BodyContains(t, `microbus_cache_hits_total{id="`+con1.ID()+`",service="one.collect",ver="0"} 1`).
-		BodyContains(t, `microbus_request_count_total{code="404",error="OK",host="one.collect",id="`+con1.ID()+`",method="GET",path="/dcache/all",port="888",service="one.collect",ver="0"} 2`).
+		BodyContains(`microbus_cache_weight_total{id="` + con1.ID() + `",service="one.collect",ver="0"} 10`).
+		BodyContains(`microbus_cache_len_total{id="` + con1.ID() + `",service="one.collect",ver="0"} 1`).
+		BodyContains(`microbus_cache_misses_total{id="` + con1.ID() + `",service="one.collect",ver="0"} 1`).
+		BodyContains(`microbus_cache_hits_total{id="` + con1.ID() + `",service="one.collect",ver="0"} 1`).
+		BodyContains(`microbus_request_count_total{code="404",error="OK",host="one.collect",id="` + con1.ID() + `",method="GET",path="/dcache/all",port="888",service="one.collect",ver="0"} 2`).
 		// The response size is 10 bytes
-		BodyContains(t, `microbus_response_size_bytes_sum{code="200",error="OK",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0"} 10`).
-		BodyContains(t, `microbus_response_size_bytes_count{code="200",error="OK",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0"} 1`).
+		BodyContains(`microbus_response_size_bytes_sum{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0"} 10`).
+		BodyContains(`microbus_response_size_bytes_count{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0"} 1`).
 		// The request should take between 100ms and 500ms
-		BodyContains(t, `microbus_request_count_total{code="200",error="OK",host="one.collect",id="`+con1.ID()+`",method="GET",path="/ten",port="443",service="one.collect",ver="0"} 1`).
-		BodyContains(t, `microbus_response_duration_seconds_bucket{code="200",error="OK",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0",le="0.1"} 0`).
-		BodyContains(t, `microbus_response_duration_seconds_bucket{code="200",error="OK",handler="one.collect:443/ten",id="`+con1.ID()+`",method="GET",port="443",service="one.collect",ver="0",le="0.5"} 1`).
+		BodyContains(`microbus_request_count_total{code="200",error="OK",host="one.collect",id="` + con1.ID() + `",method="GET",path="/ten",port="443",service="one.collect",ver="0"} 1`).
+		BodyContains(`microbus_response_duration_seconds_bucket{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0",le="0.1"} 0`).
+		BodyContains(`microbus_response_duration_seconds_bucket{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0",le="0.5"} 1`).
 		// Acks should be logged
-		BodyContains(t, "microbus_ack_duration_seconds_bucket")
+		BodyContains("microbus_ack_duration_seconds_bucket")
 }
 
 func TestMetrics_GZip(t *testing.T) {
@@ -150,7 +150,7 @@ func TestMetrics_GZip(t *testing.T) {
 
 	ctx := Context(t)
 
-	Collect(ctx, Header("Accept-Encoding", "gzip")).Assert(t, func(t *testing.T, res *http.Response, err error) {
+	Collect(t, ctx, Header("Accept-Encoding", "gzip")).Assert(func(t *testing.T, res *http.Response, err error) {
 		assert.NoError(t, err)
 		assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
 		unzipper, err := gzip.NewReader(res.Body)
@@ -166,9 +166,9 @@ func TestMetrics_SecretKey(t *testing.T) {
 	// No parallel
 	ctx := Context(t)
 	Svc.With(SecretKey("secret1234"))
-	Collect(ctx).
-		Error(t, "incorrect secret key").
-		ErrorCode(t, http.StatusNotFound)
+	Collect(t, ctx).
+		Error("incorrect secret key").
+		ErrorCode(http.StatusNotFound)
 	Svc.With(SecretKey(""))
-	Collect(ctx).NoError(t)
+	Collect(t, ctx).NoError()
 }

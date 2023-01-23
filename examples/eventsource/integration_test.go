@@ -62,50 +62,49 @@ func Terminate() error {
 func TestEventsource_Register(t *testing.T) {
 	t.Parallel()
 	/*
-		Register(ctx, email).
+		Register(t, ctx, email).
 			Name(testName).
-			Expect(t, allowed).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, allowed, err))
+			Expect(allowed).
+			NoError().
+			Error(errContains).
+			Assert(func(t, allowed, err))
 	*/
 	ctx := Context(t)
-	Register(ctx, "brian@hotmail.com").Name("decline hotmail.com").Expect(t, false)
-	Register(ctx, "brian@example.com").Name("accept example.com").Expect(t, true)
-	Register(ctx, "brian@example.com").Name("decline dup").Expect(t, false)
+	Register(t, ctx, "brian@hotmail.com").Name("decline hotmail.com").Expect(false)
+	Register(t, ctx, "brian@example.com").Name("accept example.com").Expect(true)
+	Register(t, ctx, "brian@example.com").Name("decline dup").Expect(false)
 }
 
 func TestEventsource_OnAllowRegister(t *testing.T) {
-	t.Parallel()
+	// No parallel
 	/*
-		OnAllowRegister().
+		OnAllowRegister(t).
 			Name(testName).
 			Return(allow, err).
-			Expect(t, email).
-			Assert(t, func(t, ctx, email))
+			Expect(email).
+			Assert(func(t, ctx, email))
 	*/
 	ctx := Context(t)
-	OnAllowRegister().
+	OnAllowRegister(t).
 		Return(true, nil).
-		Expect(t, "barb@example.com")
-	Register(ctx, "barb@example.com").Expect(t, true)
-	OnAllowRegister().
+		Expect("barb@example.com")
+	Register(t, ctx, "barb@example.com").Expect(true)
+	OnAllowRegister(t).
 		Return(false, nil).
-		Expect(t, "josh@example.com")
-	Register(ctx, "josh@example.com").Expect(t, false)
+		Expect("josh@example.com")
+	Register(t, ctx, "josh@example.com").Expect(false)
 }
 
 func TestEventsource_OnRegistered(t *testing.T) {
-	t.Parallel()
+	// No parallel
 	/*
-		OnRegistered().
+		OnRegistered(t).
 			Name(testName).
 			Return(err).
-			Expect(t, email).
-			Assert(t, func(t, ctx, email))
+			Expect(email).
+			Assert(func(t, ctx, email))
 	*/
 	ctx := Context(t)
-	OnRegistered().
-		Expect(t, "harry@example.com")
-	Register(ctx, "harry@example.com").Expect(t, true)
+	OnRegistered(t).Expect("harry@example.com")
+	Register(t, ctx, "harry@example.com").Expect(true)
 }

@@ -3,9 +3,9 @@
 {{- $t := .Signature.TestingT }}
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
+	_t *testing.T
 	_testName string
     _asserters []func(*testing.T)
-    _ts []*testing.T
     ctx context.Context
 	{{- range .Signature.InputArgs }}
 	{{ .Name }} {{ .Type }}
@@ -32,8 +32,7 @@ func (tc *{{ .Name }}TestCase) Return({{ .Out }}) *{{ .Name }}TestCase {
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
-func (tc *{{ .Name }}TestCase) Expect({{ $t }} *testing.T {{- range .Signature.InputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
-	tc._ts = append(tc._ts, {{ $t }})
+func (tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
     tc._asserters = append(tc._asserters, func({{ $t }} *testing.T) {
         {{- range .Signature.InputArgs }}
         {{- if eq .Type "time.Time" }}
@@ -46,8 +45,7 @@ func (tc *{{ .Name }}TestCase) Expect({{ $t }} *testing.T {{- range .Signature.I
 }
 
 // Assert sets a custom function to assert the input args of the event sink.
-func (tc *{{ .Name }}TestCase) Assert({{ $t }} *testing.T, asserter func({{ $t }} *testing.T, {{ .In }})) *{{ .Name }}TestCase {
-	tc._ts = append(tc._ts, {{ $t }})
+func (tc *{{ .Name }}TestCase) Assert(asserter func({{ $t }} *testing.T, {{ .In }})) *{{ .Name }}TestCase {
 	tc._asserters = append(tc._asserters, func({{ $t }} *testing.T) {
 		asserter({{ $t }}, tc.ctx {{- range .Signature.InputArgs }}, tc.{{ .Name }}{{ end }})
     })
@@ -55,8 +53,8 @@ func (tc *{{ .Name }}TestCase) Assert({{ $t }} *testing.T, asserter func({{ $t }
 }
 
 // {{ .Name }} sets an event listener and returns a corresponding test case.
-func {{ .Name }}() *{{ .Name }}TestCase {
-	tc := &{{ .Name }}TestCase{}
+func {{ .Name }}(t *testing.T) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{_t : t}
     sequence ++
 	con := connector.New(fmt.Sprintf("%s.%d", "{{ .Name }}", sequence))
 	{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(func({{ .In }}) ({{ .Out }}) {
@@ -65,8 +63,8 @@ func {{ .Name }}() *{{ .Name }}TestCase {
         {{- range .Signature.InputArgs }}
         tc.{{ .Name }} = {{ .Name }}
         {{- end }}
-		for i := range tc._ts {
-			tc._ts[i].Run(tc._testName, tc._asserters[i])
+		for _, asserter := range tc._asserters {
+			tc._t.Run(tc._testName, asserter)
 		}
 		return {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err
 	})

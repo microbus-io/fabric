@@ -18,12 +18,12 @@ limitations under the License.
 
 package messaging
 
-const Version = 45
+const Version = 51
 const SourceCodeSHA256 = "f5029804c8d6c372d37ffbc1378841739cb7cfb42c0b9ff0d973442162d45f2d"
-const Timestamp = "2023-01-19T20:53:36.709121Z"
+const Timestamp = "2023-01-23T19:06:54.101834Z"
 
 /* {
-	"ver": 45,
+	"ver": 51,
 	"sha256": "f5029804c8d6c372d37ffbc1378841739cb7cfb42c0b9ff0d973442162d45f2d",
-	"ts": "2023-01-19T20:53:36.709121Z"
+	"ts": "2023-01-23T19:06:54.101834Z"
 } */
