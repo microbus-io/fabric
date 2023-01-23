@@ -120,3 +120,9 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * License and copyright notices
 * `MariaDB` database support
 * HTTP ingress middleware
+
+[Milestone 17](https://github.com/microbus-io/fabric/tree/milestone/17):
+
+* Code generation of tests for event sources
+* `any` error annotation types
+* `rand.Read`

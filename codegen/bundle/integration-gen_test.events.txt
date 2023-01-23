@@ -1,7 +1,7 @@
 {{ $pkgSuffix := .PackageSuffix }}
 {{- range .Events }}
 {{- $t := .Signature.TestingT }}
-// {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
+// {{ .Name }}TestCase assists in asserting the sink of {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	_t *testing.T
 	_testName string
@@ -19,15 +19,6 @@ type {{ .Name }}TestCase struct {
 // Name sets a name to the test case.
 func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
 	tc._testName = testName
-	return tc
-}
-
-// Return sets the values to return by the event sink.
-func (tc *{{ .Name }}TestCase) Return({{ .Out }}) *{{ .Name }}TestCase {
-	{{- range .Signature.OutputArgs }}
-	tc.{{ .Name }} = {{ .Name }}
-	{{- end }}
-	tc.err = err
 	return tc
 }
 
@@ -53,8 +44,14 @@ func (tc *{{ .Name }}TestCase) Assert(asserter func({{ $t }} *testing.T, {{ .In 
 }
 
 // {{ .Name }} sets an event listener and returns a corresponding test case.
-func {{ .Name }}(t *testing.T) *{{ .Name }}TestCase {
-	tc := &{{ .Name }}TestCase{_t : t}
+func {{ .Name }}(t *testing.T, {{ .Out }}) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{
+		_t: t,
+		{{- range .Signature.OutputArgs }}
+		{{ .Name }}: {{ .Name }},
+		{{- end }}
+		err: err,
+	}
     sequence ++
 	con := connector.New(fmt.Sprintf("%s.%d", "{{ .Name }}", sequence))
 	{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(func({{ .In }}) ({{ .Out }}) {

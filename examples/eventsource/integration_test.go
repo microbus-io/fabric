@@ -78,19 +78,16 @@ func TestEventsource_Register(t *testing.T) {
 func TestEventsource_OnAllowRegister(t *testing.T) {
 	// No parallel
 	/*
-		OnAllowRegister(t).
+		OnAllowRegister(t, allow, err).
 			Name(testName).
-			Return(allow, err).
 			Expect(email).
 			Assert(func(t, ctx, email))
 	*/
 	ctx := Context(t)
-	OnAllowRegister(t).
-		Return(true, nil).
+	OnAllowRegister(t, true, nil).
 		Expect("barb@example.com")
 	Register(t, ctx, "barb@example.com").Expect(true)
-	OnAllowRegister(t).
-		Return(false, nil).
+	OnAllowRegister(t, false, nil).
 		Expect("josh@example.com")
 	Register(t, ctx, "josh@example.com").Expect(false)
 }
@@ -98,13 +95,12 @@ func TestEventsource_OnAllowRegister(t *testing.T) {
 func TestEventsource_OnRegistered(t *testing.T) {
 	// No parallel
 	/*
-		OnRegistered(t).
+		OnRegistered(t, err).
 			Name(testName).
-			Return(err).
 			Expect(email).
 			Assert(func(t, ctx, email))
 	*/
 	ctx := Context(t)
-	OnRegistered(t).Expect("harry@example.com")
+	OnRegistered(t, nil).Expect("harry@example.com")
 	Register(t, ctx, "harry@example.com").Expect(true)
 }

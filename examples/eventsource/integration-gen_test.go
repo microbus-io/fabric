@@ -201,7 +201,7 @@ func Register(t *testing.T, ctx context.Context, email string) *RegisterTestCase
 	return tc
 }
 
-// OnAllowRegisterTestCase assists in asserting against the results of executing OnAllowRegister.
+// OnAllowRegisterTestCase assists in asserting the sink of OnAllowRegister.
 type OnAllowRegisterTestCase struct {
 	_t *testing.T
 	_testName string
@@ -215,13 +215,6 @@ type OnAllowRegisterTestCase struct {
 // Name sets a name to the test case.
 func (tc *OnAllowRegisterTestCase) Name(testName string) *OnAllowRegisterTestCase {
 	tc._testName = testName
-	return tc
-}
-
-// Return sets the values to return by the event sink.
-func (tc *OnAllowRegisterTestCase) Return(allow bool, err error) *OnAllowRegisterTestCase {
-	tc.allow = allow
-	tc.err = err
 	return tc
 }
 
@@ -242,8 +235,12 @@ func (tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, ctx contex
 }
 
 // OnAllowRegister sets an event listener and returns a corresponding test case.
-func OnAllowRegister(t *testing.T) *OnAllowRegisterTestCase {
-	tc := &OnAllowRegisterTestCase{_t : t}
+func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCase {
+	tc := &OnAllowRegisterTestCase{
+		_t: t,
+		allow: allow,
+		err: err,
+	}
     sequence ++
 	con := connector.New(fmt.Sprintf("%s.%d", "OnAllowRegister", sequence))
 	eventsourceapi.NewHook(con).OnAllowRegister(func(ctx context.Context, email string) (allow bool, err error) {
@@ -260,7 +257,7 @@ func OnAllowRegister(t *testing.T) *OnAllowRegisterTestCase {
 	return tc
 }
 
-// OnRegisteredTestCase assists in asserting against the results of executing OnRegistered.
+// OnRegisteredTestCase assists in asserting the sink of OnRegistered.
 type OnRegisteredTestCase struct {
 	_t *testing.T
 	_testName string
@@ -273,12 +270,6 @@ type OnRegisteredTestCase struct {
 // Name sets a name to the test case.
 func (tc *OnRegisteredTestCase) Name(testName string) *OnRegisteredTestCase {
 	tc._testName = testName
-	return tc
-}
-
-// Return sets the values to return by the event sink.
-func (tc *OnRegisteredTestCase) Return(err error) *OnRegisteredTestCase {
-	tc.err = err
 	return tc
 }
 
@@ -299,8 +290,11 @@ func (tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, ctx context.C
 }
 
 // OnRegistered sets an event listener and returns a corresponding test case.
-func OnRegistered(t *testing.T) *OnRegisteredTestCase {
-	tc := &OnRegisteredTestCase{_t : t}
+func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
+	tc := &OnRegisteredTestCase{
+		_t: t,
+		err: err,
+	}
     sequence ++
 	con := connector.New(fmt.Sprintf("%s.%d", "OnRegistered", sequence))
 	eventsourceapi.NewHook(con).OnRegistered(func(ctx context.Context, email string) (err error) {

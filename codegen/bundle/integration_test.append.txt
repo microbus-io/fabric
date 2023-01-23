@@ -25,9 +25,8 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
-		{{ .Name }}(t).
+		{{ .Name }}(t, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err).
 			Name(testName).
-			Return({{- range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err).
 			{{- if .Signature.InputArgs }}
 			Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }}).
 			{{- end }}
