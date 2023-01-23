@@ -1,0 +1,77 @@
+{{ $pkgSuffix := .PackageSuffix }}
+{{- range .Events }}
+{{- $t := .Signature.TestingT }}
+// {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
+type {{ .Name }}TestCase struct {
+	_testName string
+    _asserters []func(*testing.T)
+    _ts []*testing.T
+    ctx context.Context
+	{{- range .Signature.InputArgs }}
+	{{ .Name }} {{ .Type }}
+	{{- end }}
+	{{- range .Signature.OutputArgs }}
+	{{ .Name }} {{ .Type }}
+	{{- end }}
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
+	tc._testName = testName
+	return tc
+}
+
+// Return sets the values to return by the event sink.
+func (tc *{{ .Name }}TestCase) Return({{ .Out }}) *{{ .Name }}TestCase {
+	{{- range .Signature.OutputArgs }}
+	tc.{{ .Name }} = {{ .Name }}
+	{{- end }}
+	tc.err = err
+	return tc
+}
+
+// Expect asserts an exact match for the input arguments of the event sink.
+func (tc *{{ .Name }}TestCase) Expect({{ $t }} *testing.T {{- range .Signature.InputArgs }}, {{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
+	tc._ts = append(tc._ts, {{ $t }})
+    tc._asserters = append(tc._asserters, func({{ $t }} *testing.T) {
+        {{- range .Signature.InputArgs }}
+        {{- if eq .Type "time.Time" }}
+        assert.True({{ $t }}, {{ .Name }}.Equal(tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, tc.{{ .Name }})
+        {{- else }}
+        assert.Equal({{ $t }}, {{ .Name }}, tc.{{ .Name }})
+        {{- end }}{{ end }}
+    })
+	return tc
+}
+
+// Assert sets a custom function to assert the input args of the event sink.
+func (tc *{{ .Name }}TestCase) Assert({{ $t }} *testing.T, asserter func({{ $t }} *testing.T, {{ .In }})) *{{ .Name }}TestCase {
+	tc._ts = append(tc._ts, {{ $t }})
+	tc._asserters = append(tc._asserters, func({{ $t }} *testing.T) {
+		asserter({{ $t }}, tc.ctx {{- range .Signature.InputArgs }}, tc.{{ .Name }}{{ end }})
+    })
+	return tc
+}
+
+// {{ .Name }} sets an event listener and returns a corresponding test case.
+func {{ .Name }}() *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{}
+    sequence ++
+	con := connector.New(fmt.Sprintf("%s.%d", "{{ .Name }}", sequence))
+	{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(func({{ .In }}) ({{ .Out }}) {
+		{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(nil)
+		tc.ctx = ctx
+        {{- range .Signature.InputArgs }}
+        tc.{{ .Name }} = {{ .Name }}
+        {{- end }}
+		for i := range tc._ts {
+			tc._ts[i].Run(tc._testName, tc._asserters[i])
+		}
+		return {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err
+	})
+	App.Include(con)
+	con.Startup()
+	return tc
+}
+{{ end }}

@@ -74,3 +74,38 @@ func TestEventsource_Register(t *testing.T) {
 	Register(ctx, "brian@example.com").Name("accept example.com").Expect(t, true)
 	Register(ctx, "brian@example.com").Name("decline dup").Expect(t, false)
 }
+
+func TestEventsource_OnAllowRegister(t *testing.T) {
+	t.Parallel()
+	/*
+		OnAllowRegister().
+			Name(testName).
+			Return(allow, err).
+			Expect(t, email).
+			Assert(t, func(t, ctx, email))
+	*/
+	ctx := Context(t)
+	OnAllowRegister().
+		Return(true, nil).
+		Expect(t, "barb@example.com")
+	Register(ctx, "barb@example.com").Expect(t, true)
+	OnAllowRegister().
+		Return(false, nil).
+		Expect(t, "josh@example.com")
+	Register(ctx, "josh@example.com").Expect(t, false)
+}
+
+func TestEventsource_OnRegistered(t *testing.T) {
+	t.Parallel()
+	/*
+		OnRegistered().
+			Name(testName).
+			Return(err).
+			Expect(t, email).
+			Assert(t, func(t, ctx, email))
+	*/
+	ctx := Context(t)
+	OnRegistered().
+		Expect(t, "harry@example.com")
+	Register(ctx, "harry@example.com").Expect(t, true)
+}

@@ -23,60 +23,64 @@ import (
 	"strings"
 )
 
-// As delegates to the standard Go's errors.As function
+// As delegates to the standard Go's errors.As function.
 func As(err error, target any) bool {
 	return stderrors.As(err, target)
 }
 
-// Is delegates to the standard Go's errors.Is function
+// Is delegates to the standard Go's errors.Is function.
 func Is(err, target error) bool {
 	return stderrors.Is(err, target)
 }
 
-// Unwrap delegates to the standard Go's errors.Wrap function
+// Unwrap delegates to the standard Go's errors.Wrap function.
 func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
 
 // New creates a new error, capturing the current stack location.
 // Optionally annotations may be attached
-func New(text string, annotations ...string) error {
+func New(text string, annotations ...any) error {
 	return TraceUp(stderrors.New(text), 1, annotations...)
 }
 
 // Newc creates a new error with an HTTP status code, capturing the current stack location.
 // Optionally annotations may be attached
-func Newc(statusCode int, text string, annotations ...string) error {
+func Newc(statusCode int, text string, annotations ...any) error {
 	err := TraceUp(stderrors.New(text), 1, annotations...)
 	err.(*TracedError).StatusCode = statusCode
 	return err
 }
 
-// Newf formats a new error, capturing the current stack location
+// Newf formats a new error, capturing the current stack location.
 func Newf(format string, a ...any) error {
 	return TraceUp(fmt.Errorf(format, a...), 1)
 }
 
 // Trace appends the current stack location to the error's stack trace.
 // Optional annotations may be attached
-func Trace(err error, annotations ...string) error {
+func Trace(err error, annotations ...any) error {
 	return TraceUp(err, 1, annotations...)
 }
 
 // TraceUp appends the levels above the current stack location to the error's stack trace.
-// Optional annotations may be attached
-func TraceUp(err error, levels int, annotations ...string) error {
+// Optional annotations may be attached.
+func TraceUp(err error, levels int, annotations ...any) error {
 	if err == nil {
 		return nil
 	}
 	tracedErr := Convert(err)
 	file, function, line, ok := RuntimeTrace(1 + levels)
 	if ok {
+		strAnnotations := make([]string, len(annotations))
+		for i := range annotations {
+			strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+		}
 		tracedErr.stack = append(tracedErr.stack, &trace{
 			File:        file,
 			Function:    function,
 			Line:        line,
-			Annotations: annotations,
+			Annotations: strAnnotations,
 		})
 	}
 	return tracedErr

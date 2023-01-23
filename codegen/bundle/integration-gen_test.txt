@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
@@ -34,6 +35,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
@@ -41,6 +43,10 @@ var (
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *{{ .PackageSuffix }}api.Client
+)
+
+var (
+	sequence int
 )
 
 var (

@@ -48,6 +48,7 @@ func (gen *Generator) makeIntegration() error {
 	tt, err := LoadTemplate(
 		"integration-gen_test.txt",
 		"integration-gen_test.functions.txt",
+		"integration-gen_test.events.txt",
 		"integration-gen_test.webs.txt",
 		"integration-gen_test.tickers.txt",
 		"integration-gen_test.configs.txt",
@@ -99,7 +100,7 @@ func (gen *Generator) makeIntegration() error {
 	// Mark existing tests in the specs
 	newTests := false
 	for _, h := range gen.specs.AllHandlers() {
-		if h.Type != "function" && h.Type != "sink" && h.Type != "web" && h.Type != "ticker" && h.Type != "config" {
+		if h.Type != "function" && h.Type != "event" && h.Type != "sink" && h.Type != "web" && h.Type != "ticker" && h.Type != "config" {
 			continue
 		}
 		if existingTests[h.Name()] || existingTests["OnChanged"+h.Name()] {
@@ -125,7 +126,7 @@ func (gen *Generator) makeIntegration() error {
 		gen.Printer.Debug("New tests created")
 		gen.Printer.Indent()
 		for _, h := range gen.specs.AllHandlers() {
-			if h.Type != "function" && h.Type != "sink" && h.Type != "web" && h.Type != "ticker" {
+			if h.Type != "function" && h.Type != "event" && h.Type != "sink" && h.Type != "web" && h.Type != "ticker" {
 				continue
 			}
 			if !h.Exists {

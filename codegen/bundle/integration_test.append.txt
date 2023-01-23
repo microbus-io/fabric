@@ -7,12 +7,31 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	/*
 		{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
 			Name(testName).
-		{{- if .Signature.OutputArgs }}
+			{{- if .Signature.OutputArgs }}
 			Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }}).
-		{{- end }}
+			{{- end }}
 			NoError({{ $t }}).
 			Error({{ $t }}, errContains).
+			ErrorCode({{ $t }}, http.StatusOK).
 			Assert({{ $t }}, func({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err))
+	*/
+	// ctx := Context(t)
+}
+{{ end }}{{ end }}
+
+{{- range .Events }}{{- if not .Exists }}
+{{- $t := .Signature.TestingT }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
+	t.Parallel()
+	/*
+		{{ .Name }}().
+			Name(testName).
+			Return({{- range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err).
+			{{- if .Signature.InputArgs }}
+			Expect({{ $t }} {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
+			{{- end }}
+			Assert({{ $t }}, func({{ $t }}, ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}))
 	*/
 	// ctx := Context(t)
 }
@@ -32,6 +51,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			HeaderContains(t, headerName, valueContains).
 			NoError(t).
 			Error(t, errContains).
+			ErrorCode(t, http.StatusOK).
 			Assert(t, func(t, httpResponse, err))
 	*/
 	// ctx := Context(t)
@@ -47,6 +67,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			Name(testName).
 			NoError(t).
 			Error(t, errContains).
+			ErrorCode(t, http.StatusOK).
 			Assert(t, err)
 	*/
 	// ctx := Context(t)
@@ -62,6 +83,7 @@ func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
 			Name(testName).
 			NoError(t).
 			Error(t, errContains).
+			ErrorCode(t, http.StatusOK).
 			Assert(t, err)
 	*/
 	// ctx := Context(t)

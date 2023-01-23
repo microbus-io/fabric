@@ -50,18 +50,25 @@ func New() *mathrand.Rand {
 	return mathrand.New(s)
 }
 
+// Read generates len(p) random bytes and writes them into p. It
+// always returns len(p) and a nil error.
+func Read(p []byte) (n int, err error) {
+	r := pool.Get().(*mathrand.Rand)
+	reseed(r)
+	n, err = r.Read(p)
+	pool.Put(r)
+	return n, err
+}
+
 // AlphaNum64 generates a random string of the specified length.
 // The string will include only alphanumeric characters a-z, A-Z, 0-9
 func AlphaNum64(length int) string {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01"
 	bytes := make([]byte, length)
-	r := pool.Get().(*mathrand.Rand)
-	reseed(r)
-	_, _ = r.Read(bytes)
+	Read(bytes)
 	for i, b := range bytes {
 		bytes[i] = letters[b&0x3F]
 	}
-	pool.Put(r)
 	return string(bytes)
 }
 
@@ -70,13 +77,10 @@ func AlphaNum64(length int) string {
 func AlphaNum32(length int) string {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 	bytes := make([]byte, length)
-	r := pool.Get().(*mathrand.Rand)
-	reseed(r)
-	_, _ = r.Read(bytes)
+	Read(bytes)
 	for i, b := range bytes {
 		bytes[i] = letters[b&0x1F]
 	}
-	pool.Put(r)
 	return string(bytes)
 }
 

@@ -130,9 +130,9 @@ type Hook struct {
 }
 
 // NewHook creates a new hook to the events of the eventsource.example microservice.
-func NewHook(caller Service) *Hook {
+func NewHook(listener Service) *Hook {
 	return &Hook{
-		svc:  caller,
+		svc:  listener,
 		host: "eventsource.example",
 	}
 }
