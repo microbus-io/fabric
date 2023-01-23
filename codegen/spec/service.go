@@ -78,7 +78,7 @@ func (s *Service) FullyQualifyTypes() {
 	s.fullyQualified = true
 
 	apiPkg := s.PackageSuffix() + "api."
-	for _, w := range s.Functions {
+	for _, w := range s.AllHandlers() {
 		for _, a := range w.Signature.InputArgs {
 			endType := a.EndType()
 			if utils.IsUpperCaseIdentifier(endType) {
@@ -102,7 +102,7 @@ func (s *Service) ShorthandTypes() {
 	s.fullyQualified = false
 
 	apiPkg := s.PackageSuffix() + "api."
-	for _, w := range s.Functions {
+	for _, w := range s.AllHandlers() {
 		for _, a := range w.Signature.InputArgs {
 			endType := a.EndType()
 			if strings.HasPrefix(endType, apiPkg) {
