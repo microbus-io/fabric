@@ -16,7 +16,7 @@ databases:
 
 Step 2: Run `go generate`.
 
-Step 3: Create a SQL schema migration script `resources/maria/1.sql`. This script will automatically be executed when the microservice starts and connects to the database. A migration script is only executed once in the order of its file name, so create `2.sql` etc. if and when changes to the schema are required.
+Step 3: Create a SQL schema migration script `resources/maria/1.sql`. This script will automatically be executed when the microservice starts and connects to the database. A migration script is only executed once in the order of its file name, so create `2.sql` etc. if and when changes to the schema are required. File names may include arbitrary text after the first dot, like so `2.create-table.sql`.
 
 ```sql
 CREATE TABLE directory_persons (
@@ -32,7 +32,12 @@ CREATE TABLE directory_persons (
 
 Step 4: Use `svc.MariaDatabase()` to access the [sharded database](../structure/shardedsql.md) from any of the endpoints of the microservice. The name `MariaDatabase` is derived from the name you chose in step 1.
 
-Step 5: Add a `Maria` config property pointing to the location of your database server. The name `Maria` is the one you chose in step 1.
+Step 5: Add a `Maria` config property in `config.yaml` pointing to the location of your database server. The name `Maria` is the one you chose in step 1.
+
+```yaml
+all:
+  Maria: "root:secret1234@tcp(127.0.0.1:3306)/example_shard_%d"
+```
 
 ## Connecting to the Database
 

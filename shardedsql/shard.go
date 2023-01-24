@@ -133,7 +133,7 @@ func (s *Shard) PrepareContext(ctx context.Context, query string) (*Stmt, error)
 // Sequence names are limited to 256 ASCII characters.
 func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementSequence) error {
 	// Init the schema migration table
-	_, err := s.Exec(
+	_, err := s.ExecContext(ctx,
 		`CREATE TABLE IF NOT EXISTS microbus_schema_migrations (
 			name VARCHAR(256) CHARACTER SET ascii NOT NULL,
 			seq INT NOT NULL,
@@ -204,9 +204,18 @@ func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementS
 		}
 
 		// Obtained lock, execute migration in a goroutine
+		statement := strings.ReplaceAll(statementSequence.Statements[seqNum], "\r", "")
+		lines := strings.Split(statement, "\n")
+		for i := range lines {
+			if strings.HasPrefix(lines[i], "--") {
+				lines[i] = ""
+			}
+		}
+		statement = strings.Join(lines, "\n")
+		statement = strings.TrimSpace(statement)
+
 		done := make(chan error)
 		go func() {
-			statement := strings.ReplaceAll(statementSequence.Statements[seqNum], "\r", "")
 			for _, stmt := range strings.Split(statement, ";\n") {
 				stmt = strings.TrimSpace(stmt)
 				if stmt == "" {
@@ -243,7 +252,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementS
 			_, _ = s.ExecContext(ctx,
 				`UPDATE microbus_schema_migrations SET locked_until=NOW(3) WHERE name=? AND seq=?`,
 				statementSequence.Name, seqNum)
-			return errors.Trace(err, statementSequence.Statements[seqNum])
+			return errors.Trace(err, statement)
 		}
 
 		// Mark as complete

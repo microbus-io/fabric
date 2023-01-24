@@ -71,7 +71,7 @@ func (c *Connector) handleControlPing(w http.ResponseWriter, r *http.Request) er
 // handleControlConfigRefresh responds to the :888/config-refresh control request
 // by pulling the latest config values from the configurator service.
 func (c *Connector) handleControlConfigRefresh(w http.ResponseWriter, r *http.Request) error {
-	err := c.refreshConfig(r.Context())
+	err := c.refreshConfig(r.Context(), true)
 	if err != nil {
 		return errors.Trace(err)
 	}

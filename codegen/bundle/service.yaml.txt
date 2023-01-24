@@ -13,7 +13,7 @@ general:
 # name - A name for the database
 # type - The type of the database, "mariadb" or "mysql"
 databases:
-  # - name:
+  # - name: SQL
   #   type: mariadb
 
 # Config properties

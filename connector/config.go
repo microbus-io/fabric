@@ -187,7 +187,7 @@ func (c *Connector) logConfigs() {
 }
 
 // refreshConfig contacts the configurator microservices to fetch values for the config properties.
-func (c *Connector) refreshConfig(ctx context.Context) error {
+func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	if !c.started {
 		return errors.New("not started")
 	}
@@ -248,7 +248,7 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 	c.configLock.Unlock()
 
 	// Call the callback function, if provided
-	if len(changed) > 0 {
+	if callback && len(changed) > 0 {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err = c.doCallback(
 				c.lifetimeCtx,

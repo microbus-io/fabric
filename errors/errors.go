@@ -23,6 +23,32 @@ import (
 	"strings"
 )
 
+var statusText = map[int]string{
+	// 1xx
+	100: "continue",
+	// 2xx
+	200: "ok",
+	// 3xx
+	301: "moved permanently",
+	302: "found",
+	304: "not modified",
+	307: "temporary redirect",
+	308: "permanent redirect",
+	// 4xx
+	400: "bad request",
+	401: "unauthorized",
+	403: "forbidden",
+	404: "not found",
+	405: "method not allowed",
+	408: "request timeout",
+	413: "payload too large",
+	// 5xx
+	500: "internal server error",
+	501: "not implemented",
+	503: "service unavailable",
+	508: "loop detected",
+}
+
 // As delegates to the standard Go's errors.As function.
 func As(err error, target any) bool {
 	return stderrors.As(err, target)
@@ -47,6 +73,9 @@ func New(text string, annotations ...any) error {
 // Newc creates a new error with an HTTP status code, capturing the current stack location.
 // Optionally annotations may be attached
 func Newc(statusCode int, text string, annotations ...any) error {
+	if text == "" {
+		text = statusText[statusCode]
+	}
 	err := TraceUp(stderrors.New(text), 1, annotations...)
 	err.(*TracedError).StatusCode = statusCode
 	return err

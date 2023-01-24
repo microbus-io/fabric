@@ -44,8 +44,7 @@ general:
 
 The `databases` section indicates if the microservices uses any databases.
 The name of the database is used to pull the data source name (a.k.a. connection string)
-from a configuration property with that name. Unless the application uses multiple
-databases the recommendation is to name the database the same as its kind.
+from a configuration property with that name.
 
 ```yaml
 # Databases
@@ -53,7 +52,7 @@ databases the recommendation is to name the database the same as its kind.
 # name - A name for the database
 # type - The type of the database, "mariadb" or "mysql"
 databases:
-  - name: Storage
+  - name: SQL
     type: mariadb
 ```
 

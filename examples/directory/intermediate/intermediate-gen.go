@@ -151,7 +151,8 @@ func (svc *Intermediate) dbMariaOnStartup(ctx context.Context) (err error) {
 			if script.IsDir() || filepath.Ext(script.Name())!=".sql" {
 				continue
 			}
-			number, err := strconv.Atoi(strings.TrimSuffix(script.Name(), ".sql"))
+			dot := strings.Index(script.Name(), ".")
+			number, err := strconv.Atoi(script.Name()[:dot])
 			if err != nil {
 				continue
 			}
