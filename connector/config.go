@@ -240,9 +240,16 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 			config.Value = setValue
 			changed[strings.ToLower(config.Name)] = true
 			if config.Secret {
-				setValue = strings.Repeat("*", len(setValue))
+				n := len(setValue)
+				if n > 16 {
+					n = 16
+				}
+				setValue = strings.Repeat("*", n)
 			}
-			c.LogInfo(ctx, "Config value updated", log.String("name", config.Name), log.String("value", setValue))
+			if len([]rune(setValue)) > 40 {
+				setValue = string([]rune(setValue)[:40]) + "..."
+			}
+			c.LogInfo(ctx, "Config updated", log.String("name", config.Name), log.String("value", setValue))
 		}
 	}
 	c.configLock.Unlock()

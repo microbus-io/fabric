@@ -224,7 +224,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := svc.Lifetime()
 	middleware := svc.Middleware()
-	uri := r.URL.RequestURI()
 
 	// Fill in the gaps
 	r.URL.Host = r.Host
@@ -236,15 +235,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	// Skip favicon.ico to reduce noise
-	if middleware == "" && uri == "/favicon.ico" {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-	// Can't serve root path without a middleware
-	if middleware == "" && uri == "/" {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
+	// Detect root path
+	if r.URL.Path == "/" {
+		r.URL.Path = "/root"
 	}
 
 	// Block disallowed origins
@@ -257,17 +250,12 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Use the first segment of the URI as the host name to contact
-	var internalURL string
-	var internalHost string
-	if uri == "/" {
-		internalURL = "/"
-		internalHost = ""
-	} else {
-		u := resolveInternalURL(r.URL, svc.portMappings)
-		internalURL = u.String()
-		internalHost = strings.Split(uri, "/")[1]
+	u := resolveInternalURL(r.URL, svc.portMappings)
+	internalURL := u.String()
+	internalHost := strings.Split(r.URL.RequestURI(), "/")[1]
+	if internalHost != "favicon.ico" {
+		svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
 	}
-	svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
 	if middleware != "" {
 		internalURL = middleware + strings.TrimPrefix(internalURL, "https:/")
 	}

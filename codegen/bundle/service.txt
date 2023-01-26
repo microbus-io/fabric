@@ -3,6 +3,7 @@ package {{ .PackageSuffix }}
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/microbus-io/fabric/errors"
 
@@ -13,6 +14,7 @@ import (
 var (
 	_ context.Context
 	_ *http.Request
+	_ time.Duration
 	_ *errors.TracedError
 	_ *{{ .PackageSuffix }}api.Client
 )

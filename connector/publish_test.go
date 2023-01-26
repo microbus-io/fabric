@@ -923,3 +923,53 @@ func TestConnector_UnicastToNoQueue(t *testing.T) {
 	)
 	assert.NoError(t, err)
 }
+
+func TestConnector_Baggage(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := New("alpha.baggage.connector")
+
+	betaCalled := false
+	betaBaggage := ""
+	beta := New("beta.baggage.connector")
+	beta.Subscribe("noop", func(w http.ResponseWriter, r *http.Request) error {
+		betaCalled = true
+		betaBaggage = frame.Of(r).Baggage("Suitcase")
+		beta.GET(r.Context(), "https://gamma.baggage.connector/noop")
+		return nil
+	})
+
+	gammaCalled := false
+	gammaBaggage := ""
+	gamma := New("gamma.baggage.connector")
+	gamma.Subscribe("noop", func(w http.ResponseWriter, r *http.Request) error {
+		gammaCalled = true
+		gammaBaggage = frame.Of(r).Baggage("Suitcase")
+		return nil
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	defer gamma.Shutdown()
+
+	// Send message and validate that it's echoed back
+	_, err = alpha.Request(ctx,
+		pub.GET("https://beta.baggage.connector/noop"),
+		pub.Baggage("Suitcase", "Clothes"),
+	)
+	assert.NoError(t, err)
+	assert.True(t, betaCalled)
+	assert.True(t, gammaCalled)
+	assert.Equal(t, "Clothes", betaBaggage)
+	assert.Equal(t, "Clothes", gammaBaggage)
+}

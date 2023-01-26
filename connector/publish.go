@@ -96,25 +96,34 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	}
 
 	// Limit number of hops
-	depth := frame.Of(ctx).CallDepth()
+	inboundFrame := frame.Of(ctx)
+	outboundFrame := frame.Of(req.Header)
+	depth := inboundFrame.CallDepth()
 	if depth >= c.maxCallDepth {
 		err = errors.Newc(http.StatusLoopDetected, "call depth overflow", req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
-	frame.Of(req.Header).SetCallDepth(depth + 1)
+	outboundFrame.SetCallDepth(depth + 1)
 
 	// Set return address
-	frame.Of(req.Header).SetFromHost(c.hostName)
-	frame.Of(req.Header).SetFromID(c.id)
-	frame.Of(req.Header).SetFromVersion(c.version)
-	frame.Of(req.Header).SetOpCode(frame.OpCodeRequest)
+	outboundFrame.SetFromHost(c.hostName)
+	outboundFrame.SetFromID(c.id)
+	outboundFrame.SetFromVersion(c.version)
+	outboundFrame.SetOpCode(frame.OpCodeRequest)
 
 	// Copy X-Forwarded headers (set by ingress proxy)
 	for _, fwdHdr := range []string{"X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Prefix"} {
-		v := frame.Of(ctx).Get(fwdHdr)
-		if v != "" && frame.Of(req.Header).Get(fwdHdr) == "" {
-			frame.Of(req.Header).Set(fwdHdr, v)
+		v := inboundFrame.Get(fwdHdr)
+		if v != "" && outboundFrame.Get(fwdHdr) == "" {
+			outboundFrame.Set(fwdHdr, v)
+		}
+	}
+
+	// Copy baggage headers
+	for k := range inboundFrame.Header() {
+		if strings.HasPrefix(k, frame.HeaderBaggagePrefix) {
+			outboundFrame.Set(k, inboundFrame.Get(k))
 		}
 	}
 

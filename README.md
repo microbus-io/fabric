@@ -52,7 +52,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/configurator](docs/structure/services-configurator.md) - The configurator system microservice
 * [services/control](docs/structure/services-control.md) - Client API for the `:888` control subscriptions
-* [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy system microservice
+* [services/httpingress](docs/structure/services-httpingress.md) ✨ - The HTTP ingress proxy system microservice
 * [services/metrics](docs/structure/services-metrics.md) - The metrics microservice collects metrics from microservices and delivers them to `Prometheus` and `Grafana`
 * [shardedsql](docs/structure/shardedsql.md) - SQL database sharding and schema migration
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests

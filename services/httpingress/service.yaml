@@ -95,10 +95,9 @@ configs:
     callback: true
   - signature: Middleware() (viaURL string)
     description: |-
-      Middleware defines a microservice endpoint to delegate all requests through.
+      Middleware defines a microservice to delegate all requests to.
       The URL of the middleware must be fully qualified, for example,
       "https://middle.ware/serve" or "https://middle.ware:123".
-      A middleware is required in order to be able to serve the root path or a favicon.
 
 # Types
 #

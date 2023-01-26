@@ -25,18 +25,18 @@ import (
 )
 
 const (
-	HeaderPrefix      = "Microbus-"
-	HeaderMsgId       = HeaderPrefix + "Msg-Id"
-	HeaderFromHost    = HeaderPrefix + "From-Host"
-	HeaderFromId      = HeaderPrefix + "From-Id"
-	HeaderFromVersion = HeaderPrefix + "From-Version"
-	HeaderTimeBudget  = HeaderPrefix + "Time-Budget"
-	HeaderCallDepth   = HeaderPrefix + "Call-Depth"
-	HeaderOpCode      = HeaderPrefix + "Op-Code"
-	HeaderTimestamp   = HeaderPrefix + "Timestamp"
-	HeaderQueue       = HeaderPrefix + "Queue"
-	HeaderFragment    = HeaderPrefix + "Fragment"
-	HeaderAuthToken   = HeaderPrefix + "Auth-Token"
+	HeaderPrefix        = "Microbus-"
+	HeaderBaggagePrefix = HeaderPrefix + "Baggage-"
+	HeaderMsgId         = HeaderPrefix + "Msg-Id"
+	HeaderFromHost      = HeaderPrefix + "From-Host"
+	HeaderFromId        = HeaderPrefix + "From-Id"
+	HeaderFromVersion   = HeaderPrefix + "From-Version"
+	HeaderTimeBudget    = HeaderPrefix + "Time-Budget"
+	HeaderCallDepth     = HeaderPrefix + "Call-Depth"
+	HeaderOpCode        = HeaderPrefix + "Op-Code"
+	HeaderTimestamp     = HeaderPrefix + "Timestamp"
+	HeaderQueue         = HeaderPrefix + "Queue"
+	HeaderFragment      = HeaderPrefix + "Fragment"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -87,6 +87,11 @@ func (f Frame) Set(name string, value string) {
 	} else {
 		f.h.Set(name, value)
 	}
+}
+
+// Header returns the underlying HTTP header backing the frame.
+func (f Frame) Header() http.Header {
+	return f.h
 }
 
 // OpCode indicates the type of the control message.
@@ -260,16 +265,16 @@ func (f Frame) SetFragment(index int, max int) {
 	}
 }
 
-// AuthToken is the auth token identifying the actor.
-func (f Frame) AuthToken() string {
-	return f.h.Get(HeaderAuthToken)
+// Baggage is an arbitrary header that is passed through to downstream microservices.
+func (f Frame) Baggage(name string) string {
+	return f.h.Get(HeaderBaggagePrefix + name)
 }
 
-// SetAuthToken sets the auth token identifying the actor.
-func (f Frame) SetAuthToken(op string) {
-	if op == "" {
-		f.h.Del(HeaderAuthToken)
+// SetBaggage sets an arbitrary header that is passed through to downstream microservices.
+func (f Frame) SetBaggage(name string, value string) {
+	if value == "" {
+		f.h.Del(HeaderBaggagePrefix + name)
 	} else {
-		f.h.Set(HeaderAuthToken, op)
+		f.h.Set(HeaderBaggagePrefix+name, value)
 	}
 }

@@ -419,6 +419,10 @@ func (db *DB) ExecContext(ctx context.Context, shardingKey int, query string, ar
 // Sequence names are limited to 256 ASCII characters.
 func (db *DB) MigrateSchema(ctx context.Context, statementSequence *StatementSequence) (err error) {
 	shards := db.Shards()
+	if len(shards) == 1 && shards[1] != nil {
+		err = shards[1].MigrateSchema(ctx, statementSequence)
+		return errors.Trace(err)
+	}
 	errs := make(chan error, len(shards))
 	for _, shard := range shards {
 		shard := shard

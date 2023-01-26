@@ -8,9 +8,12 @@ Practically all applications require interaction from a source that is outside t
 
 <img src="httpingress-1.svg" width="840">
 
-On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP requests; on the other end it is connected to NATS. The ingress proxy converts real requests into requests on the bus; and on the flip side, converts responses from the bus to real responses. Because the bus messages in `Microbus` are formatted themselves as HTTP messages, this conversion is trivial, with two caveats:
+On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP requests; on the other end it is connected to NATS. The ingress proxy converts real requests into requests on the bus; and on the flip side, converts responses from the bus to real responses. Because the bus messages in `Microbus` are formatted themselves as HTTP messages, this conversion is trivial, with minor adjustments:
+
 * The proxy filters out `Microbus-` control headers from coming in or leaking out
-* The first segment of the path of the real HTTP request is treated as the host name of the microservice on the bus. So for example, `http://localhost:8080/echo.example/echo` is translated to the bus address `https://echo.example/echo` which is then mapped to the NATS subject `microbus.443.example.echo.|.echo`. Port `:443` is assumed by default when a port is not explicitly specified.
+* The first segment of the path of the real HTTP request is treated as the host name of the microservice on the bus. So for example, `http://localhost:8080/echo.example/echo` is translated to the bus address `https://echo.example/echo` which is then mapped to the NATS subject `microbus.443.example.echo.|.echo`.
+* Port `:443` is assumed by default when a port is not explicitly specified. Internal ports can be designated in the first segment of the path. For example, `http://localhost:8080/echo.example:1234/echo` is mapped to the bus address `https://echo.example:1234/echo`.
+* The root path is transformed to `/root`, therefore `http://localhost:8080/` is mapped to `https://root`.
 
 ## Configuration
 
@@ -29,18 +32,19 @@ Ports can be used to differentiate between traffic that is coming from trusted a
 
 <img src="httpingress-3.svg" width="960">
 
-`ReadHeaderTimeout`, `ReadTimeout`, `TimeBudget` and `WriteTimeout` are used to control the duration of a request.
-
-<img src="httpingress-2.svg" width="846">
+Four config properties are used to safeguard against long requests:
 
 * `ReadHeaderTimeout` is the timeout to read the request's header
 * `ReadTimeout` is the timeout to read the full request, including the header
 * `TimeBudget` is the time budget allocated to the downstream microservice to process the request
 * `WriteTimeout` is the timeout to write the response back to the client
 
+<img src="httpingress-2.svg" width="846">
+
 `RequestMemoryLimit` is the memory capacity used to hold pending requests, in megabytes.
 
 `AllowedOrigins` is a comma-separated list of CORS origins to allow requests from. The `*` origin can be used to allow CORS request from all origins.
 
-`RedirectRoot` defines the internal URL to redirect requests to the root path.
-The URL must be fully qualified, for example, `https://home.service/welcome-page`.
+`Middleware` defines a microservice to delegate all requests to.
+The URL of the middleware must be fully qualified, for example,
+`https://middle.ware/serve` or `https://middle.ware:123`.
