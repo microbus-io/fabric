@@ -75,6 +75,19 @@ func Of(r any) Frame {
 	return Frame{h}
 }
 
+// CloneCtx returns a new context with the frame's data cloned.
+// Manipulating the frame of the cloned context does not impact the original context.
+// The cloned context can then be passed along to downstream microservices.
+func CloneCtx(ctx context.Context) context.Context {
+	f := Of(ctx)
+	h := make(http.Header)
+	for k, v := range f.h {
+		h[k] = v
+	}
+	c := context.WithValue(ctx, ContextKey, h)
+	return c
+}
+
 // Get returns an arbitrary header.
 func (f Frame) Get(name string) string {
 	return f.h.Get(name)
