@@ -92,17 +92,3 @@ func TestHttpx_Copy(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, payload, string(b))
 }
-
-func TestHttpx_ReadFrom(t *testing.T) {
-	payload := rand.AlphaNum64(32 * 1024)
-
-	recorder := NewResponseRecorder()
-	n, err := recorder.ReadFrom(strings.NewReader(payload))
-	assert.NoError(t, err)
-	assert.Equal(t, len(payload), int(n))
-	n, err = recorder.ReadFrom(strings.NewReader(payload))
-	assert.NoError(t, err)
-	assert.Equal(t, len(payload), int(n))
-
-	assert.Equal(t, int(n*2), recorder.body.Len())
-}

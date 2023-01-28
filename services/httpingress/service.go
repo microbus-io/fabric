@@ -39,6 +39,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 
 	"github.com/microbus-io/fabric/services/httpingress/intermediate"
+	"github.com/microbus-io/fabric/services/metrics/metricsapi"
 )
 
 var (
@@ -253,10 +254,11 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	u := resolveInternalURL(r.URL, svc.portMappings)
 	internalURL := u.String()
 	internalHost := strings.Split(r.URL.RequestURI(), "/")[1]
-	if internalHost != "favicon.ico" {
+	metrics := internalHost == metricsapi.HostName || strings.HasPrefix(internalHost, metricsapi.HostName+":")
+	if internalHost != "favicon.ico" && !metrics {
 		svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
 	}
-	if middleware != "" {
+	if middleware != "" && !metrics {
 		internalURL = middleware + strings.TrimPrefix(internalURL, "https:/")
 	}
 
