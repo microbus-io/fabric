@@ -126,7 +126,8 @@ func Convert(err error) *TracedError {
 		return tracedErr
 	}
 	return &TracedError{
-		error: err,
+		error:      err,
+		StatusCode: 500,
 	}
 }
 

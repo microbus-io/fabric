@@ -370,7 +370,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Write back the status code
-	w.WriteHeader(internalRes.StatusCode)
+	if internalRes.StatusCode != 0 {
+		w.WriteHeader(internalRes.StatusCode)
+	}
 
 	// Write back the body
 	if internalRes.Body != nil {

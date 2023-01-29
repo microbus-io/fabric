@@ -47,7 +47,7 @@ func Test_BatchLookup(t *testing.T) {
 	// Batch lookup should return all records (excluding 5) in order
 	at := 0
 	batches := 0
-	blu := NewBatchLookupInts(shard1, "SELECT k FROM batchlookup WHERE k IN (?)", keys)
+	blu := NewBatchLookup(shard1, "SELECT k FROM batchlookup WHERE k IN (?)", keys)
 	blu.SetBatchSize(7)
 	for blu.Next() {
 		batches++
