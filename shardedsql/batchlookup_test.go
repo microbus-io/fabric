@@ -18,6 +18,7 @@ package shardedsql
 
 import (
 	"context"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,7 +34,7 @@ func Test_BatchLookup(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Insert some records
-	n := 101
+	n := 1011
 	var keys []int
 	shard1 := testingDB.Shard(1)
 	for i := 0; i < n; i++ {
@@ -44,11 +45,11 @@ func Test_BatchLookup(t *testing.T) {
 		}
 	}
 
-	// Batch lookup should return all records (excluding 5) in order
-	at := 0
+	// Batch lookup should return all records (excluding 5) in order they are requested
+	rand.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
+	var readBack []int
 	batches := 0
 	blu := NewBatchLookup(shard1, "SELECT k FROM batchlookup WHERE k IN (?)", keys)
-	blu.SetBatchSize(7)
 	for blu.Next() {
 		batches++
 		rows, err := blu.QueryContext(ctx)
@@ -57,14 +58,9 @@ func Test_BatchLookup(t *testing.T) {
 			var k int
 			err := rows.Scan(&k)
 			assert.NoError(t, err)
-			assert.Equal(t, at, k)
-			at++
-			if at == 5 {
-				// Record 5 is excluded
-				at++
-			}
+			readBack = append(readBack, k)
 		}
 	}
-	assert.Equal(t, n, at)
-	assert.Equal(t, (n+6)/7, batches)
+	assert.Equal(t, keys, readBack)
+	assert.Equal(t, (n+blu.batchSize-1)/blu.batchSize, batches)
 }

@@ -81,6 +81,16 @@ func Newc(statusCode int, text string, annotations ...any) error {
 	return err
 }
 
+// Newcf creates a new formatted error with an HTTP status code, capturing the current stack location.
+func Newcf(statusCode int, format string, a ...any) error {
+	if format == "" {
+		format = statusText[statusCode]
+	}
+	err := TraceUp(fmt.Errorf(format, a...), 1)
+	err.(*TracedError).StatusCode = statusCode
+	return err
+}
+
 // Newf formats a new error, capturing the current stack location.
 func Newf(format string, a ...any) error {
 	return TraceUp(fmt.Errorf(format, a...), 1)

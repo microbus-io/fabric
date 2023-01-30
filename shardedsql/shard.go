@@ -57,6 +57,8 @@ func argsToUTC(args []any) []any {
 			args[i] = v.UTC()
 		case clock.NullTime:
 			args[i] = clock.NewNullTimeUTC(v.Time)
+		case *clock.NullTime:
+			args[i] = clock.NewNullTimeUTC(v.Time)
 		}
 	}
 	return args
