@@ -80,6 +80,7 @@ types:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
@@ -99,6 +100,7 @@ functions:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
@@ -129,6 +131,7 @@ tickers:
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path
+#   //example.com:417/path
 #   https://example.com:417/path
 events:
   # - signature:

@@ -42,6 +42,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/directory/resources"
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
@@ -123,8 +124,8 @@ func NewService(impl ToDo, version int) *Intermediate {
 }
 
 // Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() embed.FS {
-	return resources.FS
+func (svc *Intermediate) Resources() utils.ResourceLoader {
+	return utils.ResourceLoader{resources.FS}
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

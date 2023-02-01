@@ -2,7 +2,7 @@
 // OnChanged{{ .Name }} is triggered when the value of the {{ .Name }} config property changes.
 func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
 	// TO{{/**/}}DO: Implement OnChanged{{ .Name }}
-	return errors.Newc(http.StatusNotImplemented, "not implemented")
+	return errors.Newc(http.StatusNotImplemented, "")
 }
 {{ end }}{{ end }}{{ end }}
 
@@ -12,7 +12,7 @@ func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
 */
 func (svc *Service) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 	// TO{{/**/}}DO: Implement {{ .Name }}
-	return {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}errors.Newc(http.StatusNotImplemented, "not implemented")
+	return {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}errors.Newc(http.StatusNotImplemented, "")
 }
 {{ end }}{{ end }}
 
@@ -22,7 +22,7 @@ func (svc *Service) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 */
 func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err error) {
 	// TO{{/**/}}DO: Implement {{ .Name }}
-	return errors.Newc(http.StatusNotImplemented, "not implemented")
+	return errors.Newc(http.StatusNotImplemented, "")
 }
 {{ end }}{{ end }}
 
@@ -32,6 +32,6 @@ func (svc *Service) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err err
 */
 func (svc *Service) {{ .Name }}(ctx context.Context) (err error) {
 	// TO{{/**/}}DO: Implement {{ .Name }}
-	return errors.Newc(http.StatusNotImplemented, "not implemented")
+	return errors.Newc(http.StatusNotImplemented, "")
 }
 {{ end }}{{ end }}

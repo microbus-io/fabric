@@ -30,6 +30,6 @@ var (
 Point is a 2D (X,Y) coordinate.
 */
 type Point struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	X float64 `json:"x,omitempty"`
+	Y float64 `json:"y,omitempty"`
 }

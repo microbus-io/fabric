@@ -59,6 +59,7 @@ func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Respo
 }
 
 // Request makes an HTTP request then awaits and returns a single response synchronously.
+// If no response is received, an ack timeout (404) error is returned.
 func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.Response, error) {
 	options = append(options, pub.Unicast())
 	ch := c.Publish(ctx, options...)
@@ -67,7 +68,7 @@ func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.R
 }
 
 // Publish makes an HTTP request then awaits and returns the responses asynchronously.
-// By default, publish performs a multicast and multiple responses may be returned.
+// By default, publish performs a multicast and multiple responses (or none at all) may be returned.
 // Use the Request method or pass in pub.Unicast() to Publish to perform a unicast.
 func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	errOutput := make(chan *pub.Response, 1)
@@ -406,22 +407,23 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		case <-ackTimer.C:
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
-				err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
-				output.Push(pub.NewErrorResponse(err))
-				_ = c.IncrementMetric(
-					"microbus_request_count_total",
-					1,
-					httpReq.Method,
-					httpReq.URL.Hostname(),
-					strconv.Itoa(port),
-					httpReq.URL.Path,
-					strconv.Itoa(http.StatusNotFound),
-					"OK",
-				)
-				// Known responders optimization
 				if req.Multicast {
+					// Known responders optimization
 					c.knownResponders.Delete(subject)
 					c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
+				} else {
+					err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
+					output.Push(pub.NewErrorResponse(err))
+					_ = c.IncrementMetric(
+						"microbus_request_count_total",
+						1,
+						httpReq.Method,
+						httpReq.URL.Hostname(),
+						strconv.Itoa(port),
+						httpReq.URL.Path,
+						strconv.Itoa(http.StatusNotFound),
+						"OK",
+					)
 				}
 				return
 			}

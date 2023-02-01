@@ -28,6 +28,10 @@ func JoinHostAndPath(host string, path string) string {
 		// :1080/path
 		return "https://" + host + path
 	}
+	if strings.HasPrefix(path, "//") {
+		// //host.name/path/with/slash
+		return "https:" + path
+	}
 	if strings.HasPrefix(path, "/") {
 		// /path/with/slash
 		return "https://" + host + ":443" + path

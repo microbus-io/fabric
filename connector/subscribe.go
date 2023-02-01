@@ -321,11 +321,9 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 		if handlerErr != nil {
 			handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
-			if errors.Convert(handlerErr).StatusCode == 0 {
-				if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
-					handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
-					errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
-				}
+			if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
+				handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
+				errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
 			}
 			c.LogError(frameCtx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
 

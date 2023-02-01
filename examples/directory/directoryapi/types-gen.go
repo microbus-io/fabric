@@ -37,7 +37,7 @@ type NullTime = import1_clock.NullTime
 PersonKey is the primary key of the person.
 */
 type PersonKey struct {
-	Seq int `json:"seq"`
+	Seq int `json:"seq,omitempty"`
 }
 
 /*
@@ -45,9 +45,9 @@ Person is a personal record that is registered in the directory.
 First and last name and email are required. Birthday is optional.
 */
 type Person struct {
-	Birthday NullTime `json:"birthday"`
-	Email string `json:"email"`
-	FirstName string `json:"firstName"`
-	Key PersonKey `json:"key"`
-	LastName string `json:"lastName"`
+	Birthday NullTime `json:"birthday,omitempty"`
+	Email string `json:"email,omitempty"`
+	FirstName string `json:"firstName,omitempty"`
+	Key PersonKey `json:"key,omitempty"`
+	LastName string `json:"lastName,omitempty"`
 }

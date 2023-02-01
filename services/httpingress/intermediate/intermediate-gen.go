@@ -42,6 +42,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/httpingress/resources"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
@@ -166,8 +167,8 @@ The URL of the middleware must be fully qualified, for example,
 }
 
 // Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() embed.FS {
-	return resources.FS
+func (svc *Intermediate) Resources() utils.ResourceLoader {
+	return utils.ResourceLoader{resources.FS}
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

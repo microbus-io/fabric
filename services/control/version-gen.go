@@ -18,12 +18,12 @@ limitations under the License.
 
 package control
 
-const Version = 59
-const SourceCodeSHA256 = "517d733a385e0e6335338a39ae829231eb76ff8fab7fd36c3210bd1b00e7f908"
-const Timestamp = "2023-01-24T20:30:02.823617Z"
+const Version = 60
+const SourceCodeSHA256 = "43b250cf69033851bd10d950764276b286ceb7499d4f10208d28189ea4dd90c0"
+const Timestamp = "2023-02-01T02:01:05.953248Z"
 
 /* {
-	"ver": 59,
-	"sha256": "517d733a385e0e6335338a39ae829231eb76ff8fab7fd36c3210bd1b00e7f908",
-	"ts": "2023-01-24T20:30:02.823617Z"
+	"ver": 60,
+	"sha256": "43b250cf69033851bd10d950764276b286ceb7499d4f10208d28189ea4dd90c0",
+	"ts": "2023-02-01T02:01:05.953248Z"
 } */

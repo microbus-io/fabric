@@ -603,6 +603,32 @@ func TestConnector_MulticastError(t *testing.T) {
 	assert.Equal(t, 1, countOKs)
 }
 
+func TestConnector_MulticastNotFound(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	con := New("multicast.not.found.connector")
+
+	// Startup the microservice
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send the message
+	var count int
+	t0 := con.Now()
+	ch := con.Publish(ctx, pub.GET("https://multicast.not.found.connector/nowhere"), pub.Multicast())
+	for i := range ch {
+		i.Get()
+		count++
+	}
+	dur := con.Clock().Since(t0)
+	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
+	assert.Equal(t, 0, count)
+}
+
 func TestConnector_MassMulticast(t *testing.T) {
 	// No parallel
 
