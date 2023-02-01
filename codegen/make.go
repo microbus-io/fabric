@@ -627,7 +627,10 @@ func (gen *Generator) makeRefreshSignature() error {
 
 // findReplaceSignature updates the signature of functions.
 func findReplaceSignature(specs *spec.Service, source string) (modified string) {
-	for _, fn := range specs.Functions {
+	endpoints := []*spec.Handler{}
+	endpoints = append(endpoints, specs.Functions...)
+	endpoints = append(endpoints, specs.Sinks...)
+	for _, fn := range endpoints {
 		p := strings.Index(source, "func (svc *Service) "+fn.Name()+"(")
 		if p < 0 {
 			continue
