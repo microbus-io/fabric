@@ -19,7 +19,6 @@ package shardedsql
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
@@ -37,8 +36,9 @@ type BatchLookup struct {
 
 /*
 NewBatchLookup creates a new batch lookup.
-The query must be a SELECT {fields} FROM {table} WHERE {key_field} IN (?) statement.
+The query must be a SELECT ... IN (?) statement.
 The keys must be specified as an array []any, []string or []int.
+The results are returned in random order, not the order of the input keys.
 
 Usage:
 
@@ -91,12 +91,12 @@ func NewBatchLookup(shard *Shard, query string, args ...any) *BatchLookup {
 			}
 		}
 	}
-	result.batchSize = 500
+	result.batchSize = 1000
 	return result
 }
 
 // SetBatchSize sets the number of records to lookup at a time.
-// The default is 500. Most databases will not handle more than 1000.
+// The default is 1000. Most databases will not handle more than 1000.
 func (blu *BatchLookup) SetBatchSize(n int) {
 	if n > 0 {
 		blu.batchSize = n
@@ -134,35 +134,9 @@ func (blu *BatchLookup) QueryContext(ctx context.Context) (rows *sql.Rows, err e
 	}
 	args = append(args, blu.after...)
 
-	// Identify the index field so we can sort
-	indexField := ""
-	if len(keyArgs) > 1 {
-		ucQuery := strings.ToUpper(blu.query)
-		p := strings.Index(ucQuery, " IN ")
-		if p >= 0 {
-			q := strings.LastIndex(ucQuery[:p], " ")
-			if q >= 0 {
-				indexField = blu.query[q+1 : p]
-			}
-		}
-	}
-
 	// Run the query
 	questionMarks := "(?" + strings.Repeat(",?", len(keyArgs)-1) + ")"
 	query := strings.Replace(blu.query, "(?)", questionMarks, 1)
-
-	if indexField != "" {
-		query += " ORDER BY FIND_IN_SET(" + indexField + ",'"
-		for i, a := range keyArgs {
-			if i > 0 {
-				query += fmt.Sprintf(",%v", a)
-			} else {
-				query += fmt.Sprintf("%v", a)
-			}
-		}
-		query += "')"
-	}
-
 	rows, err = blu.shard.QueryContext(ctx, query, args...)
 	return rows, errors.Trace(err)
 }

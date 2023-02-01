@@ -19,6 +19,7 @@ package shardedsql
 import (
 	"context"
 	"math/rand"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,6 +62,14 @@ func Test_BatchLookup(t *testing.T) {
 			readBack = append(readBack, k)
 		}
 	}
-	assert.Equal(t, keys, readBack)
+	assert.Equal(t, len(keys), len(readBack))
+	sort.Ints(readBack)
+	for i, k := range readBack {
+		if i < 5 {
+			assert.Equal(t, i, k)
+		} else {
+			assert.Equal(t, i+1, k)
+		}
+	}
 	assert.Equal(t, (n+blu.batchSize-1)/blu.batchSize, batches)
 }
