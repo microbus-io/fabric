@@ -28,6 +28,7 @@ var statusText = map[int]string{
 	100: "continue",
 	// 2xx
 	200: "ok",
+	206: "partial content",
 	// 3xx
 	301: "moved permanently",
 	302: "found",

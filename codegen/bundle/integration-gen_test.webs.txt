@@ -206,6 +206,10 @@ func {{ .Name }}(t *testing.T, ctx context.Context, options ...WebOption) *{{ .N
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("{{ $host }}", `{{ .Path }}`)),
 	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
