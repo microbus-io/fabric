@@ -168,7 +168,7 @@ The URL of the middleware must be fully qualified, for example,
 
 // Resources is the in-memory file system of the embedded resources.
 func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{resources.FS}
+	return utils.ResourceLoader{FS: resources.FS}
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

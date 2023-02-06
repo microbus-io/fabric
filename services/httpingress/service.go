@@ -32,6 +32,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
@@ -350,21 +351,29 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	if internalRes.Body != nil {
 		contentType := internalRes.Header.Get("Content-Type")
 		contentEncoding := internalRes.Header.Get("Content-Encoding")
-		if (strings.HasPrefix(contentType, "text/") || strings.HasPrefix(contentType, "application/json")) &&
+		contentLength, _ := strconv.Atoi(internalRes.Header.Get("Content-Length"))
+		if contentLength > 32*1024 &&
+			(strings.HasPrefix(contentType, "text/") || strings.HasPrefix(contentType, "application/json")) &&
 			(contentEncoding == "" || contentEncoding == "identity") {
 			acceptEncoding := r.Header.Get("Accept-Encoding")
-			if strings.Contains(acceptEncoding, "gzip") {
+			if strings.Contains(acceptEncoding, "br") {
 				w.Header().Del("Content-Length")
-				w.Header().Set("Content-Encoding", "gzip")
-				gzipper := gzip.NewWriter(w)
-				writer = gzipper
-				closer = gzipper
+				w.Header().Set("Content-Encoding", "br")
+				brot := brotli.NewWriter(w)
+				writer = brot
+				closer = brot
 			} else if strings.Contains(acceptEncoding, "deflate") {
 				w.Header().Del("Content-Length")
 				w.Header().Set("Content-Encoding", "deflate")
 				deflater, _ := flate.NewWriter(w, flate.DefaultCompression)
 				writer = deflater
 				closer = deflater
+			} else if strings.Contains(acceptEncoding, "gzip") {
+				w.Header().Del("Content-Length")
+				w.Header().Set("Content-Encoding", "gzip")
+				gzipper := gzip.NewWriter(w)
+				writer = gzipper
+				closer = gzipper
 			}
 		}
 	}

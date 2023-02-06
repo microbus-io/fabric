@@ -3,6 +3,7 @@ module github.com/microbus-io/fabric
 go 1.19
 
 require (
+	github.com/andybalholm/brotli v1.0.4
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/microbus-io/copyrighter v0.1.7
 	github.com/nats-io/nats.go v1.23.0
