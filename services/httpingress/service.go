@@ -352,7 +352,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		contentType := internalRes.Header.Get("Content-Type")
 		contentEncoding := internalRes.Header.Get("Content-Encoding")
 		contentLength, _ := strconv.Atoi(internalRes.Header.Get("Content-Length"))
-		if contentLength > 32*1024 &&
+		if contentLength >= 4*1024 &&
 			(strings.HasPrefix(contentType, "text/") || strings.HasPrefix(contentType, "application/json")) &&
 			(contentEncoding == "" || contentEncoding == "identity") {
 			acceptEncoding := r.Header.Get("Accept-Encoding")
