@@ -32,20 +32,20 @@ type ResourceLoader struct {
 }
 
 // LoadFile returns the content of the embedded file, or nil if not found.
-func (rl *ResourceLoader) LoadFile(name string) []byte {
+func (rl ResourceLoader) LoadFile(name string) []byte {
 	b, _ := rl.ReadFile(name)
 	return b
 }
 
 // LoadText returns the content of the embedded file as a string, or nil if not found.
-func (rl *ResourceLoader) LoadText(name string) string {
+func (rl ResourceLoader) LoadText(name string) string {
 	b, _ := rl.ReadFile(name)
 	return string(b)
 }
 
 // LoadTemplate parses the embedded file as a template, executes it given the data, and returns
 // the result. The template is assumed to be a text template unless the file name ends in .html.
-func (rl *ResourceLoader) LoadTemplate(name string, data any) (string, error) {
+func (rl ResourceLoader) LoadTemplate(name string, data any) (string, error) {
 	b, err := rl.ReadFile(name)
 	if err != nil {
 		return "", errors.Trace(err)
