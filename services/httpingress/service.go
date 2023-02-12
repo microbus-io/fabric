@@ -281,6 +281,12 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Add the time budget to the request headers and set it as the context's timeout
 	delegateCtx := ctx
 	timeBudget := svc.TimeBudget()
+	if r.Header.Get("Request-Timeout") != "" {
+		headerTimeoutSecs, err := strconv.Atoi(r.Header.Get("Request-Timeout"))
+		if err == nil {
+			timeBudget = time.Duration(headerTimeoutSecs) * time.Second
+		}
+	}
 	if timeBudget > 0 {
 		options = append(options, pub.TimeBudget(timeBudget))
 		var cancel context.CancelFunc
