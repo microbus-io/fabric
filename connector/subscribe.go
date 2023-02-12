@@ -283,7 +283,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
-	if budget <= c.networkHop {
+	if budget > 0 && budget <= c.networkHop {
 		return errors.Newc(http.StatusRequestTimeout, "timeout")
 	}
 
@@ -308,9 +308,13 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpRecorder.WriteHeader(http.StatusNoContent)
 	} else {
 		// Prepare the context
-		// Set the context's timeout to the time budget reduced by a network hop
 		frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
-		ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
+		ctx := frameCtx
+		cancel := func() {}
+		if budget > 0 {
+			// Set the context's timeout to the time budget reduced by a network hop
+			ctx, cancel = context.WithTimeout(frameCtx, budget-c.networkHop)
+		}
 		httpReq = httpReq.WithContext(ctx)
 
 		// Call the handler

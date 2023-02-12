@@ -105,8 +105,9 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"TimeBudget",
-		cfg.Description(`TimeBudget specifies the timeout for handling a request, after it has been read.`),
-		cfg.Validation(`dur [1s,]`),
+		cfg.Description(`TimeBudget specifies the timeout for handling a request, after it has been read.
+A value of 0 or less indicates no time budget.`),
+		cfg.Validation(`dur [0s,]`),
 		cfg.DefaultValue(`20s`),
 	)
 	svc.DefineConfig(
@@ -214,6 +215,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 
 /*
 TimeBudget specifies the timeout for handling a request, after it has been read.
+A value of 0 or less indicates no time budget.
 */
 func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	_val := svc.Config("TimeBudget")
@@ -223,6 +225,7 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 
 /*
 TimeBudget specifies the timeout for handling a request, after it has been read.
+A value of 0 or less indicates no time budget.
 */
 func TimeBudget(budget time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {

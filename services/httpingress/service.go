@@ -288,7 +288,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 	if timeBudget > 0 {
-		options = append(options, pub.TimeBudget(timeBudget))
 		var cancel context.CancelFunc
 		delegateCtx, cancel = svc.Clock().WithTimeout(ctx, timeBudget)
 		defer cancel()

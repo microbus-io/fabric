@@ -113,7 +113,7 @@ This key is required except in local development and tests.`),
 
 // Resources is the in-memory file system of the embedded resources.
 func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{resources.FS}
+	return utils.ResourceLoader{FS: resources.FS}
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

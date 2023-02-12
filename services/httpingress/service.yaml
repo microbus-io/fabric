@@ -49,9 +49,11 @@ databases:
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
   - signature: TimeBudget() (budget time.Duration)
-    description: TimeBudget specifies the timeout for handling a request, after it has been read.
+    description: |-
+      TimeBudget specifies the timeout for handling a request, after it has been read.
+      A value of 0 or less indicates no time budget.
     default: 20s
-    validation: dur [1s,]
+    validation: dur [0s,]
   - signature: Ports() (port string)
     description: Ports is a comma-separated list of HTTP ports on which to listen for requests.
     default: 8080

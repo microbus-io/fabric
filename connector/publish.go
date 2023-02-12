@@ -81,16 +81,8 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 		return errOutput
 	}
 
-	// Restrict the time budget to the context deadline
-	deadline, ok := ctx.Deadline()
-	if ok {
-		ctxBudget := time.Until(deadline)
-		if ctxBudget < req.TimeBudget {
-			req.Apply(pub.TimeBudget(ctxBudget))
-		}
-	}
 	// Check if there's enough time budget
-	if req.TimeBudget <= c.networkHop {
+	if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) <= c.networkHop {
 		err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
@@ -161,7 +153,10 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
 	}
-	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
+	deadline, deadlineOK := ctx.Deadline()
+	if deadlineOK {
+		frame.Of(httpReq).SetTimeBudget(time.Until(deadline))
+	}
 
 	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
 
@@ -246,8 +241,16 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	seenIDs := map[string]string{} // FromID -> OpCode
 	seenQueues := map[string]bool{}
 	doneWaitingForAcks := false
-	timeoutTimer := time.NewTimer(req.TimeBudget)
-	defer timeoutTimer.Stop()
+	var timeoutTimer *time.Timer
+	if deadlineOK {
+		timeoutTimer = time.NewTimer(time.Until(deadline))
+		defer timeoutTimer.Stop()
+	} else {
+		// No op timer
+		timeoutTimer = &time.Timer{
+			C: make(<-chan time.Time),
+		}
+	}
 	ackTimer := time.NewTimer(AckTimeout)
 	defer ackTimer.Stop()
 	for {

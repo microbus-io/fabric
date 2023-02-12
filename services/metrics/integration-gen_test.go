@@ -32,6 +32,7 @@ import (
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -53,6 +54,7 @@ var (
 	_ strings.Builder
 	_ *connector.Connector
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -330,6 +332,10 @@ func Collect(t *testing.T, ctx context.Context, options ...WebOption) *CollectTe
 	tc := &CollectTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("metrics.sys", `:443/collect`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
 	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
