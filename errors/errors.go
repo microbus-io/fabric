@@ -112,9 +112,12 @@ func TraceUp(err error, levels int, annotations ...any) error {
 	tracedErr := Convert(err)
 	file, function, line, ok := RuntimeTrace(1 + levels)
 	if ok {
-		strAnnotations := make([]string, len(annotations))
-		for i := range annotations {
-			strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+		var strAnnotations []string
+		if len(annotations) > 0 {
+			strAnnotations = make([]string, len(annotations))
+			for i := range annotations {
+				strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+			}
 		}
 		tracedErr.stack = append(tracedErr.stack, &trace{
 			File:        file,
@@ -122,6 +125,40 @@ func TraceUp(err error, levels int, annotations ...any) error {
 			Line:        line,
 			Annotations: strAnnotations,
 		})
+	}
+	return tracedErr
+}
+
+// TraceFull appends the full stack to the error's stack trace.
+// Optional annotations may be attached to the first level.
+func TraceFull(err error, annotations ...any) error {
+	if err == nil {
+		return nil
+	}
+	tracedErr := Convert(err)
+
+	strAnnotations := make([]string, len(annotations))
+	for i := range annotations {
+		strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+	}
+
+	levels := -1
+	for {
+		levels++
+		file, function, line, ok := RuntimeTrace(1 + levels)
+		if !ok {
+			break
+		}
+		if strings.HasPrefix(function, "runtime.") {
+			continue
+		}
+		tracedErr.stack = append(tracedErr.stack, &trace{
+			File:        file,
+			Function:    function,
+			Line:        line,
+			Annotations: strAnnotations,
+		})
+		strAnnotations = nil
 	}
 	return tracedErr
 }

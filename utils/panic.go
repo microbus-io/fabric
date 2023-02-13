@@ -31,7 +31,7 @@ func CatchPanic(f func() error) (err error) {
 			} else {
 				err = fmt.Errorf("%v", r)
 			}
-			err = errors.TraceUp(err, 2)
+			err = errors.TraceFull(err)
 		}
 	}()
 	err = f()
