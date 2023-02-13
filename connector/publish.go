@@ -253,6 +253,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	}
 	ackTimer := time.NewTimer(AckTimeout)
 	defer ackTimer.Stop()
+	ackTimerStart := time.Now()
 	for {
 		select {
 		case response := <-awaitCh.C():
@@ -408,6 +409,14 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 
 		// Ack timer
 		case <-ackTimer.C:
+			if c.deployment == LOCAL && time.Since(ackTimerStart) >= AckTimeout*8 {
+				// Likely resuming from a breakpoint that prevented the ack from arriving in time.
+				// Reset the ack timer to allow the ack to arrive.
+				ackTimer.Reset(AckTimeout)
+				ackTimerStart = time.Now()
+				c.LogDebug(ctx, "Resetting ack timeout", log.String("msg", msgID), log.String("subject", subject))
+				continue
+			}
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
 				if req.Multicast {
