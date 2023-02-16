@@ -283,7 +283,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
-	if budget <= c.networkHop {
+	if budget > 0 && budget <= c.networkHop {
 		return errors.Newc(http.StatusRequestTimeout, "timeout")
 	}
 
@@ -308,9 +308,13 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpRecorder.WriteHeader(http.StatusNoContent)
 	} else {
 		// Prepare the context
-		// Set the context's timeout to the time budget reduced by a network hop
 		frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
-		ctx, cancel := context.WithTimeout(frameCtx, budget-c.networkHop)
+		ctx := frameCtx
+		cancel := func() {}
+		if budget > 0 {
+			// Set the context's timeout to the time budget reduced by a network hop
+			ctx, cancel = context.WithTimeout(frameCtx, budget-c.networkHop)
+		}
 		httpReq = httpReq.WithContext(ctx)
 
 		// Call the handler
@@ -321,11 +325,9 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 		if handlerErr != nil {
 			handlerErr = errors.Trace(handlerErr, httpx.JoinHostAndPath(c.hostName, s.Path))
-			if errors.Convert(handlerErr).StatusCode == 0 {
-				if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
-					handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
-					errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
-				}
+			if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
+				handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
+				errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
 			}
 			c.LogError(frameCtx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
 

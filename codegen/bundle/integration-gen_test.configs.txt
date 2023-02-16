@@ -1,6 +1,7 @@
 {{ range .Configs }}{{ if .Callback }}
 // OnChanged{{ .Name }}TestCase assists in asserting against the results of executing OnChanged{{ .Name }}.
 type OnChanged{{ .Name }}TestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -12,8 +13,8 @@ func (tc *OnChanged{{ .Name }}TestCase) Name(testName string) *OnChanged{{ .Name
 }
 
 // Error asserts an error.
-func (tc *OnChanged{{ .Name }}TestCase) Error(t *testing.T, errContains string) *OnChanged{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChanged{{ .Name }}TestCase) Error(errContains string) *OnChanged{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -22,8 +23,8 @@ func (tc *OnChanged{{ .Name }}TestCase) Error(t *testing.T, errContains string) 
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnChanged{{ .Name }}TestCase) ErrorCode(t *testing.T, statusCode int) *OnChanged{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChanged{{ .Name }}TestCase) ErrorCode(statusCode int) *OnChanged{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -32,16 +33,16 @@ func (tc *OnChanged{{ .Name }}TestCase) ErrorCode(t *testing.T, statusCode int) 
 }
 
 // NoError asserts no error.
-func (tc *OnChanged{{ .Name }}TestCase) NoError(t *testing.T) *OnChanged{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChanged{{ .Name }}TestCase) NoError() *OnChanged{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnChanged{{ .Name }}TestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChanged{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChanged{{ .Name }}TestCase) Assert(asserter func(t *testing.T, err error)) *OnChanged{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -53,8 +54,8 @@ func (tc *OnChanged{{ .Name }}TestCase) Get() (err error) {
 }
 
 // OnChanged{{ .Name }} executes the on changed callback and returns a corresponding test case.
-func OnChanged{{ .Name }}(ctx context.Context) *OnChanged{{ .Name }}TestCase {
-	tc := &OnChanged{{ .Name }}TestCase{}
+func OnChanged{{ .Name }}(t *testing.T, ctx context.Context) *OnChanged{{ .Name }}TestCase {
+	tc := &OnChanged{{ .Name }}TestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.OnChanged{{ .Name }}(ctx)
 	})

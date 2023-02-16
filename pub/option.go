@@ -23,9 +23,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/utils"
 )
@@ -128,10 +128,20 @@ func PATCH(url string) Option {
 }
 
 // Header sets the header of the request. It overwrites any previously set value.
-func Header(name, value string) Option {
+func Header(name string, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
 			req.Header.Set(name, value)
+		}
+		return nil
+	}
+}
+
+// Baggage sets a baggage header of the request. It overwrites any previously set value.
+func Baggage(name string, value string) Option {
+	return func(req *Request) error {
+		if value != "" {
+			req.Header.Set(frame.HeaderBaggagePrefix+name, value)
 		}
 		return nil
 	}
@@ -238,18 +248,6 @@ func Body(body any) Option {
 func ContentType(contentType string) Option {
 	return func(req *Request) error {
 		req.Header.Set("Content-Type", contentType)
-		return nil
-	}
-}
-
-// TimeBudget sets a timeout for the request.
-// The default time budget is 20 seconds.
-func TimeBudget(timeout time.Duration) Option {
-	if timeout < 0 {
-		timeout = 0
-	}
-	return func(req *Request) error {
-		req.TimeBudget = timeout
 		return nil
 	}
 }

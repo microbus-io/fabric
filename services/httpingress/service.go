@@ -32,6 +32,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
@@ -39,6 +40,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 
 	"github.com/microbus-io/fabric/services/httpingress/intermediate"
+	"github.com/microbus-io/fabric/services/metrics/metricsapi"
 )
 
 var (
@@ -224,7 +226,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := svc.Lifetime()
 	middleware := svc.Middleware()
-	uri := r.URL.RequestURI()
 
 	// Fill in the gaps
 	r.URL.Host = r.Host
@@ -236,15 +237,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	// Skip favicon.ico to reduce noise
-	if middleware == "" && uri == "/favicon.ico" {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-	// Can't serve root path without a middleware
-	if middleware == "" && uri == "/" {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
+	// Detect root path
+	if r.URL.Path == "/" {
+		r.URL.Path = "/root"
 	}
 
 	// Block disallowed origins
@@ -257,18 +252,14 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Use the first segment of the URI as the host name to contact
-	var internalURL string
-	var internalHost string
-	if uri == "/" {
-		internalURL = "/"
-		internalHost = ""
-	} else {
-		u := resolveInternalURL(r.URL, svc.portMappings)
-		internalURL = u.String()
-		internalHost = strings.Split(uri, "/")[1]
+	u := resolveInternalURL(r.URL, svc.portMappings)
+	internalURL := u.String()
+	internalHost := strings.Split(r.URL.RequestURI(), "/")[1]
+	metrics := internalHost == metricsapi.HostName || strings.HasPrefix(internalHost, metricsapi.HostName+":")
+	if internalHost != "favicon.ico" && !metrics {
+		svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
 	}
-	svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
-	if middleware != "" {
+	if middleware != "" && !metrics {
 		internalURL = middleware + strings.TrimPrefix(internalURL, "https:/")
 	}
 
@@ -290,8 +281,13 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Add the time budget to the request headers and set it as the context's timeout
 	delegateCtx := ctx
 	timeBudget := svc.TimeBudget()
+	if r.Header.Get("Request-Timeout") != "" {
+		headerTimeoutSecs, err := strconv.Atoi(r.Header.Get("Request-Timeout"))
+		if err == nil {
+			timeBudget = time.Duration(headerTimeoutSecs) * time.Second
+		}
+	}
 	if timeBudget > 0 {
-		options = append(options, pub.TimeBudget(timeBudget))
 		var cancel context.CancelFunc
 		delegateCtx, cancel = svc.Clock().WithTimeout(ctx, timeBudget)
 		defer cancel()
@@ -360,27 +356,37 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	if internalRes.Body != nil {
 		contentType := internalRes.Header.Get("Content-Type")
 		contentEncoding := internalRes.Header.Get("Content-Encoding")
-		if (strings.HasPrefix(contentType, "text/") || strings.HasPrefix(contentType, "application/json")) &&
+		contentLength, _ := strconv.Atoi(internalRes.Header.Get("Content-Length"))
+		if contentLength >= 4*1024 &&
+			(strings.HasPrefix(contentType, "text/") || strings.HasPrefix(contentType, "application/json")) &&
 			(contentEncoding == "" || contentEncoding == "identity") {
 			acceptEncoding := r.Header.Get("Accept-Encoding")
-			if strings.Contains(acceptEncoding, "gzip") {
+			if strings.Contains(acceptEncoding, "br") {
 				w.Header().Del("Content-Length")
-				w.Header().Set("Content-Encoding", "gzip")
-				gzipper := gzip.NewWriter(w)
-				writer = gzipper
-				closer = gzipper
+				w.Header().Set("Content-Encoding", "br")
+				brot := brotli.NewWriter(w)
+				writer = brot
+				closer = brot
 			} else if strings.Contains(acceptEncoding, "deflate") {
 				w.Header().Del("Content-Length")
 				w.Header().Set("Content-Encoding", "deflate")
 				deflater, _ := flate.NewWriter(w, flate.DefaultCompression)
 				writer = deflater
 				closer = deflater
+			} else if strings.Contains(acceptEncoding, "gzip") {
+				w.Header().Del("Content-Length")
+				w.Header().Set("Content-Encoding", "gzip")
+				gzipper := gzip.NewWriter(w)
+				writer = gzipper
+				closer = gzipper
 			}
 		}
 	}
 
 	// Write back the status code
-	w.WriteHeader(internalRes.StatusCode)
+	if internalRes.StatusCode != 0 {
+		w.WriteHeader(internalRes.StatusCode)
+	}
 
 	// Write back the body
 	if internalRes.Body != nil {

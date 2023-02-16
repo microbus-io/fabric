@@ -337,6 +337,13 @@ func openDatabase(ctx context.Context, driver string, dataSource string) (*sql.D
 			return nil, errors.Trace(err)
 		}
 	}
+	// Strict mode guards against errors
+	// https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html#sql-mode-strict
+	_, err = sqlDB.ExecContext(ctx, "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES', SESSION sql_mode = 'STRICT_ALL_TABLES'")
+	if err != nil {
+		sqlDB.Close()
+		return nil, errors.Trace(err)
+	}
 	return sqlDB, nil
 }
 
@@ -419,6 +426,10 @@ func (db *DB) ExecContext(ctx context.Context, shardingKey int, query string, ar
 // Sequence names are limited to 256 ASCII characters.
 func (db *DB) MigrateSchema(ctx context.Context, statementSequence *StatementSequence) (err error) {
 	shards := db.Shards()
+	if len(shards) == 1 && shards[1] != nil {
+		err = shards[1].MigrateSchema(ctx, statementSequence)
+		return errors.Trace(err)
+	}
 	errs := make(chan error, len(shards))
 	for _, shard := range shards {
 		shard := shard

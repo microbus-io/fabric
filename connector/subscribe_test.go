@@ -99,7 +99,7 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 	_, err = con.GET(ctx, "https://error.and.panic.connector/err")
 	assert.Error(t, err)
 	assert.Equal(t, "it's bad", err.Error())
-	assert.Equal(t, 0, errors.Convert(err).StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, errors.Convert(err).StatusCode)
 
 	_, err = con.GET(ctx, "https://error.and.panic.connector/panic")
 	assert.Error(t, err)

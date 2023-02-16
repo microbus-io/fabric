@@ -19,7 +19,6 @@ package shardedsql
 import (
 	"context"
 	"database/sql"
-	"sort"
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
@@ -29,72 +28,75 @@ import (
 type BatchLookup struct {
 	shard     *Shard
 	query     string
+	before    []any
 	keys      []any
+	after     []any
 	batchSize int
 }
 
 /*
-NewBatchLookupInts creates a new batch lookup.
-The query must be a SELECT ... IN (?) statement with a single ?.
+NewBatchLookup creates a new batch lookup.
+The query must be a SELECT ... IN (?) statement.
+The keys must be specified as an array []any, []string or []int.
+The results are returned in random order, not the order of the input keys.
 
 Usage:
 
-	blu := NewBatchLookup(shard, "SELECT ... IN (?)", keys)
+	blu := NewBatchLookup(shard, "SELECT * FROM table WHERE tenant_id=? AND id IN (?)", tenantID, keys)
 	for blu.Next() {
 		rows, err := blu.QueryContext(ctx)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
 		for rows.Next() {
 			err = rows.Scan(...)
+			if err != nil {
+				return err
+			}
 		}
 	}
 */
-func NewBatchLookupInts(shard *Shard, query string, keys []int) *BatchLookup {
-	sortedKeys := make([]any, len(keys))
-	for i, k := range keys {
-		sortedKeys[i] = k
+func NewBatchLookup(shard *Shard, query string, args ...any) *BatchLookup {
+	result := &BatchLookup{
+		shard: shard,
+		query: query,
 	}
-	sort.Slice(sortedKeys, func(i, j int) bool {
-		return sortedKeys[i].(int) < sortedKeys[j].(int)
-	})
-	return &BatchLookup{
-		shard:     shard,
-		query:     query,
-		keys:      sortedKeys,
-		batchSize: 1000,
-	}
-}
 
-/*
-NewBatchLookupStrings creates a new batch lookup.
-The query must be a SELECT ... IN (?) statement with a single ?.
-
-Usage:
-
-	blu := NewBatchLookup(shard, "SELECT ... IN (?)", keys)
-	for blu.Next() {
-		rows, err := blu.QueryContext(ctx)
-		for rows.Next() {
-			err = rows.Scan(...)
+	found := false
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case []any:
+			found = true
+			result.keys = v
+		case []int:
+			found = true
+			anyKeys := make([]any, len(v))
+			for i := range v {
+				anyKeys[i] = v[i]
+			}
+			result.keys = anyKeys
+		case []string:
+			found = true
+			anyKeys := make([]any, len(v))
+			for i := range v {
+				anyKeys[i] = v[i]
+			}
+			result.keys = anyKeys
+		default:
+			if found {
+				result.after = append(result.after, arg)
+			} else {
+				result.before = append(result.before, arg)
+			}
 		}
 	}
-*/
-func NewBatchLookupStrings(shard *Shard, query string, keys []string) *BatchLookup {
-	sortedKeys := make([]any, len(keys))
-	for i, k := range keys {
-		sortedKeys[i] = k
-	}
-	sort.Slice(sortedKeys, func(i, j int) bool {
-		return sortedKeys[i].(int) < sortedKeys[j].(int)
-	})
-	return &BatchLookup{
-		shard:     shard,
-		query:     query,
-		keys:      sortedKeys,
-		batchSize: 1000,
-	}
+	result.batchSize = 1000
+	return result
 }
 
 // SetBatchSize sets the number of records to lookup at a time.
-// The default is 1000.
+// The default is 1000. Most databases will not handle more than 1000.
 func (blu *BatchLookup) SetBatchSize(n int) {
 	if n > 0 {
 		blu.batchSize = n
@@ -117,19 +119,24 @@ func (blu *BatchLookup) QueryContext(ctx context.Context) (rows *sql.Rows, err e
 		return nil, sql.ErrNoRows
 	}
 
-	// Get the keys in the current btach
-	var keys []any
+	// Get the args in the current batch
+	var args []any
+	var keyArgs []any
+	args = append(args, blu.before...)
 	if len(blu.keys) > blu.batchSize {
-		keys = blu.keys[:blu.batchSize]
+		keyArgs = blu.keys[:blu.batchSize]
+		args = append(args, blu.keys[:blu.batchSize]...)
 		blu.keys = blu.keys[blu.batchSize:]
 	} else {
-		keys = blu.keys
+		keyArgs = blu.keys
+		args = append(args, blu.keys...)
 		blu.keys = nil
 	}
+	args = append(args, blu.after...)
 
 	// Run the query
-	questionMarks := "(?" + strings.Repeat(",?", len(keys)-1) + ")"
+	questionMarks := "(?" + strings.Repeat(",?", len(keyArgs)-1) + ")"
 	query := strings.Replace(blu.query, "(?)", questionMarks, 1)
-	rows, err = blu.shard.QueryContext(ctx, query, keys...)
+	rows, err = blu.shard.QueryContext(ctx, query, args...)
 	return rows, errors.Trace(err)
 }

@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
@@ -50,6 +51,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
@@ -57,6 +59,10 @@ var (
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *directoryapi.Client
+)
+
+var (
+	sequence int
 )
 
 var (
@@ -133,6 +139,7 @@ func Context(t *testing.T) context.Context {
 
 // CreateTestCase assists in asserting against the results of executing Create.
 type CreateTestCase struct {
+	_t *testing.T
 	_testName string
 	created *directoryapi.Person
 	err error
@@ -145,8 +152,8 @@ func (tc *CreateTestCase) Name(testName string) *CreateTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *CreateTestCase) Expect(t *testing.T, created *directoryapi.Person) *CreateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *CreateTestCase) Expect(created *directoryapi.Person) *CreateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, created, tc.created)
 		}
@@ -155,8 +162,8 @@ func (tc *CreateTestCase) Expect(t *testing.T, created *directoryapi.Person) *Cr
 }
 
 // Error asserts an error.
-func (tc *CreateTestCase) Error(t *testing.T, errContains string) *CreateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *CreateTestCase) Error(errContains string) *CreateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -165,8 +172,8 @@ func (tc *CreateTestCase) Error(t *testing.T, errContains string) *CreateTestCas
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *CreateTestCase) ErrorCode(t *testing.T, statusCode int) *CreateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *CreateTestCase) ErrorCode(statusCode int) *CreateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -175,16 +182,16 @@ func (tc *CreateTestCase) ErrorCode(t *testing.T, statusCode int) *CreateTestCas
 }
 
 // NoError asserts no error.
-func (tc *CreateTestCase) NoError(t *testing.T) *CreateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *CreateTestCase) NoError() *CreateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *CreateTestCase) Assert(t *testing.T, asserter func(t *testing.T, created *directoryapi.Person, err error)) *CreateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *CreateTestCase) Assert(asserter func(t *testing.T, created *directoryapi.Person, err error)) *CreateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.created, tc.err)
 	})
 	return tc
@@ -196,8 +203,8 @@ func (tc *CreateTestCase) Get() (created *directoryapi.Person, err error) {
 }
 
 // Create executes the function and returns a corresponding test case.
-func Create(ctx context.Context, person *directoryapi.Person) *CreateTestCase {
-	tc := &CreateTestCase{}
+func Create(t *testing.T, ctx context.Context, person *directoryapi.Person) *CreateTestCase {
+	tc := &CreateTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.created, tc.err = Svc.Create(ctx, person)
 		return tc.err
@@ -207,6 +214,7 @@ func Create(ctx context.Context, person *directoryapi.Person) *CreateTestCase {
 
 // LoadTestCase assists in asserting against the results of executing Load.
 type LoadTestCase struct {
+	_t *testing.T
 	_testName string
 	person *directoryapi.Person
 	ok bool
@@ -220,8 +228,8 @@ func (tc *LoadTestCase) Name(testName string) *LoadTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *LoadTestCase) Expect(t *testing.T, person *directoryapi.Person, ok bool) *LoadTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadTestCase) Expect(person *directoryapi.Person, ok bool) *LoadTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, person, tc.person)
 			assert.Equal(t, ok, tc.ok)
@@ -231,8 +239,8 @@ func (tc *LoadTestCase) Expect(t *testing.T, person *directoryapi.Person, ok boo
 }
 
 // Error asserts an error.
-func (tc *LoadTestCase) Error(t *testing.T, errContains string) *LoadTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadTestCase) Error(errContains string) *LoadTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -241,8 +249,8 @@ func (tc *LoadTestCase) Error(t *testing.T, errContains string) *LoadTestCase {
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *LoadTestCase) ErrorCode(t *testing.T, statusCode int) *LoadTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadTestCase) ErrorCode(statusCode int) *LoadTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -251,16 +259,16 @@ func (tc *LoadTestCase) ErrorCode(t *testing.T, statusCode int) *LoadTestCase {
 }
 
 // NoError asserts no error.
-func (tc *LoadTestCase) NoError(t *testing.T) *LoadTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadTestCase) NoError() *LoadTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *LoadTestCase) Assert(t *testing.T, asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadTestCase) Assert(asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.person, tc.ok, tc.err)
 	})
 	return tc
@@ -272,8 +280,8 @@ func (tc *LoadTestCase) Get() (person *directoryapi.Person, ok bool, err error) 
 }
 
 // Load executes the function and returns a corresponding test case.
-func Load(ctx context.Context, key directoryapi.PersonKey) *LoadTestCase {
-	tc := &LoadTestCase{}
+func Load(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *LoadTestCase {
+	tc := &LoadTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.person, tc.ok, tc.err = Svc.Load(ctx, key)
 		return tc.err
@@ -283,6 +291,7 @@ func Load(ctx context.Context, key directoryapi.PersonKey) *LoadTestCase {
 
 // DeleteTestCase assists in asserting against the results of executing Delete.
 type DeleteTestCase struct {
+	_t *testing.T
 	_testName string
 	ok bool
 	err error
@@ -295,8 +304,8 @@ func (tc *DeleteTestCase) Name(testName string) *DeleteTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *DeleteTestCase) Expect(t *testing.T, ok bool) *DeleteTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DeleteTestCase) Expect(ok bool) *DeleteTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, ok, tc.ok)
 		}
@@ -305,8 +314,8 @@ func (tc *DeleteTestCase) Expect(t *testing.T, ok bool) *DeleteTestCase {
 }
 
 // Error asserts an error.
-func (tc *DeleteTestCase) Error(t *testing.T, errContains string) *DeleteTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DeleteTestCase) Error(errContains string) *DeleteTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -315,8 +324,8 @@ func (tc *DeleteTestCase) Error(t *testing.T, errContains string) *DeleteTestCas
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *DeleteTestCase) ErrorCode(t *testing.T, statusCode int) *DeleteTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DeleteTestCase) ErrorCode(statusCode int) *DeleteTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -325,16 +334,16 @@ func (tc *DeleteTestCase) ErrorCode(t *testing.T, statusCode int) *DeleteTestCas
 }
 
 // NoError asserts no error.
-func (tc *DeleteTestCase) NoError(t *testing.T) *DeleteTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DeleteTestCase) NoError() *DeleteTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *DeleteTestCase) Assert(t *testing.T, asserter func(t *testing.T, ok bool, err error)) *DeleteTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DeleteTestCase) Assert(asserter func(t *testing.T, ok bool, err error)) *DeleteTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.ok, tc.err)
 	})
 	return tc
@@ -346,8 +355,8 @@ func (tc *DeleteTestCase) Get() (ok bool, err error) {
 }
 
 // Delete executes the function and returns a corresponding test case.
-func Delete(ctx context.Context, key directoryapi.PersonKey) *DeleteTestCase {
-	tc := &DeleteTestCase{}
+func Delete(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *DeleteTestCase {
+	tc := &DeleteTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.ok, tc.err = Svc.Delete(ctx, key)
 		return tc.err
@@ -357,6 +366,7 @@ func Delete(ctx context.Context, key directoryapi.PersonKey) *DeleteTestCase {
 
 // UpdateTestCase assists in asserting against the results of executing Update.
 type UpdateTestCase struct {
+	_t *testing.T
 	_testName string
 	updated *directoryapi.Person
 	ok bool
@@ -370,8 +380,8 @@ func (tc *UpdateTestCase) Name(testName string) *UpdateTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *UpdateTestCase) Expect(t *testing.T, updated *directoryapi.Person, ok bool) *UpdateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *UpdateTestCase) Expect(updated *directoryapi.Person, ok bool) *UpdateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, updated, tc.updated)
 			assert.Equal(t, ok, tc.ok)
@@ -381,8 +391,8 @@ func (tc *UpdateTestCase) Expect(t *testing.T, updated *directoryapi.Person, ok 
 }
 
 // Error asserts an error.
-func (tc *UpdateTestCase) Error(t *testing.T, errContains string) *UpdateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *UpdateTestCase) Error(errContains string) *UpdateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -391,8 +401,8 @@ func (tc *UpdateTestCase) Error(t *testing.T, errContains string) *UpdateTestCas
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *UpdateTestCase) ErrorCode(t *testing.T, statusCode int) *UpdateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *UpdateTestCase) ErrorCode(statusCode int) *UpdateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -401,16 +411,16 @@ func (tc *UpdateTestCase) ErrorCode(t *testing.T, statusCode int) *UpdateTestCas
 }
 
 // NoError asserts no error.
-func (tc *UpdateTestCase) NoError(t *testing.T) *UpdateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *UpdateTestCase) NoError() *UpdateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *UpdateTestCase) Assert(t *testing.T, asserter func(t *testing.T, updated *directoryapi.Person, ok bool, err error)) *UpdateTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *UpdateTestCase) Assert(asserter func(t *testing.T, updated *directoryapi.Person, ok bool, err error)) *UpdateTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.updated, tc.ok, tc.err)
 	})
 	return tc
@@ -422,8 +432,8 @@ func (tc *UpdateTestCase) Get() (updated *directoryapi.Person, ok bool, err erro
 }
 
 // Update executes the function and returns a corresponding test case.
-func Update(ctx context.Context, person *directoryapi.Person) *UpdateTestCase {
-	tc := &UpdateTestCase{}
+func Update(t *testing.T, ctx context.Context, person *directoryapi.Person) *UpdateTestCase {
+	tc := &UpdateTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.updated, tc.ok, tc.err = Svc.Update(ctx, person)
 		return tc.err
@@ -433,6 +443,7 @@ func Update(ctx context.Context, person *directoryapi.Person) *UpdateTestCase {
 
 // LoadByEmailTestCase assists in asserting against the results of executing LoadByEmail.
 type LoadByEmailTestCase struct {
+	_t *testing.T
 	_testName string
 	person *directoryapi.Person
 	ok bool
@@ -446,8 +457,8 @@ func (tc *LoadByEmailTestCase) Name(testName string) *LoadByEmailTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *LoadByEmailTestCase) Expect(t *testing.T, person *directoryapi.Person, ok bool) *LoadByEmailTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadByEmailTestCase) Expect(person *directoryapi.Person, ok bool) *LoadByEmailTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, person, tc.person)
 			assert.Equal(t, ok, tc.ok)
@@ -457,8 +468,8 @@ func (tc *LoadByEmailTestCase) Expect(t *testing.T, person *directoryapi.Person,
 }
 
 // Error asserts an error.
-func (tc *LoadByEmailTestCase) Error(t *testing.T, errContains string) *LoadByEmailTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadByEmailTestCase) Error(errContains string) *LoadByEmailTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -467,8 +478,8 @@ func (tc *LoadByEmailTestCase) Error(t *testing.T, errContains string) *LoadByEm
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *LoadByEmailTestCase) ErrorCode(t *testing.T, statusCode int) *LoadByEmailTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadByEmailTestCase) ErrorCode(statusCode int) *LoadByEmailTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -477,16 +488,16 @@ func (tc *LoadByEmailTestCase) ErrorCode(t *testing.T, statusCode int) *LoadByEm
 }
 
 // NoError asserts no error.
-func (tc *LoadByEmailTestCase) NoError(t *testing.T) *LoadByEmailTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadByEmailTestCase) NoError() *LoadByEmailTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *LoadByEmailTestCase) Assert(t *testing.T, asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadByEmailTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *LoadByEmailTestCase) Assert(asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadByEmailTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.person, tc.ok, tc.err)
 	})
 	return tc
@@ -498,8 +509,8 @@ func (tc *LoadByEmailTestCase) Get() (person *directoryapi.Person, ok bool, err 
 }
 
 // LoadByEmail executes the function and returns a corresponding test case.
-func LoadByEmail(ctx context.Context, email string) *LoadByEmailTestCase {
-	tc := &LoadByEmailTestCase{}
+func LoadByEmail(t *testing.T, ctx context.Context, email string) *LoadByEmailTestCase {
+	tc := &LoadByEmailTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.person, tc.ok, tc.err = Svc.LoadByEmail(ctx, email)
 		return tc.err
@@ -509,6 +520,7 @@ func LoadByEmail(ctx context.Context, email string) *LoadByEmailTestCase {
 
 // ListTestCase assists in asserting against the results of executing List.
 type ListTestCase struct {
+	_t *testing.T
 	_testName string
 	keys []directoryapi.PersonKey
 	err error
@@ -521,8 +533,8 @@ func (tc *ListTestCase) Name(testName string) *ListTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *ListTestCase) Expect(t *testing.T, keys []directoryapi.PersonKey) *ListTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ListTestCase) Expect(keys []directoryapi.PersonKey) *ListTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, keys, tc.keys)
 		}
@@ -531,8 +543,8 @@ func (tc *ListTestCase) Expect(t *testing.T, keys []directoryapi.PersonKey) *Lis
 }
 
 // Error asserts an error.
-func (tc *ListTestCase) Error(t *testing.T, errContains string) *ListTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ListTestCase) Error(errContains string) *ListTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -541,8 +553,8 @@ func (tc *ListTestCase) Error(t *testing.T, errContains string) *ListTestCase {
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *ListTestCase) ErrorCode(t *testing.T, statusCode int) *ListTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ListTestCase) ErrorCode(statusCode int) *ListTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -551,16 +563,16 @@ func (tc *ListTestCase) ErrorCode(t *testing.T, statusCode int) *ListTestCase {
 }
 
 // NoError asserts no error.
-func (tc *ListTestCase) NoError(t *testing.T) *ListTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ListTestCase) NoError() *ListTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *ListTestCase) Assert(t *testing.T, asserter func(t *testing.T, keys []directoryapi.PersonKey, err error)) *ListTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ListTestCase) Assert(asserter func(t *testing.T, keys []directoryapi.PersonKey, err error)) *ListTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.keys, tc.err)
 	})
 	return tc
@@ -572,8 +584,8 @@ func (tc *ListTestCase) Get() (keys []directoryapi.PersonKey, err error) {
 }
 
 // List executes the function and returns a corresponding test case.
-func List(ctx context.Context) *ListTestCase {
-	tc := &ListTestCase{}
+func List(t *testing.T, ctx context.Context) *ListTestCase {
+	tc := &ListTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.keys, tc.err = Svc.List(ctx)
 		return tc.err

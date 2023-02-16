@@ -13,7 +13,7 @@ general:
 # name - A name for the database
 # type - The type of the database, "mariadb" or "mysql"
 databases:
-  # - name:
+  # - name: SQL
   #   type: mariadb
 
 # Config properties
@@ -65,6 +65,7 @@ types:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
@@ -84,6 +85,7 @@ functions:
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path
+#   //example.com:417/path
 #   https://example.com:417/path
 events:
   # - signature:
@@ -115,6 +117,7 @@ sinks:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)

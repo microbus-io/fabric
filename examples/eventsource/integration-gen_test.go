@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
@@ -50,6 +51,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
@@ -57,6 +59,10 @@ var (
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *eventsourceapi.Client
+)
+
+var (
+	sequence int
 )
 
 var (
@@ -122,6 +128,7 @@ func Context(t *testing.T) context.Context {
 
 // RegisterTestCase assists in asserting against the results of executing Register.
 type RegisterTestCase struct {
+	_t *testing.T
 	_testName string
 	allowed bool
 	err error
@@ -134,8 +141,8 @@ func (tc *RegisterTestCase) Name(testName string) *RegisterTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *RegisterTestCase) Expect(t *testing.T, allowed bool) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) Expect(allowed bool) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, allowed, tc.allowed)
 		}
@@ -144,8 +151,8 @@ func (tc *RegisterTestCase) Expect(t *testing.T, allowed bool) *RegisterTestCase
 }
 
 // Error asserts an error.
-func (tc *RegisterTestCase) Error(t *testing.T, errContains string) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) Error(errContains string) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -154,8 +161,8 @@ func (tc *RegisterTestCase) Error(t *testing.T, errContains string) *RegisterTes
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *RegisterTestCase) ErrorCode(t *testing.T, statusCode int) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) ErrorCode(statusCode int) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -164,16 +171,16 @@ func (tc *RegisterTestCase) ErrorCode(t *testing.T, statusCode int) *RegisterTes
 }
 
 // NoError asserts no error.
-func (tc *RegisterTestCase) NoError(t *testing.T) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) NoError() *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *RegisterTestCase) Assert(t *testing.T, asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *RegisterTestCase) Assert(asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.allowed, tc.err)
 	})
 	return tc
@@ -185,11 +192,121 @@ func (tc *RegisterTestCase) Get() (allowed bool, err error) {
 }
 
 // Register executes the function and returns a corresponding test case.
-func Register(ctx context.Context, email string) *RegisterTestCase {
-	tc := &RegisterTestCase{}
+func Register(t *testing.T, ctx context.Context, email string) *RegisterTestCase {
+	tc := &RegisterTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.allowed, tc.err = Svc.Register(ctx, email)
 		return tc.err
 	})
+	return tc
+}
+
+// OnAllowRegisterTestCase assists in asserting the sink of OnAllowRegister.
+type OnAllowRegisterTestCase struct {
+	_t *testing.T
+	_testName string
+    _asserters []func(*testing.T)
+    ctx context.Context
+	email string
+	allow bool
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnAllowRegisterTestCase) Name(testName string) *OnAllowRegisterTestCase {
+	tc._testName = testName
+	return tc
+}
+
+// Expect asserts an exact match for the input arguments of the event sink.
+func (tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCase {
+    tc._asserters = append(tc._asserters, func(t *testing.T) {
+        assert.Equal(t, email, tc.email)
+    })
+	return tc
+}
+
+// Assert sets a custom function to assert the input args of the event sink.
+func (tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnAllowRegisterTestCase {
+	tc._asserters = append(tc._asserters, func(t *testing.T) {
+		asserter(t, tc.ctx, tc.email)
+    })
+	return tc
+}
+
+// OnAllowRegister sets an event listener and returns a corresponding test case.
+func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCase {
+	tc := &OnAllowRegisterTestCase{
+		_t: t,
+		allow: allow,
+		err: err,
+	}
+    sequence ++
+	con := connector.New(fmt.Sprintf("%s.%d", "OnAllowRegister", sequence))
+	eventsourceapi.NewHook(con).OnAllowRegister(func(ctx context.Context, email string) (allow bool, err error) {
+		eventsourceapi.NewHook(con).OnAllowRegister(nil)
+		tc.ctx = ctx
+        tc.email = email
+		for _, asserter := range tc._asserters {
+			tc._t.Run(tc._testName, asserter)
+		}
+		return tc.allow, tc.err
+	})
+	App.Include(con)
+	con.Startup()
+	return tc
+}
+
+// OnRegisteredTestCase assists in asserting the sink of OnRegistered.
+type OnRegisteredTestCase struct {
+	_t *testing.T
+	_testName string
+    _asserters []func(*testing.T)
+    ctx context.Context
+	email string
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnRegisteredTestCase) Name(testName string) *OnRegisteredTestCase {
+	tc._testName = testName
+	return tc
+}
+
+// Expect asserts an exact match for the input arguments of the event sink.
+func (tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
+    tc._asserters = append(tc._asserters, func(t *testing.T) {
+        assert.Equal(t, email, tc.email)
+    })
+	return tc
+}
+
+// Assert sets a custom function to assert the input args of the event sink.
+func (tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnRegisteredTestCase {
+	tc._asserters = append(tc._asserters, func(t *testing.T) {
+		asserter(t, tc.ctx, tc.email)
+    })
+	return tc
+}
+
+// OnRegistered sets an event listener and returns a corresponding test case.
+func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
+	tc := &OnRegisteredTestCase{
+		_t: t,
+		err: err,
+	}
+    sequence ++
+	con := connector.New(fmt.Sprintf("%s.%d", "OnRegistered", sequence))
+	eventsourceapi.NewHook(con).OnRegistered(func(ctx context.Context, email string) (err error) {
+		eventsourceapi.NewHook(con).OnRegistered(nil)
+		tc.ctx = ctx
+        tc.email = email
+		for _, asserter := range tc._asserters {
+			tc._t.Run(tc._testName, asserter)
+		}
+		return tc.err
+	})
+	App.Include(con)
+	con.Startup()
 	return tc
 }

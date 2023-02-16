@@ -158,7 +158,7 @@ func (c *Connector) Startup() (err error) {
 	}
 
 	// Fetch configs
-	err = c.refreshConfig(c.lifetimeCtx)
+	err = c.refreshConfig(c.lifetimeCtx, false)
 	if err != nil {
 		err = errors.Trace(err)
 		return err

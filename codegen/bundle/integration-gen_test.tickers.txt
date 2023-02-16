@@ -1,6 +1,7 @@
 {{ range .Tickers }}
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -12,8 +13,8 @@ func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
 }
 
 // Error asserts an error.
-func (tc *{{ .Name }}TestCase) Error(t *testing.T, errContains string) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) Error(errContains string) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -22,8 +23,8 @@ func (tc *{{ .Name }}TestCase) Error(t *testing.T, errContains string) *{{ .Name
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *{{ .Name }}TestCase) ErrorCode(t *testing.T, statusCode int) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) ErrorCode(statusCode int) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -32,16 +33,16 @@ func (tc *{{ .Name }}TestCase) ErrorCode(t *testing.T, statusCode int) *{{ .Name
 }
 
 // NoError asserts no error.
-func (tc *{{ .Name }}TestCase) NoError(t *testing.T) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) NoError() *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *{{ .Name }}TestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) Assert(asserter func(t *testing.T, err error)) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -53,8 +54,8 @@ func (tc *{{ .Name }}TestCase) Get() (err error) {
 }
 
 // {{ .Name }} executes the ticker and returns a corresponding test case.
-func {{ .Name }}(ctx context.Context) *{{ .Name }}TestCase {
-	tc := &{{ .Name }}TestCase{}
+func {{ .Name }}(t *testing.T, ctx context.Context) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.{{ .Name }}(ctx)
 	})

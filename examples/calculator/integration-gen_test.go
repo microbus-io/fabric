@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
@@ -50,6 +51,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
@@ -57,6 +59,10 @@ var (
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *calculatorapi.Client
+)
+
+var (
+	sequence int
 )
 
 var (
@@ -122,6 +128,7 @@ func Context(t *testing.T) context.Context {
 
 // ArithmeticTestCase assists in asserting against the results of executing Arithmetic.
 type ArithmeticTestCase struct {
+	_t *testing.T
 	_testName string
 	xEcho int
 	opEcho string
@@ -137,8 +144,8 @@ func (tc *ArithmeticTestCase) Name(testName string) *ArithmeticTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *ArithmeticTestCase) Expect(t *testing.T, xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ArithmeticTestCase) Expect(xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, xEcho, tc.xEcho)
 			assert.Equal(t, opEcho, tc.opEcho)
@@ -150,8 +157,8 @@ func (tc *ArithmeticTestCase) Expect(t *testing.T, xEcho int, opEcho string, yEc
 }
 
 // Error asserts an error.
-func (tc *ArithmeticTestCase) Error(t *testing.T, errContains string) *ArithmeticTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ArithmeticTestCase) Error(errContains string) *ArithmeticTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -160,8 +167,8 @@ func (tc *ArithmeticTestCase) Error(t *testing.T, errContains string) *Arithmeti
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *ArithmeticTestCase) ErrorCode(t *testing.T, statusCode int) *ArithmeticTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ArithmeticTestCase) ErrorCode(statusCode int) *ArithmeticTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -170,16 +177,16 @@ func (tc *ArithmeticTestCase) ErrorCode(t *testing.T, statusCode int) *Arithmeti
 }
 
 // NoError asserts no error.
-func (tc *ArithmeticTestCase) NoError(t *testing.T) *ArithmeticTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ArithmeticTestCase) NoError() *ArithmeticTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *ArithmeticTestCase) Assert(t *testing.T, asserter func(t *testing.T, xEcho int, opEcho string, yEcho int, result int, err error)) *ArithmeticTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *ArithmeticTestCase) Assert(asserter func(t *testing.T, xEcho int, opEcho string, yEcho int, result int, err error)) *ArithmeticTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err)
 	})
 	return tc
@@ -191,8 +198,8 @@ func (tc *ArithmeticTestCase) Get() (xEcho int, opEcho string, yEcho int, result
 }
 
 // Arithmetic executes the function and returns a corresponding test case.
-func Arithmetic(ctx context.Context, x int, op string, y int) *ArithmeticTestCase {
-	tc := &ArithmeticTestCase{}
+func Arithmetic(t *testing.T, ctx context.Context, x int, op string, y int) *ArithmeticTestCase {
+	tc := &ArithmeticTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err = Svc.Arithmetic(ctx, x, op, y)
 		return tc.err
@@ -202,6 +209,7 @@ func Arithmetic(ctx context.Context, x int, op string, y int) *ArithmeticTestCas
 
 // SquareTestCase assists in asserting against the results of executing Square.
 type SquareTestCase struct {
+	_t *testing.T
 	_testName string
 	xEcho int
 	result int
@@ -215,8 +223,8 @@ func (tc *SquareTestCase) Name(testName string) *SquareTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *SquareTestCase) Expect(t *testing.T, xEcho int, result int) *SquareTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *SquareTestCase) Expect(xEcho int, result int) *SquareTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, xEcho, tc.xEcho)
 			assert.Equal(t, result, tc.result)
@@ -226,8 +234,8 @@ func (tc *SquareTestCase) Expect(t *testing.T, xEcho int, result int) *SquareTes
 }
 
 // Error asserts an error.
-func (tc *SquareTestCase) Error(t *testing.T, errContains string) *SquareTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *SquareTestCase) Error(errContains string) *SquareTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -236,8 +244,8 @@ func (tc *SquareTestCase) Error(t *testing.T, errContains string) *SquareTestCas
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *SquareTestCase) ErrorCode(t *testing.T, statusCode int) *SquareTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *SquareTestCase) ErrorCode(statusCode int) *SquareTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -246,16 +254,16 @@ func (tc *SquareTestCase) ErrorCode(t *testing.T, statusCode int) *SquareTestCas
 }
 
 // NoError asserts no error.
-func (tc *SquareTestCase) NoError(t *testing.T) *SquareTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *SquareTestCase) NoError() *SquareTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *SquareTestCase) Assert(t *testing.T, asserter func(t *testing.T, xEcho int, result int, err error)) *SquareTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *SquareTestCase) Assert(asserter func(t *testing.T, xEcho int, result int, err error)) *SquareTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.xEcho, tc.result, tc.err)
 	})
 	return tc
@@ -267,8 +275,8 @@ func (tc *SquareTestCase) Get() (xEcho int, result int, err error) {
 }
 
 // Square executes the function and returns a corresponding test case.
-func Square(ctx context.Context, x int) *SquareTestCase {
-	tc := &SquareTestCase{}
+func Square(t *testing.T, ctx context.Context, x int) *SquareTestCase {
+	tc := &SquareTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.xEcho, tc.result, tc.err = Svc.Square(ctx, x)
 		return tc.err
@@ -278,6 +286,7 @@ func Square(ctx context.Context, x int) *SquareTestCase {
 
 // DistanceTestCase assists in asserting against the results of executing Distance.
 type DistanceTestCase struct {
+	_t *testing.T
 	_testName string
 	d float64
 	err error
@@ -290,8 +299,8 @@ func (tc *DistanceTestCase) Name(testName string) *DistanceTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *DistanceTestCase) Expect(t *testing.T, d float64) *DistanceTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DistanceTestCase) Expect(d float64) *DistanceTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, d, tc.d)
 		}
@@ -300,8 +309,8 @@ func (tc *DistanceTestCase) Expect(t *testing.T, d float64) *DistanceTestCase {
 }
 
 // Error asserts an error.
-func (tc *DistanceTestCase) Error(t *testing.T, errContains string) *DistanceTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DistanceTestCase) Error(errContains string) *DistanceTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -310,8 +319,8 @@ func (tc *DistanceTestCase) Error(t *testing.T, errContains string) *DistanceTes
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *DistanceTestCase) ErrorCode(t *testing.T, statusCode int) *DistanceTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DistanceTestCase) ErrorCode(statusCode int) *DistanceTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -320,16 +329,16 @@ func (tc *DistanceTestCase) ErrorCode(t *testing.T, statusCode int) *DistanceTes
 }
 
 // NoError asserts no error.
-func (tc *DistanceTestCase) NoError(t *testing.T) *DistanceTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DistanceTestCase) NoError() *DistanceTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *DistanceTestCase) Assert(t *testing.T, asserter func(t *testing.T, d float64, err error)) *DistanceTestCase {
-	t.Run(tc._testName, func(t *testing.T) {
+func (tc *DistanceTestCase) Assert(asserter func(t *testing.T, d float64, err error)) *DistanceTestCase {
+	tc._t.Run(tc._testName, func(t *testing.T) {
 		asserter(t, tc.d, tc.err)
 	})
 	return tc
@@ -341,8 +350,8 @@ func (tc *DistanceTestCase) Get() (d float64, err error) {
 }
 
 // Distance executes the function and returns a corresponding test case.
-func Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) *DistanceTestCase {
-	tc := &DistanceTestCase{}
+func Distance(t *testing.T, ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) *DistanceTestCase {
+	tc := &DistanceTestCase{_t: t}
 	tc.err = utils.CatchPanic(func() error {
 		tc.d, tc.err = Svc.Distance(ctx, p1, p2)
 		return tc.err

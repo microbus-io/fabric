@@ -32,7 +32,7 @@ type {{ .Name }} = import{{ Add $i 1 }}_{{ .ImportPackageSuffix }}.{{ .ImportTyp
 */
 type {{ .Name }} struct {
 	{{- range $name, $type := .Define }}
-	{{ CapitalizeIdentifier $name }} {{ $type }} `json:"{{ $name }}"`
+	{{ CapitalizeIdentifier $name }} {{ $type }} `json:"{{ $name }},omitempty"`
 	{{- end}}
 }
 {{- end }}

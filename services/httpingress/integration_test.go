@@ -46,14 +46,9 @@ func Initialize() error {
 	// Create a middleware microservice
 	middleware := connector.New("middleware.host")
 	middleware.Subscribe("/serve/", func(w http.ResponseWriter, r *http.Request) error {
-		uri := strings.TrimPrefix(r.RequestURI, "/serve")
-		if uri == "/" {
-			w.Write([]byte("Root"))
-			return nil
-		}
 		options := []pub.Option{
 			pub.Method(r.Method),
-			pub.URL("https:/" + uri),
+			pub.URL("https:/" + strings.TrimPrefix(r.URL.RequestURI(), "/serve")),
 			pub.Body(r.Body),
 			pub.Unicast(),
 		}
@@ -351,17 +346,22 @@ func TestHttpingress_Root(t *testing.T) {
 	client := http.Client{Timeout: time.Second * 2}
 	res, err := client.Get("http://localhost:4040/")
 	if assert.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "Root", string(b))
-		}
+		assert.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
-	res, err = client.Get("http://localhost:4443/")
+
+	con := connector.New("root")
+	con.Subscribe("", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("Root"))
+		return nil
+	})
+	App.Join(con)
+	err = con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	res, err = client.Get("http://localhost:4040/")
 	if assert.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "Root", string(b))
-		}
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 	}
 }
 

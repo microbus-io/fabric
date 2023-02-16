@@ -43,7 +43,7 @@ func Initialize() error {
 }
 ```
 
-### Testing a Functional Endpoint
+### Testing Functions and Event Sinks
 
 For each endpoint, the testing harness `integration-gen_test.go` defines a corresponding test case which invokes the underlying endpoint and provides asserters on the result. In the following example, `Arithmetic` calls `Svc.Arithmetic` behind the scenes and returns an `ArithmeticTestCase` with asserters that are customized for its return values. It only takes the developer but a few lines of code to run various test cases against the endpoint.
 
@@ -51,25 +51,26 @@ For each endpoint, the testing harness `integration-gen_test.go` defines a corre
 func TestCalculator_Arithmetic(t *testing.T) {
 	t.Parallel()
 	/*
-		Arithmetic(ctx, x, op, y).
-			Expect(t, xEcho, opEcho, yEcho, result).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, xEcho, opEcho, yEcho, result, err))
+		Arithmetic(t, ctx, x, op, y).
+			Expect(xEcho, opEcho, yEcho, result).
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(func(t, xEcho, opEcho, yEcho, result, err))
 	*/
 	ctx := Context(t)
-	Arithmetic(ctx, 3, "-", 8).Expect(t, 3, "-", 8, -5)
-	Arithmetic(ctx, -9, "+", 9).Expect(t, -9, "+", 9, 0)
-	Arithmetic(ctx, -9, " ", 9).Expect(t, -9, "+", 9, 0)
-	Arithmetic(ctx, 5, "*", 5).Expect(t, 5, "*", 5, 25)
-	Arithmetic(ctx, 5, "*", -6).Expect(t, 5, "*", -6, -30)
-	Arithmetic(ctx, 15, "/", 5).Expect(t, 15, "/", 5, 3)
-	Arithmetic(ctx, 15, "/", 0).Error(t, "zero")
-	Arithmetic(ctx, 15, "z", 0).Error(t, "operator")
+	Arithmetic(t, ctx, 3, "-", 8).Expect(3, "-", 8, -5)
+	Arithmetic(t, ctx, -9, "+", 9).Expect(-9, "+", 9, 0)
+	Arithmetic(t, ctx, -9, " ", 9).Expect(-9, "+", 9, 0)
+	Arithmetic(t, ctx, 5, "*", 5).Expect(5, "*", 5, 25)
+	Arithmetic(t, ctx, 5, "*", -6).Expect(5, "*", -6, -30)
+	Arithmetic(t, ctx, 15, "/", 5).Expect(15, "/", 5, 3)
+	Arithmetic(t, ctx, 15, "/", 0).Error("zero")
+	Arithmetic(t, ctx, 15, "z", 0).Error("operator")
 }
 ```
 
-### Testing a Web Endpoint
+### Testing Webs
 
 Raw web endpoints are tested in a similar fashion, except that their asserters are customized for a web request. In the following example, `Hello` takes in options to customize the web request (method, body, query arguments or headers) and the resulting `HelloTestCase` includes asserters that are tailored to an `http.Response` return value. Note how asserters can be chained.
 
@@ -77,23 +78,24 @@ Raw web endpoints are tested in a similar fashion, except that their asserters a
 func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
-		Hello(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			StatusOK(t).
-			StatusCode(t, statusCode).
-			BodyContains(t, bodyContains).
-			BodyNotContains(t, bodyNotContains).
-			HeaderContains(t, headerName, valueContains).
-			NoError(t).
-			Error(t, errContains).
+		Hello(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
 			Assert(t, func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Hello(ctx, GET()).
-		BodyContains(t, Svc.Greeting()).
-		BodyNotContains(t, "Maria")
-	Hello(ctx, GET(), QueryArg("name", "Maria")).
-		BodyContains(t, Svc.Greeting()).
-		BodyContains(t, "Maria")
+	Hello(t, ctx, GET()).
+		BodyContains(Svc.Greeting()).
+		BodyNotContains("Maria")
+	Hello(t, ctx, GET(), QueryArg("name", "Maria")).
+		BodyContains(Svc.Greeting()).
+		BodyContains("Maria")
 }
 ```
 
@@ -105,13 +107,14 @@ Tickers don't run during testing in order to avoid the unpredictability of their
 func TestHello_TickTock(t *testing.T) {
 	t.Parallel()
 	/*
-		TickTock(ctx).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, err))
+		TickTock(t, ctx).
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(func(t, err))
 	*/
 	ctx := Context(t)
-	TickTock(ctx).NoError(t)
+	TickTock(t, ctx).NoError()
 }
 ```
 
@@ -123,13 +126,41 @@ Callbacks that handle changes to config property values are similarly tested.
 func TestExample_OnChangedConnectionString(t *testing.T) {
 	t.Parallel()
 	/*
-		OnChangedConnectionString(ctx).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, err)
+		OnChangedConnectionString(t, ctx).
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(err)
 	*/
 	ctx := Context(t)
-	OnChangedConnectionString(ctx).NoError(t)
+	OnChangedConnectionString(t, ctx).NoError()
+}
+```
+
+### Testing Event Sources
+
+Events are tested through a corresponding event sink. The event test case must be defined prior to the firing of the event. In the following example, `OnAllowRegister` defines the event test case and `Register` fires the event.
+
+Note how assertion is reversed: input arguments of the event sink are asserted while its output is explicitly specified.
+
+```go
+func TestExample_OnAllowRegister(t *testing.T) {
+	// No parallel
+	/*
+		OnAllowRegister(t, allow, err).
+			Name(testName).
+			Expect(email).
+			Assert(func(t, ctx, email))
+	*/
+	ctx := Context(t)
+	OnAllowRegister(t, true, nil).
+		Name("Allowed").
+		Expect("barb@example.com")
+	Register(t, ctx, "barb@example.com").Expect(true)
+	OnAllowRegister(t, false, nil).
+		Name("Disallowed").
+		Expect("josh@example.com")
+	Register(t, ctx, "josh@example.com").Expect(false)
 }
 ```
 
@@ -139,7 +170,7 @@ A removed test will be regenerated on the next run of the code generator, so dis
 
 ```go
 func TestEventsink_OnRegistered(t *testing.T) {
-	t.Skip() // Tested by TestEventsink_Registered
+	t.Skip() // Tested elsewhere
 }
 ```
 

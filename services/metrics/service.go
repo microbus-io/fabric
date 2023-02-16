@@ -97,11 +97,14 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 	}
 
 	// Timeout
+	ctx := r.Context()
 	timeout := pub.Noop()
 	secs := r.Header.Get("X-Prometheus-Scrape-Timeout-Seconds")
 	if secs != "" {
 		if s, err := strconv.Atoi(secs); err == nil {
-			timeout = pub.TimeBudget(time.Duration(s) * time.Second)
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(r.Context(), time.Duration(s)*time.Second)
+			defer cancel()
 		}
 	}
 
@@ -110,21 +113,21 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 	var delay time.Duration
 	var lock sync.Mutex
 	var wg sync.WaitGroup
-	for serviceInfo := range controlapi.NewMulticastClient(svc).ForHost(host).PingServices(r.Context()) {
+	for serviceInfo := range controlapi.NewMulticastClient(svc).ForHost(host).PingServices(ctx) {
 		wg.Add(1)
 		go func(s string, delay time.Duration) {
 			defer wg.Done()
 			time.Sleep(delay) // Stagger requests to avoid all of them coming back at the same time
 			host := "https://" + s + ":888/metrics"
 			ch := svc.Publish(
-				r.Context(),
+				ctx,
 				pub.GET(host),
 				pub.Header("Accept-Encoding", "gzip"),
 				timeout)
 			for i := range ch {
 				res, err := i.Get()
 				if err != nil {
-					svc.LogWarn(r.Context(), "Fetching metrics", log.Error(err))
+					svc.LogWarn(ctx, "Fetching metrics", log.Error(err))
 					continue
 				}
 
@@ -135,7 +138,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				if res.Header.Get("Content-Encoding") == "gzip" {
 					unzipper, err := gzip.NewReader(res.Body)
 					if err != nil {
-						svc.LogWarn(r.Context(), "Unzippping metrics", log.Error(err))
+						svc.LogWarn(ctx, "Unzippping metrics", log.Error(err))
 						continue
 					}
 					reader = unzipper
@@ -146,7 +149,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				_, err = io.Copy(writer, reader)
 				lock.Unlock()
 				if err != nil {
-					svc.LogWarn(r.Context(), "Copying metrics", log.Error(err))
+					svc.LogWarn(ctx, "Copying metrics", log.Error(err))
 				}
 				rCloser.Close()
 			}

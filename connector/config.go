@@ -187,7 +187,7 @@ func (c *Connector) logConfigs() {
 }
 
 // refreshConfig contacts the configurator microservices to fetch values for the config properties.
-func (c *Connector) refreshConfig(ctx context.Context) error {
+func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	if !c.started {
 		return errors.New("not started")
 	}
@@ -240,15 +240,22 @@ func (c *Connector) refreshConfig(ctx context.Context) error {
 			config.Value = setValue
 			changed[strings.ToLower(config.Name)] = true
 			if config.Secret {
-				setValue = strings.Repeat("*", len(setValue))
+				n := len(setValue)
+				if n > 16 {
+					n = 16
+				}
+				setValue = strings.Repeat("*", n)
 			}
-			c.LogInfo(ctx, "Config value updated", log.String("name", config.Name), log.String("value", setValue))
+			if len([]rune(setValue)) > 40 {
+				setValue = string([]rune(setValue)[:40]) + "..."
+			}
+			c.LogInfo(ctx, "Config updated", log.String("name", config.Name), log.String("value", setValue))
 		}
 	}
 	c.configLock.Unlock()
 
 	// Call the callback function, if provided
-	if len(changed) > 0 {
+	if callback && len(changed) > 0 {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err = c.doCallback(
 				c.lifetimeCtx,

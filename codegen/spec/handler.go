@@ -130,7 +130,7 @@ func (h *Handler) validate() error {
 		return nil
 	}
 
-	if strings.HasPrefix(h.Path, "/") {
+	if strings.HasPrefix(h.Path, "/") && !strings.HasPrefix(h.Path, "//") {
 		if h.Type == "event" {
 			h.Path = ":417" + h.Path
 		} else {

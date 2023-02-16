@@ -59,6 +59,7 @@ func (c *Connector) POST(ctx context.Context, url string, body any) (*http.Respo
 }
 
 // Request makes an HTTP request then awaits and returns a single response synchronously.
+// If no response is received, an ack timeout (404) error is returned.
 func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.Response, error) {
 	options = append(options, pub.Unicast())
 	ch := c.Publish(ctx, options...)
@@ -67,7 +68,7 @@ func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.R
 }
 
 // Publish makes an HTTP request then awaits and returns the responses asynchronously.
-// By default, publish performs a multicast and multiple responses may be returned.
+// By default, publish performs a multicast and multiple responses (or none at all) may be returned.
 // Use the Request method or pass in pub.Unicast() to Publish to perform a unicast.
 func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
 	errOutput := make(chan *pub.Response, 1)
@@ -80,41 +81,42 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 		return errOutput
 	}
 
-	// Restrict the time budget to the context deadline
-	deadline, ok := ctx.Deadline()
-	if ok {
-		ctxBudget := time.Until(deadline)
-		if ctxBudget < req.TimeBudget {
-			req.Apply(pub.TimeBudget(ctxBudget))
-		}
-	}
 	// Check if there's enough time budget
-	if req.TimeBudget <= c.networkHop {
+	if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) <= c.networkHop {
 		err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
 
 	// Limit number of hops
-	depth := frame.Of(ctx).CallDepth()
+	inboundFrame := frame.Of(ctx)
+	outboundFrame := frame.Of(req.Header)
+	depth := inboundFrame.CallDepth()
 	if depth >= c.maxCallDepth {
 		err = errors.Newc(http.StatusLoopDetected, "call depth overflow", req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
-	frame.Of(req.Header).SetCallDepth(depth + 1)
+	outboundFrame.SetCallDepth(depth + 1)
 
 	// Set return address
-	frame.Of(req.Header).SetFromHost(c.hostName)
-	frame.Of(req.Header).SetFromID(c.id)
-	frame.Of(req.Header).SetFromVersion(c.version)
-	frame.Of(req.Header).SetOpCode(frame.OpCodeRequest)
+	outboundFrame.SetFromHost(c.hostName)
+	outboundFrame.SetFromID(c.id)
+	outboundFrame.SetFromVersion(c.version)
+	outboundFrame.SetOpCode(frame.OpCodeRequest)
 
 	// Copy X-Forwarded headers (set by ingress proxy)
 	for _, fwdHdr := range []string{"X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Prefix"} {
-		v := frame.Of(ctx).Get(fwdHdr)
-		if v != "" && frame.Of(req.Header).Get(fwdHdr) == "" {
-			frame.Of(req.Header).Set(fwdHdr, v)
+		v := inboundFrame.Get(fwdHdr)
+		if v != "" && outboundFrame.Get(fwdHdr) == "" {
+			outboundFrame.Set(fwdHdr, v)
+		}
+	}
+
+	// Copy baggage headers
+	for k := range inboundFrame.Header() {
+		if strings.HasPrefix(k, frame.HeaderBaggagePrefix) {
+			outboundFrame.Set(k, inboundFrame.Get(k))
 		}
 	}
 
@@ -151,7 +153,10 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
 	}
-	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
+	deadline, deadlineOK := ctx.Deadline()
+	if deadlineOK {
+		frame.Of(httpReq).SetTimeBudget(time.Until(deadline))
+	}
 
 	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
 
@@ -236,10 +241,19 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	seenIDs := map[string]string{} // FromID -> OpCode
 	seenQueues := map[string]bool{}
 	doneWaitingForAcks := false
-	timeoutTimer := time.NewTimer(req.TimeBudget)
-	defer timeoutTimer.Stop()
+	var timeoutTimer *time.Timer
+	if deadlineOK {
+		timeoutTimer = time.NewTimer(time.Until(deadline))
+		defer timeoutTimer.Stop()
+	} else {
+		// No op timer
+		timeoutTimer = &time.Timer{
+			C: make(<-chan time.Time),
+		}
+	}
 	ackTimer := time.NewTimer(AckTimeout)
 	defer ackTimer.Stop()
+	ackTimerStart := time.Now()
 	for {
 		select {
 		case response := <-awaitCh.C():
@@ -395,24 +409,33 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 
 		// Ack timer
 		case <-ackTimer.C:
+			if c.deployment == LOCAL && time.Since(ackTimerStart) >= AckTimeout*8 {
+				// Likely resuming from a breakpoint that prevented the ack from arriving in time.
+				// Reset the ack timer to allow the ack to arrive.
+				ackTimer.Reset(AckTimeout)
+				ackTimerStart = time.Now()
+				c.LogDebug(ctx, "Resetting ack timeout", log.String("msg", msgID), log.String("subject", subject))
+				continue
+			}
 			doneWaitingForAcks = true
 			if len(seenIDs) == 0 {
-				err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
-				output.Push(pub.NewErrorResponse(err))
-				_ = c.IncrementMetric(
-					"microbus_request_count_total",
-					1,
-					httpReq.Method,
-					httpReq.URL.Hostname(),
-					strconv.Itoa(port),
-					httpReq.URL.Path,
-					strconv.Itoa(http.StatusNotFound),
-					"OK",
-				)
-				// Known responders optimization
 				if req.Multicast {
+					// Known responders optimization
 					c.knownResponders.Delete(subject)
 					c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
+				} else {
+					err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
+					output.Push(pub.NewErrorResponse(err))
+					_ = c.IncrementMetric(
+						"microbus_request_count_total",
+						1,
+						httpReq.Method,
+						httpReq.URL.Hostname(),
+						strconv.Itoa(port),
+						httpReq.URL.Path,
+						strconv.Itoa(http.StatusNotFound),
+						"OK",
+					)
 				}
 				return
 			}

@@ -25,18 +25,18 @@ import (
 )
 
 const (
-	HeaderPrefix      = "Microbus-"
-	HeaderMsgId       = HeaderPrefix + "Msg-Id"
-	HeaderFromHost    = HeaderPrefix + "From-Host"
-	HeaderFromId      = HeaderPrefix + "From-Id"
-	HeaderFromVersion = HeaderPrefix + "From-Version"
-	HeaderTimeBudget  = HeaderPrefix + "Time-Budget"
-	HeaderCallDepth   = HeaderPrefix + "Call-Depth"
-	HeaderOpCode      = HeaderPrefix + "Op-Code"
-	HeaderTimestamp   = HeaderPrefix + "Timestamp"
-	HeaderQueue       = HeaderPrefix + "Queue"
-	HeaderFragment    = HeaderPrefix + "Fragment"
-	HeaderAuthToken   = HeaderPrefix + "Auth-Token"
+	HeaderPrefix        = "Microbus-"
+	HeaderBaggagePrefix = HeaderPrefix + "Baggage-"
+	HeaderMsgId         = HeaderPrefix + "Msg-Id"
+	HeaderFromHost      = HeaderPrefix + "From-Host"
+	HeaderFromId        = HeaderPrefix + "From-Id"
+	HeaderFromVersion   = HeaderPrefix + "From-Version"
+	HeaderTimeBudget    = HeaderPrefix + "Time-Budget"
+	HeaderCallDepth     = HeaderPrefix + "Call-Depth"
+	HeaderOpCode        = HeaderPrefix + "Op-Code"
+	HeaderTimestamp     = HeaderPrefix + "Timestamp"
+	HeaderQueue         = HeaderPrefix + "Queue"
+	HeaderFragment      = HeaderPrefix + "Fragment"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -75,6 +75,19 @@ func Of(r any) Frame {
 	return Frame{h}
 }
 
+// CloneCtx returns a new context with the frame's data cloned.
+// Manipulating the frame of the cloned context does not impact the original context.
+// The cloned context can then be passed along to downstream microservices.
+func CloneCtx(ctx context.Context) context.Context {
+	f := Of(ctx)
+	h := make(http.Header)
+	for k, v := range f.h {
+		h[k] = v
+	}
+	c := context.WithValue(ctx, ContextKey, h)
+	return c
+}
+
 // Get returns an arbitrary header.
 func (f Frame) Get(name string) string {
 	return f.h.Get(name)
@@ -87,6 +100,11 @@ func (f Frame) Set(name string, value string) {
 	} else {
 		f.h.Set(name, value)
 	}
+}
+
+// Header returns the underlying HTTP header backing the frame.
+func (f Frame) Header() http.Header {
+	return f.h
 }
 
 // OpCode indicates the type of the control message.
@@ -190,19 +208,21 @@ func (f Frame) SetCallDepth(depth int) {
 }
 
 // TimeBudget is the duration budgeted for the request to complete.
+// A value of 0 indicates no time budget.
 func (f Frame) TimeBudget() time.Duration {
 	v := f.h.Get(HeaderTimeBudget)
 	if v == "" {
 		return 0
 	}
 	ms, err := strconv.Atoi(v)
-	if err != nil {
+	if err != nil || ms < 0 {
 		return 0
 	}
 	return time.Millisecond * time.Duration(ms)
 }
 
 // SetTimeBudget budgets a duration for the request to complete.
+// A value of 0 indicates no time budget.
 func (f Frame) SetTimeBudget(budget time.Duration) {
 	ms := int(budget.Milliseconds())
 	if ms <= 0 {
@@ -260,16 +280,16 @@ func (f Frame) SetFragment(index int, max int) {
 	}
 }
 
-// AuthToken is the auth token identifying the actor.
-func (f Frame) AuthToken() string {
-	return f.h.Get(HeaderAuthToken)
+// Baggage is an arbitrary header that is passed through to downstream microservices.
+func (f Frame) Baggage(name string) string {
+	return f.h.Get(HeaderBaggagePrefix + name)
 }
 
-// SetAuthToken sets the auth token identifying the actor.
-func (f Frame) SetAuthToken(op string) {
-	if op == "" {
-		f.h.Del(HeaderAuthToken)
+// SetBaggage sets an arbitrary header that is passed through to downstream microservices.
+func (f Frame) SetBaggage(name string, value string) {
+	if value == "" {
+		f.h.Del(HeaderBaggagePrefix + name)
 	} else {
-		f.h.Set(HeaderAuthToken, op)
+		f.h.Set(HeaderBaggagePrefix+name, value)
 	}
 }

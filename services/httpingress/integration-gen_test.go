@@ -30,7 +30,9 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -50,13 +52,19 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *httpingressapi.Client
+)
+
+var (
+	sequence int
 )
 
 var (
@@ -122,6 +130,7 @@ func Context(t *testing.T) context.Context {
 
 // OnChangedPortsTestCase assists in asserting against the results of executing OnChangedPorts.
 type OnChangedPortsTestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -133,8 +142,8 @@ func (tc *OnChangedPortsTestCase) Name(testName string) *OnChangedPortsTestCase 
 }
 
 // Error asserts an error.
-func (tc *OnChangedPortsTestCase) Error(t *testing.T, errContains string) *OnChangedPortsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortsTestCase) Error(errContains string) *OnChangedPortsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -143,8 +152,8 @@ func (tc *OnChangedPortsTestCase) Error(t *testing.T, errContains string) *OnCha
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnChangedPortsTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedPortsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortsTestCase) ErrorCode(statusCode int) *OnChangedPortsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -153,16 +162,16 @@ func (tc *OnChangedPortsTestCase) ErrorCode(t *testing.T, statusCode int) *OnCha
 }
 
 // NoError asserts no error.
-func (tc *OnChangedPortsTestCase) NoError(t *testing.T) *OnChangedPortsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortsTestCase) NoError() *OnChangedPortsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnChangedPortsTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedPortsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedPortsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -174,8 +183,8 @@ func (tc *OnChangedPortsTestCase) Get() (err error) {
 }
 
 // OnChangedPorts executes the on changed callback and returns a corresponding test case.
-func OnChangedPorts(ctx context.Context) *OnChangedPortsTestCase {
-	tc := &OnChangedPortsTestCase{}
+func OnChangedPorts(t *testing.T, ctx context.Context) *OnChangedPortsTestCase {
+	tc := &OnChangedPortsTestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.OnChangedPorts(ctx)
 	})
@@ -184,6 +193,7 @@ func OnChangedPorts(ctx context.Context) *OnChangedPortsTestCase {
 
 // OnChangedAllowedOriginsTestCase assists in asserting against the results of executing OnChangedAllowedOrigins.
 type OnChangedAllowedOriginsTestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -195,8 +205,8 @@ func (tc *OnChangedAllowedOriginsTestCase) Name(testName string) *OnChangedAllow
 }
 
 // Error asserts an error.
-func (tc *OnChangedAllowedOriginsTestCase) Error(t *testing.T, errContains string) *OnChangedAllowedOriginsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedAllowedOriginsTestCase) Error(errContains string) *OnChangedAllowedOriginsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -205,8 +215,8 @@ func (tc *OnChangedAllowedOriginsTestCase) Error(t *testing.T, errContains strin
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnChangedAllowedOriginsTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedAllowedOriginsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedAllowedOriginsTestCase) ErrorCode(statusCode int) *OnChangedAllowedOriginsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -215,16 +225,16 @@ func (tc *OnChangedAllowedOriginsTestCase) ErrorCode(t *testing.T, statusCode in
 }
 
 // NoError asserts no error.
-func (tc *OnChangedAllowedOriginsTestCase) NoError(t *testing.T) *OnChangedAllowedOriginsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedAllowedOriginsTestCase) NoError() *OnChangedAllowedOriginsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnChangedAllowedOriginsTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedAllowedOriginsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedAllowedOriginsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedAllowedOriginsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -236,8 +246,8 @@ func (tc *OnChangedAllowedOriginsTestCase) Get() (err error) {
 }
 
 // OnChangedAllowedOrigins executes the on changed callback and returns a corresponding test case.
-func OnChangedAllowedOrigins(ctx context.Context) *OnChangedAllowedOriginsTestCase {
-	tc := &OnChangedAllowedOriginsTestCase{}
+func OnChangedAllowedOrigins(t *testing.T, ctx context.Context) *OnChangedAllowedOriginsTestCase {
+	tc := &OnChangedAllowedOriginsTestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.OnChangedAllowedOrigins(ctx)
 	})
@@ -246,6 +256,7 @@ func OnChangedAllowedOrigins(ctx context.Context) *OnChangedAllowedOriginsTestCa
 
 // OnChangedPortMappingsTestCase assists in asserting against the results of executing OnChangedPortMappings.
 type OnChangedPortMappingsTestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -257,8 +268,8 @@ func (tc *OnChangedPortMappingsTestCase) Name(testName string) *OnChangedPortMap
 }
 
 // Error asserts an error.
-func (tc *OnChangedPortMappingsTestCase) Error(t *testing.T, errContains string) *OnChangedPortMappingsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortMappingsTestCase) Error(errContains string) *OnChangedPortMappingsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -267,8 +278,8 @@ func (tc *OnChangedPortMappingsTestCase) Error(t *testing.T, errContains string)
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnChangedPortMappingsTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedPortMappingsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortMappingsTestCase) ErrorCode(statusCode int) *OnChangedPortMappingsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -277,16 +288,16 @@ func (tc *OnChangedPortMappingsTestCase) ErrorCode(t *testing.T, statusCode int)
 }
 
 // NoError asserts no error.
-func (tc *OnChangedPortMappingsTestCase) NoError(t *testing.T) *OnChangedPortMappingsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortMappingsTestCase) NoError() *OnChangedPortMappingsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnChangedPortMappingsTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedPortMappingsTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedPortMappingsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedPortMappingsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -298,8 +309,8 @@ func (tc *OnChangedPortMappingsTestCase) Get() (err error) {
 }
 
 // OnChangedPortMappings executes the on changed callback and returns a corresponding test case.
-func OnChangedPortMappings(ctx context.Context) *OnChangedPortMappingsTestCase {
-	tc := &OnChangedPortMappingsTestCase{}
+func OnChangedPortMappings(t *testing.T, ctx context.Context) *OnChangedPortMappingsTestCase {
+	tc := &OnChangedPortMappingsTestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.OnChangedPortMappings(ctx)
 	})
@@ -308,6 +319,7 @@ func OnChangedPortMappings(ctx context.Context) *OnChangedPortMappingsTestCase {
 
 // OnChangedReadTimeoutTestCase assists in asserting against the results of executing OnChangedReadTimeout.
 type OnChangedReadTimeoutTestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -319,8 +331,8 @@ func (tc *OnChangedReadTimeoutTestCase) Name(testName string) *OnChangedReadTime
 }
 
 // Error asserts an error.
-func (tc *OnChangedReadTimeoutTestCase) Error(t *testing.T, errContains string) *OnChangedReadTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadTimeoutTestCase) Error(errContains string) *OnChangedReadTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -329,8 +341,8 @@ func (tc *OnChangedReadTimeoutTestCase) Error(t *testing.T, errContains string) 
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnChangedReadTimeoutTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedReadTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadTimeoutTestCase) ErrorCode(statusCode int) *OnChangedReadTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -339,16 +351,16 @@ func (tc *OnChangedReadTimeoutTestCase) ErrorCode(t *testing.T, statusCode int) 
 }
 
 // NoError asserts no error.
-func (tc *OnChangedReadTimeoutTestCase) NoError(t *testing.T) *OnChangedReadTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadTimeoutTestCase) NoError() *OnChangedReadTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnChangedReadTimeoutTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedReadTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedReadTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -360,8 +372,8 @@ func (tc *OnChangedReadTimeoutTestCase) Get() (err error) {
 }
 
 // OnChangedReadTimeout executes the on changed callback and returns a corresponding test case.
-func OnChangedReadTimeout(ctx context.Context) *OnChangedReadTimeoutTestCase {
-	tc := &OnChangedReadTimeoutTestCase{}
+func OnChangedReadTimeout(t *testing.T, ctx context.Context) *OnChangedReadTimeoutTestCase {
+	tc := &OnChangedReadTimeoutTestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.OnChangedReadTimeout(ctx)
 	})
@@ -370,6 +382,7 @@ func OnChangedReadTimeout(ctx context.Context) *OnChangedReadTimeoutTestCase {
 
 // OnChangedWriteTimeoutTestCase assists in asserting against the results of executing OnChangedWriteTimeout.
 type OnChangedWriteTimeoutTestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -381,8 +394,8 @@ func (tc *OnChangedWriteTimeoutTestCase) Name(testName string) *OnChangedWriteTi
 }
 
 // Error asserts an error.
-func (tc *OnChangedWriteTimeoutTestCase) Error(t *testing.T, errContains string) *OnChangedWriteTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedWriteTimeoutTestCase) Error(errContains string) *OnChangedWriteTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -391,8 +404,8 @@ func (tc *OnChangedWriteTimeoutTestCase) Error(t *testing.T, errContains string)
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnChangedWriteTimeoutTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedWriteTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedWriteTimeoutTestCase) ErrorCode(statusCode int) *OnChangedWriteTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -401,16 +414,16 @@ func (tc *OnChangedWriteTimeoutTestCase) ErrorCode(t *testing.T, statusCode int)
 }
 
 // NoError asserts no error.
-func (tc *OnChangedWriteTimeoutTestCase) NoError(t *testing.T) *OnChangedWriteTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedWriteTimeoutTestCase) NoError() *OnChangedWriteTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnChangedWriteTimeoutTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedWriteTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedWriteTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedWriteTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -422,8 +435,8 @@ func (tc *OnChangedWriteTimeoutTestCase) Get() (err error) {
 }
 
 // OnChangedWriteTimeout executes the on changed callback and returns a corresponding test case.
-func OnChangedWriteTimeout(ctx context.Context) *OnChangedWriteTimeoutTestCase {
-	tc := &OnChangedWriteTimeoutTestCase{}
+func OnChangedWriteTimeout(t *testing.T, ctx context.Context) *OnChangedWriteTimeoutTestCase {
+	tc := &OnChangedWriteTimeoutTestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.OnChangedWriteTimeout(ctx)
 	})
@@ -432,6 +445,7 @@ func OnChangedWriteTimeout(ctx context.Context) *OnChangedWriteTimeoutTestCase {
 
 // OnChangedReadHeaderTimeoutTestCase assists in asserting against the results of executing OnChangedReadHeaderTimeout.
 type OnChangedReadHeaderTimeoutTestCase struct {
+	t *testing.T
 	testName string
 	err error
 }
@@ -443,8 +457,8 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) Name(testName string) *OnChangedRe
 }
 
 // Error asserts an error.
-func (tc *OnChangedReadHeaderTimeoutTestCase) Error(t *testing.T, errContains string) *OnChangedReadHeaderTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadHeaderTimeoutTestCase) Error(errContains string) *OnChangedReadHeaderTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -453,8 +467,8 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) Error(t *testing.T, errContains st
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *OnChangedReadHeaderTimeoutTestCase) ErrorCode(t *testing.T, statusCode int) *OnChangedReadHeaderTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadHeaderTimeoutTestCase) ErrorCode(statusCode int) *OnChangedReadHeaderTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -463,16 +477,16 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) ErrorCode(t *testing.T, statusCode
 }
 
 // NoError asserts no error.
-func (tc *OnChangedReadHeaderTimeoutTestCase) NoError(t *testing.T) *OnChangedReadHeaderTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadHeaderTimeoutTestCase) NoError() *OnChangedReadHeaderTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *OnChangedReadHeaderTimeoutTestCase) Assert(t *testing.T, asserter func(t *testing.T, err error)) *OnChangedReadHeaderTimeoutTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *OnChangedReadHeaderTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedReadHeaderTimeoutTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.err)
 	})
 	return tc
@@ -484,8 +498,8 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) Get() (err error) {
 }
 
 // OnChangedReadHeaderTimeout executes the on changed callback and returns a corresponding test case.
-func OnChangedReadHeaderTimeout(ctx context.Context) *OnChangedReadHeaderTimeoutTestCase {
-	tc := &OnChangedReadHeaderTimeoutTestCase{}
+func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedReadHeaderTimeoutTestCase {
+	tc := &OnChangedReadHeaderTimeoutTestCase{t: t}
 	tc.err = utils.CatchPanic(func () error {
 		return Svc.OnChangedReadHeaderTimeout(ctx)
 	})

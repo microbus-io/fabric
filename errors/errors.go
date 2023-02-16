@@ -23,61 +23,142 @@ import (
 	"strings"
 )
 
-// As delegates to the standard Go's errors.As function
+var statusText = map[int]string{
+	// 1xx
+	100: "continue",
+	// 2xx
+	200: "ok",
+	206: "partial content",
+	// 3xx
+	301: "moved permanently",
+	302: "found",
+	304: "not modified",
+	307: "temporary redirect",
+	308: "permanent redirect",
+	// 4xx
+	400: "bad request",
+	401: "unauthorized",
+	403: "forbidden",
+	404: "not found",
+	405: "method not allowed",
+	408: "request timeout",
+	413: "payload too large",
+	// 5xx
+	500: "internal server error",
+	501: "not implemented",
+	503: "service unavailable",
+	508: "loop detected",
+}
+
+// As delegates to the standard Go's errors.As function.
 func As(err error, target any) bool {
 	return stderrors.As(err, target)
 }
 
-// Is delegates to the standard Go's errors.Is function
+// Is delegates to the standard Go's errors.Is function.
 func Is(err, target error) bool {
 	return stderrors.Is(err, target)
 }
 
-// Unwrap delegates to the standard Go's errors.Wrap function
+// Unwrap delegates to the standard Go's errors.Wrap function.
 func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
 
 // New creates a new error, capturing the current stack location.
 // Optionally annotations may be attached
-func New(text string, annotations ...string) error {
+func New(text string, annotations ...any) error {
 	return TraceUp(stderrors.New(text), 1, annotations...)
 }
 
 // Newc creates a new error with an HTTP status code, capturing the current stack location.
 // Optionally annotations may be attached
-func Newc(statusCode int, text string, annotations ...string) error {
+func Newc(statusCode int, text string, annotations ...any) error {
+	if text == "" {
+		text = statusText[statusCode]
+	}
 	err := TraceUp(stderrors.New(text), 1, annotations...)
 	err.(*TracedError).StatusCode = statusCode
 	return err
 }
 
-// Newf formats a new error, capturing the current stack location
+// Newcf creates a new formatted error with an HTTP status code, capturing the current stack location.
+func Newcf(statusCode int, format string, a ...any) error {
+	if format == "" {
+		format = statusText[statusCode]
+	}
+	err := TraceUp(fmt.Errorf(format, a...), 1)
+	err.(*TracedError).StatusCode = statusCode
+	return err
+}
+
+// Newf formats a new error, capturing the current stack location.
 func Newf(format string, a ...any) error {
 	return TraceUp(fmt.Errorf(format, a...), 1)
 }
 
 // Trace appends the current stack location to the error's stack trace.
 // Optional annotations may be attached
-func Trace(err error, annotations ...string) error {
+func Trace(err error, annotations ...any) error {
 	return TraceUp(err, 1, annotations...)
 }
 
 // TraceUp appends the levels above the current stack location to the error's stack trace.
-// Optional annotations may be attached
-func TraceUp(err error, levels int, annotations ...string) error {
+// Optional annotations may be attached.
+func TraceUp(err error, levels int, annotations ...any) error {
 	if err == nil {
 		return nil
 	}
 	tracedErr := Convert(err)
 	file, function, line, ok := RuntimeTrace(1 + levels)
 	if ok {
+		var strAnnotations []string
+		if len(annotations) > 0 {
+			strAnnotations = make([]string, len(annotations))
+			for i := range annotations {
+				strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+			}
+		}
 		tracedErr.stack = append(tracedErr.stack, &trace{
 			File:        file,
 			Function:    function,
 			Line:        line,
-			Annotations: annotations,
+			Annotations: strAnnotations,
 		})
+	}
+	return tracedErr
+}
+
+// TraceFull appends the full stack to the error's stack trace.
+// Optional annotations may be attached to the first level.
+func TraceFull(err error, annotations ...any) error {
+	if err == nil {
+		return nil
+	}
+	tracedErr := Convert(err)
+
+	strAnnotations := make([]string, len(annotations))
+	for i := range annotations {
+		strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+	}
+
+	levels := -1
+	for {
+		levels++
+		file, function, line, ok := RuntimeTrace(1 + levels)
+		if !ok {
+			break
+		}
+		if strings.HasPrefix(function, "runtime.") {
+			continue
+		}
+		tracedErr.stack = append(tracedErr.stack, &trace{
+			File:        file,
+			Function:    function,
+			Line:        line,
+			Annotations: strAnnotations,
+		})
+		strAnnotations = nil
 	}
 	return tracedErr
 }
@@ -93,7 +174,8 @@ func Convert(err error) *TracedError {
 		return tracedErr
 	}
 	return &TracedError{
-		error: err,
+		error:      err,
+		StatusCode: 500,
 	}
 }
 

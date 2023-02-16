@@ -5,14 +5,32 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
-		{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
+		{{ .Name }}(t, ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
 			Name(testName).
-		{{- if .Signature.OutputArgs }}
-			Expect({{ $t }} {{- range .Signature.OutputArgs }}, {{ .Name }}{{ end }}).
-		{{- end }}
-			NoError({{ $t }}).
-			Error({{ $t }}, errContains).
-			Assert({{ $t }}, func({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err))
+			{{- if .Signature.OutputArgs }}
+			Expect({{ range $i, $e := .Signature.OutputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }}).
+			{{- end }}
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(func({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err))
+	*/
+	// ctx := Context(t)
+}
+{{ end }}{{ end }}
+
+{{- range .Events }}{{- if not .Exists }}
+{{- $t := .Signature.TestingT }}
+func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
+	// TO{{/**/}}DO: Test {{ .Name }}
+	t.Parallel()
+	/*
+		{{ .Name }}(t, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err).
+			Name(testName).
+			{{- if .Signature.InputArgs }}
+			Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }}).
+			{{- end }}
+			Assert(func({{ $t }}, ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}))
 	*/
 	// ctx := Context(t)
 }
@@ -23,16 +41,17 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
-		{{ .Name }}(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		{{ .Name }}(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
 			Name(testName).
-			StatusOK(t).
-			StatusCode(t, statusCode).
-			BodyContains(t, bodyContains).
-			BodyNotContains(t, bodyNotContains).
-			HeaderContains(t, headerName, valueContains).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, httpResponse, err))
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(func(t, httpResponse, err))
 	*/
 	// ctx := Context(t)
 }
@@ -43,11 +62,12 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
-		{{ .Name }}(ctx).
+		{{ .Name }}(t, ctx).
 			Name(testName).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, err)
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(func(err))
 	*/
 	// ctx := Context(t)
 }
@@ -58,11 +78,12 @@ func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test OnChanged{{ .Name }}
 	t.Parallel()
 	/*
-		OnChanged{{ .Name }}(ctx).
+		OnChanged{{ .Name }}(t, ctx).
 			Name(testName).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, err)
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(func(err))
 	*/
 	// ctx := Context(t)
 }

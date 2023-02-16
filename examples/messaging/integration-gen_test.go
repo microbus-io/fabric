@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
@@ -50,6 +51,7 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
 	_ *httpx.BodyReader
 	_ pub.Option
@@ -57,6 +59,10 @@ var (
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *messagingapi.Client
+)
+
+var (
+	sequence int
 )
 
 var (
@@ -198,6 +204,7 @@ func ContentType(contentType string) WebOption {
 
 // HomeTestCase assists in asserting against the results of executing Home.
 type HomeTestCase struct {
+	t *testing.T
 	testName string
 	res *http.Response
 	err error
@@ -210,8 +217,8 @@ func (tc *HomeTestCase) Name(testName string) *HomeTestCase {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *HomeTestCase) StatusOK(t *testing.T) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) StatusOK() *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
 		}
@@ -220,8 +227,8 @@ func (tc *HomeTestCase) StatusOK(t *testing.T) *HomeTestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *HomeTestCase) StatusCode(t *testing.T, statusCode int) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) StatusCode(statusCode int) *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, statusCode)
 		}
@@ -230,8 +237,8 @@ func (tc *HomeTestCase) StatusCode(t *testing.T, statusCode int) *HomeTestCase {
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *HomeTestCase) BodyContains(t *testing.T, bodyContains any) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) BodyContains(bodyContains any) *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyContains.(type) {
@@ -249,8 +256,8 @@ func (tc *HomeTestCase) BodyContains(t *testing.T, bodyContains any) *HomeTestCa
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *HomeTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) BodyNotContains(bodyNotContains any) *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyNotContains.(type) {
@@ -268,8 +275,8 @@ func (tc *HomeTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *Home
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *HomeTestCase) HeaderContains(t *testing.T, headerName string, valueContains string) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) HeaderContains(headerName string, valueContains string) *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
@@ -278,8 +285,8 @@ func (tc *HomeTestCase) HeaderContains(t *testing.T, headerName string, valueCon
 }
 
 // Error asserts an error.
-func (tc *HomeTestCase) Error(t *testing.T, errContains string) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) Error(errContains string) *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -288,8 +295,8 @@ func (tc *HomeTestCase) Error(t *testing.T, errContains string) *HomeTestCase {
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *HomeTestCase) ErrorCode(t *testing.T, statusCode int) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) ErrorCode(statusCode int) *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -298,16 +305,16 @@ func (tc *HomeTestCase) ErrorCode(t *testing.T, statusCode int) *HomeTestCase {
 }
 
 // NoError asserts no error.
-func (tc *HomeTestCase) NoError(t *testing.T) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) NoError() *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *HomeTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *HomeTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *HomeTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *HomeTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.res, tc.err)
 	})
 	return tc
@@ -319,8 +326,8 @@ func (tc *HomeTestCase) Get() (res *http.Response, err error) {
 }
 
 // Home executes the web handler and returns a corresponding test case.
-func Home(ctx context.Context, options ...WebOption) *HomeTestCase {
-	tc := &HomeTestCase{}
+func Home(t *testing.T, ctx context.Context, options ...WebOption) *HomeTestCase {
+	tc := &HomeTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/home`)),
 	}
@@ -349,6 +356,7 @@ func Home(ctx context.Context, options ...WebOption) *HomeTestCase {
 
 // NoQueueTestCase assists in asserting against the results of executing NoQueue.
 type NoQueueTestCase struct {
+	t *testing.T
 	testName string
 	res *http.Response
 	err error
@@ -361,8 +369,8 @@ func (tc *NoQueueTestCase) Name(testName string) *NoQueueTestCase {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *NoQueueTestCase) StatusOK(t *testing.T) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) StatusOK() *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
 		}
@@ -371,8 +379,8 @@ func (tc *NoQueueTestCase) StatusOK(t *testing.T) *NoQueueTestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *NoQueueTestCase) StatusCode(t *testing.T, statusCode int) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) StatusCode(statusCode int) *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, statusCode)
 		}
@@ -381,8 +389,8 @@ func (tc *NoQueueTestCase) StatusCode(t *testing.T, statusCode int) *NoQueueTest
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *NoQueueTestCase) BodyContains(t *testing.T, bodyContains any) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) BodyContains(bodyContains any) *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyContains.(type) {
@@ -400,8 +408,8 @@ func (tc *NoQueueTestCase) BodyContains(t *testing.T, bodyContains any) *NoQueue
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *NoQueueTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) BodyNotContains(bodyNotContains any) *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyNotContains.(type) {
@@ -419,8 +427,8 @@ func (tc *NoQueueTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *N
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *NoQueueTestCase) HeaderContains(t *testing.T, headerName string, valueContains string) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) HeaderContains(headerName string, valueContains string) *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
@@ -429,8 +437,8 @@ func (tc *NoQueueTestCase) HeaderContains(t *testing.T, headerName string, value
 }
 
 // Error asserts an error.
-func (tc *NoQueueTestCase) Error(t *testing.T, errContains string) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) Error(errContains string) *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -439,8 +447,8 @@ func (tc *NoQueueTestCase) Error(t *testing.T, errContains string) *NoQueueTestC
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *NoQueueTestCase) ErrorCode(t *testing.T, statusCode int) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) ErrorCode(statusCode int) *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -449,16 +457,16 @@ func (tc *NoQueueTestCase) ErrorCode(t *testing.T, statusCode int) *NoQueueTestC
 }
 
 // NoError asserts no error.
-func (tc *NoQueueTestCase) NoError(t *testing.T) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) NoError() *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *NoQueueTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *NoQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *NoQueueTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *NoQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.res, tc.err)
 	})
 	return tc
@@ -470,8 +478,8 @@ func (tc *NoQueueTestCase) Get() (res *http.Response, err error) {
 }
 
 // NoQueue executes the web handler and returns a corresponding test case.
-func NoQueue(ctx context.Context, options ...WebOption) *NoQueueTestCase {
-	tc := &NoQueueTestCase{}
+func NoQueue(t *testing.T, ctx context.Context, options ...WebOption) *NoQueueTestCase {
+	tc := &NoQueueTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/no-queue`)),
 	}
@@ -500,6 +508,7 @@ func NoQueue(ctx context.Context, options ...WebOption) *NoQueueTestCase {
 
 // DefaultQueueTestCase assists in asserting against the results of executing DefaultQueue.
 type DefaultQueueTestCase struct {
+	t *testing.T
 	testName string
 	res *http.Response
 	err error
@@ -512,8 +521,8 @@ func (tc *DefaultQueueTestCase) Name(testName string) *DefaultQueueTestCase {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *DefaultQueueTestCase) StatusOK(t *testing.T) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) StatusOK() *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
 		}
@@ -522,8 +531,8 @@ func (tc *DefaultQueueTestCase) StatusOK(t *testing.T) *DefaultQueueTestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *DefaultQueueTestCase) StatusCode(t *testing.T, statusCode int) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) StatusCode(statusCode int) *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, statusCode)
 		}
@@ -532,8 +541,8 @@ func (tc *DefaultQueueTestCase) StatusCode(t *testing.T, statusCode int) *Defaul
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *DefaultQueueTestCase) BodyContains(t *testing.T, bodyContains any) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) BodyContains(bodyContains any) *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyContains.(type) {
@@ -551,8 +560,8 @@ func (tc *DefaultQueueTestCase) BodyContains(t *testing.T, bodyContains any) *De
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *DefaultQueueTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) BodyNotContains(bodyNotContains any) *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyNotContains.(type) {
@@ -570,8 +579,8 @@ func (tc *DefaultQueueTestCase) BodyNotContains(t *testing.T, bodyNotContains an
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *DefaultQueueTestCase) HeaderContains(t *testing.T, headerName string, valueContains string) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) HeaderContains(headerName string, valueContains string) *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
@@ -580,8 +589,8 @@ func (tc *DefaultQueueTestCase) HeaderContains(t *testing.T, headerName string, 
 }
 
 // Error asserts an error.
-func (tc *DefaultQueueTestCase) Error(t *testing.T, errContains string) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) Error(errContains string) *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -590,8 +599,8 @@ func (tc *DefaultQueueTestCase) Error(t *testing.T, errContains string) *Default
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *DefaultQueueTestCase) ErrorCode(t *testing.T, statusCode int) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) ErrorCode(statusCode int) *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -600,16 +609,16 @@ func (tc *DefaultQueueTestCase) ErrorCode(t *testing.T, statusCode int) *Default
 }
 
 // NoError asserts no error.
-func (tc *DefaultQueueTestCase) NoError(t *testing.T) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) NoError() *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *DefaultQueueTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *DefaultQueueTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *DefaultQueueTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *DefaultQueueTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.res, tc.err)
 	})
 	return tc
@@ -621,8 +630,8 @@ func (tc *DefaultQueueTestCase) Get() (res *http.Response, err error) {
 }
 
 // DefaultQueue executes the web handler and returns a corresponding test case.
-func DefaultQueue(ctx context.Context, options ...WebOption) *DefaultQueueTestCase {
-	tc := &DefaultQueueTestCase{}
+func DefaultQueue(t *testing.T, ctx context.Context, options ...WebOption) *DefaultQueueTestCase {
+	tc := &DefaultQueueTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/default-queue`)),
 	}
@@ -651,6 +660,7 @@ func DefaultQueue(ctx context.Context, options ...WebOption) *DefaultQueueTestCa
 
 // CacheLoadTestCase assists in asserting against the results of executing CacheLoad.
 type CacheLoadTestCase struct {
+	t *testing.T
 	testName string
 	res *http.Response
 	err error
@@ -663,8 +673,8 @@ func (tc *CacheLoadTestCase) Name(testName string) *CacheLoadTestCase {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *CacheLoadTestCase) StatusOK(t *testing.T) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) StatusOK() *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
 		}
@@ -673,8 +683,8 @@ func (tc *CacheLoadTestCase) StatusOK(t *testing.T) *CacheLoadTestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *CacheLoadTestCase) StatusCode(t *testing.T, statusCode int) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) StatusCode(statusCode int) *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, statusCode)
 		}
@@ -683,8 +693,8 @@ func (tc *CacheLoadTestCase) StatusCode(t *testing.T, statusCode int) *CacheLoad
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *CacheLoadTestCase) BodyContains(t *testing.T, bodyContains any) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) BodyContains(bodyContains any) *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyContains.(type) {
@@ -702,8 +712,8 @@ func (tc *CacheLoadTestCase) BodyContains(t *testing.T, bodyContains any) *Cache
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *CacheLoadTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) BodyNotContains(bodyNotContains any) *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyNotContains.(type) {
@@ -721,8 +731,8 @@ func (tc *CacheLoadTestCase) BodyNotContains(t *testing.T, bodyNotContains any) 
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *CacheLoadTestCase) HeaderContains(t *testing.T, headerName string, valueContains string) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) HeaderContains(headerName string, valueContains string) *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
@@ -731,8 +741,8 @@ func (tc *CacheLoadTestCase) HeaderContains(t *testing.T, headerName string, val
 }
 
 // Error asserts an error.
-func (tc *CacheLoadTestCase) Error(t *testing.T, errContains string) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) Error(errContains string) *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -741,8 +751,8 @@ func (tc *CacheLoadTestCase) Error(t *testing.T, errContains string) *CacheLoadT
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *CacheLoadTestCase) ErrorCode(t *testing.T, statusCode int) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) ErrorCode(statusCode int) *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -751,16 +761,16 @@ func (tc *CacheLoadTestCase) ErrorCode(t *testing.T, statusCode int) *CacheLoadT
 }
 
 // NoError asserts no error.
-func (tc *CacheLoadTestCase) NoError(t *testing.T) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) NoError() *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *CacheLoadTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *CacheLoadTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheLoadTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *CacheLoadTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.res, tc.err)
 	})
 	return tc
@@ -772,8 +782,8 @@ func (tc *CacheLoadTestCase) Get() (res *http.Response, err error) {
 }
 
 // CacheLoad executes the web handler and returns a corresponding test case.
-func CacheLoad(ctx context.Context, options ...WebOption) *CacheLoadTestCase {
-	tc := &CacheLoadTestCase{}
+func CacheLoad(t *testing.T, ctx context.Context, options ...WebOption) *CacheLoadTestCase {
+	tc := &CacheLoadTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/cache-load`)),
 	}
@@ -802,6 +812,7 @@ func CacheLoad(ctx context.Context, options ...WebOption) *CacheLoadTestCase {
 
 // CacheStoreTestCase assists in asserting against the results of executing CacheStore.
 type CacheStoreTestCase struct {
+	t *testing.T
 	testName string
 	res *http.Response
 	err error
@@ -814,8 +825,8 @@ func (tc *CacheStoreTestCase) Name(testName string) *CacheStoreTestCase {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *CacheStoreTestCase) StatusOK(t *testing.T) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) StatusOK() *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
 		}
@@ -824,8 +835,8 @@ func (tc *CacheStoreTestCase) StatusOK(t *testing.T) *CacheStoreTestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *CacheStoreTestCase) StatusCode(t *testing.T, statusCode int) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) StatusCode(statusCode int) *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, statusCode)
 		}
@@ -834,8 +845,8 @@ func (tc *CacheStoreTestCase) StatusCode(t *testing.T, statusCode int) *CacheSto
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *CacheStoreTestCase) BodyContains(t *testing.T, bodyContains any) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) BodyContains(bodyContains any) *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyContains.(type) {
@@ -853,8 +864,8 @@ func (tc *CacheStoreTestCase) BodyContains(t *testing.T, bodyContains any) *Cach
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *CacheStoreTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) BodyNotContains(bodyNotContains any) *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyNotContains.(type) {
@@ -872,8 +883,8 @@ func (tc *CacheStoreTestCase) BodyNotContains(t *testing.T, bodyNotContains any)
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *CacheStoreTestCase) HeaderContains(t *testing.T, headerName string, valueContains string) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) HeaderContains(headerName string, valueContains string) *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
@@ -882,8 +893,8 @@ func (tc *CacheStoreTestCase) HeaderContains(t *testing.T, headerName string, va
 }
 
 // Error asserts an error.
-func (tc *CacheStoreTestCase) Error(t *testing.T, errContains string) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) Error(errContains string) *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -892,8 +903,8 @@ func (tc *CacheStoreTestCase) Error(t *testing.T, errContains string) *CacheStor
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *CacheStoreTestCase) ErrorCode(t *testing.T, statusCode int) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) ErrorCode(statusCode int) *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -902,16 +913,16 @@ func (tc *CacheStoreTestCase) ErrorCode(t *testing.T, statusCode int) *CacheStor
 }
 
 // NoError asserts no error.
-func (tc *CacheStoreTestCase) NoError(t *testing.T) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) NoError() *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *CacheStoreTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *CacheStoreTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CacheStoreTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *CacheStoreTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.res, tc.err)
 	})
 	return tc
@@ -923,8 +934,8 @@ func (tc *CacheStoreTestCase) Get() (res *http.Response, err error) {
 }
 
 // CacheStore executes the web handler and returns a corresponding test case.
-func CacheStore(ctx context.Context, options ...WebOption) *CacheStoreTestCase {
-	tc := &CacheStoreTestCase{}
+func CacheStore(t *testing.T, ctx context.Context, options ...WebOption) *CacheStoreTestCase {
+	tc := &CacheStoreTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/cache-store`)),
 	}

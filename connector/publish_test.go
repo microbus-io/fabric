@@ -260,7 +260,7 @@ func TestConnector_CallDepth(t *testing.T) {
 
 		_, err := con.GET(r.Context(), "https://call.depth.connector/next?step="+strconv.Itoa(step+1))
 		assert.Error(t, err)
-		assert.Contains(t, "call depth overflow", err.Error())
+		assert.Contains(t, err.Error(), "call depth overflow")
 		return errors.Trace(err)
 	})
 
@@ -271,7 +271,7 @@ func TestConnector_CallDepth(t *testing.T) {
 
 	_, err = con.GET(ctx, "https://call.depth.connector/next?step=1")
 	assert.Error(t, err)
-	assert.Contains(t, "call depth overflow", err.Error())
+	assert.Contains(t, err.Error(), "call depth overflow")
 	assert.Equal(t, con.maxCallDepth, depth)
 }
 
@@ -295,14 +295,42 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
+	budgetedCtx, cancel := context.WithTimeout(ctx, budget)
+	defer cancel()
 	_, err = con.Request(
-		ctx,
+		budgetedCtx,
 		pub.GET("https://timeout.drawdown.connector/next"),
-		pub.TimeBudget(budget),
 	)
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusRequestTimeout, errors.Convert(err).StatusCode)
 	assert.True(t, depth >= 7 && depth <= 8, "%d", depth)
+}
+
+func TestConnector_TimeoutContext(t *testing.T) {
+	t.Parallel()
+
+	// Create the microservice
+	con := New("timeout.context.connector")
+	var deadline time.Time
+	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+		deadline, _ = r.Context().Deadline()
+		return nil
+	})
+
+	// Startup the microservice
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	_, err = con.Request(
+		ctx,
+		pub.GET("https://timeout.context.connector/ok"),
+	)
+	assert.NoError(t, err)
+	assert.False(t, deadline.IsZero())
+	assert.True(t, time.Until(deadline) > time.Second*58, time.Until(deadline))
 }
 
 func TestConnector_TimeoutNotFound(t *testing.T) {
@@ -319,11 +347,12 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	defer con.Shutdown()
 
 	// Set a time budget in the request
+	shortCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
 	t0 := con.Now()
 	_, err = con.Request(
-		ctx,
+		shortCtx,
 		pub.GET("https://timeout.not.found.connector/nowhere"),
-		pub.TimeBudget(2*time.Second),
 	)
 	dur := con.Clock().Since(t0)
 	assert.Error(t, err)
@@ -358,11 +387,12 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
+	shortCtx, cancel := context.WithTimeout(ctx, time.Millisecond*500)
+	defer cancel()
 	t0 := con.Now()
 	_, err = con.Request(
-		ctx,
+		shortCtx,
 		pub.GET("https://timeout.slow.connector/slow"),
-		pub.TimeBudget(time.Millisecond*500),
 	)
 	assert.Error(t, err)
 	dur := con.Clock().Since(t0)
@@ -385,10 +415,11 @@ func TestConnector_ContextTimeout(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
+	shortCtx, cancel := context.WithTimeout(con.Lifetime(), time.Second)
+	defer cancel()
 	_, err = con.Request(
-		con.Lifetime(),
+		shortCtx,
 		pub.GET("https://context.timeout.connector/timeout"),
-		pub.TimeBudget(time.Second),
 	)
 	assert.Error(t, err)
 	assert.True(t, done)
@@ -528,13 +559,14 @@ func TestConnector_MulticastDelay(t *testing.T) {
 	defer tooSlow.Shutdown()
 
 	// Send the message
+	shortCtx, cancel := context.WithTimeout(ctx, delay*3)
+	defer cancel()
 	var respondedOK, respondedErr int
 	t0 := slow.Now()
 	ch := slow.Publish(
-		ctx,
+		shortCtx,
 		pub.GET("https://multicast.delay.connector/cast"),
 		pub.Multicast(),
-		pub.TimeBudget(delay*3),
 	)
 	for i := range ch {
 		res, err := i.Get()
@@ -601,6 +633,32 @@ func TestConnector_MulticastError(t *testing.T) {
 	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 	assert.Equal(t, 1, countErrs)
 	assert.Equal(t, 1, countOKs)
+}
+
+func TestConnector_MulticastNotFound(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	con := New("multicast.not.found.connector")
+
+	// Startup the microservice
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send the message
+	var count int
+	t0 := con.Now()
+	ch := con.Publish(ctx, pub.GET("https://multicast.not.found.connector/nowhere"), pub.Multicast())
+	for i := range ch {
+		i.Get()
+		count++
+	}
+	dur := con.Clock().Since(t0)
+	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
+	assert.Equal(t, 0, count)
 }
 
 func TestConnector_MassMulticast(t *testing.T) {
@@ -849,12 +907,13 @@ func TestConnector_UnconsumedResponse(t *testing.T) {
 	})
 
 	// Multicast
+	shortCtx1, cancel1 := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel1()
 	responses = 0
 	cons[0].multicastChanCap = n / 2
 	ch := cons[0].Publish(
-		context.Background(),
+		shortCtx1,
 		pub.GET("https://unconsumed.response.connector/multicast"),
-		pub.TimeBudget(time.Second*2),
 	)
 
 	// ch should produce n responses, but ch only has a capacity of n/2
@@ -870,11 +929,12 @@ func TestConnector_UnconsumedResponse(t *testing.T) {
 	assert.NoError(t, err)
 
 	// At this point ch is full, but other requests should work
+	shortCtx2, cancel2 := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel2()
 	t0 = time.Now()
 	_, err = cons[0].Request(
-		context.Background(),
+		shortCtx2,
 		pub.GET("https://unconsumed.response.connector/unicast"),
-		pub.TimeBudget(time.Second*2),
 	)
 	assert.NoError(t, err)
 	dur = time.Since(t0)
@@ -922,4 +982,54 @@ func TestConnector_UnicastToNoQueue(t *testing.T) {
 		pub.GET("https://unicast.to.no.queue.connector/no-queue"),
 	)
 	assert.NoError(t, err)
+}
+
+func TestConnector_Baggage(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := New("alpha.baggage.connector")
+
+	betaCalled := false
+	betaBaggage := ""
+	beta := New("beta.baggage.connector")
+	beta.Subscribe("noop", func(w http.ResponseWriter, r *http.Request) error {
+		betaCalled = true
+		betaBaggage = frame.Of(r).Baggage("Suitcase")
+		beta.GET(r.Context(), "https://gamma.baggage.connector/noop")
+		return nil
+	})
+
+	gammaCalled := false
+	gammaBaggage := ""
+	gamma := New("gamma.baggage.connector")
+	gamma.Subscribe("noop", func(w http.ResponseWriter, r *http.Request) error {
+		gammaCalled = true
+		gammaBaggage = frame.Of(r).Baggage("Suitcase")
+		return nil
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	defer gamma.Shutdown()
+
+	// Send message and validate that it's echoed back
+	_, err = alpha.Request(ctx,
+		pub.GET("https://beta.baggage.connector/noop"),
+		pub.Baggage("Suitcase", "Clothes"),
+	)
+	assert.NoError(t, err)
+	assert.True(t, betaCalled)
+	assert.True(t, gammaCalled)
+	assert.Equal(t, "Clothes", betaBaggage)
+	assert.Equal(t, "Clothes", gammaBaggage)
 }

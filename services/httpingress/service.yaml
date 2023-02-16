@@ -27,7 +27,7 @@ general:
 # name - A name for the database
 # type - The type of the database, "mariadb" or "mysql"
 databases:
-  # - name:
+  # - name: SQL
   #   type: mariadb
 
 # Config properties
@@ -49,9 +49,11 @@ databases:
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
   - signature: TimeBudget() (budget time.Duration)
-    description: TimeBudget specifies the timeout for handling a request, after it has been read.
+    description: |-
+      TimeBudget specifies the timeout for handling a request, after it has been read.
+      A value of 0 or less indicates no time budget.
     default: 20s
-    validation: dur [1s,]
+    validation: dur [0s,]
   - signature: Ports() (port string)
     description: Ports is a comma-separated list of HTTP ports on which to listen for requests.
     default: 8080
@@ -95,10 +97,9 @@ configs:
     callback: true
   - signature: Middleware() (viaURL string)
     description: |-
-      Middleware defines a microservice endpoint to delegate all requests through.
+      Middleware defines a microservice to delegate all requests to.
       The URL of the middleware must be fully qualified, for example,
       "https://middle.ware/serve" or "https://middle.ware:123".
-      A middleware is required in order to be able to serve the root path or a favicon.
 
 # Types
 #
@@ -126,6 +127,7 @@ types:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
@@ -145,6 +147,7 @@ functions:
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path
+#   //example.com:417/path
 #   https://example.com:417/path
 events:
   # - signature:
@@ -176,6 +179,7 @@ sinks:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)

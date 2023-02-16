@@ -30,7 +30,9 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -50,13 +52,19 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ *connector.Connector
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *metricsapi.Client
+)
+
+var (
+	sequence int
 )
 
 var (
@@ -198,6 +206,7 @@ func ContentType(contentType string) WebOption {
 
 // CollectTestCase assists in asserting against the results of executing Collect.
 type CollectTestCase struct {
+	t *testing.T
 	testName string
 	res *http.Response
 	err error
@@ -210,8 +219,8 @@ func (tc *CollectTestCase) Name(testName string) *CollectTestCase {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *CollectTestCase) StatusOK(t *testing.T) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) StatusOK() *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
 		}
@@ -220,8 +229,8 @@ func (tc *CollectTestCase) StatusOK(t *testing.T) *CollectTestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *CollectTestCase) StatusCode(t *testing.T, statusCode int) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) StatusCode(statusCode int) *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, statusCode)
 		}
@@ -230,8 +239,8 @@ func (tc *CollectTestCase) StatusCode(t *testing.T, statusCode int) *CollectTest
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *CollectTestCase) BodyContains(t *testing.T, bodyContains any) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) BodyContains(bodyContains any) *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyContains.(type) {
@@ -249,8 +258,8 @@ func (tc *CollectTestCase) BodyContains(t *testing.T, bodyContains any) *Collect
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *CollectTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) BodyNotContains(bodyNotContains any) *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyNotContains.(type) {
@@ -268,8 +277,8 @@ func (tc *CollectTestCase) BodyNotContains(t *testing.T, bodyNotContains any) *C
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *CollectTestCase) HeaderContains(t *testing.T, headerName string, valueContains string) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) HeaderContains(headerName string, valueContains string) *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
@@ -278,8 +287,8 @@ func (tc *CollectTestCase) HeaderContains(t *testing.T, headerName string, value
 }
 
 // Error asserts an error.
-func (tc *CollectTestCase) Error(t *testing.T, errContains string) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) Error(errContains string) *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -288,8 +297,8 @@ func (tc *CollectTestCase) Error(t *testing.T, errContains string) *CollectTestC
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *CollectTestCase) ErrorCode(t *testing.T, statusCode int) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) ErrorCode(statusCode int) *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -298,16 +307,16 @@ func (tc *CollectTestCase) ErrorCode(t *testing.T, statusCode int) *CollectTestC
 }
 
 // NoError asserts no error.
-func (tc *CollectTestCase) NoError(t *testing.T) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) NoError() *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *CollectTestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *CollectTestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *CollectTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *CollectTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.res, tc.err)
 	})
 	return tc
@@ -319,10 +328,14 @@ func (tc *CollectTestCase) Get() (res *http.Response, err error) {
 }
 
 // Collect executes the web handler and returns a corresponding test case.
-func Collect(ctx context.Context, options ...WebOption) *CollectTestCase {
-	tc := &CollectTestCase{}
+func Collect(t *testing.T, ctx context.Context, options ...WebOption) *CollectTestCase {
+	tc := &CollectTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("metrics.sys", `:443/collect`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
 	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))

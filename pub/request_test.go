@@ -21,10 +21,8 @@ import (
 	"io"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frame"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -135,22 +133,6 @@ func TestPub_Body(t *testing.T) {
 	assert.Equal(t, `{"s":"ABC","i":123}`, string(body))
 }
 
-func TestPub_TimeBudget(t *testing.T) {
-	t.Parallel()
-
-	req, err := NewRequest([]Option{
-		GET("https://www.example.com"),
-		TimeBudget(30 * time.Second),
-		TimeBudget(20 * time.Second),
-		TimeBudget(40 * time.Second), // Last
-	}...)
-	assert.NoError(t, err)
-	httpReq, err := toHTTP(req)
-	assert.NoError(t, err)
-	budget := frame.Of(httpReq).TimeBudget()
-	assert.Equal(t, 40*time.Second, budget)
-}
-
 func toHTTP(req *Request) (*http.Request, error) {
 	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
 	if err != nil {
@@ -159,7 +141,6 @@ func toHTTP(req *Request) (*http.Request, error) {
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
 	}
-	frame.Of(httpReq).SetTimeBudget(req.TimeBudget)
 	return httpReq, nil
 }
 

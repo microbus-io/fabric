@@ -19,18 +19,14 @@ package httpx
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
-
-	"github.com/microbus-io/fabric/errors"
 )
 
 // ResponseRecorder is used to record HTTP responses
 type ResponseRecorder struct {
 	header     http.Header
 	body       *bytes.Buffer
-	bytes      []byte
 	statusCode int
 }
 
@@ -51,34 +47,10 @@ func (rr *ResponseRecorder) Header() http.Header {
 // Write writes bytes to the body of the response.
 // It implements the http.ResponseWriter interface
 func (rr *ResponseRecorder) Write(b []byte) (int, error) {
-	if len(rr.bytes) > 0 && len(b) > 0 && &rr.bytes[0] == &b[0] {
-		return 0, errors.New("identical buffer cannot be reused")
-	}
-	if rr.bytes == nil && rr.body == nil {
-		// Optimize and keep the original buffer instead of copying it
-		rr.bytes = b
-		return len(b), nil
-	}
 	if rr.body == nil {
 		rr.body = &bytes.Buffer{}
-		rr.body.Write(rr.bytes)
-		rr.bytes = nil
 	}
 	return rr.body.Write(b)
-}
-
-// ReadFrom writes the entire content of the reader as the response body.
-// Without this implementation, using io.Copy to copy into a recorder conflicts with the
-// optimization of keeping the original buffer because io.Copy reuses the same buffer.
-func (rr *ResponseRecorder) ReadFrom(r io.Reader) (n int64, err error) {
-	if rr.body == nil {
-		rr.body = &bytes.Buffer{}
-	}
-	if rr.bytes != nil {
-		rr.body.Write(rr.bytes)
-		rr.bytes = nil
-	}
-	return io.Copy(rr.body, r)
 }
 
 // WriteHeader writes the header to the response.
@@ -97,10 +69,7 @@ func (rr *ResponseRecorder) Result() *http.Response {
 		Header:     rr.header,
 	}
 	res.Status = fmt.Sprintf("%03d %s", res.StatusCode, http.StatusText(res.StatusCode))
-	if rr.bytes != nil {
-		res.Body = NewBodyReader(rr.bytes)
-		res.ContentLength = int64(len(rr.bytes))
-	} else if rr.body != nil {
+	if rr.body != nil {
 		res.Body = NewBodyReader(rr.body.Bytes())
 		res.ContentLength = int64(rr.body.Len())
 	}
@@ -110,9 +79,7 @@ func (rr *ResponseRecorder) Result() *http.Response {
 
 // ContentLength returns the total number of bytes written to the body of the response.
 func (rr *ResponseRecorder) ContentLength() int {
-	if rr.bytes != nil {
-		return len(rr.bytes)
-	} else if rr.body != nil {
+	if rr.body != nil {
 		return rr.body.Len()
 	}
 	return 0

@@ -23,6 +23,7 @@ import (
 
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/services/control/controlapi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,7 +100,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 	callbackCalled := false
 	err = con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
 		assert.True(t, changed("FOO"))
-		assert.False(t, changed("int"))
+		assert.True(t, changed("int"))
 		callbackCalled = true
 		return nil
 	})
@@ -114,6 +115,20 @@ func TestConnector_FetchConfig(t *testing.T) {
 
 	assert.Equal(t, "baz", con.Config("foo"), "New value should be read from configurator")
 	assert.Equal(t, "5", con.Config("int"), "Invalid value should not be accepted")
+	assert.False(t, callbackCalled)
+
+	mockCfg.Unsubscribe("/values")
+	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"values":{"foo":"bam","int":"8"}}`))
+		return nil
+	})
+
+	ctx := context.Background()
+	controlapi.NewClient(mockCfg).ForHost("fetch.config.connector").ConfigRefresh(ctx)
+
+	assert.Equal(t, "bam", con.Config("foo"))
+	assert.Equal(t, "8", con.Config("int"))
 	assert.True(t, callbackCalled)
 }
 
@@ -179,6 +194,7 @@ func TestConnector_CallbackWhenStarted(t *testing.T) {
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
+	assert.Equal(t, 0, callbackCalled)
 
 	con.SetConfig("foo", "bam")
 	assert.Equal(t, "bam", con.Config("foo"))

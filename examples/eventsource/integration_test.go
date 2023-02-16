@@ -62,15 +62,45 @@ func Terminate() error {
 func TestEventsource_Register(t *testing.T) {
 	t.Parallel()
 	/*
-		Register(ctx, email).
+		Register(t, ctx, email).
 			Name(testName).
-			Expect(t, allowed).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, allowed, err))
+			Expect(allowed).
+			NoError().
+			Error(errContains).
+			Assert(func(t, allowed, err))
 	*/
 	ctx := Context(t)
-	Register(ctx, "brian@hotmail.com").Name("decline hotmail.com").Expect(t, false)
-	Register(ctx, "brian@example.com").Name("accept example.com").Expect(t, true)
-	Register(ctx, "brian@example.com").Name("decline dup").Expect(t, false)
+	Register(t, ctx, "brian@hotmail.com").Name("decline hotmail.com").Expect(false)
+	Register(t, ctx, "brian@example.com").Name("accept example.com").Expect(true)
+	Register(t, ctx, "brian@example.com").Name("decline dup").Expect(false)
+}
+
+func TestEventsource_OnAllowRegister(t *testing.T) {
+	// No parallel
+	/*
+		OnAllowRegister(t, allow, err).
+			Name(testName).
+			Expect(email).
+			Assert(func(t, ctx, email))
+	*/
+	ctx := Context(t)
+	OnAllowRegister(t, true, nil).
+		Expect("barb@example.com")
+	Register(t, ctx, "barb@example.com").Expect(true)
+	OnAllowRegister(t, false, nil).
+		Expect("josh@example.com")
+	Register(t, ctx, "josh@example.com").Expect(false)
+}
+
+func TestEventsource_OnRegistered(t *testing.T) {
+	// No parallel
+	/*
+		OnRegistered(t, err).
+			Name(testName).
+			Expect(email).
+			Assert(func(t, ctx, email))
+	*/
+	ctx := Context(t)
+	OnRegistered(t, nil).Expect("harry@example.com")
+	Register(t, ctx, "harry@example.com").Expect(true)
 }

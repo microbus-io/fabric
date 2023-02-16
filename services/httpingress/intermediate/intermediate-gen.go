@@ -42,6 +42,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/httpingress/resources"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
@@ -104,8 +105,9 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"TimeBudget",
-		cfg.Description(`TimeBudget specifies the timeout for handling a request, after it has been read.`),
-		cfg.Validation(`dur [1s,]`),
+		cfg.Description(`TimeBudget specifies the timeout for handling a request, after it has been read.
+A value of 0 or less indicates no time budget.`),
+		cfg.Validation(`dur [0s,]`),
 		cfg.DefaultValue(`20s`),
 	)
 	svc.DefineConfig(
@@ -157,18 +159,17 @@ HTTP ports 443 and 80 to only internal port 443.`),
 	)
 	svc.DefineConfig(
 		"Middleware",
-		cfg.Description(`Middleware defines a microservice endpoint to delegate all requests through.
+		cfg.Description(`Middleware defines a microservice to delegate all requests to.
 The URL of the middleware must be fully qualified, for example,
-"https://middle.ware/serve" or "https://middle.ware:123".
-A middleware is required in order to be able to serve the root path or a favicon.`),
+"https://middle.ware/serve" or "https://middle.ware:123".`),
 	)
 
 	return svc
 }
 
 // Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() embed.FS {
-	return resources.FS
+func (svc *Intermediate) Resources() utils.ResourceLoader {
+	return utils.ResourceLoader{FS: resources.FS}
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.
@@ -214,6 +215,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 
 /*
 TimeBudget specifies the timeout for handling a request, after it has been read.
+A value of 0 or less indicates no time budget.
 */
 func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 	_val := svc.Config("TimeBudget")
@@ -223,6 +225,7 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 
 /*
 TimeBudget specifies the timeout for handling a request, after it has been read.
+A value of 0 or less indicates no time budget.
 */
 func TimeBudget(budget time.Duration) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
@@ -370,10 +373,9 @@ func ReadHeaderTimeout(timeout time.Duration) (func(connector.Service) error) {
 }
 
 /*
-Middleware defines a microservice endpoint to delegate all requests through.
+Middleware defines a microservice to delegate all requests to.
 The URL of the middleware must be fully qualified, for example,
 "https://middle.ware/serve" or "https://middle.ware:123".
-A middleware is required in order to be able to serve the root path or a favicon.
 */
 func (svc *Intermediate) Middleware() (viaURL string) {
 	_val := svc.Config("Middleware")
@@ -381,10 +383,9 @@ func (svc *Intermediate) Middleware() (viaURL string) {
 }
 
 /*
-Middleware defines a microservice endpoint to delegate all requests through.
+Middleware defines a microservice to delegate all requests to.
 The URL of the middleware must be fully qualified, for example,
 "https://middle.ware/serve" or "https://middle.ware:123".
-A middleware is required in order to be able to serve the root path or a favicon.
 */
 func Middleware(viaURL string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {

@@ -79,6 +79,7 @@ func ContentType(contentType string) WebOption {
 {{- $host := .General.Host }}{{ range .Webs }}
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
+	t *testing.T
 	testName string
 	res *http.Response
 	err error
@@ -91,8 +92,8 @@ func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *{{ .Name }}TestCase) StatusOK(t *testing.T) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) StatusOK() *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
 		}
@@ -101,8 +102,8 @@ func (tc *{{ .Name }}TestCase) StatusOK(t *testing.T) *{{ .Name }}TestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *{{ .Name }}TestCase) StatusCode(t *testing.T, statusCode int) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) StatusCode(statusCode int) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.Equal(t, tc.res.StatusCode, statusCode)
 		}
@@ -111,8 +112,8 @@ func (tc *{{ .Name }}TestCase) StatusCode(t *testing.T, statusCode int) *{{ .Nam
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *{{ .Name }}TestCase) BodyContains(t *testing.T, bodyContains any) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) BodyContains(bodyContains any) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyContains.(type) {
@@ -130,8 +131,8 @@ func (tc *{{ .Name }}TestCase) BodyContains(t *testing.T, bodyContains any) *{{ 
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *{{ .Name }}TestCase) BodyNotContains(t *testing.T, bodyNotContains any) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) BodyNotContains(bodyNotContains any) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			body := tc.res.Body.(*httpx.BodyReader).Bytes()
 			switch v := bodyNotContains.(type) {
@@ -149,8 +150,8 @@ func (tc *{{ .Name }}TestCase) BodyNotContains(t *testing.T, bodyNotContains any
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *{{ .Name }}TestCase) HeaderContains(t *testing.T, headerName string, valueContains string) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) HeaderContains(headerName string, valueContains string) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.NoError(t, tc.err) {
 			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
 		}
@@ -159,8 +160,8 @@ func (tc *{{ .Name }}TestCase) HeaderContains(t *testing.T, headerName string, v
 }
 
 // Error asserts an error.
-func (tc *{{ .Name }}TestCase) Error(t *testing.T, errContains string) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) Error(errContains string) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Contains(t, tc.err.Error(), errContains)
 		}
@@ -169,8 +170,8 @@ func (tc *{{ .Name }}TestCase) Error(t *testing.T, errContains string) *{{ .Name
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *{{ .Name }}TestCase) ErrorCode(t *testing.T, statusCode int) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) ErrorCode(statusCode int) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		if assert.Error(t, tc.err) {
 			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
 		}
@@ -179,16 +180,16 @@ func (tc *{{ .Name }}TestCase) ErrorCode(t *testing.T, statusCode int) *{{ .Name
 }
 
 // NoError asserts no error.
-func (tc *{{ .Name }}TestCase) NoError(t *testing.T) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) NoError() *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		assert.NoError(t, tc.err)
 	})
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *{{ .Name }}TestCase) Assert(t *testing.T, asserter func(t *testing.T, res *http.Response, err error)) *{{ .Name }}TestCase {
-	t.Run(tc.testName, func(t *testing.T) {
+func (tc *{{ .Name }}TestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *{{ .Name }}TestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
 		asserter(t, tc.res, tc.err)
 	})
 	return tc
@@ -200,10 +201,14 @@ func (tc *{{ .Name }}TestCase) Get() (res *http.Response, err error) {
 }
 
 // {{ .Name }} executes the web handler and returns a corresponding test case.
-func {{ .Name }}(ctx context.Context, options ...WebOption) *{{ .Name }}TestCase {
-	tc := &{{ .Name }}TestCase{}
+func {{ .Name }}(t *testing.T, ctx context.Context, options ...WebOption) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("{{ $host }}", `{{ .Path }}`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
 	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))

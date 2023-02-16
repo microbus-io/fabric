@@ -68,124 +68,125 @@ func Terminate() error {
 func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
-		Hello(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		Hello(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
 			Name(testName).
-			StatusOK(t).
-			StatusCode(t, statusCode).
-			BodyContains(t, bodyContains).
-			BodyNotContains(t, bodyNotContains).
-			HeaderContains(t, headerName, valueContains).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, httpResponse, err))
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Hello(ctx, GET()).
+	Hello(t, ctx, GET()).
 		Name("without name arg").
-		BodyContains(t, Svc.Greeting()).
-		BodyNotContains(t, "Maria").
-		Assert(t, func(t *testing.T, res *http.Response, err error) {
+		BodyContains(Svc.Greeting()).
+		BodyNotContains("Maria").
+		Assert(func(t *testing.T, res *http.Response, err error) {
 			assert.NoError(t, err)
 			body, err := io.ReadAll(res.Body)
 			assert.NoError(t, err)
 			assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
 		})
-	Hello(ctx, GET(), QueryArg("name", "Maria")).
+	Hello(t, ctx, GET(), QueryArg("name", "Maria")).
 		Name("with name arg").
-		BodyContains(t, Svc.Greeting()).
-		BodyContains(t, "Maria")
+		BodyContains(Svc.Greeting()).
+		BodyContains("Maria")
 }
 
 func TestHello_Echo(t *testing.T) {
 	t.Parallel()
 	/*
-		Echo(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		Echo(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
 			Name(testName).
-			StatusOK(t).
-			StatusCode(t, statusCode).
-			BodyContains(t, bodyContains).
-			BodyNotContains(t, bodyNotContains).
-			HeaderContains(t, headerName, valueContains).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, httpResponse, err))
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Echo(ctx, POST("PostBody"), Header("Echo123", "EchoEchoEcho"), QueryArg("echo", "123")).
-		BodyContains(t, "Echo123: EchoEchoEcho").
-		BodyContains(t, "?echo=123").
-		BodyContains(t, "PostBody")
+	Echo(t, ctx, POST("PostBody"), Header("Echo123", "EchoEchoEcho"), QueryArg("echo", "123")).
+		BodyContains("Echo123: EchoEchoEcho").
+		BodyContains("?echo=123").
+		BodyContains("PostBody")
 }
 
 func TestHello_Ping(t *testing.T) {
 	t.Parallel()
 	/*
-		Ping(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		Ping(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
 			Name(testName).
-			StatusOK(t).
-			StatusCode(t, statusCode).
-			BodyContains(t, bodyContains).
-			BodyNotContains(t, bodyNotContains).
-			HeaderContains(t, headerName, valueContains).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, httpResponse, err))
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Ping(ctx, GET()).BodyContains(t, Svc.ID()+"."+Svc.HostName())
+	Ping(t, ctx, GET()).
+		BodyContains(Svc.ID() + "." + Svc.HostName())
 }
 
 func TestHello_Calculator(t *testing.T) {
 	t.Parallel()
 	/*
-		Calculator(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		Calculator(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
 			Name(testName).
-			StatusOK(t).
-			StatusCode(t, statusCode).
-			BodyContains(t, bodyContains).
-			BodyNotContains(t, bodyNotContains).
-			HeaderContains(t, headerName, valueContains).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, httpResponse, err))
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Calculator(ctx, GET(), Query("x=5&op=*&y=80")).BodyContains(t, "400")
-	Calculator(ctx, GET(), Query("x=500&op=/&y=5")).BodyContains(t, "100")
+	Calculator(t, ctx, GET(), Query("x=5&op=*&y=80")).BodyContains("400")
+	Calculator(t, ctx, GET(), Query("x=500&op=/&y=5")).BodyContains("100")
 }
 
 func TestHello_BusJPEG(t *testing.T) {
 	t.Parallel()
 	/*
-		BusJPEG(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		BusJPEG(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
 			Name(testName).
-			StatusOK(t).
-			StatusCode(t, statusCode).
-			BodyContains(t, bodyContains).
-			BodyNotContains(t, bodyNotContains).
-			HeaderContains(t, headerName, valueContains).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, httpResponse, err))
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
 	img, err := Svc.Resources().ReadFile("bus.jpeg")
 	assert.NoError(t, err)
-	BusJPEG(ctx, GET()).
-		StatusOK(t).
-		BodyContains(t, img).
-		HeaderContains(t, "Content-Type", "image/jpeg")
+	BusJPEG(t, ctx, GET()).
+		StatusOK().
+		BodyContains(img).
+		HeaderContains("Content-Type", "image/jpeg")
 }
 
 func TestHello_TickTock(t *testing.T) {
 	t.Parallel()
 	/*
-		TickTock(ctx).
+		TickTock(t, ctx).
 			Name(testName).
-			NoError(t).
-			Error(t, errContains).
-			Assert(t, func(t, err))
+			NoError().
+			Error(errContains).
+			Assert(func(err))
 	*/
 	ctx := Context(t)
-	TickTock(ctx).NoError(t)
+	TickTock(t, ctx).NoError()
 }

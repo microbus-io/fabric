@@ -20,7 +20,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/microbus-io/fabric/errors"
 )
@@ -28,12 +27,11 @@ import (
 // Request is used to construct an HTTP request that can be sent over the bus.
 // Although technically public, it is used internally and should not be constructed by microservices directly.
 type Request struct {
-	Method     string
-	URL        string
-	Header     http.Header
-	Body       io.Reader
-	TimeBudget time.Duration
-	Multicast  bool
+	Method    string
+	URL       string
+	Header    http.Header
+	Body      io.Reader
+	Multicast bool
 
 	queryArgs string
 }
@@ -41,10 +39,9 @@ type Request struct {
 // NewRequest constructs a new request from the provided options.
 func NewRequest(options ...Option) (*Request, error) {
 	req := &Request{
-		Method:     "POST",
-		Header:     make(http.Header),
-		Multicast:  true,
-		TimeBudget: 20 * time.Second,
+		Method:    "POST",
+		Header:    make(http.Header),
+		Multicast: true,
 	}
 	err := req.Apply(options...)
 	if err != nil {
