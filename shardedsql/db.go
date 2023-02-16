@@ -381,6 +381,20 @@ func (db *DB) adjustConnectionLimits() {
 	}
 }
 
+// BeginTx calls BeginTx on the shard matching the sharding key.
+// An error is returned if a shard cannot be found for the sharding key.
+func (db *DB) BeginTx(ctx context.Context, shardingKey int, opts *sql.TxOptions) (*sql.Tx, error) {
+	shard := db.ShardOf(ctx, shardingKey)
+	return shard.BeginTx(ctx, opts)
+}
+
+// Begin calls Begin on the shard matching the sharding key.
+// An error is returned if a shard cannot be found for the sharding key.
+func (db *DB) Begin(shardingKey int) (*sql.Tx, error) {
+	shard := db.ShardOf(context.Background(), shardingKey)
+	return shard.Begin()
+}
+
 // Query calls Query on the shard matching the sharding key.
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) Query(shardingKey int, query string, args ...interface{}) (*sql.Rows, error) {
