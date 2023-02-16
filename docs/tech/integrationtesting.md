@@ -43,7 +43,7 @@ func Initialize() error {
 }
 ```
 
-### Testing a Functional Endpoint
+### Testing Functions and Event Sinks
 
 For each endpoint, the testing harness `integration-gen_test.go` defines a corresponding test case which invokes the underlying endpoint and provides asserters on the result. In the following example, `Arithmetic` calls `Svc.Arithmetic` behind the scenes and returns an `ArithmeticTestCase` with asserters that are customized for its return values. It only takes the developer but a few lines of code to run various test cases against the endpoint.
 
@@ -70,7 +70,7 @@ func TestCalculator_Arithmetic(t *testing.T) {
 }
 ```
 
-### Testing a Web Endpoint
+### Testing Webs
 
 Raw web endpoints are tested in a similar fashion, except that their asserters are customized for a web request. In the following example, `Hello` takes in options to customize the web request (method, body, query arguments or headers) and the resulting `HelloTestCase` includes asserters that are tailored to an `http.Response` return value. Note how asserters can be chained.
 
@@ -137,7 +137,7 @@ func TestExample_OnChangedConnectionString(t *testing.T) {
 }
 ```
 
-### Testing Events
+### Testing Event Sources
 
 Events are tested through a corresponding event sink. The event test case must be defined prior to the firing of the event. In the following example, `OnAllowRegister` defines the event test case and `Register` fires the event.
 

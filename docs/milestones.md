@@ -124,5 +124,14 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 17](https://github.com/microbus-io/fabric/tree/milestone/17):
 
 * Code generation of tests for event sources
-* `any` error annotation types
+* `any` error annotation types instead of `string`
 * `rand.Read`
+* Do not return an error if a multicast returns zero responses
+* HTTP ingress proxy to respect `Request-Timeout` header
+* Capture full stack trace during panics
+* Reset ack timeout during debugging
+* Fixed bug in conveying the time budget downstream
+* Fixed bug in conveying baggage and `X-Forwarded` headers downstream
+* Brotli compression by HTTP ingress proxy
+* HTTP ingress proxy to bypass the middleware when contacting the metrics microservice
+* HTTP ingress proxy to transform `/` requests to `/root`

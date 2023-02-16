@@ -63,18 +63,18 @@ Review each of the major project packages to get oriented in the code structure:
 Go deep into the philosophy and implementation of `Microbus`:
 
 * [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
-* [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
+* [HTTP ingress](docs/tech/httpingress.md) ✨ - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](docs/tech/timebudget.md) - The proper way to manage request timeouts
 * [Configuration](docs/tech/configuration.md) - How to configure microservices
 * [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
-* [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
+* [Multicast messaging](docs/tech/multicast.md) ✨ - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
 * [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
 * [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
-* [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
+* [Integration testing](docs/tech/integrationtesting.md) ✨ - Testing multiple microservices together
 
 ## 👩‍⚖️ Legal
 

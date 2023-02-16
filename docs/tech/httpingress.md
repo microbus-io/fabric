@@ -17,9 +17,14 @@ On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP request
 
 ## Configuration
 
-The HTTP ingress proxy supports several configuration properties.
+The HTTP ingress proxy supports several configuration properties that can be set in in `config.yaml`:
 
-`Ports` is a comma-separated list of HTTP ports on which to listen for requests.
+```yaml
+http.ingress.sys:
+  Port: 9090
+```
+
+`Ports` is a comma-separated list of HTTP ports on which to listen for requests. The default is to listen on port `:8080`.
 
 `PortMappings` is a comma-separated list of mappings in the form `x:y->z` where `x` is the inbound
 HTTP port, `y` is the requested internal port, and `z` is the internal port to serve.
@@ -48,3 +53,12 @@ Four config properties are used to safeguard against long requests:
 `Middleware` defines a microservice to delegate all requests to.
 The URL of the middleware must be fully qualified, for example,
 `https://middle.ware/serve` or `https://middle.ware:123`.
+
+## Respected Headers
+
+The HTTP ingress proxy respects the following incoming headers:
+
+* `Request-Timeout` can be used to override the default time-budget of the request
+* `Accept-Encoding` with `br`, `deflate` or `gzip` can be used to compress the response
+* `X-Forwarded-Host`, `X-Forwarded-Port`, `X-Forwarded-Proto` and `X-Forwarded-Prefix` are augmented with the ingress proxy's information 
+* `Origin` may cause a request to be blocked

@@ -25,3 +25,5 @@ In the case of fire and forget, it may look similar to this:
 ```go
 go s.Publish(r.Context(), pub.GET("https://users.storage/ondeleted?id=12345"))
 ```
+
+Note that a multicast may return no results at all. Unlike a unicast, no error is returned.
