@@ -167,6 +167,8 @@ Along with the host name of the service, the `path` defines the URL to this endp
 
 `queue` defines whether a request is routed to one of the replicas of the microservice (load-balanced) or to all (pervasive).
 
+All complex (struct) non-primitive types used in `functions` and `events` must be declared in the API package of the microservice. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) of primitive types are also considered primitives.
+
 ### Event Sources
 
 `events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. [Events](../tech/events.md) are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `OnUserDeleted(id string)` could be an event fired by a user management microservice.

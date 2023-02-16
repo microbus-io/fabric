@@ -26,26 +26,22 @@ http://localhost:8080/calculator.example/square?x=not-valid results in:
 json: cannot unmarshal string into Go struct field .x of type int
 ```
 
-The `/distance` endpoint demonstrates the use of a complex type `Point`. The type is defined in `service.yaml`:
-
-```yaml
-types:
-  - name: Point
-    description: Point is a 2D (X,Y) coordinate.
-    define:
-      x: float64
-      y: float64
-```
-
-and code generated in the API package:
+The `/distance` endpoint demonstrates the use of a complex type `Point`. An empty struct is automatically defined in `types.go` in the API package:
 
 ```go
-/*
-Point is a 2D coordinate (X, Y)
-*/
+// Point is used in the API of the microservice.
 type Point struct {
-    X float64 `json:"x"`
-    Y float64 `json:"y"`
+	// Field type `json:"field,omitempty"`
+}
+```
+
+It can then be changed appropriately for its use case:
+
+```go
+// Point is a 2D coordinate (X, Y)
+type Point struct {
+	X float64 `json:"x,omitempty"`
+	Y float64 `json:"y,omitempty"`
 }
 ```
 

@@ -135,3 +135,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Brotli compression by HTTP ingress proxy
 * HTTP ingress proxy to bypass the middleware when contacting the metrics microservice
 * HTTP ingress proxy to transform `/` requests to `/root`
+* Deprecated the need to define types in `service.yaml`

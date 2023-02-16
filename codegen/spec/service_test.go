@@ -130,18 +130,6 @@ xxx:
   - signature: OnFunc(x int) (mint)
 `,
 		"invalid argument",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(user User) (ok bool)
-`,
-		"undeclared",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(id string) (user User)
-`,
-		"undeclared",
 	}
 
 	tcFunctions := []string{
@@ -203,64 +191,6 @@ sinks:
     forHost: invalid.ho$t
 `,
 		"invalid host name",
-	}
-
-	tcTypes := []string{
-		`
-types:
-  - name: User
-`,
-		"missing type specification",
-		// --------------------
-		`
-types:
-  - name: User
-    define:
-      x: int
-    import: package/path/of/remote/type/User
-`,
-		"ambiguous type specification",
-		// --------------------
-		`
-types:
-  - name: User_Record
-`,
-		"invalid type name",
-		// --------------------
-		`
-types:
-  - name: User.Record
-`,
-		"invalid type name",
-		// --------------------
-		`
-types:
-  - name: user
-`,
-		"invalid type name",
-		// --------------------
-		`
-types:
-  - name: User
-    define:
-      FirstName: string
-`,
-		"start with lowercase",
-		// --------------------
-		`
-types:
-  - name: User
-    import: https://www.example.com
-`,
-		"invalid import path",
-		// --------------------
-		`
-types:
-  - name: User
-    define:
-      id: UUID
-`,
-		"undeclared",
 	}
 
 	tcConfigs := []string{
@@ -397,7 +327,6 @@ webs:
 	testCases = append(testCases, tcService...)
 	testCases = append(testCases, tcSinks...)
 	testCases = append(testCases, tcTickers...)
-	testCases = append(testCases, tcTypes...)
 	testCases = append(testCases, tcWebs...)
 	for i := 0; i < len(testCases); i += 2 {
 		tc := testCases[i]
@@ -449,13 +378,6 @@ general:
   host: example.com
 functions:
   - signature: Func(d Defined) (i Imported)
-types:
-  - name: Defined
-    define:
-      x: int
-      y: int
-  - name: Imported
-    import: from/somewhere/else/Imported
 `
 	var svc Service
 	err := yaml.Unmarshal([]byte(code), &svc)

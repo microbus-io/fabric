@@ -307,27 +307,75 @@ func (gen *Generator) makeAPI() error {
 		return errors.Trace(err)
 	}
 
-	// types-gen.go
-	fileName := filepath.Join(gen.WorkDir, gen.specs.PackageSuffix()+"api", "types-gen.go")
+	// Types
 	if len(gen.specs.Types) > 0 {
-		tt, err := LoadTemplate("api/types-gen.txt")
+		// Scan .go files for existing types
+		gen.Printer.Debug("Scanning for existing types")
+		existingTypes, err := scanFiles(
+			dir,
+			func(file fs.DirEntry) bool {
+				return strings.HasSuffix(file.Name(), ".go") &&
+					!strings.HasSuffix(file.Name(), "_test.go") &&
+					!strings.HasSuffix(file.Name(), "-gen.go")
+			},
+			`type ([A-Z][a-zA-Z0-9]*) `, // type XXX
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = tt.Overwrite(fileName, gen.specs)
-		if err != nil {
-			return errors.Trace(err)
+		gen.Printer.Indent()
+		for k := range existingTypes {
+			gen.Printer.Debug(k)
 		}
-		gen.Printer.Debug("%sapi/types-gen.go", gen.specs.PackageSuffix())
-	} else {
-		err := os.Remove(fileName)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return errors.Trace(err)
+		gen.Printer.Unindent()
+
+		// Mark existing types in the specs
+		newTypes := false
+		for _, ct := range gen.specs.Types {
+			ct.Exists = existingTypes[ct.Name]
+			newTypes = newTypes || !ct.Exists
+		}
+
+		// Create types.go if it doesn't exist
+		fileName := filepath.Join(dir, "types.go")
+		_, err = os.Stat(fileName)
+		if errors.Is(err, os.ErrNotExist) {
+			tt, err := LoadTemplate("api/types.txt")
+			if err != nil {
+				return errors.Trace(err)
+			}
+			err = tt.Overwrite(fileName, gen.specs)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			gen.Printer.Debug("types.go")
+		}
+
+		// Append new type definitions
+		fileName = filepath.Join(dir, "types.go")
+		if newTypes {
+			tt, err := LoadTemplate("api/types.append.txt")
+			if err != nil {
+				return errors.Trace(err)
+			}
+			err = tt.AppendTo(fileName, gen.specs)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			gen.Printer.Debug("New types defined")
+			gen.Printer.Indent()
+			for _, ct := range gen.specs.Types {
+				if !ct.Exists {
+					gen.Printer.Debug("%s", ct.Name)
+				}
+			}
+			gen.Printer.Unindent()
 		}
 	}
 
 	// clients-gen.go
-	fileName = filepath.Join(gen.WorkDir, gen.specs.PackageSuffix()+"api", "clients-gen.go")
+	fileName := filepath.Join(gen.WorkDir, gen.specs.PackageSuffix()+"api", "clients-gen.go")
 	tt, err := LoadTemplate(
 		"api/clients-gen.txt",
 		"api/clients-gen.webs.txt",

@@ -19,8 +19,8 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/codegen",
-            "cwd": "${workspaceFolder}/examples/hello",
-            "env": {"MICROBUS_CODEGEN": "-f"}
+            "cwd": "${workspaceFolder}/examples/calculator",
+            "env": {"MICROBUS_CODEGEN": "-f -v"}
         }
     ]
 }

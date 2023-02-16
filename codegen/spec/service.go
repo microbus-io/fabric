@@ -31,12 +31,13 @@ type Service struct {
 	Databases []*Database `yaml:"databases"`
 	Configs   []*Handler  `yaml:"configs"`
 	Metrics   []*Handler  `yaml:"metrics"`
-	Types     []*Type     `yaml:"types"`
 	Functions []*Handler  `yaml:"functions"`
 	Events    []*Handler  `yaml:"events"`
 	Sinks     []*Handler  `yaml:"sinks"`
 	Webs      []*Handler  `yaml:"webs"`
 	Tickers   []*Handler  `yaml:"tickers"`
+
+	Types []*Type `yaml:"-"`
 
 	fullyQualified bool
 }
@@ -167,31 +168,29 @@ func (s *Service) validate() error {
 		}
 	}
 
-	// Check that all complex types are declared
-	typeNames := map[string]bool{}
-	for _, t := range s.Types {
-		typeNames[t.Name] = true
-	}
-	for _, t := range s.Types {
-		for _, fldType := range t.Define {
-			if utils.IsUpperCaseIdentifier(fldType) && !typeNames[fldType] {
-				return errors.Newf("undeclared field type '%s' in type '%s'", fldType, t.Name)
-			}
-		}
-	}
+	// Gather complex types
 	typedHandlers := []*Handler{}
 	typedHandlers = append(typedHandlers, s.Functions...)
 	typedHandlers = append(typedHandlers, s.Events...)
 	typedHandlers = append(typedHandlers, s.Sinks...)
+	complexTypes := map[string]bool{}
 	for _, fn := range typedHandlers {
 		for _, a := range fn.Signature.InputArgs {
-			if utils.IsUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
-				return errors.Newf("undeclared type '%s' in '%s'", a.EndType(), fn.Signature.OrigString)
+			endType := a.EndType()
+			if utils.IsUpperCaseIdentifier(endType) && !complexTypes[endType] {
+				s.Types = append(s.Types, &Type{
+					Name: endType},
+				)
+				complexTypes[endType] = true
 			}
 		}
 		for _, a := range fn.Signature.OutputArgs {
-			if utils.IsUpperCaseIdentifier(a.EndType()) && !typeNames[a.EndType()] {
-				return errors.Newf("undeclared type '%s' in '%s'", a.EndType(), fn.Signature.OrigString)
+			endType := a.EndType()
+			if utils.IsUpperCaseIdentifier(endType) && !complexTypes[endType] {
+				s.Types = append(s.Types, &Type{
+					Name: endType},
+				)
+				complexTypes[endType] = true
 			}
 		}
 	}
@@ -217,27 +216,5 @@ func (s *Service) AllHandlers() []*Handler {
 	result = append(result, s.Sinks...)
 	result = append(result, s.Webs...)
 	result = append(result, s.Tickers...)
-	return result
-}
-
-// ImportedTypes returns only types that are imported.
-func (s *Service) ImportedTypes() []*Type {
-	var result []*Type
-	for _, t := range s.Types {
-		if t.Import != "" {
-			result = append(result, t)
-		}
-	}
-	return result
-}
-
-// DefinedTypes returns only types that are defined.
-func (s *Service) DefinedTypes() []*Type {
-	var result []*Type
-	for _, t := range s.Types {
-		if len(t.Define) > 0 {
-			result = append(result, t)
-		}
-	}
 	return result
 }

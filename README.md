@@ -72,7 +72,7 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [Multicast messaging](docs/tech/multicast.md) ✨ - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
 * [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
-* [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
+* [Code generation](docs/tech/codegen.md) ✨ - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](docs/tech/integrationtesting.md) ✨ - Testing multiple microservices together
 

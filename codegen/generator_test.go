@@ -66,13 +66,6 @@ sinks:
   - signature: OnSink2(x Type2)
     description: OnSink2 handles an event.
     source: from/somewhere/else
-types:
-  - name: Type1
-    define:
-      x: float
-      y: float
-  - name: Type2
-    import: from/somewhere/else/Type2
 webs:
   - signature: Web1()
   - signature: Web2()
@@ -119,8 +112,8 @@ tickers:
 		"Func1(ctx", "Func2(ctx", "Web1(ctx", "Web2(ctx", "OnEvent1(ctx", "OnEvent2(ctx", "OnEvent1(handler", "OnEvent2(handler",
 	)
 	fileContains(
-		filepath.Join(dir+"api", "types-gen.go"),
-		"type Type1", "type Type2", "from/somewhere/else",
+		filepath.Join(dir+"api", "types.go"),
+		"type Type1 struct", "type Type2 struct",
 	)
 	fileContains(
 		filepath.Join("intermediate", "intermediate-gen.go"),

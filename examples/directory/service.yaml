@@ -53,30 +53,6 @@ configs:
   #   default:
   #   validation:
 
-# Types
-#
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The package path of the imported type
-types:
-  - name: PersonKey
-    description: PersonKey is the primary key of the person.
-    define:
-      seq: int
-  - name: NullTime
-    import: github.com/microbus-io/fabric/clock/NullTime
-  - name: Person
-    description: |
-      Person is a personal record that is registered in the directory.
-      First and last name and email are required. Birthday is optional.
-    define:
-      key: PersonKey
-      firstName: string
-      lastName: string
-      email: string
-      birthday: NullTime
-
 # Functions
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)

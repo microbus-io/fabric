@@ -108,7 +108,7 @@ The microservice itself does nothing and should not be included in applications.
 
 // Resources is the in-memory file system of the embedded resources.
 func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{resources.FS}
+	return utils.ResourceLoader{FS: resources.FS}
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

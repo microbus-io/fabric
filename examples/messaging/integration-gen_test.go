@@ -32,6 +32,7 @@ import (
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -53,6 +54,7 @@ var (
 	_ strings.Builder
 	_ *connector.Connector
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -331,6 +333,10 @@ func Home(t *testing.T, ctx context.Context, options ...WebOption) *HomeTestCase
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/home`)),
 	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
@@ -482,6 +488,10 @@ func NoQueue(t *testing.T, ctx context.Context, options ...WebOption) *NoQueueTe
 	tc := &NoQueueTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/no-queue`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
 	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
@@ -635,6 +645,10 @@ func DefaultQueue(t *testing.T, ctx context.Context, options ...WebOption) *Defa
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/default-queue`)),
 	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
@@ -787,6 +801,10 @@ func CacheLoad(t *testing.T, ctx context.Context, options ...WebOption) *CacheLo
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/cache-load`)),
 	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
@@ -938,6 +956,10 @@ func CacheStore(t *testing.T, ctx context.Context, options ...WebOption) *CacheS
 	tc := &CacheStoreTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/cache-store`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
 	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))

@@ -101,21 +101,6 @@ configs:
       The URL of the middleware must be fully qualified, for example,
       "https://middle.ware/serve" or "https://middle.ware:123".
 
-# Types
-#
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The package path of the imported type
-types:
-  # - name: DefinedType
-  #   description:
-  #   define:
-  #     fieldName: Type
-  # - name: ImportedType
-  #   description:
-  #   import: package/path/of/a/remote/type/ImportedType
-
 # Functions
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)

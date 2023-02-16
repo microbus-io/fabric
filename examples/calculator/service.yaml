@@ -53,19 +53,6 @@ configs:
   #   default:
   #   validation:
 
-# Types
-#
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The package path of the imported type
-types:
-  - name: Point
-    description: Point is a 2D (X,Y) coordinate.
-    define:
-      x: float64
-      y: float64
-
 # Functions
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)

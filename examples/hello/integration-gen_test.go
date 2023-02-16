@@ -32,6 +32,7 @@ import (
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/shardedsql"
@@ -53,6 +54,7 @@ var (
 	_ strings.Builder
 	_ *connector.Connector
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ *shardedsql.DB
@@ -331,6 +333,10 @@ func Hello(t *testing.T, ctx context.Context, options ...WebOption) *HelloTestCa
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/hello`)),
 	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
@@ -482,6 +488,10 @@ func Echo(t *testing.T, ctx context.Context, options ...WebOption) *EchoTestCase
 	tc := &EchoTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/echo`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
 	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
@@ -635,6 +645,10 @@ func Ping(t *testing.T, ctx context.Context, options ...WebOption) *PingTestCase
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/ping`)),
 	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
@@ -787,6 +801,10 @@ func Calculator(t *testing.T, ctx context.Context, options ...WebOption) *Calcul
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/calculator`)),
 	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
 	}
@@ -938,6 +956,10 @@ func BusJPEG(t *testing.T, ctx context.Context, options ...WebOption) *BusJPEGTe
 	tc := &BusJPEGTestCase{t: t}
 	pubOptions := []pub.Option{
 		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/bus.jpeg`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
 	}
 	for _, opt := range options {
 		pubOptions = append(pubOptions, pub.Option(opt))
