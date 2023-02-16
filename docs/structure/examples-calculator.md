@@ -31,7 +31,6 @@ The `/distance` endpoint demonstrates the use of a complex type `Point`. An empt
 ```go
 // Point is used in the API of the microservice.
 type Point struct {
-	// Field type `json:"field,omitempty"`
 }
 ```
 

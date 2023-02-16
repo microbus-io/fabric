@@ -3,6 +3,5 @@
 
 // {{ .Name }} is used in the API of the microservice.
 type {{ .Name }} struct {
-    // Field type `json:"field,omitempty"`
 }
 {{ end }}{{ end }}
