@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestNullTime_NewNullTime(t *testing.T) {
@@ -76,7 +77,7 @@ func TestNullTime_Format(t *testing.T) {
 	assert.Equal(t, "2015-01-14T11:12:13Z", s3)
 }
 
-func TestNullTime_UnmarshalJSONEmpty(t *testing.T) {
+func TestNullTime_JSONEmpty(t *testing.T) {
 	t.Parallel()
 
 	var jt1 NullTime
@@ -92,6 +93,34 @@ func TestNullTime_UnmarshalJSONEmpty(t *testing.T) {
 	err = json.Unmarshal([]byte(`""`), &jt1)
 	assert.NoError(t, err)
 	assert.True(t, jt1.IsZero())
+
+	jt1 = NullTime{}
+	b, err := json.Marshal(jt1)
+	assert.NoError(t, err)
+	assert.Equal(t, "null", string(b))
+}
+
+func TestNullTime_YAMLEmpty(t *testing.T) {
+	t.Parallel()
+
+	var jt1 NullTime
+	err := yaml.Unmarshal([]byte(`""`), &jt1)
+	assert.NoError(t, err)
+	assert.True(t, jt1.IsZero())
+
+	err = yaml.Unmarshal([]byte(`null`), &jt1)
+	assert.NoError(t, err)
+	assert.True(t, jt1.IsZero())
+
+	jt1 = NullTime{Time: time.Now()}
+	err = yaml.Unmarshal([]byte(`""`), &jt1)
+	assert.NoError(t, err)
+	assert.True(t, jt1.IsZero())
+
+	jt1 = NullTime{}
+	b, err := yaml.Marshal(jt1)
+	assert.NoError(t, err)
+	assert.Equal(t, "null\n", string(b))
 }
 
 func TestNullTime_UnmarshalJSONInvalid(t *testing.T) {
@@ -120,6 +149,25 @@ func TestNullTime_UnmarshalJSON(t *testing.T) {
 
 	var jt3 NullTime
 	err = json.Unmarshal(b, &jt3)
+	assert.NoError(t, err)
+	assert.True(t, jt2.Equal(jt3.Time))
+}
+
+func TestNullTime_UnmarshalYAML(t *testing.T) {
+	t.Parallel()
+
+	var jt1 NullTime
+	err := yaml.Unmarshal([]byte(`"2021-08-11T10:00:00Z"`), &jt1)
+	assert.NoError(t, err)
+	assert.False(t, jt1.IsZero())
+
+	jt2 := NullTime{Time: time.Now()}
+	b, err := yaml.Marshal(jt2)
+	assert.NoError(t, err)
+	assert.NotNil(t, b)
+
+	var jt3 NullTime
+	err = yaml.Unmarshal(b, &jt3)
 	assert.NoError(t, err)
 	assert.True(t, jt2.Equal(jt3.Time))
 }

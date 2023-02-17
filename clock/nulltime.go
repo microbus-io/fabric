@@ -140,6 +140,33 @@ func (nt *NullTime) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarshalYAML overrides YAML serialization.
+func (nt NullTime) MarshalYAML() (interface{}, error) {
+	if nt.IsZero() {
+		return nil, nil
+	}
+	b, err := nt.Time.MarshalJSON()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	return string(b[1 : len(b)-1]), nil
+}
+
+// UnmarshalYAML overrides YAML deserialization.
+func (nt *NullTime) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	err := unmarshal(&s)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	p, err := ParseNullTime("", s)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	*nt = p
+	return nil
+}
+
 // Scan implements the Scanner interface.
 func (nt *NullTime) Scan(value interface{}) error {
 	m, ok := value.(time.Time)
