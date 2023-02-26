@@ -19,6 +19,7 @@ package utils
 import (
 	"bytes"
 	"embed"
+	"html/template"
 	htmltemplate "html/template"
 	"strings"
 	texttemplate "text/template"
@@ -52,7 +53,21 @@ func (rl ResourceLoader) LoadTemplate(name string, data any) (string, error) {
 	}
 	var buf bytes.Buffer
 	if strings.HasSuffix(strings.ToLower(name), ".html") {
-		htmlTmpl, err := htmltemplate.New(name).Parse(string(b))
+		funcMap := template.FuncMap{
+			"attr": func(s string) template.HTMLAttr {
+				return template.HTMLAttr(s)
+			},
+			"safe": func(s string) template.HTML {
+				return template.HTML(s)
+			},
+			"url": func(s string) template.URL {
+				return template.URL(s)
+			},
+			"css": func(s string) template.CSS {
+				return template.CSS(s)
+			},
+		}
+		htmlTmpl, err := htmltemplate.New(name).Funcs(funcMap).Parse(string(b))
 		if err != nil {
 			return "", errors.Trace(err)
 		}
