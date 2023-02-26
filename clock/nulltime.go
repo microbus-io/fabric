@@ -39,7 +39,7 @@ To obtain time.Time from a NullTime:
 	t := nt.Time
 */
 type NullTime struct {
-	time.Time
+	time.Time `dv8:"main"`
 }
 
 // NewNullTime creates a new null time.
