@@ -23,7 +23,10 @@ import (
 
 // IsLocalhostAddress checks if the request's remote address is the local host.
 func IsLocalhostAddress(r *http.Request) bool {
-	addr := r.RemoteAddr
+	addr := r.Header.Get("X-Forwarded-For")
+	if addr == "" {
+		addr = r.RemoteAddr
+	}
 	return strings.HasPrefix(addr, "127.0.0.1:") ||
 		strings.HasPrefix(addr, "[::1]:") ||
 		strings.HasPrefix(addr, "localhost:")
