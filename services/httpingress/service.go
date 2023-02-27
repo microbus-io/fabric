@@ -36,6 +36,7 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 
@@ -181,8 +182,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(statusCode)
 		// Do not leak error details and stack trace
-		if svc.Deployment() == connector.LOCAL &&
-			(strings.HasPrefix(r.RemoteAddr, "127.0.0.1:") || strings.HasPrefix(r.RemoteAddr, "[::1]:") || strings.HasPrefix(r.RemoteAddr, "localhost:")) {
+		if svc.Deployment() == connector.LOCAL && httpx.IsLocalhostAddress(r) {
 			w.Write([]byte(fmt.Sprintf("%+v", err)))
 		} else {
 			w.Write([]byte(http.StatusText(statusCode)))

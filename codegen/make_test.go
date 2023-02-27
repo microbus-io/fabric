@@ -21,7 +21,7 @@ import (
 
 	"github.com/microbus-io/fabric/codegen/spec"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func TestCodegen_FindReplaceReturnedErrors(t *testing.T) {

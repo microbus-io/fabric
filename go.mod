@@ -5,12 +5,12 @@ go 1.19
 require (
 	github.com/andybalholm/brotli v1.0.4
 	github.com/go-sql-driver/mysql v1.7.0
-	github.com/microbus-io/copyrighter v0.1.9
+	github.com/microbus-io/copyrighter v0.2.0
 	github.com/nats-io/nats.go v1.23.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.24.0
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -36,5 +36,4 @@ require (
 	golang.org/x/time v0.1.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

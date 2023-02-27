@@ -26,7 +26,7 @@ import (
 	"github.com/microbus-io/fabric/codegen/spec"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/utils"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Generator is the main operator that operates to generate the code.

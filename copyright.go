@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//go:generate go run github.com/microbus-io/copyrighter -r -x html
+//go:generate go run github.com/microbus-io/copyrighter -r
 
 package fabric
 

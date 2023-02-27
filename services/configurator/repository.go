@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type repository struct {
