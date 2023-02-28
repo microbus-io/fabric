@@ -75,6 +75,13 @@ func Of(r any) Frame {
 	return Frame{h}
 }
 
+// Clone returns a new context with the frame of the original context.
+// Manipulating the frame of the result context does not impact the original context.
+// It is the equivalent of Copy(ctx, ctx)
+func Clone(ctx context.Context) (result context.Context) {
+	return Copy(ctx, ctx)
+}
+
 // Copy takes the frame of the source context and adds it to the destination context.
 // The result is a new context derived from the destination, but with the frame of the source.
 // Manipulating the frame of the new context does not impact the source or destination contexts.
