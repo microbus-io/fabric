@@ -146,8 +146,7 @@ func Test_Sharding(t *testing.T) {
 		assert.False(t, rows.Next())
 
 		// QueryRow
-		row, err := testingDB.QueryRow(shardingKey, "SELECT k FROM sharding WHERE k=?", shardingKey)
-		assert.NoError(t, err)
+		row := testingDB.QueryRow(shardingKey, "SELECT k FROM sharding WHERE k=?", shardingKey)
 		err = row.Scan(&k)
 		assert.NoError(t, err)
 		assert.Equal(t, shardingKey, k)

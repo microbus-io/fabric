@@ -410,15 +410,15 @@ func (db *DB) QueryContext(ctx context.Context, shardingKey int, query string, a
 
 // QueryRow calls QueryRow on the shard matching the sharding key.
 // An error is returned if a shard cannot be found for the sharding key.
-func (db *DB) QueryRow(shardingKey int, query string, args ...interface{}) (*sql.Row, error) {
+func (db *DB) QueryRow(shardingKey int, query string, args ...interface{}) *sql.Row {
 	return db.QueryRowContext(context.Background(), shardingKey, query, args...)
 }
 
 // QueryRowContext calls QueryRowContext on the shard matching the sharding key.
 // An error is returned if a shard cannot be found for the sharding key.
-func (db *DB) QueryRowContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (*sql.Row, error) {
+func (db *DB) QueryRowContext(ctx context.Context, shardingKey int, query string, args ...interface{}) *sql.Row {
 	shard := db.ShardOf(ctx, shardingKey)
-	return shard.QueryRowContext(ctx, query, args...), nil
+	return shard.QueryRowContext(ctx, query, args...)
 }
 
 // Exec calls Exec on the shard matching the sharding key.
