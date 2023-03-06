@@ -339,7 +339,11 @@ func openDatabase(ctx context.Context, driver string, dataSource string) (*sql.D
 	}
 	// Strict mode guards against errors
 	// https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html#sql-mode-strict
-	_, err = sqlDB.ExecContext(ctx, "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES', SESSION sql_mode = 'STRICT_ALL_TABLES'")
+	// max_allowed_packet needs to be large enough to accommodate inserting large blobs.
+	// max_allowed_packet can only be set globally.
+	_, err = sqlDB.ExecContext(ctx,
+		`SET GLOBAL sql_mode = 'STRICT_ALL_TABLES', SESSION sql_mode = 'STRICT_ALL_TABLES',
+		GLOBAL max_allowed_packet = 134217728`) // 128MB
 	if err != nil {
 		sqlDB.Close()
 		return nil, errors.Trace(err)
