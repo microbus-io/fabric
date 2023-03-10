@@ -358,10 +358,14 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	if internalRes.Body != nil {
 		contentType := internalRes.Header.Get("Content-Type")
 		contentEncoding := internalRes.Header.Get("Content-Encoding")
+		if contentEncoding == "" {
+			contentEncoding = "identity"
+		}
 		contentLength, _ := strconv.Atoi(internalRes.Header.Get("Content-Length"))
-		if contentLength >= 4*1024 &&
-			(strings.HasPrefix(contentType, "text/") || strings.HasPrefix(contentType, "application/json")) &&
-			(contentEncoding == "" || contentEncoding == "identity") {
+		if contentLength >= 4*1024 && contentEncoding == "identity" &&
+			!strings.HasPrefix(contentType, "image/") &&
+			!strings.HasPrefix(contentType, "video/") &&
+			!strings.HasPrefix(contentType, "audio/") {
 			acceptEncoding := r.Header.Get("Accept-Encoding")
 			if strings.Contains(acceptEncoding, "br") {
 				w.Header().Del("Content-Length")
