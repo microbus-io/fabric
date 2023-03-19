@@ -18,9 +18,12 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"embed"
-	"html/template"
+	"encoding/hex"
 	htmltemplate "html/template"
+	"net/http"
+	"strconv"
 	"strings"
 	texttemplate "text/template"
 
@@ -44,6 +47,34 @@ func (rl ResourceLoader) LoadText(name string) string {
 	return string(b)
 }
 
+// ServeFile serves the content of the embedded file as a response of a web request.
+func (rl ResourceLoader) ServeFile(name string, w http.ResponseWriter, r *http.Request) error {
+	b, err := rl.ReadFile(name)
+	if err != nil {
+		return errors.Newc(http.StatusNotFound, "")
+	}
+	hash := sha256.New()
+	hash.Write(b)
+	eTag := hex.EncodeToString(hash.Sum(nil))
+	w.Header().Set("ETag", eTag)
+	w.Header().Set("Cache-Control", "max-age=3600, private, stale-while-revalidate=3600")
+	contentType := w.Header().Get("Content-Type")
+	if contentType == "" {
+		contentType = http.DetectContentType(b)
+		w.Header().Set("Content-Type", contentType)
+	}
+	if r.Header.Get("If-None-Match") == eTag {
+		w.WriteHeader(http.StatusNotModified)
+		return nil
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(b)))
+	_, err = w.Write(b)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
 // LoadTemplate parses the embedded file as a template, executes it given the data, and returns
 // the result. The template is assumed to be a text template unless the file name ends in .html.
 func (rl ResourceLoader) LoadTemplate(name string, data any) (string, error) {
@@ -53,18 +84,18 @@ func (rl ResourceLoader) LoadTemplate(name string, data any) (string, error) {
 	}
 	var buf bytes.Buffer
 	if strings.HasSuffix(strings.ToLower(name), ".html") {
-		funcMap := template.FuncMap{
-			"attr": func(s string) template.HTMLAttr {
-				return template.HTMLAttr(s)
+		funcMap := htmltemplate.FuncMap{
+			"attr": func(s string) htmltemplate.HTMLAttr {
+				return htmltemplate.HTMLAttr(s)
 			},
-			"safe": func(s string) template.HTML {
-				return template.HTML(s)
+			"safe": func(s string) htmltemplate.HTML {
+				return htmltemplate.HTML(s)
 			},
-			"url": func(s string) template.URL {
-				return template.URL(s)
+			"url": func(s string) htmltemplate.URL {
+				return htmltemplate.URL(s)
 			},
-			"css": func(s string) template.CSS {
-				return template.CSS(s)
+			"css": func(s string) htmltemplate.CSS {
+				return htmltemplate.CSS(s)
 			},
 		}
 		htmlTmpl, err := htmltemplate.New(name).Funcs(funcMap).Parse(string(b))
