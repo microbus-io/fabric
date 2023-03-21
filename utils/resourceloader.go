@@ -57,7 +57,10 @@ func (rl ResourceLoader) ServeFile(name string, w http.ResponseWriter, r *http.R
 	hash.Write(b)
 	eTag := hex.EncodeToString(hash.Sum(nil))
 	w.Header().Set("ETag", eTag)
-	w.Header().Set("Cache-Control", "max-age=3600, private, stale-while-revalidate=3600")
+	cacheControl := w.Header().Get("Cache-Control")
+	if cacheControl == "" {
+		w.Header().Set("Cache-Control", "max-age=3600, private, stale-while-revalidate=3600")
+	}
 	contentType := w.Header().Get("Content-Type")
 	if contentType == "" {
 		contentType = http.DetectContentType(b)

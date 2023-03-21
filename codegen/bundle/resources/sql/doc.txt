@@ -7,7 +7,7 @@ package sqlschema
 SQL files places in this directory are executed during database initialization.
 Each SQL script is executed only once, in order of the number in its file name.
 Files must be named 1.sql, 2.sql, etc.
-A script may contain multiple statements separated by a semi-colon that is followed by a new line.
+A script may contain multiple statements separated by a semicolon that is followed by a new line.
 
 Typical schema definition and migration use cases:
 
