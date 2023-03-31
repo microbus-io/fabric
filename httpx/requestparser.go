@@ -71,34 +71,35 @@ func ParseRequestData(r *http.Request, data any) error {
 func readOneArg(k, v string, data any) error {
 	// Arg names can be hierarchical: a[b][c] or a.b.c
 	// Convert bracket notation to dot notation: a[b][c] -> a.b.c
-	k = strings.ReplaceAll(k, "]", "")
-	k = strings.ReplaceAll(k, "[", ".")
-	countDots := strings.Count(k, ".")
+	j := strings.ReplaceAll(k, "]", "")
+	j = strings.ReplaceAll(j, "[", ".")
+	countDots := strings.Count(j, ".")
 
 	// Convert to JSON format: a.b.c -> {"a":{"b":{"c":
-	k = `{"` + strings.ReplaceAll(k, ".", `":{"`) + `":`
+	j = `{"` + strings.ReplaceAll(j, ".", `":{"`) + `":`
+	jPre := j
 
 	switch {
 	case v == "":
-		k += `""`
+		j += `""`
 	case v == "null" || v == "true" || v == "false":
-		k += v
+		j += v
 	case jsonNumberRegexp.MatchString(v):
-		k += v
+		j += v
 	case strings.HasPrefix(v, `[`) && strings.HasSuffix(v, `]`):
 		var jArray []any
 		err := json.Unmarshal([]byte(v), &jArray)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		k += v
+		j += v
 	case strings.HasPrefix(v, `{`) && strings.HasSuffix(v, `}`):
 		var jMap map[string]any
 		err := json.Unmarshal([]byte(v), &jMap)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		k += v
+		j += v
 	case strings.HasPrefix(v, `"`) && strings.HasSuffix(v, `"`):
 		v = strings.TrimPrefix(v, `"`)
 		v = strings.TrimSuffix(v, `"`)
@@ -108,14 +109,19 @@ func readOneArg(k, v string, data any) error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		k += string(quotedValue)
+		j += string(quotedValue)
 	}
 
 	// Close the braces
-	k += strings.Repeat("}", countDots+1)
+	j += strings.Repeat("}", countDots+1)
 
 	// Override values in the data
-	err := json.Unmarshal([]byte(k), data)
+	err := json.Unmarshal([]byte(j), data)
+	if err != nil && strings.Contains(err.Error(), "cannot unmarshal number") {
+		// json: cannot unmarshal number into Go struct field ... of type string [500]
+		j = jPre + `"` + v + `"` + strings.Repeat("}", countDots+1)
+		err = json.Unmarshal([]byte(j), data)
+	}
 	if err != nil {
 		return errors.Trace(err)
 	}

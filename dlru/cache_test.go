@@ -56,16 +56,19 @@ func TestDLRU_Lookup(t *testing.T) {
 	// Insert to alpha cache
 	err = alphaLRU.Store(ctx, "A", []byte("AAA"))
 	assert.NoError(t, err)
-	bbb := struct {
+	jsonObject := struct {
 		Num int    `json:"num"`
 		Str string `json:"str"`
 	}{
 		123,
 		"abc",
 	}
-	err = alphaLRU.StoreJSON(ctx, "B", bbb)
+	err = alphaLRU.StoreJSON(ctx, "B", jsonObject)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, alphaLRU.LocalCache().Len())
+	err = alphaLRU.StoreCompressedJSON(ctx, "C", jsonObject)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 3, alphaLRU.LocalCache().Len())
 	assert.Equal(t, 0, betaLRU.LocalCache().Len())
 	assert.Equal(t, 0, gammaLRU.LocalCache().Len())
 
@@ -83,13 +86,18 @@ func TestDLRU_Lookup(t *testing.T) {
 		ok, err = c.LoadJSON(ctx, "B", &jval)
 		assert.NoError(t, err)
 		assert.True(t, ok)
-		assert.Equal(t, bbb, jval)
+		assert.Equal(t, jsonObject, jval)
+		ok, err = c.LoadCompressedJSON(ctx, "C", &jval)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, jsonObject, jval)
 	}
 
 	// Delete from gamma cache
 	err = gammaLRU.Delete(ctx, "A")
 	assert.NoError(t, err)
-	assert.Equal(t, 1, alphaLRU.LocalCache().Len())
+
+	assert.Equal(t, 2, alphaLRU.LocalCache().Len())
 	assert.Equal(t, 0, betaLRU.LocalCache().Len())
 	assert.Equal(t, 0, gammaLRU.LocalCache().Len())
 
@@ -109,6 +117,7 @@ func TestDLRU_Lookup(t *testing.T) {
 	// Clear the cache via beta
 	err = betaLRU.Clear(ctx)
 	assert.NoError(t, err)
+
 	assert.Equal(t, 0, alphaLRU.LocalCache().Len())
 	assert.Equal(t, 0, betaLRU.LocalCache().Len())
 	assert.Equal(t, 0, gammaLRU.LocalCache().Len())

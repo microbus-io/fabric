@@ -32,6 +32,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
@@ -574,7 +575,7 @@ func (c *Cache) Clear(ctx context.Context) error {
 	return nil
 }
 
-// LoadJSON loads an element from the cache and unmarshals it as JSON.
+// LoadJSON loads a JSON element from the cache.
 // If the element is found, it is bumped to the head of the cache.
 func (c *Cache) LoadJSON(ctx context.Context, key string, value any, options ...LoadOption) (ok bool, err error) {
 	if key == "" {
@@ -606,6 +607,50 @@ func (c *Cache) StoreJSON(ctx context.Context, key string, value any) error {
 		return errors.Trace(err)
 	}
 	err = c.Store(ctx, key, data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// LoadCompressedJSON loads a compressed JSON element from the cache.
+// If the element is found, it is bumped to the head of the cache.
+func (c *Cache) LoadCompressedJSON(ctx context.Context, key string, value any, options ...LoadOption) (ok bool, err error) {
+	if key == "" {
+		return false, errors.New("missing key")
+	}
+	data, ok, err := c.Load(ctx, key, options...)
+	if err != nil {
+		return false, errors.Trace(err)
+	}
+	if !ok {
+		return false, nil
+	}
+	err = json.NewDecoder(brotli.NewReader(bytes.NewReader(data))).Decode(value)
+	if err != nil {
+		return false, errors.Trace(err)
+	}
+	return true, nil
+}
+
+// StoreCompressedJSON marshals the value as JSON and stores it in the cache compressed.
+// JSON marshalling is not memory efficient and should be avoided if the cache is
+// expected to store a lot of data.
+func (c *Cache) StoreCompressedJSON(ctx context.Context, key string, value any) error {
+	if key == "" {
+		return errors.New("missing key")
+	}
+	var data bytes.Buffer
+	br := brotli.NewWriter(&data)
+	err := json.NewEncoder(br).Encode(value)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = br.Close()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = c.Store(ctx, key, data.Bytes())
 	if err != nil {
 		return errors.Trace(err)
 	}
