@@ -256,7 +256,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Use the first segment of the URI as the host name to contact
 	u := resolveInternalURL(r.URL, svc.portMappings)
 	internalURL := u.String()
-	internalHost := strings.Split(r.URL.RequestURI(), "/")[1]
+	internalHost := strings.Split(r.URL.Path, "/")[1]
 	metrics := internalHost == metricsapi.HostName || strings.HasPrefix(internalHost, metricsapi.HostName+":")
 	if internalHost != "favicon.ico" && !metrics {
 		svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
@@ -318,7 +318,10 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 	prefix := r.Header.Get("X-Forwarded-Prefix")
-	options = append(options, pub.Header("X-Forwarded-Prefix", prefix+"/"+internalHost))
+	if internalHost != "root" {
+		prefix += "/" + internalHost
+	}
+	options = append(options, pub.Header("X-Forwarded-Prefix", prefix))
 
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)
