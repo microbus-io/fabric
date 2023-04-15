@@ -164,24 +164,12 @@ func (c *Connector) ResetConfig(name string) error {
 func (c *Connector) logConfigs() {
 	c.configLock.Lock()
 	defer c.configLock.Unlock()
-
 	for _, config := range c.configs {
-		value := config.Value
-		if config.Secret {
-			n := len(value)
-			if n > 16 {
-				n = 16
-			}
-			value = strings.Repeat("*", n)
-		}
-		if len([]rune(value)) > 40 {
-			value = string([]rune(value)[:40]) + "..."
-		}
 		c.LogInfo(
 			c.Lifetime(),
 			"Config",
 			log.String("name", config.Name),
-			log.String("value", value),
+			log.String("value", printableConfigValue(config.Value, config.Secret)),
 		)
 	}
 }
@@ -191,65 +179,67 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	if !c.started {
 		return errors.New("not started")
 	}
-	if c.deployment == TESTINGAPP {
-		c.LogDebug(c.Lifetime(), "Configurator disabled while testing")
-		return nil
-	}
-
-	c.configLock.Lock()
-	if len(c.configs) == 0 {
-		c.configLock.Unlock()
-		return nil
-	}
-	var req struct {
-		Names []string `json:"names"`
-	}
-	for _, config := range c.configs {
-		req.Names = append(req.Names, config.Name)
-	}
-	c.LogDebug(ctx, "Requesting config values", log.Any("names", req.Names))
-	c.configLock.Unlock()
-
-	response, err := c.Request(
-		ctx,
-		pub.POST("https://configurator.sys/values"),
-		pub.Body(req),
-	)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	var res struct {
+	var fetchedValues struct {
 		Values map[string]string `json:"values"`
 	}
-	err = json.NewDecoder(response.Body).Decode(&res)
-	if err != nil {
-		return errors.Trace(err)
+	if c.deployment == TESTINGAPP {
+		c.LogDebug(c.Lifetime(), "Configurator disabled while testing")
+		fetchedValues.Values = map[string]string{}
+		c.configLock.Lock()
+		for _, config := range c.configs {
+			fetchedValues.Values[config.Name] = config.Value
+		}
+		count := len(c.configs)
+		c.configLock.Unlock()
+		if count == 0 {
+			return nil
+		}
+	} else {
+		c.configLock.Lock()
+		var req struct {
+			Names []string `json:"names"`
+		}
+		for _, config := range c.configs {
+			req.Names = append(req.Names, config.Name)
+		}
+		count := len(c.configs)
+		c.configLock.Unlock()
+		if count == 0 {
+			return nil
+		}
+		c.LogDebug(ctx, "Requesting config values", log.Any("names", req.Names))
+		response, err := c.Request(
+			ctx,
+			pub.POST("https://configurator.sys/values"),
+			pub.Body(req),
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = json.NewDecoder(response.Body).Decode(&fetchedValues)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
+
 	c.configLock.Lock()
 	changed := map[string]bool{}
 	for _, config := range c.configs {
-		setValue := config.DefaultValue
-		if value, ok := res.Values[config.Name]; ok {
-			if cfg.Validate(config.Validation, value) {
-				setValue = value
+		valueToSet := config.DefaultValue
+		if fetchedValue, ok := fetchedValues.Values[config.Name]; ok {
+			if cfg.Validate(config.Validation, fetchedValue) {
+				valueToSet = fetchedValue
 			} else {
-				c.LogWarn(ctx, "Invalid config value", log.String("name", config.Name), log.String("value", value))
+				c.LogWarn(ctx, "Invalid config value", log.String("name", config.Name), log.String("value", printableConfigValue(fetchedValue, config.Secret)), log.String("rule", config.Validation))
 			}
 		}
-		if setValue != config.Value {
-			config.Value = setValue
-			changed[strings.ToLower(config.Name)] = true
-			if config.Secret {
-				n := len(setValue)
-				if n > 16 {
-					n = 16
-				}
-				setValue = strings.Repeat("*", n)
-			}
-			if len([]rune(setValue)) > 40 {
-				setValue = string([]rune(setValue)[:40]) + "..."
-			}
-			c.LogInfo(ctx, "Config updated", log.String("name", config.Name), log.String("value", setValue))
+		if !cfg.Validate(config.Validation, valueToSet) {
+			c.configLock.Unlock()
+			return errors.Newf("value '%s' of config '%s' doesn't validate against rule '%s'", printableConfigValue(valueToSet, config.Secret), config.Name, config.Validation)
+		}
+		if valueToSet != config.Value {
+			config.Value = valueToSet
+			c.LogInfo(ctx, "Config updated", log.String("name", config.Name), log.String("value", printableConfigValue(valueToSet, config.Secret)))
 		}
 	}
 	c.configLock.Unlock()
@@ -257,7 +247,7 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	// Call the callback function, if provided
 	if callback && len(changed) > 0 {
 		for i := 0; i < len(c.onConfigChanged); i++ {
-			err = c.doCallback(
+			err := c.doCallback(
 				c.lifetimeCtx,
 				c.onConfigChanged[i].TimeBudget,
 				c.onConfigChanged[i].Name,
@@ -275,6 +265,22 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	}
 
 	return nil
+}
+
+// printableConfigValue prints up to 40 returns up to 40 characters of the value of the config.
+// Secret config values are replaced with asterisks.
+func printableConfigValue(value string, secret bool) string {
+	if secret {
+		n := len(value)
+		if n > 16 {
+			n = 16
+		}
+		value = strings.Repeat("*", n)
+	}
+	if len([]rune(value)) > 40 {
+		value = string([]rune(value)[:40]) + "..."
+	}
+	return value
 }
 
 // With applies options to a connector during initialization and testing.

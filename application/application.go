@@ -173,18 +173,19 @@ func (app *Application) Startup() error {
 	// Start services in parallel
 	startErrs := make(chan error, len(app.services))
 	var wg sync.WaitGroup
-	var delay time.Duration
+	var offsettingDelay time.Duration
 	for _, s := range app.services {
 		if s.IsStarted() {
 			continue
 		}
 		s := s
 		wg.Add(1)
-		delay += 2 * time.Millisecond
+		offsettingDelay += 2 * time.Millisecond
 		go func() {
-			time.Sleep(delay)
+			time.Sleep(offsettingDelay)
 			defer wg.Done()
 			err := errors.Newf("'%s' failed to start", s.HostName())
+			delay := time.Millisecond
 			for {
 				select {
 				case <-exit:
