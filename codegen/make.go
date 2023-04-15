@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -80,7 +81,7 @@ func (gen *Generator) makeIntegration() error {
 	// Scan .go files for existing endpoints
 	gen.Printer.Debug("Scanning for existing tests")
 	pkg := capitalizeIdentifier(gen.specs.PackageSuffix())
-	existingTests, err := scanFiles(
+	existingTests, err := gen.scanFiles(
 		gen.WorkDir,
 		func(file fs.DirEntry) bool {
 			return strings.HasSuffix(file.Name(), "_test.go") &&
@@ -311,7 +312,7 @@ func (gen *Generator) makeAPI() error {
 	if len(gen.specs.Types) > 0 {
 		// Scan .go files for existing types
 		gen.Printer.Debug("Scanning for existing types")
-		existingTypes, err := scanFiles(
+		existingTypes, err := gen.scanFiles(
 			dir,
 			func(file fs.DirEntry) bool {
 				return strings.HasSuffix(file.Name(), ".go") &&
@@ -336,41 +337,52 @@ func (gen *Generator) makeAPI() error {
 			newTypes = newTypes || !ct.Exists
 		}
 
-		// Create types.go if it doesn't exist
-		fileName := filepath.Join(dir, "types.go")
-		_, err = os.Stat(fileName)
-		if errors.Is(err, os.ErrNotExist) {
-			tt, err := LoadTemplate("api/types.txt")
-			if err != nil {
-				return errors.Trace(err)
-			}
-			err = tt.Overwrite(fileName, gen.specs)
-			if err != nil {
-				return errors.Trace(err)
-			}
-			gen.Printer.Debug("types.go")
-		}
-
 		// Append new type definitions
-		fileName = filepath.Join(dir, "types.go")
 		if newTypes {
-			tt, err := LoadTemplate("api/types.append.txt")
+			// Scan entire project type definitions and try to resolve new types
+			typeDefs, err := gen.scanProjectTypeDefinitions()
 			if err != nil {
 				return errors.Trace(err)
 			}
-			err = tt.AppendTo(fileName, gen.specs)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			gen.Printer.Debug("New types defined")
-			gen.Printer.Indent()
+			hasImports := false
 			for _, ct := range gen.specs.Types {
-				if !ct.Exists {
-					gen.Printer.Debug("%s", ct.Name)
+				if !ct.Exists && len(typeDefs[ct.Name]) == 1 {
+					ct.Package = typeDefs[ct.Name][0]
+					hasImports = true
 				}
 			}
-			gen.Printer.Unindent()
+			fileName := filepath.Join(dir, "imports-gen.go")
+			if hasImports {
+				// Create imports-gen.go
+				tt, err := LoadTemplate("api/imports-gen.txt")
+				if err != nil {
+					return errors.Trace(err)
+				}
+				err = tt.Overwrite(fileName, gen.specs)
+				if err != nil {
+					return errors.Trace(err)
+				}
+				gen.Printer.Debug("%sapi/imports-gen.go", gen.specs.PackageSuffix())
+			} else {
+				os.Remove(fileName)
+			}
+
+			// Create a file for each new type
+			for _, ct := range gen.specs.Types {
+				if !ct.Exists && len(typeDefs[ct.Name]) != 1 {
+					fileName := filepath.Join(dir, strings.ToLower(ct.Name)+".go")
+					tt, err := LoadTemplate("api/type.txt")
+					if err != nil {
+						return errors.Trace(err)
+					}
+					ct.Package = gen.specs.Package // Hack
+					err = tt.Overwrite(fileName, ct)
+					if err != nil {
+						return errors.Trace(err)
+					}
+					gen.Printer.Debug("%sapi/%s.go", gen.specs.PackageSuffix(), strings.ToLower(ct.Name))
+				}
+			}
 		}
 	}
 
@@ -431,7 +443,7 @@ func (gen *Generator) makeImplementation() error {
 
 	// Scan .go files for existing endpoints
 	gen.Printer.Debug("Scanning for existing handlers")
-	existingEndpoints, err := scanFiles(
+	existingEndpoints, err := gen.scanFiles(
 		gen.WorkDir,
 		func(file fs.DirEntry) bool {
 			return strings.HasSuffix(file.Name(), ".go") &&
@@ -496,7 +508,7 @@ func (gen *Generator) makeImplementation() error {
 }
 
 // scanFiles scans all files with the indicated suffix for all sub-matches of the regular expression.
-func scanFiles(workDir string, filter func(file fs.DirEntry) bool, regExpression string) (map[string]bool, error) {
+func (gen *Generator) scanFiles(workDir string, filter func(file fs.DirEntry) bool, regExpression string) (map[string]bool, error) {
 	result := map[string]bool{}
 	re, err := regexp.Compile(regExpression)
 	if err != nil {
@@ -523,6 +535,76 @@ func scanFiles(workDir string, filter func(file fs.DirEntry) bool, regExpression
 		}
 	}
 	return result, nil
+}
+
+// scanProjectTypeDefinitions scans for type definitions in the entire project tree.
+func (gen *Generator) scanProjectTypeDefinitions() (map[string][]string, error) {
+	found := map[string][]string{}
+	gen.Printer.Debug("Scanning project type definitions")
+	gen.Printer.Indent()
+	defer gen.Printer.Unindent()
+	err := gen.scanDirTypeDefinitions(gen.ProjectPath, found)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	return found, nil
+}
+
+// scanDirTypeDefinitions scans for type definitions in a directory tree.
+func (gen *Generator) scanDirTypeDefinitions(workDir string, found map[string][]string) error {
+	// Skip directories starting with .
+	if strings.HasPrefix(filepath.Base(workDir), ".") {
+		return nil
+	}
+	// Detect if processing a service directory
+	_, err := os.Stat(filepath.Join(workDir, "service.yaml"))
+	serviceDirectory := err == nil
+
+	if !serviceDirectory {
+		// Scan for type definitions in Go files
+		typeDefs, err := gen.scanFiles(
+			workDir,
+			func(file fs.DirEntry) bool {
+				return strings.HasSuffix(file.Name(), ".go") &&
+					!strings.HasSuffix(file.Name(), "_test.go") &&
+					!strings.HasSuffix(file.Name(), "-gen.go")
+			},
+			`type ([A-Z][a-zA-Z0-9]*) [^=]`, // type XXX struct, type XXX int, etc.
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if len(typeDefs) > 0 {
+			subPath := strings.TrimPrefix(workDir, gen.ProjectPath)
+			pkg := strings.ReplaceAll(filepath.Join(gen.ModulePath, subPath), "\\", "/")
+			gen.Printer.Debug(pkg)
+			gen.Printer.Indent()
+			for k := range typeDefs {
+				gen.Printer.Debug(k)
+				found[k] = append(found[k], pkg)
+			}
+			gen.Printer.Unindent()
+		}
+	}
+
+	// Recurse into sub directories
+	files, err := os.ReadDir(workDir)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			if serviceDirectory &&
+				(file.Name() == "intermediate" || file.Name() == "resources" || file.Name() == "app") {
+				continue
+			}
+			err = gen.scanDirTypeDefinitions(filepath.Join(workDir, file.Name()), found)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+	}
+	return nil
 }
 
 // makeTraceReturnedErrors adds errors.Trace to returned errors.
@@ -698,41 +780,51 @@ func findReplaceSignature(specs *spec.Service, source string) (modified string) 
 
 // findReplaceDescription updates the description of handlers.
 func findReplaceDescription(specs *spec.Service, source string) (modified string) {
+	desc := fmt.Sprintf("Service implements the %s microservice.\n\n%s\n", specs.General.Host, specs.General.Description)
+	desc = strings.TrimSpace(desc)
+	source = findReplaceCommentBefore(source, "\ntype Service struct {", desc)
+
 	for _, h := range specs.AllHandlers() {
-		pos := strings.Index(source, "\nfunc (svc *Service) "+h.Name()+"(")
-		if pos < 0 {
-			continue
-		}
-
-		newComment := "/*\n" + h.Description + "\n*/"
-
-		// /*
-		// Comment
-		// */
-		// func (svc *Service) ...
-		q := strings.LastIndex(source[:pos], "*/")
-		if q == pos-len("*/") {
-			q += len("*/")
-			p := strings.LastIndex(source[:pos], "/*")
-			if p > 0 && source[p:q] != newComment {
-				source = source[:p] + newComment + source[q:]
-			}
-			continue
-		}
-
-		// // Comment
-		// func (svc *Service) ...
-		p := pos + 1
-		q = pos
-		for {
-			q = strings.LastIndex(source[:q], "\n")
-			if q < 0 || !strings.HasPrefix(source[q:], "\n//") {
-				break
-			}
-			p = q + 1
-		}
-		source = source[:p] + newComment + source[pos:]
+		source = findReplaceCommentBefore(source, "\nfunc (svc *Service) "+h.Name()+"(", h.Description)
 	}
+	return source
+}
+
+// findReplaceCommentBefore updates the description of handlers.
+func findReplaceCommentBefore(source string, searchTerm string, comment string) (modified string) {
+	pos := strings.Index(source, searchTerm)
+	if pos < 0 {
+		return source
+	}
+
+	newComment := "/*\n" + comment + "\n*/"
+
+	// /*
+	// Comment
+	// */
+	// func (svc *Service) ...
+	q := strings.LastIndex(source[:pos], "*/")
+	if q == pos-len("*/") {
+		q += len("*/")
+		p := strings.LastIndex(source[:pos], "/*")
+		if p > 0 && source[p:q] != newComment {
+			source = source[:p] + newComment + source[q:]
+		}
+		return source
+	}
+
+	// // Comment
+	// func (svc *Service) ...
+	p := pos + 1
+	q = pos
+	for {
+		q = strings.LastIndex(source[:q], "\n")
+		if q < 0 || !strings.HasPrefix(source[q:], "\n//") {
+			break
+		}
+		p = q + 1
+	}
+	source = source[:p] + newComment + source[pos:]
 	return source
 }
 

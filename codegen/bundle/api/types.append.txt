@@ -1,7 +1,0 @@
-{{ range $i, $t := .Types }}{{ if not .Exists }}
-// TODO: define type {{ .Name }}
-
-// {{ .Name }} is used in the API of the microservice.
-type {{ .Name }} struct {
-}
-{{ end }}{{ end }}

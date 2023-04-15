@@ -28,6 +28,9 @@ func main() {
 	var flagForce bool
 	var flagVerbose bool
 	env := os.Getenv("MICROBUS_CODEGEN")
+	if env == "" {
+		env = os.Getenv("CODEGEN")
+	}
 	flags := flag.NewFlagSet("", flag.ContinueOnError)
 	flags.BoolVar(&flagForce, "f", false, "Force processing even if no change detected")
 	flags.BoolVar(&flagVerbose, "v", false, "Verbose output")

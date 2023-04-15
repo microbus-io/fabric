@@ -1,0 +1,7 @@
+package {{ .PackageSuffix }}api
+
+// {{ .Name }}
+type {{ .Name }} struct {
+    // TODO: define type {{ .Name }}
+    // FieldName FieldType `json:"fieldName,omitempty"`
+}

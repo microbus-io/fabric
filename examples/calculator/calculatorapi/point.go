@@ -16,7 +16,7 @@ limitations under the License.
 
 package calculatorapi
 
-// Point is a 2D (X,Y) coordinate
+// Point is a 2D (X,Y) coordinate.
 type Point struct {
 	X float64 `json:"x,omitempty"`
 	Y float64 `json:"y,omitempty"`

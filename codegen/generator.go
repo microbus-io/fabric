@@ -31,9 +31,11 @@ import (
 
 // Generator is the main operator that operates to generate the code.
 type Generator struct {
-	Force   bool
-	WorkDir string
-	Printer IndentPrinter
+	Force       bool
+	WorkDir     string
+	ModulePath  string
+	ProjectPath string
+	Printer     IndentPrinter
 
 	specs *spec.Service
 }
@@ -189,6 +191,7 @@ func (gen *Generator) identifyPackage() (string, error) {
 	if d == string(os.PathSeparator) {
 		return "", errors.New("unable to locate go.mod in ancestor directory")
 	}
+	gen.ProjectPath = d
 	goMod, err := os.ReadFile(filepath.Join(d, "go.mod"))
 	if err != nil {
 		return "", errors.Trace(err)
@@ -201,10 +204,11 @@ func (gen *Generator) identifyPackage() (string, error) {
 	if len(subMatches) != 2 {
 		return "", errors.New("unable to locate module in go.mod")
 	}
-	modulePath := string(subMatches[1])
+	gen.ModulePath = string(subMatches[1])
 
-	subPath := strings.TrimPrefix(gen.WorkDir, d)
-	return filepath.Join(modulePath, subPath), nil
+	subPath := strings.TrimPrefix(gen.WorkDir, gen.ProjectPath)
+	pkg := strings.ReplaceAll(filepath.Join(gen.ModulePath, subPath), "\\", "/")
+	return pkg, nil
 }
 
 // currentVersion loads the version information.

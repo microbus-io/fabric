@@ -365,7 +365,8 @@ The code generator creates quite a few files and sub-directories in the director
       main-gen.go
   {service}api
     clients-gen.go
-    types-gen.go
+    imports-gen.go
+    type.go
   intermediate
     intermediate-gen.go
     mock-gen.go
