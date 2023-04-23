@@ -389,6 +389,9 @@ func (db *DB) adjustConnectionLimits() {
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) BeginTx(ctx context.Context, shardingKey int, opts *sql.TxOptions) (*sql.Tx, error) {
 	shard := db.ShardOf(ctx, shardingKey)
+	if shard == nil {
+		return nil, errors.Newf("no shard is allocated for key %d", shardingKey)
+	}
 	return shard.BeginTx(ctx, opts)
 }
 
@@ -396,6 +399,9 @@ func (db *DB) BeginTx(ctx context.Context, shardingKey int, opts *sql.TxOptions)
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) Begin(shardingKey int) (*sql.Tx, error) {
 	shard := db.ShardOf(context.Background(), shardingKey)
+	if shard == nil {
+		return nil, errors.Newf("no shard is allocated for key %d", shardingKey)
+	}
 	return shard.Begin()
 }
 
@@ -409,6 +415,9 @@ func (db *DB) Query(shardingKey int, query string, args ...interface{}) (*sql.Ro
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) QueryContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (*sql.Rows, error) {
 	shard := db.ShardOf(ctx, shardingKey)
+	if shard == nil {
+		return nil, errors.Newf("no shard is allocated for key %d", shardingKey)
+	}
 	return shard.QueryContext(ctx, query, args...)
 }
 
@@ -422,6 +431,9 @@ func (db *DB) QueryRow(shardingKey int, query string, args ...interface{}) *sql.
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) QueryRowContext(ctx context.Context, shardingKey int, query string, args ...interface{}) *sql.Row {
 	shard := db.ShardOf(ctx, shardingKey)
+	if shard == nil {
+		panic(errors.Newf("no shard is allocated for key %d", shardingKey))
+	}
 	return shard.QueryRowContext(ctx, query, args...)
 }
 
@@ -435,6 +447,9 @@ func (db *DB) Exec(shardingKey int, query string, args ...interface{}) (sql.Resu
 // An error is returned if a shard cannot be found for the sharding key.
 func (db *DB) ExecContext(ctx context.Context, shardingKey int, query string, args ...interface{}) (sql.Result, error) {
 	shard := db.ShardOf(ctx, shardingKey)
+	if shard == nil {
+		return nil, errors.Newf("no shard is allocated for key %d", shardingKey)
+	}
 	return shard.ExecContext(ctx, query, args...)
 }
 

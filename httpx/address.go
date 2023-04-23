@@ -27,10 +27,7 @@ func IsLocalhostAddress(r *http.Request) bool {
 	if addr == "" {
 		addr = r.RemoteAddr
 	}
-	return addr == "127.0.0.1" ||
-		addr == "[::1]" ||
-		addr == "localhost" ||
-		strings.HasPrefix(addr, "127.0.0.1:") ||
-		strings.HasPrefix(addr, "[::1]:") ||
-		strings.HasPrefix(addr, "localhost:")
+	return addr == "localhost" || strings.HasPrefix(addr, "localhost:") ||
+		addr == "127.0.0.1" || strings.HasPrefix(addr, "127.0.0.1:") ||
+		addr == "[::1]" || strings.HasPrefix(addr, "[::1]:")
 }
