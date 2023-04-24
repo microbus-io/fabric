@@ -155,12 +155,29 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 			WriteTimeout:      svc.WriteTimeout(),
 		}
 		svc.httpServers[portInt] = httpServer
+		ch := make(chan error)
 		if secure {
-			go httpServer.ListenAndServeTLS(certFile, keyFile)
+			go func() {
+				err = httpServer.ListenAndServeTLS(certFile, keyFile)
+				if err != nil {
+					ch <- errors.Trace(err)
+				}
+			}()
 		} else {
-			go httpServer.ListenAndServe()
+			go func() {
+				err = httpServer.ListenAndServe()
+				if err != nil {
+					ch <- errors.Trace(err)
+				}
+			}()
 		}
-		svc.LogInfo(ctx, "Started HTTP listener", log.Int("port", portInt), log.Bool("secure", secure))
+		select {
+		case err = <-ch:
+			svc.LogError(ctx, "Starting HTTP listener", log.Error(err), log.Int("port", portInt), log.Bool("secure", secure))
+			return errors.Trace(err)
+		case <-time.After(time.Second):
+			svc.LogInfo(ctx, "Started HTTP listener", log.Int("port", portInt), log.Bool("secure", secure))
+		}
 	}
 	return nil
 }

@@ -21,7 +21,7 @@ The HTTP ingress proxy supports several configuration properties that can be set
 
 ```yaml
 http.ingress.sys:
-  Port: 9090
+  Ports: 9090
 ```
 
 `Ports` is a comma-separated list of HTTP ports on which to listen for requests. The default is to listen on port `:8080`.

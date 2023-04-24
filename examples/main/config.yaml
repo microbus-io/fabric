@@ -17,7 +17,7 @@ hello.example:
   Greeting: Ciao
 
 http.ingress.sys:
-#  Port: 8080
+#  Ports: 8080
 #  TimeBudget: 20s
 
 # all:
