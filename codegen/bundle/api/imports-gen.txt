@@ -4,11 +4,11 @@ package {{ .PackageSuffix }}api
 
 import (
 {{- range $i, $t := .Types }}{{ if not .Exists }}{{ if .Package }}
-    "{{ .Package }}"
+    {{ .PackageSuffix }}_{{ Add $i 1 }} "{{ .Package }}"
 {{- end }}{{ end }}{{ end }}
 )
 
 {{- range $i, $t := .Types }}{{ if not .Exists }}{{ if .Package }}
 
-type {{ .Name }} = {{ .PackageSuffix }}.{{ .Name }}
+type {{ .Name }} = {{ .PackageSuffix }}_{{ Add $i 1 }}.{{ .Name }}
 {{- end }}{{ end }}{{ end }}
