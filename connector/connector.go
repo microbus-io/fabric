@@ -62,6 +62,7 @@ type Connector struct {
 	onStartupCalled bool
 	initErr         error
 	startupTime     time.Time
+	startupSequence int
 
 	metricsRegistry *prometheus.Registry
 	metricsHandler  http.Handler
@@ -122,6 +123,7 @@ func NewConnector() *Connector {
 		postRequestData:  lru.NewCache[string, string](),
 		multicastChanCap: 32,
 		metricDefs:       map[string]mtr.Metric{},
+		startupSequence:  1,
 	}
 
 	c.knownResponders.SetMaxWeight(16 * 1024)

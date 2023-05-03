@@ -238,6 +238,7 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 			return errors.Newf("value '%s' of config '%s' doesn't validate against rule '%s'", printableConfigValue(valueToSet, config.Secret), config.Name, config.Validation)
 		}
 		if valueToSet != config.Value {
+			changed[config.Name] = true
 			config.Value = valueToSet
 			c.LogInfo(ctx, "Config updated", log.String("name", config.Name), log.String("value", printableConfigValue(valueToSet, config.Secret)))
 		}

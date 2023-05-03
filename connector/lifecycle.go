@@ -342,3 +342,20 @@ func (c *Connector) captureInitErr(err error) error {
 	}
 	return err
 }
+
+// StartupSequence returns the order in which this microservice should be started
+// when included inside an application.
+// The startup sequence is only relevant when an application contains more than
+// one microservice, such as during integration testing.
+func (c *Connector) StartupSequence() int {
+	return c.startupSequence
+}
+
+// WithStartupSequence sets the order in which this microservice should be started
+// when included inside an application.
+// The startup sequence is only relevant when an application contains more than
+// one microservice, such as during integration testing.
+func (c *Connector) WithStartupSequence(seq int) *Connector {
+	c.startupSequence = seq
+	return c
+}

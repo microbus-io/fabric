@@ -17,8 +17,10 @@ limitations under the License.
 package application
 
 import (
+	"context"
 	"os"
 	"os/signal"
+	"sort"
 	"sync"
 	"syscall"
 	"time"
@@ -26,18 +28,18 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/rand"
-	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
 )
 
 // Application is a collection of microservices that run in a single process and share the same lifecycle.
 type Application struct {
-	services       []connector.Service
-	sig            chan os.Signal
-	plane          string
-	deployment     string
-	mux            sync.Mutex
-	startupTimeout time.Duration
-	withInits      []func(connector.Service) error
+	services        []connector.Service
+	sig             chan os.Signal
+	plane           string
+	deployment      string
+	mux             sync.Mutex
+	startupTimeout  time.Duration
+	shutdownTimeout time.Duration
+	withInits       []func(connector.Service) error
 }
 
 // New creates a new app with a collection of microservices.
@@ -47,8 +49,9 @@ type Application struct {
 // Explicit action is required.
 func New(services ...connector.Service) *Application {
 	app := &Application{
-		sig:            make(chan os.Signal, 1),
-		startupTimeout: time.Second * 20,
+		sig:             make(chan os.Signal, 1),
+		startupTimeout:  time.Second * 20,
+		shutdownTimeout: time.Second * 20,
 	}
 	app.Include(services...)
 	return app
@@ -148,33 +151,43 @@ func (app *Application) Startup() error {
 		s.With(app.withInits...)
 	}
 
-	// Start configurators first
-	for _, s := range app.services {
-		if s.IsStarted() {
-			continue
+	// Sort the microservices in their startup sequence
+	services := make([]connector.Service, len(app.services))
+	copy(services, app.services)
+	sort.Slice(services, func(i, j int) bool {
+		return services[i].StartupSequence() < services[j].StartupSequence()
+	})
+
+	// Start the microservices in each sequence in parallel with an overall timeout of 20 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), app.startupTimeout)
+	defer cancel()
+	at := 0
+	for i := at; i < len(services); i++ {
+		if services[i].StartupSequence() != services[at].StartupSequence() {
+			err := app.startupBatch(ctx, services[at:i])
+			if err != nil {
+				return err
+			}
+			at = i
 		}
-		if s.HostName() == configuratorapi.HostName {
-			err := s.Startup()
+		if i == len(services)-1 {
+			err := app.startupBatch(ctx, services[at:])
 			if err != nil {
 				return err
 			}
 		}
 	}
+	return nil
+}
 
-	// Give services 20 seconds to retry starting up, if needed
-	exit := make(chan bool)
-	timer := time.NewTimer(app.startupTimeout)
-	defer timer.Stop()
-	go func() {
-		<-timer.C
-		close(exit)
-	}()
-
-	// Start services in parallel
-	startErrs := make(chan error, len(app.services))
+// startupBatch starts up a group of microservices in parallel.
+// A context deadline is used to limit the time allotted to the operation.
+func (app *Application) startupBatch(ctx context.Context, services []connector.Service) error {
+	// Start the microservices in parallel
+	startErrs := make(chan error, len(services))
 	var wg sync.WaitGroup
 	var offsettingDelay time.Duration
-	for _, s := range app.services {
+	for _, s := range services {
 		if s.IsStarted() {
 			continue
 		}
@@ -188,8 +201,8 @@ func (app *Application) Startup() error {
 			delay := time.Millisecond
 			for {
 				select {
-				case <-exit:
-					// Failed to start in 20 seconds, return the last error
+				case <-ctx.Done():
+					// Failed to start in allotted time, return the last error
 					startErrs <- err
 					return
 				case <-time.After(delay):
@@ -197,7 +210,7 @@ func (app *Application) Startup() error {
 					if err == nil {
 						return
 					}
-					delay = app.startupTimeout / 10 // Try again up to 10 times
+					delay = time.Second // Try again a second later
 				}
 			}
 		}()
@@ -221,12 +234,45 @@ func (app *Application) Shutdown() error {
 	app.mux.Lock()
 	defer app.mux.Unlock()
 
-	// Shutdown services in parallel, except for configurators
-	shutdownErrs := make(chan error, len(app.services))
+	// Sort the microservices in their reverse startup sequence
+	services := make([]connector.Service, len(app.services))
+	copy(services, app.services)
+	sort.Slice(services, func(j, i int) bool {
+		return services[i].StartupSequence() < services[j].StartupSequence()
+	})
+
+	// Shutdown the microservices in each sequence in parallel with an overall timeout of 20 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), app.shutdownTimeout)
+	defer cancel()
+	var lastErr error
+	at := 0
+	for i := at; i < len(services); i++ {
+		if services[i].StartupSequence() != services[at].StartupSequence() {
+			err := app.shutdownBatch(ctx, services[at:i])
+			if err != nil {
+				lastErr = err
+			}
+			at = i
+		}
+		if i == len(services)-1 {
+			err := app.shutdownBatch(ctx, services[at:])
+			if err != nil {
+				lastErr = err
+			}
+		}
+	}
+	return lastErr
+}
+
+// shutdownBatch shuts down a group of microservices in parallel.
+// A context deadline is used to limit the time allotted to the operation.
+func (app *Application) shutdownBatch(ctx context.Context, services []connector.Service) error {
+	// Shutdown the microservices in parallel
+	shutdownErrs := make(chan error, len(services))
 	var wg sync.WaitGroup
 	var delay time.Duration
-	for _, s := range app.services {
-		if !s.IsStarted() || s.HostName() == configuratorapi.HostName {
+	for _, s := range services {
+		if !s.IsStarted() {
 			continue
 		}
 		s := s
@@ -244,19 +290,6 @@ func (app *Application) Shutdown() error {
 	for e := range shutdownErrs {
 		if e != nil {
 			lastErr = e
-		}
-	}
-
-	// Shutdown configurators last
-	for _, s := range app.services {
-		if !s.IsStarted() {
-			continue
-		}
-		if s.HostName() == configuratorapi.HostName {
-			err := s.Shutdown()
-			if err != nil {
-				lastErr = err
-			}
 		}
 	}
 	return lastErr

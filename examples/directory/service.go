@@ -37,7 +37,7 @@ var (
 /*
 Service implements the directory.example microservice.
 
-The directory microservice stores personal records in a MySQL database.
+The directory microservice stores personal records in a SQL database.
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE

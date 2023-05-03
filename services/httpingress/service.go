@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -50,7 +51,7 @@ var (
 )
 
 /*
-Service implements the "http.ingress.sys" microservice.
+Service implements the http.ingress.sys microservice.
 
 The HTTP Ingress microservice relays incoming HTTP requests to the NATS bus.
 */
@@ -63,6 +64,11 @@ type Service struct {
 	portMappings   map[string]string
 	reqMemoryUsed  int64
 	secure443      bool
+}
+
+// StartupSequence is used to indicate that the ingress proxy should start last.
+func (svc *Service) StartupSequence() int {
+	return math.MaxInt
 }
 
 // OnStartup is called when the microservice is started up.

@@ -37,4 +37,5 @@ type Service interface {
 	IsStarted() bool
 	Lifetime() context.Context
 	With(options ...func(Service) error) Service
+	StartupSequence() int
 }

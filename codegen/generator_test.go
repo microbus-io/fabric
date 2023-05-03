@@ -112,8 +112,12 @@ tickers:
 		"Func1(ctx", "Func2(ctx", "Web1(ctx", "Web2(ctx", "OnEvent1(ctx", "OnEvent2(ctx", "OnEvent1(handler", "OnEvent2(handler",
 	)
 	fileContains(
-		filepath.Join(dir+"api", "types.go"),
-		"type Type1 struct", "type Type2 struct",
+		filepath.Join(dir+"api", "type1.go"),
+		"type Type1 struct",
+	)
+	fileContains(
+		filepath.Join(dir+"api", "type2.go"),
+		"type Type2 struct",
 	)
 	fileContains(
 		filepath.Join("intermediate", "intermediate-gen.go"),

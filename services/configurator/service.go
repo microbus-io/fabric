@@ -18,6 +18,7 @@ package configurator
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"os"
 	"sync"
@@ -39,7 +40,7 @@ var (
 )
 
 /*
-Service implements the "configurator.sys" microservice.
+Service implements the configurator.sys microservice.
 
 The Configurator is a system microservice that centralizes the dissemination of configuration values to other microservices.
 */
@@ -49,6 +50,11 @@ type Service struct {
 	repo          *repository
 	repoTimestamp time.Time
 	lock          sync.RWMutex
+}
+
+// StartupSequence is used to indicate that the configurator should start first.
+func (svc *Service) StartupSequence() int {
+	return math.MinInt
 }
 
 // OnStartup is called when the microservice is started up.
