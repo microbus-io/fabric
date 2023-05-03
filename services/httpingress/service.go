@@ -62,6 +62,7 @@ type Service struct {
 	allowedOrigins map[string]bool
 	portMappings   map[string]string
 	reqMemoryUsed  int64
+	secure443      bool
 }
 
 // OnStartup is called when the microservice is started up.
@@ -157,6 +158,9 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 		svc.httpServers[portInt] = httpServer
 		ch := make(chan error)
 		if secure {
+			if portInt == 443 {
+				svc.secure443 = true
+			}
 			go func() {
 				err = httpServer.ListenAndServeTLS(certFile, keyFile)
 				if err != nil {
@@ -238,10 +242,10 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// ServeHTTP forwards incoming HTTP requests to the appropriate microservice on NATS.
+// serveHTTP forwards incoming HTTP requests to the appropriate microservice on NATS.
 // An incoming request http://localhost:8080/echo.example/echo is forwarded to
 // the microservice at https://echo.example/echo .
-// ServeHTTP implements the http.Handler interface
+// serveHTTP implements the http.Handler interface
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := svc.Lifetime()
 	middleware := svc.Middleware()
@@ -254,6 +258,16 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		} else {
 			r.URL.Host += ":80"
 		}
+	}
+
+	// Automatically redirect HTTP port 80 to HTTPS port 443
+	if svc.secure443 && r.TLS == nil && r.URL.Port() == "80" {
+		u := *r.URL
+		u.Scheme = "https"
+		u.Host = strings.TrimSuffix(u.Host, ":80")
+		s := u.String()
+		http.Redirect(w, r, s, http.StatusTemporaryRedirect)
+		return nil
 	}
 
 	// Detect root path
