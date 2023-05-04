@@ -123,7 +123,6 @@ func NewConnector() *Connector {
 		postRequestData:  lru.NewCache[string, string](),
 		multicastChanCap: 32,
 		metricDefs:       map[string]mtr.Metric{},
-		startupSequence:  1,
 	}
 
 	c.knownResponders.SetMaxWeight(16 * 1024)

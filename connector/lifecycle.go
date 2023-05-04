@@ -351,11 +351,10 @@ func (c *Connector) StartupSequence() int {
 	return c.startupSequence
 }
 
-// WithStartupSequence sets the order in which this microservice should be started
+// SetStartupSequence sets the order in which this microservice should be started
 // when included inside an application.
 // The startup sequence is only relevant when an application contains more than
 // one microservice, such as during integration testing.
-func (c *Connector) WithStartupSequence(seq int) *Connector {
+func (c *Connector) SetStartupSequence(seq int) {
 	c.startupSequence = seq
-	return c
 }

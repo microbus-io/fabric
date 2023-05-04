@@ -68,7 +68,11 @@ type Service struct {
 
 // StartupSequence is used to indicate that the ingress proxy should start last.
 func (svc *Service) StartupSequence() int {
-	return math.MaxInt
+	v := svc.Connector.StartupSequence()
+	if v == 0 {
+		return math.MaxInt
+	}
+	return v
 }
 
 // OnStartup is called when the microservice is started up.

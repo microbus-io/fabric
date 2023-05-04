@@ -54,7 +54,11 @@ type Service struct {
 
 // StartupSequence is used to indicate that the configurator should start first.
 func (svc *Service) StartupSequence() int {
-	return math.MinInt
+	v := svc.Connector.StartupSequence()
+	if v == 0 {
+		return math.MinInt
+	}
+	return v
 }
 
 // OnStartup is called when the microservice is started up.

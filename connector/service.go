@@ -38,4 +38,5 @@ type Service interface {
 	Lifetime() context.Context
 	With(options ...func(Service) error) Service
 	StartupSequence() int
+	SetStartupSequence(seq int)
 }
