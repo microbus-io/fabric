@@ -166,30 +166,34 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 			WriteTimeout:      svc.WriteTimeout(),
 		}
 		svc.httpServers[portInt] = httpServer
-		ch := make(chan error)
+		errChan := make(chan error)
+		calledChan := make(chan bool)
 		if secure {
 			if portInt == 443 {
 				svc.secure443 = true
 			}
 			go func() {
+				close(calledChan)
 				err = httpServer.ListenAndServeTLS(certFile, keyFile)
 				if err != nil {
-					ch <- errors.Trace(err)
+					errChan <- errors.Trace(err)
 				}
 			}()
 		} else {
 			go func() {
+				close(calledChan)
 				err = httpServer.ListenAndServe()
 				if err != nil {
-					ch <- errors.Trace(err)
+					errChan <- errors.Trace(err)
 				}
 			}()
 		}
+		<-calledChan // Goroutine called
 		select {
-		case err = <-ch:
+		case err = <-errChan:
 			svc.LogError(ctx, "Starting HTTP listener", log.Error(err), log.Int("port", portInt), log.Bool("secure", secure))
 			return errors.Trace(err)
-		case <-time.After(time.Second):
+		case <-time.After(time.Millisecond * 250):
 			svc.LogInfo(ctx, "Started HTTP listener", log.Int("port", portInt), log.Bool("secure", secure))
 		}
 	}
