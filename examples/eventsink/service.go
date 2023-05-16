@@ -38,7 +38,7 @@ var (
 /*
 Service implements the eventsink.example microservice.
 
-The Event Sink microservice handles an event that is fired by the Event source microservice.
+The event sink microservice handles events that are fired by the event source microservice.
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE

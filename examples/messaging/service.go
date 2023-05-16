@@ -36,7 +36,7 @@ var (
 )
 
 /*
-Service implements the "messaging.example" microservice.
+Service implements the messaging.example microservice.
 
 The Messaging microservice demonstrates service-to-service communication patterns.
 */

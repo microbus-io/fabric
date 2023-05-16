@@ -136,6 +136,7 @@ types:
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
+#   /obj/*/path - Wildcard segment
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
@@ -182,6 +183,7 @@ All complex (struct) non-primitive types used in `functions` and `events` must b
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/ - All paths under the directory
+#   /obj/*/path - Wildcard segment
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path
@@ -245,6 +247,7 @@ The `webs` section defines low-level web handlers which allow the microservice t
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
+#   /obj/*/path - Wildcard segment
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path

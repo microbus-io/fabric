@@ -39,7 +39,7 @@ var (
 )
 
 /*
-Service implements the "hello.example" microservice.
+Service implements the hello.example microservice.
 
 The Hello microservice demonstrates the various capabilities of a microservice.
 */

@@ -83,7 +83,7 @@ func encodePath(path string) string {
 			b.WriteRune('_')
 		case ch == '/':
 			b.WriteRune('.')
-		case (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'):
+		case (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '*':
 			b.WriteRune(ch)
 		default:
 			b.WriteRune('%')

@@ -36,7 +36,7 @@ var (
 /*
 Service implements the eventsource.example microservice.
 
-The Event Source microservice fires an event that is caught by the Event Sink microservice.
+The event source microservice fires events that are caught by the event sink microservice.
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE

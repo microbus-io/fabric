@@ -60,6 +60,71 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	assert.Equal(t, int32(4), count)
 }
 
+func TestConnector_AsteriskSubscription(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	detected := map[string]bool{}
+	con := New("asterisk.subscription.connector")
+	con.Subscribe("/obj/*/alpha", func(w http.ResponseWriter, r *http.Request) error {
+		detected[r.URL.Path] = true
+		return nil
+	})
+	con.Subscribe("/obj/*/beta", func(w http.ResponseWriter, r *http.Request) error {
+		detected[r.URL.Path] = true
+		return nil
+	})
+
+	// Startup the microservices
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send messages
+	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/1234/alpha")
+	assert.NoError(t, err)
+	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/2345/alpha")
+	assert.NoError(t, err)
+	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/1111/beta")
+	assert.NoError(t, err)
+	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/2222/beta")
+	assert.NoError(t, err)
+
+	assert.Len(t, detected, 4)
+	assert.True(t, detected["/obj/1234/alpha"])
+	assert.True(t, detected["/obj/2345/alpha"])
+	assert.True(t, detected["/obj/1111/beta"])
+	assert.True(t, detected["/obj/2222/beta"])
+}
+
+func TestConnector_MixedAsteriskSubscription(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	detected := map[string]bool{}
+	con := New("mixed.asterisk.subscription.connector")
+	con.Subscribe("/obj/x*x/gamma", func(w http.ResponseWriter, r *http.Request) error {
+		detected[r.URL.Path] = true
+		return nil
+	})
+
+	// Startup the microservices
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	_, err = con.GET(ctx, "https://mixed.asterisk.subscription.connector/obj/2222/gamma")
+	assert.Error(t, err)
+	_, err = con.GET(ctx, "https://mixed.asterisk.subscription.connector/obj/x2x/gamma")
+	assert.Error(t, err)
+	_, err = con.GET(ctx, "https://mixed.asterisk.subscription.connector/obj/x*x/gamma")
+	assert.NoError(t, err)
+}
+
 func TestConnector_ErrorAndPanic(t *testing.T) {
 	t.Parallel()
 
