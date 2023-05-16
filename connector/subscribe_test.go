@@ -66,13 +66,23 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
+	alphaCount := 0
+	betaCount := 0
+	rootCount := 0
 	detected := map[string]bool{}
 	con := New("asterisk.subscription.connector")
 	con.Subscribe("/obj/*/alpha", func(w http.ResponseWriter, r *http.Request) error {
+		alphaCount++
 		detected[r.URL.Path] = true
 		return nil
 	})
 	con.Subscribe("/obj/*/beta", func(w http.ResponseWriter, r *http.Request) error {
+		betaCount++
+		detected[r.URL.Path] = true
+		return nil
+	})
+	con.Subscribe("/obj/*", func(w http.ResponseWriter, r *http.Request) error {
+		rootCount++
 		detected[r.URL.Path] = true
 		return nil
 	})
@@ -85,18 +95,26 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	// Send messages
 	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/1234/alpha")
 	assert.NoError(t, err)
+	assert.Equal(t, 1, alphaCount)
 	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/2345/alpha")
 	assert.NoError(t, err)
+	assert.Equal(t, 2, alphaCount)
 	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/1111/beta")
 	assert.NoError(t, err)
+	assert.Equal(t, 1, betaCount)
 	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/2222/beta")
 	assert.NoError(t, err)
+	assert.Equal(t, 2, betaCount)
+	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/8000")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, rootCount)
 
-	assert.Len(t, detected, 4)
+	assert.Len(t, detected, 5)
 	assert.True(t, detected["/obj/1234/alpha"])
 	assert.True(t, detected["/obj/2345/alpha"])
 	assert.True(t, detected["/obj/1111/beta"])
 	assert.True(t, detected["/obj/2222/beta"])
+	assert.True(t, detected["/obj/8000"])
 }
 
 func TestConnector_MixedAsteriskSubscription(t *testing.T) {
