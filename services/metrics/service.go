@@ -68,7 +68,7 @@ Collect returns the latest aggregated metrics.
 func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) {
 	secretKey := r.URL.Query().Get("secretKey")
 	if secretKey == "" {
-		secretKey = r.URL.Query().Get("secretKey")
+		secretKey = r.URL.Query().Get("secretkey")
 	}
 	if secretKey != svc.SecretKey() {
 		return errors.Newc(http.StatusNotFound, "incorrect secret key")

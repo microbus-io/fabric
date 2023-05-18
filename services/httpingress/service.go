@@ -274,16 +274,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	// Automatically redirect HTTP port 80 to HTTPS port 443
-	if svc.secure443 && r.TLS == nil && r.URL.Port() == "80" {
-		u := *r.URL
-		u.Scheme = "https"
-		u.Host = strings.TrimSuffix(u.Host, ":80")
-		s := u.String()
-		http.Redirect(w, r, s, http.StatusTemporaryRedirect)
-		return nil
-	}
-
 	// Detect root path
 	if r.URL.Path == "/" {
 		r.URL.Path = "/root"
@@ -303,11 +293,22 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	internalURL := u.String()
 	internalHost := strings.Split(r.URL.Path, "/")[1]
 	metrics := internalHost == metricsapi.HostName || strings.HasPrefix(internalHost, metricsapi.HostName+":")
-	if internalHost != "favicon.ico" && !metrics {
-		svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
-	}
-	if middleware != "" && !metrics {
-		internalURL = middleware + strings.TrimPrefix(internalURL, "https:/")
+	if !metrics {
+		if internalHost != "favicon.ico" {
+			svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
+		}
+		if middleware != "" {
+			internalURL = middleware + strings.TrimPrefix(internalURL, "https:/")
+		}
+		// Automatically redirect HTTP port 80 to HTTPS port 443
+		if svc.secure443 && r.TLS == nil && r.URL.Port() == "80" {
+			u := *r.URL
+			u.Scheme = "https"
+			u.Host = strings.TrimSuffix(u.Host, ":80")
+			s := u.String()
+			http.Redirect(w, r, s, http.StatusTemporaryRedirect)
+			return nil
+		}
 	}
 
 	// Read the body fully
