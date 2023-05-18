@@ -69,6 +69,7 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	alphaCount := 0
 	betaCount := 0
 	rootCount := 0
+	parentCount := 0
 	detected := map[string]bool{}
 	con := New("asterisk.subscription.connector")
 	con.Subscribe("/obj/*/alpha", func(w http.ResponseWriter, r *http.Request) error {
@@ -83,6 +84,11 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	})
 	con.Subscribe("/obj/*", func(w http.ResponseWriter, r *http.Request) error {
 		rootCount++
+		detected[r.URL.Path] = true
+		return nil
+	})
+	con.Subscribe("/obj", func(w http.ResponseWriter, r *http.Request) error {
+		parentCount++
 		detected[r.URL.Path] = true
 		return nil
 	})
@@ -108,13 +114,17 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/8000")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, rootCount)
+	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, parentCount)
 
-	assert.Len(t, detected, 5)
+	assert.Len(t, detected, 6)
 	assert.True(t, detected["/obj/1234/alpha"])
 	assert.True(t, detected["/obj/2345/alpha"])
 	assert.True(t, detected["/obj/1111/beta"])
 	assert.True(t, detected["/obj/2222/beta"])
 	assert.True(t, detected["/obj/8000"])
+	assert.True(t, detected["/obj"])
 }
 
 func TestConnector_MixedAsteriskSubscription(t *testing.T) {
