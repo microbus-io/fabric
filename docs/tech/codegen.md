@@ -51,6 +51,8 @@ from a configuration property with that name.
 #
 # name - A name for the database
 # type - The type of the database, "mariadb" or "mysql"
+# runtime - "true" to connect to the database in runtime (defaults to "true")
+# integrationTests - "true" to connect to the database in integration tests (defaults to "true")
 databases:
   - name: SQL
     type: mariadb

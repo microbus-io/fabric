@@ -56,7 +56,7 @@ var (
 	App *application.Application
 	// Svc is the {{ .General.Host }} microservice being tested
 	Svc *Service
-	{{- range .Databases }}{{ if .IsSQL }}
+	{{- range .Databases }}{{ if and .IsSQL .IntegrationTests }}
 	// {{ .Name }}Database is a temporary sharded SQL database
 	{{ .Name }}Database shardedsql.TestingDB
 	{{- end }}{{ end }}
@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 		var err error
 		App = application.NewTesting()
 		Svc = NewService().(*Service)
-		{{- range .Databases }}{{ if .IsSQL }}
+		{{- range .Databases }}{{ if and .IsSQL .IntegrationTests }}
 		err = {{ .Name }}Database.Open("{{ .Type }}")
 		if err != nil {
 			return err
@@ -109,7 +109,7 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			lastErr = err
 		}
-		{{- range .Databases }}{{ if .IsSQL }}
+		{{- range .Databases }}{{ if and .IsSQL .IntegrationTests }}
 		err = {{ .Name }}Database.Close()
 		if err != nil {
 			lastErr = err

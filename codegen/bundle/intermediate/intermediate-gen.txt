@@ -87,7 +87,7 @@ type ToDo interface {
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
-	{{- range .Databases }}{{ if .IsSQL }}
+	{{- range .Databases }}{{ if and .IsSQL .Runtime }}
 	db{{ .Name }} *shardedsql.DB
 	{{- end }}{{ end }}
 }
@@ -101,7 +101,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetVersion(version)
 	svc.SetDescription(`{{ .General.Description }}`)
 	
-	{{- range .Databases }}{{ if .IsSQL }}
+	{{- range .Databases }}{{ if and .IsSQL .Runtime }}
 
 	// SQL databases
 	svc.SetOnStartup(svc.db{{ .Name }}OnStartup)

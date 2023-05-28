@@ -25,8 +25,10 @@ import (
 
 // Database are the databases used by the microservice.
 type Database struct {
-	Name string `yaml:"name"`
-	Type string `yaml:"type"`
+	Name             string `yaml:"name"`
+	Type             string `yaml:"type"`
+	Runtime          bool   `yaml:"runtime"`
+	IntegrationTests bool   `yaml:"integrationTests"`
 }
 
 // UnmarshalYAML parses and validates the YAML.
@@ -34,6 +36,8 @@ func (db *Database) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Unmarshal
 	type different Database
 	var x different
+	x.IntegrationTests = true // Default
+	x.Runtime = true          // Default
 	err := unmarshal(&x)
 	if err != nil {
 		return errors.Trace(err)

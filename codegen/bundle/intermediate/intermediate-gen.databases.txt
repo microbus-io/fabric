@@ -1,4 +1,4 @@
-{{- range .Databases }}{{ if .IsSQL }}
+{{- range .Databases }}{{ if and .IsSQL .Runtime }}
 // db{{ .Name }}OnStartup opens the connection to the {{ .Name }} database and runs schema migrations.
 func (svc *Intermediate) db{{ .Name }}OnStartup(ctx context.Context) (err error) {
 	if svc.db{{ .Name }} != nil {
@@ -60,15 +60,17 @@ func (svc *Intermediate) {{ .Name }}() (dsn string) {
 	return svc.Config("{{ .Name }}")
 }
 
+// {{ .Name }}Database is the sharded SQL database.
+func (svc *Intermediate) {{ .Name }}Database() *shardedsql.DB {
+	return svc.db{{ .Name }}
+}
+{{ end }}{{ end }}
+
+{{- range .Databases }}{{ if .IsSQL }}
 // {{ .Name }} initializes the {{ .Name }} config property of the microservice.
 func {{ .Name }}(dsn string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("{{ .Name }}", dsn)
 	}
-}
-
-// {{ .Name }}Database is the sharded SQL database.
-func (svc *Intermediate) {{ .Name }}Database() *shardedsql.DB {
-	return svc.db{{ .Name }}
 }
 {{ end }}{{ end }}

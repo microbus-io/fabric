@@ -223,6 +223,9 @@ func (gen *Generator) makeResources() error {
 
 	// Database migration
 	for _, db := range gen.specs.Databases {
+		if !db.Runtime {
+			continue
+		}
 		dirName := strings.ToLower(db.Name)
 		dir := filepath.Join(gen.WorkDir, "resources", dirName)
 		_, err := os.Stat(dir)

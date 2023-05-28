@@ -194,16 +194,16 @@ func (svc *Intermediate) Maria() (dsn string) {
 	return svc.Config("Maria")
 }
 
+// MariaDatabase is the sharded SQL database.
+func (svc *Intermediate) MariaDatabase() *shardedsql.DB {
+	return svc.dbMaria
+}
+
 // Maria initializes the Maria config property of the microservice.
 func Maria(dsn string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("Maria", dsn)
 	}
-}
-
-// MariaDatabase is the sharded SQL database.
-func (svc *Intermediate) MariaDatabase() *shardedsql.DB {
-	return svc.dbMaria
 }
 
 // doCreate handles marshaling for the Create function.
