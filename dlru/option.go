@@ -22,7 +22,7 @@ type cacheOptions struct {
 	Replicate        bool
 }
 
-// LoadOption is used customize loading from the cache.
+// LoadOption customizes loading from the cache.
 type LoadOption func(opts *cacheOptions)
 
 // NoBump prevents a loaded element from being bumped to the head of the cache.
@@ -49,7 +49,7 @@ func ConsistencyCheck(check bool) LoadOption {
 	}
 }
 
-// StoreOption is used customize storing in the cache.
+// StoreOption customizes storing in the cache.
 type StoreOption func(opts *cacheOptions)
 
 // Replicate controls whether to replicate the stored element to all peers.
