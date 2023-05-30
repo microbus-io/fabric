@@ -165,6 +165,8 @@ func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	switch r.URL.Query().Get("do") {
 	case "load":
 		return c.handleLoad(w, r)
+	case "store":
+		return c.handleStore(w, r)
 	case "checksum":
 		return c.handleChecksum(w, r)
 	case "delete":
@@ -234,6 +236,26 @@ func (c *Cache) handleLoad(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	return nil
+}
+
+// handleStore handles a broadcast when the primary replicates its value to peers.
+func (c *Cache) handleStore(w http.ResponseWriter, r *http.Request) error {
+	// Ignore messages from self
+	if frame.Of(r).FromID() == c.svc.ID() {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
+	key := r.URL.Query().Get("key")
+	if key == "" {
+		return errors.New("missing key")
+	}
+	value, err := io.ReadAll(r.Body)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	c.localCache.Store(key, value, lru.Weight(len(value)))
 	return nil
 }
 
@@ -376,21 +398,40 @@ func (c *Cache) rescue(ctx context.Context) {
 }
 
 // Store an element in the cache.
-func (c *Cache) Store(ctx context.Context, key string, value []byte) error {
+func (c *Cache) Store(ctx context.Context, key string, value []byte, options ...StoreOption) error {
 	if key == "" {
 		return errors.New("missing key")
+	}
+
+	opts := cacheOptions{
+		Replicate: false,
+	}
+	for _, opt := range options {
+		opt(&opts)
 	}
 
 	// Delete locally
 	c.localCache.Delete(key)
 
-	// Delete at peers
-	u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, key)
-	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
-	for r := range ch {
-		_, err := r.Get()
-		if err != nil {
-			return errors.Trace(err)
+	if !opts.Replicate {
+		// Delete at peers
+		u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, key)
+		ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
+		for r := range ch {
+			_, err := r.Get()
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+	} else {
+		// Replicate to peers
+		u := fmt.Sprintf("%s/all?do=store&key=%s", c.basePath, key)
+		ch := c.svc.Publish(ctx, pub.Method("PUT"), pub.URL(u), pub.Body(value))
+		for r := range ch {
+			_, err := r.Get()
+			if err != nil {
+				return errors.Trace(err)
+			}
 		}
 	}
 
@@ -408,7 +449,8 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	}
 
 	opts := cacheOptions{
-		Bump: true,
+		Bump:             true,
+		ConsistencyCheck: true,
 	}
 	for _, opt := range options {
 		opt(&opts)
@@ -417,6 +459,10 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	// Check local cache
 	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump))
 	if ok {
+		if !opts.ConsistencyCheck {
+			atomic.AddInt64(&c.hits, 1)
+			return value, true, nil
+		}
 		// Calculate checksum of local copy
 		hash := sha256.New()
 		_, err := hash.Write(value)
@@ -477,7 +523,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		if err != nil {
 			return nil, false, errors.Trace(err)
 		}
-		if value != nil && !bytes.Equal(value, data) {
+		if opts.ConsistencyCheck && value != nil && !bytes.Equal(value, data) {
 			// Inconsistency detected
 			c.svc.LogInfo(ctx, "Cache inconsistency", log.String("key", key))
 			return nil, false, nil
@@ -598,7 +644,7 @@ func (c *Cache) LoadJSON(ctx context.Context, key string, value any, options ...
 // StoreJSON marshals the value as JSON and stores it in the cache.
 // JSON marshalling is not memory efficient and should be avoided if the cache is
 // expected to store a lot of data.
-func (c *Cache) StoreJSON(ctx context.Context, key string, value any) error {
+func (c *Cache) StoreJSON(ctx context.Context, key string, value any, options ...StoreOption) error {
 	if key == "" {
 		return errors.New("missing key")
 	}
@@ -606,7 +652,7 @@ func (c *Cache) StoreJSON(ctx context.Context, key string, value any) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.Store(ctx, key, data)
+	err = c.Store(ctx, key, data, options...)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -636,7 +682,7 @@ func (c *Cache) LoadCompressedJSON(ctx context.Context, key string, value any, o
 // StoreCompressedJSON marshals the value as JSON and stores it in the cache compressed.
 // JSON marshalling is not memory efficient and should be avoided if the cache is
 // expected to store a lot of data.
-func (c *Cache) StoreCompressedJSON(ctx context.Context, key string, value any) error {
+func (c *Cache) StoreCompressedJSON(ctx context.Context, key string, value any, options ...StoreOption) error {
 	if key == "" {
 		return errors.New("missing key")
 	}
@@ -650,7 +696,7 @@ func (c *Cache) StoreCompressedJSON(ctx context.Context, key string, value any) 
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.Store(ctx, key, data.Bytes())
+	err = c.Store(ctx, key, data.Bytes(), options...)
 	if err != nil {
 		return errors.Trace(err)
 	}

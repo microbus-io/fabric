@@ -131,6 +131,65 @@ func TestDLRU_Lookup(t *testing.T) {
 	}
 }
 
+func TestDLRU_Replicate(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("replicate.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	alphaLRU := alpha.DistribCache()
+
+	beta := connector.New("replicate.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	betaLRU := beta.DistribCache()
+
+	gamma := connector.New("replicate.dlru")
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	defer gamma.Shutdown()
+	gammaLRU := gamma.DistribCache()
+
+	// Insert to alpha cache
+	err = alphaLRU.Store(ctx, "A", []byte("AAA"), dlru.Replicate(true))
+	assert.NoError(t, err)
+	jsonObject := struct {
+		Num int    `json:"num"`
+		Str string `json:"str"`
+	}{
+		123,
+		"abc",
+	}
+	err = alphaLRU.StoreJSON(ctx, "B", jsonObject, dlru.Replicate(true))
+	assert.NoError(t, err)
+	err = alphaLRU.StoreCompressedJSON(ctx, "C", jsonObject, dlru.Replicate(true))
+	assert.NoError(t, err)
+
+	assert.Equal(t, 3, alphaLRU.LocalCache().Len())
+	assert.Equal(t, 3, betaLRU.LocalCache().Len())
+	assert.Equal(t, 3, gammaLRU.LocalCache().Len())
+
+	// Delete from gamma cache
+	err = gammaLRU.Delete(ctx, "A")
+	assert.NoError(t, err)
+
+	assert.Equal(t, 2, alphaLRU.LocalCache().Len())
+	assert.Equal(t, 2, betaLRU.LocalCache().Len())
+	assert.Equal(t, 2, gammaLRU.LocalCache().Len())
+
+	// Clear the cache via beta
+	err = betaLRU.Clear(ctx)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 0, alphaLRU.LocalCache().Len())
+	assert.Equal(t, 0, betaLRU.LocalCache().Len())
+	assert.Equal(t, 0, gammaLRU.LocalCache().Len())
+}
+
 func TestDLRU_Rescue(t *testing.T) {
 	t.Parallel()
 
@@ -420,7 +479,17 @@ func TestDLRU_Inconsistency(t *testing.T) {
 	// Store a different value in beta
 	betaLRU.LocalCache().Store("Foo", []byte("Bad"))
 
-	// Loading should fail from either caches
+	// Loading without the consistency check should succeed and return different results
+	val, ok, err = alphaLRU.Load(ctx, "Foo", dlru.ConsistencyCheck(false))
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "Bar", string(val))
+	val, ok, err = betaLRU.Load(ctx, "Foo", dlru.ConsistencyCheck(false))
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "Bad", string(val))
+
+	// Loading with a consistency check should fail from either caches
 	_, ok, err = alphaLRU.Load(ctx, "Foo")
 	assert.NoError(t, err)
 	assert.False(t, ok)
@@ -536,6 +605,34 @@ func BenchmarkDLRU_Load(b *testing.B) {
 	b.StopTimer()
 
 	// On 2021 MacBook Pro M1 16": 165499 ns/op
+}
+
+func BenchmarkDLRU_LoadNoConsistencyCheck(b *testing.B) {
+	ctx := context.Background()
+
+	alpha := connector.New("benchmark.load.dlru")
+	err := alpha.Startup()
+	assert.NoError(b, err)
+	defer alpha.Shutdown()
+	alphaLRU := alpha.DistribCache()
+
+	beta := connector.New("benchmark.load.dlru")
+	err = beta.Startup()
+	assert.NoError(b, err)
+	defer beta.Shutdown()
+
+	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"), dlru.Replicate(true))
+	assert.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, ok, err := alphaLRU.Load(ctx, "Foo", dlru.ConsistencyCheck(false))
+		assert.NoError(b, err)
+		assert.True(b, ok)
+	}
+	b.StopTimer()
+
+	// On 2021 MacBook Pro M1 16": 78 ns/op
 }
 
 func TestDLRU_Interface(t *testing.T) {
