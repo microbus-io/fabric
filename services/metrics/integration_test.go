@@ -133,12 +133,12 @@ func TestMetrics_Collect(t *testing.T) {
 		BodyContains(`microbus_cache_len_total{id="` + con1.ID() + `",service="one.collect",ver="0"} 1`).
 		BodyContains(`microbus_cache_misses_total{id="` + con1.ID() + `",service="one.collect",ver="0"} 1`).
 		BodyContains(`microbus_cache_hits_total{id="` + con1.ID() + `",service="one.collect",ver="0"} 1`).
-		BodyContains(`microbus_request_count_total{code="404",error="OK",host="one.collect",id="` + con1.ID() + `",method="GET",path="/dcache/all",port="888",service="one.collect",ver="0"} 2`).
+		BodyContains(`microbus_request_count_total{code="404",error="OK",host="one.collect",id="` + con1.ID() + `",method="GET",port="888",service="one.collect",ver="0"} 2`).
 		// The response size is 10 bytes
 		BodyContains(`microbus_response_size_bytes_sum{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0"} 10`).
 		BodyContains(`microbus_response_size_bytes_count{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0"} 1`).
 		// The request should take between 100ms and 500ms
-		BodyContains(`microbus_request_count_total{code="200",error="OK",host="one.collect",id="` + con1.ID() + `",method="GET",path="/ten",port="443",service="one.collect",ver="0"} 1`).
+		BodyContains(`microbus_request_count_total{code="200",error="OK",host="one.collect",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0"} 1`).
 		BodyContains(`microbus_response_duration_seconds_bucket{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0",le="0.1"} 0`).
 		BodyContains(`microbus_response_duration_seconds_bucket{code="200",error="OK",handler="one.collect:443/ten",id="` + con1.ID() + `",method="GET",port="443",service="one.collect",ver="0",le="0.5"} 1`).
 		// Acks should be logged

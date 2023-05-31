@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -47,7 +48,9 @@ func URL(url string) Option {
 	return func(req *Request) error {
 		u, err := utils.ParseURL(url)
 		if err != nil {
-			return errors.Trace(err)
+			// Invalid URLs are often received by hacker scanning tools,
+			// for example, requests to .env
+			return errors.Newc(http.StatusNotFound, "invalid URL", url)
 		}
 		u.RawQuery += req.queryArgs
 		req.URL = u.String()

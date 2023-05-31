@@ -52,7 +52,7 @@ func (c *Connector) newMetricsRegistry() error {
 	c.DefineCounter(
 		"microbus_request_count_total",
 		"Number of outgoing requests",
-		[]string{"method", "host", "port", "path", "code", "error"},
+		[]string{"method", "host", "port", "code", "error"},
 	)
 	c.DefineHistogram(
 		"microbus_ack_duration_seconds",

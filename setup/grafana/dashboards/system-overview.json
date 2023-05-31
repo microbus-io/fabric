@@ -658,8 +658,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "builder",
-          "expr": "sum by(error, code, host, port, path) (rate(microbus_request_count_total{port!=\"888\", code!=\"200\"}[$__rate_interval])) != 0",
-          "legendFormat": "{{error}} {{code}} {{host}}:{{port}}{{path}}",
+          "expr": "sum by(error, code, host, port) (rate(microbus_request_count_total{port!=\"888\", code!=\"200\"}[$__rate_interval])) != 0",
+          "legendFormat": "{{error}} {{code}} {{host}}:{{port}}",
           "range": true,
           "refId": "A"
         }

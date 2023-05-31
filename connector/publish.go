@@ -330,7 +330,6 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					httpReq.Method,
 					httpReq.URL.Hostname(),
 					strconv.Itoa(port),
-					httpReq.URL.Path,
 					strconv.Itoa(response.StatusCode),
 					"OK",
 				)
@@ -360,9 +359,13 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					httpReq.Method,
 					httpReq.URL.Hostname(),
 					strconv.Itoa(port),
-					httpReq.URL.Path,
 					strconv.Itoa(statusCode),
-					"ERROR",
+					func() string {
+						if statusCode == http.StatusNotFound {
+							return "OK"
+						}
+						return "ERROR"
+					}(),
 				)
 			}
 
@@ -395,7 +398,6 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 				httpReq.Method,
 				httpReq.URL.Hostname(),
 				strconv.Itoa(port),
-				httpReq.URL.Path,
 				strconv.Itoa(http.StatusRequestTimeout),
 				"OK",
 			)
@@ -432,7 +434,6 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 						httpReq.Method,
 						httpReq.URL.Hostname(),
 						strconv.Itoa(port),
-						httpReq.URL.Path,
 						strconv.Itoa(http.StatusNotFound),
 						"OK",
 					)
