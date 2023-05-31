@@ -31,7 +31,7 @@ Typical schema definition and migration use cases:
 		tenant_id INT UNSIGNED NOT NULL,
 		id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 		name VARCHAR(256) CHARACTER SET ascii NOT NULL,
-		created DATETIME(3) NOT NULL DEFAULT NOW(3),
+		created DATETIME(3) NOT NULL DEFAULT UTC_TIMESTAMP(3),
 		PRIMARY KEY (tenant_id, person_id),
 		INDEX(id),
 		INDEX idx_name (name ASC)

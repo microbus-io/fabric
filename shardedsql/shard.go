@@ -141,7 +141,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementS
 			seq INT NOT NULL,
 			completed BOOL NOT NULL DEFAULT FALSE,
 			completed_on DATETIME(3),
-			locked_until DATETIME(3) NOT NULL DEFAULT NOW(3),
+			locked_until DATETIME(3) NOT NULL DEFAULT UTC_TIMESTAMP(3),
 			PRIMARY KEY (name, seq)
 		)`)
 	if err != nil {
@@ -171,7 +171,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementS
 
 		// Insert new migrations into the database first
 		// Ignore duplicate key violations
-		_, err = s.ExecContext(ctx, `INSERT IGNORE INTO microbus_schema_migrations (name, seq, locked_until) VALUES (?, ?, NOW(3))`, statementSequence.Name, seqNum)
+		_, err = s.ExecContext(ctx, `INSERT IGNORE INTO microbus_schema_migrations (name, seq, locked_until) VALUES (?, ?, UTC_TIMESTAMP(3))`, statementSequence.Name, seqNum)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -190,8 +190,8 @@ func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementS
 
 		// Try to obtain a lock
 		res, err := s.ExecContext(ctx,
-			`UPDATE microbus_schema_migrations SET locked_until=DATE_ADD(NOW(3), INTERVAL 15 SECOND)
-			WHERE name=? AND seq=? AND locked_until<NOW(3) AND completed=FALSE`,
+			`UPDATE microbus_schema_migrations SET locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 15 SECOND)
+			WHERE name=? AND seq=? AND locked_until<UTC_TIMESTAMP(3) AND completed=FALSE`,
 			statementSequence.Name, seqNum)
 		if err != nil {
 			return errors.Trace(err)
@@ -241,7 +241,7 @@ func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementS
 			case <-time.After(5 * time.Second):
 				// Extend the lock while the migration is in progress
 				_, err = s.ExecContext(ctx,
-					`UPDATE microbus_schema_migrations SET locked_until=DATE_ADD(NOW(3), INTERVAL 15 SECOND) WHERE name=? AND seq=?`,
+					`UPDATE microbus_schema_migrations SET locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 15 SECOND) WHERE name=? AND seq=?`,
 					statementSequence.Name, seqNum)
 				if err != nil {
 					exit = true
@@ -252,14 +252,14 @@ func (s *Shard) MigrateSchema(ctx context.Context, statementSequence *StatementS
 		if err != nil {
 			// Release the lock
 			_, _ = s.ExecContext(ctx,
-				`UPDATE microbus_schema_migrations SET locked_until=NOW(3) WHERE name=? AND seq=?`,
+				`UPDATE microbus_schema_migrations SET locked_until=UTC_TIMESTAMP(3) WHERE name=? AND seq=?`,
 				statementSequence.Name, seqNum)
 			return errors.Trace(err, statement)
 		}
 
 		// Mark as complete
 		_, err = s.ExecContext(ctx,
-			`UPDATE microbus_schema_migrations SET locked_until=NOW(3), completed_on=NOW(3), completed=TRUE WHERE name=? AND seq=?`,
+			`UPDATE microbus_schema_migrations SET locked_until=UTC_TIMESTAMP(3), completed_on=UTC_TIMESTAMP(3), completed=TRUE WHERE name=? AND seq=?`,
 			statementSequence.Name, seqNum)
 		if err != nil {
 			return errors.Trace(err)

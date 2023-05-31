@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS microbus_schema_migrations (
 	seq INT NOT NULL,
 	completed BOOL NOT NULL DEFAULT FALSE,
 	completed_on DATETIME(3),
-	locked_until DATETIME(3) NOT NULL DEFAULT NOW(3),
+	locked_until DATETIME(3) NOT NULL DEFAULT UTC_TIMESTAMP(3),
 	PRIMARY KEY (name, seq)
 )
 ```
