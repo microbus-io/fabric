@@ -344,7 +344,6 @@ func openDatabase(ctx context.Context, driver string, dataSource string) (*sql.D
 	_, err = sqlDB.ExecContext(ctx,
 		`SET
 		GLOBAL sql_mode = 'STRICT_ALL_TABLES', SESSION sql_mode = 'STRICT_ALL_TABLES',
-		GLOBAL time_zone = 'UTC', SESSION time_zone = 'UTC',
 		GLOBAL max_allowed_packet = 134217728`, // 128MB
 	)
 	if err != nil {
