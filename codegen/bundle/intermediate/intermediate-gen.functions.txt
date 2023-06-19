@@ -4,7 +4,7 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 	var i {{ $shortPackage }}api.{{ .Name }}In
 	var o {{ $shortPackage }}api.{{ .Name }}Out
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = svc.impl.{{ .Name }}(
@@ -14,7 +14,7 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 		{{- end}}
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}

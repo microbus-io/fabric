@@ -55,7 +55,7 @@ func (_c *Multicast
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -87,7 +87,7 @@ func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out {{ .Name }}Out
@@ -122,7 +122,7 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 			{{- end}}
 		)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 		w.Header().Set("Content-Type", "application/json")
 		{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}

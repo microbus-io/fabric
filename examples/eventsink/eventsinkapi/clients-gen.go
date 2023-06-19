@@ -147,7 +147,7 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -174,7 +174,7 @@ func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out RegisteredOut

@@ -126,14 +126,14 @@ func (svc *Intermediate) doRegistered(w http.ResponseWriter, r *http.Request) er
 	var i eventsinkapi.RegisteredIn
 	var o eventsinkapi.RegisteredOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Emails, err = svc.impl.Registered(
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)

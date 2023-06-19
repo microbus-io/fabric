@@ -114,7 +114,7 @@ func (_c *Client) Hello(ctx context.Context, options ...pub.Option) (res *http.R
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -142,7 +142,7 @@ func (_c *Client) Echo(ctx context.Context, options ...pub.Option) (res *http.Re
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -170,7 +170,7 @@ func (_c *Client) Ping(ctx context.Context, options ...pub.Option) (res *http.Re
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -200,7 +200,7 @@ func (_c *Client) Calculator(ctx context.Context, options ...pub.Option) (res *h
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -230,7 +230,7 @@ func (_c *Client) BusJPEG(ctx context.Context, options ...pub.Option) (res *http
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }

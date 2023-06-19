@@ -53,6 +53,20 @@ func (e *TracedError) String() string {
 	return b.String()
 }
 
+// Annotate appends annotations to the last stack trace.
+func (e *TracedError) Annotate(annotations ...any) error {
+	var strAnnotations []string
+	if len(annotations) == 0 || len(e.stack) == 0 {
+		return e
+	}
+	strAnnotations = make([]string, len(annotations))
+	for i := range annotations {
+		strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+	}
+	e.stack[len(e.stack)-1].Annotations = append(e.stack[len(e.stack)-1].Annotations, strAnnotations...)
+	return e
+}
+
 // MarshalJSON marshals the error to JSON
 func (e *TracedError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {

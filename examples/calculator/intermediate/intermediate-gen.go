@@ -128,7 +128,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 	var i calculatorapi.ArithmeticIn
 	var o calculatorapi.ArithmeticOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.impl.Arithmetic(
@@ -138,7 +138,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 		i.Y,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -153,7 +153,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 	var i calculatorapi.SquareIn
 	var o calculatorapi.SquareOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.XEcho, o.Result, err = svc.impl.Square(
@@ -161,7 +161,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 		i.X,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -176,7 +176,7 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 	var i calculatorapi.DistanceIn
 	var o calculatorapi.DistanceOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.D, err = svc.impl.Distance(
@@ -185,7 +185,7 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 		i.P2,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)

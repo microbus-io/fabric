@@ -126,7 +126,7 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 	var i configuratorapi.ValuesIn
 	var o configuratorapi.ValuesOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Values, err = svc.impl.Values(
@@ -134,7 +134,7 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 		i.Names,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -149,14 +149,14 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 	var i configuratorapi.RefreshIn
 	var o configuratorapi.RefreshOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.impl.Refresh(
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -171,7 +171,7 @@ func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.SyncIn
 	var o configuratorapi.SyncOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.impl.Sync(
@@ -180,7 +180,7 @@ func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 		i.Values,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)

@@ -149,7 +149,7 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -206,7 +206,7 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -266,7 +266,7 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -294,7 +294,7 @@ func (_c *Client) Values(ctx context.Context, names []string) (values map[string
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out ValuesOut
@@ -321,7 +321,7 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out RefreshOut
@@ -348,7 +348,7 @@ func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[stri
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out SyncOut

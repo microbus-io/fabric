@@ -211,7 +211,7 @@ func (svc *Intermediate) doCreate(w http.ResponseWriter, r *http.Request) error 
 	var i directoryapi.CreateIn
 	var o directoryapi.CreateOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Created, err = svc.impl.Create(
@@ -219,7 +219,7 @@ func (svc *Intermediate) doCreate(w http.ResponseWriter, r *http.Request) error 
 		i.Person,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -234,7 +234,7 @@ func (svc *Intermediate) doLoad(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.LoadIn
 	var o directoryapi.LoadOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Person, o.Ok, err = svc.impl.Load(
@@ -242,7 +242,7 @@ func (svc *Intermediate) doLoad(w http.ResponseWriter, r *http.Request) error {
 		i.Key,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -257,7 +257,7 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 	var i directoryapi.DeleteIn
 	var o directoryapi.DeleteOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Ok, err = svc.impl.Delete(
@@ -265,7 +265,7 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 		i.Key,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -280,7 +280,7 @@ func (svc *Intermediate) doUpdate(w http.ResponseWriter, r *http.Request) error 
 	var i directoryapi.UpdateIn
 	var o directoryapi.UpdateOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Updated, o.Ok, err = svc.impl.Update(
@@ -288,7 +288,7 @@ func (svc *Intermediate) doUpdate(w http.ResponseWriter, r *http.Request) error 
 		i.Person,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -303,7 +303,7 @@ func (svc *Intermediate) doLoadByEmail(w http.ResponseWriter, r *http.Request) e
 	var i directoryapi.LoadByEmailIn
 	var o directoryapi.LoadByEmailOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Person, o.Ok, err = svc.impl.LoadByEmail(
@@ -311,7 +311,7 @@ func (svc *Intermediate) doLoadByEmail(w http.ResponseWriter, r *http.Request) e
 		i.Email,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)
@@ -326,14 +326,14 @@ func (svc *Intermediate) doList(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.ListIn
 	var o directoryapi.ListOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Keys, err = svc.impl.List(
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)

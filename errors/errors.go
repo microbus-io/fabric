@@ -103,14 +103,18 @@ func Trace(err error, annotations ...any) error {
 	return TraceUp(err, 1, annotations...)
 }
 
-// TraceUp appends the levels above the current stack location to the error's stack trace.
+// TraceUp appends the level above the current stack location to the error's stack trace.
+// Level 0 captures the location of the caller.
 // Optional annotations may be attached.
-func TraceUp(err error, levels int, annotations ...any) error {
+func TraceUp(err error, level int, annotations ...any) error {
 	if err == nil {
 		return nil
 	}
+	if level < 0 {
+		level = 0
+	}
 	tracedErr := Convert(err)
-	file, function, line, ok := RuntimeTrace(1 + levels)
+	file, function, line, ok := RuntimeTrace(1 + level)
 	if ok {
 		var strAnnotations []string
 		if len(annotations) > 0 {
@@ -129,20 +133,28 @@ func TraceUp(err error, levels int, annotations ...any) error {
 	return tracedErr
 }
 
-// TraceFull appends the full stack to the error's stack trace.
-// Optional annotations may be attached to the first level.
-func TraceFull(err error, annotations ...any) error {
+// TraceFull appends the full stack to the error's stack trace,
+// starting at the indicated level.
+// Level 0 captures the location of the caller.
+// Optional annotations may be attached to the first level captured.
+func TraceFull(err error, level int, annotations ...any) error {
 	if err == nil {
 		return nil
 	}
+	if level < 0 {
+		level = 0
+	}
 	tracedErr := Convert(err)
 
-	strAnnotations := make([]string, len(annotations))
-	for i := range annotations {
-		strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+	var strAnnotations []string
+	if len(annotations) > 0 {
+		strAnnotations = make([]string, len(annotations))
+		for i := range annotations {
+			strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
+		}
 	}
 
-	levels := -1
+	levels := level - 1
 	for {
 		levels++
 		file, function, line, ok := RuntimeTrace(1 + levels)
@@ -158,7 +170,7 @@ func TraceFull(err error, annotations ...any) error {
 			Line:        line,
 			Annotations: strAnnotations,
 		})
-		strAnnotations = nil
+		strAnnotations = nil // Only add to first level
 	}
 	return tracedErr
 }

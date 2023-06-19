@@ -159,7 +159,7 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -221,7 +221,7 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -284,7 +284,7 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -314,7 +314,7 @@ func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEch
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out ArithmeticOut
@@ -344,7 +344,7 @@ func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out SquareOut
@@ -374,7 +374,7 @@ func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, 
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out DistanceOut

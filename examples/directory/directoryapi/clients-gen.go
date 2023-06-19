@@ -149,7 +149,7 @@ func (_c *MulticastClient) Create(ctx context.Context, person *Person, _options 
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -211,7 +211,7 @@ func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -271,7 +271,7 @@ func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options .
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -333,7 +333,7 @@ func (_c *MulticastClient) Update(ctx context.Context, person *Person, _options 
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -395,7 +395,7 @@ func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _optio
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -453,7 +453,7 @@ func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-c
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -481,7 +481,7 @@ func (_c *Client) Create(ctx context.Context, person *Person) (created *Person, 
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out CreateOut
@@ -508,7 +508,7 @@ func (_c *Client) Load(ctx context.Context, key PersonKey) (person *Person, ok b
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out LoadOut
@@ -536,7 +536,7 @@ func (_c *Client) Delete(ctx context.Context, key PersonKey) (ok bool, err error
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out DeleteOut
@@ -563,7 +563,7 @@ func (_c *Client) Update(ctx context.Context, person *Person) (updated *Person, 
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out UpdateOut
@@ -591,7 +591,7 @@ func (_c *Client) LoadByEmail(ctx context.Context, email string) (person *Person
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out LoadByEmailOut
@@ -618,7 +618,7 @@ func (_c *Client) List(ctx context.Context) (keys []PersonKey, err error) {
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out ListOut

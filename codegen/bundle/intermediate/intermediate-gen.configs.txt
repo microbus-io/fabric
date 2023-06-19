@@ -5,7 +5,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	if changed("{{ .Name}}") {
 		err := svc.impl.OnChanged{{ .Name}}(ctx)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 	}
 	{{- end}}{{- end}}

@@ -18,12 +18,12 @@ limitations under the License.
 
 package calculator
 
-const Version = 107
-const SourceCodeSHA256 = "a8a064a9decd06305b590f98e660e21c7d464a27f8fb9aefc92cf93840821f26"
-const Timestamp = "2023-05-28T04:22:10.46143Z"
+const Version = 108
+const SourceCodeSHA256 = "084f17e298871ac744046750bce217ed293f2719cfed7852a234db4e6e368137"
+const Timestamp = "2023-06-19T18:06:55.084667Z"
 
 /* {
-	"ver": 107,
-	"sha256": "a8a064a9decd06305b590f98e660e21c7d464a27f8fb9aefc92cf93840821f26",
-	"ts": "2023-05-28T04:22:10.46143Z"
+	"ver": 108,
+	"sha256": "084f17e298871ac744046750bce217ed293f2719cfed7852a234db4e6e368137",
+	"ts": "2023-06-19T18:06:55.084667Z"
 } */

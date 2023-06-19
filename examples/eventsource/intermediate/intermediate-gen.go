@@ -117,7 +117,7 @@ func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) erro
 	var i eventsourceapi.RegisterIn
 	var o eventsourceapi.RegisterOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Allowed, err = svc.impl.Register(
@@ -125,7 +125,7 @@ func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) erro
 		i.Email,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(o)

@@ -189,7 +189,7 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -250,7 +250,7 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -308,7 +308,7 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -336,7 +336,7 @@ func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out RegisterOut
@@ -366,7 +366,7 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 			i.Email,
 		)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(o)
@@ -398,7 +398,7 @@ func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (er
 			i.Email,
 		)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(o)

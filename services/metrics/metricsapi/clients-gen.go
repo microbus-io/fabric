@@ -114,7 +114,7 @@ func (_c *Client) Collect(ctx context.Context, options ...pub.Option) (res *http
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }

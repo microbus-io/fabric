@@ -148,7 +148,7 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -204,7 +204,7 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 			_httpRes, _err := _i.Get()
 			_r.HTTPResponse = _httpRes
 			if _err != nil {
-				_r.err = errors.Trace(_err)
+				_r.err = _err // No trace
 			} else {
 				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 				if _err != nil {
@@ -231,7 +231,7 @@ func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out PingOut
@@ -257,7 +257,7 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 		pub.Body(_in),
 	)
 	if _err != nil {
-		err = errors.Trace(_err)
+		err = _err // No trace
 		return
 	}
 	var _out ConfigRefreshOut

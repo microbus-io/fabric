@@ -114,7 +114,7 @@ func (_c *Client) Home(ctx context.Context, options ...pub.Option) (res *http.Re
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -144,7 +144,7 @@ func (_c *Client) NoQueue(ctx context.Context, options ...pub.Option) (res *http
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -176,7 +176,7 @@ func (_c *Client) DefaultQueue(ctx context.Context, options ...pub.Option) (res 
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -206,7 +206,7 @@ func (_c *Client) CacheLoad(ctx context.Context, options ...pub.Option) (res *ht
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }
@@ -234,7 +234,7 @@ func (_c *Client) CacheStore(ctx context.Context, options ...pub.Option) (res *h
 	opts = append(opts, options...)
 	res, err = _c.svc.Request(ctx, opts...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err // No trace
 	}
 	return res, err
 }

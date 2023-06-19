@@ -177,37 +177,37 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	if changed("Ports") {
 		err := svc.impl.OnChangedPorts(ctx)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 	}
 	if changed("AllowedOrigins") {
 		err := svc.impl.OnChangedAllowedOrigins(ctx)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 	}
 	if changed("PortMappings") {
 		err := svc.impl.OnChangedPortMappings(ctx)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 	}
 	if changed("ReadTimeout") {
 		err := svc.impl.OnChangedReadTimeout(ctx)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 	}
 	if changed("WriteTimeout") {
 		err := svc.impl.OnChangedWriteTimeout(ctx)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 	}
 	if changed("ReadHeaderTimeout") {
 		err := svc.impl.OnChangedReadHeaderTimeout(ctx)
 		if err != nil {
-			return errors.Trace(err)
+			return err // No trace
 		}
 	}
 	return nil

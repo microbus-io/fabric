@@ -64,7 +64,7 @@ func (c *Connector) Request(ctx context.Context, options ...pub.Option) (*http.R
 	options = append(options, pub.Unicast())
 	ch := c.Publish(ctx, options...)
 	res, err := (<-ch).Get()
-	return res, errors.Trace(err)
+	return res, err // No trace
 }
 
 // Publish makes an HTTP request then awaits and returns the responses asynchronously.
@@ -344,10 +344,11 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					json.Unmarshal(body, &reconstitutedError)
 				}
 				if reconstitutedError == nil {
-					err = errors.New("unparsable error response", c.hostName+" -> "+httpReq.URL.Hostname())
+					err = errors.New("unparsable error response")
 				} else {
-					err = errors.Trace(reconstitutedError, c.hostName+" -> "+httpReq.URL.Hostname())
+					err = errors.Convert(reconstitutedError)
 				}
+				// err = errors.Convert(err).Annotate(c.hostName + " -> " + httpReq.URL.Host + httpReq.URL.Path)
 				output.Push(pub.NewErrorResponse(err))
 				statusCode := reconstitutedError.StatusCode
 				if statusCode == 0 {
