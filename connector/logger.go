@@ -30,7 +30,7 @@ import (
 
 /*
 LogDebug logs a message at DEBUG level.
-DEBUG level messages are ignored in PROD environments.
+DEBUG level messages are ignored in PROD environments or if the MICROBUS_LOG_DEBUG environment variable is not set.
 The message should be static and concise. Optional fields can be added for variable data.
 
 Example:
@@ -38,7 +38,7 @@ Example:
 	c.LogDebug(ctx, "Tight loop", log.String("index", i))
 */
 func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Field) {
-	if c.logger == nil {
+	if c.logger == nil || !c.logDebug {
 		return
 	}
 	c.logger.Debug(msg, fields...)
@@ -118,6 +118,10 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 func (c *Connector) initLogger() (err error) {
 	if c.logger != nil {
 		return nil
+	}
+
+	if debug := os.Getenv("MICROBUS_LOG_DEBUG"); debug != "" {
+		c.logDebug = true
 	}
 
 	env := c.Deployment()

@@ -505,3 +505,66 @@ func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedRea
 	})
 	return tc
 }
+
+// OnChangedBlockedPathsTestCase assists in asserting against the results of executing OnChangedBlockedPaths.
+type OnChangedBlockedPathsTestCase struct {
+	t *testing.T
+	testName string
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnChangedBlockedPathsTestCase) Name(testName string) *OnChangedBlockedPathsTestCase {
+	tc.testName = testName
+	return tc
+}
+
+// Error asserts an error.
+func (tc *OnChangedBlockedPathsTestCase) Error(errContains string) *OnChangedBlockedPathsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedBlockedPathsTestCase) ErrorCode(statusCode int) *OnChangedBlockedPathsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnChangedBlockedPathsTestCase) NoError() *OnChangedBlockedPathsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *OnChangedBlockedPathsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedBlockedPathsTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		asserter(t, tc.err)
+	})
+	return tc
+}
+
+// Get returns the result of executing BlockedPaths.
+func (tc *OnChangedBlockedPathsTestCase) Get() (err error) {
+	return tc.err
+}
+
+// OnChangedBlockedPaths executes the on changed callback and returns a corresponding test case.
+func OnChangedBlockedPaths(t *testing.T, ctx context.Context) *OnChangedBlockedPathsTestCase {
+	tc := &OnChangedBlockedPathsTestCase{t: t}
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.OnChangedBlockedPaths(ctx)
+	})
+	return tc
+}

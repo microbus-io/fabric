@@ -34,3 +34,8 @@ If not explicitly set via the `SetPlane` method of the `Connector`, the value is
 Applications created with `application.NewTesting` set a random plane to eliminate the chance of collision when tests are executed in parallel in the same NATS cluster, e.g. using `go test ./... -p=8`.
 
 This is an advanced feature and in most cases there is no need to customize the plane of communications.
+
+## Logging
+
+Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value causes the microservice to log debug messages.
+ 

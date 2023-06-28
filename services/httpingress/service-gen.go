@@ -84,4 +84,6 @@ var (
 	ReadHeaderTimeout = intermediate.ReadHeaderTimeout
 	// Middleware initializes the Middleware config property of the microservice
 	Middleware = intermediate.Middleware
+	// BlockedPaths initializes the BlockedPaths config property of the microservice
+	BlockedPaths = intermediate.BlockedPaths
 )

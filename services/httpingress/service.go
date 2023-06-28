@@ -64,6 +64,7 @@ type Service struct {
 	portMappings   map[string]string
 	reqMemoryUsed  int64
 	secure443      bool
+	blockedPaths   map[string]bool
 }
 
 // StartupSequence is used to indicate that the ingress proxy should start last.
@@ -79,6 +80,7 @@ func (svc *Service) StartupSequence() int {
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	svc.OnChangedAllowedOrigins(ctx)
 	svc.OnChangedPortMappings(ctx)
+	svc.OnChangedBlockedPaths(ctx)
 	err = svc.startHTTPServers(ctx)
 	if err != nil {
 		return errors.Trace(err)
@@ -264,6 +266,17 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := svc.Lifetime()
 	middleware := svc.Middleware()
 
+	// Blocked paths
+	if svc.blockedPaths[r.URL.Path] {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	dot := strings.LastIndex(r.URL.Path, ".")
+	if dot >= 0 && svc.blockedPaths["*"+r.URL.Path[dot:]] {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
 	// Fill in the gaps
 	r.URL.Host = r.Host
 	if !strings.Contains(r.Host, ":") {
@@ -372,7 +385,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 
 	// Write back non-internal headers
@@ -591,4 +604,18 @@ func (svc *Service) OnChangedWriteTimeout(ctx context.Context) (err error) {
 // OnChangedReadHeaderTimeout is triggered when the value of the ReadHeaderTimeout config property changes.
 func (svc *Service) OnChangedReadHeaderTimeout(ctx context.Context) (err error) {
 	return svc.restartHTTPServers(ctx)
+}
+
+// OnChangedBlockedPaths is triggered when the value of the BlockPaths config property changes.
+func (svc *Service) OnChangedBlockedPaths(ctx context.Context) (err error) {
+	value := svc.BlockedPaths()
+	newPaths := map[string]bool{}
+	for _, path := range strings.Split(value, "\n") {
+		path = strings.TrimSpace(path)
+		if path != "" {
+			newPaths[path] = true
+		}
+	}
+	svc.blockedPaths = newPaths
+	return nil
 }

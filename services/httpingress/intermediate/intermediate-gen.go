@@ -79,6 +79,7 @@ type ToDo interface {
 	OnChangedReadTimeout(ctx context.Context) (err error)
 	OnChangedWriteTimeout(ctx context.Context) (err error)
 	OnChangedReadHeaderTimeout(ctx context.Context) (err error)
+	OnChangedBlockedPaths(ctx context.Context) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -163,6 +164,49 @@ HTTP ports 443 and 80 to only internal port 443.`),
 The URL of the middleware must be fully qualified, for example,
 "https://middle.ware/serve" or "https://middle.ware:123".`),
 	)
+	svc.DefineConfig(
+		"BlockedPaths",
+		cfg.Description(`BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
+Paths should not include any arguments.
+Extensions are specified with "*.ext".`),
+		cfg.DefaultValue(`/geoserver
+/console/
+/.env
+/.amazon_aws
+/solr/admin/info/system
+/remote/login
+/Autodiscover/Autodiscover.xml
+/api/v2/static/not.found
+/_ignition/execute-solution
+/admin.html
+/readme.txt
+/__Additional
+/Portal0000.htm
+/docs/cplugError.html/
+/CSS/Miniweb.css
+/scripts/WPnBr.dll
+/.git/config
+/cgi-bin/.%2e/.%2e/.%2e/.%2e/bin/sh
+/actuator/gateway/routes
+/Public/home/js/check.js
+/mifs/.;/services/LogService
+/dns-query
+/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application
+/owa/auth/x.js
+/static/admin/javascript/hetong.js
+/.git/HEAD
+*.cfm
+*.asp
+*.aspx
+*.cgi
+*.jsa
+*.jsp
+*.shtml
+*.php
+*.jhtml
+*.mwsl
+*.dll`),
+	)
 
 	return svc
 }
@@ -206,6 +250,12 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	}
 	if changed("ReadHeaderTimeout") {
 		err := svc.impl.OnChangedReadHeaderTimeout(ctx)
+		if err != nil {
+			return err // No trace
+		}
+	}
+	if changed("BlockedPaths") {
+		err := svc.impl.OnChangedBlockedPaths(ctx)
 		if err != nil {
 			return err // No trace
 		}
@@ -390,5 +440,26 @@ The URL of the middleware must be fully qualified, for example,
 func Middleware(viaURL string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("Middleware", fmt.Sprintf("%v", viaURL))
+	}
+}
+
+/*
+BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
+Paths should not include any arguments.
+Extensions are specified with "*.ext".
+*/
+func (svc *Intermediate) BlockedPaths() (blockedPaths string) {
+	_val := svc.Config("BlockedPaths")
+	return _val
+}
+
+/*
+BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
+Paths should not include any arguments.
+Extensions are specified with "*.ext".
+*/
+func BlockedPaths(blockedPaths string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("BlockedPaths", fmt.Sprintf("%v", blockedPaths))
 	}
 }

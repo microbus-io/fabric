@@ -525,6 +525,39 @@ func TestHttpingress_Middleware(t *testing.T) {
 	}
 }
 
+func TestHttpingress_BlockedPaths(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("blocked.paths")
+	con.Subscribe("admin.php", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("ok"))
+		return nil
+	})
+	con.Subscribe("admin.ppp", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("ok"))
+		return nil
+	})
+	App.Join(con)
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{Timeout: time.Second * 2}
+
+	req, err := http.NewRequest("GET", "http://localhost:4040/blocked.paths/admin.php", nil)
+	assert.NoError(t, err)
+	res, err := client.Do(req)
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	}
+	req, err = http.NewRequest("GET", "http://localhost:4040/blocked.paths/admin.ppp", nil)
+	assert.NoError(t, err)
+	res, err = client.Do(req)
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+	}
+}
+
 func TestHttpingress_OnChangedPorts(t *testing.T) {
 	t.Skip() // Not tested
 }
@@ -546,5 +579,9 @@ func TestHttpingress_OnChangedWriteTimeout(t *testing.T) {
 }
 
 func TestHttpingress_OnChangedReadHeaderTimeout(t *testing.T) {
+	t.Skip() // Not tested
+}
+
+func TestHttpingress_OnChangedBlockedPaths(t *testing.T) {
 	t.Skip() // Not tested
 }

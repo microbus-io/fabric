@@ -95,7 +95,8 @@ type Connector struct {
 	configLock      sync.Mutex
 	onConfigChanged []*cb.Callback
 
-	logger *zap.Logger
+	logger   *zap.Logger
+	logDebug bool
 
 	clock       *clock.ClockReference
 	clockSet    bool

@@ -136,3 +136,6 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * HTTP ingress proxy to bypass the middleware when contacting the metrics microservice
 * HTTP ingress proxy to transform `/` requests to `/root`
 * Deprecated the need to define types in `service.yaml`
+* Simplified distributed stack trace
+* Ignore debug level log message unless `MICROBUS_LOG_DEBUG` is set
+* Blocking paths in the ingress proxy
