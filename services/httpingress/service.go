@@ -337,6 +337,8 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		pub.URL(internalURL),
 		pub.Body(body),
 		pub.Unicast(),
+		pub.CopyHeaders(r),           // Copy non-internal headers
+		pub.ContentLength(len(body)), // Overwrite the Content-Length header
 	}
 
 	// Add the time budget to the request headers and set it as the context's timeout
@@ -353,18 +355,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		delegateCtx, cancel = svc.Clock().WithTimeout(ctx, timeBudget)
 		defer cancel()
 	}
-
-	// Copy non-internal headers
-	for hdrName, hdrVals := range r.Header {
-		if !strings.HasPrefix(hdrName, frame.HeaderPrefix) {
-			for _, val := range hdrVals {
-				options = append(options, pub.Header(hdrName, val))
-			}
-		}
-	}
-
-	// Overwrite the Content-Length header
-	options = append(options, pub.ContentLength(len(body)))
 
 	// Set proxy headers, if there's no upstream proxy
 	if r.Header.Get("X-Forwarded-Host") == "" {

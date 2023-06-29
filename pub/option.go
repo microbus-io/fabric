@@ -140,6 +140,18 @@ func Header(name string, value string) Option {
 	}
 }
 
+// CopyHeaders copies all non-Microbus headers from an upstream.
+func CopyHeaders(r *http.Request) Option {
+	return func(req *Request) error {
+		for h := range r.Header {
+			if !strings.HasPrefix(h, frame.HeaderPrefix) {
+				req.Header[h] = r.Header[h]
+			}
+		}
+		return nil
+	}
+}
+
 // Baggage sets a baggage header of the request. It overwrites any previously set value.
 func Baggage(name string, value string) Option {
 	return func(req *Request) error {

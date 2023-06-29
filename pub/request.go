@@ -50,7 +50,7 @@ func NewRequest(options ...Option) (*Request, error) {
 	return req, nil
 }
 
-// Apply the provided options to the request
+// Apply the provided options to the request, in order.
 func (req *Request) Apply(options ...Option) error {
 	for _, opt := range options {
 		err := opt(req)
@@ -61,7 +61,7 @@ func (req *Request) Apply(options ...Option) error {
 	return nil
 }
 
-// Canonical returns the fully-qualified canonical path of the request, without the query arguments
+// Canonical returns the fully-qualified canonical path of the request, without the query arguments.
 func (req *Request) Canonical() string {
 	qm := strings.Index(req.URL, "?")
 	if qm >= 0 {
