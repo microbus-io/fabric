@@ -78,7 +78,8 @@ Go deep into the philosophy and implementation of `Microbus`:
 
 ## 👩‍⚖️ Legal
 
-The `Microbus` framework is distributed under the [Apache 2.0 license](LICENSE). Refer to the list of [third-party open source software](docs/third-party-oss.md) for additional licensing information.
+An explicit license from `Microbus LLC` is required to use the `Microbus` framework.
+Refer to the list of [third-party open source software](docs/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
 
 🎁 = new
 ✨ = updated
