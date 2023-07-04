@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022-2023 Microbus LLC and various contributors
+Copyright (c) 2023 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package httpingress
 
-const Version = 109
-const SourceCodeSHA256 = "4a12c2da6f9069366f7e5aa23ab622aca73d6499d6dcbf570f18d981407f23e8"
-const Timestamp = "2023-07-04T00:47:46.722481Z"
+const Version = 110
+const SourceCodeSHA256 = "bf605400345709a1bace2d8dc45dfbb21f1d653fe929f70fd0b0344b638a7450"
+const Timestamp = "2023-07-04T01:00:26.270268Z"
 
 /* {
-	"ver": 109,
-	"sha256": "4a12c2da6f9069366f7e5aa23ab622aca73d6499d6dcbf570f18d981407f23e8",
-	"ts": "2023-07-04T00:47:46.722481Z"
+	"ver": 110,
+	"sha256": "bf605400345709a1bace2d8dc45dfbb21f1d653fe929f70fd0b0344b638a7450",
+	"ts": "2023-07-04T01:00:26.270268Z"
 } */

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022-2023 Microbus LLC and various contributors
+Copyright (c) 2023 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package hello
 
-const Version = 78
-const SourceCodeSHA256 = "5b337bc990089725c71e44cdf3a99ab6abb04d4075039ced4f3644253037109b"
-const Timestamp = "2023-07-04T00:47:45.554006Z"
+const Version = 79
+const SourceCodeSHA256 = "cbedf0598fb308d5f14a47c6e29597eaf21cb7566d91d42cae40c78d57a465e4"
+const Timestamp = "2023-07-04T01:00:25.101167Z"
 
 /* {
-	"ver": 78,
-	"sha256": "5b337bc990089725c71e44cdf3a99ab6abb04d4075039ced4f3644253037109b",
-	"ts": "2023-07-04T00:47:45.554006Z"
+	"ver": 79,
+	"sha256": "cbedf0598fb308d5f14a47c6e29597eaf21cb7566d91d42cae40c78d57a465e4",
+	"ts": "2023-07-04T01:00:25.101167Z"
 } */

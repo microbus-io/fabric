@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022-2023 Microbus LLC and various contributors
+Copyright (c) 2023 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package calculator
 
-const Version = 109
-const SourceCodeSHA256 = "52dfa455c308607eaa3a56f4336297d99b40a33ba971065ad2c3fb993fd7ff49"
-const Timestamp = "2023-07-04T00:47:44.36115Z"
+const Version = 110
+const SourceCodeSHA256 = "00986099e407d24d401148a38f3ec980c7fad26e3411f9502d97ef7e2e2bf2a0"
+const Timestamp = "2023-07-04T01:00:23.910238Z"
 
 /* {
-	"ver": 109,
-	"sha256": "52dfa455c308607eaa3a56f4336297d99b40a33ba971065ad2c3fb993fd7ff49",
-	"ts": "2023-07-04T00:47:44.36115Z"
+	"ver": 110,
+	"sha256": "00986099e407d24d401148a38f3ec980c7fad26e3411f9502d97ef7e2e2bf2a0",
+	"ts": "2023-07-04T01:00:23.910238Z"
 } */

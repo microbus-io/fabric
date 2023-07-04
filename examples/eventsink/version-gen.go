@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022-2023 Microbus LLC and various contributors
+Copyright (c) 2023 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package eventsink
 
-const Version = 93
-const SourceCodeSHA256 = "0e75a00df40b666f1996779f9b727b0f388bc7ebffe7d205f3948ef10efd10ec"
-const Timestamp = "2023-07-04T00:47:44.962213Z"
+const Version = 94
+const SourceCodeSHA256 = "cd767dd738b53bdd4ec66cc8c67c84614f2894b51144c3a2a34d4aa923a439c6"
+const Timestamp = "2023-07-04T01:00:24.506624Z"
 
 /* {
-	"ver": 93,
-	"sha256": "0e75a00df40b666f1996779f9b727b0f388bc7ebffe7d205f3948ef10efd10ec",
-	"ts": "2023-07-04T00:47:44.962213Z"
+	"ver": 94,
+	"sha256": "cd767dd738b53bdd4ec66cc8c67c84614f2894b51144c3a2a34d4aa923a439c6",
+	"ts": "2023-07-04T01:00:24.506624Z"
 } */
