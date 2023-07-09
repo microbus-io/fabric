@@ -9,6 +9,7 @@ package httpx
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -19,7 +20,11 @@ import (
 var jsonNumberRegexp = regexp.MustCompile(`^(\-?)(0|([1-9][0-9]*))(\.[0-9]+)?([eE][\+\-]?[0-9]+)?$`)
 
 // ParseRequestData parses the body and query arguments of an incoming request
-// and populates a data object that represents its input arguments.
+// and populates the fields of a data object.
+// Use json tags to designate the name of the argument to map to each field.
+// An argument name can be hierarchical using either notation "a[b][c]" or "a.b.c",
+// in which case it is read into the corresponding nested field.
+// Tagging a field with "path{index}" reads the indexed segment of the path of the request.
 func ParseRequestData(r *http.Request, data any) error {
 	contentType := r.Header.Get("Content-Type")
 	// Parse JSON in the body
@@ -53,6 +58,15 @@ func ParseRequestData(r *http.Request, data any) error {
 			if err != nil {
 				return errors.Trace(err)
 			}
+		}
+	}
+
+	// Parse path segments
+	segments := strings.Split(r.URL.Path, "/")
+	for i := 1; i < len(segments); i++ {
+		err := readOneArg(fmt.Sprintf("path%d", i-1), segments[i], data)
+		if err != nil {
+			return errors.Trace(err)
 		}
 	}
 

@@ -131,12 +131,12 @@ func Header(name string, value string) Option {
 	}
 }
 
-// CopyHeaders copies all non-Microbus headers from an upstream.
-func CopyHeaders(r *http.Request) Option {
+// CopyHeaders copies all non-Microbus headers from an upstream request.
+func CopyHeaders(upstream *http.Request) Option {
 	return func(req *Request) error {
-		for h := range r.Header {
+		for h := range upstream.Header {
 			if !strings.HasPrefix(h, frame.HeaderPrefix) {
-				req.Header[h] = r.Header[h]
+				req.Header[h] = upstream.Header[h]
 			}
 		}
 		return nil

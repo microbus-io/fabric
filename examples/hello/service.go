@@ -124,14 +124,19 @@ func (svc *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	buf.WriteString(`<html><body><h1>Arithmetic Calculator</h1>`)
 	buf.WriteString(`<form method=GET action="calculator"><table>`)
 
+	err := r.ParseForm()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	// X
-	x := r.URL.Query().Get("x")
+	x := r.FormValue("x")
 	buf.WriteString(`<tr><td>X</td><td><input name=x type=input value="`)
 	buf.WriteString(html.EscapeString(x))
 	buf.WriteString(`"></td><tr>`)
 
 	// Op
-	op := r.URL.Query().Get("op")
+	op := r.FormValue("op")
 	buf.WriteString(`<tr><td>Op</td><td><select name=op>"`)
 	for _, o := range []string{"+", "-", "*", "/"} {
 		buf.WriteString(`<option value="`)
@@ -147,7 +152,7 @@ func (svc *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	buf.WriteString(`</select></td><tr>`)
 
 	// Y
-	y := r.URL.Query().Get("y")
+	y := r.FormValue("y")
 	buf.WriteString(`<tr><td>Y</td><td><input name=y type=input value="`)
 	buf.WriteString(html.EscapeString(y))
 	buf.WriteString(`"></td><tr>`)

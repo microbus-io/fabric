@@ -46,6 +46,23 @@ func TestHttpx_RequestParserQueryArgs(t *testing.T) {
 	assert.Equal(t, "", data.E)
 }
 
+func TestHttpx_RequestParserPathSegments(t *testing.T) {
+	t.Parallel()
+
+	var data struct {
+		A string `json:"path1"`
+		B int    `json:"path2"`
+		C bool   `json:"path3"`
+	}
+	r, err := http.NewRequest("GET", `/prefix/string/123/true`, nil)
+	assert.NoError(t, err)
+	err = ParseRequestData(r, &data)
+	assert.NoError(t, err)
+	assert.Equal(t, "string", data.A)
+	assert.Equal(t, 123, data.B)
+	assert.Equal(t, true, data.C)
+}
+
 func TestHttpx_RequestParserOverrideJSON(t *testing.T) {
 	t.Parallel()
 
