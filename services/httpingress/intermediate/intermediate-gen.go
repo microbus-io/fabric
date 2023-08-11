@@ -167,6 +167,7 @@ Extensions are specified with "*.ext".`),
 /solr/admin/info/system
 /remote/login
 /Autodiscover/Autodiscover.xml
+/autodiscover/autodiscover.json
 /api/v2/static/not.found
 /_ignition/execute-solution
 /admin.html
@@ -179,6 +180,7 @@ Extensions are specified with "*.ext".`),
 /.git/config
 /cgi-bin/.%2e/.%2e/.%2e/.%2e/bin/sh
 /actuator/gateway/routes
+/actuator/health
 /Public/home/js/check.js
 /mifs/.;/services/LogService
 /dns-query
