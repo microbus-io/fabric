@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package hello
 
-const Version = 79
-const SourceCodeSHA256 = "cbedf0598fb308d5f14a47c6e29597eaf21cb7566d91d42cae40c78d57a465e4"
-const Timestamp = "2023-07-04T01:00:25.101167Z"
+const Version = 80
+const SourceCodeSHA256 = "9115f3b773d9f23a7eef4357a7c674679be8f66e3e32220fbd1bfa416cdfa5d4"
+const Timestamp = "2023-08-11T23:57:42.277667Z"
 
 /* {
-	"ver": 79,
-	"sha256": "cbedf0598fb308d5f14a47c6e29597eaf21cb7566d91d42cae40c78d57a465e4",
-	"ts": "2023-07-04T01:00:25.101167Z"
+	"ver": 80,
+	"sha256": "9115f3b773d9f23a7eef4357a7c674679be8f66e3e32220fbd1bfa416cdfa5d4",
+	"ts": "2023-08-11T23:57:42.277667Z"
 } */
