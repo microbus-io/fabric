@@ -157,6 +157,7 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 			ReadHeaderTimeout: svc.ReadHeaderTimeout(),
 			ReadTimeout:       svc.ReadTimeout(),
 			WriteTimeout:      svc.WriteTimeout(),
+			ErrorLog:          newHTTPLogger(svc),
 		}
 		svc.httpServers[portInt] = httpServer
 		errChan := make(chan error)
@@ -295,13 +296,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Use the first segment of the URI as the host name to contact
 	u := resolveInternalURL(r.URL, svc.portMappings)
 	internalURL := u.String()
-	urlParts := strings.Split(r.URL.Path, "/")
-	var internalHost string
-	if len(urlParts) > 1 {
-		internalHost = urlParts[1]
-	} else if len(urlParts) > 0 {
-		internalHost = urlParts[0]
-	}
+	internalHost := u.Host
 	metrics := internalHost == metricsapi.HostName || strings.HasPrefix(internalHost, metricsapi.HostName+":")
 	if !metrics {
 		if internalHost != "favicon.ico" {
