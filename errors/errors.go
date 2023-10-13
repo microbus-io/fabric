@@ -155,6 +155,9 @@ func TraceFull(err error, level int, annotations ...any) error {
 		if strings.HasPrefix(function, "runtime.") {
 			continue
 		}
+		if function == "utils.CatchPanic" {
+			break
+		}
 		tracedErr.stack = append(tracedErr.stack, &trace{
 			File:        file,
 			Function:    function,
