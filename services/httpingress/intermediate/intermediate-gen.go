@@ -169,6 +169,7 @@ Extensions are specified with "*.ext".`),
 /Autodiscover/Autodiscover.xml
 /autodiscover/autodiscover.json
 /api/v2/static/not.found
+/api/sonicos/tfa
 /_ignition/execute-solution
 /admin.html
 /readme.txt
@@ -188,6 +189,7 @@ Extensions are specified with "*.ext".`),
 /owa/auth/x.js
 /static/admin/javascript/hetong.js
 /.git/HEAD
+/sslvpnLogin.html
 *.cfm
 *.asp
 *.aspx

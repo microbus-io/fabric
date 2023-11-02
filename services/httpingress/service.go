@@ -31,6 +31,7 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/httpingress/intermediate"
 	"github.com/microbus-io/fabric/services/metrics/metricsapi"
@@ -202,9 +203,20 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := svc.Lifetime()
 	handlerStartTime := time.Now()
 	pt := &PassThrough{W: w}
-	err := svc.serveHTTP(pt, r)
+	var port string
+	err := utils.CatchPanic(func() error {
+		port = r.URL.Port()
+		return svc.serveHTTP(pt, r)
+	})
 	if err != nil {
-		uri := r.URL.RequestURI()
+		var urlStr string
+		utils.CatchPanic(func() error {
+			urlStr = r.URL.String()
+			if len(urlStr) > 2048 {
+				urlStr = urlStr[:2048] + "..."
+			}
+			return nil
+		})
 		statusCode := errors.Convert(err).StatusCode
 		if statusCode <= 0 || statusCode >= 1000 {
 			statusCode = http.StatusInternalServerError
@@ -216,7 +228,11 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Write([]byte(http.StatusText(statusCode)))
 		}
-		svc.LogError(ctx, "Serving", log.Error(err), log.String("uri", uri))
+		if statusCode < 500 {
+			svc.LogWarn(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
+		} else {
+			svc.LogError(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
+		}
 	}
 
 	// Meter
@@ -224,7 +240,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"microbus_response_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
 		"ServeHTTP",
-		r.URL.Port(),
+		port,
 		r.Method,
 		strconv.Itoa(pt.SC),
 		func() string {
@@ -238,7 +254,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"microbus_response_size_bytes",
 		float64(pt.N),
 		"ServeHTTP",
-		r.URL.Port(),
+		port,
 		r.Method,
 		strconv.Itoa(pt.SC),
 		func() string {
