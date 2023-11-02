@@ -172,6 +172,8 @@ Extensions are specified with "*.ext".`),
 /api/sonicos/tfa
 /_ignition/execute-solution
 /admin.html
+/auth.html
+/auth1.html
 /readme.txt
 /__Additional
 /Portal0000.htm
@@ -190,6 +192,8 @@ Extensions are specified with "*.ext".`),
 /static/admin/javascript/hetong.js
 /.git/HEAD
 /sslvpnLogin.html
+/vpn/index.html
+/wsman
 *.cfm
 *.asp
 *.aspx
@@ -200,7 +204,8 @@ Extensions are specified with "*.ext".`),
 *.php
 *.jhtml
 *.mwsl
-*.dll`),
+*.dll
+*.esp`),
 	)
 
 	return svc

@@ -112,6 +112,8 @@ configs:
       /api/sonicos/tfa
       /_ignition/execute-solution
       /admin.html
+      /auth.html
+      /auth1.html
       /readme.txt
       /__Additional
       /Portal0000.htm
@@ -130,6 +132,8 @@ configs:
       /static/admin/javascript/hetong.js
       /.git/HEAD
       /sslvpnLogin.html
+      /vpn/index.html
+      /wsman
       *.cfm
       *.asp
       *.aspx
@@ -141,6 +145,7 @@ configs:
       *.jhtml
       *.mwsl
       *.dll
+      *.esp
 
 # Functions
 #
