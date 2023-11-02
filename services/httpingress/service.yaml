@@ -134,6 +134,15 @@ configs:
       /sslvpnLogin.html
       /vpn/index.html
       /wsman
+      /geoserver/web
+      /remote/logincheck
+      /epa/scripts/win/nsepa_setup.exe
+      /.well-known/security.txt
+      /cf_scripts/scripts/ajax/ckeditor/ckeditor.js
+      /Temporary_Listen_Addresses/
+      /manager/html
+      /logon/LogonPoint/custom.html
+      /logon/LogonPoint/index.html
       *.cfm
       *.asp
       *.aspx
@@ -146,6 +155,7 @@ configs:
       *.mwsl
       *.dll
       *.esp
+      *.exe
 
 # Functions
 #

@@ -194,6 +194,15 @@ Extensions are specified with "*.ext".`),
 /sslvpnLogin.html
 /vpn/index.html
 /wsman
+/geoserver/web
+/remote/logincheck
+/epa/scripts/win/nsepa_setup.exe
+/.well-known/security.txt
+/cf_scripts/scripts/ajax/ckeditor/ckeditor.js
+/Temporary_Listen_Addresses/
+/manager/html
+/logon/LogonPoint/custom.html
+/logon/LogonPoint/index.html
 *.cfm
 *.asp
 *.aspx
@@ -205,7 +214,8 @@ Extensions are specified with "*.ext".`),
 *.jhtml
 *.mwsl
 *.dll
-*.esp`),
+*.esp
+*.exe`),
 	)
 
 	return svc
