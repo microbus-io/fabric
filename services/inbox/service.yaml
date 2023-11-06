@@ -1,0 +1,174 @@
+---
+# General
+#
+# host - The host name of the microservice
+# description - A human-friendly description of the microservice
+# integrationTests - Whether or not to generate integration tests (defaults to true)
+general:
+  host: inbox.sys
+  description: Inbox listens for incoming emails and fires appropriate events. 
+  integrationTests: false
+
+# Databases
+#
+# name - A name for the database
+# type - The type of the database, "mariadb" or "mysql"
+# runtime - "true" to connect to the database in runtime (defaults to "true")
+# integrationTests - "true" to connect to the database in integration tests (defaults to "true")
+databases:
+  # - name: SQL
+  #   type: mariadb
+
+# Config properties
+#
+# signature - Func() (val Type)
+# description - Documentation
+# default - A default value (defaults to empty)
+# validation - A validation pattern
+#   str ^[a-zA-Z0-9]+$
+#   bool
+#   int [0,60]
+#   float [0.0,1.0)
+#   dur (0s,24h]
+#   set Red|Green|Blue
+#   url
+#   email
+#   json
+# callback - "true" to handle the change event (defaults to "false")
+# secret - "true" to indicate a secret (defaults to "false")
+configs:
+  - signature: Port() (port int)
+    description: Port is the TCP port to listen to.
+    default: 25
+    validation: int [1,65535]
+    callback: true
+  - signature: Enabled() (enabled bool)
+    description: Enabled determines whether the email server is started.
+    default: true
+    validation: bool
+    callback: true
+  - signature: MaxSize() (mb int)
+    description: |-
+      MaxSize is the maximum size of messages that will be accepted, in megabytes.
+      Defaults to 10 megabytes.
+    default: 10
+    validation: int [0,1024]
+    callback: true
+  - signature: MaxClients() (clients int)
+    description: |-
+      MaxClients controls how many client connection can be opened in parallel.
+      Defaults to 128.
+    default: 128
+    validation: int [1,1024]
+    callback: true
+  - signature: Workers() (clients int)
+    description: |-
+      Workers controls how many workers process incoming mail.
+      Defaults to 8.
+    default: 8
+    validation: int [1,1024]
+    callback: true
+
+# Functions
+#
+# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# path - The subscription path
+#   (empty) - The function name in kebab-case
+#   /path - Default port :443
+#   /directory/ - All paths under the directory
+#   /obj/*/path - Wildcard path segment
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path
+#   //example.com:443/path
+#   https://example.com:443/path
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+functions:
+  # - signature:
+  #   description:
+
+# Event sources
+#
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# path - The subscription path
+#   (empty) - The function name in kebab-case
+#   /path - Default port :417
+#   /directory/ - All paths under the directory
+#   /obj/*/path - Wildcard path segment
+#   :417/path
+#   :417/... - Ellipsis denotes the function name in kebab-case
+#   :417 - Root path
+#   //example.com:417/path
+#   https://example.com:417/path
+events:
+  - signature: OnInboxSaveMail(mailMessage *Email)
+    description: OnInboxSaveMail is triggered when a new email message is received.
+
+# Event sinks
+#
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# event - The name of the event at the source (defaults to the function name)
+# source - The package path of the microservice that is the source of the event
+# forHost - For an event source with an overridden host name
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+sinks:
+  # - signature:
+  #   description:
+  #   source: package/path/of/another/microservice
+
+# Web handlers
+#
+# signature - Func()
+# description - Documentation
+# path - The subscription path
+#   (empty) - The function name in kebab-case
+#   /path - Default port :443
+#   /directory/ - All paths under the directory
+#   /obj/*/path - Wildcard path segment
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path
+#   //example.com:443/path
+#   https://example.com:443/path
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+webs:
+  # - signature:
+  #   description:
+
+# Tickers
+#
+# signature - Func()
+# description - Documentation
+# interval - Duration between iterations (e.g. 15m)
+# timeBudget - Duration to complete an iteration
+tickers:
+  # - signature:
+  #   description:
+  #   interval:
+
+# Metrics
+#
+# signature - Func(measure Type, label Type, label Type)
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# buckets - Bucket boundaries for histograms [x,y,z,...]
+# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
+metrics:
+  # - signature:
+  #   description:
+  #   kind:

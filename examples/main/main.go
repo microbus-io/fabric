@@ -28,6 +28,8 @@ func main() {
 		configurator.NewService(),
 		httpingress.NewService(),
 		metrics.NewService(),
+		// inbox.NewService(),
+
 		hello.NewService(),
 		messaging.NewService(),
 		messaging.NewService(),

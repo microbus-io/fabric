@@ -139,3 +139,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Simplified distributed stack trace
 * Ignore debug level log message unless `MICROBUS_LOG_DEBUG` is set
 * Blocking paths in the ingress proxy
+* Inbox microservice
