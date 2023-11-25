@@ -9,7 +9,6 @@ package lru
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -205,10 +204,25 @@ func (c *Cache[K, V]) LoadOrStore(key K, newValue V, options ...Option) (value V
 	return value, found
 }
 
-// Delete removes an element from the cache.
+// Delete removes an element from the cache by key.
 func (c *Cache[K, V]) Delete(key K) {
 	c.lock.Lock()
 	c.delete(key)
+	c.lock.Unlock()
+}
+
+// Delete removes elements from the cache whose keys match the predicate function.
+func (c *Cache[K, V]) DeletePredicate(predicate func(key K) bool) {
+	c.lock.Lock()
+	toDelete := []K{}
+	for k := range c.lookup {
+		if predicate(k) {
+			toDelete = append(toDelete, k)
+		}
+	}
+	for _, k := range toDelete {
+		c.delete(k)
+	}
 	c.lock.Unlock()
 }
 
@@ -321,22 +335,6 @@ func (c *Cache[K, V]) ToMap() map[K]V {
 	}
 	c.lock.Unlock()
 	return m
-}
-
-func (c *Cache[K, V]) print() {
-	fmt.Print("newest ")
-	for nd := c.newest; nd != nil; nd = nd.older {
-		fmt.Printf("%v->", nd.key)
-	}
-	fmt.Print(" oldest\noldest ")
-	for nd := c.oldest; nd != nil; nd = nd.newer {
-		fmt.Printf("%v->", nd.key)
-	}
-	fmt.Print(" newest\nlookup {")
-	for k, v := range c.lookup {
-		fmt.Printf("%v:%v, ", k, v.value)
-	}
-	fmt.Print("}\n")
 }
 
 func (c *Cache[K, V]) cohesion() bool {

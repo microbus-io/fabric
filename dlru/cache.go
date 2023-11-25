@@ -198,11 +198,25 @@ func (c *Cache) handleDelete(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 	key := r.URL.Query().Get("key")
-	if key == "" {
-		return errors.New("missing key")
+	if key != "" {
+		c.localCache.Delete(key)
+		return nil
 	}
-	c.localCache.Delete(key)
-	return nil
+	prefix := r.URL.Query().Get("prefix")
+	if prefix != "" {
+		c.localCache.DeletePredicate(func(key string) bool {
+			return strings.HasPrefix(key, prefix)
+		})
+		return nil
+	}
+	contains := r.URL.Query().Get("contains")
+	if contains != "" {
+		c.localCache.DeletePredicate(func(key string) bool {
+			return strings.Contains(key, contains)
+		})
+		return nil
+	}
+	return errors.New("missing key")
 }
 
 // handleLoad handles a broadcast when the primary tries to obtain copies held by its peers.
@@ -545,6 +559,50 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 
 	// Broadcast to all peers
 	u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, key)
+	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
+	for r := range ch {
+		_, err := r.Get()
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+// DeletePrefix all element from the cache whose keys have the given prefix.
+func (c *Cache) DeletePrefix(ctx context.Context, keyPrefix string) error {
+	if keyPrefix == "" {
+		return errors.New("missing prefix")
+	}
+
+	c.localCache.DeletePredicate(func(key string) bool {
+		return strings.HasPrefix(key, keyPrefix)
+	})
+
+	// Broadcast to all peers
+	u := fmt.Sprintf("%s/all?do=delete&prefix=%s", c.basePath, keyPrefix)
+	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
+	for r := range ch {
+		_, err := r.Get()
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+// DeleteContains all element from the cache whose keys contain the given substring.
+func (c *Cache) DeleteContains(ctx context.Context, keySubstring string) error {
+	if keySubstring == "" {
+		return errors.New("missing substring")
+	}
+
+	c.localCache.DeletePredicate(func(key string) bool {
+		return strings.Contains(key, keySubstring)
+	})
+
+	// Broadcast to all peers
+	u := fmt.Sprintf("%s/all?do=delete&contains=%s", c.basePath, keySubstring)
 	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
 		_, err := r.Get()

@@ -23,7 +23,6 @@ func TestLRU_Load(t *testing.T) {
 	cache.Store("a", "aaa")
 	cache.Store("b", "bbb")
 	cache.Store("c", "ccc")
-	cache.print()
 	assert.True(t, cache.cohesion())
 
 	v, ok := cache.Load("a")
@@ -211,6 +210,25 @@ func TestLRU_Delete(t *testing.T) {
 	for i := 0; i < span; i++ {
 		v, _ := cache.Load(i)
 		assert.Equal(t, sim[i], v)
+	}
+
+	assert.True(t, cache.cohesion())
+}
+
+func TestLRU_DeletePredicate(t *testing.T) {
+	t.Parallel()
+
+	cache := NewCache[int, string]()
+	for i := 1; i <= 10; i++ {
+		cache.Store(i, "X")
+	}
+	assert.Equal(t, 10, cache.Len())
+	cache.DeletePredicate(func(key int) bool {
+		return key <= 5
+	})
+	assert.Equal(t, 5, cache.Len())
+	for i := 1; i <= 10; i++ {
+		assert.Equal(t, i > 5, cache.Exists(i))
 	}
 
 	assert.True(t, cache.cohesion())

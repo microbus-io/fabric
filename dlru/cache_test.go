@@ -9,6 +9,7 @@ package dlru_test
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"strconv"
 	"sync"
@@ -527,6 +528,98 @@ func TestDLRU_MaxAge(t *testing.T) {
 	_, ok, err = betaLRU.Load(ctx, "Foo", dlru.MaxAge(time.Millisecond*990))
 	assert.NoError(t, err)
 	assert.False(t, ok)
+}
+
+func TestDLRU_DeletePrefix(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("delete.prefix.actions.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	alphaLRU := alpha.DistribCache()
+
+	beta := connector.New("delete.prefix.actions.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	betaLRU := beta.DistribCache()
+
+	for i := 1; i <= 10; i++ {
+		alphaLRU.Store(ctx, fmt.Sprintf("prefix.%d", i), []byte("X"))
+	}
+	for i := 1; i <= 10; i++ {
+		betaLRU.Store(ctx, fmt.Sprintf("other.%d", i), []byte("X"))
+	}
+
+	for i := 1; i <= 10; i++ {
+		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("prefix.%d", i))
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("other.%d", i))
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	}
+
+	err = betaLRU.DeletePrefix(ctx, "prefix.")
+	assert.NoError(t, err)
+
+	for i := 1; i <= 10; i++ {
+		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("prefix.%d", i))
+		assert.NoError(t, err)
+		assert.False(t, ok)
+		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("other.%d", i))
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	}
+}
+
+func TestDLRU_DeleteContains(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("delete.contains.actions.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	alphaLRU := alpha.DistribCache()
+
+	beta := connector.New("delete.contains.actions.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	betaLRU := beta.DistribCache()
+
+	for i := 1; i <= 10; i++ {
+		alphaLRU.Store(ctx, fmt.Sprintf("alpha.%d.end", i), []byte("X"))
+	}
+	for i := 1; i <= 10; i++ {
+		betaLRU.Store(ctx, fmt.Sprintf("beta.%d.end", i), []byte("X"))
+	}
+
+	for i := 1; i <= 10; i++ {
+		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("alpha.%d.end", i))
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("beta.%d.end", i))
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	}
+
+	err = betaLRU.DeleteContains(ctx, ".1")
+	assert.NoError(t, err)
+
+	for i := 1; i <= 10; i++ {
+		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("alpha.%d.end", i))
+		assert.NoError(t, err)
+		assert.Equal(t, i != 1 && i != 10, ok)
+		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("beta.%d.end", i))
+		assert.NoError(t, err)
+		assert.Equal(t, i != 1 && i != 10, ok)
+	}
 }
 
 func TestDLRU_RandomActions(t *testing.T) {
