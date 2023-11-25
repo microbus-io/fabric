@@ -7,10 +7,13 @@ Neither may be used, copied or distributed without the express written consent o
 
 package dlru
 
+import "time"
+
 type cacheOptions struct {
 	Bump             bool
 	ConsistencyCheck bool
 	Replicate        bool
+	MaxAge           time.Duration
 }
 
 // LoadOption customizes loading from the cache.
@@ -37,6 +40,13 @@ func Bump(bump bool) LoadOption {
 func ConsistencyCheck(check bool) LoadOption {
 	return func(opts *cacheOptions) {
 		opts.ConsistencyCheck = check
+	}
+}
+
+// MaxAge indicates to discard elements that have not been inserted or bumped recently.
+func MaxAge(ttl time.Duration) LoadOption {
+	return func(opts *cacheOptions) {
+		opts.MaxAge = ttl
 	}
 }
 

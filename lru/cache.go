@@ -9,126 +9,66 @@ package lru
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/microbus-io/fabric/clock"
 )
 
-const numBuckets = 8 // Hard-coded 8 buckets
-
-// element is a container for a single value and its weight.
-type element[V any] struct {
-	val    V
-	weight int
-}
-
-// bucket holds a portion of the elements in the cache.
-// There are 8 buckets. Bucket 0 always holds the freshest elements.
-// Bucket 0 will be cycled to become bucket 1 when it fills up or when an
-// amount of time has lapsed.
-type bucket[K comparable, V any] struct {
-	lookup map[K]*element[V]
-	weight int
-}
-
-// newBucket initializes a new bucket.
-func newBucket[K comparable, V any]() *bucket[K, V] {
-	return &bucket[K, V]{
-		lookup: map[K]*element[V]{},
-	}
+// node is a container for a single value, its weight and expiration.
+type node[K comparable, V any] struct {
+	key      K
+	value    V
+	weight   int
+	inserted time.Time
+	newer    *node[K, V]
+	older    *node[K, V]
 }
 
 // Cache is an LRU cache that enforces a maximum weight capacity and age limit for its elements.
 // The LRU cache performs locking internally and is thread-safe.
+// It also keeps track of the hit/miss statistics.
 type Cache[K comparable, V any] struct {
-	buckets       []*bucket[K, V]
-	nextCycle     time.Time
-	cycleDuration time.Duration
-	lock          sync.Mutex
-	weight        int
-	maxWeight     int
-	maxAge        time.Duration
-	clock         clock.Clock
-	hits          int
-	misses        int
+	lookup    map[K]*node[K, V]
+	newest    *node[K, V]
+	oldest    *node[K, V]
+	weight    int
+	maxWeight int
+	maxAge    time.Duration
+	hits      int
+	misses    int
+	lock      sync.Mutex
+	clock     clock.Clock // For testing
 }
 
 // NewCache creates a new LRU cache with a weight capacity of 16384 and a maximum age of 1hr.
 func NewCache[K comparable, V any]() *Cache[K, V] {
-	c := &Cache[K, V]{
-		buckets:   []*bucket[K, V]{},
+	return &Cache[K, V]{
+		lookup:    make(map[K]*node[K, V], 1024),
 		maxWeight: 16384,
 		maxAge:    time.Hour,
 		clock:     clock.NewClock(),
 	}
-
-	// Prepare buckets
-	nb := numBuckets
-	for b := 0; b < nb; b++ {
-		c.buckets = append(c.buckets, newBucket[K, V]())
-	}
-
-	// Calc next cycle time
-	c.cycleDuration = c.maxAge / time.Duration(nb)
-	c.nextCycle = c.clock.Now().Add(c.cycleDuration)
-
-	return c
 }
 
-func (c *Cache[K, V]) setClock(mock clock.Clock) {
-	c.clock = mock
-	c.nextCycle = c.clock.Now().Add(c.cycleDuration)
-}
-
-// Clear empties the cache.
+// Clear empties the cache but does not reset the hit/miss statistics.
 func (c *Cache[K, V]) Clear() {
 	c.lock.Lock()
-	nb := len(c.buckets)
-	c.buckets = []*bucket[K, V]{}
-	for b := 0; b < nb; b++ {
-		c.buckets = append(c.buckets, newBucket[K, V]())
-	}
-	c.nextCycle = c.clock.Now().Add(c.cycleDuration)
+	c.lookup = make(map[K]*node[K, V], 1024)
 	c.weight = 0
+	c.newest = nil
+	c.oldest = nil
 	c.lock.Unlock()
 }
 
-// cycleOnce cycles the buckets once.
-// Bucket 0 will become 1, 1 will become 2, etc.
-// Bucket 8 drops off the tail.
-// A new bucket 0 is initialized to hold the freshest elements.
-func (c *Cache[K, V]) cycleOnce() {
-	nb := len(c.buckets)
-	c.weight -= c.buckets[nb-1].weight
-	for b := nb - 2; b >= 0; b-- {
-		c.buckets[b+1] = c.buckets[b]
-	}
-	c.buckets[0] = newBucket[K, V]()
-	c.nextCycle = c.nextCycle.Add(c.cycleDuration)
-}
-
-// cycleAge cycles the cache to gradually evict buckets holding old elements.
-func (c *Cache[K, V]) cycleAge() {
-	nb := len(c.buckets)
-	now := c.clock.Now()
-	cycled := 0
-	for i := 0; i < nb && !c.nextCycle.After(now); i++ {
-		c.cycleOnce()
-		cycled++
-	}
-	if cycled == nb {
-		// Cache is fully cleared
-		c.nextCycle = c.clock.Now().Add(c.cycleDuration)
-	}
-}
-
-// Store inserts an element to the cache.
+// Store inserts an element to the front of the cache.
 // The weight must be 1 or greater and cannot exceed the cache's maximum weight limit.
-func (c *Cache[K, V]) Store(key K, value V, options ...StoreOption) {
+func (c *Cache[K, V]) Store(key K, value V, options ...Option) {
 	opts := cacheOptions{
 		Weight: 1,
 		Bump:   true,
+		MaxAge: c.maxAge,
 	}
 	for _, opt := range options {
 		opt(&opts)
@@ -138,35 +78,46 @@ func (c *Cache[K, V]) Store(key K, value V, options ...StoreOption) {
 		return
 	}
 	c.lock.Lock()
-	c.cycleAge()
+	c.delete(key)
 	c.store(key, value, opts)
 	c.lock.Unlock()
 }
 
 func (c *Cache[K, V]) store(key K, value V, opts cacheOptions) {
-	// Remove the element from all buckets
-	c.delete(key)
-
-	// Cycle once if bucket 0 is too full
-	nb := len(c.buckets)
-	if c.buckets[0].weight >= c.maxWeight/nb {
-		c.cycleOnce()
+	// Create and store the node
+	nd := &node[K, V]{
+		key:      key,
+		value:    value,
+		weight:   opts.Weight,
+		inserted: c.clock.Now(),
+		older:    c.newest,
 	}
-
-	// Clear older buckets if max weight would be exceeded
-	for b := nb - 1; b >= 0 && c.weight+opts.Weight > c.maxWeight; b-- {
-		c.weight -= c.buckets[b].weight
-		c.buckets[b].lookup = map[K]*element[V]{}
-		c.buckets[b].weight = 0
+	c.lookup[key] = nd
+	if c.newest != nil {
+		c.newest.newer = nd
 	}
-
-	// Insert to bucket 0
-	c.buckets[0].lookup[key] = &element[V]{
-		val:    value,
-		weight: opts.Weight,
+	c.newest = nd
+	if c.oldest == nil {
+		c.oldest = nd
 	}
-	c.buckets[0].weight += opts.Weight
-	c.weight += opts.Weight
+	c.weight += nd.weight
+
+	c.diet()
+}
+
+func (c *Cache[K, V]) diet() {
+	for c.weight > c.maxWeight && c.oldest != nil {
+		oldest := c.oldest
+		c.oldest = oldest.newer
+		oldest.newer = nil
+		delete(c.lookup, oldest.key)
+		c.weight -= oldest.weight
+	}
+	if c.oldest != nil {
+		c.oldest.older = nil
+	} else {
+		c.newest = nil
+	}
 }
 
 // Exists indicates if the key is in the cache.
@@ -176,79 +127,74 @@ func (c *Cache[K, V]) Exists(key K) bool {
 }
 
 // Load looks up an element in the cache.
-func (c *Cache[K, V]) Load(key K, options ...LoadOption) (value V, ok bool) {
+func (c *Cache[K, V]) Load(key K, options ...Option) (value V, ok bool) {
 	opts := cacheOptions{
 		Weight: 1,
 		Bump:   true,
+		MaxAge: c.maxAge,
 	}
 	for _, opt := range options {
 		opt(&opts)
 	}
 	c.lock.Lock()
-	c.cycleAge()
 	value, ok = c.load(key, opts)
 	c.lock.Unlock()
 	return value, ok
 }
 
 func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
-	// Scan from newest to oldest
-	nb := len(c.buckets)
-	var foundIn int
-	var elem *element[V]
-	var found bool
-	for b := 0; b < nb; b++ {
-		elem, found = c.buckets[b].lookup[key]
-		if found {
-			foundIn = b
-			break
-		}
+	nd, ok := c.lookup[key]
+	if ok && c.clock.Since(nd.inserted) > opts.MaxAge {
+		c.delete(key)
+		ok = false
 	}
-	if !found {
+	if !ok {
 		c.misses++
 		if c.misses < 0 { // Overflow
-			c.misses = 0
+			c.misses = 1
+			c.hits = 0
 		}
 		return value, false
 	}
 	c.hits++
 	if c.hits < 0 { // Overflow
-		c.hits = 0
-	}
-	if !opts.Bump || foundIn == 0 {
-		return elem.val, true
+		c.hits = 1
+		c.misses = 0
 	}
 
-	// Remove the element from the older bucket
-	delete(c.buckets[foundIn].lookup, key)
-	c.buckets[foundIn].weight -= elem.weight
-	c.weight -= elem.weight
-
-	// Cycle once if bucket 0 is too full
-	if c.buckets[0].weight >= c.maxWeight/nb {
-		c.cycleOnce()
+	if opts.Bump {
+		if nd.newer != nil {
+			nd.newer.older = nd.older
+		} else {
+			c.newest = nd.older
+		}
+		if nd.older != nil {
+			nd.older.newer = nd.newer
+		} else {
+			c.oldest = nd.newer
+		}
+		nd.newer = nil
+		nd.older = c.newest
+		if c.newest != nil {
+			c.newest.newer = nd
+		}
+		c.newest = nd
 	}
-
-	// Insert the element to bucket 0
-	c.buckets[0].lookup[key] = elem
-	c.buckets[0].weight += elem.weight
-	c.weight += elem.weight
-
-	return elem.val, true
+	return nd.value, true
 }
 
 // LoadOrStore looks up an element in the cache.
 // If the element is not found, the new value is stored and returned instead.
-func (c *Cache[K, V]) LoadOrStore(key K, newValue V, options ...LoadOrStoreOption) (value V, found bool) {
+func (c *Cache[K, V]) LoadOrStore(key K, newValue V, options ...Option) (value V, found bool) {
 	opts := cacheOptions{
 		Weight: 1,
 		Bump:   true,
+		MaxAge: c.maxAge,
 	}
 	for _, opt := range options {
 		opt(&opts)
 	}
 	c.lock.Lock()
-	c.cycleAge()
 	value, found = c.load(key, opts)
 	if !found {
 		c.store(key, newValue, opts)
@@ -261,44 +207,45 @@ func (c *Cache[K, V]) LoadOrStore(key K, newValue V, options ...LoadOrStoreOptio
 // Delete removes an element from the cache.
 func (c *Cache[K, V]) Delete(key K) {
 	c.lock.Lock()
-	c.cycleAge()
 	c.delete(key)
 	c.lock.Unlock()
 }
 
 func (c *Cache[K, V]) delete(key K) {
-	// Remove the element from all buckets
-	nb := len(c.buckets)
-	for b := 0; b < nb; b++ {
-		e, ok := c.buckets[b].lookup[key]
-		if ok {
-			c.buckets[b].weight -= e.weight
-			c.weight -= e.weight
-			delete(c.buckets[b].lookup, key)
-		}
+	nd, ok := c.lookup[key]
+	if !ok {
+		return
 	}
+	delete(c.lookup, key)
+	if nd.newer != nil {
+		nd.newer.older = nd.older
+	} else {
+		c.newest = nd.older
+	}
+	if nd.older != nil {
+		nd.older.newer = nd.newer
+	} else {
+		c.oldest = nd.newer
+	}
+	nd.older = nil
+	nd.newer = nil
+	c.weight -= nd.weight
 }
 
 // Weight returns the total weight of all the elements in the cache.
 func (c *Cache[K, V]) Weight() int {
 	c.lock.Lock()
-	c.cycleAge()
-	weight := c.weight
+	w := c.weight
 	c.lock.Unlock()
-	return weight
+	return w
 }
 
 // Len returns the number of elements in the cache.
 func (c *Cache[K, V]) Len() int {
 	c.lock.Lock()
-	c.cycleAge()
-	count := 0
-	nb := len(c.buckets)
-	for b := 0; b < nb; b++ {
-		count += len(c.buckets[b].lookup)
-	}
+	l := len(c.lookup)
 	c.lock.Unlock()
-	return count
+	return l
 }
 
 // Hits returns the total number of cache hits.
@@ -328,17 +275,9 @@ func (c *Cache[K, V]) SetMaxWeight(weight int) error {
 	c.lock.Lock()
 	reduced := weight < c.maxWeight
 	c.maxWeight = weight
-
 	if reduced {
-		// Clear older buckets if max weight would be exceeded
-		nb := len(c.buckets)
-		for b := nb - 1; b >= 0 && c.weight > c.maxWeight; b-- {
-			c.weight -= c.buckets[b].weight
-			c.buckets[b].lookup = map[K]*element[V]{}
-			c.buckets[b].weight = 0
-		}
+		c.diet()
 	}
-
 	c.lock.Unlock()
 	return nil
 }
@@ -354,14 +293,11 @@ func (c *Cache[K, V]) MaxWeight() int {
 // SetMaxAge sets the age limit of elements in this cache.
 // Elements that are bumped have their life span reset and will therefore survive longer.
 func (c *Cache[K, V]) SetMaxAge(ttl time.Duration) error {
-	if ttl < 0 {
-		return errors.New("negative TTL")
+	if ttl <= 0 {
+		return errors.New("non-positive TTL")
 	}
 	c.lock.Lock()
 	c.maxAge = ttl
-	nb := len(c.buckets)
-	c.cycleDuration = c.maxAge / time.Duration(nb)
-	c.nextCycle = c.clock.Now().Add(c.cycleDuration)
 	c.lock.Unlock()
 	return nil
 }
@@ -378,13 +314,59 @@ func (c *Cache[K, V]) MaxAge() time.Duration {
 // ToMap returns the elements currently in the cache in a newly allocated map.
 func (c *Cache[K, V]) ToMap() map[K]V {
 	c.lock.Lock()
-	m := map[K]V{}
-	nb := len(c.buckets)
-	for b := 0; b < nb; b++ {
-		for k, elem := range c.buckets[b].lookup {
-			m[k] = elem.val
-		}
+	m := make(map[K]V, len(c.lookup))
+	for k, v := range c.lookup {
+		m[k] = v.value
 	}
 	c.lock.Unlock()
 	return m
+}
+
+func (c *Cache[K, V]) print() {
+	fmt.Print("newest ")
+	for nd := c.newest; nd != nil; nd = nd.older {
+		fmt.Printf("%v->", nd.key)
+	}
+	fmt.Print(" oldest\noldest ")
+	for nd := c.oldest; nd != nil; nd = nd.newer {
+		fmt.Printf("%v->", nd.key)
+	}
+	fmt.Print(" newest\nlookup {")
+	for k, v := range c.lookup {
+		fmt.Printf("%v:%v, ", k, v.value)
+	}
+	fmt.Print("}\n")
+}
+
+func (c *Cache[K, V]) cohesion() bool {
+	a := []K{}
+	count := 0
+	for nd := c.newest; nd != nil; nd = nd.older {
+		a = append(a, nd.key)
+		if c.lookup[nd.key] != nd {
+			return false
+		}
+		count++
+		if count > 1000000 {
+			return false
+		}
+	}
+	if len(a) != len(c.lookup) {
+		return false
+	}
+	count = 0
+	for nd := c.oldest; nd != nil; nd = nd.newer {
+		if len(a) == 0 {
+			return false
+		}
+		if a[len(a)-1] != nd.key {
+			return false
+		}
+		a = a[:len(a)-1]
+		count++
+		if count > 1000000 {
+			return false
+		}
+	}
+	return true
 }

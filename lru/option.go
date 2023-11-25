@@ -7,72 +7,49 @@ Neither may be used, copied or distributed without the express written consent o
 
 package lru
 
-// --- Load options ---
+import "time"
 
-type loadOptions interface {
-	SetBump(bump bool)
+type cacheOptions struct {
+	Bump   bool
+	Weight int
+	MaxAge time.Duration
 }
 
-// LoadOption is used customize loading from the cache.
-type LoadOption func(opts loadOptions)
+// Option is used to customize cache operations.
+type Option func(opts *cacheOptions)
 
 // Bump indicates whether or not a loaded element is bumped to the head of the cache.
-// This is on by default.
-func Bump(bump bool) LoadOption {
-	return func(opts loadOptions) {
-		opts.SetBump(bump)
+// Bumping is the default behavior.
+// This option is applicable to load operations.
+func Bump(bump bool) Option {
+	return func(opts *cacheOptions) {
+		opts.Bump = bump
 	}
 }
 
 // NoBump indicates not to bump a loaded element to the head of the cache.
-func NoBump() LoadOption {
+// This option is applicable to load operations.
+func NoBump() Option {
 	return Bump(false)
 }
 
-// --- Store options ---
-
-type storeOptions interface {
-	SetWeight(weight int)
+// MaxAge indicates to discard elements that have not been inserted or bumped recently.
+// This option is applicable to load operations.
+func MaxAge(ttl time.Duration) Option {
+	return func(opts *cacheOptions) {
+		opts.MaxAge = ttl
+	}
 }
-
-// StoreOption is used customize storing in the cache.
-type StoreOption func(opts storeOptions)
 
 // Weight sets the weight of the element stored in the cache.
 // It must be 1 or greater and cannot exceed the cache's maximum weight limit.
 // The default weight is 1.
 // Elements are evicted when the total weight of all elements exceeds the cache's capacity.
-func Weight(weight int) StoreOption {
-	return func(opts storeOptions) {
+// This option is applicable to store operations.
+func Weight(weight int) Option {
+	return func(opts *cacheOptions) {
 		if weight > 0 {
-			opts.SetWeight(weight)
+			opts.Weight = weight
 		}
 	}
-}
-
-// --- LoadOrStore options ---
-
-type loadOrStoreOptions interface {
-	loadOptions
-	storeOptions
-}
-
-// LoadOrStoreOption is used customize the load or store operation.
-type LoadOrStoreOption func(opts loadOrStoreOptions)
-
-// --- Implementation ---
-
-type cacheOptions struct {
-	Bump   bool
-	Weight int
-}
-
-// SetBump sets whether a loaded element is bumped to the head of the cache.
-func (co *cacheOptions) SetBump(bump bool) {
-	co.Bump = bump
-}
-
-// SetWeight sets the weight of a stored element.
-func (co *cacheOptions) SetWeight(weight int) {
-	co.Weight = weight
 }

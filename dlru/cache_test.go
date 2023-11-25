@@ -493,6 +493,41 @@ func TestDLRU_Inconsistency(t *testing.T) {
 	assert.Equal(t, 0, betaLRU.LocalCache().Len())
 }
 
+func TestDLRU_MaxAge(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	alpha := connector.New("maxage.actions.dlru")
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	alphaLRU := alpha.DistribCache()
+
+	beta := connector.New("maxage.actions.dlru")
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+	betaLRU := beta.DistribCache()
+
+	// Store an element in the cache
+	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
+	assert.NoError(t, err)
+
+	// Wait a second and load it back
+	time.Sleep(time.Second)
+	cached, ok, err := betaLRU.Load(ctx, "Foo")
+	assert.NoError(t, err)
+	if assert.True(t, ok) {
+		assert.Equal(t, cached, []byte("Bar"))
+	}
+
+	// Use a max age option when loading
+	_, ok, err = betaLRU.Load(ctx, "Foo", dlru.MaxAge(time.Millisecond*990))
+	assert.NoError(t, err)
+	assert.False(t, ok)
+}
+
 func TestDLRU_RandomActions(t *testing.T) {
 	t.Parallel()
 

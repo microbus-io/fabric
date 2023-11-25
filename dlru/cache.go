@@ -217,13 +217,17 @@ func (c *Cache) handleLoad(w http.ResponseWriter, r *http.Request) error {
 	if key == "" {
 		return errors.New("missing key")
 	}
-	bump := r.URL.Query().Get("bump")
-	data, ok := c.localCache.Load(key, lru.Bump(bump == "true"))
+	bump := r.URL.Query().Get("bump") == "true"
+	ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+	if err != nil {
+		return errors.Trace(err)
+	}
+	data, ok := c.localCache.Load(key, lru.Bump(bump), lru.MaxAge(ttl))
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
-	_, err := w.Write(data)
+	_, err = w.Write(data)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -442,13 +446,14 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	opts := cacheOptions{
 		Bump:             true,
 		ConsistencyCheck: true,
+		MaxAge:           c.MaxAge(),
 	}
 	for _, opt := range options {
 		opt(&opts)
 	}
 
 	// Check local cache
-	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump))
+	value, ok = c.localCache.Load(key, lru.Bump(opts.Bump), lru.MaxAge(opts.MaxAge))
 	if ok {
 		if !opts.ConsistencyCheck {
 			atomic.AddInt64(&c.hits, 1)
@@ -500,7 +505,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	// Load from peers
 	value = nil
 	ok = false
-	u := fmt.Sprintf("%s/all?do=load&bump=%v&key=%s", c.basePath, opts.Bump, key)
+	u := fmt.Sprintf("%s/all?do=load&bump=%v&key=%s&ttl=%s", c.basePath, opts.Bump, key, opts.MaxAge.String())
 	ch := c.svc.Publish(ctx, pub.GET(u))
 	for r := range ch {
 		res, err := r.Get()
