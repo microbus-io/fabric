@@ -60,4 +60,10 @@ func TestSpec_Signature(t *testing.T) {
 	assert.Equal(t, "Hello", sig.Name)
 	assert.Len(t, sig.InputArgs, 0)
 	assert.Len(t, sig.OutputArgs, 0)
+
+	err = yaml.Unmarshal([]byte("MockMe"), &sig)
+	assert.Error(t, err)
+
+	err = yaml.Unmarshal([]byte("TestMe"), &sig)
+	assert.Error(t, err)
 }

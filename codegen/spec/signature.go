@@ -36,41 +36,16 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	openParen := strings.Index(str, "(")
 	if openParen < 0 {
 		sig.Name = strings.TrimSpace(str)
-		return nil
-	}
-	sig.Name = strings.TrimSpace(str[:openParen])
+	} else {
+		sig.Name = strings.TrimSpace(str[:openParen])
 
-	str = str[openParen+1:]
-	closeParen := strings.Index(str, ")")
-	if closeParen < 0 {
-		return errors.New("missing closing parenthesis")
-	}
-
-	args := strings.TrimSpace(str[:closeParen])
-	if args != "" {
-		for _, arg := range strings.Split(args, ",") {
-			arg = strings.TrimSpace(arg)
-			space := strings.Index(arg, " ")
-			if space < 0 {
-				return errors.Newf("invalid argument '%s'", arg)
-			}
-			sig.InputArgs = append(sig.InputArgs, &Argument{
-				Name: strings.TrimSpace(arg[:space]),
-				Type: strings.TrimSpace(strings.TrimLeft(arg[space:], " :")),
-			})
-		}
-	}
-
-	str = str[closeParen+1:]
-	openParen = strings.Index(str, "(")
-	if openParen >= 0 {
 		str = str[openParen+1:]
-		closeParen = strings.Index(str, ")")
+		closeParen := strings.Index(str, ")")
 		if closeParen < 0 {
 			return errors.New("missing closing parenthesis")
 		}
 
-		args = strings.TrimSpace(str[:closeParen])
+		args := strings.TrimSpace(str[:closeParen])
 		if args != "" {
 			for _, arg := range strings.Split(args, ",") {
 				arg = strings.TrimSpace(arg)
@@ -78,10 +53,35 @@ func (sig *Signature) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				if space < 0 {
 					return errors.Newf("invalid argument '%s'", arg)
 				}
-				sig.OutputArgs = append(sig.OutputArgs, &Argument{
+				sig.InputArgs = append(sig.InputArgs, &Argument{
 					Name: strings.TrimSpace(arg[:space]),
 					Type: strings.TrimSpace(strings.TrimLeft(arg[space:], " :")),
 				})
+			}
+		}
+
+		str = str[closeParen+1:]
+		openParen = strings.Index(str, "(")
+		if openParen >= 0 {
+			str = str[openParen+1:]
+			closeParen = strings.Index(str, ")")
+			if closeParen < 0 {
+				return errors.New("missing closing parenthesis")
+			}
+
+			args = strings.TrimSpace(str[:closeParen])
+			if args != "" {
+				for _, arg := range strings.Split(args, ",") {
+					arg = strings.TrimSpace(arg)
+					space := strings.Index(arg, " ")
+					if space < 0 {
+						return errors.Newf("invalid argument '%s'", arg)
+					}
+					sig.OutputArgs = append(sig.OutputArgs, &Argument{
+						Name: strings.TrimSpace(arg[:space]),
+						Type: strings.TrimSpace(strings.TrimLeft(arg[space:], " :")),
+					})
+				}
 			}
 		}
 	}
@@ -101,6 +101,9 @@ func (sig *Signature) validate() error {
 	}
 	if strings.HasPrefix(sig.Name, "Mock") {
 		return errors.Newf("handler '%s' must not start with 'Mock' in '%s'", sig.Name, sig.OrigString)
+	}
+	if strings.HasPrefix(sig.Name, "Test") {
+		return errors.Newf("handler '%s' must not start with 'Test' in '%s'", sig.Name, sig.OrigString)
 	}
 
 	allArgs := []*Argument{}
