@@ -252,6 +252,23 @@ func TestLRU_MaxAge(t *testing.T) {
 	assert.True(t, cache.cohesion())
 }
 
+func TestLRU_BumpMaxAge(t *testing.T) {
+	t.Parallel()
+
+	cache := NewCache[int, string]()
+	cache.SetMaxAge(time.Second * 30)
+	clock := clock.NewMock()
+	cache.clock = clock
+
+	cache.Store(0, "X")
+	clock.Add(20 * time.Second)
+	_, ok := cache.Load(0, Bump(true))
+	assert.True(t, ok)
+	clock.Add(20 * time.Second)
+	_, ok = cache.Load(0, Bump(true))
+	assert.True(t, ok)
+}
+
 func TestLRU_ReduceMaxAge(t *testing.T) {
 	t.Parallel()
 

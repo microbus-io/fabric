@@ -33,11 +33,11 @@ func NoBump() Option {
 	return Bump(false)
 }
 
-// MaxAge indicates to discard elements that have not been inserted or bumped recently.
+// MaxAge indicates to ignore elements that have not been inserted or bumped recently.
 // This option is applicable to load operations.
-func MaxAge(ttl time.Duration) Option {
+func MaxAge(maxAge time.Duration) Option {
 	return func(opts *cacheOptions) {
-		opts.MaxAge = ttl
+		opts.MaxAge = maxAge
 	}
 }
 

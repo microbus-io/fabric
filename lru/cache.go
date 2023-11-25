@@ -179,6 +179,7 @@ func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 			c.newest.newer = nd
 		}
 		c.newest = nd
+		nd.inserted = c.clock.Now() // Bumping renews the life of the element
 	}
 	return nd.value, true
 }

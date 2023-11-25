@@ -515,8 +515,9 @@ func TestDLRU_MaxAge(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Wait a second and load it back
+	// Do not bump so that the life of the element is not renewed
 	time.Sleep(time.Second)
-	cached, ok, err := betaLRU.Load(ctx, "Foo")
+	cached, ok, err := betaLRU.Load(ctx, "Foo", dlru.NoBump())
 	assert.NoError(t, err)
 	if assert.True(t, ok) {
 		assert.Equal(t, cached, []byte("Bar"))
