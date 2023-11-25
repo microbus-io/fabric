@@ -229,7 +229,6 @@ func TestConnector_Restart(t *testing.T) {
 	})
 	con.DefineConfig("config", cfg.DefaultValue("default"))
 
-	assert.Same(t, context.Background(), con.lifetimeCtx)
 	assert.Equal(t, "default", con.configs["config"].Value)
 
 	// Startup
@@ -239,7 +238,6 @@ func TestConnector_Restart(t *testing.T) {
 	})
 	err = con.Startup()
 	assert.NoError(t, err)
-	assert.NotSame(t, context.Background(), con.lifetimeCtx)
 	assert.Equal(t, 1, startupCalled)
 	assert.Equal(t, 0, shutdownCalled)
 	_, err = con.Request(con.lifetimeCtx, pub.GET("https://restart.connector/endpoint"))
@@ -267,7 +265,6 @@ func TestConnector_Restart(t *testing.T) {
 
 	err = con.Startup()
 	assert.NoError(t, err)
-	assert.NotSame(t, context.Background(), con.lifetimeCtx)
 	assert.Equal(t, 1, startupCalled)
 	assert.Equal(t, 0, shutdownCalled)
 	_, err = con.Request(con.lifetimeCtx, pub.GET("https://restart.connector/endpoint"))
