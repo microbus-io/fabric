@@ -140,3 +140,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Ignore debug level log message unless `MICROBUS_LOG_DEBUG` is set
 * Blocking paths in the ingress proxy
 * Inbox microservice
+* Introduced `connector.Go` to run goroutines safely in the context of the microservice

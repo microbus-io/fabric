@@ -373,12 +373,8 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		} else {
 			options = append(options, pub.Header("X-Forwarded-Proto", "http"))
 		}
+		options = append(options, pub.Header("X-Forwarded-Prefix", ""))
 	}
-	prefix := r.Header.Get("X-Forwarded-Prefix")
-	if internalHost != "root" {
-		prefix += "/" + internalHost
-	}
-	options = append(options, pub.Header("X-Forwarded-Prefix", prefix))
 
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)

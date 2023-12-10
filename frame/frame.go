@@ -104,6 +104,18 @@ func (f Frame) Header() http.Header {
 	return f.h
 }
 
+// XForwarded returns the amalgamated URL from the X-Forwarded headers.
+// The URL will not end with a slash.
+func (f Frame) XForwardedBaseURL() string {
+	proto := f.Header().Get("X-Forwarded-Proto")
+	host := f.Header().Get("X-Forwarded-Host")
+	prefix := f.Header().Get("X-Forwarded-Prefix")
+	if proto == "" || host == "" {
+		return ""
+	}
+	return strings.TrimRight(proto+"://"+host+prefix, "/")
+}
+
 // OpCode indicates the type of the control message.
 func (f Frame) OpCode() string {
 	return f.h.Get(HeaderOpCode)

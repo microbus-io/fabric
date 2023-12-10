@@ -305,7 +305,7 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 		if assert.NoError(t, err) {
 			body := string(b)
 			assert.True(t, strings.Contains(body, "X-Forwarded-Host: localhost:4040\n"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-Prefix: /forwarded.headers\n"))
+			assert.False(t, strings.Contains(body, "X-Forwarded-Prefix:"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-Proto: http\n"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-For: "))
 		}
@@ -324,7 +324,7 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 		if assert.NoError(t, err) {
 			body := string(b)
 			assert.True(t, strings.Contains(body, "X-Forwarded-Host: www.example.com\n"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-Prefix: /app/forwarded.headers\n"))
+			assert.True(t, strings.Contains(body, "X-Forwarded-Prefix: /app\n"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-Proto: https\n"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-For: 1.2.3.4"))
 		}
@@ -492,8 +492,6 @@ func TestHttpingress_Middleware(t *testing.T) {
 		assert.Equal(t, "middleware.host", frame.Of(r).FromHost())
 		// Headers should pass through
 		assert.Equal(t, "Bearer 123456", r.Header.Get("Authorization"))
-		// Middleware should not add itself to the prefix
-		assert.Equal(t, "/final.destination:555", r.Header.Get("X-Forwarded-Prefix"))
 		w.Write([]byte("ok"))
 		return nil
 	})
