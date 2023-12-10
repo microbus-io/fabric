@@ -17,7 +17,9 @@ import (
 	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // StartupHandler handles the OnStartup callback.
@@ -348,4 +350,26 @@ func (c *Connector) StartupSequence() int {
 // one microservice, such as during integration testing.
 func (c *Connector) SetStartupSequence(seq int) {
 	c.startupSequence = seq
+}
+
+// Go launches a goroutine in the lifetime context of the microservice.
+// Errors and panics are automatically captured and logged.
+// On shutdown, the microservice will attempt to gracefully end a pending goroutine
+// before termination.
+func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) error) error {
+	if !c.started {
+		return errors.New("not started")
+	}
+	subCtx := frame.Copy(c.lifetimeCtx, ctx)
+	go func() {
+		atomic.AddInt32(&c.pendingOps, 1)
+		defer atomic.AddInt32(&c.pendingOps, -1)
+		err := utils.CatchPanic(func() error {
+			return errors.Trace(f(subCtx))
+		})
+		if err != nil {
+			c.LogError(subCtx, "Goroutine", log.Error(err))
+		}
+	}()
+	return nil
 }
