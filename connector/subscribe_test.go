@@ -51,6 +51,29 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	assert.Equal(t, int32(4), count)
 }
 
+func TestConnector_HyphenInHostName(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	entered := false
+	con := New("hyphen-in-host_name.connector")
+	con.Subscribe("path", func(w http.ResponseWriter, r *http.Request) error {
+		entered = true
+		return nil
+	})
+
+	// Startup the microservices
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	_, err = con.GET(ctx, "https://hyphen-in-host_name.connector/path")
+	assert.NoError(t, err)
+	assert.True(t, entered)
+}
+
 func TestConnector_AsteriskSubscription(t *testing.T) {
 	t.Parallel()
 

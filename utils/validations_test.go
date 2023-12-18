@@ -19,11 +19,11 @@ func TestUtils_ValidateHostName(t *testing.T) {
 		"hello.WORLD",
 		"123.456",
 		"1",
+		"hello_world",
+		"hello-world",
 	}
 	invalid := []string{
 		"hello world",
-		"hello_world",
-		"hello-world",
 		"hello..world",
 		"hello.",
 		".hello",

@@ -16,12 +16,13 @@ import (
 func TestConnector_EncodePath(t *testing.T) {
 	testCases := []string{
 		"/UPPERCASE/file.html", `.UPPERCASE.file_html`,
-		"Hello/two-W0rds", `Hello.two%002dW0rds`,
+		"Hello/two-W0rds", `Hello.two-W0rds`,
 		"123/abc/ABC/", `123.abc.ABC.`,
+		"special!/character", `special%0021.character`,
 		"", ``,
 	}
 	for i := 0; i < len(testCases); i += 2 {
-		assert.Equal(t, encodePath(testCases[i]), testCases[i+1])
+		assert.Equal(t, testCases[i+1], encodePath(testCases[i]))
 	}
 }
 

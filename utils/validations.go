@@ -17,11 +17,10 @@ import (
 )
 
 // ValidateHostName indicates if the host name is a valid microservice host name.
-// Host names must only contain alphanumeric characters and the dot separator.
-// Hyphens or underlines are not allowed.
+// Host names must only contain alphanumeric characters, hyphens, underscores and dot separators.
 func ValidateHostName(hostName string) error {
 	hn := strings.ToLower(hostName)
-	match, _ := regexp.MatchString(`^[a-z0-9]+(\.[a-z0-9]+)*$`, hn)
+	match, _ := regexp.MatchString(`^[a-z0-9_\-]+(\.[a-z0-9_\-]+)*$`, hn)
 	if !match {
 		// The hostname "all" is reserved to refer to all microservices
 		return errors.Newf("invalid host name '%s'", hostName)

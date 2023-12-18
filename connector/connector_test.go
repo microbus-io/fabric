@@ -30,8 +30,7 @@ func TestConnector_BadHostName(t *testing.T) {
 	con := NewConnector()
 	badHosts := []string{
 		"$.example.com",
-		"my-example.com",
-		"my_example.com",
+		"my!example.com",
 		"example..com",
 		"example.com.",
 		".example.com",
