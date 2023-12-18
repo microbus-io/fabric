@@ -114,3 +114,18 @@ func TestFrame_GetSet(t *testing.T) {
 	assert.Equal(t, fi, 1)
 	assert.Equal(t, fm, 1)
 }
+
+func TestFrame_XForwarded(t *testing.T) {
+	httpRequest, err := http.NewRequest("GET", "https://www.example.com", nil)
+	assert.NoError(t, err)
+	frame := Of(httpRequest)
+	assert.Equal(t, "", frame.XForwardedBaseURL())
+
+	httpRequest.Header.Set("X-Forwarded-Proto", "https")
+	httpRequest.Header.Set("X-Forwarded-Host", "www.proxy.com")
+	httpRequest.Header.Set("X-Forwarded-Prefix", "/example")
+	assert.Equal(t, "https://www.proxy.com/example", frame.XForwardedBaseURL())
+
+	httpRequest.Header.Set("X-Forwarded-Prefix", "/example/")
+	assert.Equal(t, "https://www.proxy.com/example", frame.XForwardedBaseURL())
+}
