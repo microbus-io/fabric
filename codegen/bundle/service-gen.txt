@@ -30,8 +30,11 @@ var (
 	_ *{{ .PackageSuffix }}api.Client
 )
 
-// The default host name of the microservice is {{ .General.Host }}.
+// HostName is the default host name of the microservice: {{ .General.Host }}.
 const HostName = "{{ .General.Host }}"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = {{ .PackageSuffix }}api.EndpointURLs
 
 // NewService creates a new {{ .General.Host }} microservice.
 func NewService() connector.Service {

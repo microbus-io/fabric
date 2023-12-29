@@ -40,8 +40,19 @@ var (
 	_ sub.Option
 )
 
-// The default host name addressed by the clients is configurator.sys.
+// HostName is the default host name of the microservice: configurator.sys.
 const HostName = "configurator.sys"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = struct {
+	Values string
+	Refresh string
+	Sync string
+}{
+	Values: httpx.JoinHostAndPath(HostName, ":443/values"),
+	Refresh: httpx.JoinHostAndPath(HostName, ":443/refresh"),
+	Sync: httpx.JoinHostAndPath(HostName, ":443/sync"),
+}
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

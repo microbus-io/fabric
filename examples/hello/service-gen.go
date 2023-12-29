@@ -35,8 +35,11 @@ var (
 	_ *helloapi.Client
 )
 
-// The default host name of the microservice is hello.example.
+// HostName is the default host name of the microservice: hello.example.
 const HostName = "hello.example"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = helloapi.EndpointURLs
 
 // NewService creates a new hello.example microservice.
 func NewService() connector.Service {

@@ -40,8 +40,19 @@ var (
 	_ sub.Option
 )
 
-// The default host name addressed by the clients is calculator.example.
+// HostName is the default host name of the microservice: calculator.example.
 const HostName = "calculator.example"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = struct {
+	Arithmetic string
+	Square string
+	Distance string
+}{
+	Arithmetic: httpx.JoinHostAndPath(HostName, ":443/arithmetic"),
+	Square: httpx.JoinHostAndPath(HostName, ":443/square"),
+	Distance: httpx.JoinHostAndPath(HostName, ":443/distance"),
+}
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

@@ -36,8 +36,11 @@ var (
 	_ *controlapi.Client
 )
 
-// The default host name of the microservice is control.sys.
+// HostName is the default host name of the microservice: control.sys.
 const HostName = "control.sys"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = controlapi.EndpointURLs
 
 // NewService creates a new control.sys microservice.
 func NewService() connector.Service {

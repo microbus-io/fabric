@@ -35,8 +35,11 @@ var (
 	_ *calculatorapi.Client
 )
 
-// The default host name of the microservice is calculator.example.
+// HostName is the default host name of the microservice: calculator.example.
 const HostName = "calculator.example"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = calculatorapi.EndpointURLs
 
 // NewService creates a new calculator.example microservice.
 func NewService() connector.Service {

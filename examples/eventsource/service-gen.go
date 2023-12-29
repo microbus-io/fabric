@@ -35,8 +35,11 @@ var (
 	_ *eventsourceapi.Client
 )
 
-// The default host name of the microservice is eventsource.example.
+// HostName is the default host name of the microservice: eventsource.example.
 const HostName = "eventsource.example"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = eventsourceapi.EndpointURLs
 
 // NewService creates a new eventsource.example microservice.
 func NewService() connector.Service {

@@ -35,8 +35,11 @@ var (
 	_ *directoryapi.Client
 )
 
-// The default host name of the microservice is directory.example.
+// HostName is the default host name of the microservice: directory.example.
 const HostName = "directory.example"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = directoryapi.EndpointURLs
 
 // NewService creates a new directory.example microservice.
 func NewService() connector.Service {

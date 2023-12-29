@@ -40,8 +40,23 @@ var (
 	_ sub.Option
 )
 
-// The default host name addressed by the clients is messaging.example.
+// HostName is the default host name of the microservice: messaging.example.
 const HostName = "messaging.example"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = struct {
+	Home string
+	NoQueue string
+	DefaultQueue string
+	CacheLoad string
+	CacheStore string
+}{
+	Home: httpx.JoinHostAndPath(HostName, ":443/home"),
+	NoQueue: httpx.JoinHostAndPath(HostName, ":443/no-queue"),
+	DefaultQueue: httpx.JoinHostAndPath(HostName, ":443/default-queue"),
+	CacheLoad: httpx.JoinHostAndPath(HostName, ":443/cache-load"),
+	CacheStore: httpx.JoinHostAndPath(HostName, ":443/cache-store"),
+}
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

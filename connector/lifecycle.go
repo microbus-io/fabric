@@ -356,7 +356,7 @@ func (c *Connector) SetStartupSequence(seq int) {
 // Errors and panics are automatically captured and logged.
 // On shutdown, the microservice will attempt to gracefully end a pending goroutine
 // before termination.
-func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) error) error {
+func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err error)) error {
 	if !c.started {
 		return errors.New("not started")
 	}

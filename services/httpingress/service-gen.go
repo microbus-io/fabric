@@ -35,8 +35,11 @@ var (
 	_ *httpingressapi.Client
 )
 
-// The default host name of the microservice is http.ingress.sys.
+// HostName is the default host name of the microservice: http.ingress.sys.
 const HostName = "http.ingress.sys"
+
+// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
+var EndpointURLs = httpingressapi.EndpointURLs
 
 // NewService creates a new http.ingress.sys microservice.
 func NewService() connector.Service {
