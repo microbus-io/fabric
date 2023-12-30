@@ -19,7 +19,7 @@ It improves on parsing and overrides JSON serialization and database formatting 
 
 To create a new timex.Timex from time.Time:
 
-	timex := Timex{time.Now()}
+	timex := New(stdTime)
 
 To obtain time.Time from a Timex:
 
@@ -27,6 +27,11 @@ To obtain time.Time from a Timex:
 */
 type Timex struct {
 	time.Time `dv8:"main"`
+}
+
+// New creates a new timex from a standard time.Time.
+func New(t time.Time) Timex {
+	return Timex{t}
 }
 
 /*

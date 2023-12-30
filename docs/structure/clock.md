@@ -13,7 +13,3 @@ For example:
 mockClock := clock.NewMock()
 con.SetClock(mockClock)
 ```
-
-The `clock` package also includes `NullTime` that equates the zero time value to `null`
-when serializing into or out of JSON, and when reading or writing to a SQL database.
-Most use cases should benefit from using `clock.NullTime` instead of `time.Time` or `sql.NullTime`.

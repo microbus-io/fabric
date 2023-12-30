@@ -8,7 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package directoryapi
 
 import (
-	"github.com/microbus-io/fabric/clock"
+	"github.com/microbus-io/fabric/timex"
 )
 
 // PersonKey is the primary key of the person.
@@ -19,9 +19,9 @@ type PersonKey struct {
 // Person is a personal record that is registered in the directory.
 // First and last name and email are required. Birthday is optional.
 type Person struct {
-	Birthday  clock.NullTime `json:"birthday,omitempty"`
-	Email     string         `json:"email,omitempty"`
-	FirstName string         `json:"firstName,omitempty"`
-	Key       PersonKey      `json:"key,omitempty"`
-	LastName  string         `json:"lastName,omitempty"`
+	Birthday  timex.Timex `json:"birthday,omitempty"`
+	Email     string      `json:"email,omitempty"`
+	FirstName string      `json:"firstName,omitempty"`
+	Key       PersonKey   `json:"key,omitempty"`
+	LastName  string      `json:"lastName,omitempty"`
 }

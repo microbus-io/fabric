@@ -17,6 +17,7 @@ import (
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/timex"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -138,6 +139,11 @@ func (c *Connector) Clock() clock.Clock {
 // Now returns the current time using the connector's clock, in the UTC timezone.
 func (c *Connector) Now() time.Time {
 	return c.clock.Now().UTC()
+}
+
+// NowX returns the current time using the connector's clock, in the UTC timezone.
+func (c *Connector) NowX() timex.Timex {
+	return timex.New(c.clock.Now().UTC())
 }
 
 // SetClock sets an alternative clock for this connector,

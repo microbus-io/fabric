@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
+	"github.com/microbus-io/fabric/timex"
 )
 
 var (
@@ -58,7 +58,7 @@ func TestDirectory_CRUD(t *testing.T) {
 		FirstName: "Harry",
 		LastName:  "Potter",
 		Email:     "harry.potter@hogwarts.edu.wiz",
-		Birthday:  clock.MustParseNullTimeUTC("", "1980-07-31"),
+		Birthday:  timex.MustParse("", "1980-07-31").UTC(),
 	}
 	Create(t, ctx, person).
 		Assert(func(t *testing.T, created *directoryapi.Person, err error) {
@@ -115,7 +115,7 @@ func TestDirectory_Create(t *testing.T) {
 		FirstName: "",
 		LastName:  "Riddle",
 		Email:     "tom.riddle@hogwarts.edu.wiz",
-		Birthday:  clock.MustParseNullTimeUTC("", "1926-12-31"),
+		Birthday:  timex.MustParse("", "1926-12-31").UTC(),
 	}
 	Create(t, ctx, person).
 		Error("empty")
@@ -131,10 +131,10 @@ func TestDirectory_Create(t *testing.T) {
 		Error("empty")
 	person.Email = "tom.riddle@hogwarts.edu.wiz"
 
-	person.Birthday = clock.NewNullTime(time.Now().AddDate(1, 0, 0))
+	person.Birthday = timex.New(time.Now().AddDate(1, 0, 0))
 	Create(t, ctx, person).
 		Error("birthday")
-	person.Birthday = clock.NullTime{}
+	person.Birthday = timex.Timex{}
 
 	Create(t, ctx, person).
 		Assert(func(t *testing.T, created *directoryapi.Person, err error) {
@@ -183,12 +183,12 @@ func TestDirectory_Update(t *testing.T) {
 		Error("empty")
 	person.Email = "ron.weasley@hogwarts.edu.wiz"
 
-	person.Birthday = clock.NewNullTime(time.Now().AddDate(1, 0, 0))
+	person.Birthday = timex.New(time.Now().AddDate(1, 0, 0))
 	Create(t, ctx, person).
 		Error("birthday")
-	person.Birthday = clock.NullTime{}
+	person.Birthday = timex.Timex{}
 
-	person.Birthday = clock.MustParseNullTimeUTC("", "1980-03-01")
+	person.Birthday = timex.MustParse("", "1980-03-01").UTC()
 	Update(t, ctx, person).
 		NoError()
 

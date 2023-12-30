@@ -5,7 +5,7 @@ This file and the project encapsulating it are the confidential intellectual pro
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
 */
 
-package clock
+package timex
 
 import "strings"
 

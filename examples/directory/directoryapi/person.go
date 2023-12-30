@@ -9,9 +9,9 @@ package directoryapi
 
 import (
 	"strings"
-	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/timex"
 )
 
 // Validate validates the field of the person.
@@ -26,7 +26,7 @@ func (person *Person) Validate() error {
 	if person.Email == "" {
 		return errors.New("email cannot be empty")
 	}
-	if !person.Birthday.IsZero() && person.Birthday.After(time.Now()) {
+	if !person.Birthday.IsZero() && person.Birthday.After(timex.Now()) {
 		return errors.New("birthday must be a past date")
 	}
 	return nil

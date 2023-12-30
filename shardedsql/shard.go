@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/timex"
 )
 
 // Shard wraps a SQL connection to a single shard.
@@ -46,10 +46,10 @@ func argsToUTC(args []any) []any {
 		switch v := a.(type) {
 		case time.Time:
 			args[i] = v.UTC()
-		case clock.NullTime:
-			args[i] = clock.NewNullTimeUTC(v.Time)
-		case *clock.NullTime:
-			args[i] = clock.NewNullTimeUTC(v.Time)
+		case timex.Timex:
+			args[i] = timex.New(v.Time).UTC()
+		case *timex.Timex:
+			args[i] = timex.New(v.Time).UTC()
 		}
 	}
 	return args
