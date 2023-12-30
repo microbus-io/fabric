@@ -57,6 +57,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [services/metrics](docs/structure/services-metrics.md) - The metrics microservice collects metrics from microservices and delivers them to `Prometheus` and `Grafana`
 * [shardedsql](docs/structure/shardedsql.md) - SQL database sharding and schema migration
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
+* [timex](docs/structure/timex.md) 🎁 - Enhancement of the standard `time.Time`
 * [utils](docs/structure/utils.md) - Various independent utility classes and functions
 
 ## 👩‍💻 Technical Deep Dive
