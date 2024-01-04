@@ -141,6 +141,12 @@ func MustParseInLocation(layout string, value string, loc *time.Location) Timex 
 	return tx
 }
 
+// Since returns the time elapsed since t.
+// It is shorthand for timex.Now().Sub(t).
+func Since(t Timex) time.Duration {
+	return time.Since(t.Time)
+}
+
 // Unix returns the local Time corresponding to the given Unix time,
 // sec seconds and nsec nanoseconds since January 1, 1970 UTC.
 // It is valid to pass nsec outside the range [0, 999999999].
