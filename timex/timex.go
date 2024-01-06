@@ -236,6 +236,15 @@ func (tx Timex) Local() Timex {
 	return Timex{tm}
 }
 
+// In returns a copy of t representing the same time instant, but
+// with the copy's location information set to loc for display
+// purposes.
+//
+// In panics if loc is nil.
+func (tx Timex) In(loc *time.Location) Timex {
+	return New(tx.Time.In(loc))
+}
+
 // MarshalJSON overrides JSON serialization of the zero value to null.
 func (tx Timex) MarshalJSON() ([]byte, error) {
 	if tx.IsZero() {
