@@ -296,6 +296,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Detect root path
+	if !strings.HasPrefix(r.URL.Path, "/") {
+		r.URL.Path = "/" + r.URL.Path
+	}
 	if r.URL.Path == "/" {
 		r.URL.Path = "/root"
 	}
