@@ -203,6 +203,7 @@ Extensions are specified with "*.ext".`),
 /manager/html
 /logon/LogonPoint/custom.html
 /logon/LogonPoint/index.html
+/catalog-portal/ui/oauth/verify
 *.cfm
 *.asp
 *.aspx
