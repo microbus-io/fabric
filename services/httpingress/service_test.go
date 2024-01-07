@@ -54,6 +54,8 @@ func Test_ResolveInternalURL(t *testing.T) {
 		assert.NoError(t, err)
 		u, err := url.Parse(testCases[i+1])
 		assert.NoError(t, err)
-		assert.Equal(t, u, resolveInternalURL(x, portMappings))
+		ru, err := resolveInternalURL(x, portMappings)
+		assert.NoError(t, err)
+		assert.Equal(t, u, ru)
 	}
 }

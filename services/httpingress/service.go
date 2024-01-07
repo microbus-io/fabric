@@ -310,7 +310,12 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Use the first segment of the URI as the host name to contact
-	u := resolveInternalURL(r.URL, svc.portMappings)
+	u, err := resolveInternalURL(r.URL, svc.portMappings)
+	if err != nil {
+		// Ignore requests to invalid internal host names, such as: https://example.com/%3Fterms=1
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
 	internalURL := u.String()
 	internalHost := u.Host
 	metrics := internalHost == metricsapi.HostName || strings.HasPrefix(internalHost, metricsapi.HostName+":")
@@ -551,12 +556,15 @@ func (svc *Service) OnChangedPortMappings(ctx context.Context) (err error) {
 }
 
 // resolveInternalURL resolves the NATS URL from the external URL.
-func resolveInternalURL(externalURL *url.URL, portMappings map[string]string) (natsURL *url.URL) {
+func resolveInternalURL(externalURL *url.URL, portMappings map[string]string) (natsURL *url.URL, err error) {
 	externalPort := externalURL.Port()
 	if externalPort == "" {
 		externalPort = "443"
 	}
-	u, _ := url.Parse("https:/" + externalURL.RequestURI()) // First part of the URL is the internal host
+	u, err := url.Parse("https:/" + externalURL.RequestURI()) // First part of the URL is the internal host
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	internalPort := u.Port()
 	if internalPort == "" {
 		internalPort = "443"
@@ -582,7 +590,7 @@ func resolveInternalURL(externalURL *url.URL, portMappings map[string]string) (n
 		u.Host = u.Host[:p] + ":" + mappedInternalPort
 	}
 	u.Host = strings.TrimSuffix(u.Host, ":443")
-	return u
+	return u, nil
 }
 
 // OnChangedReadTimeout is triggered when the value of the ReadTimeout config property changes.
