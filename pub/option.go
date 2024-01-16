@@ -126,6 +126,8 @@ func Header(name string, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
 			req.Header.Set(name, value)
+		} else {
+			req.Header.Del(name)
 		}
 		return nil
 	}
@@ -148,6 +150,8 @@ func Baggage(name string, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
 			req.Header.Set(frame.HeaderBaggagePrefix+name, value)
+		} else {
+			req.Header.Del(frame.HeaderBaggagePrefix + name)
 		}
 		return nil
 	}
