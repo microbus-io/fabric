@@ -171,6 +171,12 @@ func UnixMilli(msec int64) Timex {
 	return Timex{tm}
 }
 
+// Until returns the duration until t.
+// It is shorthand for t.Sub(timex.Now()).
+func Until(t Timex) time.Duration {
+	return time.Until(t.Time)
+}
+
 // Add returns the time t+d.
 func (tx Timex) Add(d time.Duration) Timex {
 	tm := tx.Time.Add(d)
