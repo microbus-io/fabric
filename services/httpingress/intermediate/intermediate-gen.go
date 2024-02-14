@@ -204,6 +204,7 @@ Extensions are specified with "*.ext".`),
 /logon/LogonPoint/custom.html
 /logon/LogonPoint/index.html
 /catalog-portal/ui/oauth/verify
+/error_log/.git/HEAD
 *.cfm
 *.asp
 *.aspx
