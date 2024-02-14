@@ -89,7 +89,7 @@ func (arg *Argument) validate() error {
 			arg.Type = strings.TrimSuffix(arg.Type, t)
 			arg.Type = strings.TrimSuffix(arg.Type, "time.")
 			arg.Type += "time.Duration"
-		case t == "byte" || t == "bool" || t == "string":
+		case t == "byte" || t == "bool" || t == "string" || t == "any":
 			// Nothing
 		case utils.IsLowerCaseIdentifier(t):
 			return errors.Newf("unknown primitive type '%s'", t)
