@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"runtime"
 	"strconv"
 	"strings"
@@ -391,7 +392,7 @@ func (c *Cache) rescue(ctx context.Context) {
 				if time.Since(t0) >= 4*time.Second {
 					break
 				}
-				u := fmt.Sprintf("%s/rescue?key=%s", c.basePath, kv.key)
+				u := fmt.Sprintf("%s/rescue?key=%s", c.basePath, url.QueryEscape(kv.key))
 				_, err := c.svc.Request(ctx, pub.Method("PUT"), pub.URL(u), pub.Body(kv.val))
 				if err != nil {
 					break
@@ -424,7 +425,7 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte, options ...
 
 	if !opts.Replicate {
 		// Delete at peers
-		u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, key)
+		u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, url.QueryEscape(key))
 		ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 		for r := range ch {
 			_, err := r.Get()
@@ -434,7 +435,7 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte, options ...
 		}
 	} else {
 		// Replicate to peers
-		u := fmt.Sprintf("%s/all?do=store&key=%s", c.basePath, key)
+		u := fmt.Sprintf("%s/all?do=store&key=%s", c.basePath, url.QueryEscape(key))
 		ch := c.svc.Publish(ctx, pub.Method("PUT"), pub.URL(u), pub.Body(value))
 		for r := range ch {
 			_, err := r.Get()
@@ -482,7 +483,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		localSum := hash.Sum(nil)
 
 		// Validate with peers
-		u := fmt.Sprintf("%s/all?do=checksum&checksum=%s&key=%s", c.basePath, hex.EncodeToString(localSum), key)
+		u := fmt.Sprintf("%s/all?do=checksum&checksum=%s&key=%s", c.basePath, hex.EncodeToString(localSum), url.QueryEscape(key))
 		ch := c.svc.Publish(ctx, pub.GET(u))
 		for r := range ch {
 			res, err := r.Get()
@@ -519,7 +520,7 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 	// Load from peers
 	value = nil
 	ok = false
-	u := fmt.Sprintf("%s/all?do=load&bump=%v&key=%s&ttl=%s", c.basePath, opts.Bump, key, opts.MaxAge.String())
+	u := fmt.Sprintf("%s/all?do=load&bump=%v&key=%s&ttl=%s", c.basePath, opts.Bump, url.QueryEscape(key), opts.MaxAge.String())
 	ch := c.svc.Publish(ctx, pub.GET(u))
 	for r := range ch {
 		res, err := r.Get()
@@ -558,7 +559,7 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 	c.localCache.Delete(key)
 
 	// Broadcast to all peers
-	u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, key)
+	u := fmt.Sprintf("%s/all?do=delete&key=%s", c.basePath, url.QueryEscape(key))
 	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
 		_, err := r.Get()
@@ -580,7 +581,7 @@ func (c *Cache) DeletePrefix(ctx context.Context, keyPrefix string) error {
 	})
 
 	// Broadcast to all peers
-	u := fmt.Sprintf("%s/all?do=delete&prefix=%s", c.basePath, keyPrefix)
+	u := fmt.Sprintf("%s/all?do=delete&prefix=%s", c.basePath, url.QueryEscape(keyPrefix))
 	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
 		_, err := r.Get()
@@ -602,7 +603,7 @@ func (c *Cache) DeleteContains(ctx context.Context, keySubstring string) error {
 	})
 
 	// Broadcast to all peers
-	u := fmt.Sprintf("%s/all?do=delete&contains=%s", c.basePath, keySubstring)
+	u := fmt.Sprintf("%s/all?do=delete&contains=%s", c.basePath, url.QueryEscape(keySubstring))
 	ch := c.svc.Publish(ctx, pub.Method("DELETE"), pub.URL(u))
 	for r := range ch {
 		_, err := r.Get()
