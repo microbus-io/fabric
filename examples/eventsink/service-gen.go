@@ -38,9 +38,6 @@ var (
 // HostName is the default host name of the microservice: eventsink.example.
 const HostName = "eventsink.example"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = eventsinkapi.EndpointURLs
-
 // NewService creates a new eventsink.example microservice.
 func NewService() connector.Service {
 	s := &Service{}

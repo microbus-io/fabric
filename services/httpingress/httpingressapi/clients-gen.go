@@ -43,10 +43,9 @@ var (
 // HostName is the default host name of the microservice: http.ingress.sys.
 const HostName = "http.ingress.sys"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = struct {
-}{
-}
+// Fully-qualified URLs of the microservice's endpoints.
+var (
+)
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

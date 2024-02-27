@@ -38,9 +38,6 @@ var (
 // HostName is the default host name of the microservice: metrics.sys.
 const HostName = "metrics.sys"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = metricsapi.EndpointURLs
-
 // NewService creates a new metrics.sys microservice.
 func NewService() connector.Service {
 	s := &Service{}

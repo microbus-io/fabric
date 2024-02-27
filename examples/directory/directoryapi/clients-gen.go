@@ -43,22 +43,15 @@ var (
 // HostName is the default host name of the microservice: directory.example.
 const HostName = "directory.example"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = struct {
-	Create string
-	Load string
-	Delete string
-	Update string
-	LoadByEmail string
-	List string
-}{
-	Create: httpx.JoinHostAndPath(HostName, ":443/create"),
-	Load: httpx.JoinHostAndPath(HostName, ":443/load"),
-	Delete: httpx.JoinHostAndPath(HostName, ":443/delete"),
-	Update: httpx.JoinHostAndPath(HostName, ":443/update"),
-	LoadByEmail: httpx.JoinHostAndPath(HostName, ":443/load-by-email"),
-	List: httpx.JoinHostAndPath(HostName, ":443/list"),
-}
+// Fully-qualified URLs of the microservice's endpoints.
+var (
+	URLOfCreate = httpx.JoinHostAndPath(HostName, ":443/create")
+	URLOfLoad = httpx.JoinHostAndPath(HostName, ":443/load")
+	URLOfDelete = httpx.JoinHostAndPath(HostName, ":443/delete")
+	URLOfUpdate = httpx.JoinHostAndPath(HostName, ":443/update")
+	URLOfLoadByEmail = httpx.JoinHostAndPath(HostName, ":443/load-by-email")
+	URLOfList = httpx.JoinHostAndPath(HostName, ":443/list")
+)
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

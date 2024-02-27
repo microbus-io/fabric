@@ -43,12 +43,10 @@ var (
 // HostName is the default host name of the microservice: eventsink.example.
 const HostName = "eventsink.example"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = struct {
-	Registered string
-}{
-	Registered: httpx.JoinHostAndPath(HostName, ":443/registered"),
-}
+// Fully-qualified URLs of the microservice's endpoints.
+var (
+	URLOfRegistered = httpx.JoinHostAndPath(HostName, ":443/registered")
+)
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

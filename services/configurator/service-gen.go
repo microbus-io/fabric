@@ -38,9 +38,6 @@ var (
 // HostName is the default host name of the microservice: configurator.sys.
 const HostName = "configurator.sys"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = configuratorapi.EndpointURLs
-
 // NewService creates a new configurator.sys microservice.
 func NewService() connector.Service {
 	s := &Service{}

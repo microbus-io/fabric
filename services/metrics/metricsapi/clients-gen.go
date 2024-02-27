@@ -43,12 +43,10 @@ var (
 // HostName is the default host name of the microservice: metrics.sys.
 const HostName = "metrics.sys"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = struct {
-	Collect string
-}{
-	Collect: httpx.JoinHostAndPath(HostName, ":443/collect"),
-}
+// Fully-qualified URLs of the microservice's endpoints.
+var (
+	URLOfCollect = httpx.JoinHostAndPath(HostName, ":443/collect")
+)
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

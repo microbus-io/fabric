@@ -38,16 +38,12 @@ var (
 // HostName is the default host name of the microservice: {{ .General.Host }}.
 const HostName = "{{ .General.Host }}"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = struct {
+// Fully-qualified URLs of the microservice's endpoints.
+var (
 {{- range (JoinHandlers .Functions .Webs) }}
-	{{ .Name }} string
+	URLOf{{ .Name }} = httpx.JoinHostAndPath(HostName, "{{ .Path }}")
 {{- end }}
-}{
-{{- range (JoinHandlers .Functions .Webs) }}
-	{{ .Name }}: httpx.JoinHostAndPath(HostName, "{{ .Path }}"),
-{{- end }}
-}
+)
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

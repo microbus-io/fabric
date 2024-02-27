@@ -44,14 +44,11 @@ var (
 // HostName is the default host name of the microservice: control.sys.
 const HostName = "control.sys"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = struct {
-	Ping string
-	ConfigRefresh string
-}{
-	Ping: httpx.JoinHostAndPath(HostName, ":888/ping"),
-	ConfigRefresh: httpx.JoinHostAndPath(HostName, ":888/config-refresh"),
-}
+// Fully-qualified URLs of the microservice's endpoints.
+var (
+	URLOfPing = httpx.JoinHostAndPath(HostName, ":888/ping")
+	URLOfConfigRefresh = httpx.JoinHostAndPath(HostName, ":888/config-refresh")
+)
 
 // Service is an interface abstraction of a microservice used by the client.
 // The connector implements this interface.

@@ -38,9 +38,6 @@ var (
 // HostName is the default host name of the microservice: messaging.example.
 const HostName = "messaging.example"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = messagingapi.EndpointURLs
-
 // NewService creates a new messaging.example microservice.
 func NewService() connector.Service {
 	s := &Service{}

@@ -38,9 +38,6 @@ var (
 // HostName is the default host name of the microservice: inbox.sys.
 const HostName = "inbox.sys"
 
-// EndpointURLs contains the fully-qualified URLs to the microservice's endpoints.
-var EndpointURLs = inboxapi.EndpointURLs
-
 // NewService creates a new inbox.sys microservice.
 func NewService() connector.Service {
 	s := &Service{}
