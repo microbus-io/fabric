@@ -104,7 +104,7 @@ func (f Frame) Header() http.Header {
 	return f.h
 }
 
-// XForwarded returns the amalgamated URL from the X-Forwarded headers without a trailing slash.
+// XForwardedBaseURL returns the amalgamated headers X-Forwarded-Proto, -Host and -Prefix, without a trailing slash.
 // The empty string is returned if the headers are not present.
 func (f Frame) XForwardedBaseURL() string {
 	proto := f.Header().Get("X-Forwarded-Proto")
@@ -114,6 +114,19 @@ func (f Frame) XForwardedBaseURL() string {
 		return ""
 	}
 	return strings.TrimRight(proto+"://"+host+prefix, "/")
+}
+
+// XForwardedFullURL returns the amalgamated headers X-Forwarded-Proto, -Host, -Prefix and -Path, without a trailing slash.
+// The empty string is returned if the headers are not present.
+func (f Frame) XForwardedFullURL() string {
+	proto := f.Header().Get("X-Forwarded-Proto")
+	host := f.Header().Get("X-Forwarded-Host")
+	prefix := f.Header().Get("X-Forwarded-Prefix")
+	path := f.Header().Get("X-Forwarded-Path")
+	if proto == "" || host == "" {
+		return ""
+	}
+	return strings.TrimRight(proto+"://"+host+prefix+path, "/")
 }
 
 // OpCode indicates the type of the control message.

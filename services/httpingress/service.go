@@ -296,6 +296,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Detect root path
+	origPath := r.URL.Path
 	if !strings.HasPrefix(r.URL.Path, "/") {
 		r.URL.Path = "/" + r.URL.Path
 	}
@@ -383,6 +384,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 		options = append(options, pub.Header("X-Forwarded-Prefix", ""))
 	}
+	options = append(options, pub.Header("X-Forwarded-Path", origPath))
 
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)
