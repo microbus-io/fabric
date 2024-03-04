@@ -13,7 +13,10 @@ func (svc *Intermediate) db{{ .Name }}OnStartup(ctx context.Context) (err error)
 		svc.LogInfo(ctx, "Opened database", log.String("db", "{{ .Name }}"))
 
 		migrations := shardedsql.NewStatementSequence(svc.HostName() + " {{ .Name }}")
-		scripts, _ := svc.Resources().ReadDir("{{ ToLower .Name }}")
+		scripts, err := svc.ReadResDir("{{ ToLower .Name }}")
+		if err != nil {
+			return errors.Trace(err)
+		}
 		for _, script := range scripts {
 			if script.IsDir() || filepath.Ext(script.Name())!=".sql" {
 				continue
@@ -23,7 +26,10 @@ func (svc *Intermediate) db{{ .Name }}OnStartup(ctx context.Context) (err error)
 			if err != nil {
 				continue
 			}
-			statement, _ := svc.Resources().ReadFile(filepath.Join("{{ ToLower .Name }}", script.Name()))
+			statement, err := svc.ReadResFile(filepath.Join("{{ ToLower .Name }}", script.Name()))
+			if err != nil {
+				return errors.Trace(err)
+			}
 			migrations.Insert(number, string(statement))
 		}
 		err = svc.db{{ .Name }}.MigrateSchema(ctx, migrations)

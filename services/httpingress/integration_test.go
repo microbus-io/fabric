@@ -70,6 +70,7 @@ func Initialize() error {
 			AllowedOrigins("allowed.origin"),
 			PortMappings("4040:*->*, 4443:*->443"),
 			Middleware("https://middleware.host/serve"),
+			ServerLanguages("en,fr,es-ar"),
 		),
 		middleware,
 	)
@@ -278,7 +279,7 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 	con := connector.New("forwarded.headers")
 	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
 		var sb strings.Builder
-		for _, h := range []string{"X-Forwarded-Host", "X-Forwarded-Prefix", "X-Forwarded-Proto", "X-Forwarded-For"} {
+		for _, h := range []string{"X-Forwarded-Host", "X-Forwarded-Prefix", "X-Forwarded-Proto", "X-Forwarded-For", "X-Forwarded-Path"} {
 			if r.Header.Get(h) != "" {
 				sb.WriteString(h)
 				sb.WriteString(": ")
@@ -308,6 +309,7 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 			assert.False(t, strings.Contains(body, "X-Forwarded-Prefix:"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-Proto: http\n"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-For: "))
+			assert.True(t, strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
 		}
 	}
 
@@ -327,6 +329,7 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 			assert.True(t, strings.Contains(body, "X-Forwarded-Prefix: /app\n"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-Proto: https\n"))
 			assert.True(t, strings.Contains(body, "X-Forwarded-For: 1.2.3.4"))
+			assert.True(t, strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
 		}
 	}
 }
@@ -547,6 +550,51 @@ func TestHttpingress_BlockedPaths(t *testing.T) {
 	}
 }
 
+func TestHttpingress_MatchAcceptedLanguages(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("accepted.languages")
+	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte(r.Header.Get("Accept-Language")))
+		return nil
+	})
+	App.Join(con)
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{Timeout: time.Second * 2}
+
+	req, err := http.NewRequest("GET", "http://localhost:4040/accepted.languages/echo", nil)
+	req.Header.Set("Accept-Language", "en-us,es;q=0.5")
+	assert.NoError(t, err)
+	res, err := client.Do(req)
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "en", string(b))
+		}
+	}
+	req.Header.Set("Accept-Language", "es;q=0.5")
+	assert.NoError(t, err)
+	res, err = client.Do(req)
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "es-AR", string(b))
+		}
+	}
+	req.Header.Set("Accept-Language", "fr-ca;q=0.8,en;q=0.4")
+	assert.NoError(t, err)
+	res, err = client.Do(req)
+	if assert.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "fr", string(b))
+		}
+	}
+}
+
 func TestHttpingress_OnChangedPorts(t *testing.T) {
 	t.Skip() // Not tested
 }
@@ -572,5 +620,9 @@ func TestHttpingress_OnChangedReadHeaderTimeout(t *testing.T) {
 }
 
 func TestHttpingress_OnChangedBlockedPaths(t *testing.T) {
+	t.Skip() // Not tested
+}
+
+func TestHttpingress_OnChangedServerLanguages(t *testing.T) {
 	t.Skip() // Not tested
 }

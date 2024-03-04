@@ -353,7 +353,7 @@ Placeholder [integration tests](./integrationtesting.md) are generated for each 
 
 ## Embedded Resources
 
-A `resources` directory is automatically created with a `//go:embed` directive to allow microservices to bundle resource files along with the executable. The `embed.FS` is made available via `svc.Resources()`.
+A `resources` directory is automatically created with a `//go:embed` directive to allow microservices to bundle resource files along with the executable. The `embed.FS` is made available to the service via `svc.SetResFS()`.
 
 ## Versioning
 

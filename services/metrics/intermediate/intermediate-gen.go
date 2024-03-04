@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/metrics/resources"
 	"github.com/microbus-io/fabric/services/metrics/metricsapi"
@@ -99,12 +98,10 @@ This key is required except in local development and tests.`),
 	// Webs
 	svc.Subscribe(`:443/collect`, svc.impl.Collect)
 
-	return svc
-}
+	// Resources file system
+	svc.SetResFS(resources.FS)
 
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{FS: resources.FS}
+	return svc
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

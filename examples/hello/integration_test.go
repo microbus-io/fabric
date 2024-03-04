@@ -161,7 +161,7 @@ func TestHello_BusJPEG(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	img, err := Svc.Resources().ReadFile("bus.jpeg")
+	img, err := Svc.ReadResFile("bus.jpeg")
 	assert.NoError(t, err)
 	BusJPEG(t, ctx, GET()).
 		StatusOK().
@@ -180,4 +180,23 @@ func TestHello_TickTock(t *testing.T) {
 	*/
 	ctx := Context(t)
 	TickTock(t, ctx).NoError()
+}
+
+func TestHello_Localization(t *testing.T) {
+	// TODO: Test Localization
+	t.Parallel()
+	/*
+		Localization(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+			Name(testName).
+			StatusOK().
+			StatusCode(statusCode).
+			BodyContains(bodyContains).
+			BodyNotContains(bodyNotContains).
+			HeaderContains(headerName, valueContains).
+			NoError().
+			Error(errContains).
+			ErrorCode(http.StatusOK).
+			Assert(func(t, httpResponse, err))
+	*/
+	// ctx := Context(t)
 }

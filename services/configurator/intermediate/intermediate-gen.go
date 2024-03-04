@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/configurator/resources"
 	"github.com/microbus-io/fabric/services/configurator/configuratorapi"
@@ -99,12 +98,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 	intervalPeriodicRefresh, _ := time.ParseDuration("20m0s")
 	svc.StartTicker("PeriodicRefresh", intervalPeriodicRefresh, svc.impl.PeriodicRefresh)
 
-	return svc
-}
+	// Resources file system
+	svc.SetResFS(resources.FS)
 
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{FS: resources.FS}
+	return svc
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

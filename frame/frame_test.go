@@ -11,6 +11,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -128,4 +129,26 @@ func TestFrame_XForwarded(t *testing.T) {
 
 	httpRequest.Header.Set("X-Forwarded-Prefix", "/example/")
 	assert.Equal(t, "https://www.proxy.com/example", frame.XForwardedBaseURL())
+}
+
+func TestFrame_Languages(t *testing.T) {
+	testCases := []string{
+		"", "",
+		"en", "en",
+		"EN", "EN",
+		"da, en-gb;q=0.8, en;q=0.7", "da,en-gb,en",
+		"da, en-gb;q=0.7, en;q=0.8", "da,en,en-gb",
+		"da,en-gb;q=0.7,en;q=0.8", "da,en,en-gb",
+		" en ;q=1   , es ; q = 0.5 ", "en,es",
+	}
+	h := http.Header{}
+	for i := 0; i < len(testCases); i += 2 {
+		h.Set("Accept-Language", testCases[i])
+		langs := Of(h).Languages()
+		var expected []string
+		if testCases[i+1] != "" {
+			expected = strings.Split(testCases[i+1], ",")
+		}
+		assert.Equal(t, expected, langs)
+	}
 }

@@ -142,3 +142,10 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Inbox microservice
 * Introduced `Go` in `Connector` to run goroutines safely in the context of the microservice
 * HTTP ingress proxy adds `X-Forwarded-Path` header
+
+[Milestone 18](https://github.com/microbus-io/fabric/tree/milestone/18):
+
+* Handle service resources natively in the `Connector` rather than in the code generation layer
+* Enable initializing the `Connector` with a custom `fs.FS`
+* `ServerLanguages` configuration in the `HTTPIngress` microservice determines the best language to display to the user based on the `Accept-Language` request header
+* `LoadResString` in `Connector` loads a string from the `strings.yaml` resource file localized to the language of the request

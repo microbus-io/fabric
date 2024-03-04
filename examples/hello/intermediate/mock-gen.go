@@ -43,6 +43,7 @@ type Mock struct {
 	MockPing func(w http.ResponseWriter, r *http.Request) (err error)
 	MockCalculator func(w http.ResponseWriter, r *http.Request) (err error)
 	MockBusJPEG func(w http.ResponseWriter, r *http.Request) (err error)
+	MockLocalization func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -60,6 +61,7 @@ func NewMock(version int) *Mock {
 	svc.Subscribe(`:443/ping`, svc.doPing)
 	svc.Subscribe(`:443/calculator`, svc.doCalculator)
 	svc.Subscribe(`:443/bus.jpeg`, svc.doBusJPEG)
+	svc.Subscribe(`:443/localization`, svc.doLocalization)
 
 	return svc
 }
@@ -114,5 +116,14 @@ func (svc *Mock) doBusJPEG(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'BusJPEG' not implemented")
 	}
 	err = svc.MockBusJPEG(w, r)
+	return errors.Trace(err)
+}
+
+// doLocalization handles the Localization web handler.
+func (svc *Mock) doLocalization(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.MockLocalization == nil {
+		return errors.New("mocked endpoint 'Localization' not implemented")
+	}
+	err = svc.MockLocalization(w, r)
 	return errors.Trace(err)
 }

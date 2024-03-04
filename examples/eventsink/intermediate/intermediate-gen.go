@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/eventsink/resources"
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
@@ -99,12 +98,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.impl.OnAllowRegister)
 	eventsourceapi2.NewHook(svc).OnRegistered(svc.impl.OnRegistered)
 
-	return svc
-}
+	// Resources file system
+	svc.SetResFS(resources.FS)
 
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{FS: resources.FS}
+	return svc
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

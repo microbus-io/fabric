@@ -10,6 +10,7 @@ package frame
 import (
 	"context"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -314,4 +315,41 @@ func (f Frame) SetBaggage(name string, value string) {
 	} else {
 		f.h.Set(HeaderBaggagePrefix+name, value)
 	}
+}
+
+// Languages parses the Accept-Language header and returns the listed languages in order of their q value.
+func (f Frame) Languages() []string {
+	qOrder := map[string]float64{}
+	var result []string
+
+	// da, en-gb;q=0.8, en;q=0.7
+	full := f.h.Get("Accept-Language")
+	segments := strings.Split(full, ",")
+	for s, seg := range segments {
+		seg = strings.TrimSpace(seg)
+		if seg == "" {
+			continue
+		}
+		p := strings.Index(seg, ";")
+		if p < 0 {
+			// da
+			result = append(result, seg)
+			qOrder[seg] = 1.0 - float64(s)/1e6
+		} else {
+			// en-gb;q=0.8
+			lang := strings.TrimSpace(seg[:p])
+			if lang != "" {
+				qStr := strings.TrimLeft(seg[p+1:], " q=")
+				q, _ := strconv.ParseFloat(qStr, 64)
+				result = append(result, lang)
+				qOrder[lang] = q - float64(s)/1e6
+			}
+		}
+	}
+	if len(result) > 1 {
+		sort.Slice(result, func(i, j int) bool {
+			return qOrder[result[i]] > qOrder[result[j]]
+		})
+	}
+	return result
 }

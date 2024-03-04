@@ -1,4 +1,4 @@
-# Microbus.io fabric : Milestone 17
+# Microbus.io fabric : Milestone 18
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
@@ -20,13 +20,13 @@ The framework's philosophy touches on three conceptual areas:
 
 👉 Follow the [quick start guide](docs/quick-start.md) to set up your system and run the example app.
 
-👉 Go through the [examples](docs/structure/examples.md) in depth.
+👉 Go through the [examples](docs/structure/examples.md) ✨ in depth.
 
 👉 Follow the step-by-step guide and [build your first microservice](docs/first-service.md)!
 
 👉 Discover the full power of [code generation](docs/tech/codegen.md). It's totally RAD, dude!
 
-👉 Learn how to write thorough [integration tests](docs/tech/integrationtesting.md) ✨ and achieve high code coverage.
+👉 Learn how to write thorough [integration tests](docs/tech/integrationtesting.md) and achieve high code coverage.
 
 👉 Venture out and [explore more on your own](docs/self-explore.md).
 
@@ -39,10 +39,10 @@ Review each of the major project packages to get oriented in the code structure:
 * [cfg](docs/structure/cfg.md) - Options for defining config properties
 * [clock](docs/structure/clock.md) - An abstraction of the functions in the standard library time package to allow for mocking
 * [codegen](docs/structure/codegen.md) - The code generator
-* [connector](docs/structure/connector.md) - The primary construct of the framework and the basis for all microservices
+* [connector](docs/structure/connector.md) ✨ - The primary construct of the framework and the basis for all microservices
 * [dlru](docs/structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
 * [errors](docs/structure/errors.md) - An enhancement of the standard `errors` package
-* [examples](docs/structure/examples.md) - Demo microservices 
+* [examples](docs/structure/examples.md) ✨ - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](docs/structure/httpx.md) - Various HTTP utilities
 * [log](docs/structure/log.md) - Fields for attaching data to log messages
@@ -52,12 +52,12 @@ Review each of the major project packages to get oriented in the code structure:
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [services/configurator](docs/structure/services-configurator.md) - The configurator system microservice
 * [services/control](docs/structure/services-control.md) - Client API for the `:888` control subscriptions
-* [services/httpingress](docs/structure/services-httpingress.md) ✨ - The HTTP ingress proxy system microservice
-* [services/inbox](docs/structure/services-inbox.md) 🎁 - The inbox microservice listens for incoming emails and fires appropriate events
+* [services/httpingress](docs/structure/services-httpingress.md) - The HTTP ingress proxy system microservice
+* [services/inbox](docs/structure/services-inbox.md) - The inbox microservice listens for incoming emails and fires appropriate events
 * [services/metrics](docs/structure/services-metrics.md) - The metrics microservice collects metrics from microservices and delivers them to `Prometheus` and `Grafana`
 * [shardedsql](docs/structure/shardedsql.md) - SQL database sharding and schema migration
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
-* [timex](docs/structure/timex.md) 🎁 - Enhancement of the standard `time.Time`
+* [timex](docs/structure/timex.md) - Enhancement of the standard `time.Time`
 * [utils](docs/structure/utils.md) - Various independent utility classes and functions
 
 ## 👩‍💻 Technical Deep Dive
@@ -65,18 +65,18 @@ Review each of the major project packages to get oriented in the code structure:
 Go deep into the philosophy and implementation of `Microbus`:
 
 * [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
-* [HTTP ingress](docs/tech/httpingress.md) ✨ - The reason for and role of the HTTP ingress proxy service
+* [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](docs/tech/timebudget.md) - The proper way to manage request timeouts
 * [Configuration](docs/tech/configuration.md) - How to configure microservices
 * [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
-* [Multicast messaging](docs/tech/multicast.md) ✨ - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
+* [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
 * [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
-* [Code generation](docs/tech/codegen.md) ✨ - Discover the power of `Microbus`'s most powerful RAD tool
+* [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
-* [Integration testing](docs/tech/integrationtesting.md) ✨ - Testing multiple microservices together
+* [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
 
 ## 👩‍⚖️ Legal
 

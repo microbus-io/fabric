@@ -135,6 +135,8 @@ webs:
   - signature: BusJPEG()
     path: /bus.jpeg
     description: BusJPEG serves an image from the embedded resources.
+  - signature: Localization()
+    description: Localization prints hello in the language best matching the request's Accept-Language header.
 
 # Tickers
 #

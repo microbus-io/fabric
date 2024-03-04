@@ -497,6 +497,69 @@ func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedRea
 	return tc
 }
 
+// OnChangedServerLanguagesTestCase assists in asserting against the results of executing OnChangedServerLanguages.
+type OnChangedServerLanguagesTestCase struct {
+	t *testing.T
+	testName string
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *OnChangedServerLanguagesTestCase) Name(testName string) *OnChangedServerLanguagesTestCase {
+	tc.testName = testName
+	return tc
+}
+
+// Error asserts an error.
+func (tc *OnChangedServerLanguagesTestCase) Error(errContains string) *OnChangedServerLanguagesTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *OnChangedServerLanguagesTestCase) ErrorCode(statusCode int) *OnChangedServerLanguagesTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnChangedServerLanguagesTestCase) NoError() *OnChangedServerLanguagesTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *OnChangedServerLanguagesTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedServerLanguagesTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		asserter(t, tc.err)
+	})
+	return tc
+}
+
+// Get returns the result of executing ServerLanguages.
+func (tc *OnChangedServerLanguagesTestCase) Get() (err error) {
+	return tc.err
+}
+
+// OnChangedServerLanguages executes the on changed callback and returns a corresponding test case.
+func OnChangedServerLanguages(t *testing.T, ctx context.Context) *OnChangedServerLanguagesTestCase {
+	tc := &OnChangedServerLanguagesTestCase{t: t}
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.OnChangedServerLanguages(ctx)
+	})
+	return tc
+}
+
 // OnChangedBlockedPathsTestCase assists in asserting against the results of executing OnChangedBlockedPaths.
 type OnChangedBlockedPathsTestCase struct {
 	t *testing.T

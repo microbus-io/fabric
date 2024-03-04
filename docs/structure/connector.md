@@ -22,6 +22,7 @@ The `connector` package includes a separate source file for each functional area
 * `logger.go` provides a JSON logger for the microservice
 * `metrics.go` collects metrics using Prometheus
 * `publish.go` deals with outbound messaging
+* `res.go` manages the loading of files and localized strings from a resource `FS`
 * `subjects.go` crafts the NATS subjects (topics) that a microservice subscribes to or publishes to
 * `service.go` defines the public interface of the `Connector`
 * `subscribe.go` deals with inbound message handling

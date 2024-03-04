@@ -95,6 +95,8 @@ type Connector struct {
 	tickersLock sync.Mutex
 
 	distribCache *dlru.Cache
+	resourcesFS  FS
+	stringBundle map[string]map[string]string
 }
 
 // NewConnector constructs a new Connector.
@@ -117,6 +119,7 @@ func NewConnector() *Connector {
 		metricDefs:       map[string]mtr.Metric{},
 	}
 
+	c.SetResDirFS(".")
 	c.knownResponders.SetMaxWeight(16 * 1024)
 	c.knownResponders.SetMaxAge(24 * time.Hour)
 	c.postRequestData.SetMaxWeight(256 * 1024)

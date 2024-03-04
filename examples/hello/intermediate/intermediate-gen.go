@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/hello/resources"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
@@ -69,6 +68,7 @@ type ToDo interface {
 	Ping(w http.ResponseWriter, r *http.Request) (err error)
 	Calculator(w http.ResponseWriter, r *http.Request) (err error)
 	BusJPEG(w http.ResponseWriter, r *http.Request) (err error)
+	Localization(w http.ResponseWriter, r *http.Request) (err error)
 	TickTock(ctx context.Context) (err error)
 }
 
@@ -112,17 +112,16 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`:443/ping`, svc.impl.Ping)
 	svc.Subscribe(`:443/calculator`, svc.impl.Calculator)
 	svc.Subscribe(`:443/bus.jpeg`, svc.impl.BusJPEG)
+	svc.Subscribe(`:443/localization`, svc.impl.Localization)
 	
 	// Tickers
 	intervalTickTock, _ := time.ParseDuration("10s")
 	svc.StartTicker("TickTock", intervalTickTock, svc.impl.TickTock)
 
-	return svc
-}
+	// Resources file system
+	svc.SetResFS(resources.FS)
 
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{FS: resources.FS}
+	return svc
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

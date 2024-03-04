@@ -975,6 +975,162 @@ func BusJPEG(t *testing.T, ctx context.Context, options ...WebOption) *BusJPEGTe
 	return tc
 }
 
+// LocalizationTestCase assists in asserting against the results of executing Localization.
+type LocalizationTestCase struct {
+	t *testing.T
+	testName string
+	res *http.Response
+	err error
+}
+
+// Name sets a name to the test case.
+func (tc *LocalizationTestCase) Name(testName string) *LocalizationTestCase {
+	tc.testName = testName
+	return tc
+}
+
+// StatusOK asserts no error and a status code 200.
+func (tc *LocalizationTestCase) StatusOK() *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
+		}
+	})
+	return tc
+}
+
+// StatusCode asserts no error and a status code.
+func (tc *LocalizationTestCase) StatusCode(statusCode int) *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.Equal(t, tc.res.StatusCode, statusCode)
+		}
+	})
+	return tc
+}
+
+// BodyContains asserts no error and that the response contains a string or byte array.
+func (tc *LocalizationTestCase) BodyContains(bodyContains any) *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			body := tc.res.Body.(*httpx.BodyReader).Bytes()
+			switch v := bodyContains.(type) {
+			case []byte:
+				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+			case string:
+				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+			default:
+				vv := fmt.Sprintf("%v", v)
+				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
+			}
+		}
+	})
+	return tc
+}
+
+// BodyNotContains asserts no error and that the response does not contain a string or byte array.
+func (tc *LocalizationTestCase) BodyNotContains(bodyNotContains any) *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			body := tc.res.Body.(*httpx.BodyReader).Bytes()
+			switch v := bodyNotContains.(type) {
+			case []byte:
+				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+			case string:
+				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+			default:
+				vv := fmt.Sprintf("%v", v)
+				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
+			}
+		}
+	})
+	return tc
+}
+
+// HeaderContains asserts no error and that the named header contains a string.
+func (tc *LocalizationTestCase) HeaderContains(headerName string, valueContains string) *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.NoError(t, tc.err) {
+			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		}
+	})
+	return tc
+}
+
+// Error asserts an error.
+func (tc *LocalizationTestCase) Error(errContains string) *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Contains(t, tc.err.Error(), errContains)
+		}
+	})
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *LocalizationTestCase) ErrorCode(statusCode int) *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		if assert.Error(t, tc.err) {
+			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
+		}
+	})
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *LocalizationTestCase) NoError() *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		assert.NoError(t, tc.err)
+	})
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *LocalizationTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *LocalizationTestCase {
+	tc.t.Run(tc.testName, func(t *testing.T) {
+		asserter(t, tc.res, tc.err)
+	})
+	return tc
+}
+
+// Get returns the result of executing Localization.
+func (tc *LocalizationTestCase) Get() (res *http.Response, err error) {
+	return tc.res, tc.err
+}
+
+// Localization executes the web handler and returns a corresponding test case.
+func Localization(t *testing.T, ctx context.Context, options ...WebOption) *LocalizationTestCase {
+	tc := &LocalizationTestCase{t: t}
+	pubOptions := []pub.Option{
+		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/localization`)),
+	}
+	frameHeader := frame.Of(ctx).Header()
+	for h := range frameHeader {
+		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
+	}
+	for _, opt := range options {
+		pubOptions = append(pubOptions, pub.Option(opt))
+	}
+	req, err := pub.NewRequest(pubOptions...)
+	if err != nil {
+		panic(err)
+	}
+	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	if err != nil {
+		panic(err)
+	}
+	for name, value := range req.Header {
+		httpReq.Header[name] = value
+	}
+	r := httpReq.WithContext(ctx)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Localization(w, r)
+	})
+	tc.res = w.Result()
+	return tc
+}
+
 // TickTockTestCase assists in asserting against the results of executing TickTock.
 type TickTockTestCase struct {
 	t *testing.T

@@ -96,18 +96,13 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	outboundFrame.SetFromVersion(c.version)
 	outboundFrame.SetOpCode(frame.OpCodeRequest)
 
-	// Copy X-Forwarded headers (set by ingress proxy)
-	for _, fwdHdr := range []string{"X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Prefix", "X-Forwarded-Path"} {
-		v := inboundFrame.Get(fwdHdr)
-		if v != "" && outboundFrame.Get(fwdHdr) == "" {
-			outboundFrame.Set(fwdHdr, v)
-		}
-	}
-
-	// Copy baggage headers
+	// Copy X-Forwarded headers (set by ingress proxy), baggage and Accept-Language headers
 	for k := range inboundFrame.Header() {
-		if strings.HasPrefix(k, frame.HeaderBaggagePrefix) {
-			outboundFrame.Set(k, inboundFrame.Get(k))
+		if strings.HasPrefix(k, "X-Forwarded-") || strings.HasPrefix(k, frame.HeaderBaggagePrefix) || k == "Accept-Language" {
+			v := inboundFrame.Get(k)
+			if v != "" && outboundFrame.Get(k) == "" {
+				outboundFrame.Set(k, v)
+			}
 		}
 	}
 

@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/examples/directory/resources"
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
@@ -111,12 +110,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`:443/load-by-email`, svc.doLoadByEmail)
 	svc.Subscribe(`:443/list`, svc.doList)
 
-	return svc
-}
+	// Resources file system
+	svc.SetResFS(resources.FS)
 
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{FS: resources.FS}
+	return svc
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.
@@ -138,7 +135,10 @@ func (svc *Intermediate) dbMariaOnStartup(ctx context.Context) (err error) {
 		svc.LogInfo(ctx, "Opened database", log.String("db", "Maria"))
 
 		migrations := shardedsql.NewStatementSequence(svc.HostName() + " Maria")
-		scripts, _ := svc.Resources().ReadDir("maria")
+		scripts, err := svc.ReadResDir("maria")
+		if err != nil {
+			return errors.Trace(err)
+		}
 		for _, script := range scripts {
 			if script.IsDir() || filepath.Ext(script.Name())!=".sql" {
 				continue
@@ -148,7 +148,10 @@ func (svc *Intermediate) dbMariaOnStartup(ctx context.Context) (err error) {
 			if err != nil {
 				continue
 			}
-			statement, _ := svc.Resources().ReadFile(filepath.Join("maria", script.Name()))
+			statement, err := svc.ReadResFile(filepath.Join("maria", script.Name()))
+			if err != nil {
+				return errors.Trace(err)
+			}
 			migrations.Insert(number, string(statement))
 		}
 		err = svc.dbMaria.MigrateSchema(ctx, migrations)

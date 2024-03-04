@@ -93,6 +93,11 @@ configs:
       Middleware defines a microservice to delegate all requests to.
       The URL of the middleware must be fully qualified, for example,
       "https://middle.ware/serve" or "https://middle.ware:123".
+  - signature: ServerLanguages() (languages string)
+    description: |-
+      ServerLanguages is a comma-separated list of languages that the server supports.
+      This list is matched against the Accept-Language header of the request.
+    callback: true
   - signature: BlockedPaths() (blockedPaths string)
     description: |-
       A newline-separated list of paths or extensions to block with a 404.

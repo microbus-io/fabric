@@ -50,6 +50,7 @@ var (
 	URLOfPing = httpx.JoinHostAndPath(HostName, ":443/ping")
 	URLOfCalculator = httpx.JoinHostAndPath(HostName, ":443/calculator")
 	URLOfBusJPEG = httpx.JoinHostAndPath(HostName, ":443/bus.jpeg")
+	URLOfLocalization = httpx.JoinHostAndPath(HostName, ":443/localization")
 )
 
 // Service is an interface abstraction of a microservice used by the client.
@@ -242,6 +243,34 @@ func (_c *MulticastClient) BusJPEG(ctx context.Context, options ...pub.Option) <
 	opts := []pub.Option{
 		pub.Method("POST"),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
+	}
+	opts = append(opts, options...)
+	return _c.svc.Publish(ctx, opts...)
+}
+
+/*
+Localization prints hello in the language best matching the request's Accept-Language header.
+*/
+func (_c *Client) Localization(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/localization`)),
+	}
+	opts = append(opts, options...)
+	res, err = _c.svc.Request(ctx, opts...)
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+Localization prints hello in the language best matching the request's Accept-Language header.
+*/
+func (_c *MulticastClient) Localization(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/localization`)),
 	}
 	opts = append(opts, options...)
 	return _c.svc.Publish(ctx, opts...)

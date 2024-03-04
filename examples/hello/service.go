@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"context"
 	"html"
-	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -199,12 +198,15 @@ func (svc *Service) TickTock(ctx context.Context) error {
 BusJPEG serves an image from the embedded resources.
 */
 func (svc *Service) BusJPEG(w http.ResponseWriter, r *http.Request) (err error) {
-	bytes, err := svc.Resources().ReadFile("bus.jpeg")
-	if err != nil {
-		return errors.Trace(err)
-	}
-	w.Header().Set("Content-Type", mime.TypeByExtension(".jpeg"))
-	w.Header().Set("Cache-Control", "max-age=3600") // 1 hour
-	w.Write(bytes)
+	return svc.ServeResFile("bus.jpeg", w, r)
+}
+
+/*
+Localization prints hello in the language best matching the request's Accept-Language header.
+*/
+func (svc *Service) Localization(w http.ResponseWriter, r *http.Request) (err error) {
+	ctx := r.Context()
+	hello := svc.LoadResString(ctx, "hello")
+	w.Write([]byte(hello))
 	return nil
 }

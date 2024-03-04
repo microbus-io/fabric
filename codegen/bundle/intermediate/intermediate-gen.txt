@@ -28,7 +28,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"{{ .Package }}/resources"
 	"{{ .Package }}/{{ .PackageSuffix }}api"
@@ -186,10 +185,8 @@ func NewService(impl ToDo, version int) *Intermediate {
 	)
 	{{- end }}{{ end }}
 
-	return svc
-}
+	// Resources file system
+	svc.SetResFS(resources.FS)
 
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{FS: resources.FS}
+	return svc
 }

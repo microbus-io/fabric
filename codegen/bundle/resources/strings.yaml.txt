@@ -1,0 +1,4 @@
+# string.key:
+#   en: Localized
+#   en-GB: Localised
+#   fr: Localisée

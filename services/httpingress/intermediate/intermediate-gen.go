@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/microbus-io/fabric/services/httpingress/resources"
 	"github.com/microbus-io/fabric/services/httpingress/httpingressapi"
@@ -70,6 +69,7 @@ type ToDo interface {
 	OnChangedReadTimeout(ctx context.Context) (err error)
 	OnChangedWriteTimeout(ctx context.Context) (err error)
 	OnChangedReadHeaderTimeout(ctx context.Context) (err error)
+	OnChangedServerLanguages(ctx context.Context) (err error)
 	OnChangedBlockedPaths(ctx context.Context) (err error)
 }
 
@@ -156,6 +156,11 @@ The URL of the middleware must be fully qualified, for example,
 "https://middle.ware/serve" or "https://middle.ware:123".`),
 	)
 	svc.DefineConfig(
+		"ServerLanguages",
+		cfg.Description(`ServerLanguages is a comma-separated list of languages that the server supports.
+This list is matched against the Accept-Language header of the request.`),
+	)
+	svc.DefineConfig(
 		"BlockedPaths",
 		cfg.Description(`BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
 Paths should not include any arguments.
@@ -220,12 +225,10 @@ Extensions are specified with "*.ext".`),
 *.exe`),
 	)
 
-	return svc
-}
+	// Resources file system
+	svc.SetResFS(resources.FS)
 
-// Resources is the in-memory file system of the embedded resources.
-func (svc *Intermediate) Resources() utils.ResourceLoader {
-	return utils.ResourceLoader{FS: resources.FS}
+	return svc
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.
@@ -262,6 +265,12 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	}
 	if changed("ReadHeaderTimeout") {
 		err := svc.impl.OnChangedReadHeaderTimeout(ctx)
+		if err != nil {
+			return err // No trace
+		}
+	}
+	if changed("ServerLanguages") {
+		err := svc.impl.OnChangedServerLanguages(ctx)
 		if err != nil {
 			return err // No trace
 		}
@@ -452,6 +461,25 @@ The URL of the middleware must be fully qualified, for example,
 func Middleware(viaURL string) (func(connector.Service) error) {
 	return func(svc connector.Service) error {
 		return svc.SetConfig("Middleware", fmt.Sprintf("%v", viaURL))
+	}
+}
+
+/*
+ServerLanguages is a comma-separated list of languages that the server supports.
+This list is matched against the Accept-Language header of the request.
+*/
+func (svc *Intermediate) ServerLanguages() (languages string) {
+	_val := svc.Config("ServerLanguages")
+	return _val
+}
+
+/*
+ServerLanguages is a comma-separated list of languages that the server supports.
+This list is matched against the Accept-Language header of the request.
+*/
+func ServerLanguages(languages string) (func(connector.Service) error) {
+	return func(svc connector.Service) error {
+		return svc.SetConfig("ServerLanguages", fmt.Sprintf("%v", languages))
 	}
 }
 

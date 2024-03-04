@@ -985,20 +985,28 @@ func TestConnector_Baggage(t *testing.T) {
 
 	betaCalled := false
 	betaBaggage := ""
+	betaLanguage := ""
+	betaXFwd := ""
 	beta := New("beta.baggage.connector")
 	beta.Subscribe("noop", func(w http.ResponseWriter, r *http.Request) error {
 		betaCalled = true
 		betaBaggage = frame.Of(r).Baggage("Suitcase")
+		betaLanguage = r.Header.Get("Accept-Language")
+		betaXFwd = r.Header.Get("X-Forwarded-For")
 		beta.GET(r.Context(), "https://gamma.baggage.connector/noop")
 		return nil
 	})
 
 	gammaCalled := false
 	gammaBaggage := ""
+	gammaLanguage := ""
+	gammaXFwd := ""
 	gamma := New("gamma.baggage.connector")
 	gamma.Subscribe("noop", func(w http.ResponseWriter, r *http.Request) error {
 		gammaCalled = true
 		gammaBaggage = frame.Of(r).Baggage("Suitcase")
+		gammaLanguage = r.Header.Get("Accept-Language")
+		gammaXFwd = r.Header.Get("X-Forwarded-For")
 		return nil
 	})
 
@@ -1017,10 +1025,16 @@ func TestConnector_Baggage(t *testing.T) {
 	_, err = alpha.Request(ctx,
 		pub.GET("https://beta.baggage.connector/noop"),
 		pub.Baggage("Suitcase", "Clothes"),
+		pub.Header("Accept-Language", "en-US"),
+		pub.Header("X-Forwarded-For", "1.2.3.4"),
 	)
 	assert.NoError(t, err)
 	assert.True(t, betaCalled)
 	assert.True(t, gammaCalled)
 	assert.Equal(t, "Clothes", betaBaggage)
 	assert.Equal(t, "Clothes", gammaBaggage)
+	assert.Equal(t, "en-US", betaLanguage)
+	assert.Equal(t, "en-US", gammaLanguage)
+	assert.Equal(t, "1.2.3.4", betaXFwd)
+	assert.Equal(t, "1.2.3.4", gammaXFwd)
 }
