@@ -26,7 +26,7 @@ func TestApplication_StartStop(t *testing.T) {
 
 	alpha := connector.New("alpha.start.stop.application")
 	beta := connector.New("beta.start.stop.application")
-	app := NewTesting(alpha, beta)
+	app := NewTesting(Group{alpha, beta})
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
@@ -150,7 +150,7 @@ func TestApplication_DependencyStart(t *testing.T) {
 		return nil
 	})
 
-	app := NewTesting(alpha, beta)
+	app := NewTesting(Group{alpha, beta})
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -178,7 +178,7 @@ func TestApplication_FailStart(t *testing.T) {
 	// Beta starts without a hitch
 	beta := connector.New("beta.fail.start.application")
 
-	app := NewTesting(alpha, beta)
+	app := NewTesting(Group{alpha, beta})
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -247,14 +247,14 @@ func TestApplication_Run(t *testing.T) {
 
 	con := connector.New("run.application")
 	config := configurator.NewService()
-	app := NewTesting(con, config)
+	app := NewTesting(config, con)
 
 	go func() {
 		err := app.Run()
 		assert.NoError(t, err)
 	}()
 
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 	assert.True(t, con.IsStarted())
 	assert.True(t, config.IsStarted())
 

@@ -14,7 +14,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -61,15 +60,6 @@ type Service struct {
 	blockedPaths    map[string]bool
 	languageMatcher language.Matcher
 	langMatchCache  *lru.Cache[string, string]
-}
-
-// StartupSequence is used to indicate that the ingress proxy should start last.
-func (svc *Service) StartupSequence() int {
-	v := svc.Connector.StartupSequence()
-	if v == 0 {
-		return math.MaxInt
-	}
-	return v
 }
 
 // OnStartup is called when the microservice is started up.

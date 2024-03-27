@@ -26,18 +26,21 @@ main runs the example microservices.
 func main() {
 	app := application.New(
 		configurator.NewService(),
-		httpingress.NewService(),
-		metrics.NewService(),
-		// inbox.NewService(),
-
-		hello.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		calculator.NewService(),
-		eventsource.NewService(),
-		eventsink.NewService(),
-		directory.NewService(),
+		application.Group{
+			hello.NewService(),
+			messaging.NewService(),
+			messaging.NewService(),
+			messaging.NewService(),
+			calculator.NewService(),
+			eventsource.NewService(),
+			eventsink.NewService(),
+			directory.NewService(),
+		},
+		application.Group{
+			httpingress.NewService(),
+			metrics.NewService(),
+			// inbox.NewService(),
+		},
 	)
 	app.Run()
 }

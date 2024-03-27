@@ -9,7 +9,6 @@ package configurator
 
 import (
 	"context"
-	"math"
 	"net/http"
 	"os"
 	"sync"
@@ -41,15 +40,6 @@ type Service struct {
 	repo          *repository
 	repoTimestamp time.Time
 	lock          sync.RWMutex
-}
-
-// StartupSequence is used to indicate that the configurator should start first.
-func (svc *Service) StartupSequence() int {
-	v := svc.Connector.StartupSequence()
-	if v == 0 {
-		return math.MinInt
-	}
-	return v
 }
 
 // OnStartup is called when the microservice is started up.

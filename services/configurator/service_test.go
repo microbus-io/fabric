@@ -27,9 +27,7 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 
 	configSvc := NewService().(*Service)
 	configSvc.SetPlane(plane)
-	services := []connector.Service{
-		configSvc,
-	}
+	services := []connector.Service{}
 	n := 16
 	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
@@ -45,7 +43,7 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 		services = append(services, con)
 	}
 
-	app := application.New(services...)
+	app := application.New(configSvc, services)
 	err := app.Startup()
 	assert.NoError(t, err)
 	defer app.Shutdown()
@@ -68,7 +66,7 @@ many.microservices.configurator:
 	assert.NoError(t, err)
 	wg.Wait()
 
-	for i := 1; i < len(services); i++ {
+	for i := 0; i < len(services); i++ {
 		assert.Equal(t, "baz", services[i].(*connector.Connector).Config("foo"))
 		assert.Equal(t, "cow", services[i].(*connector.Connector).Config("moo"))
 	}
@@ -86,7 +84,7 @@ many.microservices.configurator:
 	assert.NoError(t, err)
 	wg.Wait()
 
-	for i := 1; i < len(services); i++ {
+	for i := 0; i < len(services); i++ {
 		assert.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
 		assert.Equal(t, "cow", services[i].(*connector.Connector).Config("moo"))
 	}
