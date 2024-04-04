@@ -131,7 +131,8 @@ func (c *Connector) ServeResFile(name string, w http.ResponseWriter, r *http.Req
 }
 
 // ExecuteResTemplate parses the resource file as a template, executes it given the data, and returns
-// the result. The template is assumed to be a text template unless the file name ends in .html.
+// the result. The template is assumed to be a text template unless the file name ends in .html,
+// in which case it is processed as an HTML template.
 func (c *Connector) ExecuteResTemplate(name string, data any) (string, error) {
 	b, err := c.resourcesFS.ReadFile(name)
 	if err != nil {
@@ -175,7 +176,7 @@ func (c *Connector) ExecuteResTemplate(name string, data any) (string, error) {
 }
 
 // LoadResString returns a string from the string bundle in the language best matched to the context.
-// The string bundle must be loadable from the FS with the name strings.yaml .
+// The string bundle must be loadable from the service's FS with the name strings.yaml.
 func (c *Connector) LoadResString(ctx context.Context, key string) string {
 	if c.stringBundle == nil {
 		return ""
