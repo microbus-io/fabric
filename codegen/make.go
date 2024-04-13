@@ -212,23 +212,6 @@ func (gen *Generator) makeResources() error {
 	}
 	gen.Printer.Debug("resources/embed-gen.go")
 
-	// strings.yaml
-	fileName = filepath.Join(gen.WorkDir, "resources", "strings.yaml")
-	_, err = os.Stat(fileName)
-	if errors.Is(err, os.ErrNotExist) {
-		tt, err = LoadTemplate("resources/strings.yaml.txt")
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = tt.Overwrite(fileName, gen.specs)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		gen.Printer.Debug("resources/strings.yaml")
-	} else if err != nil {
-		return errors.Trace(err)
-	}
-
 	// Database migration
 	for _, db := range gen.specs.Databases {
 		if !db.Runtime {

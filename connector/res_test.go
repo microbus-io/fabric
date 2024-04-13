@@ -50,7 +50,7 @@ func TestConnector_LoadResString(t *testing.T) {
 
 	beta := New("beta.load.res.string.connector")
 	beta.Subscribe("localized", func(w http.ResponseWriter, r *http.Request) error {
-		s := beta.LoadResString(r.Context(), "hello")
+		s, _ := beta.LoadResString(r.Context(), "hello")
 		w.Write([]byte(s))
 		return nil
 	})

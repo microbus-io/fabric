@@ -15,4 +15,4 @@ import "embed"
 var FS embed.FS
 
 // Files placed in the resources directory are bundled with the executable
-// and are accessible via svc.Resources or resources.FS.
+// and are accessible via svc.ReadResFile and svc.ReadResFile

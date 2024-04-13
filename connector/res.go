@@ -47,6 +47,7 @@ func (c *Connector) SetResFS(resFS FS) error {
 
 // initStringBundle reads strings.yaml from the FS into an in-memory map.
 func (c *Connector) initStringBundle() error {
+	c.stringBundle = nil
 	b, err := c.ReadResFile("strings.yaml")
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -175,22 +176,32 @@ func (c *Connector) ExecuteResTemplate(name string, data any) (string, error) {
 	return buf.String(), nil
 }
 
-// LoadResString returns a string from the string bundle in the language best matched to the context.
-// The string bundle must be loadable from the service's FS with the name strings.yaml.
-func (c *Connector) LoadResString(ctx context.Context, key string) string {
+/*
+LoadResString returns a string from the string bundle in the language best matched to the context.
+The string bundle is a YAML file that must be loadable from the service's resource FS with the name strings.yaml.
+It is expected to have the following format:
+
+	stringKey:
+	  en: Localized
+	  en-UK: Localised
+	  fr: Localisée
+
+English "en" is used as the fallback language and should always be present.
+*/
+func (c *Connector) LoadResString(ctx context.Context, stringKey string) (string, error) {
 	if c.stringBundle == nil {
-		return ""
+		return "", errors.New("string bundle strings.yaml is not found in resource FS")
 	}
-	str := c.stringBundle[key]
+	str := c.stringBundle[stringKey]
 	if str == nil {
-		return ""
+		return "", errors.Newf("no string matches the key '%s'", stringKey)
 	}
 	languages := frame.Of(ctx).Languages()
 	for _, language := range languages {
 		for {
 			val := str[language]
 			if val != "" {
-				return val
+				return val, nil
 			}
 			p := strings.LastIndex(language, "-")
 			if p < 0 {
@@ -199,5 +210,10 @@ func (c *Connector) LoadResString(ctx context.Context, key string) string {
 			language = language[:p]
 		}
 	}
-	return str["en"] // Default to English
+	// Fallback to English
+	fallback := str["en"]
+	if fallback != "" {
+		return fallback, nil
+	}
+	return "", errors.Newf("string '%s' is not available in language '%s'", stringKey, strings.Join(languages, ", "))
 }

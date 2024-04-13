@@ -17,6 +17,7 @@ import (
 
 	"github.com/microbus-io/fabric/examples/calculator"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
+	"github.com/microbus-io/fabric/frame"
 )
 
 var (
@@ -183,7 +184,6 @@ func TestHello_TickTock(t *testing.T) {
 }
 
 func TestHello_Localization(t *testing.T) {
-	// TODO: Test Localization
 	t.Parallel()
 	/*
 		Localization(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
@@ -198,5 +198,23 @@ func TestHello_Localization(t *testing.T) {
 			ErrorCode(http.StatusOK).
 			Assert(func(t, httpResponse, err))
 	*/
-	// ctx := Context(t)
+	ctx := Context(t)
+	Localization(t, ctx).
+		StatusOK().
+		BodyContains("Hello")
+
+	frame.Of(ctx).Set("Accept-Language", "en")
+	Localization(t, ctx).
+		StatusOK().
+		BodyContains("Hello")
+
+	frame.Of(ctx).Set("Accept-Language", "en-NZ")
+	Localization(t, ctx).
+		StatusOK().
+		BodyContains("Hello")
+
+	frame.Of(ctx).Set("Accept-Language", "it")
+	Localization(t, ctx).
+		StatusOK().
+		BodyContains("Salve")
 }

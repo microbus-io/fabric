@@ -1,8 +1,0 @@
----
-
-# Strings placed here are accessible via svc.LoadResString
-
-# localized:
-#   en: Localized
-#   en-GB: Localised
-#   fr: Localisée
