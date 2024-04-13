@@ -149,3 +149,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Enable initializing the `Connector` with a custom `fs.FS`
 * `ServerLanguages` configuration in the `HTTPIngress` microservice determines the best language to display to the user based on the `Accept-Language` request header
 * `LoadResString` in `Connector` loads a string from the `strings.yaml` resource file localized to the language of the request
+* Introduced `Parallel` in `Connector` to run multiple jobs in parallel

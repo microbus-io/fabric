@@ -11,6 +11,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -338,8 +339,7 @@ func (c *Connector) captureInitErr(err error) error {
 
 // Go launches a goroutine in the lifetime context of the microservice.
 // Errors and panics are automatically captured and logged.
-// On shutdown, the microservice will attempt to gracefully end a pending goroutine
-// before termination.
+// On shutdown, the microservice will attempt to gracefully end a pending goroutine before termination.
 func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err error)) error {
 	if !c.started {
 		return errors.New("not started")
@@ -355,5 +355,33 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 			c.LogError(subCtx, "Goroutine", log.Error(err))
 		}
 	}()
+	return nil
+}
+
+// Parallel executes multiple jobs in parallel and returns the first error it encounters.
+// It is a convenient pattern for calling multiple other microservices and thus amortize the network latency.
+// There is no mechanism to identify the failed jobs so this pattern isn't suited for jobs that
+// update data and require to be rolled back on failure.
+func (c *Connector) Parallel(jobs ...func() (err error)) error {
+	n := len(jobs)
+	errChan := make(chan error, n)
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for _, j := range jobs {
+		j := j
+		go func() {
+			atomic.AddInt32(&c.pendingOps, 1)
+			defer atomic.AddInt32(&c.pendingOps, -1)
+			defer wg.Done()
+			errChan <- utils.CatchPanic(j)
+		}()
+	}
+	wg.Wait()
+	close(errChan)
+	for e := range errChan {
+		if e != nil {
+			return e // NoTrace
+		}
+	}
 	return nil
 }
