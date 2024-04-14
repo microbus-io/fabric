@@ -40,6 +40,10 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 	if c.traceProvider != nil {
 		return nil
 	}
+	if c.deployment == TESTINGAPP {
+		// Do not trace when running tests
+		return nil
+	}
 
 	// Auto-detect if to use secure gRPC connection
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -67,37 +71,30 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 	}
 	secureMux.Unlock()
 
+	exp, err := otlptracegrpc.New(ctx, options...)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var bsp sdktrace.SpanProcessor
-	switch c.deployment {
-	case LOCAL:
-		exp, err := otlptracegrpc.New(ctx, options...)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		bsp = sdktrace.NewBatchSpanProcessor(exp) // Trace all spans
-	case TESTINGAPP:
-		bsp = nil // Do not trace when running tests
-	default: // PROD, LAB
-		exp, err := otlptracegrpc.New(ctx, options...)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		c.traceSelector = trc.NewProcessor(exp) // Trace only explicitly selected transactions
+	if c.deployment == LOCAL {
+		// Trace all spans
+		bsp = sdktrace.NewBatchSpanProcessor(exp)
+	} else { // PROD, LAB
+		// Trace only explicitly selected transactions
+		c.traceSelector = trc.NewProcessor(exp)
 		bsp = c.traceSelector
 	}
-	if bsp != nil {
-		c.traceProvider = sdktrace.NewTracerProvider(
-			sdktrace.WithSampler(sdktrace.AlwaysSample()),
-			sdktrace.WithSpanProcessor(bsp),
-			sdktrace.WithResource(resource.NewSchemaless(
-				attribute.String("service.namespace", c.plane),
-				attribute.String("service.name", c.hostName),
-				attribute.Int("service.version", c.version),
-				attribute.String("service.instance.id", c.id),
-			)),
-		)
-		c.tracer = c.traceProvider.Tracer("")
-	}
+	c.traceProvider = sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSpanProcessor(bsp),
+		sdktrace.WithResource(resource.NewSchemaless(
+			attribute.String("service.namespace", c.plane),
+			attribute.String("service.name", c.hostName),
+			attribute.Int("service.version", c.version),
+			attribute.String("service.instance.id", c.id),
+		)),
+	)
+	c.tracer = c.traceProvider.Tracer("")
 	return nil
 }
 
