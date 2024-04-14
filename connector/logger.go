@@ -29,7 +29,8 @@ Example:
 	c.LogDebug(ctx, "Tight loop", log.String("index", i))
 */
 func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Field) {
-	if c.logger == nil || !c.logDebug {
+	logger := c.logger
+	if logger == nil || !c.logDebug {
 		return
 	}
 	span := c.Span(ctx)
@@ -38,7 +39,7 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 		span.Log("debug", msg, fields...)
 		fields = append(fields, log.String("trace", traceID))
 	}
-	c.logger.Debug(msg, fields...)
+	logger.Debug(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "DEBUG")
 }
 
@@ -51,7 +52,8 @@ Example:
 	c.LogInfo(ctx, "File uploaded", log.String("gb", sizeGB))
 */
 func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field) {
-	if c.logger == nil {
+	logger := c.logger
+	if logger == nil {
 		return
 	}
 	span := c.Span(ctx)
@@ -60,7 +62,7 @@ func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field
 		span.Log("info", msg, fields...)
 		fields = append(fields, log.String("trace", traceID))
 	}
-	c.logger.Info(msg, fields...)
+	logger.Info(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "INFO")
 }
 
@@ -73,7 +75,8 @@ Example:
 	c.LogWarn(ctx, "Dropping job", log.String("job", jobID))
 */
 func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field) {
-	if c.logger == nil {
+	logger := c.logger
+	if logger == nil {
 		return
 	}
 	span := c.Span(ctx)
@@ -82,7 +85,7 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 		span.Log("warn", msg, fields...)
 		fields = append(fields, log.String("trace", traceID))
 	}
-	c.logger.Warn(msg, fields...)
+	logger.Warn(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "WARN")
 
 	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
@@ -108,7 +111,8 @@ Example:
 	c.LogError(ctx, "Opening file", log.Error(err), log.String("file", fileName))
 */
 func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Field) {
-	if c.logger == nil {
+	logger := c.logger
+	if logger == nil {
 		return
 	}
 	span := c.Span(ctx)
@@ -117,7 +121,7 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 		span.Log("error", msg, fields...)
 		fields = append(fields, log.String("trace", traceID))
 	}
-	c.logger.Error(msg, fields...)
+	logger.Error(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "ERROR")
 
 	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
@@ -172,10 +176,10 @@ func (c *Connector) initLogger() (err error) {
 
 // terminateLogger flushes and terminates the logger
 func (c *Connector) terminateLogger() error {
-	if c.logger == nil {
+	logger := c.logger
+	if logger == nil {
 		return nil
 	}
-	logger := c.logger
 	c.logger = nil
 	err := logger.Sync()
 	return errors.Trace(err)
