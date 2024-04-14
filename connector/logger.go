@@ -175,7 +175,8 @@ func (c *Connector) terminateLogger() error {
 	if c.logger == nil {
 		return nil
 	}
-	err := c.logger.Sync()
+	logger := c.logger
 	c.logger = nil
+	err := logger.Sync()
 	return errors.Trace(err)
 }
