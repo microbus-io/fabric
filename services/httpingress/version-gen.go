@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package httpingress
 
-const Version = 135
-const SourceCodeSHA256 = "5018d114c9e7f41668192a07c8c33b8d7e108d64606ccbe693254f54a7b51ab5"
-const Timestamp = "2024-04-11T03:00:24.738969Z"
+const Version = 136
+const SourceCodeSHA256 = "50a44030eaa1fef628a4f92c4f3da0c236a284ea99bdbeca66b7bd70d4826b84"
+const Timestamp = "2024-04-14T01:15:22.781182Z"
 
 /* {
-	"ver": 135,
-	"sha256": "5018d114c9e7f41668192a07c8c33b8d7e108d64606ccbe693254f54a7b51ab5",
-	"ts": "2024-04-11T03:00:24.738969Z"
+	"ver": 136,
+	"sha256": "50a44030eaa1fef628a4f92c4f3da0c236a284ea99bdbeca66b7bd70d4826b84",
+	"ts": "2024-04-14T01:15:22.781182Z"
 } */
