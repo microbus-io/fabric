@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -36,6 +36,11 @@ func (c *Connector) subscribeControl() error {
 		{
 			path:    "metrics",
 			handler: c.handleMetrics,
+			options: []sub.Option{sub.NoQueue()},
+		},
+		{
+			path:    "trace",
+			handler: c.handleTrace,
 			options: []sub.Option{sub.NoQueue()},
 		},
 	}
@@ -83,5 +88,17 @@ func (c *Connector) handleMetrics(w http.ResponseWriter, r *http.Request) error 
 	} else {
 		w.WriteHeader(http.StatusNotImplemented)
 	}
+	return nil
+}
+
+// handleTrace responds to the :888/trace control request
+// to force exporting the indicated tracing span.
+func (c *Connector) handleTrace(w http.ResponseWriter, r *http.Request) error {
+	if c.traceSelector != nil {
+		traceID := r.URL.Query().Get("id")
+		c.traceSelector.Select(traceID)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
 	return nil
 }

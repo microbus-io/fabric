@@ -39,3 +39,6 @@ This is an advanced feature and in most cases there is no need to customize the 
 
 Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value causes the microservice to log debug messages.
  
+## Distributed Tracing
+
+`Microbus` is using `OpenTelemetry` to send tracing spans to `Jaeger` via the OTLP gRPC collector. The default gRPC endpoint of the collector `127.0.0.1:4317` can be configured using the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable.

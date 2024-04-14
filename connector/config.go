@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -152,12 +152,12 @@ func (c *Connector) ResetConfig(name string) error {
 }
 
 // logConfigs prints the config properties to the log.
-func (c *Connector) logConfigs() {
+func (c *Connector) logConfigs(ctx context.Context) {
 	c.configLock.Lock()
 	defer c.configLock.Unlock()
 	for _, config := range c.configs {
 		c.LogInfo(
-			c.Lifetime(),
+			ctx,
 			"Config",
 			log.String("name", config.Name),
 			log.String("value", printableConfigValue(config.Value, config.Secret)),
@@ -198,7 +198,7 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 		if count == 0 {
 			return nil
 		}
-		c.LogDebug(ctx, "Requesting config values", log.Any("names", req.Names))
+		c.LogDebug(ctx, "Requesting config values", log.String("names", strings.Join(req.Names, " ")))
 		response, err := c.Request(
 			ctx,
 			pub.POST("https://configurator.sys/values"),

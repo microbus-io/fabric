@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -23,8 +23,11 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
+
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // HTTPHandler extends the standard http.Handler to also return an error
@@ -248,6 +251,8 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 // onRequest is called when an incoming HTTP request is received.
 // The message is dispatched to the appropriate web handler and the response is serialized and sent back to the response channel of the sender
 func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
+	ctx := c.lifetimeCtx
+
 	atomic.AddInt32(&c.pendingOps, 1)
 	defer atomic.AddInt32(&c.pendingOps, -1)
 
@@ -288,6 +293,17 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		return nil
 	}
 
+	// OpenTelemetry: create a child span
+	spanOptions := []trc.Option{
+		trc.Server(),
+		trc.Request(httpReq),
+		trc.String("http.route", s.Path),
+	}
+	ctx = propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(httpReq.Header))
+	var span trc.Span
+	ctx, span = c.StartSpan(ctx, fmt.Sprintf(":%d%s", s.Port, s.Path), spanOptions...)
+	defer span.End()
+
 	// Execute the request
 	handlerStartTime := time.Now()
 	httpRecorder := httpx.NewResponseRecorder()
@@ -299,12 +315,11 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpRecorder.WriteHeader(http.StatusNoContent)
 	} else {
 		// Prepare the context
-		frameCtx := context.WithValue(c.lifetimeCtx, frame.ContextKey, httpReq.Header)
-		ctx := frameCtx
+		ctx := context.WithValue(ctx, frame.ContextKey, httpReq.Header)
 		cancel := func() {}
 		if budget > 0 {
 			// Set the context's timeout to the time budget reduced by a network hop
-			ctx, cancel = context.WithTimeout(frameCtx, budget-c.networkHop)
+			ctx, cancel = context.WithTimeout(ctx, budget-c.networkHop)
 		}
 		httpReq = httpReq.WithContext(ctx)
 
@@ -320,7 +335,11 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 				handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
 				errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
 			}
-			c.LogError(frameCtx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
+			c.LogError(ctx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
+
+			// OpenTelemetry: record the error
+			span.SetError(handlerErr)
+			c.ForceTrace(span)
 
 			// Prepare an error response instead
 			httpRecorder = httpx.NewResponseRecorder()
@@ -378,6 +397,11 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	frame.Of(httpResponse).SetOpCode(frame.OpCodeResponse)
 	if handlerErr != nil {
 		frame.Of(httpResponse).SetOpCode(frame.OpCodeError)
+	}
+
+	// OpenTelemetry: record the status code
+	if handlerErr == nil {
+		span.SetOK(httpResponse.StatusCode, int(httpResponse.ContentLength))
 	}
 
 	// Send back the response, in fragments if needed

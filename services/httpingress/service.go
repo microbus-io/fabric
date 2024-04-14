@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -31,8 +31,11 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 	"golang.org/x/text/language"
+
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/microbus-io/fabric/services/httpingress/intermediate"
 	"github.com/microbus-io/fabric/services/metrics/metricsapi"
@@ -290,6 +293,11 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 			r.URL.Host += ":80"
 		}
 	}
+	if r.TLS != nil {
+		r.URL.Scheme = "https"
+	} else {
+		r.URL.Scheme = "http"
+	}
 
 	// Detect root path
 	origPath := r.URL.Path
@@ -298,6 +306,14 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 	if r.URL.Path == "/" {
 		r.URL.Path = "/root"
+	}
+
+	// OpenTelemetry: create the root span
+	var span trc.Span
+	ctx, span = svc.StartSpan(ctx, ":"+r.URL.Port(), trc.Server(), trc.Request(r))
+	defer span.End()
+	if r.URL.Query().Get("trace") == "force" {
+		svc.ForceTrace(span)
 	}
 
 	// Block disallowed origins
@@ -350,8 +366,10 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		pub.URL(internalURL),
 		pub.Body(body),
 		pub.Unicast(),
-		pub.CopyHeaders(r),           // Copy non-internal headers
-		pub.ContentLength(len(body)), // Overwrite the Content-Length header
+		pub.CopyHeaders(r),            // Copy non-internal headers
+		pub.ContentLength(len(body)),  // Overwrite the Content-Length header
+		pub.Header("Traceparent", ""), // Disallowed header
+		pub.Header("Tracestate", ""),  // Disallowed header
 	}
 
 	// Add the time budget to the request headers and set it as the context's timeout
@@ -388,9 +406,28 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		options = append(options, pub.Header("Accept-Language", bestLang))
 	}
 
+	// OpenTelemetry: pass the span in the headers
+	carrier := make(propagation.HeaderCarrier)
+	propagation.TraceContext{}.Inject(ctx, carrier)
+	for k, v := range carrier {
+		options = append(options, pub.Header(k, v[0]))
+	}
+
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)
 	if err != nil {
+		// OpenTelemetry: record the error and the HTTP body
+		span.SetError(err)
+		svc.ForceTrace(span)
+		contentType := r.Header.Get("Content-Type")
+		if len(body) > 0 && (strings.HasPrefix(contentType, "text/") || contentType == "application/json") {
+			if len(body) <= 8192 {
+				span.SetRequestBody(body)
+			} else {
+				span.SetRequestBody(body[:8192])
+			}
+		}
+
 		return err // No trace
 	}
 
@@ -460,6 +497,8 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Write back the status code
 	if internalRes.StatusCode != 0 {
 		w.WriteHeader(internalRes.StatusCode)
+		// OpenTelemetry: record the status code
+		span.SetOK(internalRes.StatusCode, int(internalRes.ContentLength))
 	}
 
 	// Write back the body

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -20,6 +20,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -108,13 +109,31 @@ func (c *Connector) Startup() (err error) {
 
 	// Call shutdown to clean up, if there's an error.
 	// All errors must be assigned to err.
+	span := trc.NewSpan(nil)
+	ctx := context.Background()
 	defer func() {
 		if err != nil {
-			c.LogError(c.lifetimeCtx, "Starting up", log.Error(err))
+			// OpenTelemetry: record the error
+			span.SetError(err)
+			c.ForceTrace(span)
+			c.LogError(ctx, "Starting up", log.Error(err))
+			span.End()
 			c.Shutdown()
+		} else {
+			span.End()
 		}
 	}()
 	c.onStartupCalled = false
+
+	// OpenTelemetry: init
+	err = c.initTracer(ctx)
+	if err != nil {
+		err = errors.Trace(err)
+		return err
+	}
+
+	// OpenTelemetry: create a span for the callback
+	ctx, span = c.StartSpan(ctx, "startup")
 
 	// Initialize logger
 	err = c.initLogger()
@@ -122,7 +141,7 @@ func (c *Connector) Startup() (err error) {
 		err = errors.Trace(err)
 		return err
 	}
-	c.LogInfo(c.lifetimeCtx, "Startup")
+	c.LogInfo(ctx, "Startup")
 
 	// Validate that clock is not changed except for development purposes
 	if c.Deployment() != LOCAL && c.Deployment() != TESTINGAPP && c.clockSet {
@@ -131,7 +150,7 @@ func (c *Connector) Startup() (err error) {
 	}
 
 	// Connect to NATS
-	err = c.connectToNATS()
+	err = c.connectToNATS(ctx)
 	if err != nil {
 		err = errors.Trace(err)
 		return err
@@ -152,15 +171,15 @@ func (c *Connector) Startup() (err error) {
 	}
 
 	// Fetch configs
-	err = c.refreshConfig(c.lifetimeCtx, false)
+	err = c.refreshConfig(ctx, false)
 	if err != nil {
 		err = errors.Trace(err)
 		return err
 	}
-	c.logConfigs()
+	c.logConfigs(ctx)
 
 	// Start the distributed cache
-	c.distribCache, err = dlru.NewCache(c.lifetimeCtx, c, ":888/dcache")
+	c.distribCache, err = dlru.NewCache(ctx, c, ":888/dcache")
 	if err != nil {
 		err = errors.Trace(err)
 		return err
@@ -170,7 +189,7 @@ func (c *Connector) Startup() (err error) {
 	c.onStartupCalled = true
 	for i := 0; i < len(c.onStartup); i++ {
 		err = c.doCallback(
-			c.lifetimeCtx,
+			ctx,
 			c.onStartup[i].TimeBudget,
 			c.onStartup[i].Name,
 			func(ctx context.Context) error {
@@ -218,6 +237,9 @@ func (c *Connector) Shutdown() error {
 	}
 	c.started = false
 
+	// OpenTelemetry: create a span for the callback
+	ctx, span := c.StartSpan(context.Background(), "shutdown")
+
 	var lastErr error
 
 	// Stop all tickers
@@ -240,7 +262,7 @@ func (c *Connector) Shutdown() error {
 	}
 	undrained := atomic.LoadInt32(&c.pendingOps)
 	if undrained > 0 {
-		c.LogInfo(c.lifetimeCtx, "Stubborn pending operations", log.Int32("ops", undrained))
+		c.LogInfo(ctx, "Stubborn pending operations", log.Int("ops", int(undrained)))
 	}
 
 	// Cancel the root context
@@ -258,14 +280,14 @@ func (c *Connector) Shutdown() error {
 	}
 	undrained = atomic.LoadInt32(&c.pendingOps)
 	if undrained > 0 {
-		c.LogWarn(c.lifetimeCtx, "Unable to drain pending operations", log.Int32("ops", undrained))
+		c.LogWarn(ctx, "Unable to drain pending operations", log.Int("ops", int(undrained)))
 	}
 
 	// Call the callback functions in reverse order
 	if c.onStartupCalled {
 		for i := len(c.onShutdown) - 1; i >= 0; i-- {
 			err = c.doCallback(
-				c.lifetimeCtx,
+				ctx,
 				c.onShutdown[i].TimeBudget,
 				c.onShutdown[i].Name,
 				func(ctx context.Context) error {
@@ -280,7 +302,7 @@ func (c *Connector) Shutdown() error {
 
 	// Close the distributed cache
 	if c.distribCache != nil {
-		err = c.distribCache.Close(c.lifetimeCtx)
+		err = c.distribCache.Close(ctx)
 		if err != nil {
 			lastErr = errors.Trace(err)
 		}
@@ -304,12 +326,20 @@ func (c *Connector) Shutdown() error {
 
 	// Last chance to log an error
 	if lastErr != nil {
-		c.LogError(c.lifetimeCtx, "Shutting down", log.Error(lastErr))
+		// OpenTelemetry: record the error
+		span.SetError(lastErr)
+		c.ForceTrace(span)
+		c.LogError(ctx, "Shutting down", log.Error(lastErr))
 	}
 
 	// Terminate logger
-	c.LogInfo(c.lifetimeCtx, "Shutdown")
+	c.LogInfo(ctx, "Shutdown")
 	_ = c.terminateLogger()
+	// No point trying to log the error at this point
+
+	// OpenTelemetry: terminate
+	span.End()
+	_ = c.termTracer(ctx)
 	// No point trying to log the error at this point
 
 	return lastErr

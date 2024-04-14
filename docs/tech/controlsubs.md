@@ -45,3 +45,7 @@ ch := controlapi.NewMulticastClient(svc).ForHost("all").Ping(ctx)
 ## Config Refresh
 
 The `:888/config-refresh` endpoint indicates to the microservice to contact the configurator to refetch the values of its config properties.
+
+## Trace
+
+The `:888/trace` endpoint indicates to the microservice to export all tracing spans belonging to the requested trace ID (as indicated by the `id` argument) to the OLTP collector.

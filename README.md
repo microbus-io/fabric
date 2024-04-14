@@ -18,9 +18,9 @@ The framework's philosophy touches on three conceptual areas:
 
 ## 🚦 Getting Started
 
-👉 Follow the [quick start guide](docs/quick-start.md) to set up your system and run the example app.
+👉 Follow the [quick start guide](docs/quick-start.md) ✨ to set up your system and run the example app.
 
-👉 Go through the [examples](docs/structure/examples.md) ✨ in depth.
+👉 Go through the [examples](docs/structure/examples.md) in depth.
 
 👉 Follow the step-by-step guide and [build your first microservice](docs/first-service.md)!
 
@@ -42,7 +42,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [connector](docs/structure/connector.md) ✨ - The primary construct of the framework and the basis for all microservices
 * [dlru](docs/structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
 * [errors](docs/structure/errors.md) - An enhancement of the standard `errors` package
-* [examples](docs/structure/examples.md) ✨ - Demo microservices 
+* [examples](docs/structure/examples.md) - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](docs/structure/httpx.md) - Various HTTP utilities
 * [log](docs/structure/log.md) - Fields for attaching data to log messages
@@ -57,6 +57,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [services/metrics](docs/structure/services-metrics.md) - The metrics microservice collects metrics from microservices and delivers them to `Prometheus` and `Grafana`
 * [shardedsql](docs/structure/shardedsql.md) - SQL database sharding and schema migration
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
+* [trc](docs/structure/trc.md) 🎁 - Options for creating tracing spans
 * [timex](docs/structure/timex.md) - Enhancement of the standard `time.Time`
 * [utils](docs/structure/utils.md) - Various independent utility classes and functions
 
@@ -72,16 +73,17 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [Configuration](docs/tech/configuration.md) - How to configure microservices
 * [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
 * [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
-* [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
-* [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
+* [Control subscriptions](docs/tech/controlsubs.md) ✨ - Subscriptions that all microservices implement out of the box on port `:888`
+* [Environment variables](docs/tech/envars.md) ✨ - Environment variables used to initialize microservices
 * [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
+* [Distributed tracing](docs/tech/distribtracing.md) 🎁 - Distributed tracing using `OpenTelemetry` and `Jaeger`
 
 ## 👩‍⚖️ Legal
 
 An explicit license from `Microbus LLC` is required to use the `Microbus` framework.
-Refer to the list of [third-party open source software](docs/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
+Refer to the list of [third-party open source software](docs/third-party-oss.md) ✨ for licensing information of components used by the `Microbus` framework.
 
 🎁 = new
 ✨ = updated

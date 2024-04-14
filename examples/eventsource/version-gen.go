@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package eventsource
 
-const Version = 85
-const SourceCodeSHA256 = "5cb1e9c62a4528a2d898055ee0fea7021ec864a2d3b98e60c0f347873856a784"
-const Timestamp = "2024-03-03T19:59:00.441606Z"
+const Version = 87
+const SourceCodeSHA256 = "60a1560af025320919de5595a2a87dc64a2d7e3138cb68fe351fcc0b0533e83e"
+const Timestamp = "2024-04-11T03:00:23.193014Z"
 
 /* {
-	"ver": 85,
-	"sha256": "5cb1e9c62a4528a2d898055ee0fea7021ec864a2d3b98e60c0f347873856a784",
-	"ts": "2024-03-03T19:59:00.441606Z"
+	"ver": 87,
+	"sha256": "60a1560af025320919de5595a2a87dc64a2d7e3138cb68fe351fcc0b0533e83e",
+	"ts": "2024-04-11T03:00:23.193014Z"
 } */

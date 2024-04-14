@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -66,6 +66,7 @@ type ToDo interface {
 	OnShutdown(ctx context.Context) (err error)
 	Ping(ctx context.Context) (pong int, err error)
 	ConfigRefresh(ctx context.Context) (err error)
+	Trace(ctx context.Context, id string) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -90,8 +91,9 @@ The microservice itself does nothing and should not be included in applications.
 	svc.SetOnShutdown(svc.impl.OnShutdown)	
 
 	// Functions
-	svc.Subscribe(`:888/ping`, svc.doPing)
-	svc.Subscribe(`:888/config-refresh`, svc.doConfigRefresh)
+	svc.Subscribe(`:888/ping`, svc.doPing, sub.NoQueue())
+	svc.Subscribe(`:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())
+	svc.Subscribe(`:888/trace`, svc.doTrace, sub.NoQueue())
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -136,6 +138,29 @@ func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request)
 	}
 	err = svc.impl.ConfigRefresh(
 		r.Context(),
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doTrace handles marshaling for the Trace function.
+func (svc *Intermediate) doTrace(w http.ResponseWriter, r *http.Request) error {
+	var i controlapi.TraceIn
+	var o controlapi.TraceOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = svc.impl.Trace(
+		r.Context(),
+		i.ID,
 	)
 	if err != nil {
 		return err // No trace

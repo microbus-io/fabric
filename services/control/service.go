@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -52,5 +52,12 @@ func (svc *Service) Ping(ctx context.Context) (pong int, err error) {
 ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (svc *Service) ConfigRefresh(ctx context.Context) (err error) {
+	return nil
+}
+
+/*
+Trace forces exporting the indicated tracing span.
+*/
+func (svc *Service) Trace(ctx context.Context, id string) (err error) {
 	return nil
 }

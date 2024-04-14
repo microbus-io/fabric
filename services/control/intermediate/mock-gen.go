@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -40,6 +40,7 @@ type Mock struct {
 	*connector.Connector
 	MockPing func(ctx context.Context) (pong int, err error)
 	MockConfigRefresh func(ctx context.Context) (err error)
+	MockTrace func(ctx context.Context, id string) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -53,8 +54,9 @@ The microservice itself does nothing and should not be included in applications.
 	svc.SetOnStartup(svc.doOnStartup)
 	
 	// Functions
-	svc.Subscribe(`:888/ping`, svc.doPing)
-	svc.Subscribe(`:888/config-refresh`, svc.doConfigRefresh)
+	svc.Subscribe(`:888/ping`, svc.doPing, sub.NoQueue())
+	svc.Subscribe(`:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())
+	svc.Subscribe(`:888/trace`, svc.doTrace, sub.NoQueue())
 
 	return svc
 }
@@ -105,6 +107,32 @@ func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	}
 	err = svc.MockConfigRefresh(
 		r.Context(),
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doTrace handles marshaling for the Trace function.
+func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
+	if svc.MockTrace == nil {
+		return errors.New("mocked endpoint 'Trace' not implemented")
+	}
+	var i controlapi.TraceIn
+	var o controlapi.TraceOut
+	err := httpx.ParseRequestData(r, &i)
+	if err!=nil {
+		return errors.Trace(err)
+	}
+	err = svc.MockTrace(
+		r.Context(),
+		i.ID,
 	)
 	if err != nil {
 		return errors.Trace(err)

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package directory
 
-const Version = 58
-const SourceCodeSHA256 = "f7c75cd9e37de8f50be322e79a41082ebdb12103440e582a6d70015324313b92"
-const Timestamp = "2024-03-03T19:58:59.799794Z"
+const Version = 60
+const SourceCodeSHA256 = "20b24dc10234bbd55397eeefbf051442d3005c09b699f0bd797e808d7433f6ef"
+const Timestamp = "2024-04-11T03:00:22.558454Z"
 
 /* {
-	"ver": 58,
-	"sha256": "f7c75cd9e37de8f50be322e79a41082ebdb12103440e582a6d70015324313b92",
-	"ts": "2024-03-03T19:58:59.799794Z"
+	"ver": 60,
+	"sha256": "20b24dc10234bbd55397eeefbf051442d3005c09b699f0bd797e808d7433f6ef",
+	"ts": "2024-04-11T03:00:22.558454Z"
 } */

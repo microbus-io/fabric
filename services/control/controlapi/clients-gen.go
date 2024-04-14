@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -48,6 +48,7 @@ const HostName = "control.sys"
 var (
 	URLOfPing = httpx.JoinHostAndPath(HostName, ":888/ping")
 	URLOfConfigRefresh = httpx.JoinHostAndPath(HostName, ":888/config-refresh")
+	URLOfTrace = httpx.JoinHostAndPath(HostName, ":888/trace")
 )
 
 // Service is an interface abstraction of a microservice used by the client.
@@ -215,6 +216,64 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 	return _res
 }
 
+// TraceIn are the input arguments of Trace.
+type TraceIn struct {
+	ID string `json:"id"`
+}
+
+// TraceOut are the return values of Trace.
+type TraceOut struct {
+}
+
+// TraceResponse is the response to Trace.
+type TraceResponse struct {
+	data TraceOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *TraceResponse) Get() (err error) {
+	err = _out.err
+	return
+}
+
+/*
+Trace forces exporting the indicated tracing span.
+*/
+func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub.Option) <-chan *TraceResponse {
+	_in := TraceIn{
+		id,
+	}
+	_opts := []pub.Option{
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
+		pub.Body(_in),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *TraceResponse, cap(_ch))
+	go func() {
+		for _i := range _ch {
+			var _r TraceResponse
+			_httpRes, _err := _i.Get()
+			_r.HTTPResponse = _httpRes
+			if _err != nil {
+				_r.err = _err // No trace
+			} else {
+				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+				if _err != nil {
+					_r.err = errors.Trace(_err)
+				}
+			}
+			_res <- &_r
+		}
+		close(_res)
+	}()
+	return _res
+}
+
 /*
 Ping responds to the message with a pong.
 */
@@ -258,6 +317,32 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 		return
 	}
 	var _out ConfigRefreshOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	return
+}
+
+/*
+Trace forces exporting the indicated tracing span.
+*/
+func (_c *Client) Trace(ctx context.Context, id string) (err error) {
+	_in := TraceIn{
+		id,
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method("POST"),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
+		pub.Body(_in),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out TraceOut
 	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -32,6 +32,12 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 	if c.logger == nil || !c.logDebug {
 		return
 	}
+	span := c.Span(ctx)
+	if !span.IsEmpty() {
+		traceID := span.TraceID()
+		span.Log("debug", msg, fields...)
+		fields = append(fields, log.String("trace", traceID))
+	}
 	c.logger.Debug(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "DEBUG")
 }
@@ -47,6 +53,12 @@ Example:
 func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field) {
 	if c.logger == nil {
 		return
+	}
+	span := c.Span(ctx)
+	if !span.IsEmpty() {
+		traceID := span.TraceID()
+		span.Log("info", msg, fields...)
+		fields = append(fields, log.String("trace", traceID))
 	}
 	c.logger.Info(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "INFO")
@@ -64,18 +76,26 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 	if c.logger == nil {
 		return
 	}
+	span := c.Span(ctx)
+	if !span.IsEmpty() {
+		traceID := span.TraceID()
+		span.Log("warn", msg, fields...)
+		fields = append(fields, log.String("trace", traceID))
+	}
 	c.logger.Warn(msg, fields...)
+	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "WARN")
 
 	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
 		for _, f := range fields {
-			if f.Type == zapcore.ErrorType && f.Key == "error" {
-				sep := strings.Repeat("~", 120)
-				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", f.Interface, "\u25b2"+sep+"\u25b2")
-				break
+			if f.Key == "error" {
+				if err, ok := f.Interface.(error); ok {
+					sep := strings.Repeat("~", 120)
+					fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", err, "\u25b2"+sep+"\u25b2")
+					break
+				}
 			}
 		}
 	}
-	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "WARN")
 }
 
 /*
@@ -91,18 +111,26 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 	if c.logger == nil {
 		return
 	}
+	span := c.Span(ctx)
+	if !span.IsEmpty() {
+		traceID := span.TraceID()
+		span.Log("error", msg, fields...)
+		fields = append(fields, log.String("trace", traceID))
+	}
 	c.logger.Error(msg, fields...)
+	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "ERROR")
 
 	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
 		for _, f := range fields {
-			if f.Type == zapcore.ErrorType && f.Key == "error" {
-				sep := strings.Repeat("~", 120)
-				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", f.Interface, "\u25b2"+sep+"\u25b2")
-				break
+			if f.Key == "error" {
+				if err, ok := f.Interface.(error); ok {
+					sep := strings.Repeat("~", 120)
+					fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", err, "\u25b2"+sep+"\u25b2")
+					break
+				}
 			}
 		}
 	}
-	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "ERROR")
 }
 
 // initLogger initializes a logger to match the deployment environment

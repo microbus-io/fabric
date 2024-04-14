@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -116,7 +116,7 @@ func TestMain(m *testing.M) {
 
 // Context creates a new context for a test.
 func Context(t *testing.T) context.Context {
-	return context.Background()
+	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
 }
 
 type WebOption func(req *pub.Request) error

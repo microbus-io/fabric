@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Microbus LLC and various contributors
+# Copyright (c) 2023-2024 Microbus LLC and various contributors
 # 
 # This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 # Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -70,9 +70,15 @@ functions:
   - signature: Ping() (pong int)
     path: :888/...
     description: Ping responds to the message with a pong.
+    queue: none
   - signature: ConfigRefresh()
     path: :888/...
     description: ConfigRefresh pulls the latest config values from the configurator service.
+    queue: none
+  - signature: Trace(id string)
+    path: :888/...
+    description: Trace forces exporting the indicated tracing span.
+    queue: none
 
 # Web handlers
 #

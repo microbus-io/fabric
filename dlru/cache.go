@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -404,7 +404,7 @@ func (c *Cache) rescue(ctx context.Context) {
 	}
 	wg.Wait()
 	dur := time.Since(t0)
-	c.svc.LogDebug(ctx, "Rescued cache elements", log.Int64("count", rescued), log.Duration("in", dur))
+	c.svc.LogDebug(ctx, "Rescued cache elements", log.Int("count", int(rescued)), log.Duration("in", dur))
 }
 
 // Store an element in the cache.

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -8,6 +8,9 @@ Neither may be used, copied or distributed without the express written consent o
 package inbox
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/microbus-io/fabric/log"
 	"github.com/sirupsen/logrus"
 )
@@ -33,17 +36,65 @@ func (h logHook) Levels() []logrus.Level {
 func (h logHook) Fire(e *logrus.Entry) error {
 	fields := []log.Field{}
 	for n, v := range e.Data {
-		fields = append(fields, log.Any(n, v))
+		switch vv := v.(type) {
+		case string:
+			fields = append(fields, log.String(n, vv))
+
+		case int:
+			fields = append(fields, log.Int(n, int(vv)))
+		case int64:
+			fields = append(fields, log.Int(n, int(vv)))
+		case int32:
+			fields = append(fields, log.Int(n, int(vv)))
+		case int16:
+			fields = append(fields, log.Int(n, int(vv)))
+		case int8:
+			fields = append(fields, log.Int(n, int(vv)))
+
+		case uint:
+			fields = append(fields, log.Int(n, int(vv)))
+		case uint64:
+			fields = append(fields, log.Int(n, int(vv)))
+		case uint32:
+			fields = append(fields, log.Int(n, int(vv)))
+		case uint16:
+			fields = append(fields, log.Int(n, int(vv)))
+		case uint8:
+			fields = append(fields, log.Int(n, int(vv)))
+
+		case float64:
+			fields = append(fields, log.Float(n, float64(vv)))
+		case float32:
+			fields = append(fields, log.Float(n, float64(vv)))
+
+		case bool:
+			fields = append(fields, log.Bool(n, vv))
+
+		case time.Duration:
+			fields = append(fields, log.Duration(n, vv))
+		case time.Time:
+			fields = append(fields, log.Time(n, vv))
+
+		default:
+			s := fmt.Sprintf("%v", v)
+			fields = append(fields, log.String(n, s))
+		}
 	}
+
+	ctx := e.Context
+	if ctx == nil {
+		ctx = h.svc.Lifetime()
+	}
+
 	switch e.Level {
 	case logrus.DebugLevel:
-		h.svc.LogDebug(e.Context, e.Message, fields...)
+		h.svc.LogDebug(ctx, e.Message, fields...)
 	case logrus.InfoLevel:
-		h.svc.LogInfo(e.Context, e.Message, fields...)
+		h.svc.LogInfo(ctx, e.Message, fields...)
 	case logrus.WarnLevel:
-		h.svc.LogWarn(e.Context, e.Message, fields...)
+		h.svc.LogWarn(ctx, e.Message, fields...)
 	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
-		h.svc.LogError(e.Context, e.Message, fields...)
+		h.svc.LogError(ctx, e.Message, fields...)
 	}
 	return nil
 }

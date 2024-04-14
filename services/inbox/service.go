@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -26,6 +26,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/services/inbox/inboxapi"
 	"github.com/microbus-io/fabric/services/inbox/intermediate"
+	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -54,7 +55,7 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 }
 
 // configDaemon builds the config of the email daemon.
-func (svc *Service) configDaemon(ctx context.Context) (*guerrilla.AppConfig, error) {
+func (svc *Service) configDaemon(_ context.Context) (*guerrilla.AppConfig, error) {
 	port := strconv.Itoa(svc.Port())
 	certFile := "inbox-" + port + "-cert.pem"
 	keyFile := "inbox-" + port + "-key.pem"
@@ -123,13 +124,32 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 		return func(p backends.Processor) backends.Processor {
 			return backends.ProcessWith(
 				func(e *mail.Envelope, task backends.SelectTask) (res backends.Result, err error) {
+					// OpenTelemetry: create the root span
+					spanOptions := []trc.Option{
+						trc.Server(),
+						trc.String("email.subject", e.Subject),
+						trc.String("email.from", e.MailFrom.String()),
+						trc.ClientIP(e.RemoteIP),
+					}
+					for k, v := range e.Header {
+						spanOptions = append(spanOptions, trc.Strings(k, v))
+					}
+					var span trc.Span
+					ctx, span = svc.StartSpan(ctx, ":"+strconv.Itoa(svc.Port()), spanOptions...)
+					defer span.End()
+
 					err = utils.CatchPanic(func() error {
 						res, err = svc.processEnvelope(p, e, task)
 						return errors.Trace(err)
 					})
 					if err != nil {
+						// OpenTelemetry: record the error
+						span.SetError(err)
+						svc.ForceTrace(span)
 						return backends.NewResult(fmt.Sprintf("554 Error: %s", err)), err // No trace
 					}
+					// OpenTelemetry: record the status code
+					span.SetOK(res.Code(), 0)
 					return res, nil
 				},
 			)
@@ -144,7 +164,7 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 }
 
 // stopDaemon stops the email daemon.
-func (svc *Service) stopDaemon(ctx context.Context) (err error) {
+func (svc *Service) stopDaemon(_ context.Context) (err error) {
 	svc.daemon.Shutdown()
 	svc.daemon = nil
 	return nil

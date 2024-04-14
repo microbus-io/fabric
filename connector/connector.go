@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -27,10 +27,20 @@ import (
 	"github.com/microbus-io/fabric/mtr"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
+
 	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+)
+
+// Ensure interfaces
+var (
+	_ = Service(&Connector{})
+	_ = trc.Tracer(&Connector{})
 )
 
 /*
@@ -53,12 +63,15 @@ type Connector struct {
 	onStartupCalled bool
 	initErr         error
 	startupTime     time.Time
-	startupSequence int
 
 	metricsRegistry *prometheus.Registry
 	metricsHandler  http.Handler
 	metricDefs      map[string]mtr.Metric
 	metricLock      sync.RWMutex
+
+	traceProvider *sdktrace.TracerProvider
+	tracer        trace.Tracer
+	traceSelector *trc.SelectiveProcessor
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription
@@ -260,7 +273,7 @@ func (c *Connector) SetPlane(plane string) error {
 }
 
 // connectToNATS connects to the NATS cluster based on settings in environment variables
-func (c *Connector) connectToNATS() error {
+func (c *Connector) connectToNATS(ctx context.Context) error {
 	opts := []nats.Option{}
 
 	// Unique name to identify this connection
@@ -302,13 +315,12 @@ func (c *Connector) connectToNATS() error {
 	}
 
 	// Log connection events
-	ctx := c.Lifetime()
 	c.LogInfo(ctx, "Connected to NATS", log.String("url", cn.ConnectedUrl()))
 	cn.SetDisconnectHandler(func(n *nats.Conn) {
-		c.LogInfo(ctx, "Disconnected from NATS", log.String("url", cn.ConnectedUrl()))
+		c.LogInfo(c.lifetimeCtx, "Disconnected from NATS", log.String("url", cn.ConnectedUrl()))
 	})
 	cn.SetReconnectHandler(func(n *nats.Conn) {
-		c.LogInfo(ctx, "Reconnected to NATS", log.String("url", cn.ConnectedUrl()))
+		c.LogInfo(c.lifetimeCtx, "Reconnected to NATS", log.String("url", cn.ConnectedUrl()))
 	})
 
 	c.natsConn = cn
@@ -339,9 +351,14 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, name 
 		return nil
 	}
 	callbackCtx := ctx
+
+	// OpenTelemetry: create a span for the callback
+	callbackCtx, span := c.StartSpan(callbackCtx, name)
+	defer span.End()
+
 	cancel := func() {}
 	if timeout > 0 {
-		callbackCtx, cancel = context.WithTimeout(ctx, timeout)
+		callbackCtx, cancel = context.WithTimeout(callbackCtx, timeout)
 	}
 	startTime := time.Now()
 	err := utils.CatchPanic(func() error {
@@ -350,7 +367,10 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, name 
 	cancel()
 	if err != nil {
 		err = errors.Trace(err, name)
-		c.LogError(ctx, "Executing callback", log.Error(err), log.String("name", name))
+		c.LogError(callbackCtx, "Executing callback", log.Error(err), log.String("name", name))
+		// OpenTelemetry: record the error
+		span.SetError(err)
+		c.ForceTrace(span)
 	}
 	_ = c.ObserveMetric(
 		"microbus_callback_duration_seconds",

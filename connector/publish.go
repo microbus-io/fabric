@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Microbus LLC and various contributors
+Copyright (c) 2023-2024 Microbus LLC and various contributors
 
 This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
@@ -27,6 +27,7 @@ import (
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 const AckTimeout = 250 * time.Millisecond
@@ -104,6 +105,13 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 				outboundFrame.Set(k, v)
 			}
 		}
+	}
+
+	// OpenTelemetry: pass the span in headers
+	carrier := make(propagation.HeaderCarrier)
+	propagation.TraceContext{}.Inject(ctx, carrier)
+	for k, v := range carrier {
+		outboundFrame.Set(k, v[0])
 	}
 
 	// Make the request
