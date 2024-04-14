@@ -5,7 +5,9 @@ This file and the project encapsulating it are the confidential intellectual pro
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
 */
 
-//go:generate go run github.com/microbus-io/copyrighter -r
+//go:generate go run github.com/microbus-io/copyrighter
+// - testdata/*
+// - .*
 
 package fabric
 
