@@ -20,7 +20,7 @@ jobs:
         options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@v4
-      - name: Create Nats cluster
+      - name: Create NATS cluster
         uses: onichandame/nats-action@master
         with:
           port: 4222
@@ -32,4 +32,4 @@ jobs:
       - name: "Show version"
         run: go version
       - name: "Run tests"
-        run: go test -cover ./...
+        run: go test -count 1 -cover ./...
