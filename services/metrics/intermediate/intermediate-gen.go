@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
@@ -48,7 +47,6 @@ var (
 	_ strconv.NumError
 	_ strings.Reader
 	_ time.Duration
-	_ cb.Option
 	_ cfg.Option
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder

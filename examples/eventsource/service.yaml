@@ -130,7 +130,6 @@ webs:
 # signature - Func()
 # description - Documentation
 # interval - Duration between iterations (e.g. 15m)
-# timeBudget - Duration to complete an iteration
 tickers:
   # - signature:
   #   description:

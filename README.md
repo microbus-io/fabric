@@ -35,7 +35,6 @@ The framework's philosophy touches on three conceptual areas:
 Review each of the major project packages to get oriented in the code structure:
 
 * [application](docs/structure/application.md) - A collector of microservices that run in a single process and share the same lifecycle
-* [cb](docs/structure/cb.md) - Options for callbacks
 * [cfg](docs/structure/cfg.md) - Options for defining config properties
 * [clock](docs/structure/clock.md) - An abstraction of the functions in the standard library time package to allow for mocking
 * [codegen](docs/structure/codegen.md) - The code generator

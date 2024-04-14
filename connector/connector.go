@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/dlru"
@@ -55,8 +54,8 @@ type Connector struct {
 	description string
 	version     int
 
-	onStartup       []*cb.Callback
-	onShutdown      []*cb.Callback
+	onStartup       []*callback
+	onShutdown      []*callback
 	lifetimeCtx     context.Context
 	ctxCancel       context.CancelFunc
 	pendingOps      int32
@@ -97,14 +96,14 @@ type Connector struct {
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
-	onConfigChanged []*cb.Callback
+	onConfigChanged []*callback
 
 	logger   *zap.Logger
 	logDebug bool
 
 	clock       *clock.ClockReference
 	clockSet    bool
-	tickers     map[string]*cb.Callback
+	tickers     map[string]*callback
 	tickersLock sync.Mutex
 
 	distribCache *dlru.Cache
@@ -124,7 +123,7 @@ func NewConnector() *Connector {
 		requestDefrags:   map[string]*httpx.DefragRequest{},
 		responseDefrags:  map[string]*httpx.DefragResponse{},
 		clock:            clock.NewClockReference(clock.NewClock()),
-		tickers:          map[string]*cb.Callback{},
+		tickers:          map[string]*callback{},
 		lifetimeCtx:      context.Background(),
 		knownResponders:  lru.NewCache[string, map[string]bool](),
 		postRequestData:  lru.NewCache[string, string](),
@@ -346,7 +345,7 @@ func (c *Connector) DistribCache() *dlru.Cache {
 // doCallback sets up the context and calls a callback, making sure to captures panics.
 // It is used for the on startup, on shutdown, on ticker and on config change situations.
 // The path is used to name this callback in telemetry.
-func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, name string, callback func(ctx context.Context) error) error {
+func (c *Connector) doCallback(ctx context.Context, name string, callback func(ctx context.Context) error) error {
 	if callback == nil {
 		return nil
 	}
@@ -356,15 +355,10 @@ func (c *Connector) doCallback(ctx context.Context, timeout time.Duration, name 
 	callbackCtx, span := c.StartSpan(callbackCtx, name)
 	defer span.End()
 
-	cancel := func() {}
-	if timeout > 0 {
-		callbackCtx, cancel = context.WithTimeout(callbackCtx, timeout)
-	}
 	startTime := time.Now()
 	err := utils.CatchPanic(func() error {
 		return callback(callbackCtx)
 	})
-	cancel()
 	if err != nil {
 		err = errors.Trace(err, name)
 		c.LogError(callbackCtx, "Executing callback", log.Error(err), log.String("name", name))

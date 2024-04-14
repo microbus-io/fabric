@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/clock"
 	"github.com/stretchr/testify/assert"
 )
@@ -160,10 +159,12 @@ func TestConnector_TickerTimeout(t *testing.T) {
 	end := make(chan bool)
 	con.StartTicker("ticker", interval, func(ctx context.Context) error {
 		start <- true
+		ctx, cancel := context.WithTimeout(ctx, interval/4)
+		defer cancel()
 		<-ctx.Done()
 		end <- true
 		return nil
-	}, cb.TimeBudget(interval/4))
+	})
 
 	err := con.Startup()
 	assert.NoError(t, err)
@@ -186,10 +187,12 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 	end := make(chan bool)
 	con.StartTicker("ticker", interval, func(ctx context.Context) error {
 		start <- true
+		ctx, cancel := context.WithTimeout(ctx, time.Minute)
+		defer cancel()
 		<-ctx.Done()
 		end <- true
 		return nil
-	}, cb.TimeBudget(time.Minute))
+	})
 
 	err := con.Startup()
 	assert.NoError(t, err)

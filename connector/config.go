@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
@@ -25,15 +24,14 @@ type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) e
 
 // SetOnConfigChanged adds a function to be called when a new config was received from the configurator.
 // Callbacks are called in the order they were added.
-func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler, options ...cb.Option) error {
+func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	callback, err := cb.NewCallback("onconfigchanged", handler, options...)
-	if err != nil {
-		return c.captureInitErr(errors.Trace(err))
-	}
-	c.onConfigChanged = append(c.onConfigChanged, callback)
+	c.onConfigChanged = append(c.onConfigChanged, &callback{
+		Name:    "onconfigchanged",
+		Handler: handler,
+	})
 	return nil
 }
 
@@ -98,7 +96,6 @@ func (c *Connector) SetConfig(name string, value any) error {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err := c.doCallback(
 				c.lifetimeCtx,
-				c.onConfigChanged[i].TimeBudget,
 				c.onConfigChanged[i].Name,
 				func(ctx context.Context) error {
 					f := func(n string) bool {
@@ -134,7 +131,6 @@ func (c *Connector) ResetConfig(name string) error {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err := c.doCallback(
 				c.lifetimeCtx,
-				c.onConfigChanged[i].TimeBudget,
 				c.onConfigChanged[i].Name,
 				func(ctx context.Context) error {
 					f := func(n string) bool {
@@ -241,7 +237,6 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err := c.doCallback(
 				c.lifetimeCtx,
-				c.onConfigChanged[i].TimeBudget,
 				c.onConfigChanged[i].Name,
 				func(ctx context.Context) error {
 					f := func(name string) bool {

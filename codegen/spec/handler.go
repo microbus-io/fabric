@@ -47,8 +47,7 @@ type Handler struct {
 	Buckets []float64 `json:"buckets" yaml:"buckets"`
 
 	// Ticker
-	Interval   time.Duration `yaml:"interval"`
-	TimeBudget time.Duration `yaml:"timeBudget"`
+	Interval time.Duration `yaml:"interval"`
 }
 
 // UnmarshalYAML parses the handler.
@@ -158,9 +157,6 @@ func (h *Handler) validate() error {
 		}
 		if h.Interval <= 0 {
 			return errors.Newf("non-positive interval '%v' in '%s'", h.Interval, h.Name())
-		}
-		if h.TimeBudget < 0 {
-			return errors.Newf("negative time budget '%v' in '%s'", h.TimeBudget, h.Name())
 		}
 	case "function", "event", "sink":
 		argNames := map[string]bool{}

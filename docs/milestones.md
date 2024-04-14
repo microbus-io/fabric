@@ -155,3 +155,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 19](https://github.com/microbus-io/fabric/tree/milestone/19):
 
 * Distributed tracing with `OpenTelemetry` and `Jaeger`
+* Deprecate the concept of time budget for callbacks and remove the `cb` package
+ 

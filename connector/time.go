@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
@@ -26,7 +25,7 @@ type TickerHandler func(ctx context.Context) error
 
 // StartTicker initiates a recurring job at a set interval.
 // Tickers do not run when the connector is running in the TESTINGAPP deployment environment.
-func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler, options ...cb.Option) error {
+func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
@@ -38,18 +37,16 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler Tic
 	if _, ok := c.tickers[name]; ok {
 		return c.captureInitErr(errors.Newf("ticker '%s' is already started", name))
 	}
-
-	cb, err := cb.NewCallback(name, handler, options...)
-	if err != nil {
-		return c.captureInitErr(errors.Trace(err))
-	}
-	cb.Interval = interval
 	if interval <= 0 {
 		return c.captureInitErr(errors.Newf("non-positive interval '%v'", interval))
 	}
-	c.tickers[name] = cb
+	c.tickers[name] = &callback{
+		Name:     name,
+		Handler:  handler,
+		Interval: interval,
+	}
 	if c.started {
-		c.runTicker(cb)
+		c.runTicker(c.tickers[name])
 	}
 
 	return nil
@@ -77,7 +74,7 @@ func (c *Connector) runTickers() {
 }
 
 // runTicker starts a goroutine to run the ticker.
-func (c *Connector) runTicker(job *cb.Callback) {
+func (c *Connector) runTicker(job *callback) {
 	if c.deployment == TESTINGAPP {
 		c.LogDebug(c.Lifetime(), "Ticker disabled while testing", log.String("name", job.Name))
 		return
@@ -103,7 +100,6 @@ func (c *Connector) runTicker(job *cb.Callback) {
 			started := c.Now()
 			_ = c.doCallback(
 				c.lifetimeCtx,
-				job.TimeBudget,
 				job.Name,
 				func(ctx context.Context) error {
 					return job.Handler.(TickerHandler)(ctx)

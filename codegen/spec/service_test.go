@@ -256,14 +256,6 @@ tickers:
     interval: -2m
 `,
 		"non-positive interval",
-		// --------------------
-		`
-tickers:
-  - signature: Func()
-    interval: 2m
-    timeBudget: -1m
-`,
-		"negative time budget",
 	}
 
 	tcWebs := []string{

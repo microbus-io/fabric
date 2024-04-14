@@ -5,8 +5,14 @@ This file and the project encapsulating it are the confidential intellectual pro
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
 */
 
-/*
-Package cb contains options for customizing callbacks
-in Connector.SetOnStartup, Connector.SetOnShutdown and Connector.StartTicker.
-*/
-package cb
+package connector
+
+import "time"
+
+// callback holds settings for a user callback handler, such as the OnStartup and OnShutdown callbacks.
+type callback struct {
+	Name     string
+	Handler  any
+	Interval time.Duration
+	Ticker   *time.Ticker
+}

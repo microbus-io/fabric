@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
@@ -118,9 +117,11 @@ func TestConnector_StartupTimeout(t *testing.T) {
 
 	done := make(chan bool)
 	con.SetOnStartup(func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer cancel()
 		<-ctx.Done()
 		return ctx.Err()
-	}, cb.TimeBudget(500*time.Millisecond))
+	})
 
 	go func() {
 		err := con.Startup()
@@ -139,9 +140,11 @@ func TestConnector_ShutdownTimeout(t *testing.T) {
 
 	done := make(chan bool)
 	con.SetOnShutdown(func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer cancel()
 		<-ctx.Done()
 		return ctx.Err()
-	}, cb.TimeBudget(500*time.Millisecond))
+	})
 
 	err := con.Startup()
 	assert.NoError(t, err)
@@ -278,4 +281,72 @@ func TestConnector_Restart(t *testing.T) {
 	err = con.Shutdown()
 	assert.NoError(t, err)
 	assert.Equal(t, 1, shutdownCalled)
+}
+
+func TestConnector_GoGracefulShutdown(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	con := New("go.graceful.shutdown.connector")
+	err := con.Startup()
+	assert.NoError(t, err)
+
+	done500 := false
+	con.Go(ctx, func(ctx context.Context) (err error) {
+		time.Sleep(500 * time.Millisecond)
+		done500 = true
+		return nil
+	})
+	done300 := false
+	con.Go(ctx, func(ctx context.Context) (err error) {
+		time.Sleep(400 * time.Millisecond)
+		done300 = true
+		return nil
+	})
+	started := time.Now()
+	err = con.Shutdown()
+	assert.NoError(t, err)
+	dur := time.Since(started)
+	assert.GreaterOrEqual(t, dur, 500*time.Millisecond)
+	assert.Less(t, dur, 900*time.Millisecond)
+	assert.True(t, done500)
+	assert.True(t, done300)
+}
+
+func TestConnector_Parallel(t *testing.T) {
+	t.Parallel()
+
+	con := New("parallel.connector")
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	j1 := false
+	j2 := false
+	j3 := false
+	started := time.Now()
+	err = con.Parallel(
+		func() (err error) {
+			time.Sleep(100 * time.Millisecond)
+			j1 = true
+			return nil
+		},
+		func() (err error) {
+			time.Sleep(200 * time.Millisecond)
+			j2 = true
+			return nil
+		},
+		func() (err error) {
+			time.Sleep(300 * time.Millisecond)
+			j3 = true
+			return nil
+		},
+	)
+	dur := time.Since(started)
+	assert.GreaterOrEqual(t, dur, 300*time.Millisecond)
+	assert.Less(t, dur, 600*time.Millisecond)
+	assert.NoError(t, err)
+	assert.True(t, j1)
+	assert.True(t, j2)
+	assert.True(t, j3)
 }

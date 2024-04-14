@@ -15,7 +15,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/microbus-io/fabric/cb"
 	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
@@ -33,15 +32,14 @@ type ShutdownHandler func(ctx context.Context) error
 // SetOnStartup adds a function to be called during the starting up of the microservice.
 // Startup callbacks are called in the order they were added.
 // The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) error {
+func (c *Connector) SetOnStartup(handler StartupHandler) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	callback, err := cb.NewCallback("onstartup", handler, options...)
-	if err != nil {
-		return c.captureInitErr(errors.Trace(err))
-	}
-	c.onStartup = append(c.onStartup, callback)
+	c.onStartup = append(c.onStartup, &callback{
+		Name:    "onstartup",
+		Handler: handler,
+	})
 	return nil
 }
 
@@ -49,15 +47,14 @@ func (c *Connector) SetOnStartup(handler StartupHandler, options ...cb.Option) e
 // Shutdown callbacks are called in the reverse order they were added,
 // whether of the status of a corresponding startup callback.
 // The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnShutdown(handler ShutdownHandler, options ...cb.Option) error {
+func (c *Connector) SetOnShutdown(handler ShutdownHandler) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	callback, err := cb.NewCallback("onshutdown", handler, options...)
-	if err != nil {
-		return c.captureInitErr(errors.Trace(err))
-	}
-	c.onShutdown = append(c.onShutdown, callback)
+	c.onShutdown = append(c.onShutdown, &callback{
+		Name:    "onshutdown",
+		Handler: handler,
+	})
 	return nil
 }
 
@@ -190,7 +187,6 @@ func (c *Connector) Startup() (err error) {
 	for i := 0; i < len(c.onStartup); i++ {
 		err = c.doCallback(
 			ctx,
-			c.onStartup[i].TimeBudget,
 			c.onStartup[i].Name,
 			func(ctx context.Context) error {
 				return c.onStartup[i].Handler.(StartupHandler)(ctx)
@@ -288,7 +284,6 @@ func (c *Connector) Shutdown() error {
 		for i := len(c.onShutdown) - 1; i >= 0; i-- {
 			err = c.doCallback(
 				ctx,
-				c.onShutdown[i].TimeBudget,
 				c.onShutdown[i].Name,
 				func(ctx context.Context) error {
 					return c.onShutdown[i].Handler.(ShutdownHandler)(ctx)
@@ -374,9 +369,9 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 	if !c.started {
 		return errors.New("not started")
 	}
+	atomic.AddInt32(&c.pendingOps, 1)
 	subCtx := frame.Copy(c.lifetimeCtx, ctx)
 	go func() {
-		atomic.AddInt32(&c.pendingOps, 1)
 		defer atomic.AddInt32(&c.pendingOps, -1)
 		err := utils.CatchPanic(func() error {
 			return errors.Trace(f(subCtx))
@@ -397,10 +392,10 @@ func (c *Connector) Parallel(jobs ...func() (err error)) error {
 	errChan := make(chan error, n)
 	var wg sync.WaitGroup
 	wg.Add(n)
+	atomic.AddInt32(&c.pendingOps, int32(n))
 	for _, j := range jobs {
 		j := j
 		go func() {
-			atomic.AddInt32(&c.pendingOps, 1)
 			defer atomic.AddInt32(&c.pendingOps, -1)
 			defer wg.Done()
 			errChan <- utils.CatchPanic(j)
