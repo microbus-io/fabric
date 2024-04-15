@@ -53,23 +53,27 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 	options := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(endpoint),
 	}
-	secureMux.Lock()
-	_, ok := secureEndpoints[endpoint]
-	if !ok {
-		client := http.Client{
-			Timeout: 2 * time.Second,
-		}
-		_, err = client.Get("https://" + endpoint)
-		if err != nil && strings.Contains(err.Error(), "first record does not look like a TLS handshake") {
-			secureEndpoints[endpoint] = false
-		} else {
-			secureEndpoints[endpoint] = true
-		}
-	}
-	if !secureEndpoints[endpoint] {
+	if c.deployment == LOCAL {
 		options = append(options, otlptracegrpc.WithInsecure())
+	} else {
+		secureMux.Lock()
+		_, ok := secureEndpoints[endpoint]
+		if !ok {
+			client := http.Client{
+				Timeout: 2 * time.Second,
+			}
+			_, err = client.Get("https://" + endpoint)
+			if err != nil && strings.Contains(err.Error(), "first record does not look like a TLS handshake") {
+				secureEndpoints[endpoint] = false
+			} else {
+				secureEndpoints[endpoint] = true
+			}
+		}
+		if !secureEndpoints[endpoint] {
+			options = append(options, otlptracegrpc.WithInsecure())
+		}
+		secureMux.Unlock()
 	}
-	secureMux.Unlock()
 
 	exp, err := otlptracegrpc.New(ctx, options...)
 	if err != nil {

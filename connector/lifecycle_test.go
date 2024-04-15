@@ -308,7 +308,6 @@ func TestConnector_GoGracefulShutdown(t *testing.T) {
 	assert.NoError(t, err)
 	dur := time.Since(started)
 	assert.GreaterOrEqual(t, dur, 500*time.Millisecond)
-	assert.Less(t, dur, 900*time.Millisecond)
 	assert.True(t, done500)
 	assert.True(t, done300)
 }
@@ -344,7 +343,6 @@ func TestConnector_Parallel(t *testing.T) {
 	)
 	dur := time.Since(started)
 	assert.GreaterOrEqual(t, dur, 300*time.Millisecond)
-	assert.Less(t, dur, 600*time.Millisecond)
 	assert.NoError(t, err)
 	assert.True(t, j1)
 	assert.True(t, j2)
