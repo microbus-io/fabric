@@ -9,19 +9,15 @@ package connector
 
 import (
 	"context"
-	"net/http"
 	"net/url"
 	"os"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/trc"
 
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -29,68 +25,45 @@ import (
 
 type contextKeyType struct{}
 
-var (
-	contextKey      contextKeyType
-	secureEndpoints = map[string]bool{}
-	secureMux       sync.Mutex
-)
+var contextKey contextKeyType
 
 // initTracer initializes an OpenTelemetry tracer
 func (c *Connector) initTracer(ctx context.Context) (err error) {
 	if c.traceProvider != nil {
 		return nil
 	}
-	if c.deployment == TESTINGAPP {
-		// Do not trace when running tests
+
+	// Use the OTLP HTTP endpoint. Default to the non-secure HTTP protocol
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+	if endpoint == "" {
+		endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	}
+	if endpoint == "" && c.deployment == LOCAL {
+		endpoint = "http://127.0.0.1:4318"
+	}
+	if endpoint == "" {
 		return nil
 	}
 
-	// Auto-detect if to use secure gRPC connection
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "127.0.0.1:4317"
-	}
-	options := []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint(endpoint),
-	}
-	if c.deployment == LOCAL {
-		options = append(options, otlptracegrpc.WithInsecure())
-	} else {
-		secureMux.Lock()
-		_, ok := secureEndpoints[endpoint]
-		if !ok {
-			client := http.Client{
-				Timeout: 2 * time.Second,
-			}
-			_, err = client.Get("https://" + endpoint)
-			if err != nil && strings.Contains(err.Error(), "first record does not look like a TLS handshake") {
-				secureEndpoints[endpoint] = false
-			} else {
-				secureEndpoints[endpoint] = true
-			}
-		}
-		if !secureEndpoints[endpoint] {
-			options = append(options, otlptracegrpc.WithInsecure())
-		}
-		secureMux.Unlock()
-	}
-
-	exp, err := otlptracegrpc.New(ctx, options...)
+	exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
 	if err != nil {
 		return errors.Trace(err)
 	}
-	var bsp sdktrace.SpanProcessor
-	if c.deployment == LOCAL {
+	var sp sdktrace.SpanProcessor
+	var sampler sdktrace.Sampler
+	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
 		// Trace all spans
-		bsp = sdktrace.NewBatchSpanProcessor(exp)
+		sampler = sdktrace.AlwaysSample()
+		sp = sdktrace.NewBatchSpanProcessor(exp)
 	} else { // PROD, LAB
 		// Trace only explicitly selected transactions
+		sampler = sdktrace.AlwaysSample()
 		c.traceSelector = trc.NewProcessor(exp)
-		bsp = c.traceSelector
+		sp = c.traceSelector
 	}
 	c.traceProvider = sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithSpanProcessor(bsp),
+		sdktrace.WithSampler(sampler),
+		sdktrace.WithSpanProcessor(sp),
 		sdktrace.WithResource(resource.NewSchemaless(
 			attribute.String("service.namespace", c.plane),
 			attribute.String("service.name", c.hostName),

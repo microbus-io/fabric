@@ -120,8 +120,8 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 
 	con := New("deployment.env.connector")
 
-	// Bad plane name
-	defer os.Setenv("MICROBUS_DEPLOYMENT", "")
+	orig := os.Getenv("MICROBUS_DEPLOYMENT")
+	defer os.Setenv("MICROBUS_DEPLOYMENT", orig)
 	os.Setenv("MICROBUS_DEPLOYMENT", "lAb")
 
 	err := con.Startup()

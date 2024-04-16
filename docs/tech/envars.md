@@ -41,4 +41,4 @@ Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value cau
  
 ## Distributed Tracing
 
-`Microbus` is using `OpenTelemetry` to send tracing spans to `Jaeger` via the OTLP gRPC collector. The default gRPC endpoint of the collector `127.0.0.1:4317` can be configured using the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable.
+`Microbus` is using `OpenTelemetry` to send tracing spans to `Jaeger` via the OTLP gRPC collector. The default gRPC endpoint of the collector `127.0.0.1:4317` can be configured using the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variables.
