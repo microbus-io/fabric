@@ -26,6 +26,7 @@ func TestConnector_StartupShutdown(t *testing.T) {
 	var startupCalled, shutdownCalled bool
 
 	con := New("startup.shutdown.connector")
+	con.SetDeployment(TESTINGAPP)
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return nil
@@ -58,6 +59,7 @@ func TestConnector_StartupError(t *testing.T) {
 	var startupCalled, shutdownCalled bool
 
 	con := New("startup.error.connector")
+	con.SetDeployment(TESTINGAPP)
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled = true
 		return errors.New("oops")
@@ -88,6 +90,7 @@ func TestConnector_StartupPanic(t *testing.T) {
 	t.Parallel()
 
 	con := New("startup.panic.connector")
+	con.SetDeployment(TESTINGAPP)
 	con.SetOnStartup(func(ctx context.Context) error {
 		panic("really bad")
 	})
@@ -100,6 +103,7 @@ func TestConnector_ShutdownPanic(t *testing.T) {
 	t.Parallel()
 
 	con := New("shutdown.panic.connector")
+	con.SetDeployment(TESTINGAPP)
 	con.SetOnShutdown(func(ctx context.Context) error {
 		panic("really bad")
 	})
@@ -114,6 +118,7 @@ func TestConnector_StartupTimeout(t *testing.T) {
 	t.Parallel()
 
 	con := New("startup.timeout.connector")
+	con.SetDeployment(TESTINGAPP)
 
 	done := make(chan bool)
 	con.SetOnStartup(func(ctx context.Context) error {
@@ -137,6 +142,7 @@ func TestConnector_ShutdownTimeout(t *testing.T) {
 	t.Parallel()
 
 	con := New("shutdown.timeout.connector")
+	con.SetDeployment(TESTINGAPP)
 
 	done := make(chan bool)
 	con.SetOnShutdown(func(ctx context.Context) error {
@@ -164,12 +170,14 @@ func TestConnector_InitError(t *testing.T) {
 	t.Parallel()
 
 	con := New("init.error.connector")
+	con.SetDeployment(TESTINGAPP)
 	err := con.DefineConfig("Hundred", cfg.DefaultValue("101"), cfg.Validation("int [1,100]"))
 	assert.Error(t, err)
 	err = con.Startup()
 	assert.Error(t, err)
 
 	con = New("init.error.connector")
+	con.SetDeployment(TESTINGAPP)
 	err = con.DefineConfig("Hundred", cfg.DefaultValue("1"), cfg.Validation("int [1,100]"))
 	assert.NoError(t, err)
 	err = con.SetConfig("Hundred", "101")
@@ -178,6 +186,7 @@ func TestConnector_InitError(t *testing.T) {
 	assert.Error(t, err)
 
 	con = New("init.error.connector")
+	con.SetDeployment(TESTINGAPP)
 	err = con.Subscribe(":99999/path", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
@@ -186,6 +195,7 @@ func TestConnector_InitError(t *testing.T) {
 	assert.Error(t, err)
 
 	con = New("init.error.connector")
+	con.SetDeployment(TESTINGAPP)
 	err = con.StartTicker("ticktock", -time.Minute, func(ctx context.Context) error {
 		return nil
 	})
@@ -205,6 +215,7 @@ func TestConnector_Restart(t *testing.T) {
 	// Set up a configurator
 	plane := rand.AlphaNum64(12)
 	configurator := New("configurator.sys")
+	configurator.SetDeployment(LAB) // Tickers and configs are disabled in TESTINGAPP
 	configurator.SetPlane(plane)
 
 	err := configurator.Startup()
@@ -213,6 +224,7 @@ func TestConnector_Restart(t *testing.T) {
 
 	// Set up the connector
 	con := New("restart.connector")
+	con.SetDeployment(LAB) // Tickers and configs are disabled in TESTINGAPP
 	con.SetPlane(plane)
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled++
@@ -288,6 +300,7 @@ func TestConnector_GoGracefulShutdown(t *testing.T) {
 	ctx := context.Background()
 
 	con := New("go.graceful.shutdown.connector")
+	con.SetDeployment(TESTINGAPP)
 	err := con.Startup()
 	assert.NoError(t, err)
 
@@ -316,6 +329,7 @@ func TestConnector_Parallel(t *testing.T) {
 	t.Parallel()
 
 	con := New("parallel.connector")
+	con.SetDeployment(TESTINGAPP)
 	err := con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()

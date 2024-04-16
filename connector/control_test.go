@@ -23,6 +23,7 @@ func TestConnector_Ping(t *testing.T) {
 
 	// Create the microservice
 	con := New("ping.connector")
+	con.SetDeployment(TESTINGAPP)
 	con.SetPlane(rand.AlphaNum64(12))
 
 	// Startup the microservice

@@ -26,6 +26,7 @@ func TestConnector_Log(t *testing.T) {
 	stderror := stderrors.New("error")
 
 	con := New("log.connector")
+	con.SetDeployment(TESTINGAPP)
 	assert.False(t, con.IsStarted())
 
 	// No-op when logger is nil, no logs to observe

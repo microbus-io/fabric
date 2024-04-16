@@ -48,6 +48,7 @@ func TestConnector_Plane(t *testing.T) {
 
 	// Before starting
 	con := New("plane.connector")
+	con.SetDeployment(TESTINGAPP)
 	assert.Empty(t, con.Plane())
 	err := con.SetPlane("bad.plane.name")
 	assert.Error(t, err)
@@ -60,6 +61,7 @@ func TestConnector_Plane(t *testing.T) {
 
 	// After starting
 	con = New("plane.connector")
+	con.SetDeployment(TESTINGAPP)
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
@@ -72,6 +74,7 @@ func TestConnector_PlaneEnv(t *testing.T) {
 	// No parallel
 
 	con := New("plane.env.connector")
+	con.SetDeployment(TESTINGAPP)
 
 	// Bad plane name
 	defer os.Setenv("MICROBUS_PLANE", "")
@@ -107,10 +110,11 @@ func TestConnector_Deployment(t *testing.T) {
 
 	// After starting
 	con = New("deployment.connector")
+	con.SetDeployment(TESTINGAPP)
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
-	assert.Equal(t, LOCAL, con.Deployment())
+	assert.Equal(t, TESTINGAPP, con.Deployment())
 	err = con.SetDeployment(LAB)
 	assert.Error(t, err)
 }
@@ -136,6 +140,7 @@ func TestConnector_Version(t *testing.T) {
 
 	// Before starting
 	con := New("version.connector")
+	con.SetDeployment(TESTINGAPP)
 	assert.Empty(t, con.Plane())
 	err := con.SetVersion(-1)
 	assert.Error(t, err)
@@ -148,6 +153,7 @@ func TestConnector_Version(t *testing.T) {
 
 	// After starting
 	con = New("version.connector")
+	con.SetDeployment(TESTINGAPP)
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
