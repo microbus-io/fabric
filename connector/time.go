@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/timex"
 	"github.com/microbus-io/fabric/utils"
@@ -97,7 +97,7 @@ func (c *Connector) runTicker(job *callback) {
 
 			// Call the callback
 			atomic.AddInt32(&c.pendingOps, 1)
-			started := c.Now()
+			started := time.Now()
 			_ = c.doCallback(
 				c.lifetimeCtx,
 				job.Name,
@@ -127,41 +127,22 @@ func (c *Connector) runTicker(job *callback) {
 	}()
 }
 
-// Clock returns the clock of this connector.
-func (c *Connector) Clock() clock.Clock {
-	return c.clock
-}
-
-// Now returns the current time using the connector's clock, in the UTC timezone.
-func (c *Connector) Now() time.Time {
-	return c.clock.Now().UTC()
-}
-
-// NowX returns the current time using the connector's clock, in the UTC timezone.
-func (c *Connector) NowX() timex.Timex {
-	return timex.New(c.clock.Now().UTC())
-}
-
-// SetClock sets an alternative clock for this connector,
-// primarily to be used to inject a mock clock for testing.
-func (c *Connector) SetClock(newClock clock.Clock) error {
-	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
-
-	// All tickers must be stopped and restarted using the new clock
-	for _, job := range c.tickers {
-		if job.Ticker != nil {
-			job.Ticker.Stop()
-			job.Ticker = nil
-		}
+// Now returns the current time in the UTC timezone.
+// In the TESTINGAPP or LOCAL deployments, the time may be offset by setting a clock shift on the frame.
+func (c *Connector) Now(ctx context.Context) time.Time {
+	var offset time.Duration
+	if c.deployment == TESTINGAPP || c.deployment == LOCAL {
+		offset = frame.Of(ctx).ClockShift()
 	}
-	c.clock.Set(newClock)
-	c.clockSet = true
-	for _, job := range c.tickers {
-		if c.started {
-			c.runTicker(job)
-		}
-	}
+	return time.Now().UTC().Add(offset)
+}
 
-	return nil
+// NowX returns the current time in the UTC timezone.
+// In the TESTINGAPP or LOCAL deployments, the time may be offset by setting a clock shift on the frame.
+func (c *Connector) NowX(ctx context.Context) timex.Timex {
+	var offset time.Duration
+	if c.deployment == TESTINGAPP || c.deployment == LOCAL {
+		offset = frame.Of(ctx).ClockShift()
+	}
+	return timex.Now().UTC().Add(offset)
 }

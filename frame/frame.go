@@ -26,9 +26,9 @@ const (
 	HeaderTimeBudget    = HeaderPrefix + "Time-Budget"
 	HeaderCallDepth     = HeaderPrefix + "Call-Depth"
 	HeaderOpCode        = HeaderPrefix + "Op-Code"
-	HeaderTimestamp     = HeaderPrefix + "Timestamp"
 	HeaderQueue         = HeaderPrefix + "Queue"
 	HeaderFragment      = HeaderPrefix + "Fragment"
+	HeaderClockShift    = HeaderPrefix + "Clock-Shift"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -300,6 +300,31 @@ func (f Frame) SetFragment(index int, max int) {
 		f.h.Del(HeaderFragment)
 	} else {
 		f.h.Set(HeaderFragment, strconv.Itoa(index)+"/"+strconv.Itoa(max))
+	}
+}
+
+// ClockShift returns the time offset set in the frame.
+// Time offsets are used during testing to offset the clock of a transaction.
+// A positive offset moves the clock into the future.
+// A negative offset moves the clock into the past.
+func (f Frame) ClockShift() time.Duration {
+	s := f.h.Get(HeaderClockShift)
+	if s == "" {
+		return 0
+	}
+	d, _ := time.ParseDuration(s)
+	return d
+}
+
+// SetClockShift sets the time offset in the frame.
+// Time offsets are used during testing to offset the clock of a transaction.
+// A positive offset moves the clock into the future.
+// A negative offset moves the clock into the past.
+func (f Frame) SetClockShift(offset time.Duration) {
+	if offset == 0 {
+		f.h.Del(HeaderClockShift)
+	} else {
+		f.h.Set(HeaderClockShift, offset.String())
 	}
 }
 

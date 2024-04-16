@@ -232,9 +232,9 @@ func TestConnector_Concurrent(t *testing.T) {
 		i := i
 		wg.Add(1)
 		go func() {
-			start := alpha.Now()
+			start := time.Now()
 			_, err := alpha.GET(ctx, "https://beta.concurrent.connector/wait?ms="+strconv.Itoa(i))
-			end := alpha.Now()
+			end := time.Now()
 			assert.NoError(t, err)
 			assert.WithinDuration(t, start.Add(time.Millisecond*time.Duration(i)), end, time.Millisecond*49)
 			wg.Done()
@@ -354,22 +354,22 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	// Set a time budget in the request
 	shortCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	t0 := con.Now()
+	t0 := time.Now()
 	_, err = con.Request(
 		shortCtx,
 		pub.GET("https://timeout.not.found.connector/nowhere"),
 	)
-	dur := con.Clock().Since(t0)
+	dur := time.Since(t0)
 	assert.Error(t, err)
 	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 
 	// Use the default time budget
-	t0 = con.Now()
+	t0 = time.Now()
 	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.not.found.connector/nowhere"),
 	)
-	dur = con.Clock().Since(t0)
+	dur = time.Since(t0)
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
 	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
@@ -395,13 +395,13 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 
 	shortCtx, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 	defer cancel()
-	t0 := con.Now()
+	t0 := time.Now()
 	_, err = con.Request(
 		shortCtx,
 		pub.GET("https://timeout.slow.connector/slow"),
 	)
 	assert.Error(t, err)
-	dur := con.Clock().Since(t0)
+	dur := time.Since(t0)
 	assert.True(t, dur >= 500*time.Millisecond && dur < 600*time.Millisecond)
 }
 
@@ -489,7 +489,7 @@ func TestConnector_Multicast(t *testing.T) {
 
 	// Make the first request
 	client := named1
-	t0 := client.Now()
+	t0 := time.Now()
 	responded := map[string]bool{}
 	ch := client.Publish(ctx, pub.GET("https://multicast.connector/cast"), pub.Multicast())
 	for i := range ch {
@@ -500,7 +500,7 @@ func TestConnector_Multicast(t *testing.T) {
 			responded[string(body)] = true
 		}
 	}
-	dur := client.Clock().Since(t0)
+	dur := time.Since(t0)
 	assert.True(t, dur >= AckTimeout && dur < AckTimeout*2)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
@@ -511,7 +511,7 @@ func TestConnector_Multicast(t *testing.T) {
 	assert.False(t, responded["def1"] && responded["def2"])
 
 	// Make the second request, should be quicker due to known responders optimization
-	t0 = client.Now()
+	t0 = time.Now()
 	responded = map[string]bool{}
 	ch = client.Publish(ctx, pub.GET("https://multicast.connector/cast"), pub.Multicast())
 	for i := range ch {
@@ -522,7 +522,7 @@ func TestConnector_Multicast(t *testing.T) {
 			responded[string(body)] = true
 		}
 	}
-	dur = client.Clock().Since(t0)
+	dur = time.Since(t0)
 	assert.True(t, dur < AckTimeout)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
@@ -578,7 +578,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 	shortCtx, cancel := context.WithTimeout(ctx, delay*3)
 	defer cancel()
 	var respondedOK, respondedErr int
-	t0 := slow.Now()
+	t0 := time.Now()
 	ch := slow.Publish(
 		shortCtx,
 		pub.GET("https://multicast.delay.connector/cast"),
@@ -589,7 +589,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 		if err == nil {
 			body, err := io.ReadAll(res.Body)
 			assert.NoError(t, err)
-			dur := slow.Clock().Since(t0)
+			dur := time.Since(t0)
 			if string(body) == "fast" {
 				assert.True(t, dur < delay)
 			} else if string(body) == "slow" {
@@ -600,7 +600,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 			assert.Equal(t, http.StatusRequestTimeout, errors.Convert(err).StatusCode)
 			respondedErr++
 			assert.Equal(t, 2, respondedOK)
-			dur := slow.Clock().Since(t0)
+			dur := time.Since(t0)
 			assert.True(t, dur >= 3*delay && dur < 4*delay, "%v", dur)
 		}
 	}
@@ -637,7 +637,7 @@ func TestConnector_MulticastError(t *testing.T) {
 
 	// Send the message
 	var countErrs, countOKs int
-	t0 := bad.Now()
+	t0 := time.Now()
 	ch := bad.Publish(ctx, pub.GET("https://multicast.error.connector/cast"), pub.Multicast())
 	for i := range ch {
 		_, err := i.Get()
@@ -647,7 +647,7 @@ func TestConnector_MulticastError(t *testing.T) {
 			countOKs++
 		}
 	}
-	dur := bad.Clock().Since(t0)
+	dur := time.Since(t0)
 	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 	assert.Equal(t, 1, countErrs)
 	assert.Equal(t, 1, countOKs)
@@ -669,13 +669,13 @@ func TestConnector_MulticastNotFound(t *testing.T) {
 
 	// Send the message
 	var count int
-	t0 := con.Now()
+	t0 := time.Now()
 	ch := con.Publish(ctx, pub.GET("https://multicast.not.found.connector/nowhere"), pub.Multicast())
 	for i := range ch {
 		i.Get()
 		count++
 	}
-	dur := con.Clock().Since(t0)
+	dur := time.Since(t0)
 	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 	assert.Equal(t, 0, count)
 }
@@ -730,7 +730,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 
 	// Send the message
 	var countOKs int
-	t0 := client.Now()
+	t0 := time.Now()
 	ch := client.Publish(ctx, pub.GET("https://mass.multicast.connector/cast"), pub.Multicast())
 	for i := range ch {
 		_, err := i.Get()
@@ -738,7 +738,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 			countOKs++
 		}
 	}
-	dur := client.Clock().Since(t0)
+	dur := time.Since(t0)
 	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
 	assert.Equal(t, N, countOKs)
 }
@@ -817,7 +817,7 @@ func TestConnector_KnownResponders(t *testing.T) {
 
 	check := func() (count int, quick bool) {
 		responded := map[string]bool{}
-		t0 := alpha.Now()
+		t0 := time.Now()
 		ch := alpha.Publish(ctx, pub.GET("https://known.responders.connector/cast"), pub.Multicast())
 		for i := range ch {
 			res, err := i.Get()
@@ -825,7 +825,7 @@ func TestConnector_KnownResponders(t *testing.T) {
 				responded[frame.Of(res).FromID()] = true
 			}
 		}
-		dur := alpha.Clock().Since(t0)
+		dur := time.Since(t0)
 		return len(responded), dur < AckTimeout
 	}
 
@@ -884,7 +884,7 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	t0 := con.Now()
+	t0 := time.Now()
 	go func() {
 		_, err = con.Request(
 			con.Lifetime(),
@@ -897,7 +897,7 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 	con.ctxCancel()
 	<-step
 	assert.True(t, done)
-	dur := con.Clock().Since(t0)
+	dur := time.Since(t0)
 	assert.True(t, dur < time.Second)
 }
 

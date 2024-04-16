@@ -41,9 +41,9 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 7](https://github.com/microbus-io/fabric/tree/milestone/7):
 
 * Tickers
-* Mockable clock
+* Mockable clock (deprecated in milestone 19)
 * Context for the `Lifetime` of the microservice
-* Customizable time budget for callbacks
+* Customizable time budget for callbacks (deprecated in milestone 19)
 * Drain pending operations during shutdown
 
 [Milestone 8](https://github.com/microbus-io/fabric/tree/milestone/8):
@@ -155,5 +155,6 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 19](https://github.com/microbus-io/fabric/tree/milestone/19):
 
 * Distributed tracing with `OpenTelemetry` and `Jaeger`
-* Deprecate the concept of time budget for callbacks and remove the `cb` package
- 
+* Deprecated the concept of the time budget for callbacks and removed the `cb` package
+* Deprecated the concept of the mockable clock and removed the `clock` package
+* Introduced transactional clock shifting via the `frame` and adjusted `connector.Now` to accept a `ctx`

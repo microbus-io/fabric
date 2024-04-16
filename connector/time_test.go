@@ -9,33 +9,66 @@ package connector
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnector_NoMockClockInProd(t *testing.T) {
+func TestConnector_ClockOffset(t *testing.T) {
 	t.Parallel()
 
-	mockClock := clock.NewMockAtNow()
+	// Create the microservices
+	alpha := New("alpha.clock.offset.connector")
+	alpha.SetDeployment(TESTINGAPP)
 
-	con := New("no.mock.clock.in.prod.connector")
-	con.SetDeployment(TESTINGAPP)
+	var betaTime time.Time
+	var betaShift time.Duration
+	beta := New("beta.clock.offset.connector")
+	beta.SetDeployment(TESTINGAPP)
+	beta.Subscribe("void", func(w http.ResponseWriter, r *http.Request) error {
+		ctx := r.Context()
+		betaTime = beta.Now(ctx)
+		betaShift = frame.Of(ctx).ClockShift()
+		return nil
+	})
 
-	// OK before a deployment was set to PROD
-	err := con.SetClock(mockClock)
+	// Startup the microservices
+	err := alpha.Startup()
 	assert.NoError(t, err)
-
-	// OK before service was started
-	con.SetDeployment(PROD)
-	err = con.SetClock(mockClock)
+	defer alpha.Shutdown()
+	err = beta.Startup()
 	assert.NoError(t, err)
+	defer beta.Shutdown()
 
-	// Should fail to start with the mock clock set
-	err = con.Startup()
-	assert.Error(t, err)
+	// Shift the time in the context one minute in the past
+	ctx := context.WithValue(context.Background(), frame.ContextKey, make(http.Header))
+	frame.Of(ctx).SetClockShift(-time.Minute)
+
+	// Send message and validate that beta receives the offset time
+	realTime := time.Now()
+	time.Sleep(10 * time.Millisecond)
+	alphaTime := alpha.Now(ctx)
+	assert.Less(t, alphaTime, realTime)
+	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/void")
+	assert.NoError(t, err)
+	assert.Less(t, betaTime, realTime)
+	assert.Equal(t, -time.Minute, betaShift)
+
+	// Shift the time in the context one hour in the future
+	ctx = context.WithValue(context.Background(), frame.ContextKey, make(http.Header))
+	frame.Of(ctx).SetClockShift(time.Hour)
+
+	// Send message and validate that beta receives the offset time
+	realTime = time.Now()
+	alphaTime = alpha.Now(ctx)
+	assert.Greater(t, alphaTime, realTime.Add(time.Minute))
+	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/void")
+	assert.NoError(t, err)
+	assert.Greater(t, betaTime, realTime.Add(time.Minute))
+	assert.Equal(t, time.Hour, betaShift)
 }
 
 func TestConnector_Ticker(t *testing.T) {
@@ -100,19 +133,6 @@ func TestConnector_TickerSkippingBeats(t *testing.T) {
 
 	<-step // at 4 intervals
 	assert.Equal(t, 2, count)
-}
-
-func TestConnector_ClockNow(t *testing.T) {
-	t.Parallel()
-
-	mockClock := clock.NewMockAtNow()
-
-	con := New("clock.now.connector")
-	con.SetDeployment(TESTINGAPP)
-	con.SetClock(mockClock)
-
-	assert.True(t, mockClock.Now().Equal(con.Now()))
-	assert.True(t, mockClock.Now().Equal(con.Clock().Now()))
 }
 
 func TestConnector_TickerPendingOps(t *testing.T) {

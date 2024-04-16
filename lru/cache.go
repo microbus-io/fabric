@@ -11,8 +11,6 @@ import (
 	"errors"
 	"sync"
 	"time"
-
-	"github.com/microbus-io/fabric/clock"
 )
 
 // node is a container for a single value, its weight and expiration.
@@ -29,16 +27,16 @@ type node[K comparable, V any] struct {
 // The LRU cache performs locking internally and is thread-safe.
 // It also keeps track of the hit/miss statistics.
 type Cache[K comparable, V any] struct {
-	lookup    map[K]*node[K, V]
-	newest    *node[K, V]
-	oldest    *node[K, V]
-	weight    int
-	maxWeight int
-	maxAge    time.Duration
-	hits      int
-	misses    int
-	lock      sync.Mutex
-	clock     clock.Clock // For testing
+	lookup     map[K]*node[K, V]
+	newest     *node[K, V]
+	oldest     *node[K, V]
+	weight     int
+	maxWeight  int
+	maxAge     time.Duration
+	hits       int
+	misses     int
+	lock       sync.Mutex
+	timeOffset time.Duration // For testing only
 }
 
 // NewCache creates a new LRU cache with a weight capacity of 16384 and a maximum age of 1hr.
@@ -47,7 +45,6 @@ func NewCache[K comparable, V any]() *Cache[K, V] {
 		lookup:    make(map[K]*node[K, V], 1024),
 		maxWeight: 16384,
 		maxAge:    time.Hour,
-		clock:     clock.NewClock(),
 	}
 }
 
@@ -88,7 +85,7 @@ func (c *Cache[K, V]) store(key K, value V, opts cacheOptions) {
 		key:      key,
 		value:    value,
 		weight:   opts.Weight,
-		inserted: c.clock.Now(),
+		inserted: time.Now().Add(c.timeOffset),
 		older:    c.newest,
 	}
 	c.lookup[key] = nd
@@ -143,7 +140,7 @@ func (c *Cache[K, V]) Load(key K, options ...Option) (value V, ok bool) {
 
 func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 	nd, ok := c.lookup[key]
-	if ok && c.clock.Since(nd.inserted) > opts.MaxAge {
+	if ok && time.Now().Add(c.timeOffset).Sub(nd.inserted) > opts.MaxAge {
 		c.delete(key)
 		ok = false
 	}
@@ -178,7 +175,7 @@ func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 			c.newest.newer = nd
 		}
 		c.newest = nd
-		nd.inserted = c.clock.Now() // Bumping renews the life of the element
+		nd.inserted = time.Now().Add(c.timeOffset) // Bumping renews the life of the element
 	}
 	return nd.value, true
 }

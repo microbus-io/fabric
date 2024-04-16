@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
@@ -238,19 +237,17 @@ func TestLRU_MaxAge(t *testing.T) {
 	t.Parallel()
 
 	cache := NewCache[int, string]()
-	cache.SetMaxAge(time.Second * 30)
-	clock := clock.NewMock()
-	cache.clock = clock
+	cache.SetMaxAge(time.Second * 35)
 
 	cache.Store(0, "X")
-	clock.Add(30 * time.Second)
+	cache.timeOffset += time.Second * 30 // t=30
 	cache.Store(30, "X")
 	assert.True(t, cache.Exists(0))
 	assert.True(t, cache.Exists(30))
 	assert.Equal(t, 2, cache.Len())
 
 	// Elements older than the max age of the cache should expire
-	clock.Add(10 * time.Second)
+	cache.timeOffset += time.Second * 10 // t=40
 	cache.Store(40, "X")
 	assert.Equal(t, 3, cache.Len()) // 0 element is still cached
 	assert.False(t, cache.Exists(0))
@@ -258,7 +255,7 @@ func TestLRU_MaxAge(t *testing.T) {
 	assert.True(t, cache.Exists(40))
 	assert.Equal(t, 2, cache.Len()) // 0 element was evicted on failed load
 
-	clock.Add(30 * time.Second)
+	cache.timeOffset += time.Second * 30 // t=70
 	assert.False(t, cache.Exists(30))
 	assert.True(t, cache.Exists(40))
 	assert.Equal(t, 1, cache.Len()) // 30 element was evicted on failed load
@@ -275,14 +272,12 @@ func TestLRU_BumpMaxAge(t *testing.T) {
 
 	cache := NewCache[int, string]()
 	cache.SetMaxAge(time.Second * 30)
-	clock := clock.NewMock()
-	cache.clock = clock
 
 	cache.Store(0, "X")
-	clock.Add(20 * time.Second)
+	cache.timeOffset += time.Second * 20
 	_, ok := cache.Load(0, Bump(true))
 	assert.True(t, ok)
-	clock.Add(20 * time.Second)
+	cache.timeOffset += time.Second * 20
 	_, ok = cache.Load(0, Bump(true))
 	assert.True(t, ok)
 }
@@ -292,13 +287,11 @@ func TestLRU_ReduceMaxAge(t *testing.T) {
 
 	cache := NewCache[int, string]()
 	cache.SetMaxAge(time.Minute)
-	clock := clock.NewMock()
-	cache.clock = clock
 
 	cache.Store(0, "X")
-	clock.Add(time.Second * 30)
+	cache.timeOffset += time.Second * 30
 	cache.Store(30, "X")
-	clock.Add(time.Second * 30)
+	cache.timeOffset += time.Second * 20
 	cache.Store(60, "X")
 	assert.True(t, cache.Exists(0))
 	assert.True(t, cache.Exists(30))
@@ -321,13 +314,11 @@ func TestLRU_IncreaseMaxAge(t *testing.T) {
 
 	cache := NewCache[int, string]()
 	cache.SetMaxAge(time.Minute)
-	clock := clock.NewMock()
-	cache.clock = clock
 
 	cache.Store(0, "X")
-	clock.Add(time.Second * 30)
+	cache.timeOffset += time.Second * 30
 	cache.Store(30, "X")
-	clock.Add(time.Second * 30)
+	cache.timeOffset += time.Second * 20
 	cache.Store(60, "X")
 	assert.True(t, cache.Exists(0))
 	assert.True(t, cache.Exists(30))
@@ -336,7 +327,7 @@ func TestLRU_IncreaseMaxAge(t *testing.T) {
 
 	// Double the age limit
 	cache.SetMaxAge(time.Minute * 2)
-	clock.Add(time.Second * 30)
+	cache.timeOffset += time.Second * 30
 	cache.Store(90, "X")
 
 	assert.True(t, cache.Exists(0))

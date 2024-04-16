@@ -8,7 +8,6 @@ The `Connector` is the most fundamental construct of the framework, providing ke
 * HTTP-like communication over NATS, unicast (request/response) and multicast (pub/sub)
 * JSON logger
 * [Configuration](../tech/configuration.md)
-* Mockable clock
 * Tickers to execute jobs on a fixed schedule
 * Distributed cache
 * Bundled resource files and strings
@@ -28,4 +27,4 @@ The `connector` package includes a separate source file for each functional area
 * `service.go` defines the public interface of the `Connector`
 * `subscribe.go` deals with inbound message handling
 * `telemetry.go` supports distributed tracing with OpenTelemetry
-* `time.go` introduces tickers and a mockable clock to the microservice
+* `time.go` introduces tickers to the microservice

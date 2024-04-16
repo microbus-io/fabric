@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cfg"
-	"github.com/microbus-io/fabric/clock"
 	"github.com/microbus-io/fabric/dlru"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
@@ -101,8 +100,6 @@ type Connector struct {
 	logger   *zap.Logger
 	logDebug bool
 
-	clock       *clock.ClockReference
-	clockSet    bool
 	tickers     map[string]*callback
 	tickersLock sync.Mutex
 
@@ -122,7 +119,6 @@ func NewConnector() *Connector {
 		subs:             map[string]*sub.Subscription{},
 		requestDefrags:   map[string]*httpx.DefragRequest{},
 		responseDefrags:  map[string]*httpx.DefragResponse{},
-		clock:            clock.NewClockReference(clock.NewClock()),
 		tickers:          map[string]*callback{},
 		lifetimeCtx:      context.Background(),
 		knownResponders:  lru.NewCache[string, map[string]bool](),

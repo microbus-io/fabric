@@ -140,12 +140,6 @@ func (c *Connector) Startup() (err error) {
 	}
 	c.LogInfo(ctx, "Startup")
 
-	// Validate that clock is not changed except for development purposes
-	if c.Deployment() != LOCAL && c.Deployment() != TESTINGAPP && c.clockSet {
-		err = errors.Newf("clock can't be changed in %s deployment", c.Deployment())
-		return err
-	}
-
 	// Connect to NATS
 	err = c.connectToNATS(ctx)
 	if err != nil {

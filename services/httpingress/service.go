@@ -383,7 +383,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 	if timeBudget > 0 {
 		var cancel context.CancelFunc
-		delegateCtx, cancel = svc.Clock().WithTimeout(ctx, timeBudget)
+		delegateCtx, cancel = context.WithTimeout(ctx, timeBudget)
 		defer cancel()
 	}
 
