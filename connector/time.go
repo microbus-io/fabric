@@ -128,21 +128,15 @@ func (c *Connector) runTicker(job *callback) {
 }
 
 // Now returns the current time in the UTC timezone.
-// In the TESTINGAPP or LOCAL deployments, the time may be offset by setting a clock shift on the frame.
+// The time may be offset if the context was a clock shift was set on the context using the frame.
 func (c *Connector) Now(ctx context.Context) time.Time {
-	var offset time.Duration
-	if c.deployment == TESTINGAPP || c.deployment == LOCAL {
-		offset = frame.Of(ctx).ClockShift()
-	}
+	offset := frame.Of(ctx).ClockShift()
 	return time.Now().UTC().Add(offset)
 }
 
 // NowX returns the current time in the UTC timezone.
-// In the TESTINGAPP or LOCAL deployments, the time may be offset by setting a clock shift on the frame.
+// The time may be offset if the context was a clock shift was set on the context using the frame.
 func (c *Connector) NowX(ctx context.Context) timex.Timex {
-	var offset time.Duration
-	if c.deployment == TESTINGAPP || c.deployment == LOCAL {
-		offset = frame.Of(ctx).ClockShift()
-	}
+	offset := frame.Of(ctx).ClockShift()
 	return timex.Now().UTC().Add(offset)
 }

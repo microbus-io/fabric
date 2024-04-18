@@ -157,4 +157,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Distributed tracing with `OpenTelemetry` and `Jaeger`
 * Deprecated the concept of the time budget for callbacks and removed the `cb` package
 * Deprecated the concept of the mockable clock and removed the `clock` package
-* Introduced transactional clock shifting via the `frame` and adjusted `connector.Now` to accept a `ctx`
+* Introduced clock shifting via the `ctx` and adjusted `connector.Now` to accept a `ctx`
