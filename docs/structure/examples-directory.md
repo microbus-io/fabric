@@ -6,7 +6,7 @@ The `directory.example` microservice is an example of a microservice that provid
 
 It only takes a few steps to add SQL support to a microservice.
 
-Step 1: Edit `service.yaml` to define a SQL database. In this example case we name a `mariadb` database `Maria`.
+Step 1: Edit `service.yaml` to define a SQL database. In this example case we name a MariaDB database `Maria`.
 
 ```yaml
 databases:
@@ -41,14 +41,14 @@ all:
 
 ## Connecting to the Database
 
-If you don't have a `MariaDB` database running already, you can use `Docker` to install and run it locally:
+If you don't have a MariaDB database running already, you can use `Docker` to install and run it locally:
 
 ```cmd
 docker pull mariadb
 docker run -p 3306:3306 --name mariadb1 -e MARIADB_ROOT_PASSWORD=secret1234 -d mariadb
 ```
 
-The connection string to the database is pulled from `examples/main/config.yaml` by the configurator and served to the `directory.example` microservice. Uncomment and edit as necessary to point to the location of your `MariaDB` database.
+The connection string to the database is pulled from `examples/main/config.yaml` by the configurator and served to the `directory.example` microservice. Uncomment and edit as necessary to point to the location of your MariaDB database.
 
 ```yaml
 all:

@@ -333,7 +333,7 @@ metrics:
 
 Metrics support three [collector types](https://prometheus.io/docs/concepts/metric_types/): counter, histogram and gauge.
 
-The name of the metric is derived from the function signature. It should adhere to the [naming best practices](https://prometheus.io/docs/practices/naming/) if at all possible. A `Prometheus` alias is automatically generated but may be overridden if necessary.
+The name of the metric is derived from the function signature. It should adhere to the [naming best practices](https://prometheus.io/docs/practices/naming/) if at all possible. A Prometheus alias is automatically generated but may be overridden if necessary.
 
 ## Clients
 

@@ -224,13 +224,23 @@ Include the new microservice in the app in `examples/main/main.go` and run it us
 func main() {
 	app := application.New(
 		configurator.NewService(),
-		httpingress.NewService(),
-		hello.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		calculator.NewService(),
-		wordly.NewService(), // <-- Add
+		application.Group{
+			hello.NewService(),
+			messaging.NewService(),
+			messaging.NewService(),
+			messaging.NewService(),
+			calculator.NewService(),
+			eventsource.NewService(),
+			eventsink.NewService(),
+			directory.NewService(),
+    		wordly.NewService(), // <-- Add
+		},
+		application.Group{
+			openapiportal.NewService(),
+			httpingress.NewService(),
+			metrics.NewService(),
+			// inbox.NewService(),
+		},
 	)
 	app.Run()
 }
@@ -251,7 +261,7 @@ This microservice is far from being polished. Try the following on your own:
 
 * Add a title to the top of the page
 * Add instructions that mention how many guesses the player has left
-* Add a UI element (link or button) to enable the player start a new game
+* Add a UI element (link or button) to enable the player to start a new game
 * Give a cleaner error message to the user on an invalid guess
 * Do not print the guessing form if the player exhausted all of their guesses
 * Do not accept guesses after the player identified the secret word

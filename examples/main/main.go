@@ -18,6 +18,7 @@ import (
 	"github.com/microbus-io/fabric/services/configurator"
 	"github.com/microbus-io/fabric/services/httpingress"
 	"github.com/microbus-io/fabric/services/metrics"
+	"github.com/microbus-io/fabric/services/openapiportal"
 )
 
 /*
@@ -37,6 +38,7 @@ func main() {
 			directory.NewService(),
 		},
 		application.Group{
+			openapiportal.NewService(),
 			httpingress.NewService(),
 			metrics.NewService(),
 			// inbox.NewService(),

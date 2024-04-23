@@ -28,10 +28,14 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/microbus-io/fabric/examples/hello/resources"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
@@ -49,10 +53,13 @@ var (
 	_ time.Duration
 	_ cfg.Option
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.ResponseRecorder
 	_ *log.Field
+	_ *openapi.Service
 	_ *shardedsql.DB
 	_ sub.Option
+	_ yaml.Encoder
 	_ helloapi.Client
 )
 
@@ -104,6 +111,9 @@ func NewService(impl ToDo, version int) *Intermediate {
 		cfg.DefaultValue(`1`),
 	)
 	
+	// OpenAPI
+	svc.Subscribe(`:443/openapi.yaml`, svc.doOpenAPI)
+	
 	// Webs
 	svc.Subscribe(`:443/hello`, svc.impl.Hello)
 	svc.Subscribe(`:443/echo`, svc.impl.Echo)
@@ -120,6 +130,108 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetResFS(resources.FS)
 
 	return svc
+}
+
+// doOpenAPI renders the OpenAPI document of the microservice.
+func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error {
+	oapiSvc := openapi.Service{
+		ServiceName: svc.HostName(),
+		Description: svc.Description(),
+		Version:     svc.Version(),
+		Endpoints:   []*openapi.Endpoint{},
+		RemoteURI:   frame.Of(r).XForwardedFullURL(),
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Hello`,
+			Path:        `:443/hello`,
+			Summary:     `Hello()`,
+			Description: `Hello prints a greeting.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Echo`,
+			Path:        `:443/echo`,
+			Summary:     `Echo()`,
+			Description: `Echo back the incoming request in wire format.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Ping`,
+			Path:        `:443/ping`,
+			Summary:     `Ping()`,
+			Description: `Ping all microservices and list them.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Calculator`,
+			Path:        `:443/calculator`,
+			Summary:     `Calculator()`,
+			Description: `Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `BusJPEG`,
+			Path:        `:443/bus.jpeg`,
+			Summary:     `BusJPEG()`,
+			Description: `BusJPEG serves an image from the embedded resources.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Localization`,
+			Path:        `:443/localization`,
+			Summary:     `Localization()`,
+			Description: `Localization prints hello in the language best matching the request's Accept-Language header.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+
+	if len(oapiSvc.Endpoints) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
+	err := yaml.NewEncoder(w).Encode(&oapiSvc)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

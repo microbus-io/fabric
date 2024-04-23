@@ -20,7 +20,7 @@
             "mode": "auto",
             "program": "${workspaceFolder}/codegen",
             "cwd": "${workspaceFolder}/examples/calculator",
-            "env": {"MICROBUS_CODEGEN": "-f -v"}
+            "env": {"CODEGEN": "-f -v"}
         }
     ]
 }

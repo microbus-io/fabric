@@ -109,12 +109,13 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 		go func(s string, delay time.Duration) {
 			defer wg.Done()
 			time.Sleep(delay) // Stagger requests to avoid all of them coming back at the same time
-			host := "https://" + s + ":888/metrics"
+			u := "https://" + s + ":888/metrics"
 			ch := svc.Publish(
 				ctx,
-				pub.GET(host),
+				pub.GET(u),
 				pub.Header("Accept-Encoding", "gzip"),
-				timeout)
+				timeout,
+			)
 			for i := range ch {
 				res, err := i.Get()
 				if err != nil {

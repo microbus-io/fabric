@@ -9,6 +9,7 @@
 # host - The host name of the microservice
 # description - A human-friendly description of the microservice
 # integrationTests - Whether or not to generate integration tests (defaults to true)
+# openApi - Whether or not to generate an OpenAPI document at openapi.yaml (defaults to true)
 general:
   host: eventsource.example
   description: The event source microservice fires events that are caught by the event sink microservice.
@@ -63,6 +64,7 @@ configs:
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
+# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
 functions:
   - signature: Register(email string) (allowed bool)
     description: Register attempts to register a new user.
@@ -121,6 +123,7 @@ sinks:
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
+# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
 webs:
   # - signature:
   #   description:

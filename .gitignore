@@ -20,5 +20,5 @@ nats-server
 
 # Other
 .DS_Store
-__debug_bin
 examples/main/main
+examples/main/__debug_bin*

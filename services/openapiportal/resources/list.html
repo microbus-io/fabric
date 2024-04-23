@@ -1,0 +1,28 @@
+<!--
+Copyright (c) 2023-2024 Microbus LLC and various contributors
+
+This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
+Neither may be used, copied or distributed without the express written consent of Microbus LLC.
+-->
+
+<html>
+<head>
+    <style>
+        BODY {font-family:Arial, Helvetica, sans-serif;}
+        H3 {margin: 0; margin-block-start: 0.5em; margin-block-end: 0.25em;}
+        P {margin: 0; margin-block-start: 0.25em; margin-block-end: 1em;}
+        A {text-decoration: none;}
+        A:hover {text-decoration: underline;}
+    </style>
+</head>
+<body>
+    <h1>OpenAPI:{{ .Port }}</h1>
+{{ range .Infos }}
+<p>
+    <h3><a href="/{{ .Host }}/openapi.yaml">{{ .Host }}</a></h3>
+    {{ .Description }}
+</p>
+{{ end }}
+{{ if eq (len .Infos) 0 }}No OpenAPI endpoints{{ end }}
+</body>
+</html>

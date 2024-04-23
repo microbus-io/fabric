@@ -17,6 +17,7 @@ type General struct {
 	Host             string `yaml:"host"`
 	Description      string `yaml:"description"`
 	IntegrationTests bool   `yaml:"integrationTests"`
+	OpenAPI          bool   `yaml:"openApi"`
 }
 
 // UnmarshalYAML parses and validates the YAML.
@@ -25,6 +26,7 @@ func (g *General) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type different General
 	var x different
 	x.IntegrationTests = true // Default
+	x.OpenAPI = true          // Default
 	err := unmarshal(&x)
 	if err != nil {
 		return errors.Trace(err)

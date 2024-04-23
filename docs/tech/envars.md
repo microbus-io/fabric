@@ -41,4 +41,4 @@ Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value cau
  
 ## Distributed Tracing
 
-`Microbus` is using `OpenTelemetry` to send tracing spans to `Jaeger` via the OTLP HTTP collector. In order to enable tracing, the endpoint of the collector must be set in the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` environment variables.
+`Microbus` is using OpenTelemetry to send tracing spans to Jaeger via the OTLP HTTP collector. In order to enable tracing, the endpoint of the collector must be set in the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` environment variables.

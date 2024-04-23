@@ -28,10 +28,14 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/microbus-io/fabric/examples/directory/resources"
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
@@ -49,10 +53,13 @@ var (
 	_ time.Duration
 	_ cfg.Option
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.ResponseRecorder
 	_ *log.Field
+	_ *openapi.Service
 	_ *shardedsql.DB
 	_ sub.Option
+	_ yaml.Encoder
 	_ directoryapi.Client
 )
 
@@ -98,7 +105,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
-	svc.SetOnShutdown(svc.impl.OnShutdown)	
+	svc.SetOnShutdown(svc.impl.OnShutdown)
+	
+	// OpenAPI
+	svc.Subscribe(`:443/openapi.yaml`, svc.doOpenAPI)	
 
 	// Functions
 	svc.Subscribe(`:443/create`, svc.doCreate)
@@ -112,6 +122,120 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetResFS(resources.FS)
 
 	return svc
+}
+
+// doOpenAPI renders the OpenAPI document of the microservice.
+func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error {
+	oapiSvc := openapi.Service{
+		ServiceName: svc.HostName(),
+		Description: svc.Description(),
+		Version:     svc.Version(),
+		Endpoints:   []*openapi.Endpoint{},
+		RemoteURI:   frame.Of(r).XForwardedFullURL(),
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `Create`,
+			Path:        `:443/create`,
+			Summary:     `Create(person *Person) (created *Person)`,
+			Description: `Create registers the person in the directory.`,
+			InputArgs: struct {
+				Xperson *directoryapi.Person `json:"person"`
+			}{},
+			OutputArgs: struct {
+				Xcreated *directoryapi.Person `json:"created"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `Load`,
+			Path:        `:443/load`,
+			Summary:     `Load(key PersonKey) (person *Person, ok bool)`,
+			Description: `Load looks up a person in the directory.`,
+			InputArgs: struct {
+				Xkey directoryapi.PersonKey `json:"key"`
+			}{},
+			OutputArgs: struct {
+				Xperson *directoryapi.Person `json:"person"`
+				Xok bool `json:"ok"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `Delete`,
+			Path:        `:443/delete`,
+			Summary:     `Delete(key PersonKey) (ok bool)`,
+			Description: `Delete removes a person from the directory.`,
+			InputArgs: struct {
+				Xkey directoryapi.PersonKey `json:"key"`
+			}{},
+			OutputArgs: struct {
+				Xok bool `json:"ok"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `Update`,
+			Path:        `:443/update`,
+			Summary:     `Update(person *Person) (updated *Person, ok bool)`,
+			Description: `Update updates the person's data in the directory.`,
+			InputArgs: struct {
+				Xperson *directoryapi.Person `json:"person"`
+			}{},
+			OutputArgs: struct {
+				Xupdated *directoryapi.Person `json:"updated"`
+				Xok bool `json:"ok"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `LoadByEmail`,
+			Path:        `:443/load-by-email`,
+			Summary:     `LoadByEmail(email string) (person *Person, ok bool)`,
+			Description: `LoadByEmail looks up a person in the directory by their email.`,
+			InputArgs: struct {
+				Xemail string `json:"email"`
+			}{},
+			OutputArgs: struct {
+				Xperson *directoryapi.Person `json:"person"`
+				Xok bool `json:"ok"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `List`,
+			Path:        `:443/list`,
+			Summary:     `List() (keys []PersonKey)`,
+			Description: `List returns the keys of all the persons in the directory.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+				Xkeys []directoryapi.PersonKey `json:"keys"`
+			}{},
+		})
+	}
+
+	if len(oapiSvc.Endpoints) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
+	err := yaml.NewEncoder(w).Encode(&oapiSvc)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

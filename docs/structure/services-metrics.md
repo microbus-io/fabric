@@ -1,6 +1,6 @@
 # Package `services/metrics`
 
-The `Microbus` framework relies on `Prometheus` for the collection of metrics. `Prometheus` pulls metrics from the metrics system microservice, which in turn pulls and aggregates metrics from all microservices it can reach on the NATS bus.
+The `Microbus` framework relies on Prometheus for the collection of metrics. Prometheus pulls metrics from the metrics system microservice, which in turn pulls and aggregates metrics from all microservices it can reach on the NATS bus.
 
 <img src="services-metrics-1.svg" width="600">
 

@@ -28,10 +28,14 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/microbus-io/fabric/examples/messaging/resources"
 	"github.com/microbus-io/fabric/examples/messaging/messagingapi"
@@ -49,10 +53,13 @@ var (
 	_ time.Duration
 	_ cfg.Option
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.ResponseRecorder
 	_ *log.Field
+	_ *openapi.Service
 	_ *shardedsql.DB
 	_ sub.Option
+	_ yaml.Encoder
 	_ messagingapi.Client
 )
 
@@ -88,6 +95,9 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
+	// OpenAPI
+	svc.Subscribe(`:443/openapi.yaml`, svc.doOpenAPI)
+	
 	// Webs
 	svc.Subscribe(`:443/home`, svc.impl.Home)
 	svc.Subscribe(`:443/no-queue`, svc.impl.NoQueue, sub.NoQueue())
@@ -99,6 +109,97 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetResFS(resources.FS)
 
 	return svc
+}
+
+// doOpenAPI renders the OpenAPI document of the microservice.
+func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error {
+	oapiSvc := openapi.Service{
+		ServiceName: svc.HostName(),
+		Description: svc.Description(),
+		Version:     svc.Version(),
+		Endpoints:   []*openapi.Endpoint{},
+		RemoteURI:   frame.Of(r).XForwardedFullURL(),
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Home`,
+			Path:        `:443/home`,
+			Summary:     `Home()`,
+			Description: `Home demonstrates making requests using multicast and unicast request/response patterns.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `NoQueue`,
+			Path:        `:443/no-queue`,
+			Summary:     `NoQueue()`,
+			Description: `NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `DefaultQueue`,
+			Path:        `:443/default-queue`,
+			Summary:     `DefaultQueue()`,
+			Description: `DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `CacheLoad`,
+			Path:        `:443/cache-load`,
+			Summary:     `CacheLoad()`,
+			Description: `CacheLoad looks up an element in the distributed cache of the microservice.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `CacheStore`,
+			Path:        `:443/cache-store`,
+			Summary:     `CacheStore()`,
+			Description: `CacheStore stores an element in the distributed cache of the microservice.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+
+	if len(oapiSvc.Endpoints) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
+	err := yaml.NewEncoder(w).Encode(&oapiSvc)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

@@ -1,6 +1,6 @@
 # Package `mtr`
 
-The `mtr` package defines the components needed to support `Prometheus` metrics. The [collector types](https://prometheus.io/docs/concepts/metric_types/) supported are `Counter`, `Gauge`, and `Histogram`. The `Summary` collector type is currently not supported. 
+The `mtr` package defines the components needed to support Prometheus metrics. The [collector types](https://prometheus.io/docs/concepts/metric_types/) supported are `Counter`, `Gauge`, and `Histogram`. The `Summary` collector type is currently not supported. 
 
 Valid operations on the collector types are `Increment`, `Observe`, or both. 
 

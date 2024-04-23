@@ -15,6 +15,7 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -29,6 +30,7 @@ type Handler struct {
 	Description string     `yaml:"description"`
 	Path        string     `yaml:"path"`
 	Queue       string     `yaml:"queue"`
+	OpenAPI     bool       `yaml:"openApi"`
 
 	// Sink
 	Event   string `yaml:"event"`
@@ -55,6 +57,7 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Unmarshal
 	type different Handler
 	var x different
+	x.OpenAPI = true // Default
 	err := unmarshal(&x)
 	if err != nil {
 		return errors.Trace(err)
@@ -266,4 +269,13 @@ func (h *Handler) Observable() bool {
 // Incrementable indicates if the metric can be incremented.
 func (h *Handler) Incrementable() bool {
 	return h.Kind == "counter" || h.Kind == "gauge"
+}
+
+// Port returns the port number used in the path.
+func (h *Handler) Port() (int, error) {
+	s, err := sub.NewSub("hostname", h.Path, nil)
+	if err != nil {
+		return 0, err
+	}
+	return s.Port, nil
 }

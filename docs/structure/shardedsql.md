@@ -69,7 +69,7 @@ Migrations are executed when a microservice starts up, guaranteeing that the pie
 
 ## Testing Database
 
-The `TestingDB` creates a randomly-named sharded database on localhost for development purposes. It is typically used in integration tests of microservices that depend on a database. `TestingDB` connects to the database on 127.0.0.1 on the default port (3306 for `MariaDB` and `MySQL`) using the default admin user ("root" for `MariaDB` and `MySQL`) with password `secret1234`. It creates 3 databases, one for each shard, using the pattern `testing_{hhmmss}_{random}_%d`. These databases are dropped when the database is closed.
+The `TestingDB` creates a randomly-named sharded database on localhost for development purposes. It is typically used in integration tests of microservices that depend on a database. `TestingDB` connects to the database on 127.0.0.1 on the default port (3306 for MariaDB and MySQL) using the default admin user ("root" for MariaDB and MySQL) with password `secret1234`. It creates 3 databases, one for each shard, using the pattern `testing_{hhmmss}_{random}_%d`. These databases are dropped when the database is closed.
 
 ```go
 var testingDB TestingDB

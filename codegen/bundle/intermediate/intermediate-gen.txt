@@ -23,10 +23,14 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+
+	"gopkg.in/yaml.v3"
 
 	"{{ .Package }}/resources"
 	"{{ .Package }}/{{ .PackageSuffix }}api"
@@ -49,10 +53,13 @@ var (
 	_ time.Duration
 	_ cfg.Option
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.ResponseRecorder
 	_ *log.Field
+	_ *openapi.Service
 	_ *shardedsql.DB
 	_ sub.Option
+	_ yaml.Encoder
 	_ {{ .PackageSuffix }}api.Client
 )
 
@@ -132,6 +139,11 @@ func NewService(impl ToDo, version int) *Intermediate {
 		cfg.Secret(),{{ end }}
 	)
 	{{- end }}{{ end }}
+	
+	// OpenAPI
+	{{- range .Ports}}
+	svc.Subscribe(`:{{ . }}/openapi.yaml`, svc.doOpenAPI)
+	{{- end}}
 
 	{{- if .Functions }}	
 
@@ -184,4 +196,48 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetResFS(resources.FS)
 
 	return svc
+}
+
+// doOpenAPI renders the OpenAPI document of the microservice.
+func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error {
+	oapiSvc := openapi.Service{
+		ServiceName: svc.HostName(),
+		Description: svc.Description(),
+		Version:     svc.Version(),
+		Endpoints:   []*openapi.Endpoint{},
+		RemoteURI:   frame.Of(r).XForwardedFullURL(),
+	}
+
+	{{- if .General.OpenAPI}}{{- range (JoinHandlers .Functions .Webs) }}{{- if .OpenAPI}}
+	if r.URL.Port() == "{{.Port}}" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `{{.Type}}`,
+			Name:        `{{.Name}}`,
+			Path:        `{{.Path}}`,
+			Summary:     `{{.Signature.OrigString}}`,
+			Description: `{{.Description}}`,
+			InputArgs: struct {
+				{{- range .Signature.InputArgs}}
+				X{{.Name}} {{.Type}} `json:"{{.Name}}"`
+				{{- end}}
+			}{},
+			OutputArgs: struct {
+				{{- range .Signature.OutputArgs}}
+				X{{.Name}} {{.Type}} `json:"{{.Name}}"`
+				{{- end}}
+			}{},
+		})
+	}
+	{{- end}}{{end}}{{end}}
+
+	if len(oapiSvc.Endpoints) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
+	err := yaml.NewEncoder(w).Encode(&oapiSvc)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }

@@ -28,10 +28,14 @@ import (
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/microbus-io/fabric/services/inbox/resources"
 	"github.com/microbus-io/fabric/services/inbox/inboxapi"
@@ -49,10 +53,13 @@ var (
 	_ time.Duration
 	_ cfg.Option
 	_ *errors.TracedError
+	_ frame.Frame
 	_ *httpx.ResponseRecorder
 	_ *log.Field
+	_ *openapi.Service
 	_ *shardedsql.DB
 	_ sub.Option
+	_ yaml.Encoder
 	_ inboxapi.Client
 )
 
@@ -123,11 +130,37 @@ Defaults to 8.`),
 		cfg.Validation(`int [1,1024]`),
 		cfg.DefaultValue(`8`),
 	)
+	
+	// OpenAPI
+	svc.Subscribe(`:443/openapi.yaml`, svc.doOpenAPI)
+	svc.Subscribe(`:417/openapi.yaml`, svc.doOpenAPI)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
 
 	return svc
+}
+
+// doOpenAPI renders the OpenAPI document of the microservice.
+func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error {
+	oapiSvc := openapi.Service{
+		ServiceName: svc.HostName(),
+		Description: svc.Description(),
+		Version:     svc.Version(),
+		Endpoints:   []*openapi.Endpoint{},
+		RemoteURI:   frame.Of(r).XForwardedFullURL(),
+	}
+
+	if len(oapiSvc.Endpoints) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
+	err := yaml.NewEncoder(w).Encode(&oapiSvc)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

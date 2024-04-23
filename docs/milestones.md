@@ -91,10 +91,10 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 [Milestone 13](https://github.com/microbus-io/fabric/tree/milestone/13):
 
-* Sharded `MySQL` database
+* Sharded MySQL database
 * Sharding key allocation management
 * Differential schema migration
-* Code generation of `MySQL` boilerplate code
+* Code generation of MySQL boilerplate code
 * Allow attaching multiple lifecycle and config change callbacks to the `Connector`
 * `NullTime` utility to better handle serialization of the zero time value
 
@@ -111,14 +111,14 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 15](https://github.com/microbus-io/fabric/tree/milestone/15):
 
 * Support in `Connector` for collecting system metrics
-* Metrics system microservice that collects and delivers metrics to `Prometheus` and `Grafana`
+* Metrics system microservice that collects and delivers metrics to Prometheus and Grafana
 * Code generation for application custom metrics
 * Quick start with Docker Compose
 
 [Milestone 16](https://github.com/microbus-io/fabric/tree/milestone/16):
 
 * License and copyright notices
-* `MariaDB` database support
+* MariaDB database support
 * HTTP ingress middleware
 
 [Milestone 17](https://github.com/microbus-io/fabric/tree/milestone/17):
@@ -147,14 +147,19 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Handle service resources natively in the `Connector` rather than in the code generation layer
 * Enable initializing the `Connector` with a custom `fs.FS`
-* `ServerLanguages` configuration in the `HTTPIngress` microservice determines the best language to display to the user based on the `Accept-Language` request header
+* `ServerLanguages` configuration in the HTTP Ingress microservice determines the best language to display to the user based on the `Accept-Language` request header
 * `LoadResString` in `Connector` loads a string from the `strings.yaml` resource file localized to the language of the request
 * Introduced `Parallel` in `Connector` to run multiple jobs in parallel
 * Startup `Group`s instead of `Connector` startup sequence
 
 [Milestone 19](https://github.com/microbus-io/fabric/tree/milestone/19):
 
-* Distributed tracing with `OpenTelemetry` and `Jaeger`
+* Distributed tracing with OpenTelemetry and Jaeger
 * Deprecated the concept of the time budget for callbacks and removed the `cb` package
 * Deprecated the concept of the mockable clock and removed the `clock` package
 * Introduced clock shifting via the `ctx` and adjusted `connector.Now` to accept a `ctx`
+
+[Milestone 20](https://github.com/microbus-io/fabric/tree/milestone/20):
+
+* Code generation of OpenAPI endpoints for microservices at `openapi.yaml`
+* OpenAPI portal system microservice to aggregate and display links to all microservices with an OpenAPI
