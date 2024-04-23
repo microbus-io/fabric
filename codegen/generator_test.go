@@ -17,7 +17,7 @@ import (
 )
 
 func TestCodeGen_FullGeneration(t *testing.T) {
-	t.Parallel()
+	// No parallel
 
 	serviceYaml := `
 general:
