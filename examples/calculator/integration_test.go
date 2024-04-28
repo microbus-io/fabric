@@ -108,7 +108,7 @@ func TestCalculator_Distance(t *testing.T) {
 
 func TestCalculator_OpenAPI(t *testing.T) {
 	ctx := Context(t)
-	res, err := Svc.Request(ctx, pub.GET("https://"+Svc.HostName()+"/openapi.yaml"))
+	res, err := Svc.Request(ctx, pub.GET("https://"+Svc.HostName()+"/openapi.json"))
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -120,16 +120,16 @@ func TestCalculator_OpenAPI(t *testing.T) {
 			for i := 0; i < len(fns); i += 2 {
 				if assert.NoError(t, err) {
 					res.Body.Close()
-					assert.Contains(t, string(body), "summary: "+fns[i+1]+"(")
-					assert.Contains(t, string(body), fns[i+1]+"_in")
-					assert.Contains(t, string(body), fns[i+1]+"_out")
+					assert.Contains(t, string(body), `"summary": "`+fns[i+1]+"(")
+					assert.Contains(t, string(body), fns[i+1]+"_IN")
+					assert.Contains(t, string(body), fns[i+1]+"_OUT")
 				}
 			}
 
-			assert.Contains(t, string(body), "calculatorapi_Point:")
-			assert.Contains(t, string(body), "p1:")
-			assert.Contains(t, string(body), "p2:")
-			assert.Contains(t, string(body), "x:")
+			assert.Contains(t, string(body), `"Distance_IN_Point":`)
+			assert.Contains(t, string(body), `"p1":`)
+			assert.Contains(t, string(body), `"p2":`)
+			assert.Contains(t, string(body), `"x":`)
 			assert.Contains(t, string(body), `"y":`)
 		}
 	}

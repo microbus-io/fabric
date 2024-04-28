@@ -10,7 +10,7 @@ package openapi
 // oapiInfo provides metadata about the API.
 // https://spec.openapis.org/oas/v3.1.0#info-object
 type oapiInfo struct {
-	Title       string `yaml:"title"`
-	Description string `yaml:"description,omitempty"`
-	Version     string `yaml:"version,omitempty"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+	Version     string `json:"version,omitempty"`
 }

@@ -7,9 +7,11 @@ Neither may be used, copied or distributed without the express written consent o
 
 package openapi
 
+import "github.com/invopop/jsonschema"
+
 // oapiMediaType provides schema and examples for the media type identified by its key.
 // https://spec.openapis.org/oas/v3.1.0#media-type-object
 type oapiMediaType struct {
-	Description string      `yaml:"description,omitempty"`
-	Schema      *oapiSchema `yaml:"schema,omitempty"`
+	Description string             `json:"description,omitempty"`
+	Schema      *jsonschema.Schema `json:"schema,omitempty"`
 }

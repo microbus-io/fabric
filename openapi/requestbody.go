@@ -10,7 +10,7 @@ package openapi
 // oapiRequestBody describes a single request body.
 // https://spec.openapis.org/oas/v3.1.0#request-body-object
 type oapiRequestBody struct {
-	Description string                    `yaml:"description,omitempty"`
-	Required    bool                      `yaml:"required,omitempty"`
-	Content     map[string]*oapiMediaType `yaml:"content,omitempty"`
+	Description string                    `json:"description,omitempty"`
+	Required    bool                      `json:"required,omitempty"`
+	Content     map[string]*oapiMediaType `json:"content,omitempty"`
 }

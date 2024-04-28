@@ -7,14 +7,16 @@ Neither may be used, copied or distributed without the express written consent o
 
 package openapi
 
+import "github.com/invopop/jsonschema"
+
 // oapiParameter describes a single operation parameter.
 // https://spec.openapis.org/oas/v3.1.0#parameter-object
 type oapiParameter struct {
-	Name        string      `yaml:"name"`
-	In          string      `yaml:"in"`
-	Description string      `yaml:"description,omitempty"`
-	Schema      *oapiSchema `yaml:"schema,omitempty"`
-	Style       string      `yaml:"style,omitempty"`
-	Explode     bool        `yaml:"explode,omitempty"`
-	Required    bool        `yaml:"required,omitempty"`
+	Name        string             `json:"name"`
+	In          string             `json:"in"`
+	Description string             `json:"description,omitempty"`
+	Schema      *jsonschema.Schema `json:"schema,omitempty"`
+	Style       string             `json:"style,omitempty"`
+	Explode     bool               `json:"explode,omitempty"`
+	Required    bool               `json:"required,omitempty"`
 }

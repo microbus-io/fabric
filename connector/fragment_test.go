@@ -201,7 +201,6 @@ func BenchmarkConnector_Frag(b *testing.B) {
 	payload := []byte(rand.AlphaNum64(16 * 1024 * 1024))
 
 	b.ResetTimer()
-
 	for i := 0; i < b.N; i++ {
 		// Send message and validate that it was received whole
 		res, err := con.POST(ctx, "https://frag.benchmark.connector/big", payload)
@@ -209,7 +208,6 @@ func BenchmarkConnector_Frag(b *testing.B) {
 		_, err = io.ReadAll(res.Body)
 		assert.NoError(b, err)
 	}
-
 	b.StopTimer()
 
 	// On 2021 MacBook Pro M1 16":

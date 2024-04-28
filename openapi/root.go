@@ -10,9 +10,9 @@ package openapi
 // oapiRoot is the root object of the OpenAPI document.
 // https://spec.openapis.org/oas/v3.1.0#openapi-object
 type oapiRoot struct {
-	OpenAPI    string                               `yaml:"openapi"`
-	Info       oapiInfo                             `yaml:"info"`
-	Servers    []*oapiServer                        `yaml:"servers,omitempty"`
-	Paths      map[string]map[string]*oapiOperation `yaml:"paths,omitempty"`
-	Components *oapiComponents                      `yaml:"components,omitempty"`
+	OpenAPI    string                               `json:"openapi"`
+	Info       oapiInfo                             `json:"info"`
+	Servers    []*oapiServer                        `json:"servers,omitempty"`
+	Paths      map[string]map[string]*oapiOperation `json:"paths,omitempty"`
+	Components *oapiComponents                      `json:"components,omitempty"`
 }

@@ -94,7 +94,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.yaml`, svc.doOpenAPI)	
+	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
 	svc.Subscribe(`:443/arithmetic`, svc.doArithmetic)
@@ -181,12 +181,13 @@ It demonstrates the use of the defined type Point.`,
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
-	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
-	err := yaml.NewEncoder(w).Encode(&oapiSvc)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	b, err := json.MarshalIndent(&oapiSvc, "", "    ")
 	if err != nil {
 		return errors.Trace(err)
 	}
-	return nil
+	_, err = w.Write(b)
+	return errors.Trace(err)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

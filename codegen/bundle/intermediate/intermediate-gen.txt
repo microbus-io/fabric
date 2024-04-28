@@ -142,7 +142,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	
 	// OpenAPI
 	{{- range .Ports}}
-	svc.Subscribe(`:{{ . }}/openapi.yaml`, svc.doOpenAPI)
+	svc.Subscribe(`:{{ . }}/openapi.json`, svc.doOpenAPI)
 	{{- end}}
 
 	{{- if .Functions }}	
@@ -234,10 +234,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
-	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
-	err := yaml.NewEncoder(w).Encode(&oapiSvc)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	b, err := json.MarshalIndent(&oapiSvc, "", "    ")
 	if err != nil {
 		return errors.Trace(err)
 	}
-	return nil
+	_, err = w.Write(b)
+	return errors.Trace(err)
 }

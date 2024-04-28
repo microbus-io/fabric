@@ -9,7 +9,7 @@
 # host - The host name of the microservice
 # description - A human-friendly description of the microservice
 # integrationTests - Whether or not to generate integration tests (defaults to true)
-# openApi - Whether or not to generate an OpenAPI document at openapi.yaml (defaults to true)
+# openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
   host: messaging.example
   description: The Messaging microservice demonstrates service-to-service communication patterns.

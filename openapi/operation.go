@@ -10,9 +10,9 @@ package openapi
 // oapiOperation describes a single API operation on a path.
 // https://spec.openapis.org/oas/v3.1.0#operation-object
 type oapiOperation struct {
-	Summary     string                   `yaml:"summary"`
-	Description string                   `yaml:"description,omitempty"`
-	Parameters  []*oapiParameter         `yaml:"parameters,omitempty"`
-	RequestBody *oapiRequestBody         `yaml:"requestBody,omitempty"`
-	Responses   map[string]*oapiResponse `yaml:"responses,omitempty"`
+	Summary     string                   `json:"summary"`
+	Description string                   `json:"description,omitempty"`
+	Parameters  []*oapiParameter         `json:"parameters,omitempty"`
+	RequestBody *oapiRequestBody         `json:"requestBody,omitempty"`
+	Responses   map[string]*oapiResponse `json:"responses,omitempty"`
 }

@@ -63,7 +63,7 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := New("echoserial.connector")
+	con := New("echo.serial.connector")
 	con.SetDeployment(TESTINGAPP)
 	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, _ := io.ReadAll(r.Body)
@@ -77,14 +77,15 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		con.POST(ctx, "https://echoserial.connector/echo", []byte("Hello"))
+		con.POST(ctx, "https://echo.serial.connector/echo", []byte("Hello"))
 	}
 	b.StopTimer()
 
 	// On 2021 MacBook Pro M1 16":
-	// 78851 ns/op
-	// 32869 B/op
-	// 210 allocs/op
+	// N=10202
+	// 107286 ns/op
+	// 43195 B/op
+	// 360 allocs/op
 }
 
 func BenchmarkConnector_EchoParallel(b *testing.B) {
@@ -116,10 +117,10 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	b.StopTimer()
 
 	// On 2021 MacBook Pro M1 16":
-	// N=46232 concurrent
-	// 20094 ns/op
-	// 59724 B/op
-	// 242 allocs/op
+	// N=98920 concurrent
+	// 11325 ns/op
+	// 16135 B/op
+	// 194 allocs/op
 }
 
 func TestConnector_QueryArgs(t *testing.T) {
@@ -744,7 +745,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 }
 
 func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
-	con := New("nats.direct.connector")
+	con := New("nats.direct.publishing.connector")
 	con.SetDeployment(TESTINGAPP)
 
 	err := con.Startup()

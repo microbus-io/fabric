@@ -8,17 +8,18 @@ Neither may be used, copied or distributed without the express written consent o
 package openapi
 
 import (
+	"encoding/json"
 	"mime"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/invopop/jsonschema"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/sub"
 )
 
-// Service is populated with the microservice's specs in order to genreate its OpenAPI document.
+// Service is populated with the microservice's specs in order to generate its OpenAPI document.
 type Service struct {
 	ServiceName string
 	Description string
@@ -27,10 +28,10 @@ type Service struct {
 	RemoteURI   string
 }
 
-// MarshalYAML produces the YAML representation of the OpenAPI (Swagger) of the service.
-func (s *Service) MarshalYAML() (interface{}, error) {
+// MarshalJSON produces the JSON representation of the OpenAPI document of the service.
+func (s *Service) MarshalJSON() ([]byte, error) {
 	root := oapiRoot{
-		OpenAPI: "3.0.0",
+		OpenAPI: "3.1.0",
 		Info: oapiInfo{
 			Title:       s.ServiceName,
 			Description: s.Description,
@@ -38,7 +39,7 @@ func (s *Service) MarshalYAML() (interface{}, error) {
 		},
 		Paths: map[string]map[string]*oapiOperation{},
 		Components: &oapiComponents{
-			Schemas: map[string]*oapiSchema{},
+			Schemas: map[string]*jsonschema.Schema{},
 		},
 		Servers: []*oapiServer{
 			{
@@ -56,196 +57,135 @@ func (s *Service) MarshalYAML() (interface{}, error) {
 		}
 	}
 
-	for _, ep := range s.Endpoints {
-		subscr, err := sub.NewSub(s.ServiceName, ep.Path, nil)
-		if err == nil {
-			if subscr.Host == "" {
-				subscr.Host = s.ServiceName
+	resolveRefs := func(schema *jsonschema.Schema, endpoint string) {
+		// Resolve all $def references to the components section of the document
+		for pair := schema.Properties.Oldest(); pair != nil; pair = pair.Next() {
+			if strings.HasPrefix(pair.Value.Ref, "#/$defs/") {
+				// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
+				pair.Value.Ref = "#/components/schemas/" + endpoint + "_" + pair.Value.Ref[8:]
 			}
-			ep.Path = "/" + subscr.Canonical()
-			// if subscr.Port == 443 {
-			// 	ep.Path = strings.Replace(ep.Path, ":443", "", 1)
-			// }
 		}
-		// Catch all subscriptions
-		if strings.HasSuffix(ep.Path, "/") {
-			ep.Path += "{subpath}"
+
+		// Move $defs into the components section of the document
+		// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
+		for defKey, defSchema := range schema.Definitions {
+			// Resolve all nested $def references to the components section of the document
+			for pair := defSchema.Properties.Oldest(); pair != nil; pair = pair.Next() {
+				if strings.HasPrefix(pair.Value.Ref, "#/$defs/") {
+					// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
+					pair.Value.Ref = "#/components/schemas/" + endpoint + "_" + pair.Value.Ref[8:]
+				}
+			}
+			root.Components.Schemas[endpoint+"_"+defKey] = defSchema
 		}
-		root.Paths[ep.Path] = map[string]*oapiOperation{}
+		schema.Definitions = nil
 	}
 
-	components := map[string]*oapiSchema{}
 	for _, ep := range s.Endpoints {
-		inType := reflect.TypeOf(ep.InputArgs)
-		inSchema := schemaOf(inType)
-		inSchema.Ref += ep.Name + "_in"
-		inComponentSchema := schemaOfStruct(inType)
-
-		outType := reflect.TypeOf(ep.OutputArgs)
-		outSchema := schemaOf(outType)
-		outSchema.Ref += ep.Name + "_out"
-		outComponentSchema := schemaOfStruct(outType)
-
-		// Collect referenced components
-		components[ep.Name+"_in"] = inComponentSchema
-		components[ep.Name+"_out"] = outComponentSchema
-		collectComponentsIn(components, inType)
-		collectComponentsIn(components, outType)
-
-		// GET path (no body, args in query string)
-		getPath := &oapiOperation{
-			Summary:     cleanEndpointSummary(ep.Summary),
-			Description: ep.Description,
-			Parameters:  []*oapiParameter{},
-		}
-		for i := 0; i < inType.NumField(); i++ {
-			field := inType.Field(i)
-			name := fieldName(field)
-			if name == "" {
-				continue
+		var op *oapiOperation
+		var method string
+		if ep.Type == "function" {
+			schemaIn := jsonschema.Reflect(ep.InputArgs)
+			resolveRefs(schemaIn, ep.Name+"_IN")
+			schemaIn.Version = "" // Avoid rendering the $schema property
+			schemaOut := jsonschema.Reflect(ep.OutputArgs)
+			resolveRefs(schemaOut, ep.Name+"_OUT")
+			schemaOut.Version = "" // Avoid rendering the $schema property
+			for pair := schemaOut.Properties.Oldest(); pair != nil; pair = pair.Next() {
+				if strings.HasPrefix(pair.Value.Ref, "#/") {
+					pair.Value.Ref = "#/components/schemas/" + ep.Name + "_IN" + pair.Value.Ref[1:]
+				}
 			}
 
-			parameter := &oapiParameter{
-				In:     "query",
-				Name:   name,
-				Schema: schemaOf(field.Type),
-			}
-			if parameter.Schema.Type == "" { // Non-primitive type
-				parameter.Style = "deepObject"
-				parameter.Explode = true
-				// See https://swagger.io/docs/specification/serialization/
-			}
-			getPath.Parameters = append(getPath.Parameters, parameter)
-		}
+			root.Components.Schemas[ep.Name+"_IN"] = schemaIn
+			root.Components.Schemas[ep.Name+"_OUT"] = schemaOut
 
-		// POST path (args in body)
-		postPath := &oapiOperation{
-			Summary:     cleanEndpointSummary(ep.Summary),
-			Description: ep.Description,
-			RequestBody: &oapiRequestBody{
-				Required: true,
-				Content: map[string]*oapiMediaType{
-					"application/json": {
-						Schema: inSchema,
+			method = "post"
+			op = &oapiOperation{
+				Summary:     cleanEndpointSummary(ep.Summary),
+				Description: ep.Description,
+				RequestBody: &oapiRequestBody{
+					Required: true,
+					Content: map[string]*oapiMediaType{
+						"application/json": {
+							Schema: &jsonschema.Schema{
+								Ref: "#/components/schemas/" + ep.Name + "_IN",
+							},
+						},
 					},
 				},
-			},
-		}
-
-		// Catch-all subscriptions
-		if strings.HasSuffix(ep.Path, "/{subpath}") {
-			parameter := &oapiParameter{
-				In:   "path",
-				Name: "subpath",
-				Schema: &oapiSchema{
-					Type: "string",
-				},
-				Description: "Sub-path for catch-all subscription",
-				Required:    true,
-			}
-			getPath.Parameters = append(getPath.Parameters, parameter)
-			postPath.Parameters = append(postPath.Parameters, parameter)
-		}
-
-		// Response is same for GET and POST
-		responses := map[string]*oapiResponse{
-			// "403": &swaggerResponse{
-			// 	Description: "Unauthorized",
-			// 	Content: map[string]*swaggerContent{
-			// 		"text/plain": &swaggerContent{
-			// 			Schema: &swaggerSchema{
-			// 				Type: "string",
-			// 			},
-			// 		},
-			// 	},
-			// },
-			// "5XX": &swaggerResponse{
-			// 	Description: "Error",
-			// 	Content: map[string]*swaggerContent{
-			// 		"text/plain": &swaggerContent{
-			// 			Schema: &swaggerSchema{
-			// 				Type: "string",
-			// 			},
-			// 		},
-			// 	},
-			// },
-		}
-		if ep.Type == "function" {
-			responses["200"] = &oapiResponse{
-				Description: "OK",
-				Content: map[string]*oapiMediaType{
-					"application/json": {
-						Schema: outSchema,
+				Responses: map[string]*oapiResponse{
+					"200": {
+						Description: "OK",
+						Content: map[string]*oapiMediaType{
+							"application/json": {
+								Schema: &jsonschema.Schema{
+									Ref: "#/components/schemas/" + ep.Name + "_OUT",
+								},
+							},
+						},
 					},
 				},
 			}
 		}
 		if ep.Type == "web" {
-			responses["200"] = &oapiResponse{
-				Description: "OK",
+			method = "get"
+			op = &oapiOperation{
+				Summary:     cleanEndpointSummary(ep.Summary),
+				Description: ep.Description,
+				Parameters:  []*oapiParameter{},
+				Responses: map[string]*oapiResponse{
+					"200": {
+						Description: "OK",
+					},
+				},
 			}
 			p := strings.LastIndex(ep.Path, ".")
 			if p >= 0 {
 				contentType := mime.TypeByExtension(ep.Path[p:])
 				if contentType != "" {
-					responses["200"].Content = map[string]*oapiMediaType{
-						contentType: {},
+					op.Responses = map[string]*oapiResponse{
+						"200": {
+							Content: map[string]*oapiMediaType{
+								contentType: {},
+							},
+						},
 					}
 				}
 			}
 		}
-		getPath.Responses = responses
-		postPath.Responses = responses
 
-		// Method
-		method := ep.Method
-		if method == "" {
-			if ep.Type == "web" {
-				method = "GET"
-			} else {
-				method = "POST"
-			}
+		subscr, err := sub.NewSub(s.ServiceName, ep.Path, nil)
+		if err != nil {
+			return nil, errors.Trace(err)
 		}
-		if methodHasBody(method) {
-			root.Paths[ep.Path][strings.ToLower(method)] = postPath
-		} else {
-			root.Paths[ep.Path][strings.ToLower(method)] = getPath
+		if subscr.Host == "" {
+			subscr.Host = s.ServiceName
+		}
+		path := "/" + subscr.Canonical()
+		// if subscr.Port == 443 {
+		// 	path = strings.Replace(path, ":443", "", 1)
+		// }
+
+		// Catch all subscriptions
+		if strings.HasSuffix(ep.Path, "/") {
+			path += "{suffix}"
+
+			op.Parameters = append(op.Parameters, &oapiParameter{
+				In:   "path",
+				Name: "suffix",
+				Schema: &jsonschema.Schema{
+					Type: "string",
+				},
+				Description: "Suffix of path",
+				Required:    true,
+			})
+		}
+		root.Paths[path] = map[string]*oapiOperation{
+			method: op,
 		}
 	}
-
-	// Components
-	for name, schema := range components {
-		root.Components.Schemas[name] = schema
-	}
-	root.Components.Schemas["Nullable"] = &oapiSchema{
-		Type: "null",
-	}
-
-	return root, nil
-}
-
-func collectComponentsIn(collector map[string]*oapiSchema, t reflect.Type) {
-	if t == reflect.TypeOf(time.Time{}) {
-		return
-	}
-
-	switch t.Kind() {
-	case reflect.Struct:
-		name := typeFullName(t)
-		if name != "" {
-			collector[name] = schemaOfStruct(t)
-		}
-		for i := 0; i < t.NumField(); i++ {
-			field := t.Field(i)
-			name := fieldName(field)
-			if name == "" {
-				continue
-			}
-			collectComponentsIn(collector, field.Type)
-		}
-	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Slice:
-		collectComponentsIn(collector, t.Elem())
-	}
+	return json.Marshal(root)
 }
 
 func cleanEndpointSummary(sig string) string {
@@ -263,14 +203,4 @@ func cleanEndpointSummary(sig string) string {
 	// Remove package identifiers
 	sig = regexp.MustCompile(`\w+\.`).ReplaceAllString(sig, "")
 	return sig
-}
-
-// methodHasBody indicates if the HTTP method has a body.
-func methodHasBody(method string) bool {
-	switch strings.ToUpper(method) {
-	case "GET", "DELETE", "TRACE", "OPTIONS", "HEAD":
-		return false
-	default:
-		return true
-	}
 }

@@ -10,6 +10,6 @@ package openapi
 // oapiResponse describes a single response from an API Operation.
 // https://spec.openapis.org/oas/v3.1.0#response-object
 type oapiResponse struct {
-	Description string                    `yaml:"description,omitempty"`
-	Content     map[string]*oapiMediaType `yaml:"content,omitempty"`
+	Description string                    `json:"description,omitempty"`
+	Content     map[string]*oapiMediaType `json:"content,omitempty"`
 }

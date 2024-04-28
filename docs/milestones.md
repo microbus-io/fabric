@@ -161,5 +161,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 [Milestone 20](https://github.com/microbus-io/fabric/tree/milestone/20):
 
-* Code generation of OpenAPI endpoints for microservices at `openapi.yaml`
+* Code generation of OpenAPI endpoints for microservices at `openapi.json`
 * OpenAPI portal system microservice to aggregate and display links to all microservices with an OpenAPI

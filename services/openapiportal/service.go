@@ -84,7 +84,7 @@ func (svc *Service) listServices(w http.ResponseWriter, r *http.Request) error {
 		go func(s string, delay time.Duration) {
 			defer wg.Done()
 			time.Sleep(delay) // Stagger requests to avoid all of them coming back at the same time
-			u := fmt.Sprintf("https://%s:%s/openapi.yaml", s, r.URL.Port())
+			u := fmt.Sprintf("https://%s:%s/openapi.json", s, r.URL.Port())
 			res, err := svc.Request(ctx, pub.GET(u))
 			if err != nil {
 				lock.Lock()
@@ -92,7 +92,7 @@ func (svc *Service) listServices(w http.ResponseWriter, r *http.Request) error {
 				lock.Unlock()
 			}
 			if res.StatusCode == http.StatusNotFound {
-				// No openapi.yaml for this service
+				// No openapi.json for this service
 				return
 			}
 			oapiDoc := struct {

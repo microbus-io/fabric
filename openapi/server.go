@@ -10,6 +10,6 @@ package openapi
 // oapiServer represents a server.
 // https://spec.openapis.org/oas/v3.1.0#server-object
 type oapiServer struct {
-	URL         string `yaml:"url"`
-	Description string `yaml:"description,omitempty"`
+	URL         string `json:"url"`
+	Description string `json:"description,omitempty"`
 }

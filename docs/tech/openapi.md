@@ -51,7 +51,7 @@ components:
                     format: int64
 ```
 
-An `openapi.yaml` endpoint is created for each port of each microservice to serve the OpenAPI document. For example, the OpenAPI endpoint of the `:443` endpoints of the calculator microservice is located at https://localhost:8080/calculator.example/openapi.yaml. In `Microbus` ports are used to control access to a microservice's endpoints. A separate documents for each port follows that philosophy and exposes only the endpoints on the same port as the request's.
+An `openapi.json` endpoint is created for each port of each microservice to serve the OpenAPI document. For example, the OpenAPI endpoint of the `:443` endpoints of the calculator microservice is located at https://localhost:8080/calculator.example/openapi.json. In `Microbus` ports are used to control access to a microservice's endpoints. A separate documents for each port follows that philosophy and exposes only the endpoints on the same port as the request's.
 
 OpenAPI generation can be disabled in `service.yaml` using the `openApi: false` directive for the entire microservice and/or for an individual endpoint. For example:
 
@@ -61,7 +61,7 @@ OpenAPI generation can be disabled in `service.yaml` using the `openApi: false` 
 # host - The host name of the microservice
 # description - A human-friendly description of the microservice
 # integrationTests - Whether or not to generate integration tests (defaults to true)
-# openApi - Whether or not to generate an OpenAPI document at openapi.yaml (defaults to true)
+# openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
   host: calculator.example
   description: The Calculator microservice performs simple mathematical operations.
@@ -70,4 +70,4 @@ general:
 
 The [OpenAPI portal system service](../structure/services-openapiportal.md) aggregates the OpenAPI endpoints of all microservices on the bus and renders an HTML page that lists them to a human reader.
 
-[Swagger](https://swagger.io) is a set of popular tools for working with APIs in general and OpenAPI in particular. The [OpenAPI editor](https://editor.swagger.io) is an especially useful one that allows editing and exploring OpenAPI documents online.
+[Swagger](https://swagger.io) is a set of popular tools for working with APIs in general and OpenAPI in particular. The [OpenAPI editor](https://editor-next.swagger.io) is an especially useful one that allows editing and exploring OpenAPI documents online.
