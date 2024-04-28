@@ -10,6 +10,7 @@ package openapi
 import (
 	"encoding/json"
 	"mime"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ type Service struct {
 
 // MarshalJSON produces the JSON representation of the OpenAPI document of the service.
 func (s *Service) MarshalJSON() ([]byte, error) {
-	root := oapiRoot{
+	doc := oapiDoc{
 		OpenAPI: "3.1.0",
 		Info: oapiInfo{
 			Title:       s.ServiceName,
@@ -53,7 +54,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			p = strings.Index(s.RemoteURI, "/"+s.ServiceName+":")
 		}
 		if p >= 0 {
-			root.Servers[0].URL = s.RemoteURI[:p+1]
+			doc.Servers[0].URL = s.RemoteURI[:p+1]
 		}
 	}
 
@@ -76,44 +77,23 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 					pair.Value.Ref = "#/components/schemas/" + endpoint + "_" + pair.Value.Ref[8:]
 				}
 			}
-			root.Components.Schemas[endpoint+"_"+defKey] = defSchema
+			doc.Components.Schemas[endpoint+"_"+defKey] = defSchema
 		}
 		schema.Definitions = nil
+		schema.Version = "" // Avoid rendering the $schema property
 	}
 
 	for _, ep := range s.Endpoints {
 		var op *oapiOperation
-		var method string
+
+		// Functions
 		if ep.Type == "function" {
-			schemaIn := jsonschema.Reflect(ep.InputArgs)
-			resolveRefs(schemaIn, ep.Name+"_IN")
-			schemaIn.Version = "" // Avoid rendering the $schema property
-			schemaOut := jsonschema.Reflect(ep.OutputArgs)
-			resolveRefs(schemaOut, ep.Name+"_OUT")
-			schemaOut.Version = "" // Avoid rendering the $schema property
-			for pair := schemaOut.Properties.Oldest(); pair != nil; pair = pair.Next() {
-				if strings.HasPrefix(pair.Value.Ref, "#/") {
-					pair.Value.Ref = "#/components/schemas/" + ep.Name + "_IN" + pair.Value.Ref[1:]
-				}
+			if ep.Method == "" || ep.Method == "*" {
+				ep.Method = "POST"
 			}
-
-			root.Components.Schemas[ep.Name+"_IN"] = schemaIn
-			root.Components.Schemas[ep.Name+"_OUT"] = schemaOut
-
-			method = "post"
 			op = &oapiOperation{
 				Summary:     cleanEndpointSummary(ep.Summary),
 				Description: ep.Description,
-				RequestBody: &oapiRequestBody{
-					Required: true,
-					Content: map[string]*oapiMediaType{
-						"application/json": {
-							Schema: &jsonschema.Schema{
-								Ref: "#/components/schemas/" + ep.Name + "_IN",
-							},
-						},
-					},
-				},
 				Responses: map[string]*oapiResponse{
 					"200": {
 						Description: "OK",
@@ -127,9 +107,62 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 					},
 				},
 			}
+
+			// OUT is JSON in the response body
+			schemaOut := jsonschema.Reflect(ep.OutputArgs)
+			resolveRefs(schemaOut, ep.Name+"_OUT")
+			doc.Components.Schemas[ep.Name+"_OUT"] = schemaOut
+
+			if !methodHasBody(ep.Method) {
+				// IN are explodable query arguments
+				inType := reflect.TypeOf(ep.InputArgs)
+				for i := 0; i < inType.NumField(); i++ {
+					field := inType.Field(i)
+					name := fieldName(field)
+					if name == "" {
+						continue
+					}
+					parameter := &oapiParameter{
+						In:   "query",
+						Name: name,
+					}
+					fieldSchema := jsonschema.ReflectFromType(field.Type)
+					resolveRefs(fieldSchema, ep.Name+"_IN")
+					if fieldSchema.Ref != "" {
+						// Non-primitive type
+						parameter.Schema = &jsonschema.Schema{
+							Ref: "#/components/schemas/" + ep.Name + "_IN_" + field.Type.Name(),
+						}
+						parameter.Style = "deepObject"
+						parameter.Explode = true
+					} else {
+						parameter.Schema = fieldSchema
+					}
+					op.Parameters = append(op.Parameters, parameter)
+				}
+			} else {
+				// IN is JSON in the request body
+				schemaIn := jsonschema.Reflect(ep.InputArgs)
+				resolveRefs(schemaIn, ep.Name+"_IN")
+				doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
+
+				op.RequestBody = &oapiRequestBody{
+					Required: true,
+					Content: map[string]*oapiMediaType{
+						"application/json": {
+							Schema: &jsonschema.Schema{
+								Ref: "#/components/schemas/" + ep.Name + "_IN",
+							},
+						},
+					},
+				}
+			}
 		}
+
 		if ep.Type == "web" {
-			method = "get"
+			if ep.Method == "" || ep.Method == "*" {
+				ep.Method = "GET"
+			}
 			op = &oapiOperation{
 				Summary:     cleanEndpointSummary(ep.Summary),
 				Description: ep.Description,
@@ -181,11 +214,14 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 				Required:    true,
 			})
 		}
-		root.Paths[path] = map[string]*oapiOperation{
-			method: op,
+
+		// Add to paths
+		if doc.Paths[path] == nil {
+			doc.Paths[path] = map[string]*oapiOperation{}
 		}
+		doc.Paths[path][strings.ToLower(ep.Method)] = op
 	}
-	return json.Marshal(root)
+	return json.Marshal(doc)
 }
 
 func cleanEndpointSummary(sig string) string {
@@ -203,4 +239,34 @@ func cleanEndpointSummary(sig string) string {
 	// Remove package identifiers
 	sig = regexp.MustCompile(`\w+\.`).ReplaceAllString(sig, "")
 	return sig
+}
+
+// methodHasBody indicates if the HTTP method has a body.
+func methodHasBody(method string) bool {
+	switch strings.ToUpper(method) {
+	case "GET", "DELETE", "TRACE", "OPTIONS", "HEAD":
+		return false
+	default:
+		return true
+	}
+}
+
+func fieldName(field reflect.StructField) string {
+	if field.Name[:1] != strings.ToUpper(field.Name[:1]) {
+		// Not a public field
+		return ""
+	}
+	name := field.Tag.Get("json")
+	if comma := strings.Index(name, ","); comma >= 0 {
+		name = name[:comma]
+	}
+	if name == "" {
+		// No JSON tag, use field name
+		name = field.Name
+	}
+	if name == "-" {
+		// Omitted
+		name = ""
+	}
+	return name
 }
