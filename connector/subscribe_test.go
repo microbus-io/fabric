@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"sync/atomic"
 	"testing"
 
 	"github.com/microbus-io/fabric/errors"
@@ -26,11 +25,11 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	ctx := context.Background()
 
 	// Create the microservice
-	var count int32
+	var count int
 	con := New("directory.subscription.connector")
 	con.SetDeployment(TESTINGAPP)
-	con.Subscribe("directory/", func(w http.ResponseWriter, r *http.Request) error {
-		atomic.AddInt32(&count, 1)
+	con.Subscribe("GET", "directory/", func(w http.ResponseWriter, r *http.Request) error {
+		count++
 		return nil
 	})
 
@@ -49,7 +48,7 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/sub/3.html")
 	assert.NoError(t, err)
 
-	assert.Equal(t, int32(4), count)
+	assert.Equal(t, 4, count)
 }
 
 func TestConnector_HyphenInHostName(t *testing.T) {
@@ -60,7 +59,7 @@ func TestConnector_HyphenInHostName(t *testing.T) {
 	// Create the microservice
 	entered := false
 	con := New("hyphen-in-host_name.connector")
-	con.Subscribe("path", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "path", func(w http.ResponseWriter, r *http.Request) error {
 		entered = true
 		return nil
 	})
@@ -88,22 +87,22 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	detected := map[string]bool{}
 	con := New("asterisk.subscription.connector")
 	con.SetDeployment(TESTINGAPP)
-	con.Subscribe("/obj/*/alpha", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/obj/*/alpha", func(w http.ResponseWriter, r *http.Request) error {
 		alphaCount++
 		detected[r.URL.Path] = true
 		return nil
 	})
-	con.Subscribe("/obj/*/beta", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/obj/*/beta", func(w http.ResponseWriter, r *http.Request) error {
 		betaCount++
 		detected[r.URL.Path] = true
 		return nil
 	})
-	con.Subscribe("/obj/*", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/obj/*", func(w http.ResponseWriter, r *http.Request) error {
 		rootCount++
 		detected[r.URL.Path] = true
 		return nil
 	})
-	con.Subscribe("/obj", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/obj", func(w http.ResponseWriter, r *http.Request) error {
 		parentCount++
 		detected[r.URL.Path] = true
 		return nil
@@ -152,7 +151,7 @@ func TestConnector_MixedAsteriskSubscription(t *testing.T) {
 	detected := map[string]bool{}
 	con := New("mixed.asterisk.subscription.connector")
 	con.SetDeployment(TESTINGAPP)
-	con.Subscribe("/obj/x*x/gamma", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/obj/x*x/gamma", func(w http.ResponseWriter, r *http.Request) error {
 		detected[r.URL.Path] = true
 		return nil
 	})
@@ -178,21 +177,21 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 	// Create the microservice
 	con := New("error.and.panic.connector")
 	con.SetDeployment(TESTINGAPP)
-	con.Subscribe("usererr", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "usererr", func(w http.ResponseWriter, r *http.Request) error {
 		return errors.Newc(http.StatusBadRequest, "bad input")
 	})
-	con.Subscribe("err", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "err", func(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("it's bad")
 	})
-	con.Subscribe("panic", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "panic", func(w http.ResponseWriter, r *http.Request) error {
 		panic("it's really bad")
 	})
-	con.Subscribe("oserr", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "oserr", func(w http.ResponseWriter, r *http.Request) error {
 		err := errors.Trace(os.ErrNotExist)
 		assert.True(t, errors.Is(err, os.ErrNotExist))
 		return err
 	})
-	con.Subscribe("stillalive", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "stillalive", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
@@ -234,7 +233,7 @@ func TestConnector_DifferentPlanes(t *testing.T) {
 	alpha := New("different.planes.connector")
 	alpha.SetDeployment(TESTINGAPP)
 	alpha.SetPlane("alpha")
-	alpha.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
+	alpha.Subscribe("GET", "id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("alpha"))
 		return nil
 	})
@@ -242,7 +241,7 @@ func TestConnector_DifferentPlanes(t *testing.T) {
 	beta := New("different.planes.connector")
 	beta.SetDeployment(TESTINGAPP)
 	beta.SetPlane("beta")
-	beta.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("GET", "id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("beta"))
 		return nil
 	})
@@ -285,7 +284,7 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	con.SetDeployment(TESTINGAPP)
 
 	// Subscribe before beta is started
-	con.Subscribe("before", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "before", func(w http.ResponseWriter, r *http.Request) error {
 		beforeCalled = true
 		return nil
 	})
@@ -296,7 +295,7 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	defer con.Shutdown()
 
 	// Subscribe after beta is started
-	con.Subscribe("after", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "after", func(w http.ResponseWriter, r *http.Request) error {
 		afterCalled = true
 		return nil
 	})
@@ -321,10 +320,10 @@ func TestConnector_Unsubscribe(t *testing.T) {
 	con.SetDeployment(TESTINGAPP)
 
 	// Subscribe
-	con.Subscribe("sub1", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "sub1", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
-	con.Subscribe("sub2", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "sub2", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
@@ -340,7 +339,7 @@ func TestConnector_Unsubscribe(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Unsubscribe sub1
-	err = con.Unsubscribe(":443/sub1")
+	err = con.Unsubscribe("GET", ":443/sub1")
 	assert.NoError(t, err)
 
 	// Send requests
@@ -368,19 +367,19 @@ func TestConnector_AnotherHost(t *testing.T) {
 	// Create the microservices
 	alpha := New("alpha.another.host.connector")
 	alpha.SetDeployment(TESTINGAPP)
-	alpha.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
+	alpha.Subscribe("GET", "https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
 	beta1 := New("beta.another.host.connector")
 	beta1.SetDeployment(TESTINGAPP)
-	beta1.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
+	beta1.Subscribe("GET", "https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
 	beta2 := New("beta.another.host.connector")
 	beta2.SetDeployment(TESTINGAPP)
-	beta2.Subscribe("https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
+	beta2.Subscribe("GET", "https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
@@ -415,7 +414,7 @@ func TestConnector_DirectAddressing(t *testing.T) {
 	// Create the microservice
 	con := New("direct.addressing.connector")
 	con.SetDeployment(TESTINGAPP)
-	con.Subscribe("/hello", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/hello", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("Hello"))
 		return nil
 	})
@@ -431,7 +430,7 @@ func TestConnector_DirectAddressing(t *testing.T) {
 	_, err = con.GET(ctx, "https://"+con.id+".direct.addressing.connector/hello")
 	assert.NoError(t, err)
 
-	err = con.Unsubscribe("/hello")
+	err = con.Unsubscribe("GET", "/hello")
 	assert.NoError(t, err)
 
 	// Both subscriptions should be deactivated
@@ -450,7 +449,7 @@ func TestConnector_SubPendingOps(t *testing.T) {
 	start := make(chan bool)
 	hold := make(chan bool)
 	end := make(chan bool)
-	con.Subscribe("/op", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/op", func(w http.ResponseWriter, r *http.Request) error {
 		start <- true
 		hold <- true
 		return nil
@@ -484,4 +483,122 @@ func TestConnector_SubPendingOps(t *testing.T) {
 	<-hold
 	<-end
 	assert.Zero(t, con.pendingOps)
+}
+
+func TestConnector_SubscriptionMethods(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	var get int
+	var post int
+	var star int
+	con := New("subscription.methods.connector")
+	con.SetDeployment(TESTINGAPP)
+	con.Subscribe("GET", "single", func(w http.ResponseWriter, r *http.Request) error {
+		get++
+		return nil
+	})
+	con.Subscribe("POST", "single", func(w http.ResponseWriter, r *http.Request) error {
+		post++
+		return nil
+	})
+	con.Subscribe("*", "star", func(w http.ResponseWriter, r *http.Request) error {
+		star++
+		return nil
+	})
+
+	// Startup the microservices
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send messages to various locations under the directory
+	_, err = con.Request(ctx, pub.GET("https://subscription.methods.connector/single"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, get)
+	assert.Equal(t, 0, post)
+
+	_, err = con.Request(ctx, pub.POST("https://subscription.methods.connector/single"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, get)
+	assert.Equal(t, 1, post)
+
+	_, err = con.Request(ctx, pub.PATCH("https://subscription.methods.connector/single"))
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
+	assert.Equal(t, 1, get)
+	assert.Equal(t, 1, post)
+
+	_, err = con.Request(ctx, pub.PATCH("https://subscription.methods.connector/star"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, get)
+	assert.Equal(t, 1, post)
+	assert.Equal(t, 1, star)
+
+	_, err = con.Request(ctx, pub.GET("https://subscription.methods.connector/star"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, get)
+	assert.Equal(t, 1, post)
+	assert.Equal(t, 2, star)
+}
+
+func TestConnector_SubscriptionPorts(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	var p123 int
+	var p234 int
+	var star int
+	con := New("subscription.ports.connector")
+	con.SetDeployment(TESTINGAPP)
+	con.Subscribe("GET", ":123/single", func(w http.ResponseWriter, r *http.Request) error {
+		p123++
+		return nil
+	})
+	con.Subscribe("GET", ":234/single", func(w http.ResponseWriter, r *http.Request) error {
+		p234++
+		return nil
+	})
+	con.Subscribe("GET", ":*/star", func(w http.ResponseWriter, r *http.Request) error {
+		star++
+		return nil
+	})
+
+	// Startup the microservices
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send messages to various locations under the directory
+	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:123/single"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, p123)
+	assert.Equal(t, 0, p234)
+
+	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:234/single"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, p123)
+	assert.Equal(t, 1, p234)
+
+	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:999/single"))
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
+	assert.Equal(t, 1, p123)
+	assert.Equal(t, 1, p234)
+
+	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:999/star"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, p123)
+	assert.Equal(t, 1, p234)
+	assert.Equal(t, 1, star)
+
+	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:10000/star"))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, p123)
+	assert.Equal(t, 1, p234)
+	assert.Equal(t, 2, star)
 }

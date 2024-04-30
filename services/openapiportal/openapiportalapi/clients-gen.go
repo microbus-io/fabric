@@ -46,6 +46,7 @@ const HostName = "openapiportal.sys"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
+	URLOfList = httpx.JoinHostAndPath(HostName, "//openapi:*")
 )
 
 // Service is an interface abstraction of a microservice used by the client.
@@ -53,8 +54,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the openapiportal.sys microservice.
@@ -97,4 +98,40 @@ func NewMulticastClient(caller Service) *MulticastClient {
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c
+}
+
+/*
+List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
+*/
+func (_c *Client) List(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
+	opts := []pub.Option{
+		pub.Method(method),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `//openapi:*`)),
+	}
+	opts = append(opts, options...)
+	res, err = _c.svc.Request(ctx, opts...)
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
+*/
+func (_c *MulticastClient) List(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
+	opts := []pub.Option{
+		pub.Method(method),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `//openapi:*`)),
+	}
+	opts = append(opts, options...)
+	return _c.svc.Publish(ctx, opts...)
 }

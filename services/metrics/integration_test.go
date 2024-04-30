@@ -71,7 +71,7 @@ func TestMetrics_Collect(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		return nil
 	})
-	con1.Subscribe("/ten", func(w http.ResponseWriter, r *http.Request) error {
+	con1.Subscribe("GET", "/ten", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(100 * time.Millisecond)
 		w.Write([]byte("1234567890"))
 		return nil

@@ -39,6 +39,7 @@ If the path ends with a / all sub-paths under the path are capture by the subscr
 
 If the path does not include a host name, the default host is used.
 If a port is not specified, 443 is used by default.
+If a method is not specified, * is used by default to capture all methods.
 
 Examples of valid paths:
 
@@ -52,11 +53,11 @@ Examples of valid paths:
 	https://www.example.com/path
 	https://www.example.com:1080/path
 */
-func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error {
+func (c *Connector) Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error {
 	if c.hostName == "" {
 		return c.captureInitErr(errors.New("host name is not set"))
 	}
-	newSub, err := sub.NewSub(c.hostName, path, handler, options...)
+	newSub, err := sub.NewSub(method, c.hostName, path, handler, options...)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
@@ -67,7 +68,7 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 		}
 		time.Sleep(20 * time.Millisecond) // Give time for subscription activation by NATS
 	}
-	key := newSub.Canonical()
+	key := method + "|" + newSub.Canonical()
 	c.subsLock.Lock()
 	c.subs[key] = newSub
 	c.subsLock.Unlock()
@@ -75,12 +76,12 @@ func (c *Connector) Subscribe(path string, handler sub.HTTPHandler, options ...s
 }
 
 // Unsubscribe removes the handler for the specified path
-func (c *Connector) Unsubscribe(path string) error {
-	newSub, err := sub.NewSub(c.hostName, path, nil)
+func (c *Connector) Unsubscribe(method string, path string) error {
+	newSub, err := sub.NewSub(method, c.hostName, path, nil)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	key := newSub.Canonical()
+	key := method + "|" + newSub.Canonical()
 	c.subsLock.Lock()
 	if sub, ok := c.subs[key]; ok {
 		err = c.deactivateSub(sub)
@@ -116,9 +117,9 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 	var err error
 	if s.HostSub == nil {
 		if s.Queue != "" {
-			s.HostSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), s.Queue, handler)
+			s.HostSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Method, s.Host, s.Port, s.Path), s.Queue, handler)
 		} else {
-			s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Host, s.Port, s.Path), handler)
+			s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Method, s.Host, s.Port, s.Path), handler)
 		}
 		if err != nil {
 			return errors.Trace(err)
@@ -126,15 +127,15 @@ func (c *Connector) activateSub(s *sub.Subscription) error {
 	}
 	if s.DirectSub == nil {
 		if s.Queue != "" {
-			s.DirectSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), s.Queue, handler)
+			s.DirectSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Method, c.id+"."+s.Host, s.Port, s.Path), s.Queue, handler)
 		} else {
-			s.DirectSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, c.id+"."+s.Host, s.Port, s.Path), handler)
+			s.DirectSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Method, c.id+"."+s.Host, s.Port, s.Path), handler)
 		}
 		if err != nil {
 			return errors.Trace(err)
 		}
 	}
-	// c.LogDebug(c.lifetimeCtx, "Sub activated", log.String("name", s.Canonical()))
+	// c.LogDebug(c.lifetimeCtx, "Sub activated", log.String("url", s.Canonical()), log.String("method", req.Method))
 	return nil
 }
 
@@ -158,8 +159,8 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 	if s.HostSub != nil {
 		err := s.HostSub.Unsubscribe()
 		if err != nil {
-			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(c.lifetimeCtx, "Unsubscribing host sub", log.Error(lastErr), log.String("sub", s.Canonical()))
+			lastErr = errors.Trace(err, s.Method+" "+s.Canonical())
+			c.LogError(c.lifetimeCtx, "Unsubscribing host sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
 		} else {
 			s.HostSub = nil
 		}
@@ -167,13 +168,13 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 	if s.DirectSub != nil {
 		err := s.DirectSub.Unsubscribe()
 		if err != nil {
-			lastErr = errors.Trace(err, s.Canonical())
-			c.LogError(c.lifetimeCtx, "Unsubscribing direct sub", log.Error(lastErr), log.String("sub", s.Canonical()))
+			lastErr = errors.Trace(err, s.Method+" "+s.Canonical())
+			c.LogError(c.lifetimeCtx, "Unsubscribing direct sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
 		} else {
 			s.DirectSub = nil
 		}
 	}
-	// c.LogDebug(c.Lifetime(), "Sub deactivated", log.String("name", s.Canonical()))
+	// c.LogDebug(c.Lifetime(), "Sub deactivated", log.String("url", s.Canonical()), log.String("method", s.Method))
 	return lastErr
 }
 
@@ -263,7 +264,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	}
 
 	// Fill in the gaps
-	httpReq.URL.Host = fmt.Sprintf("%s:%d", s.Host, s.Port)
+	httpReq.URL.Host = httpReq.Host
 	httpReq.URL.Scheme = "https"
 
 	// Get the sender host name and message ID
@@ -275,7 +276,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		queue = c.id + "." + c.hostName
 	}
 
-	c.LogDebug(c.lifetimeCtx, "Handling", log.String("msg", msgID), log.String("sub", s.Canonical()))
+	c.LogDebug(c.lifetimeCtx, "Handling", log.String("msg", msgID), log.String("url", s.Canonical()), log.String("method", s.Method))
 
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
@@ -301,7 +302,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	}
 	ctx = propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(httpReq.Header))
 	var span trc.Span
-	ctx, span = c.StartSpan(ctx, fmt.Sprintf(":%d%s", s.Port, s.Path), spanOptions...)
+	ctx, span = c.StartSpan(ctx, fmt.Sprintf(":%s%s", s.Port, s.Path), spanOptions...)
 	defer span.End()
 
 	// Execute the request
@@ -361,7 +362,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			"microbus_response_duration_seconds",
 			time.Since(handlerStartTime).Seconds(),
 			s.Canonical(),
-			strconv.Itoa(s.Port),
+			s.Port,
 			httpReq.Method,
 			strconv.Itoa(httpRecorder.StatusCode()),
 			func() string {
@@ -375,7 +376,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			"microbus_response_size_bytes",
 			float64(httpRecorder.ContentLength()),
 			s.Canonical(),
-			strconv.Itoa(s.Port),
+			s.Port,
 			httpReq.Method,
 			strconv.Itoa(httpRecorder.StatusCode()),
 			func() string {

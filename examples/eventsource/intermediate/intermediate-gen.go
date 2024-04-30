@@ -92,11 +92,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)
-	svc.Subscribe(`:417/openapi.json`, svc.doOpenAPI)	
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`:443/register`, svc.doRegister)
+	svc.Subscribe(`*`, `:443/register`, svc.doRegister)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -113,10 +112,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Register`,
+			Method:      `*`,
 			Path:        `:443/register`,
 			Summary:     `Register(email string) (allowed bool)`,
 			Description: `Register attempts to register a new user.`,

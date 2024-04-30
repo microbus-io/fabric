@@ -7,7 +7,7 @@ Example:
 
 ```go
 con := connector.New("logger.example")
-con.Subscribe("/foo", func(w http.ResponseWriter, r *http.Request) error {
+con.Subscribe("GET", "/foo", func(w http.ResponseWriter, r *http.Request) error {
 	// Log level debug
 	con.LogDebug(r.Context(), "Foo request", log.String("method", r.Method))
 

@@ -56,12 +56,12 @@ func NewMock(version int) *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 	
 	// Functions
-	svc.Subscribe(`:443/create`, svc.doCreate)
-	svc.Subscribe(`:443/load`, svc.doLoad)
-	svc.Subscribe(`:443/delete`, svc.doDelete)
-	svc.Subscribe(`:443/update`, svc.doUpdate)
-	svc.Subscribe(`:443/load-by-email`, svc.doLoadByEmail)
-	svc.Subscribe(`:443/list`, svc.doList)
+	svc.Subscribe(`*`, `:443/create`, svc.doCreate)
+	svc.Subscribe(`*`, `:443/load`, svc.doLoad)
+	svc.Subscribe(`*`, `:443/delete`, svc.doDelete)
+	svc.Subscribe(`*`, `:443/update`, svc.doUpdate)
+	svc.Subscribe(`*`, `:443/load-by-email`, svc.doLoadByEmail)
+	svc.Subscribe(`*`, `:443/list`, svc.doList)
 
 	return svc
 }

@@ -94,12 +94,12 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)	
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`:443/arithmetic`, svc.doArithmetic)
-	svc.Subscribe(`:443/square`, svc.doSquare)
-	svc.Subscribe(`:443/distance`, svc.doDistance)
+	svc.Subscribe(`GET`, `:443/arithmetic`, svc.doArithmetic)
+	svc.Subscribe(`GET`, `:443/square`, svc.doSquare)
+	svc.Subscribe(`*`, `:443/distance`, svc.doDistance)
 
 	// Metrics
 	svc.DefineCounter(
@@ -123,10 +123,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Arithmetic`,
+			Method:      `GET`,
 			Path:        `:443/arithmetic`,
 			Summary:     `Arithmetic(x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int)`,
 			Description: `Arithmetic perform an arithmetic operation between two integers x and y given an operator op.`,
@@ -143,10 +144,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Square`,
+			Method:      `GET`,
 			Path:        `:443/square`,
 			Summary:     `Square(x int) (xEcho int, result int)`,
 			Description: `Square prints the square of the integer x.`,
@@ -159,10 +161,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Distance`,
+			Method:      `*`,
 			Path:        `:443/distance`,
 			Summary:     `Distance(p1 Point, p2 Point) (d float64)`,
 			Description: `Distance calculates the distance between two points.

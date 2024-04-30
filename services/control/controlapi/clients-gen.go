@@ -56,8 +56,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the control.sys microservice.
@@ -129,10 +129,14 @@ func (_out *PingResponse) Get() (pong int, err error) {
 Ping responds to the message with a pong.
 */
 func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := PingIn{
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
 		pub.Body(_in),
 	}
@@ -185,10 +189,14 @@ func (_out *ConfigRefreshResponse) Get() (err error) {
 ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := ConfigRefreshIn{
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
 		pub.Body(_in),
 	}
@@ -242,11 +250,15 @@ func (_out *TraceResponse) Get() (err error) {
 Trace forces exporting the indicated tracing span.
 */
 func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub.Option) <-chan *TraceResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := TraceIn{
 		id,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
 		pub.Body(_in),
 	}
@@ -278,11 +290,15 @@ func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub
 Ping responds to the message with a pong.
 */
 func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := PingIn{
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
 		pub.Body(_in),
 	)
@@ -304,11 +320,15 @@ func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := ConfigRefreshIn{
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
 		pub.Body(_in),
 	)
@@ -329,12 +349,16 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 Trace forces exporting the indicated tracing span.
 */
 func (_c *Client) Trace(ctx context.Context, id string) (err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := TraceIn{
 		id,
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
 		pub.Body(_in),
 	)

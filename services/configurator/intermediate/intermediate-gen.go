@@ -95,12 +95,12 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)	
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`:443/values`, svc.doValues)
-	svc.Subscribe(`:443/refresh`, svc.doRefresh)
-	svc.Subscribe(`:443/sync`, svc.doSync, sub.NoQueue())
+	svc.Subscribe(`*`, `:443/values`, svc.doValues)
+	svc.Subscribe(`*`, `:443/refresh`, svc.doRefresh)
+	svc.Subscribe(`*`, `:443/sync`, svc.doSync, sub.NoQueue())
 	
 	// Tickers
 	intervalPeriodicRefresh, _ := time.ParseDuration("20m0s")

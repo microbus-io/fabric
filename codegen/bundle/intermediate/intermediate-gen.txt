@@ -141,22 +141,20 @@ func NewService(impl ToDo, version int) *Intermediate {
 	{{- end }}{{ end }}
 	
 	// OpenAPI
-	{{- range .Ports}}
-	svc.Subscribe(`:{{ . }}/openapi.json`, svc.doOpenAPI)
-	{{- end}}
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 
 	{{- if .Functions }}	
 
 	// Functions
 	{{- range .Functions }}
-	svc.Subscribe(`{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
 	{{- end }}{{ end }}
 	
 	{{- if .Webs }}
 	
 	// Webs
 	{{- range .Webs }}
-	svc.Subscribe(`{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
+	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
 	{{- end }}{{ end }}
 
 	{{- if .Sinks }}
@@ -209,10 +207,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 	}
 
 	{{- if .General.OpenAPI}}{{- range (JoinHandlers .Functions .Webs) }}{{- if .OpenAPI}}
-	if r.URL.Port() == "{{.Port}}" {
+	if r.URL.Port() == "{{ .Port }}" || "{{ .Port }}" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `{{.Type}}`,
 			Name:        `{{.Name}}`,
+			Method:      `{{.Method}}`,
 			Path:        `{{.Path}}`,
 			Summary:     `{{.Signature.OrigString}}`,
 			Description: `{{.Description}}`,

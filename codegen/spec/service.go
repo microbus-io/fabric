@@ -209,17 +209,3 @@ func (s *Service) AllHandlers() []*Handler {
 	result = append(result, s.Tickers...)
 	return result
 }
-
-// Ports returns the list of ports with a subscription.
-func (s *Service) Ports() []int {
-	dedup := map[int]bool{}
-	result := []int{}
-	for _, h := range s.AllHandlers() {
-		port, err := h.Port()
-		if err == nil && !dedup[port] {
-			dedup[port] = true
-			result = append(result, port)
-		}
-	}
-	return result
-}

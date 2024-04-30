@@ -27,7 +27,7 @@ func TestConnector_SetConfig(t *testing.T) {
 	mockCfg := New("configurator.sys")
 	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTINGAPP
 	mockCfg.SetPlane(plane)
-	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("{}"))
 		return nil
@@ -74,7 +74,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 	mockCfg := New("configurator.sys")
 	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTINGAPP
 	mockCfg.SetPlane(plane)
-	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"values":{"foo":"baz","int":"$$$"}}`))
 		return nil
@@ -112,8 +112,8 @@ func TestConnector_FetchConfig(t *testing.T) {
 	assert.Equal(t, "5", con.Config("int"), "Invalid value should not be accepted")
 	assert.False(t, callbackCalled)
 
-	mockCfg.Unsubscribe("/values")
-	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+	mockCfg.Unsubscribe("POST", "/values")
+	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"values":{"foo":"bam","int":"8"}}`))
 		return nil
@@ -136,7 +136,7 @@ func TestConnector_NoFetchInTestingApp(t *testing.T) {
 	mockCfg := New("configurator.sys")
 	mockCfg.SetDeployment(TESTINGAPP)
 	mockCfg.SetPlane(plane)
-	mockCfg.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"values":{"foo":"baz"}}`))
 		return nil

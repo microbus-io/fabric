@@ -77,7 +77,7 @@ func TestApplication_NoConflict(t *testing.T) {
 
 	// Create first testing app
 	alpha := connector.New("no.conflict.application")
-	alpha.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
+	alpha.Subscribe("GET", "id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("alpha"))
 		return nil
 	})
@@ -85,7 +85,7 @@ func TestApplication_NoConflict(t *testing.T) {
 
 	// Create second testing app
 	beta := connector.New("no.conflict.application")
-	beta.Subscribe("id", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("GET", "id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("beta"))
 		return nil
 	})
@@ -142,7 +142,7 @@ func TestApplication_DependencyStart(t *testing.T) {
 
 	// Beta takes a bit of time to start
 	beta := connector.New("beta.dependency.start.application")
-	beta.Subscribe("/ok", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("GET", "/ok", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 	beta.SetOnStartup(func(ctx context.Context) error {

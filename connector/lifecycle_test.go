@@ -187,7 +187,7 @@ func TestConnector_InitError(t *testing.T) {
 
 	con = New("init.error.connector")
 	con.SetDeployment(TESTINGAPP)
-	err = con.Subscribe(":99999/path", func(w http.ResponseWriter, r *http.Request) error {
+	err = con.Subscribe("GET", ":99999/path", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 	assert.Error(t, err)
@@ -234,7 +234,7 @@ func TestConnector_Restart(t *testing.T) {
 		shutdownCalled++
 		return nil
 	})
-	con.Subscribe("/endpoint", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/endpoint", func(w http.ResponseWriter, r *http.Request) error {
 		endpointCalled++
 		return nil
 	})
@@ -247,7 +247,7 @@ func TestConnector_Restart(t *testing.T) {
 	assert.Equal(t, "default", con.configs["config"].Value)
 
 	// Startup
-	configurator.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+	configurator.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte(`{"values":{"config":"overriden"}}`))
 		return nil
 	})
@@ -268,8 +268,8 @@ func TestConnector_Restart(t *testing.T) {
 	assert.Equal(t, 1, shutdownCalled)
 
 	// Restart
-	configurator.Unsubscribe("/values")
-	configurator.Subscribe("/values", func(w http.ResponseWriter, r *http.Request) error {
+	configurator.Unsubscribe("POST", "/values")
+	configurator.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte(`{}`))
 		return nil
 	})

@@ -19,25 +19,25 @@ func TestSub_NewSub(t *testing.T) {
 	type testCase struct {
 		spec         string
 		expectedHost string
-		expectedPort int
+		expectedPort string
 		expectedPath string
 	}
 	testCases := []testCase{
-		{"", "www.example.com", 443, ""},
-		{"/", "www.example.com", 443, "/"},
-		{":555", "www.example.com", 555, ""},
-		{":555/", "www.example.com", 555, "/"},
-		{"/path/with/slash", "www.example.com", 443, "/path/with/slash"},
-		{"path/with/no/slash", "www.example.com", 443, "/path/with/no/slash"},
-		{"https://good.example.com", "good.example.com", 443, ""},
-		{"https://good.example.com/", "good.example.com", 443, "/"},
-		{"https://good.example.com:555", "good.example.com", 555, ""},
-		{"https://good.example.com:555/", "good.example.com", 555, "/"},
-		{"https://good.example.com:555/path", "good.example.com", 555, "/path"},
+		{"", "www.example.com", "443", ""},
+		{"/", "www.example.com", "443", "/"},
+		{":555", "www.example.com", "555", ""},
+		{":555/", "www.example.com", "555", "/"},
+		{"/path/with/slash", "www.example.com", "443", "/path/with/slash"},
+		{"path/with/no/slash", "www.example.com", "443", "/path/with/no/slash"},
+		{"https://good.example.com", "good.example.com", "443", ""},
+		{"https://good.example.com/", "good.example.com", "443", "/"},
+		{"https://good.example.com:555", "good.example.com", "555", ""},
+		{"https://good.example.com:555/", "good.example.com", "555", "/"},
+		{"https://good.example.com:555/path", "good.example.com", "555", "/path"},
 	}
 
 	for _, tc := range testCases {
-		s, err := NewSub("www.example.com", tc.spec, nil)
+		s, err := NewSub("GET", "www.example.com", tc.spec, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.expectedHost, s.Host)
 		assert.Equal(t, tc.expectedPort, s.Port)
@@ -55,18 +55,48 @@ func TestSub_InvalidPort(t *testing.T) {
 		"https://bad.example.com:1000000/path",
 	}
 	for _, s := range badSpecs {
-		_, err := NewSub("www.example.com", s, nil)
+		_, err := NewSub("GET", "www.example.com", s, nil)
 		assert.Error(t, err)
+	}
+}
+
+func TestSub_Method(t *testing.T) {
+	t.Parallel()
+
+	badSpecs := []string{
+		"123",
+		"A B",
+		"ABC123",
+		"!",
+		"",
+	}
+	for _, s := range badSpecs {
+		_, err := NewSub(s, "www.example.com", "/", nil)
+		assert.Error(t, err)
+	}
+
+	okSpecs := []string{
+		"POST", "POST",
+		"post", "POST",
+		"ANyThinG", "ANYTHING",
+		"*", "*",
+	}
+	for i := 0; i < len(okSpecs); i += 2 {
+		sub, err := NewSub(okSpecs[i], "www.example.com", "/", nil)
+		if assert.NoError(t, err) {
+			assert.Equal(t, okSpecs[i+1], sub.Method)
+		}
 	}
 }
 
 func TestSub_Apply(t *testing.T) {
 	t.Parallel()
 
-	s, err := NewSub("www.example.com", "/path", nil)
+	s, err := NewSub("GET", "www.example.com", "/path", nil)
 	assert.NoError(t, err)
-
 	assert.Equal(t, "www.example.com", s.Queue)
+	assert.Equal(t, "GET", s.Method)
+
 	s.Apply(NoQueue())
 	assert.Equal(t, "", s.Queue)
 	s.Apply(Queue("foo"))
@@ -85,15 +115,15 @@ func TestSub_Apply(t *testing.T) {
 func TestSub_Canonical(t *testing.T) {
 	t.Parallel()
 
-	s, err := NewSub("www.example.com", ":567/path", nil)
+	s, err := NewSub("GET", "www.example.com", ":567/path", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "www.example.com:567/path", s.Canonical())
 
-	s, err = NewSub("www.example.com", "/path", nil)
+	s, err = NewSub("GET", "www.example.com", "/path", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "www.example.com:443/path", s.Canonical()) // default port 443
 
-	s, err = NewSub("www.example.com", "http://zzz.example.com/path", nil) // http
+	s, err = NewSub("GET", "www.example.com", "http://zzz.example.com/path", nil) // http
 	assert.NoError(t, err)
 	assert.Equal(t, "zzz.example.com:80/path", s.Canonical()) // default port 80 for http
 }

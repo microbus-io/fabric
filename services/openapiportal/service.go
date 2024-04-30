@@ -9,17 +9,16 @@ package openapiportal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
-	"gopkg.in/yaml.v3"
 
 	"github.com/microbus-io/fabric/services/control/controlapi"
 	"github.com/microbus-io/fabric/services/openapiportal/intermediate"
@@ -46,15 +45,6 @@ type Service struct {
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	// Create the subscriptions dynamically for each of the configured ports
-	ports := svc.Ports()
-	for _, port := range strings.Split(ports, ",") {
-		port = strings.TrimSpace(port)
-		err = svc.Subscribe("//openapi:"+port, svc.listServices)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
 	return nil
 }
 
@@ -63,15 +53,16 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// listServices displays links to the OpenAPI endpoint of all microservices that provide one
-// on the requested port
-func (svc *Service) listServices(w http.ResponseWriter, r *http.Request) error {
+/*
+List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
+*/
+func (svc *Service) List(w http.ResponseWriter, r *http.Request) (err error) {
 	ctx := r.Context()
 
 	type info struct {
-		Title       string `yaml:"title"`
-		Description string `yaml:"description"`
-		Host        string
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Host        string `json:"-"`
 	}
 	infos := []*info{}
 
@@ -87,18 +78,23 @@ func (svc *Service) listServices(w http.ResponseWriter, r *http.Request) error {
 			u := fmt.Sprintf("https://%s:%s/openapi.json", s, r.URL.Port())
 			res, err := svc.Request(ctx, pub.GET(u))
 			if err != nil {
+				if errors.Convert(err).StatusCode == http.StatusNotFound {
+					// No openapi.json for this service
+					return
+				}
 				lock.Lock()
 				lastErr = errors.Trace(err)
 				lock.Unlock()
+				return
 			}
 			if res.StatusCode == http.StatusNotFound {
 				// No openapi.json for this service
 				return
 			}
 			oapiDoc := struct {
-				Info info `yaml:"info"`
+				Info info `json:"info"`
 			}{}
-			err = yaml.NewDecoder(res.Body).Decode(&oapiDoc)
+			err = json.NewDecoder(res.Body).Decode(&oapiDoc)
 			if err != nil {
 				lock.Lock()
 				lastErr = errors.Trace(err)

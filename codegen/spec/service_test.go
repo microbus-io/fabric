@@ -129,7 +129,7 @@ functions:
   - signature: Func(s []*int)
     path: :99999/...
 `,
-		"invalid path",
+		"invalid port",
 		// --------------------
 		`
 functions:
@@ -151,7 +151,14 @@ events:
   - signature: OnFunc(s []*int)
     path: :99999/...
 `,
-		"invalid path",
+		"invalid port",
+		// --------------------
+		`
+events:
+  - signature: OnFunc(s []*int)
+    path: :*/...
+`,
+		"invalid port",
 	}
 
 	tcSinks := []string{
@@ -282,7 +289,7 @@ webs:
   - signature: Func()
     path: :99999/...
 `,
-		"invalid path",
+		"invalid port",
 		// --------------------
 		`
 webs:

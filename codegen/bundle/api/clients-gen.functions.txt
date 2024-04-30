@@ -35,15 +35,30 @@ func (_out *{{ .Name }}Response) Get() ({{ .Out }}) {
 func (_c *Multicast
 {{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
 ) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
+	method := `{{ .Method }}`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
 		{{- end }}
 	}
+	{{- if not .MethodWithBody }}
+	_inValues, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *{{ .Name }}Response, 1)
+		var _r {{ .Name }}Response
+		_r.err = _err // No trace
+		_res <- &_r
+		close(_res)
+		return _res
+	}
+	{{- end}}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
-		pub.Body(_in),
+		{{ if .MethodWithBody }}pub.Body(_in){{ else }}pub.Query(_inValues){{ end }},
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -75,16 +90,27 @@ func (_c *Multicast
 {{ .Description }}
 */
 func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
+	method := `{{ .Method }}`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
 		{{- end }}
 	}
+	{{- if not .MethodWithBody }}
+	_inValues, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	{{- end}}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
-		pub.Body(_in),
+		{{ if .MethodWithBody }}pub.Body(_in){{ else }}pub.Query(_inValues){{ end }},
 	)
 	if _err != nil {
 		err = _err // No trace
@@ -136,8 +162,8 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 	}
 	path := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
 	if handler == nil {
-		return _c.svc.Unsubscribe(path)
+		return _c.svc.Unsubscribe(`{{ .Method }}`, path)
 	}
-	return _c.svc.Subscribe(path, do{{ .Name }}, options...)
+	return _c.svc.Subscribe(`{{ .Method }}`, path, do{{ .Name }}, options...)
 }
 {{ end }}

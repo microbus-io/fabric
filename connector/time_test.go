@@ -28,7 +28,7 @@ func TestConnector_ClockOffset(t *testing.T) {
 	var betaShift time.Duration
 	beta := New("beta.clock.offset.connector")
 	beta.SetDeployment(TESTINGAPP)
-	beta.Subscribe("void", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("GET", "void", func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
 		betaTime = beta.Now(ctx)
 		betaShift = frame.Of(ctx).ClockShift()

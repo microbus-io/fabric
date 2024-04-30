@@ -55,8 +55,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the calculator.example microservice.
@@ -137,15 +137,28 @@ func (_out *ArithmeticResponse) Get() (xEcho int, opEcho string, yEcho int, resu
 Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
 */
 func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y int, _options ...pub.Option) <-chan *ArithmeticResponse {
+	method := `GET`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := ArithmeticIn{
 		x,
 		op,
 		y,
 	}
+	_inValues, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *ArithmeticResponse, 1)
+		var _r ArithmeticResponse
+		_r.err = _err // No trace
+		_res <- &_r
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
-		pub.Body(_in),
+		pub.Query(_inValues),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -201,13 +214,26 @@ func (_out *SquareResponse) Get() (xEcho int, result int, err error) {
 Square prints the square of the integer x.
 */
 func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Option) <-chan *SquareResponse {
+	method := `GET`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := SquareIn{
 		x,
 	}
+	_inValues, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *SquareResponse, 1)
+		var _r SquareResponse
+		_r.err = _err // No trace
+		_res <- &_r
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
-		pub.Body(_in),
+		pub.Query(_inValues),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
@@ -263,12 +289,16 @@ Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.
 */
 func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _options ...pub.Option) <-chan *DistanceResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := DistanceIn{
 		p1,
 		p2,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
 		pub.Body(_in),
 	}
@@ -300,16 +330,25 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
 */
 func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
+	method := `GET`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := ArithmeticIn{
 		x,
 		op,
 		y,
 	}
+	_inValues, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
-		pub.Body(_in),
+		pub.Query(_inValues),
 	)
 	if _err != nil {
 		err = _err // No trace
@@ -332,14 +371,23 @@ func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEch
 Square prints the square of the integer x.
 */
 func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
+	method := `GET`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := SquareIn{
 		x,
 	}
+	_inValues, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
-		pub.Body(_in),
+		pub.Query(_inValues),
 	)
 	if _err != nil {
 		err = _err // No trace
@@ -361,13 +409,17 @@ Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.
 */
 func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := DistanceIn{
 		p1,
 		p2,
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
 		pub.Body(_in),
 	)

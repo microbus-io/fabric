@@ -36,7 +36,7 @@ var (
 func Initialize() error {
 	// Create a middleware microservice
 	middleware := connector.New("middleware.host")
-	middleware.Subscribe("/serve/", func(w http.ResponseWriter, r *http.Request) error {
+	middleware.Subscribe("*", "/serve/", func(w http.ResponseWriter, r *http.Request) error {
 		options := []pub.Option{
 			pub.Method(r.Method),
 			pub.URL("https:/" + strings.TrimPrefix(r.URL.RequestURI(), "/serve")),
@@ -98,7 +98,7 @@ func TestHttpingress_Ports(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("ports")
-	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("ok"))
 		return nil
 	})
@@ -133,12 +133,12 @@ func TestHttpingress_RequestMemoryLimit(t *testing.T) {
 	entered := make(chan bool)
 	done := make(chan bool)
 	con := connector.New("request.memory.limit")
-	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("POST", "ok", func(w http.ResponseWriter, r *http.Request) error {
 		b, _ := io.ReadAll(r.Body)
 		w.Write(b)
 		return nil
 	})
-	con.Subscribe("hold", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("POST", "hold", func(w http.ResponseWriter, r *http.Request) error {
 		entered <- true
 		<-done
 		w.Write([]byte("done"))
@@ -200,7 +200,7 @@ func TestHttpingress_Compression(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("compression")
-	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write(bytes.Repeat([]byte("Hello123"), 1024)) // 8KB
 		return nil
@@ -229,11 +229,11 @@ func TestHttpingress_PortMapping(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("port.mapping")
-	con.Subscribe("ok443", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "ok443", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	con.Subscribe(":555/ok555", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", ":555/ok555", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("ok"))
 		return nil
 	})
@@ -277,7 +277,7 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("forwarded.headers")
-	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
 		var sb strings.Builder
 		for _, h := range []string{"X-Forwarded-Host", "X-Forwarded-Prefix", "X-Forwarded-Proto", "X-Forwarded-For", "X-Forwarded-Path"} {
 			if r.Header.Get(h) != "" {
@@ -344,7 +344,7 @@ func TestHttpingress_Root(t *testing.T) {
 	}
 
 	con := connector.New("root")
-	con.Subscribe("", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("Root"))
 		return nil
 	})
@@ -364,7 +364,7 @@ func TestHttpingress_CORS(t *testing.T) {
 
 	callCount := 0
 	con := connector.New("cors")
-	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
 		callCount++
 		w.Write([]byte("ok"))
 		return nil
@@ -425,7 +425,7 @@ func TestHttpingress_ParseForm(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("parse.form")
-	con.Subscribe("ok", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("POST", "ok", func(w http.ResponseWriter, r *http.Request) error {
 		err := r.ParseForm()
 		if err != nil {
 			return errors.Trace(err)
@@ -433,7 +433,7 @@ func TestHttpingress_ParseForm(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	con.Subscribe("more", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("POST", "more", func(w http.ResponseWriter, r *http.Request) error {
 		r.Body = http.MaxBytesReader(w, r.Body, 12*1024*1024)
 		err := r.ParseForm()
 		if err != nil {
@@ -490,7 +490,7 @@ func TestHttpingress_Middleware(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("final.destination")
-	con.Subscribe(":555/ok", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", ":555/ok", func(w http.ResponseWriter, r *http.Request) error {
 		// The request should be coming from the middleware
 		assert.Equal(t, "middleware.host", frame.Of(r).FromHost())
 		// Headers should pass through
@@ -521,11 +521,11 @@ func TestHttpingress_BlockedPaths(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("blocked.paths")
-	con.Subscribe("admin.php", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "admin.php", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	con.Subscribe("admin.ppp", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "admin.ppp", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("ok"))
 		return nil
 	})
@@ -554,7 +554,7 @@ func TestHttpingress_MatchAcceptedLanguages(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("accepted.languages")
-	con.Subscribe("echo", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "echo", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte(r.Header.Get("Accept-Language")))
 		return nil
 	})

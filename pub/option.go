@@ -191,15 +191,15 @@ func QueryArg(name string, value any) Option {
 	}
 }
 
-// Query adds the escaped query arguments to the request.
+// Query adds the encoded query arguments to the request.
 // The same argument may have multiple values.
-func Query(escapedQueryArgs string) Option {
+func QueryString(encodedQueryArgs string) Option {
 	return func(req *Request) error {
-		if escapedQueryArgs != "" {
+		if encodedQueryArgs != "" {
 			if len(req.queryArgs) > 0 {
 				req.queryArgs += "&"
 			}
-			req.queryArgs += escapedQueryArgs
+			req.queryArgs += encodedQueryArgs
 			if req.URL != "" {
 				u, err := utils.ParseURL(req.URL)
 				if err != nil {
@@ -208,12 +208,17 @@ func Query(escapedQueryArgs string) Option {
 				if len(u.RawQuery) > 0 {
 					u.RawQuery += "&"
 				}
-				u.RawQuery += escapedQueryArgs
+				u.RawQuery += encodedQueryArgs
 				req.URL = u.String()
 			}
 		}
 		return nil
 	}
+}
+
+// Query adds arguments to the request.
+func Query(args url.Values) Option {
+	return QueryString(args.Encode())
 }
 
 // Body sets the body of the request.

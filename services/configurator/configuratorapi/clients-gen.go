@@ -55,8 +55,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the configurator.sys microservice.
@@ -129,11 +129,15 @@ func (_out *ValuesResponse) Get() (values map[string]string, err error) {
 Values returns the values associated with the specified config property names for the caller microservice.
 */
 func (_c *MulticastClient) Values(ctx context.Context, names []string, _options ...pub.Option) <-chan *ValuesResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := ValuesIn{
 		names,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
 		pub.Body(_in),
 	}
@@ -187,10 +191,14 @@ Refresh tells all microservices to contact the configurator and refresh their co
 An error is returned if any of the values sent to the microservices fails validation.
 */
 func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := RefreshIn{
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
 		pub.Body(_in),
 	}
@@ -245,12 +253,16 @@ func (_out *SyncResponse) Get() (err error) {
 Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string, _options ...pub.Option) <-chan *SyncResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := SyncIn{
 		timestamp,
 		values,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
 		pub.Body(_in),
 	}
@@ -282,12 +294,16 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 Values returns the values associated with the specified config property names for the caller microservice.
 */
 func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := ValuesIn{
 		names,
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
 		pub.Body(_in),
 	)
@@ -310,11 +326,15 @@ Refresh tells all microservices to contact the configurator and refresh their co
 An error is returned if any of the values sent to the microservices fails validation.
 */
 func (_c *Client) Refresh(ctx context.Context) (err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := RefreshIn{
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
 		pub.Body(_in),
 	)
@@ -335,13 +355,17 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := SyncIn{
 		timestamp,
 		values,
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
 		pub.Body(_in),
 	)

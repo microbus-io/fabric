@@ -97,10 +97,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)	
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`:443/registered`, svc.doRegistered)
+	svc.Subscribe(`*`, `:443/registered`, svc.doRegistered)
 	
 	// Sinks
 	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.impl.OnAllowRegister)
@@ -121,10 +121,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Registered`,
+			Method:      `*`,
 			Path:        `:443/registered`,
 			Summary:     `Registered() (emails []string)`,
 			Description: `Registered returns the list of registered users.`,

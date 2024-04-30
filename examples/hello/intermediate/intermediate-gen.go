@@ -112,15 +112,15 @@ func NewService(impl ToDo, version int) *Intermediate {
 	)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 	
 	// Webs
-	svc.Subscribe(`:443/hello`, svc.impl.Hello)
-	svc.Subscribe(`:443/echo`, svc.impl.Echo)
-	svc.Subscribe(`:443/ping`, svc.impl.Ping)
-	svc.Subscribe(`:443/calculator`, svc.impl.Calculator)
-	svc.Subscribe(`:443/bus.jpeg`, svc.impl.BusJPEG)
-	svc.Subscribe(`:443/localization`, svc.impl.Localization)
+	svc.Subscribe(`*`, `:443/hello`, svc.impl.Hello)
+	svc.Subscribe(`*`, `:443/echo`, svc.impl.Echo)
+	svc.Subscribe(`*`, `:443/ping`, svc.impl.Ping)
+	svc.Subscribe(`*`, `:443/calculator`, svc.impl.Calculator)
+	svc.Subscribe(`*`, `:443/bus.jpeg`, svc.impl.BusJPEG)
+	svc.Subscribe(`*`, `:443/localization`, svc.impl.Localization)
 	
 	// Tickers
 	intervalTickTock, _ := time.ParseDuration("10s")
@@ -141,10 +141,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Hello`,
+			Method:      `*`,
 			Path:        `:443/hello`,
 			Summary:     `Hello()`,
 			Description: `Hello prints a greeting.`,
@@ -154,10 +155,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Echo`,
+			Method:      `*`,
 			Path:        `:443/echo`,
 			Summary:     `Echo()`,
 			Description: `Echo back the incoming request in wire format.`,
@@ -167,10 +169,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Ping`,
+			Method:      `*`,
 			Path:        `:443/ping`,
 			Summary:     `Ping()`,
 			Description: `Ping all microservices and list them.`,
@@ -180,10 +183,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Calculator`,
+			Method:      `*`,
 			Path:        `:443/calculator`,
 			Summary:     `Calculator()`,
 			Description: `Calculator renders a UI for a calculator.
@@ -195,10 +199,11 @@ a call from one microservice to another.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `BusJPEG`,
+			Method:      `*`,
 			Path:        `:443/bus.jpeg`,
 			Summary:     `BusJPEG()`,
 			Description: `BusJPEG serves an image from the embedded resources.`,
@@ -208,10 +213,11 @@ a call from one microservice to another.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Localization`,
+			Method:      `*`,
 			Path:        `:443/localization`,
 			Summary:     `Localization()`,
 			Description: `Localization prints hello in the language best matching the request's Accept-Language header.`,

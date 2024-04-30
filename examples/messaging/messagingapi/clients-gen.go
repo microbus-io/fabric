@@ -57,8 +57,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the messaging.example microservice.
@@ -107,8 +107,12 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 Home demonstrates making requests using multicast and unicast request/response patterns.
 */
 func (_c *Client) Home(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/home`)),
 	}
 	opts = append(opts, options...)
@@ -123,8 +127,12 @@ func (_c *Client) Home(ctx context.Context, options ...pub.Option) (res *http.Re
 Home demonstrates making requests using multicast and unicast request/response patterns.
 */
 func (_c *MulticastClient) Home(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/home`)),
 	}
 	opts = append(opts, options...)
@@ -137,8 +145,12 @@ a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 */
 func (_c *Client) NoQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/no-queue`)),
 	}
 	opts = append(opts, options...)
@@ -155,8 +167,12 @@ a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 */
 func (_c *MulticastClient) NoQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/no-queue`)),
 	}
 	opts = append(opts, options...)
@@ -169,8 +185,12 @@ a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 */
 func (_c *Client) DefaultQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/default-queue`)),
 	}
 	opts = append(opts, options...)
@@ -187,8 +207,12 @@ a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 */
 func (_c *MulticastClient) DefaultQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/default-queue`)),
 	}
 	opts = append(opts, options...)
@@ -199,8 +223,12 @@ func (_c *MulticastClient) DefaultQueue(ctx context.Context, options ...pub.Opti
 CacheLoad looks up an element in the distributed cache of the microservice.
 */
 func (_c *Client) CacheLoad(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-load`)),
 	}
 	opts = append(opts, options...)
@@ -215,8 +243,12 @@ func (_c *Client) CacheLoad(ctx context.Context, options ...pub.Option) (res *ht
 CacheLoad looks up an element in the distributed cache of the microservice.
 */
 func (_c *MulticastClient) CacheLoad(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-load`)),
 	}
 	opts = append(opts, options...)
@@ -227,8 +259,12 @@ func (_c *MulticastClient) CacheLoad(ctx context.Context, options ...pub.Option)
 CacheStore stores an element in the distributed cache of the microservice.
 */
 func (_c *Client) CacheStore(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-store`)),
 	}
 	opts = append(opts, options...)
@@ -243,8 +279,12 @@ func (_c *Client) CacheStore(ctx context.Context, options ...pub.Option) (res *h
 CacheStore stores an element in the distributed cache of the microservice.
 */
 func (_c *MulticastClient) CacheStore(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-store`)),
 	}
 	opts = append(opts, options...)

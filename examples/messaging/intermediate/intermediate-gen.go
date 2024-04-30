@@ -96,14 +96,14 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 	
 	// Webs
-	svc.Subscribe(`:443/home`, svc.impl.Home)
-	svc.Subscribe(`:443/no-queue`, svc.impl.NoQueue, sub.NoQueue())
-	svc.Subscribe(`:443/default-queue`, svc.impl.DefaultQueue)
-	svc.Subscribe(`:443/cache-load`, svc.impl.CacheLoad)
-	svc.Subscribe(`:443/cache-store`, svc.impl.CacheStore)
+	svc.Subscribe(`*`, `:443/home`, svc.impl.Home)
+	svc.Subscribe(`*`, `:443/no-queue`, svc.impl.NoQueue, sub.NoQueue())
+	svc.Subscribe(`*`, `:443/default-queue`, svc.impl.DefaultQueue)
+	svc.Subscribe(`*`, `:443/cache-load`, svc.impl.CacheLoad)
+	svc.Subscribe(`*`, `:443/cache-store`, svc.impl.CacheStore)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -120,10 +120,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Home`,
+			Method:      `*`,
 			Path:        `:443/home`,
 			Summary:     `Home()`,
 			Description: `Home demonstrates making requests using multicast and unicast request/response patterns.`,
@@ -133,10 +134,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `NoQueue`,
+			Method:      `*`,
 			Path:        `:443/no-queue`,
 			Summary:     `NoQueue()`,
 			Description: `NoQueue demonstrates how the NoQueue subscription option is used to create
@@ -148,10 +150,11 @@ All instances of this microservice will respond to each request.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `DefaultQueue`,
+			Method:      `*`,
 			Path:        `:443/default-queue`,
 			Summary:     `DefaultQueue()`,
 			Description: `DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
@@ -163,10 +166,11 @@ Only one of the instances of this microservice will respond to each request.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `CacheLoad`,
+			Method:      `*`,
 			Path:        `:443/cache-load`,
 			Summary:     `CacheLoad()`,
 			Description: `CacheLoad looks up an element in the distributed cache of the microservice.`,
@@ -176,10 +180,11 @@ Only one of the instances of this microservice will respond to each request.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `CacheStore`,
+			Method:      `*`,
 			Path:        `:443/cache-store`,
 			Summary:     `CacheStore()`,
 			Description: `CacheStore stores an element in the distributed cache of the microservice.`,

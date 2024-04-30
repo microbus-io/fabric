@@ -132,8 +132,7 @@ Defaults to 8.`),
 	)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)
-	svc.Subscribe(`:417/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)

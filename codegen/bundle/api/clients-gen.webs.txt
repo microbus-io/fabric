@@ -3,8 +3,12 @@
 {{ .Description }}
 */
 func (_c *Client) {{ .Name }}(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `{{ .Method }}`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 	}
 	opts = append(opts, options...)
@@ -19,8 +23,12 @@ func (_c *Client) {{ .Name }}(ctx context.Context, options ...pub.Option) (res *
 {{ .Description }}
 */
 func (_c *MulticastClient) {{ .Name }}(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `{{ .Method }}`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
 	}
 	opts = append(opts, options...)

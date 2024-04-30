@@ -10,7 +10,7 @@ A communication pattern that is often underappreciated is pub/sub which enables 
 Typical client code that processes multiple responses will look similar to the following:
 
 ```go
-ch := s.Publish(r.Context(), pub.GET("https://authprovider/discover"))
+ch := s.Publish(ctx, pub.GET("https://authprovider/discover"))
 for r := range ch {
     res, err := r.Get()
     if err != nil {
@@ -23,7 +23,7 @@ for r := range ch {
 In the case of fire and forget, it may look similar to this:
 
 ```go
-go s.Publish(r.Context(), pub.GET("https://users.storage/ondeleted?id=12345"))
+go s.Publish(ctx, pub.GET("https://users.storage/ondeleted?id=12345"))
 ```
 
 Note that a multicast may return no results at all. Unlike a unicast, no error is returned.

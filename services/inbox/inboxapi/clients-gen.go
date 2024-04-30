@@ -52,8 +52,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the inbox.sys microservice.
@@ -164,11 +164,15 @@ func (_out *OnInboxSaveMailResponse) Get() (err error) {
 OnInboxSaveMail is triggered when a new email message is received.
 */
 func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Email, _options ...pub.Option) <-chan *OnInboxSaveMailResponse {
+	method := `POST`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := OnInboxSaveMailIn{
 		mailMessage,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-inbox-save-mail`)),
 		pub.Body(_in),
 	}
@@ -223,7 +227,7 @@ func (_c *Hook) OnInboxSaveMail(handler func(ctx context.Context, mailMessage *E
 	}
 	path := httpx.JoinHostAndPath(_c.host, `:417/on-inbox-save-mail`)
 	if handler == nil {
-		return _c.svc.Unsubscribe(path)
+		return _c.svc.Unsubscribe(`POST`, path)
 	}
-	return _c.svc.Subscribe(path, doOnInboxSaveMail, options...)
+	return _c.svc.Subscribe(`POST`, path, doOnInboxSaveMail, options...)
 }

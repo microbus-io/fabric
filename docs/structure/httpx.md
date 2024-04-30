@@ -8,6 +8,26 @@ Package `httpx` includes various HTTP utilities.
 
 `ParseRequestData` parses the body and query arguments of an incoming request and populates a data object that represents its input arguments. This type of parsing is used in the generated code of the microservice to process functional requests.
 
+`DecodeDeepObject` and `EncodeDeepObject` handle the decoding and encoding of an object into a query string with bracketed nested argument names. Deep object encoding is used to pass nested objects in query arguments of a request.
+
+For example:
+
+```json
+{
+    "color": {
+        "r": 100,
+        "g": 200,
+        "b": 150,
+    }
+}
+```
+
+is encoded to
+
+```
+color[r]=100&color[g]=200&color[b]=150
+```
+
 `FragRequest` and its counterpart `DefragRequest` break and reassemble (respectively) large `http.Request`s. `FragResponse` and its counterpart `DefragResponse` break and reassemble (respectively) large `http.Response`s. Fragmentation is required because NATS sets a limit (1MB by default) to the size for messages that can travel on the bus. During fragmentation, a control header `Microbus-Fragment` that specifies the index of the fragment out of the total number of fragments is added to the fragments. This information is later used to reassemble the fragments on the other end.
 
 Here's an example of an HTTP request that was fragmented into 3 fragments of up to 128 bytes each. The client starts by sending the first fragment. Notice the header `Microbus-Fragment: 1/3` indicating this is the first of three fragments.

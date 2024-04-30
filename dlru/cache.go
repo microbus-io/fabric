@@ -59,7 +59,7 @@ type Cache struct {
 // NewCache starts a new cache for the service at a given path.
 // It's recommended to use a non-standard port for the path.
 func NewCache(ctx context.Context, svc Service, path string) (*Cache, error) {
-	sub, err := sub.NewSub(svc.HostName(), path, nil)
+	sub, err := sub.NewSub("GET", svc.HostName(), path, nil)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -130,11 +130,11 @@ func (c *Cache) MaxMemory() int {
 
 // start subscribed to handle cache events from peers.
 func (c *Cache) start(ctx context.Context) error {
-	err := c.svc.Subscribe(c.basePath+"/all", c.handleAll, sub.NoQueue())
+	err := c.svc.Subscribe("*", c.basePath+"/all", c.handleAll, sub.NoQueue())
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.svc.Subscribe(c.basePath+"/rescue", c.handleRescue, sub.DefaultQueue())
+	err = c.svc.Subscribe("*", c.basePath+"/rescue", c.handleRescue, sub.DefaultQueue())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -143,8 +143,8 @@ func (c *Cache) start(ctx context.Context) error {
 
 // start unsubscribes from handling cache events from peers.
 func (c *Cache) stop(ctx context.Context) error {
-	c.svc.Unsubscribe(c.basePath + "/rescue")
-	c.svc.Unsubscribe(c.basePath + "/all")
+	c.svc.Unsubscribe("*", c.basePath+"/rescue")
+	c.svc.Unsubscribe("*", c.basePath+"/all")
 	return nil
 }
 

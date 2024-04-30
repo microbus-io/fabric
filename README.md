@@ -42,7 +42,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [errors](docs/structure/errors.md) - An enhancement of the standard `errors` package
 * [examples](docs/structure/examples.md) - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
-* [httpx](docs/structure/httpx.md) - Various HTTP utilities
+* [httpx](docs/structure/httpx.md) ✨ - Various HTTP utilities
 * [log](docs/structure/log.md) - Fields for attaching data to log messages
 * [lru](docs/structure/lru.md) - An LRU with with limits on age and weight
 * [mtr](docs/structure/mtr.md) - Metrics collectors
@@ -65,8 +65,8 @@ Review each of the major project packages to get oriented in the code structure:
 
 Go deep into the philosophy and implementation of `Microbus`:
 
-* [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
-* [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
+* [Unicast messaging](docs/tech/unicast.md) ✨ - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
+* [HTTP ingress](docs/tech/httpingress.md) ✨ - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](docs/tech/timebudget.md) - The proper way to manage request timeouts
@@ -75,7 +75,7 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
 * [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
-* [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
+* [Code generation](docs/tech/codegen.md) ✨ - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
 * [Distributed tracing](docs/tech/distribtracing.md) - Distributed tracing using OpenTelemetry and Jaeger

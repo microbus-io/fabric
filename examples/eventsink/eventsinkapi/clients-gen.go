@@ -53,8 +53,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the eventsink.example microservice.
@@ -126,10 +126,14 @@ func (_out *RegisteredResponse) Get() (emails []string, err error) {
 Registered returns the list of registered users.
 */
 func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := RegisteredIn{
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
 		pub.Body(_in),
 	}
@@ -161,11 +165,15 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 Registered returns the list of registered users.
 */
 func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := RegisteredIn{
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
 		pub.Body(_in),
 	)

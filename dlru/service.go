@@ -21,8 +21,8 @@ import (
 type Service interface {
 	ID() string
 	HostName() string
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	LogInfo(ctx context.Context, msg string, fields ...log.Field)

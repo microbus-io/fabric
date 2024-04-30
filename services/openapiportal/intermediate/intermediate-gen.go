@@ -69,6 +69,7 @@ var (
 type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
+	List(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -91,18 +92,12 @@ on the requested port.`)
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-
-	// Configs
-	svc.SetOnConfigChanged(svc.doOnConfigChanged)
-	svc.DefineConfig(
-		"Ports",
-		cfg.Description(`Ports is a comma separated list of ports with OpenAPI endpoints.`),
-		cfg.Validation(`str ^[0-9]+(\s*,\s*[0-9]+)*$`),
-		cfg.DefaultValue(`443`),
-	)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
+	
+	// Webs
+	svc.Subscribe(`*`, `//openapi:*`, svc.impl.List)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -136,21 +131,4 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 // doOnConfigChanged is called when the config of the microservice changes.
 func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
 	return nil
-}
-
-/*
-Ports is a comma separated list of ports with OpenAPI endpoints.
-*/
-func (svc *Intermediate) Ports() (ports string) {
-	_val := svc.Config("Ports")
-	return _val
-}
-
-/*
-Ports is a comma separated list of ports with OpenAPI endpoints.
-*/
-func Ports(ports string) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
-		return svc.SetConfig("Ports", fmt.Sprintf("%v", ports))
-	}
 }

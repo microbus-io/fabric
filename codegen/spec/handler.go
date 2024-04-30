@@ -14,10 +14,12 @@ import (
 
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
 )
+
+var methodValidator = regexp.MustCompile(`^[A-Z]+$`)
+var portValidator = regexp.MustCompile(`^[0-9]+$`)
 
 // Handler is the spec of a callback handler.
 // Web requests, lifecycle events, config changes, tickers, etc.
@@ -28,6 +30,7 @@ type Handler struct {
 	// Shared
 	Signature   *Signature `yaml:"signature"`
 	Description string     `yaml:"description"`
+	Method      string     `yaml:"method"`
 	Path        string     `yaml:"path"`
 	Queue       string     `yaml:"queue"`
 	OpenAPI     bool       `yaml:"openApi"`
@@ -73,11 +76,11 @@ func (h *Handler) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if h.Queue == "" {
 		h.Queue = "default"
 	}
+	h.Method = strings.ToUpper(h.Method)
 	h.Kind = strings.ToLower(h.Kind)
 	if h.Kind == "" {
 		h.Kind = "counter"
 	}
-
 	if h.Event == "" {
 		h.Event = h.Name()
 	}
@@ -98,13 +101,15 @@ func (h *Handler) validate() error {
 	if h.Kind != "counter" && h.Kind != "gauge" && h.Kind != "histogram" {
 		return errors.Newf("invalid metric kind '%s' in '%s'", h.Kind, h.Name())
 	}
+	if h.Method != "" && h.Method != "*" && !methodValidator.MatchString(h.Method) {
+		return errors.Newf("invalid method '%s'", h.Method)
+	}
 	if strings.Contains(h.Path, "`") {
 		return errors.Newf("backquote not allowed in path '%s' in '%s'", h.Path, h.Name())
 	}
-	joined := httpx.JoinHostAndPath("example.com", h.Path)
-	_, err := utils.ParseURL(joined)
+	s, err := sub.NewSub("GET", "example.com", h.Path, nil)
 	if err != nil {
-		return errors.Newf("invalid path '%s' in '%s'", h.Path, h.Name())
+		return errors.Trace(err)
 	}
 	if h.Validation != "" {
 		_, err := cfg.NewConfig(
@@ -121,6 +126,22 @@ func (h *Handler) validate() error {
 	// It will get filled by the parent service which will then call this method again.
 	if h.Type == "" {
 		return nil
+	}
+
+	if h.Type == "event" {
+		if h.Method == "" {
+			h.Method = "POST"
+		}
+		if h.Method == "*" {
+			return errors.Newf("invalid method '%s'", h.Method)
+		}
+		if s.Port == "*" {
+			return errors.Newf("invalid port '%s'", s.Port)
+		}
+	} else {
+		if h.Method == "" {
+			h.Method = "*"
+		}
 	}
 
 	if strings.HasPrefix(h.Path, "/") && !strings.HasPrefix(h.Path, "//") {
@@ -271,11 +292,22 @@ func (h *Handler) Incrementable() bool {
 	return h.Kind == "counter" || h.Kind == "gauge"
 }
 
-// Port returns the port number used in the path.
-func (h *Handler) Port() (int, error) {
-	s, err := sub.NewSub("hostname", h.Path, nil)
+// Port returns the port number set in the path.
+func (h *Handler) Port() (string, error) {
+	s, err := sub.NewSub("GET", "hostname", h.Path, nil)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	return s.Port, nil
+}
+
+// MethodWithBody indicates if the HTTP method of the endpoint allows sending a body.
+// "GET", "DELETE", "TRACE", "OPTIONS", "HEAD" do not allow a body.
+func (h *Handler) MethodWithBody() bool {
+	switch strings.ToUpper(h.Method) {
+	case "GET", "DELETE", "TRACE", "OPTIONS", "HEAD":
+		return false
+	default:
+		return true
+	}
 }

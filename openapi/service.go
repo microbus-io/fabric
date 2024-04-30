@@ -188,7 +188,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			}
 		}
 
-		subscr, err := sub.NewSub(s.ServiceName, ep.Path, nil)
+		subscr, err := sub.NewSub("GET", s.ServiceName, ep.Path, nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}

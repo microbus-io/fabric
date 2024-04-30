@@ -121,7 +121,6 @@ func TestCalculator_OpenAPI(t *testing.T) {
 				if assert.NoError(t, err) {
 					res.Body.Close()
 					assert.Contains(t, string(body), `"summary": "`+fns[i+1]+"(")
-					assert.Contains(t, string(body), fns[i+1]+"_IN")
 					assert.Contains(t, string(body), fns[i+1]+"_OUT")
 				}
 			}

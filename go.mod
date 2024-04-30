@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.0.6
 	github.com/flashmob/go-guerrilla v1.6.1
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/invopop/jsonschema v0.12.0
 	github.com/microbus-io/copyrighter v1.0.0
 	github.com/mnako/letters v0.2.2
 	github.com/nats-io/nats.go v1.31.0
@@ -33,7 +34,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.0 // indirect
-	github.com/invopop/jsonschema v0.12.0 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

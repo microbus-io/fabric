@@ -1,4 +1,4 @@
 # Package `services/openapiportal`
 
 All `Microbus` microservices [produce OpenAPI documents](../tech/openapi.md) describing their endpoints.
-The OpenAPI portal system microservice renders an HTML portal page that lists all microservices that have an OpenAPI endpoint on the same port as the request. For example, the portal page at the internal `Microbus` address of `https://openapi:443` finds all microservices with open endpoints on port `:443`. The list of ports may be configured via the `Ports` config.
+The OpenAPI portal system microservice renders an HTML portal page that lists all microservices that have an OpenAPI endpoint on the same port as the request. For example, the portal page at the internal `Microbus` address of `https://openapi:443` finds all microservices with open endpoints on port `:443`.

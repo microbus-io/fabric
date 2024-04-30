@@ -38,6 +38,7 @@ var (
 // allowing functions, sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
+	MockList func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -49,6 +50,9 @@ func NewMock(version int) *Mock {
 	svc.SetDescription(`The OpenAPI microservice lists links to the OpenAPI endpoint of all microservices that provide one
 on the requested port.`)
 	svc.SetOnStartup(svc.doOnStartup)
+	
+	// Webs
+	svc.Subscribe(`*`, `//openapi:*`, svc.doList)
 
 	return svc
 }
@@ -59,4 +63,13 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
+}
+
+// doList handles the List web handler.
+func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.MockList == nil {
+		return errors.New("mocked endpoint 'List' not implemented")
+	}
+	err = svc.MockList(w, r)
+	return errors.Trace(err)
 }

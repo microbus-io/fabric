@@ -75,7 +75,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 
 	// Check if there's enough time budget
 	if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) <= c.networkHop {
-		err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
+		err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Method+" "+req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
@@ -85,7 +85,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	outboundFrame := frame.Of(req.Header)
 	depth := inboundFrame.CallDepth()
 	if depth >= c.maxCallDepth {
-		err = errors.Newc(http.StatusLoopDetected, "call depth overflow", req.Canonical())
+		err = errors.Newc(http.StatusLoopDetected, "call depth overflow", req.Method+" "+req.Canonical())
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
@@ -128,7 +128,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 		c.makeHTTPRequest(ctx, req, output)
 		fullyDrained := output.Close(time.Second)
 		if !fullyDrained {
-			c.LogDebug(ctx, "Unconsumed responses dropped", log.String("url", req.Canonical()))
+			c.LogDebug(ctx, "Unconsumed responses dropped", log.String("url", req.Canonical()), log.String("method", req.Method))
 		}
 	}()
 	return output.C()
@@ -143,7 +143,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	// Prepare the HTTP request (first fragment only)
 	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
 	if err != nil {
-		err = errors.Trace(err, req.Canonical())
+		err = errors.Trace(err, req.Method+" "+req.Canonical())
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -155,18 +155,18 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		frame.Of(httpReq).SetTimeBudget(time.Until(deadline))
 	}
 
-	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()))
+	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()), log.String("method", req.Method))
 
 	// Fragment large requests
 	fragger, err := httpx.NewFragRequest(httpReq, c.maxFragmentSize)
 	if err != nil {
-		err = errors.Trace(err, req.Canonical())
+		err = errors.Trace(err, req.Method+" "+req.Canonical())
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
 	httpReq, err = fragger.Fragment(1)
 	if err != nil {
-		err = errors.Trace(err, req.Canonical())
+		err = errors.Trace(err, req.Method+" "+req.Canonical())
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -183,25 +183,31 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	}()
 
 	// Send the message
-	port := 443
+	port := "443"
 	if httpReq.URL.Scheme == "http" {
-		port = 80
+		port = "80"
 	}
 	if httpReq.URL.Port() != "" {
-		port64, err := strconv.ParseInt(httpReq.URL.Port(), 10, 32)
+		portNum, err := strconv.Atoi(httpReq.URL.Port())
 		if err != nil {
-			err = errors.Trace(err, req.Canonical())
+			err = errors.Trace(err, req.Method+" "+req.Canonical())
 			output.Push(pub.NewErrorResponse(err))
 			return
 		}
-		port = int(port64)
+		if portNum < 1 || portNum > 65535 {
+			err = errors.Newf("invalid port '%d'", portNum)
+			err = errors.Convert(err).Annotate(req.Method + " " + req.Canonical())
+			output.Push(pub.NewErrorResponse(err))
+			return
+		}
+		port = httpReq.URL.Port()
 	}
-	subject := subjectOfRequest(c.plane, httpReq.URL.Hostname(), port, httpReq.URL.Path)
+	subject := subjectOfRequest(c.plane, httpReq.Method, httpReq.URL.Hostname(), port, httpReq.URL.Path)
 
 	var buf bytes.Buffer
 	err = httpReq.Write(&buf)
 	if err != nil {
-		err = errors.Trace(err, req.Canonical())
+		err = errors.Trace(err, req.Method+" "+req.Canonical())
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -209,7 +215,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	publishTime := time.Now()
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
-		err = errors.Trace(err, req.Canonical())
+		err = errors.Trace(err, req.Method+" "+req.Canonical())
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -293,24 +299,24 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 							fragment, err := fragger.Fragment(f)
 							if err != nil {
 								err = errors.Trace(err)
-								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()))
+								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()), log.String("method", req.Method))
 								break
 							}
 
 							// Direct addressing
-							subject := subjectOfRequest(c.plane, fromID+"."+fragment.URL.Hostname(), port, fragment.URL.Path)
+							subject := subjectOfRequest(c.plane, fragment.Method, fromID+"."+fragment.URL.Hostname(), port, fragment.URL.Path)
 
 							var buf bytes.Buffer
 							err = fragment.Write(&buf)
 							if err != nil {
 								err = errors.Trace(err)
-								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()))
+								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()), log.String("method", req.Method))
 								break
 							}
 							err = c.natsConn.Publish(subject, buf.Bytes())
 							if err != nil {
 								err = errors.Trace(err)
-								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()))
+								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()), log.String("method", req.Method))
 								break
 							}
 						}
@@ -326,7 +332,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					1,
 					httpReq.Method,
 					httpReq.URL.Hostname(),
-					strconv.Itoa(port),
+					port,
 					strconv.Itoa(response.StatusCode),
 					"OK",
 				)
@@ -356,7 +362,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					1,
 					httpReq.Method,
 					httpReq.URL.Hostname(),
-					strconv.Itoa(port),
+					port,
 					strconv.Itoa(statusCode),
 					func() string {
 						if statusCode == http.StatusNotFound {
@@ -387,7 +393,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		// Timeout timer
 		case <-timeoutTimer.C:
 			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
-			err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Canonical())
+			err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Method+" "+req.Canonical())
 			output.Push(pub.NewErrorResponse(err))
 			c.postRequestData.Store("timeout:"+msgID, subject)
 			_ = c.IncrementMetric(
@@ -395,7 +401,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 				1,
 				httpReq.Method,
 				httpReq.URL.Hostname(),
-				strconv.Itoa(port),
+				port,
 				strconv.Itoa(http.StatusRequestTimeout),
 				"OK",
 			)
@@ -424,14 +430,14 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					c.knownResponders.Delete(subject)
 					c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 				} else {
-					err = errors.Newc(http.StatusNotFound, "ack timeout", req.Canonical())
+					err = errors.Newc(http.StatusNotFound, "ack timeout", req.Method+" "+req.Canonical())
 					output.Push(pub.NewErrorResponse(err))
 					_ = c.IncrementMetric(
 						"microbus_request_count_total",
 						1,
 						httpReq.Method,
 						httpReq.URL.Hostname(),
-						strconv.Itoa(port),
+						port,
 						strconv.Itoa(http.StatusNotFound),
 						"OK",
 					)

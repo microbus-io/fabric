@@ -19,5 +19,5 @@ This package also defines various `Option`s that can be applied to the `Subscrip
 For example:
 
 ```go
-con.Subscribe("/path", handler, sub.NoQueue())
+con.Subscribe("GET", "/path", handler, sub.NoQueue())
 ```

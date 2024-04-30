@@ -55,11 +55,11 @@ func NewMock(version int) *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 	
 	// Webs
-	svc.Subscribe(`:443/home`, svc.doHome)
-	svc.Subscribe(`:443/no-queue`, svc.doNoQueue, sub.NoQueue())
-	svc.Subscribe(`:443/default-queue`, svc.doDefaultQueue)
-	svc.Subscribe(`:443/cache-load`, svc.doCacheLoad)
-	svc.Subscribe(`:443/cache-store`, svc.doCacheStore)
+	svc.Subscribe(`*`, `:443/home`, svc.doHome)
+	svc.Subscribe(`*`, `:443/no-queue`, svc.doNoQueue, sub.NoQueue())
+	svc.Subscribe(`*`, `:443/default-queue`, svc.doDefaultQueue)
+	svc.Subscribe(`*`, `:443/cache-load`, svc.doCacheLoad)
+	svc.Subscribe(`*`, `:443/cache-store`, svc.doCacheStore)
 
 	return svc
 }

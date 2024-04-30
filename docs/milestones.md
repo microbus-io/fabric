@@ -163,3 +163,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Code generation of OpenAPI endpoints for microservices at `openapi.json`
 * OpenAPI portal system microservice to aggregate and display links to all microservices with an OpenAPI
+* Subscriptions to specific HTTP methods
+* Subscriptions to any port using an `:*` in the path

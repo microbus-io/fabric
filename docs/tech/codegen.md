@@ -134,7 +134,8 @@ types:
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# path - The subscription path
+# method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
+# path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
@@ -181,7 +182,8 @@ All complex (struct) non-primitive types used in `functions` and `events` must b
 #
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# path - The subscription path
+# method - "GET", "POST", etc. (defaults to "POST")
+# path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/ - All paths under the directory
@@ -245,7 +247,8 @@ The `webs` section defines low-level web handlers which allow the microservice t
 #
 # signature - Func()
 # description - Documentation
-# path - The subscription path
+# method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
+# path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory

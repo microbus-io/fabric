@@ -26,7 +26,7 @@ Another important header included by the client in each request is `Microbus-Msg
 
 ## Example Walk-Through
 
-To look at an example that puts this all together, start NATS in debug mode in another window using `./nats-server -D -V` and then run the `TestEcho` unit test located in `connector/messaging.go`. The output below was edited for brevity.
+To look at an example that puts this all together, start NATS in debug mode in another window using `./nats-server -D -V` and then run the `TestConnector_Echo` unit test located in `connector/publish_test.go`. The output below was edited for brevity.
 
 The microservices `alpha.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.alpha.dvm0oofeb5`.
 
@@ -38,7 +38,7 @@ The microservices `alpha.echo.connector` starts up and subscribes to the respons
 [TRC] cid:1 - ->> [SUB microbus.r.connector.echo.alpha.dvm0oofeb5 dvm0oofeb5 1]
 ```
 
-The microservices `beta.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.beta.rouq0u0mf4` and to the endpoint subject `microbus.443.connector.echo.beta.|.echo`. If you look closely at `[SUB microbus.443.connector.echo.beta.|.echo beta.echo.connector 6]` you'll note that the host name `beta.echo.connector` is set as the queue name of the subscription. In NATS, messages delivered on a queue are delivered to a random consumer rather than to all consumers. Queues allows us to achieve load-balancing between multiple instances of the same microservice.
+The microservices `beta.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.beta.rouq0u0mf4` and to the endpoint subject `microbus.443.connector.echo.beta.|.*.echo`. If you look closely at `[SUB microbus.443.connector.echo.beta.|.*.echo beta.echo.connector 6]` you'll note that the host name `beta.echo.connector` is set as the queue name of the subscription. In NATS, messages delivered on a queue are delivered to a random consumer rather than to all consumers. Queues allows us to achieve load-balancing between multiple instances of the same microservice.
 
 ```
 [DBG] cid:2 - Client connection created
@@ -46,14 +46,14 @@ The microservices `beta.echo.connector` starts up and subscribes to the response
 [TRC] cid:2 - ->> [PING]
 [TRC] cid:2 - <<- [PONG]
 [TRC] cid:2 - ->> [SUB microbus.r.connector.echo.beta.rouq0u0mf4 rouq0u0mf4 1]
-[TRC] cid:2 - ->> [SUB microbus.443.connector.echo.beta.|.echo beta.echo.connector 6]
-[TRC] cid:2 - ->> [SUB microbus.443.connector.echo.beta.rouq0u0mf4.|.echo beta.echo.connector 7]
+[TRC] cid:2 - ->> [SUB microbus.443.connector.echo.beta.|.*.echo beta.echo.connector 6]
+[TRC] cid:2 - ->> [SUB microbus.443.connector.echo.beta.rouq0u0mf4.|.*.echo beta.echo.connector 7]
 ```
 
-The microservices `alpha.echo.connector` makes a request to `https://beta.echo.connector/echo`, including a unique message ID in `Microbus-Msg-Id` and its identity in `Microbus-From-Host` and `Microbus-From-Id`. The binary format of the message is that of the standard HTTP/1.1 request.
+The microservices `alpha.echo.connector` makes a `POST` request to `https://beta.echo.connector/echo`, including a unique message ID in `Microbus-Msg-Id` and its identity in `Microbus-From-Host` and `Microbus-From-Id`. The binary format of the message is that of the standard HTTP/1.1 request.
 
 ```
-[TRC] cid:1 - ->> [PUB microbus.443.connector.echo.beta.|.echo 281]
+[TRC] cid:1 - ->> [PUB microbus.443.connector.echo.beta.|.POST.echo 281]
 [TRC] cid:1 - ->> MSG_PAYLOAD: [POST /echo HTTP/1.1
 Host: beta.echo.connector
 User-Agent: Go-http-client/1.1
@@ -66,7 +66,7 @@ Microbus-Op-Code: Req
 Microbus-Time-Budget: 19999
 
 Hello]
-[TRC] cid:2 - <<- [MSG microbus.443.connector.echo.beta.|.echo 6 281]
+[TRC] cid:2 - <<- [MSG microbus.443.connector.echo.beta.|.POST.echo 6 281]
 ```
 
 Before handling the request, microservice `beta.echo.connector` responds to it by immediately publishing an ack message to the response channel of `alpha.echo.connector`, making sure to echo back the message ID in `Microbus-Msg-Id` and to include its identity in `Microbus-From-Host` and `Microbus-From-Id`. The binary format of the message is that of the standard HTTP/1.1 response.
@@ -105,6 +105,10 @@ Hello]
 
 ## Notes on Subscription Subjects
 
-The format of the subscription subject is by design. [NATS provides means of controlling access to subjects using ACLs](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization). Reversing the order of the segments of the host name enables setting permissions such as `subscribe = "*.*.com.example.>"` which restricts a microservice to communicate only under the `example.com` domain. The two asterisks stand for any plane and any port.
+The pattern of the subscription subject of an endpoint is `<plane>.<port>.<reversed host name>.|.<method>.<path>`.
+A second subscription `<plane>.<port>.<reversed host name>.<id>.|.<method>.<path>` is created to allow targeting the individual microservice by its ID.
+The pattern of the response subscription is `<plane>.<port>.<reversed host name>.<id>`
+
+[NATS provides means of controlling access to subjects using ACLs](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization). Reversing the order of the segments of the host name enables setting permissions such as `subscribe = "*.*.com.example.>"` which restricts a microservice to communicate only under the `example.com` domain. The two asterisks stand for any plane and any port.
 
 The `microbus` prefix seen in the subscription subjects is referred to as the plane of communication. Microservices on a given plane can only talk to other services on the same plane. Planes therefore provide isolation for groups of microservices that share a single NATS cluster with other groups of unrelated microservices. For example, testing apps use a randomly generated plane to prevent unit tests from conflicting when running in parallel with other unit tests.

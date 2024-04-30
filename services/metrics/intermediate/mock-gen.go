@@ -51,7 +51,7 @@ func NewMock(version int) *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 	
 	// Webs
-	svc.Subscribe(`:443/collect`, svc.doCollect)
+	svc.Subscribe(`*`, `:443/collect`, svc.doCollect)
 
 	return svc
 }

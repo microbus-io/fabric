@@ -53,9 +53,9 @@ func NewMock(version int) *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 	
 	// Functions
-	svc.Subscribe(`:443/arithmetic`, svc.doArithmetic)
-	svc.Subscribe(`:443/square`, svc.doSquare)
-	svc.Subscribe(`:443/distance`, svc.doDistance)
+	svc.Subscribe(`GET`, `:443/arithmetic`, svc.doArithmetic)
+	svc.Subscribe(`GET`, `:443/square`, svc.doSquare)
+	svc.Subscribe(`*`, `:443/distance`, svc.doDistance)
 
 	return svc
 }

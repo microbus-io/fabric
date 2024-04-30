@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/microbus-io/fabric/errors"
@@ -142,11 +143,11 @@ func TestPub_Canonical(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "https://www.example.com:567/path", r.Canonical())
 
-	r, err = NewRequest(GET("http://www.example.com/path")) // http
+	r, err = NewRequest(POST("http://www.example.com/path")) // http
 	assert.NoError(t, err)
 	assert.Equal(t, "http://www.example.com:80/path", r.Canonical())
 
-	r, err = NewRequest(GET("//www.example.com/path")) // no scheme
+	r, err = NewRequest(PATCH("//www.example.com/path")) // no scheme
 	assert.NoError(t, err)
 	assert.Equal(t, "https://www.example.com:443/path", r.Canonical())
 }
@@ -211,9 +212,18 @@ func TestPub_QueryArgs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "https://zzz.example.com:123/newpath?b=2&a=3", httpReq.URL.String())
 
-	err = req.Apply(Query("m=5&n=6"))
+	err = req.Apply(QueryString("m=5&n=6"))
 	assert.NoError(t, err)
 	httpReq, err = toHTTP(req)
 	assert.NoError(t, err)
 	assert.Equal(t, "https://zzz.example.com:123/newpath?b=2&a=3&m=5&n=6", httpReq.URL.String())
+
+	err = req.Apply(Query(url.Values{
+		"x": []string{"33"},
+		"y": []string{"66"},
+	}))
+	assert.NoError(t, err)
+	httpReq, err = toHTTP(req)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://zzz.example.com:123/newpath?b=2&a=3&m=5&n=6&x=33&y=66", httpReq.URL.String())
 }

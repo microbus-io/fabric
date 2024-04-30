@@ -53,8 +53,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the eventsource.example microservice.
@@ -167,11 +167,15 @@ func (_out *RegisterResponse) Get() (allowed bool, err error) {
 Register attempts to register a new user.
 */
 func (_c *MulticastClient) Register(ctx context.Context, email string, _options ...pub.Option) <-chan *RegisterResponse {
+	method := `*`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := RegisterIn{
 		email,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
 		pub.Body(_in),
 	}
@@ -228,11 +232,15 @@ OnAllowRegister is called before a user is allowed to register.
 Event sinks are given the opportunity to block the registration.
 */
 func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _options ...pub.Option) <-chan *OnAllowRegisterResponse {
+	method := `POST`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := OnAllowRegisterIn{
 		email,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
 		pub.Body(_in),
 	}
@@ -286,11 +294,15 @@ func (_out *OnRegisteredResponse) Get() (err error) {
 OnRegistered is called when a user is successfully registered.
 */
 func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredResponse {
+	method := `POST`
+	if method == "*" {
+		method = "POST"
+	}
 	_in := OnRegisteredIn{
 		email,
 	}
 	_opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-registered`)),
 		pub.Body(_in),
 	}
@@ -322,12 +334,16 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 Register attempts to register a new user.
 */
 func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
+	method := `*`
+	if method == "" || method == "*" {
+		method = "POST"
+	}
 	_in := RegisterIn{
 		email,
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
 		pub.Body(_in),
 	)
@@ -373,9 +389,9 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 	}
 	path := httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)
 	if handler == nil {
-		return _c.svc.Unsubscribe(path)
+		return _c.svc.Unsubscribe(`POST`, path)
 	}
-	return _c.svc.Subscribe(path, doOnAllowRegister, options...)
+	return _c.svc.Subscribe(`POST`, path, doOnAllowRegister, options...)
 }
 
 /*
@@ -405,7 +421,7 @@ func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (er
 	}
 	path := httpx.JoinHostAndPath(_c.host, `:417/on-registered`)
 	if handler == nil {
-		return _c.svc.Unsubscribe(path)
+		return _c.svc.Unsubscribe(`POST`, path)
 	}
-	return _c.svc.Subscribe(path, doOnRegistered, options...)
+	return _c.svc.Subscribe(`POST`, path, doOnRegistered, options...)
 }

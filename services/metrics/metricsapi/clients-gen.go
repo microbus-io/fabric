@@ -53,8 +53,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the metrics.sys microservice.
@@ -103,8 +103,12 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 Collect returns the latest aggregated metrics.
 */
 func (_c *Client) Collect(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/collect`)),
 	}
 	opts = append(opts, options...)
@@ -119,8 +123,12 @@ func (_c *Client) Collect(ctx context.Context, options ...pub.Option) (res *http
 Collect returns the latest aggregated metrics.
 */
 func (_c *MulticastClient) Collect(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/collect`)),
 	}
 	opts = append(opts, options...)

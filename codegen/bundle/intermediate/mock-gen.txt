@@ -59,14 +59,14 @@ func NewMock(version int) *Mock {
 	
 	// Functions
 	{{- range .Functions }}
-	svc.Subscribe(`{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
 	{{- end }}{{ end }}
 	
 	{{- if .Webs }}
 	
 	// Webs
 	{{- range .Webs }}
-	svc.Subscribe(`{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
+	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
 	{{- end }}{{ end }}
 
 	{{- if .Sinks }}

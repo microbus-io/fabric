@@ -108,15 +108,15 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 	
 	// OpenAPI
-	svc.Subscribe(`:443/openapi.json`, svc.doOpenAPI)	
+	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`:443/create`, svc.doCreate)
-	svc.Subscribe(`:443/load`, svc.doLoad)
-	svc.Subscribe(`:443/delete`, svc.doDelete)
-	svc.Subscribe(`:443/update`, svc.doUpdate)
-	svc.Subscribe(`:443/load-by-email`, svc.doLoadByEmail)
-	svc.Subscribe(`:443/list`, svc.doList)
+	svc.Subscribe(`*`, `:443/create`, svc.doCreate)
+	svc.Subscribe(`*`, `:443/load`, svc.doLoad)
+	svc.Subscribe(`*`, `:443/delete`, svc.doDelete)
+	svc.Subscribe(`*`, `:443/update`, svc.doUpdate)
+	svc.Subscribe(`*`, `:443/load-by-email`, svc.doLoadByEmail)
+	svc.Subscribe(`*`, `:443/list`, svc.doList)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -133,10 +133,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Create`,
+			Method:      `*`,
 			Path:        `:443/create`,
 			Summary:     `Create(person *Person) (created *Person)`,
 			Description: `Create registers the person in the directory.`,
@@ -148,10 +149,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Load`,
+			Method:      `*`,
 			Path:        `:443/load`,
 			Summary:     `Load(key PersonKey) (person *Person, ok bool)`,
 			Description: `Load looks up a person in the directory.`,
@@ -164,10 +166,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Delete`,
+			Method:      `*`,
 			Path:        `:443/delete`,
 			Summary:     `Delete(key PersonKey) (ok bool)`,
 			Description: `Delete removes a person from the directory.`,
@@ -179,10 +182,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Update`,
+			Method:      `*`,
 			Path:        `:443/update`,
 			Summary:     `Update(person *Person) (updated *Person, ok bool)`,
 			Description: `Update updates the person's data in the directory.`,
@@ -195,10 +199,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `LoadByEmail`,
+			Method:      `*`,
 			Path:        `:443/load-by-email`,
 			Summary:     `LoadByEmail(email string) (person *Person, ok bool)`,
 			Description: `LoadByEmail looks up a person in the directory by their email.`,
@@ -211,10 +216,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" {
+	if r.URL.Port() == "443" || "443" == "*" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `List`,
+			Method:      `*`,
 			Path:        `:443/list`,
 			Summary:     `List() (keys []PersonKey)`,
 			Description: `List returns the keys of all the persons in the directory.`,

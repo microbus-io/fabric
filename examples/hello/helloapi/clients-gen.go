@@ -58,8 +58,8 @@ var (
 type Service interface {
 	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
 	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(path string) error
+	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
+	Unsubscribe(method string, path string) error
 }
 
 // Client is an interface to calling the endpoints of the hello.example microservice.
@@ -108,8 +108,12 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 Hello prints a greeting.
 */
 func (_c *Client) Hello(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/hello`)),
 	}
 	opts = append(opts, options...)
@@ -124,8 +128,12 @@ func (_c *Client) Hello(ctx context.Context, options ...pub.Option) (res *http.R
 Hello prints a greeting.
 */
 func (_c *MulticastClient) Hello(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/hello`)),
 	}
 	opts = append(opts, options...)
@@ -136,8 +144,12 @@ func (_c *MulticastClient) Hello(ctx context.Context, options ...pub.Option) <-c
 Echo back the incoming request in wire format.
 */
 func (_c *Client) Echo(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/echo`)),
 	}
 	opts = append(opts, options...)
@@ -152,8 +164,12 @@ func (_c *Client) Echo(ctx context.Context, options ...pub.Option) (res *http.Re
 Echo back the incoming request in wire format.
 */
 func (_c *MulticastClient) Echo(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/echo`)),
 	}
 	opts = append(opts, options...)
@@ -164,8 +180,12 @@ func (_c *MulticastClient) Echo(ctx context.Context, options ...pub.Option) <-ch
 Ping all microservices and list them.
 */
 func (_c *Client) Ping(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/ping`)),
 	}
 	opts = append(opts, options...)
@@ -180,8 +200,12 @@ func (_c *Client) Ping(ctx context.Context, options ...pub.Option) (res *http.Re
 Ping all microservices and list them.
 */
 func (_c *MulticastClient) Ping(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/ping`)),
 	}
 	opts = append(opts, options...)
@@ -194,8 +218,12 @@ The calculation operation is delegated to another microservice in order to demon
 a call from one microservice to another.
 */
 func (_c *Client) Calculator(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/calculator`)),
 	}
 	opts = append(opts, options...)
@@ -212,8 +240,12 @@ The calculation operation is delegated to another microservice in order to demon
 a call from one microservice to another.
 */
 func (_c *MulticastClient) Calculator(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/calculator`)),
 	}
 	opts = append(opts, options...)
@@ -224,8 +256,12 @@ func (_c *MulticastClient) Calculator(ctx context.Context, options ...pub.Option
 BusJPEG serves an image from the embedded resources.
 */
 func (_c *Client) BusJPEG(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
 	}
 	opts = append(opts, options...)
@@ -240,8 +276,12 @@ func (_c *Client) BusJPEG(ctx context.Context, options ...pub.Option) (res *http
 BusJPEG serves an image from the embedded resources.
 */
 func (_c *MulticastClient) BusJPEG(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
 	}
 	opts = append(opts, options...)
@@ -252,8 +292,12 @@ func (_c *MulticastClient) BusJPEG(ctx context.Context, options ...pub.Option) <
 Localization prints hello in the language best matching the request's Accept-Language header.
 */
 func (_c *Client) Localization(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/localization`)),
 	}
 	opts = append(opts, options...)
@@ -268,8 +312,12 @@ func (_c *Client) Localization(ctx context.Context, options ...pub.Option) (res 
 Localization prints hello in the language best matching the request's Accept-Language header.
 */
 func (_c *MulticastClient) Localization(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
+	method := `*`
+	if method == "*" {
+		method = "GET"
+	}
 	opts := []pub.Option{
-		pub.Method("POST"),
+		pub.Method(method),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/localization`)),
 	}
 	opts = append(opts, options...)

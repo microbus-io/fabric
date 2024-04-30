@@ -58,6 +58,4 @@ func NewMock() *Mock {
 // Config initializers
 var (
 	_ int
-	// Ports initializes the Ports config property of the microservice
-	Ports = intermediate.Ports
 )
