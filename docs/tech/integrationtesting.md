@@ -16,7 +16,7 @@ This is all rather complicated to set up which is where the [code generator](./c
 
 ### Initializing the Testing App
 
-The code generator prepares the testing app `App` and includes in it the microservice being tested `Svc`. All dependencies on downstream microservices must be added to the app manually, using the `NewService` constructor of that service. During testing, the [configurator](../structure/services-configurator.md) system microservice is disabled and microservices must be configured using the `With` method instead. If the microservice under test defines any configuration properties, they are pre-listed for convenience commented-out inside a call to `With`.
+The code generator prepares the testing app `App` and includes in it the microservice being tested `Svc`. All dependencies on downstream microservices must be added to the app manually, using the `NewService` constructor of that service. During testing, the [configurator](../structure/coreservices-configurator.md) core microservice is disabled and microservices must be configured using the `With` method instead. If the microservice under test defines any configuration properties, they are pre-listed for convenience commented-out inside a call to `With`.
 
 ```go
 // Initialize starts up the testing app.

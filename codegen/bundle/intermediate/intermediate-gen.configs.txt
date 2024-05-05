@@ -49,8 +49,8 @@ func (svc *Intermediate) {{ .Name }}() (
 */
 func {{ .Name }}(
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
-) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
+) (func(service.Service) error) {
+	return func(svc service.Service) error {
 		return svc.SetConfig("{{ .Name }}", fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
 	}
 }

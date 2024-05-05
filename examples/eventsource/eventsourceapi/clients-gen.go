@@ -25,6 +25,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
 )
 
@@ -48,24 +49,15 @@ var (
 	URLOfRegister = httpx.JoinHostAndPath(HostName, ":443/register")
 )
 
-// Service is an interface abstraction of a microservice used by the client.
-// The connector implements this interface.
-type Service interface {
-	Request(ctx context.Context, options ...pub.Option) (*http.Response, error)
-	Publish(ctx context.Context, options ...pub.Option) <-chan *pub.Response
-	Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error
-	Unsubscribe(method string, path string) error
-}
-
 // Client is an interface to calling the endpoints of the eventsource.example microservice.
 // This simple version is for unicast calls.
 type Client struct {
-	svc  Service
+	svc  service.PublisherSubscriber
 	host string
 }
 
 // NewClient creates a new unicast client to the eventsource.example microservice.
-func NewClient(caller Service) *Client {
+func NewClient(caller service.PublisherSubscriber) *Client {
 	return &Client{
 		svc:  caller,
 		host: "eventsource.example",
@@ -81,12 +73,12 @@ func (_c *Client) ForHost(host string) *Client {
 // MulticastClient is an interface to calling the endpoints of the eventsource.example microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
-	svc  Service
+	svc  service.PublisherSubscriber
 	host string
 }
 
 // NewMulticastClient creates a new multicast client to the eventsource.example microservice.
-func NewMulticastClient(caller Service) *MulticastClient {
+func NewMulticastClient(caller service.PublisherSubscriber) *MulticastClient {
 	return &MulticastClient{
 		svc:  caller,
 		host: "eventsource.example",
@@ -101,12 +93,12 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 
 // MulticastTrigger is an interface to trigger the events of the eventsource.example microservice.
 type MulticastTrigger struct {
-	svc  Service
+	svc  service.PublisherSubscriber
 	host string
 }
 
 // NewMulticastTrigger creates a new multicast trigger of the eventsource.example microservice.
-func NewMulticastTrigger(caller Service) *MulticastTrigger {
+func NewMulticastTrigger(caller service.PublisherSubscriber) *MulticastTrigger {
 	return &MulticastTrigger{
 		svc:  caller,
 		host: "eventsource.example",
@@ -121,12 +113,12 @@ func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
 
 // Hook assists in the subscription to the events of the eventsource.example microservice.
 type Hook struct {
-	svc  Service
+	svc  service.PublisherSubscriber
 	host string
 }
 
 // NewHook creates a new hook to the events of the eventsource.example microservice.
-func NewHook(listener Service) *Hook {
+func NewHook(listener service.PublisherSubscriber) *Hook {
 	return &Hook{
 		svc:  listener,
 		host: "eventsource.example",

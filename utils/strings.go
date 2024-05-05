@@ -15,14 +15,14 @@ import (
 
 var reUpperCaseIdentifier = regexp.MustCompile(`^[A-Z][a-zA-Z0-9]*$`)
 
-// IsUpperCaseIdentifier accepts only lowerCaseIdentifiers.
+// IsUpperCaseIdentifier accepts only UpperCaseIdentifiers.
 func IsUpperCaseIdentifier(id string) bool {
 	return reUpperCaseIdentifier.MatchString(id)
 }
 
 var reLowerCaseIdentifier = regexp.MustCompile(`^[a-z][a-zA-Z0-9]*$`)
 
-// IsLowerCaseIdentifier accepts only UpperCaseIdentifiers.
+// IsLowerCaseIdentifier accepts only lowerCaseIdentifiers.
 func IsLowerCaseIdentifier(id string) bool {
 	return reLowerCaseIdentifier.MatchString(id)
 }

@@ -20,9 +20,8 @@ import (
 
 // main runs an app containing only the hello.example service.
 func main() {
-	app := application.New(
-		hello.NewService(),
-	)
+	app := application.New()
+	app.Include(hello.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

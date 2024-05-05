@@ -1,4 +1,4 @@
-# Package `examples.eventsource` and Package `examples.eventsink`
+# Package `examples/eventsource` and Package `examples/eventsink`
 
 The `eventsource.example` and `eventsink.example` demonstrate how [events reverse the dependency between two microservices](../tech/events.md). The event source microservice is unaware and independent of the event sink microservice, event though technically it is the initiator of a request to the event sink. Rather, it is the event sink that is aware of and dependent on the event source.
 

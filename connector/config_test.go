@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/cfg"
+	"github.com/microbus-io/fabric/coreservices/control/controlapi"
 	"github.com/microbus-io/fabric/rand"
-	"github.com/microbus-io/fabric/services/control/controlapi"
 	"github.com/stretchr/testify/assert"
 )
 

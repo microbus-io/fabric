@@ -22,7 +22,7 @@ var (
 
 func init() {
 	// Prepopulate the pool
-	for i := 0; i < 16; i++ {
+	for i := 0; i < 32; i++ {
 		pool.Put(New())
 	}
 	pool.New = func() interface{} {
@@ -86,9 +86,9 @@ func Intn(n int) int {
 
 // reseed the math random generator that was pulled from the pool once every 256 operations
 func reseed(r *mathrand.Rand) {
-	// Perform once every 256 operations
+	// Perform once every 4096 operations
 	o := atomic.AddInt32(&ops, 1)
-	if o&0xFF != 0 {
+	if o&0xFFF != 0 {
 		return
 	}
 

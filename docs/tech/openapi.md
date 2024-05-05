@@ -68,6 +68,6 @@ general:
   openApi: false
 ```
 
-The [OpenAPI portal system service](../structure/services-openapiportal.md) aggregates the OpenAPI endpoints of all microservices on the bus and renders an HTML page that lists them to a human reader.
+The [OpenAPI portal core microservice](../structure/coreservices-openapiportal.md) aggregates the OpenAPI endpoints of all microservices on the bus and renders an HTML page that lists them to a human reader.
 
 [Swagger](https://swagger.io) is a set of popular tools for working with APIs in general and OpenAPI in particular. The [OpenAPI editor](https://editor-next.swagger.io) is an especially useful one that allows editing and exploring OpenAPI documents online.

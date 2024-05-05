@@ -14,8 +14,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/service"
 
 	"{{ .Package }}/intermediate"
 	"{{ .Package }}/{{ .PackageSuffix }}api"
@@ -25,7 +25,7 @@ var (
 	_ context.Context
 	_ *http.Request
 	_ time.Duration
-	_ connector.Service
+	_ service.Service
 	_ *errors.TracedError
 	_ *{{ .PackageSuffix }}api.Client
 )
@@ -34,7 +34,7 @@ var (
 const HostName = "{{ .General.Host }}"
 
 // NewService creates a new {{ .General.Host }} microservice.
-func NewService() connector.Service {
+func NewService() service.Service {
 	s := &Service{}
 	s.Intermediate = intermediate.NewService(s, Version)
 	return s

@@ -1,4 +1,4 @@
-# Package `examples.directory`
+# Package `examples/directory`
 
 The `directory.example` microservice is an example of a microservice that provides a CRUD API backed by a SQL database.
 

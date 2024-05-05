@@ -111,7 +111,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 15](https://github.com/microbus-io/fabric/tree/milestone/15):
 
 * Support in `Connector` for collecting system metrics
-* Metrics system microservice that collects and delivers metrics to Prometheus and Grafana
+* Metrics core microservice that collects and delivers metrics to Prometheus and Grafana
 * Code generation for application custom metrics
 * Quick start with Docker Compose
 
@@ -162,6 +162,17 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 20](https://github.com/microbus-io/fabric/tree/milestone/20):
 
 * Code generation of OpenAPI endpoints for microservices at `openapi.json`
-* OpenAPI portal system microservice to aggregate and display links to all microservices with an OpenAPI
+* OpenAPI portal core microservice to aggregate and display links to all microservices with an OpenAPI
 * Subscriptions to specific HTTP methods
 * Subscriptions to any port using an `:*` in the path
+
+[Milestone 21](https://github.com/microbus-io/fabric/tree/milestone/21):
+
+* HTTP egress core microservice
+* Added browser example to demonstrate use of HTTP egress
+* Deprecate `BatchLookup` in the `shardedsql` package
+* Block all requests to internal port `:888` in ingress proxy
+* Improve performance in `rand` package
+* Renamed the `services` package to `coreservices`
+* Replaced the `Service` interface in the `connector` package with various interfaces in a new `service` package
+* Adjusted the pattern of including microservices in an `Application`

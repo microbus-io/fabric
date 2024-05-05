@@ -60,7 +60,7 @@ databases:
 
 ### Configs
 
-The `configs` section is used to define the [configuration](./configuration.md) properties of the microservices. Config properties get their values in runtime from the [configurator](../structure/services-configurator.md) system microservice. 
+The `configs` section is used to define the [configuration](./configuration.md) properties of the microservices. Config properties get their values in runtime from the [configurator](../structure/coreservices-configurator.md) core microservice. 
 
 ```yaml
 # Config properties

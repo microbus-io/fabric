@@ -25,12 +25,13 @@ import (
 	"time"
 
 	"github.com/andybalholm/brotli"
+	"github.com/microbus-io/fabric/coreservices/control/controlapi"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/services/control/controlapi"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
 )
 
@@ -54,6 +55,14 @@ type Cache struct {
 	svc        Service
 	hits       int64
 	misses     int64
+}
+
+// Service is an interface abstraction of a microservice used by the distributed cache.
+// The connector implements this interface.
+type Service interface {
+	service.PublisherSubscriber
+	service.Identifier
+	service.Logger
 }
 
 // NewCache starts a new cache for the service at a given path.

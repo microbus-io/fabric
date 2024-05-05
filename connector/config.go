@@ -17,6 +17,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/service"
 )
 
 // StartupHandler handles the OnStartup callback.
@@ -74,7 +75,7 @@ func (c *Connector) Config(name string) (value string) {
 }
 
 // SetConfig sets the value of a previously defined config property.
-// This value will be overridden on the next fetch of configs from the configurator system microservice.
+// This value will be overridden on the next fetch of configs from the configurator core microservice.
 // Fetching configs is disabled in the TESTINGAPP environment.
 // Config property names are case-insensitive.
 func (c *Connector) SetConfig(name string, value any) error {
@@ -113,7 +114,7 @@ func (c *Connector) SetConfig(name string, value any) error {
 }
 
 // ResetConfig resets the value of a previously defined config property to its default value.
-// This value will be overridden on the next fetch of configs from the configurator system microservice.
+// This value will be overridden on the next fetch of configs from the configurator core microservice.
 // Fetching configs is disabled in the TESTINGAPP environment.
 // Config property names are case-insensitive.
 func (c *Connector) ResetConfig(name string) error {
@@ -271,7 +272,7 @@ func printableConfigValue(value string, secret bool) string {
 }
 
 // With applies options to a connector during initialization and testing.
-func (c *Connector) With(options ...func(Service) error) Service {
+func (c *Connector) With(options ...func(service.Service) error) service.Service {
 	for _, opt := range options {
 		err := opt(c)
 		if err != nil {

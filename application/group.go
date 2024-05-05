@@ -12,17 +12,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 )
 
-// Group is a collection of microservices that share the same lifecycle.
+// group is a collection of microservices that share the same lifecycle.
 // Microservices in a group are started and shutdown in parallel.
-type Group []connector.Service
+type group []Service
 
 // Startup starts up a group of microservices in parallel.
 // The context deadline is used to limit the time allotted to the operation.
-func (grp Group) Startup(ctx context.Context) error {
+func (grp group) Startup(ctx context.Context) error {
 	// Start the microservices in parallel
 	startErrs := make(chan error, len(grp))
 	var wg sync.WaitGroup
@@ -68,7 +67,7 @@ func (grp Group) Startup(ctx context.Context) error {
 
 // Shutdown shuts down a group of microservices in parallel.
 // The context deadline is used to limit the time allotted to the operation.
-func (grp Group) Shutdown(ctx context.Context) error {
+func (grp group) Shutdown(ctx context.Context) error {
 	// Shutdown the microservices in parallel
 	shutdownErrs := make(chan error, len(grp))
 	var wg sync.WaitGroup

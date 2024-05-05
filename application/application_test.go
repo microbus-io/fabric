@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/coreservices/configurator"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/services/configurator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,8 @@ func TestApplication_StartStop(t *testing.T) {
 
 	alpha := connector.New("alpha.start.stop.application")
 	beta := connector.New("beta.start.stop.application")
-	app := NewTesting(Group{alpha, beta})
+	app := NewTesting()
+	app.Include(alpha, beta)
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
@@ -48,7 +49,8 @@ func TestApplication_Interrupt(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("interrupt.application")
-	app := NewTesting(con)
+	app := NewTesting()
+	app.Include(con)
 
 	ch := make(chan bool)
 	go func() {
@@ -81,7 +83,8 @@ func TestApplication_NoConflict(t *testing.T) {
 		w.Write([]byte("alpha"))
 		return nil
 	})
-	appAlpha := NewTesting(alpha)
+	appAlpha := NewTesting()
+	appAlpha.Include(alpha)
 
 	// Create second testing app
 	beta := connector.New("no.conflict.application")
@@ -89,7 +92,8 @@ func TestApplication_NoConflict(t *testing.T) {
 		w.Write([]byte("beta"))
 		return nil
 	})
-	appBeta := NewTesting(beta)
+	appBeta := NewTesting()
+	appBeta.Include(beta)
 
 	// Start the apps
 	err := appAlpha.Startup()
@@ -150,7 +154,8 @@ func TestApplication_DependencyStart(t *testing.T) {
 		return nil
 	})
 
-	app := NewTesting(Group{alpha, beta})
+	app := NewTesting()
+	app.Include(alpha, beta)
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -178,7 +183,8 @@ func TestApplication_FailStart(t *testing.T) {
 	// Beta starts without a hitch
 	beta := connector.New("beta.fail.start.application")
 
-	app := NewTesting(Group{alpha, beta})
+	app := NewTesting()
+	app.Include(alpha, beta)
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -202,8 +208,8 @@ func TestApplication_JoinInclude(t *testing.T) {
 	beta := connector.New("beta.join.include.application")
 	gamma := connector.New("gamma.join.include.application")
 
-	app := NewTesting(alpha)
-	app.Include(beta)
+	app := NewTesting()
+	app.Include(alpha, beta)
 	app.Join(gamma)
 
 	assert.Equal(t, alpha.Plane(), beta.Plane())
@@ -230,24 +236,14 @@ func TestApplication_JoinInclude(t *testing.T) {
 	assert.False(t, gamma.IsStarted())
 }
 
-func TestApplication_Services(t *testing.T) {
-	t.Parallel()
-
-	alpha := connector.New("alpha.services.application")
-	beta1 := connector.New("beta.services.application")
-	beta2 := connector.New("beta.services.application")
-
-	app := New(alpha, beta1, beta2)
-	assert.Equal(t, []connector.Service{alpha, beta1, beta2}, app.Services())
-	assert.Equal(t, []connector.Service{beta1, beta2}, app.ServicesByHost("beta.services.application"))
-}
-
 func TestApplication_Run(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("run.application")
 	config := configurator.NewService()
-	app := NewTesting(config, con)
+	app := NewTesting()
+	app.Include(config)
+	app.Include(con)
 
 	go func() {
 		err := app.Run()

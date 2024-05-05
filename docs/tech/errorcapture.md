@@ -106,7 +106,7 @@ connector.(*Connector).Publish
 	/src/github.com/microbus-io/fabric/connector/messaging.go:94
 	http.ingress.sys -> calculator.example
 httpingress.(*Service).ServeHTTP
-	/src/github.com/microbus-io/fabric/services/httpingress/service.go:124
+	/src/github.com/microbus-io/fabric/coreservices/httpingress/service.go:124
 ```
 
 ## Propagation Over the Wire

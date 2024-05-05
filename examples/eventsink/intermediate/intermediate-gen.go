@@ -32,6 +32,7 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/openapi"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
@@ -60,6 +61,7 @@ var (
 	_ *httpx.ResponseRecorder
 	_ *log.Field
 	_ *openapi.Service
+	_ service.Service
 	_ *shardedsql.DB
 	_ sub.Option
 	_ yaml.Encoder

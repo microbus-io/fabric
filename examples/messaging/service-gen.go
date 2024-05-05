@@ -19,8 +19,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/service"
 
 	"github.com/microbus-io/fabric/examples/messaging/intermediate"
 	"github.com/microbus-io/fabric/examples/messaging/messagingapi"
@@ -30,7 +30,7 @@ var (
 	_ context.Context
 	_ *http.Request
 	_ time.Duration
-	_ connector.Service
+	_ service.Service
 	_ *errors.TracedError
 	_ *messagingapi.Client
 )
@@ -39,7 +39,7 @@ var (
 const HostName = "messaging.example"
 
 // NewService creates a new messaging.example microservice.
-func NewService() connector.Service {
+func NewService() service.Service {
 	s := &Service{}
 	s.Intermediate = intermediate.NewService(s, Version)
 	return s

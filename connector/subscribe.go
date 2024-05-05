@@ -263,10 +263,6 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		return errors.Trace(err)
 	}
 
-	// Fill in the gaps
-	httpReq.URL.Host = httpReq.Host
-	httpReq.URL.Scheme = "https"
-
 	// Get the sender host name and message ID
 	fromHost := frame.Of(httpReq).FromHost()
 	fromId := frame.Of(httpReq).FromID()

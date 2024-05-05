@@ -1,4 +1,4 @@
-# Package `examples.messaging`
+# Package `examples/messaging`
 
 ## Messaging
 

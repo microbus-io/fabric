@@ -9,40 +9,48 @@ package main
 
 import (
 	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/coreservices/configurator"
+	"github.com/microbus-io/fabric/coreservices/httpegress"
+	"github.com/microbus-io/fabric/coreservices/httpingress"
+	"github.com/microbus-io/fabric/coreservices/metrics"
+	"github.com/microbus-io/fabric/coreservices/openapiportal"
+	"github.com/microbus-io/fabric/examples/browser"
 	"github.com/microbus-io/fabric/examples/calculator"
 	"github.com/microbus-io/fabric/examples/directory"
 	"github.com/microbus-io/fabric/examples/eventsink"
 	"github.com/microbus-io/fabric/examples/eventsource"
 	"github.com/microbus-io/fabric/examples/hello"
 	"github.com/microbus-io/fabric/examples/messaging"
-	"github.com/microbus-io/fabric/services/configurator"
-	"github.com/microbus-io/fabric/services/httpingress"
-	"github.com/microbus-io/fabric/services/metrics"
-	"github.com/microbus-io/fabric/services/openapiportal"
 )
 
 /*
 main runs the example microservices.
 */
 func main() {
-	app := application.New(
+	app := application.New()
+	app.Include(
+		// Configurator should start first
 		configurator.NewService(),
-		application.Group{
-			hello.NewService(),
-			messaging.NewService(),
-			messaging.NewService(),
-			messaging.NewService(),
-			calculator.NewService(),
-			eventsource.NewService(),
-			eventsink.NewService(),
-			directory.NewService(),
-		},
-		application.Group{
-			openapiportal.NewService(),
-			httpingress.NewService(),
-			metrics.NewService(),
-			// inbox.NewService(),
-		},
+	)
+	app.Include(
+		httpegress.NewService(),
+		openapiportal.NewService(),
+		metrics.NewService(),
+		// inbox.NewService(),
+
+		hello.NewService(),
+		messaging.NewService(),
+		messaging.NewService(),
+		messaging.NewService(),
+		calculator.NewService(),
+		eventsource.NewService(),
+		eventsink.NewService(),
+		directory.NewService(),
+		browser.NewService(),
+	)
+	app.Include(
+		// When everything is ready, begin to accept external requests
+		httpingress.NewService(),
 	)
 	app.Run()
 }

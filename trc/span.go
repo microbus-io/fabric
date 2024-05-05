@@ -25,7 +25,7 @@ import (
 
 var _ = Span(SpanImpl{}) // Ensure interface
 
-// Span represents an operation that is being traced
+// Span represents an operation that is being traced.
 type Span interface {
 	End()
 	SetError(err error)
@@ -43,12 +43,12 @@ type Span interface {
 	TraceID() string
 }
 
-// SpanImpl implements the span interface
+// SpanImpl implements the span interface.
 type SpanImpl struct {
 	Span trace.Span
 }
 
-// NewSpan creates a new span
+// NewSpan creates a new span.
 func NewSpan(ts trace.Span) Span {
 	return SpanImpl{Span: ts}
 }
@@ -64,7 +64,7 @@ func (s SpanImpl) End() {
 	s.Span.End()
 }
 
-// SetError sets the status of the span to error
+// SetError sets the status of the span to error.
 func (s SpanImpl) SetError(err error) {
 	if s.Span == nil {
 		return
@@ -77,7 +77,7 @@ func (s SpanImpl) SetError(err error) {
 	s.Span.SetAttributes(attribute.Int("http.response.status_code", errors.Convert(err).StatusCode))
 }
 
-// SetOK sets the status of the span to the status code of the response
+// SetOK sets the status of the span to the status code of the response.
 func (s SpanImpl) SetOK(statusCode int, contentLength int) {
 	if s.Span == nil {
 		return
@@ -89,7 +89,7 @@ func (s SpanImpl) SetOK(statusCode int, contentLength int) {
 	}
 }
 
-// SetRequestBody tags the span with the body of the request
+// SetRequestBody tags the span with the body of the request.
 func (s SpanImpl) SetRequestBody(body []byte) {
 	if s.Span == nil {
 		return
@@ -98,7 +98,7 @@ func (s SpanImpl) SetRequestBody(body []byte) {
 	s.Span.SetAttributes(attribute.String("http.request.body.content", string(body)))
 }
 
-// Log records a log event on the span
+// Log records a log event on the span.
 func (s SpanImpl) Log(severity string, msg string, fields ...log.Field) {
 	if s.Span == nil {
 		return
@@ -154,7 +154,7 @@ func (s SpanImpl) Log(severity string, msg string, fields ...log.Field) {
 	s.Span.AddEvent("log", trace.WithAttributes(attrs...))
 }
 
-// SetString tags the span during its creation
+// SetString tags the span during its creation.
 func (s SpanImpl) SetString(k string, v string) {
 	if s.Span == nil {
 		return
@@ -162,7 +162,7 @@ func (s SpanImpl) SetString(k string, v string) {
 	s.Span.SetAttributes(attribute.String(k, v))
 }
 
-// SetStrings tags the span during its creation
+// SetStrings tags the span during its creation.
 func (s SpanImpl) SetStrings(k string, v []string) {
 	if s.Span == nil {
 		return
@@ -170,7 +170,7 @@ func (s SpanImpl) SetStrings(k string, v []string) {
 	s.Span.SetAttributes(attribute.StringSlice(k, v))
 }
 
-// SetBool tags the span during its creation
+// SetBool tags the span during its creation.
 func (s SpanImpl) SetBool(k string, v bool) {
 	if s.Span == nil {
 		return
@@ -178,7 +178,7 @@ func (s SpanImpl) SetBool(k string, v bool) {
 	s.Span.SetAttributes(attribute.Bool(k, v))
 }
 
-// SetInt tags the span during its creation
+// SetInt tags the span during its creation.
 func (s SpanImpl) SetInt(k string, v int) {
 	if s.Span == nil {
 		return
@@ -186,7 +186,7 @@ func (s SpanImpl) SetInt(k string, v int) {
 	s.Span.SetAttributes(attribute.Int(k, v))
 }
 
-// SetFloat tags the span during its creation
+// SetFloat tags the span during its creation.
 func (s SpanImpl) SetFloat(k string, v float64) {
 	if s.Span == nil {
 		return
@@ -194,7 +194,7 @@ func (s SpanImpl) SetFloat(k string, v float64) {
 	s.Span.SetAttributes(attribute.Float64(k, v))
 }
 
-// SetRequest tags the span during its creation with the request data
+// SetRequest tags the span during its creation with the request data.
 func (s SpanImpl) SetRequest(r *http.Request) {
 	if s.Span == nil {
 		return
@@ -203,10 +203,10 @@ func (s SpanImpl) SetRequest(r *http.Request) {
 	portInt, _ := strconv.Atoi(r.URL.Port())
 	attrs := []attribute.KeyValue{
 		attribute.String("http.method", r.Method),
+		attribute.String("url.scheme", r.URL.Scheme),
 		attribute.String("server.address", r.URL.Hostname()),
 		attribute.Int("server.port", portInt),
 		attribute.String("url.path", r.URL.Path),
-		attribute.String("url.scheme", r.URL.Scheme),
 	}
 	for k, v := range r.Header {
 		attrs = append(attrs, attribute.StringSlice("http.request.header."+k, v))
@@ -215,11 +215,14 @@ func (s SpanImpl) SetRequest(r *http.Request) {
 	if encodedQuery != "" {
 		attrs = append(attrs, attribute.String("url.query", encodedQuery))
 	}
+	if r.ContentLength > 0 {
+		attrs = append(attrs, attribute.Int("http.request.body.size", int(r.ContentLength)))
+	}
 	s.Span.SetAttributes(attrs...)
 	s.SetClientIP(r.RemoteAddr)
 }
 
-// SetClientIP tags the span during its creation with the IP address and port number of the client
+// SetClientIP tags the span during its creation with the IP address and port number of the client.
 func (s SpanImpl) SetClientIP(ip string) {
 	p := strings.LastIndex(ip, ":")
 	if p > 0 {
@@ -231,12 +234,12 @@ func (s SpanImpl) SetClientIP(ip string) {
 	}
 }
 
-// IsEmpty indicates if the span is not initialized
+// IsEmpty indicates if the span is not initialized.
 func (s SpanImpl) IsEmpty() bool {
 	return s.Span == nil
 }
 
-// TraceID is an identifier that groups related spans together
+// TraceID is an identifier that groups related spans together.
 func (s SpanImpl) TraceID() string {
 	if s.Span == nil {
 		return ""

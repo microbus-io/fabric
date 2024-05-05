@@ -205,7 +205,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	subject := subjectOfRequest(c.plane, httpReq.Method, httpReq.URL.Hostname(), port, httpReq.URL.Path)
 
 	var buf bytes.Buffer
-	err = httpReq.Write(&buf)
+	err = httpReq.WriteProxy(&buf)
 	if err != nil {
 		err = errors.Trace(err, req.Method+" "+req.Canonical())
 		output.Push(pub.NewErrorResponse(err))
@@ -307,7 +307,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 							subject := subjectOfRequest(c.plane, fragment.Method, fromID+"."+fragment.URL.Hostname(), port, fragment.URL.Path)
 
 							var buf bytes.Buffer
-							err = fragment.Write(&buf)
+							err = fragment.WriteProxy(&buf)
 							if err != nil {
 								err = errors.Trace(err)
 								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()), log.String("method", req.Method))

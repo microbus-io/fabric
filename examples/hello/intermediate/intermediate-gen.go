@@ -32,6 +32,7 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/openapi"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
@@ -57,6 +58,7 @@ var (
 	_ *httpx.ResponseRecorder
 	_ *log.Field
 	_ *openapi.Service
+	_ service.Service
 	_ *shardedsql.DB
 	_ sub.Option
 	_ yaml.Encoder
@@ -257,8 +259,8 @@ func (svc *Intermediate) Greeting() (greeting string) {
 /*
 Greeting to use.
 */
-func Greeting(greeting string) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
+func Greeting(greeting string) (func(service.Service) error) {
+	return func(svc service.Service) error {
 		return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
 	}
 }
@@ -275,8 +277,8 @@ func (svc *Intermediate) Repeat() (count int) {
 /*
 Repeat indicates how many times to display the greeting.
 */
-func Repeat(count int) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
+func Repeat(count int) (func(service.Service) error) {
+	return func(svc service.Service) error {
 		return svc.SetConfig("Repeat", fmt.Sprintf("%v", count))
 	}
 }

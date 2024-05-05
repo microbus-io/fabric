@@ -15,7 +15,7 @@ var (
 )
 
 // Initialize starts up the testing app.
-func Initialize() error {
+func Initialize() (err error) {
 	// TO{{/**/}}DO: Initialize testing app
 	
 	// Include all downstream microservices in the testing app
@@ -31,7 +31,7 @@ func Initialize() error {
 		// downstream.NewService().With(),
 	)
 
-	err := App.Startup()
+	err = App.Startup()
 	if err != nil {
 		return err
 	}
@@ -42,8 +42,8 @@ func Initialize() error {
 }
 
 // Terminate shuts down the testing app.
-func Terminate() error {
-	err := App.Shutdown()
+func Terminate() (err error) {
+	err = App.Shutdown()
 	if err != nil {
 		return err
 	}

@@ -74,8 +74,8 @@ func (svc *Intermediate) {{ .Name }}Database() *shardedsql.DB {
 
 {{- range .Databases }}{{ if .IsSQL }}
 // {{ .Name }} initializes the {{ .Name }} config property of the microservice.
-func {{ .Name }}(dsn string) (func(connector.Service) error) {
-	return func(svc connector.Service) error {
+func {{ .Name }}(dsn string) (func(service.Service) error) {
+	return func(svc service.Service) error {
 		return svc.SetConfig("{{ .Name }}", dsn)
 	}
 }

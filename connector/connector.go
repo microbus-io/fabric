@@ -24,6 +24,7 @@ import (
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/mtr"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
@@ -37,8 +38,7 @@ import (
 
 // Ensure interfaces
 var (
-	_ = Service(&Connector{})
-	_ = trc.Tracer(&Connector{})
+	_ = service.Service(&Connector{})
 )
 
 /*

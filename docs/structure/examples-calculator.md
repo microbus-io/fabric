@@ -1,4 +1,4 @@
-# Package `examples.calculator`
+# Package `examples/calculator`
 
 The `calculator.example` microservice implement two endpoints, `/arithmetic` and `/square` in order to demonstrate functional handlers. These types of handlers automatically parse incoming requests (typically JSON over HTTP) and make it appear like a function is called. Functional endpoints are best called using the client that's defined in the `calculatorapi` package. The `hello.example` discussed earlier is making use of this client.
 

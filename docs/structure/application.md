@@ -13,7 +13,7 @@ import (
 
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
-	"github.com/microbus-io/fabric/services/httpingress"
+	"github.com/microbus-io/fabric/coreservices/httpingress"
 )
 
 func main() {
