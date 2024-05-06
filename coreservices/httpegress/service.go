@@ -49,7 +49,8 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 }
 
 /*
-MakeRequest makes a request to a URL given the raw HTTP request and returns the HTTP response, respecting the timeout set in the context.
+MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
+The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 */
 func (svc *Service) MakeRequest(w http.ResponseWriter, r *http.Request) (err error) {
 	ctx := r.Context()

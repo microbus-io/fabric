@@ -97,7 +97,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 	
 	// Webs
-	svc.Subscribe(`*`, `:444/make-request`, svc.impl.MakeRequest)
+	svc.Subscribe(`POST`, `:444/make-request`, svc.impl.MakeRequest)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -118,10 +118,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `MakeRequest`,
-			Method:      `*`,
+			Method:      `POST`,
 			Path:        `:444/make-request`,
 			Summary:     `MakeRequest()`,
-			Description: `MakeRequest makes a request to a URL given the raw HTTP request and returns the HTTP response, respecting the timeout set in the context.`,
+			Description: `MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
+The proxied request is expected to be posted in the body of the request in binary form (RFC7231).`,
 			InputArgs: struct {
 			}{},
 			OutputArgs: struct {

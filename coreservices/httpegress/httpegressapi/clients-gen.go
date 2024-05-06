@@ -92,10 +92,11 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 }
 
 /*
-MakeRequest makes a request to a URL given the raw HTTP request and returns the HTTP response, respecting the timeout set in the context.
+MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
+The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 */
 func (_c *Client) MakeRequest(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
+	method := `POST`
 	if method == "*" {
 		method = "GET"
 	}
@@ -112,10 +113,11 @@ func (_c *Client) MakeRequest(ctx context.Context, options ...pub.Option) (res *
 }
 
 /*
-MakeRequest makes a request to a URL given the raw HTTP request and returns the HTTP response, respecting the timeout set in the context.
+MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
+The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 */
 func (_c *MulticastClient) MakeRequest(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
+	method := `POST`
 	if method == "*" {
 		method = "GET"
 	}

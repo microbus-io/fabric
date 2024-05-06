@@ -52,6 +52,7 @@ func Initialize() error {
 	go func() {
 		_ = httpServer.ListenAndServe()
 	}()
+	time.Sleep(200 * time.Millisecond) // Give enough time for web server to start
 
 	return nil
 }
