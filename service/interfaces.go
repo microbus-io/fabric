@@ -10,8 +10,11 @@ package service
 
 import (
 	"context"
+	"io/fs"
 	"net/http"
+	"time"
 
+	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
@@ -51,6 +54,12 @@ type Tracer interface {
 	ForceTrace(span trc.Span)
 }
 
+// StartupHandler handles the OnStartup callback.
+type StartupHandler func(ctx context.Context) error
+
+// StartupHandler handles the OnShutdown callback.
+type ShutdownHandler func(ctx context.Context) error
+
 // StarterStopper are the lifecycle actions of the microservice.
 type StarterStopper interface {
 	Startup() (err error)
@@ -62,6 +71,9 @@ type StarterStopper interface {
 	SetDeployment(deployment string) error
 	SetPlane(plane string) error
 	With(options ...func(Service) error) Service
+
+	SetOnStartup(handler StartupHandler) error
+	SetOnShutdown(handler ShutdownHandler) error
 }
 
 // Identifier are the properties used to uniquely identify and address the microservice.
@@ -74,13 +86,41 @@ type Identifier interface {
 	Plane() string
 }
 
+// StartupHandler handles the OnStartup callback.
+type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) error
+
 // Configurable are the actions used to configure the microservice.
 type Configurable interface {
+	DefineConfig(name string, options ...cfg.Option) error
+	Config(name string) (value string)
 	SetConfig(name string, value any) error
 	ResetConfig(name string) error
+
+	SetOnConfigChanged(handler ConfigChangedHandler) error
 }
 
-// Service are all the actions that a microservice provides.
+// FS is a file system that can be associated with the connector.
+type FS interface {
+	fs.FS
+	fs.ReadDirFS
+	fs.ReadFileFS
+}
+
+// Resourcer provides access to the connector's FS.
+type Resourcer interface {
+	SetResFS(resFS FS) error
+	ResFS() FS
+}
+
+// TickerHandler handles the ticker callbacks.
+type TickerHandler func(ctx context.Context) error
+
+// Ticker are actions used to schedule recurring jobs.
+type Ticker interface {
+	StartTicker(name string, interval time.Duration, handler TickerHandler) error
+}
+
+// Service are all the actions that a connector provides.
 type Service interface {
 	Publisher
 	Subscriber
@@ -89,4 +129,6 @@ type Service interface {
 	StarterStopper
 	Identifier
 	Configurable
+	Resourcer
+	Ticker
 }

@@ -53,8 +53,8 @@ type Connector struct {
 	description string
 	version     int
 
-	onStartup       []*callback
-	onShutdown      []*callback
+	onStartup       []service.StartupHandler
+	onShutdown      []service.ShutdownHandler
 	lifetimeCtx     context.Context
 	ctxCancel       context.CancelFunc
 	pendingOps      int32
@@ -95,16 +95,16 @@ type Connector struct {
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
-	onConfigChanged []*callback
+	onConfigChanged []service.ConfigChangedHandler
 
 	logger   *zap.Logger
 	logDebug bool
 
-	tickers     map[string]*callback
+	tickers     map[string]*tickerCallback
 	tickersLock sync.Mutex
 
 	distribCache *dlru.Cache
-	resourcesFS  FS
+	resourcesFS  service.FS
 	stringBundle map[string]map[string]string
 }
 
@@ -119,7 +119,7 @@ func NewConnector() *Connector {
 		subs:             map[string]*sub.Subscription{},
 		requestDefrags:   map[string]*httpx.DefragRequest{},
 		responseDefrags:  map[string]*httpx.DefragResponse{},
-		tickers:          map[string]*callback{},
+		tickers:          map[string]*tickerCallback{},
 		lifetimeCtx:      context.Background(),
 		knownResponders:  lru.NewCache[string, map[string]bool](),
 		postRequestData:  lru.NewCache[string, string](),

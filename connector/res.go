@@ -23,17 +23,12 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/service"
 	"gopkg.in/yaml.v3"
 )
 
-type FS interface {
-	fs.FS
-	fs.ReadDirFS
-	fs.ReadFileFS
-}
-
 // SetResFS initialized the connector to load resource files from an arbitrary FS.
-func (c *Connector) SetResFS(resFS FS) error {
+func (c *Connector) SetResFS(resFS service.FS) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
@@ -43,6 +38,11 @@ func (c *Connector) SetResFS(resFS FS) error {
 		return c.captureInitErr(err)
 	}
 	return nil
+}
+
+// ResFS returns the FS associated with the connector.
+func (c *Connector) ResFS() service.FS {
+	return c.resourcesFS
 }
 
 // initStringBundle reads strings.yaml from the FS into an in-memory map.
@@ -66,7 +66,7 @@ func (c *Connector) initStringBundle() error {
 
 // SetResDirFS initialized the connector to load resource files from a directory.
 func (c *Connector) SetResDirFS(name string) error {
-	err := c.SetResFS(os.DirFS(name).(FS)) // Casting required
+	err := c.SetResFS(os.DirFS(name).(service.FS)) // Casting required
 	return errors.Trace(err)
 }
 

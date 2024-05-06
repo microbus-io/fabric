@@ -16,16 +16,22 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/timex"
 	"github.com/microbus-io/fabric/utils"
 )
 
-// TickerHandler handles the ticker callbacks.
-type TickerHandler func(ctx context.Context) error
+// tickerCallback holds settings for a user tickerCallback handler, such as the OnStartup and OnShutdown callbacks.
+type tickerCallback struct {
+	Name     string
+	Handler  service.TickerHandler
+	Interval time.Duration
+	Ticker   *time.Ticker
+}
 
 // StartTicker initiates a recurring job at a set interval.
 // Tickers do not run when the connector is running in the TESTINGAPP deployment environment.
-func (c *Connector) StartTicker(name string, interval time.Duration, handler TickerHandler) error {
+func (c *Connector) StartTicker(name string, interval time.Duration, handler service.TickerHandler) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
@@ -40,7 +46,7 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler Tic
 	if interval <= 0 {
 		return c.captureInitErr(errors.Newf("non-positive interval '%v'", interval))
 	}
-	c.tickers[name] = &callback{
+	c.tickers[name] = &tickerCallback{
 		Name:     name,
 		Handler:  handler,
 		Interval: interval,
@@ -74,7 +80,7 @@ func (c *Connector) runTickers() {
 }
 
 // runTicker starts a goroutine to run the ticker.
-func (c *Connector) runTicker(job *callback) {
+func (c *Connector) runTicker(job *tickerCallback) {
 	if c.deployment == TESTINGAPP {
 		c.LogDebug(c.Lifetime(), "Ticker disabled while testing", log.String("name", job.Name))
 		return
@@ -102,7 +108,7 @@ func (c *Connector) runTicker(job *callback) {
 				c.lifetimeCtx,
 				job.Name,
 				func(ctx context.Context) error {
-					return job.Handler.(TickerHandler)(ctx)
+					return job.Handler(ctx)
 				},
 			)
 			dur := time.Since(started)

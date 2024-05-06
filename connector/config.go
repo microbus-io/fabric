@@ -20,19 +20,13 @@ import (
 	"github.com/microbus-io/fabric/service"
 )
 
-// StartupHandler handles the OnStartup callback.
-type ConfigChangedHandler func(ctx context.Context, changed func(string) bool) error
-
 // SetOnConfigChanged adds a function to be called when a new config was received from the configurator.
 // Callbacks are called in the order they were added.
-func (c *Connector) SetOnConfigChanged(handler ConfigChangedHandler) error {
+func (c *Connector) SetOnConfigChanged(handler service.ConfigChangedHandler) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	c.onConfigChanged = append(c.onConfigChanged, &callback{
-		Name:    "onconfigchanged",
-		Handler: handler,
-	})
+	c.onConfigChanged = append(c.onConfigChanged, handler)
 	return nil
 }
 
@@ -97,12 +91,12 @@ func (c *Connector) SetConfig(name string, value any) error {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err := c.doCallback(
 				c.lifetimeCtx,
-				c.onConfigChanged[i].Name,
+				"onconfigchanged",
 				func(ctx context.Context) error {
 					f := func(n string) bool {
 						return strings.EqualFold(n, name)
 					}
-					return c.onConfigChanged[i].Handler.(ConfigChangedHandler)(ctx, f)
+					return c.onConfigChanged[i](ctx, f)
 				},
 			)
 			if err != nil {
@@ -132,12 +126,12 @@ func (c *Connector) ResetConfig(name string) error {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err := c.doCallback(
 				c.lifetimeCtx,
-				c.onConfigChanged[i].Name,
+				"onconfigchanged",
 				func(ctx context.Context) error {
 					f := func(n string) bool {
 						return strings.EqualFold(n, name)
 					}
-					return c.onConfigChanged[i].Handler.(ConfigChangedHandler)(ctx, f)
+					return c.onConfigChanged[i](ctx, f)
 				},
 			)
 			if err != nil {
@@ -238,12 +232,12 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err := c.doCallback(
 				c.lifetimeCtx,
-				c.onConfigChanged[i].Name,
+				"onconfigchanged",
 				func(ctx context.Context) error {
 					f := func(name string) bool {
 						return changed[strings.ToLower(name)]
 					}
-					return c.onConfigChanged[i].Handler.(ConfigChangedHandler)(ctx, f)
+					return c.onConfigChanged[i](ctx, f)
 				},
 			)
 			if err != nil {

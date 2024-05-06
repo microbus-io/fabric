@@ -19,42 +19,29 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 )
 
-// StartupHandler handles the OnStartup callback.
-type StartupHandler func(ctx context.Context) error
-
-// StartupHandler handles the OnShutdown callback.
-type ShutdownHandler func(ctx context.Context) error
-
 // SetOnStartup adds a function to be called during the starting up of the microservice.
 // Startup callbacks are called in the order they were added.
-// The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnStartup(handler StartupHandler) error {
+func (c *Connector) SetOnStartup(handler service.StartupHandler) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	c.onStartup = append(c.onStartup, &callback{
-		Name:    "onstartup",
-		Handler: handler,
-	})
+	c.onStartup = append(c.onStartup, handler)
 	return nil
 }
 
 // SetOnShutdown adds a function to be called during the shutting down of the microservice.
 // Shutdown callbacks are called in the reverse order they were added,
 // whether of the status of a corresponding startup callback.
-// The default one minute timeout can be overridden by the appropriate option.
-func (c *Connector) SetOnShutdown(handler ShutdownHandler) error {
+func (c *Connector) SetOnShutdown(handler service.ShutdownHandler) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	c.onShutdown = append(c.onShutdown, &callback{
-		Name:    "onshutdown",
-		Handler: handler,
-	})
+	c.onShutdown = append(c.onShutdown, handler)
 	return nil
 }
 
@@ -181,9 +168,9 @@ func (c *Connector) Startup() (err error) {
 	for i := 0; i < len(c.onStartup); i++ {
 		err = c.doCallback(
 			ctx,
-			c.onStartup[i].Name,
+			"onstartup",
 			func(ctx context.Context) error {
-				return c.onStartup[i].Handler.(StartupHandler)(ctx)
+				return c.onStartup[i](ctx)
 			},
 		)
 		if err != nil {
@@ -278,9 +265,9 @@ func (c *Connector) Shutdown() error {
 		for i := len(c.onShutdown) - 1; i >= 0; i-- {
 			err = c.doCallback(
 				ctx,
-				c.onShutdown[i].Name,
+				"onshutdown",
 				func(ctx context.Context) error {
-					return c.onShutdown[i].Handler.(ShutdownHandler)(ctx)
+					return c.onShutdown[i](ctx)
 				},
 			)
 			if err != nil {

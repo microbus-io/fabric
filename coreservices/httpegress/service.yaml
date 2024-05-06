@@ -127,8 +127,11 @@ sinks:
 # openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
 webs:
   - signature: MakeRequest()
-    description: MakeRequest makes a request to a URL given the raw HTTP request and returns the HTTP response, respecting the timeout set in the context.
+    description: |-
+      MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
+      The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
     path: :444/...
+    method: POST
 
 # Tickers
 #
