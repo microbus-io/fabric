@@ -91,7 +91,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 [Milestone 13](https://github.com/microbus-io/fabric/tree/milestone/13):
 
-* Sharded MySQL database
+* Sharded MySQL database (deprecated in milestone 21)
 * Sharding key allocation management
 * Differential schema migration
 * Code generation of MySQL boilerplate code
@@ -118,7 +118,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 16](https://github.com/microbus-io/fabric/tree/milestone/16):
 
 * License and copyright notices
-* MariaDB database support
+* MariaDB database support (deprecated in milestone 21)
 * HTTP ingress middleware
 
 [Milestone 17](https://github.com/microbus-io/fabric/tree/milestone/17):
@@ -176,3 +176,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Renamed the `services` package to `coreservices`
 * Replaced the `Service` interface in the `connector` package with various interfaces in a new `service` package
 * Adjusted the pattern of including microservices in an `Application`
+* Deprecated the SQL database dependency and its corresponding code generation

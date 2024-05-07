@@ -57,7 +57,6 @@ Review each of the major project packages to get oriented in the code structure:
 * [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
 * [service](docs/structure/service.md) 🎁 - Definitions of interfaces of microservices
-* [shardedsql](docs/structure/shardedsql.md) - SQL database sharding and schema migration
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
 * [trc](docs/structure/trc.md) - Options for creating tracing spans
 * [timex](docs/structure/timex.md) - Enhancement of the standard `time.Time`

@@ -26,7 +26,6 @@ import (
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/stretchr/testify/assert"
@@ -48,7 +47,6 @@ var (
 	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
-	_ *shardedsql.DB
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *browserapi.Client

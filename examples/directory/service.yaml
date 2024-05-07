@@ -13,16 +13,7 @@
 general:
   host: directory.example
   description: The directory microservice stores personal records in a SQL database.
-
-# Databases
-#
-# name - A name for the database
-# type - The type of the database, "mariadb" or "mysql"
-# runtime - "true" to connect to the database in runtime (defaults to "true")
-# integrationTests - "true" to connect to the database in integration tests (defaults to "true")
-databases:
-  - name: Maria
-    type: mariadb
+  integrationTests: false
 
 # Config properties
 #
@@ -42,10 +33,8 @@ databases:
 # callback - "true" to handle the change event (defaults to "false")
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
-  # - signature:
-  #   description:
-  #   default:
-  #   validation:
+  - signature: SQL() (dsn string)
+    description: SQL is the data source name to the MariaDB database.
 
 # Functions
 #

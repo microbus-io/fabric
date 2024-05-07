@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/service"
-	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"gopkg.in/yaml.v3"
@@ -62,7 +61,6 @@ var (
 	_ *log.Field
 	_ *openapi.Service
 	_ service.Service
-	_ *shardedsql.DB
 	_ sub.Option
 	_ yaml.Encoder
 	_ eventsinkapi.Client
@@ -93,7 +91,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	}
 	svc.SetVersion(version)
 	svc.SetDescription(`The event sink microservice handles events that are fired by the event source microservice.`)
-
+	
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)

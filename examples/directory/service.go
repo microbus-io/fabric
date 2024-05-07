@@ -32,15 +32,28 @@ The directory microservice stores personal records in a SQL database.
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
+
+	db *sql.DB
 }
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
+	dsn := svc.SQL()
+	if dsn != "" {
+		svc.db, err = sql.Open("mysql", dsn)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	return nil
 }
 
 // OnShutdown is called when the microservice is shut down.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
+	if svc.db != nil {
+		svc.db.Close()
+		svc.db = nil
+	}
 	return nil
 }
 
@@ -48,13 +61,11 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 Create registers the person in the directory.
 */
 func (svc *Service) Create(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error) {
-	shard1 := svc.MariaDatabase().Shard(1) // No sharding in this example
-
 	err = person.Validate()
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err := shard1.ExecContext(ctx,
+	res, err := svc.db.ExecContext(ctx,
 		`INSERT INTO directory_persons (first_name,last_name,email_address,birthday) VALUE (?,?,?,?)`,
 		person.FirstName, person.LastName, person.Email, person.Birthday,
 	)
@@ -73,13 +84,11 @@ func (svc *Service) Create(ctx context.Context, person *directoryapi.Person) (cr
 Update updates the person's data in the directory.
 */
 func (svc *Service) Update(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error) {
-	shard1 := svc.MariaDatabase().Shard(1) // No sharding in this example
-
 	err = person.Validate()
 	if err != nil {
 		return nil, false, errors.Trace(err)
 	}
-	res, err := shard1.ExecContext(ctx,
+	res, err := svc.db.ExecContext(ctx,
 		`UPDATE directory_persons SET first_name=?, last_name=?, email_address=?, birthday=? WHERE person_id=?`,
 		person.FirstName, person.LastName, person.Email, person.Birthday, person.Key.Seq,
 	)
@@ -98,9 +107,7 @@ func (svc *Service) Update(ctx context.Context, person *directoryapi.Person) (up
 Load looks up a person in the directory.
 */
 func (svc *Service) Load(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error) {
-	shard1 := svc.MariaDatabase().Shard(1) // No sharding in this example
-
-	row := shard1.QueryRowContext(ctx,
+	row := svc.db.QueryRowContext(ctx,
 		`SELECT first_name,last_name,email_address,birthday FROM directory_persons WHERE person_id=?`,
 		key.Seq)
 	person = &directoryapi.Person{
@@ -120,9 +127,7 @@ func (svc *Service) Load(ctx context.Context, key directoryapi.PersonKey) (perso
 Delete removes a person from the directory.
 */
 func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error) {
-	shard1 := svc.MariaDatabase().Shard(1) // No sharding in this example
-
-	res, err := shard1.ExecContext(ctx,
+	res, err := svc.db.ExecContext(ctx,
 		`DELETE FROM directory_persons WHERE person_id=?`,
 		key.Seq,
 	)
@@ -137,9 +142,7 @@ func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (ok 
 LoadByEmail looks up a person in the directory by their email.
 */
 func (svc *Service) LoadByEmail(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error) {
-	shard1 := svc.MariaDatabase().Shard(1) // No sharding in this simple example
-
-	row := shard1.QueryRowContext(ctx,
+	row := svc.db.QueryRowContext(ctx,
 		`SELECT person_id,first_name,last_name,birthday FROM directory_persons WHERE email_address=?`,
 		email)
 	person = &directoryapi.Person{
@@ -159,9 +162,7 @@ func (svc *Service) LoadByEmail(ctx context.Context, email string) (person *dire
 List returns the keys of all the persons in the directory.
 */
 func (svc *Service) List(ctx context.Context) (keys []directoryapi.PersonKey, err error) {
-	shard1 := svc.MariaDatabase().Shard(1) // No sharding in this simple example
-
-	rows, err := shard1.QueryContext(ctx, `SELECT person_id FROM directory_persons`)
+	rows, err := svc.db.QueryContext(ctx, `SELECT person_id FROM directory_persons`)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

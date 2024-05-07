@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/service"
-	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"gopkg.in/yaml.v3"
@@ -59,7 +58,6 @@ var (
 	_ *log.Field
 	_ *openapi.Service
 	_ service.Service
-	_ *shardedsql.DB
 	_ sub.Option
 	_ yaml.Encoder
 	_ directoryapi.Client
@@ -83,7 +81,6 @@ type ToDo interface {
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
-	dbMaria *shardedsql.DB
 }
 
 // NewService creates a new intermediate service.
@@ -94,20 +91,17 @@ func NewService(impl ToDo, version int) *Intermediate {
 	}
 	svc.SetVersion(version)
 	svc.SetDescription(`The directory microservice stores personal records in a SQL database.`)
-
-	// SQL databases
-	svc.SetOnStartup(svc.dbMariaOnStartup)
-	svc.SetOnShutdown(svc.dbMariaOnShutdown)
-	svc.DefineConfig(
-		"Maria",
-		cfg.Description("Maria is the connection string to the sharded SQL database."),
-		cfg.Secret(),
-	)
-	svc.SetOnConfigChanged(svc.dbMariaOnConfigChanged)
-
+	
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
+
+	// Configs
+	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+	svc.DefineConfig(
+		"SQL",
+		cfg.Description(`SQL is the data source name to the MariaDB database.`),
+	)
 	
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
@@ -252,82 +246,20 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	return nil
 }
 
-// dbMariaOnStartup opens the connection to the Maria database and runs schema migrations.
-func (svc *Intermediate) dbMariaOnStartup(ctx context.Context) (err error) {
-	if svc.dbMaria != nil {
-		svc.dbMariaOnShutdown(ctx)
-	}
-	dataSource := svc.Maria()
-	if dataSource != "" {
-		svc.dbMaria, err = shardedsql.Open(ctx, "mariadb", dataSource)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		svc.LogInfo(ctx, "Opened database", log.String("db", "Maria"))
-
-		migrations := shardedsql.NewStatementSequence(svc.HostName() + " Maria")
-		scripts, err := svc.ReadResDir("maria")
-		if err != nil {
-			return errors.Trace(err)
-		}
-		for _, script := range scripts {
-			if script.IsDir() || filepath.Ext(script.Name())!=".sql" {
-				continue
-			}
-			dot := strings.Index(script.Name(), ".")
-			number, err := strconv.Atoi(script.Name()[:dot])
-			if err != nil {
-				continue
-			}
-			statement, err := svc.ReadResFile(filepath.Join("maria", script.Name()))
-			if err != nil {
-				return errors.Trace(err)
-			}
-			migrations.Insert(number, string(statement))
-		}
-		err = svc.dbMaria.MigrateSchema(ctx, migrations)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	return nil
+/*
+SQL is the data source name to the MariaDB database.
+*/
+func (svc *Intermediate) SQL() (dsn string) {
+	_val := svc.Config("SQL")
+	return _val
 }
 
-// dbMariaOnStartup closes the connection to the Maria database.
-func (svc *Intermediate) dbMariaOnShutdown(ctx context.Context) (err error) {
-	if svc.dbMaria != nil {
-		svc.dbMaria.Close()
-		svc.dbMaria = nil
-		svc.LogInfo(ctx, "Closed database", log.String("db", "Maria"))
-	}
-	return nil
-}
-
-// dbMariaOnConfigChanged reconnects to the Maria database when the data source name changes.
-func (svc *Intermediate) dbMariaOnConfigChanged(ctx context.Context, changed func(string) bool) (err error) {
-	if changed("Maria") {
-		err = svc.dbMariaOnStartup(ctx)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	return nil
-}
-
-// Maria is the data source name to the sharded SQL database.
-func (svc *Intermediate) Maria() (dsn string) {
-	return svc.Config("Maria")
-}
-
-// MariaDatabase is the sharded SQL database.
-func (svc *Intermediate) MariaDatabase() *shardedsql.DB {
-	return svc.dbMaria
-}
-
-// Maria initializes the Maria config property of the microservice.
-func Maria(dsn string) (func(service.Service) error) {
+/*
+SQL is the data source name to the MariaDB database.
+*/
+func SQL(dsn string) (func(service.Service) error) {
 	return func(svc service.Service) error {
-		return svc.SetConfig("Maria", dsn)
+		return svc.SetConfig("SQL", fmt.Sprintf("%v", dsn))
 	}
 }
 

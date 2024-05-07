@@ -56,8 +56,4 @@ var (
 	// {{ .Name }} initializes the {{ .Name }} config property of the microservice
 	{{ .Name }} = intermediate.{{ .Name }}
 	{{- end}}
-	{{- range .Databases }}
-	// {{ .Name }} initializes the {{ .Name }} config property of the microservice
-	{{ .Name }} = intermediate.{{ .Name }}
-	{{- end }}
 )

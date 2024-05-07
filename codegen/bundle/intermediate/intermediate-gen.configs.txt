@@ -19,16 +19,16 @@ func (svc *Intermediate) {{ .Name }}() (
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
 ) {
 	_val := svc.Config("{{ .Name }}")
-	
+
 	{{- with index .Signature.OutputArgs 0}}
 
 	{{- if eq .Type "string"}}
 	return _val{{ end }}
-	
+
 	{{- if eq .Type "int"}}
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i){{ end }}
-	
+
 	{{- if eq .Type "bool"}}
 	_b, _ := strconv.ParseBool(_val)
 	return _b{{ end }}

@@ -6,19 +6,13 @@ The `directory.example` microservice is an example of a microservice that provid
 
 It only takes a few steps to add SQL support to a microservice.
 
-Step 1: Edit `service.yaml` to define a SQL database. In this example case we name a MariaDB database `Maria`.
-
-```yaml
-databases:
-  - name: Maria
-    type: mariadb
-```
-
-Step 2: Run `go generate`.
-
-Step 3: Create a SQL schema migration script `resources/maria/1.sql`. This script will automatically be executed when the microservice starts and connects to the database. A migration script is only executed once in the order of its file name, so create `2.sql` etc. if and when changes to the schema are required. File names may include arbitrary text after the first dot, like so `2.create-table.sql`.
+Step 1: Create a database `microbus_examples` and a table `directory_persons` in it. For this example do this manually, but this is something you'll want to automate with schema migration tools.
 
 ```sql
+CREATE DATABASE my_database
+
+USE my_database
+
 CREATE TABLE directory_persons (
 	person_id BIGINT NOT NULL AUTO_INCREMENT,
 	first_name VARCHAR(32) NOT NULL,
@@ -30,13 +24,45 @@ CREATE TABLE directory_persons (
 ) CHARACTER SET utf8
 ```
 
-Step 4: Use `svc.MariaDatabase()` to access the [sharded database](../structure/shardedsql.md) from any of the endpoints of the microservice. The name `MariaDatabase` is derived from the name you chose in step 1.
-
-Step 5: Add a `Maria` config property in `config.yaml` pointing to the location of your database server. The name `Maria` is the one you chose in step 1.
+Step 2: Edit `service.yaml` to define a configuration property to represent the connection string.
 
 ```yaml
-all:
-  Maria: "root:secret1234@tcp(127.0.0.1:3306)/example_shard_%d"
+configs:
+  - signature: SQL() (dsn string)
+    description: SQL is the data source name to the MariaDB database. For example, root:secret@tcp(127.0.0.1:3306)/microbus_examples
+```
+
+Step 3: Run `go generate`.
+
+Step 4: Define the database connection `db` as a member property of the `Service`, open it in `OnStartup` and close it in `OnShutdown`.
+
+```go
+type Service struct {
+	*intermediate.Intermediate // DO NOT REMOVE
+
+	db *sql.DB
+}
+
+// OnStartup is called when the microservice is started up.
+func (svc *Service) OnStartup(ctx context.Context) (err error) {
+	dsn := svc.SQL()
+	if dsn != "" {
+		svc.db, err = sql.Open("mysql", dsn)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+// OnShutdown is called when the microservice is shut down.
+func (svc *Service) OnShutdown(ctx context.Context) (err error) {
+	if svc.db != nil {
+		svc.db.Close()
+		svc.db = nil
+	}
+	return nil
+}
 ```
 
 ## Connecting to the Database
@@ -52,10 +78,8 @@ The connection string to the database is pulled from `examples/main/config.yaml`
 
 ```yaml
 all:
-  Maria: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples_shard%d"
+  Maria: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"
 ```
-
-Note that the `%d` at the end of the database name is important. It's used to denote the database shard number and will be filled with the number `1`. There is no need to `CREATE DATABASE microbus_examples_shard1`. It will be created automatically.
 
 ## Try It Out
 

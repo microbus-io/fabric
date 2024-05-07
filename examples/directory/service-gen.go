@@ -57,6 +57,6 @@ func NewMock() *Mock {
 // Config initializers
 var (
 	_ int
-	// Maria initializes the Maria config property of the microservice
-	Maria = intermediate.Maria
+	// SQL initializes the SQL config property of the microservice
+	SQL = intermediate.SQL
 )

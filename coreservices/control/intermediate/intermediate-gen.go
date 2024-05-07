@@ -34,7 +34,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/service"
-	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"gopkg.in/yaml.v3"
@@ -60,7 +59,6 @@ var (
 	_ *log.Field
 	_ *openapi.Service
 	_ service.Service
-	_ *shardedsql.DB
 	_ sub.Option
 	_ yaml.Encoder
 	_ controlapi.Client
@@ -92,7 +90,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetVersion(version)
 	svc.SetDescription(`This microservice is created for the sake of generating the client API for the :888 control subscriptions.
 The microservice itself does nothing and should not be included in applications.`)
-
+	
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)

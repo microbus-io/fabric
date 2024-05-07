@@ -28,7 +28,6 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/service"
-	"github.com/microbus-io/fabric/shardedsql"
 	"github.com/microbus-io/fabric/sub"
 
 	"gopkg.in/yaml.v3"
@@ -59,7 +58,6 @@ var (
 	_ *log.Field
 	_ *openapi.Service
 	_ service.Service
-	_ *shardedsql.DB
 	_ sub.Option
 	_ yaml.Encoder
 	_ {{ .PackageSuffix }}api.Client
@@ -93,9 +91,6 @@ type ToDo interface {
 type Intermediate struct {
 	*connector.Connector
 	impl ToDo
-	{{- range .Databases }}{{ if and .IsSQL .Runtime }}
-	db{{ .Name }} *shardedsql.DB
-	{{- end }}{{ end }}
 }
 
 // NewService creates a new intermediate service.
@@ -107,19 +102,6 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetVersion(version)
 	svc.SetDescription(`{{ .General.Description }}`)
 	
-	{{- range .Databases }}{{ if and .IsSQL .Runtime }}
-
-	// SQL databases
-	svc.SetOnStartup(svc.db{{ .Name }}OnStartup)
-	svc.SetOnShutdown(svc.db{{ .Name }}OnShutdown)
-	svc.DefineConfig(
-		"{{ .Name }}",
-		cfg.Description("{{ .Name }} is the connection string to the sharded SQL database."),
-		cfg.Secret(),
-	)
-	svc.SetOnConfigChanged(svc.db{{ .Name }}OnConfigChanged)
-	{{- end }}{{ end }}
-
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
@@ -141,7 +123,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 		cfg.Secret(),{{ end }}
 	)
 	{{- end }}{{ end }}
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 
@@ -151,16 +133,16 @@ func NewService(impl ToDo, version int) *Intermediate {
 	{{- range .Functions }}
 	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
 	{{- end }}{{ end }}
-	
+
 	{{- if .Webs }}
-	
+
 	// Webs
 	{{- range .Webs }}
 	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.impl.{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
 	{{- end }}{{ end }}
 
 	{{- if .Sinks }}
-	
+
 	// Sinks
 	{{- range $i, $s := .Sinks }}
 	{{ .SourceSuffix }}api{{ Add $i 1 }}.NewHook(svc).
@@ -171,7 +153,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	{{- end }}{{ end }}
 
 	{{- if .Tickers }}
-	
+
 	// Tickers
 	{{- range .Tickers }}
 	interval{{ .Name }}, _ := time.ParseDuration("{{ .Interval }}")

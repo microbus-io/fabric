@@ -15,4 +15,4 @@ inbox.sys:
   Host: cc.selgine.com
 
 # all:
-#   Maria: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples_shard%d"
+#   Maria: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"

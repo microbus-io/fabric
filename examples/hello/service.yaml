@@ -14,16 +14,6 @@ general:
   host: hello.example
   description: The Hello microservice demonstrates the various capabilities of a microservice.
 
-# Databases
-#
-# name - A name for the database
-# type - The type of the database, "mariadb" or "mysql"
-# runtime - "true" to connect to the database in runtime (defaults to "true")
-# integrationTests - "true" to connect to the database in integration tests (defaults to "true")
-databases:
-  # - name: SQL
-  #   type: mariadb
-
 # Config properties
 #
 # signature - Func() (val Type)

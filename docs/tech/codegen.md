@@ -40,24 +40,6 @@ general:
   description: The email service delivers emails to recipients.
 ```
 
-### Databases
-
-The `databases` section indicates if the microservices uses any databases.
-The name of the database is used to pull the data source name (a.k.a. connection string)
-from a configuration property with that name.
-
-```yaml
-# Databases
-#
-# name - A name for the database
-# type - The type of the database, "mariadb" or "mysql"
-# runtime - "true" to connect to the database in runtime (defaults to "true")
-# integrationTests - "true" to connect to the database in integration tests (defaults to "true")
-databases:
-  - name: SQL
-    type: mariadb
-```
-
 ### Configs
 
 The `configs` section is used to define the [configuration](./configuration.md) properties of the microservices. Config properties get their values in runtime from the [configurator](../structure/coreservices-configurator.md) core microservice. 

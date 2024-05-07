@@ -15,16 +15,6 @@ general:
   description: The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.
   openApi: false
 
-# Databases
-#
-# name - A name for the database
-# type - The type of the database, "mariadb" or "mysql"
-# runtime - "true" to connect to the database in runtime (defaults to "true")
-# integrationTests - "true" to connect to the database in integration tests (defaults to "true")
-databases:
-  # - name: SQL
-  #   type: mariadb
-
 # Config properties
 #
 # signature - Func() (val Type)
