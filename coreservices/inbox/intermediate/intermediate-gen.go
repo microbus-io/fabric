@@ -130,7 +130,7 @@ Defaults to 8.`),
 		cfg.Validation(`int [1,1024]`),
 		cfg.DefaultValue(`8`),
 	)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 

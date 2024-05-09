@@ -229,7 +229,7 @@ Extensions are specified with "*.ext".`),
 *.esp
 *.exe`),
 	)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
 

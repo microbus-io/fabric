@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/trc"
@@ -66,13 +67,27 @@ func (svc *Service) MakeRequest(w http.ResponseWriter, r *http.Request) (err err
 		}
 	}
 	req.RequestURI = "" // Avoid "http: Request.RequestURI can't be set in client requests"
-	_, span := svc.StartSpan(ctx, req.URL.Hostname(), trc.Client())
-	span.SetRequest(req)
+
+	// OpenTelemetry: create a child span
+	spanOptions := []trc.Option{
+		trc.Client(),
+		// Do not record the request attributes yet because they take a lot of memory,
+		// they will be added if there's an error.
+	}
+	if svc.Deployment() == connector.LOCAL {
+		// Add the request attributes in LOCAL deployment to facilitate debugging
+		spanOptions = append(spanOptions, trc.Request(r))
+	}
+	_, span := svc.StartSpan(ctx, req.URL.Hostname(), spanOptions...)
 	defer span.End()
+
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		// OpenTelemetry: record the error, adding the request attributes
+		span.SetRequest(req)
 		span.SetError(err)
+		svc.ForceTrace(span)
 		return errors.Trace(err)
 	}
 	err = httpx.Copy(w, resp)

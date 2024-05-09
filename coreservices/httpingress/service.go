@@ -309,10 +309,20 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// OpenTelemetry: create the root span
+	forceTrace := r.URL.Query().Get("trace") == "force"
+	spanOptions := []trc.Option{
+		// Do not record the request attributes yet because they take a lot of memory,
+		// they will be added if there's an error.
+		trc.Server(),
+	}
+	if svc.Deployment() == connector.LOCAL || forceTrace {
+		// Add the request attributes in LOCAL deployment to facilitate debugging
+		spanOptions = append(spanOptions, trc.Request(r))
+	}
 	var span trc.Span
-	ctx, span = svc.StartSpan(ctx, ":"+r.URL.Port(), trc.Server(), trc.Request(r))
+	ctx, span = svc.StartSpan(ctx, ":"+r.URL.Port(), spanOptions...)
 	defer span.End()
-	if r.URL.Query().Get("trace") == "force" {
+	if forceTrace {
 		svc.ForceTrace(span)
 	}
 
@@ -421,7 +431,8 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)
 	if err != nil {
-		// OpenTelemetry: record the error and the HTTP body
+		// OpenTelemetry: record the error, adding the request attributes
+		span.SetRequest(r)
 		span.SetError(err)
 		svc.ForceTrace(span)
 		contentType := r.Header.Get("Content-Type")

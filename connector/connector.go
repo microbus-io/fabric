@@ -26,7 +26,6 @@ import (
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
-	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 
 	"github.com/nats-io/nats.go"
@@ -67,9 +66,9 @@ type Connector struct {
 	metricDefs      map[string]mtr.Metric
 	metricLock      sync.RWMutex
 
-	traceProvider *sdktrace.TracerProvider
-	tracer        trace.Tracer
-	traceSelector *trc.SelectiveProcessor
+	traceProvider  *sdktrace.TracerProvider
+	tracer         trace.Tracer
+	traceProcessor *traceSelector
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription

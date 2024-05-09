@@ -49,7 +49,7 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The HTTP egress microservice relays HTTP requests to the internet.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Webs
 	svc.Subscribe(`POST`, `:444/make-request`, svc.doMakeRequest)
 

@@ -45,7 +45,7 @@ type Span interface {
 
 // SpanImpl implements the span interface.
 type SpanImpl struct {
-	Span trace.Span
+	trace.Span
 }
 
 // NewSpan creates a new span.
@@ -83,7 +83,9 @@ func (s SpanImpl) SetOK(statusCode int, contentLength int) {
 		return
 	}
 	s.Span.SetStatus(codes.Ok, "")
-	s.Span.SetAttributes(attribute.Int("http.response.status_code", statusCode))
+	if statusCode != http.StatusOK {
+		s.Span.SetAttributes(attribute.Int("http.response.status_code", statusCode))
+	}
 	if contentLength > 0 {
 		s.Span.SetAttributes(attribute.Int("http.response.body.size", contentLength))
 	}

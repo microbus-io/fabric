@@ -293,8 +293,12 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// OpenTelemetry: create a child span
 	spanOptions := []trc.Option{
 		trc.Server(),
-		trc.Request(httpReq),
-		trc.String("http.route", s.Path),
+		// Do not record the request attributes yet because they take a lot of memory,
+		// they will be added if there's an error.
+	}
+	if c.deployment == LOCAL {
+		// Add the request attributes in LOCAL deployment to facilitate debugging
+		spanOptions = append(spanOptions, trc.Request(httpReq), trc.String("http.route", s.Path))
 	}
 	ctx = propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(httpReq.Header))
 	var span trc.Span
@@ -334,7 +338,9 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			}
 			c.LogError(ctx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
 
-			// OpenTelemetry: record the error
+			// OpenTelemetry: record the error, adding the request attributes
+			span.SetString("http.route", s.Path)
+			span.SetRequest(httpReq)
 			span.SetError(handlerErr)
 			c.ForceTrace(span)
 

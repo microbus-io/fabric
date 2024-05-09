@@ -17,10 +17,12 @@ import (
 	"github.com/microbus-io/fabric/trc"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
 type contextKeyType struct{}
@@ -30,6 +32,7 @@ var contextKey contextKeyType
 // initTracer initializes an OpenTelemetry tracer
 func (c *Connector) initTracer(ctx context.Context) (err error) {
 	if c.traceProvider != nil {
+		// Already initialized
 		return nil
 	}
 
@@ -41,25 +44,35 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 	if endpoint == "" && c.deployment == LOCAL {
 		endpoint = "http://127.0.0.1:4318"
 	}
-	if endpoint == "" {
-		return nil
-	}
 
-	exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
-	if err != nil {
-		return errors.Trace(err)
-	}
 	var sp sdktrace.SpanProcessor
 	var sampler sdktrace.Sampler
-	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
+	switch c.deployment {
+	case LOCAL, TESTINGAPP:
 		// Trace all spans
-		sampler = sdktrace.AlwaysSample()
+		var exp *otlptrace.Exporter
+		if endpoint == "" {
+			exp, err = otlptrace.New(ctx, &nilClient{})
+		} else {
+			exp, err = otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
+		}
+		if err != nil {
+			return errors.Trace(err)
+		}
 		sp = sdktrace.NewBatchSpanProcessor(exp)
-	} else { // PROD, LAB
-		// Trace only explicitly selected transactions
 		sampler = sdktrace.AlwaysSample()
-		c.traceSelector = trc.NewProcessor(exp)
-		sp = c.traceSelector
+	default: // PROD, LAB
+		if endpoint == "" {
+			return nil // Disables tracing without overhead
+		}
+		// Trace only explicitly selected transactions
+		exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		c.traceProcessor = newTraceSelector(exp)
+		sp = c.traceProcessor
+		sampler = sdktrace.AlwaysSample()
 	}
 	c.traceProvider = sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sampler),
@@ -78,6 +91,7 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 // termTracer shuts down the OpenTelemetry tracer
 func (c *Connector) termTracer(ctx context.Context) (err error) {
 	if c.traceProvider == nil {
+		// Not initialized
 		return nil
 	}
 	err = c.traceProvider.Shutdown(ctx)
@@ -117,8 +131,8 @@ func (c *Connector) Span(ctx context.Context) trc.Span {
 
 // ForceTrace forces the trace containing the span to be exported
 func (c *Connector) ForceTrace(span trc.Span) {
-	if c.traceSelector != nil {
-		c.traceSelector.Select(span.TraceID())
+	if c.traceProcessor != nil {
+		c.traceProcessor.Select(span.TraceID())
 		// Broadcast to all microservices to export all spans belonging to this trace
 		c.Go(c.lifetimeCtx, func(ctx context.Context) error {
 			for r := range c.Publish(c.lifetimeCtx, pub.GET("https://all:888/trace?id="+url.QueryEscape(span.TraceID()))) {
@@ -127,4 +141,16 @@ func (c *Connector) ForceTrace(span trc.Span) {
 			return nil
 		})
 	}
+}
+
+type nilClient struct{}
+
+func (nc *nilClient) Start(ctx context.Context) error {
+	return nil
+}
+func (nc *nilClient) Stop(ctx context.Context) error {
+	return nil
+}
+func (nc *nilClient) UploadTraces(ctx context.Context, protoSpans []*tracepb.ResourceSpans) error {
+	return nil
 }

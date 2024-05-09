@@ -94,9 +94,9 @@ func (c *Connector) handleMetrics(w http.ResponseWriter, r *http.Request) error 
 // handleTrace responds to the :888/trace control request
 // to force exporting the indicated tracing span.
 func (c *Connector) handleTrace(w http.ResponseWriter, r *http.Request) error {
-	if c.traceSelector != nil {
+	if c.traceProcessor != nil {
 		traceID := r.URL.Query().Get("id")
-		c.traceSelector.Select(traceID)
+		c.traceProcessor.Select(traceID)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{}"))

@@ -22,6 +22,7 @@ import (
 	"github.com/mnako/letters"
 	"github.com/sirupsen/logrus"
 
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/coreservices/inbox/inboxapi"
 	"github.com/microbus-io/fabric/coreservices/inbox/intermediate"
 	"github.com/microbus-io/fabric/errors"
@@ -127,9 +128,16 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 					// OpenTelemetry: create the root span
 					spanOptions := []trc.Option{
 						trc.Server(),
-						trc.String("email.subject", e.Subject),
-						trc.String("email.from", e.MailFrom.String()),
-						trc.ClientIP(e.RemoteIP),
+						// Do not record the request attributes yet because they take a lot of memory,
+						// they will be added if there's an error.
+					}
+					if svc.Deployment() == connector.LOCAL {
+						// Add the request attributes in LOCAL deployment to facilitate debugging
+						spanOptions = append(spanOptions,
+							trc.String("email.subject", e.Subject),
+							trc.String("email.from", e.MailFrom.String()),
+							trc.ClientIP(e.RemoteIP),
+						)
 					}
 					for k, v := range e.Header {
 						spanOptions = append(spanOptions, trc.Strings(k, v))
@@ -143,7 +151,10 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 						return errors.Trace(err)
 					})
 					if err != nil {
-						// OpenTelemetry: record the error
+						// OpenTelemetry: record the error, adding the request attributes
+						span.SetString("email.subject", e.Subject)
+						span.SetString("email.from", e.MailFrom.String())
+						span.SetClientIP(e.RemoteIP)
 						span.SetError(err)
 						svc.ForceTrace(span)
 						return backends.NewResult(fmt.Sprintf("554 Error: %s", err)), err // No trace
