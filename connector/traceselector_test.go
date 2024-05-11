@@ -14,15 +14,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel/sdk/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type exporter struct {
-	Callback func(ctx context.Context, spans []trace.ReadOnlySpan) error
+	Callback func(ctx context.Context, spans []sdktrace.ReadOnlySpan) error
 }
 
-func (e *exporter) ExportSpans(ctx context.Context, spans []trace.ReadOnlySpan) error {
+func (e *exporter) ExportSpans(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
 	if e.Callback != nil {
 		return e.Callback(ctx, spans)
 	}
@@ -39,7 +39,7 @@ func TestConnector_TracingExport(t *testing.T) {
 	countExported := 0
 	exportedSpans := map[string]bool{}
 	ts := newTraceSelector(&exporter{
-		Callback: func(ctx context.Context, spans []trace.ReadOnlySpan) error {
+		Callback: func(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
 			countExported += len(spans)
 			for _, span := range spans {
 				exportedSpans[span.SpanContext().SpanID().String()] = true
@@ -247,4 +247,30 @@ func TestConnector_TracingBufferCapacityRollover(t *testing.T) {
 		assert.NotEqual(t, before, after)
 		assert.Equal(t, int32(i+1), ts.insertionPoint.Load())
 	}
+}
+
+func BenchmarkConnector_TracingOnEnd(b *testing.B) {
+	ctx := context.Background()
+
+	ts := newTraceSelector(&exporter{})
+
+	traceProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSpanProcessor(ts),
+	)
+	tracer := traceProvider.Tracer("")
+
+	arr := make([]trace.Span, b.N)
+	for i := 0; i < b.N; i++ {
+		_, arr[i] = tracer.Start(ctx, "A")
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		arr[i].End()
+	}
+	// N=5078120
+	// 301.4 ns/op
+	// 400 B/op
+	// 2 allocs/op
 }
