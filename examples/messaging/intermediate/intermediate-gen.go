@@ -94,10 +94,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `:443/home`, svc.impl.Home)
 	svc.Subscribe(`*`, `:443/no-queue`, svc.impl.NoQueue, sub.NoQueue())

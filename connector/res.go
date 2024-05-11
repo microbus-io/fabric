@@ -12,7 +12,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"io/fs"
 	"net/http"
 	"os"
 	"strconv"
@@ -28,16 +27,22 @@ import (
 )
 
 // SetResFS initialized the connector to load resource files from an arbitrary FS.
-func (c *Connector) SetResFS(resFS service.FS) error {
+func (c *Connector) SetResFS(fs service.FS) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	c.resourcesFS = resFS
+	c.resourcesFS = fs
 	err := c.initStringBundle()
 	if err != nil {
 		return c.captureInitErr(err)
 	}
 	return nil
+}
+
+// SetResFSDir initialized the connector to load resource files from a directory.
+func (c *Connector) SetResFSDir(directoryPath string) error {
+	err := c.SetResFS(os.DirFS(directoryPath).(service.FS)) // Casting required
+	return errors.Trace(err)
 }
 
 // ResFS returns the FS associated with the connector.
@@ -62,18 +67,6 @@ func (c *Connector) initStringBundle() error {
 		}
 	}
 	return nil
-}
-
-// SetResDirFS initialized the connector to load resource files from a directory.
-func (c *Connector) SetResDirFS(name string) error {
-	err := c.SetResFS(os.DirFS(name).(service.FS)) // Casting required
-	return errors.Trace(err)
-}
-
-// ReadResDir returns the entries in the resource directory.
-func (c *Connector) ReadResDir(name string) ([]fs.DirEntry, error) {
-	entries, err := c.resourcesFS.ReadDir(name)
-	return entries, errors.Trace(err)
 }
 
 // ReadResFile returns the content of a resource file.
@@ -134,6 +127,11 @@ func (c *Connector) ServeResFile(name string, w http.ResponseWriter, r *http.Req
 // ExecuteResTemplate parses the resource file as a template, executes it given the data, and returns
 // the result. The template is assumed to be a text template unless the file name ends in .html,
 // in which case it is processed as an HTML template.
+//
+// {{ var | attr }}, {{ var | url }}, {{ var | css }} or {{ var | safe }} may be used to prevent the
+// escaping of a variable in an HTML template.
+// These map to [htmltemplate.HTMLAttr], [htmltemplate.URL], [htmltemplate.CSS] and [htmltemplate.HTML]
+// respectively. Use of these types presents a security risk.
 func (c *Connector) ExecuteResTemplate(name string, data any) (string, error) {
 	b, err := c.resourcesFS.ReadFile(name)
 	if err != nil {
@@ -145,14 +143,14 @@ func (c *Connector) ExecuteResTemplate(name string, data any) (string, error) {
 			"attr": func(s string) htmltemplate.HTMLAttr {
 				return htmltemplate.HTMLAttr(s)
 			},
-			"safe": func(s string) htmltemplate.HTML {
-				return htmltemplate.HTML(s)
-			},
 			"url": func(s string) htmltemplate.URL {
 				return htmltemplate.URL(s)
 			},
 			"css": func(s string) htmltemplate.CSS {
 				return htmltemplate.CSS(s)
+			},
+			"safe": func(s string) htmltemplate.HTML {
+				return htmltemplate.HTML(s)
 			},
 		}
 		htmlTmpl, err := htmltemplate.New(name).Funcs(funcMap).Parse(string(b))
@@ -177,16 +175,18 @@ func (c *Connector) ExecuteResTemplate(name string, data any) (string, error) {
 }
 
 /*
-LoadResString returns a string from the string bundle in the language best matched to the context.
+LoadResString returns a string from the string bundle in the language best matched to the locale in the context.
 The string bundle is a YAML file that must be loadable from the service's resource FS with the name strings.yaml.
-It is expected to have the following format:
+The YAML is expected to be in the following format:
 
 	stringKey:
+	  default: Localized
 	  en: Localized
 	  en-UK: Localised
 	  fr: Localisée
 
-English "en" is used as the fallback language and should always be present.
+If a default is not provided, English (en) is used as the fallback language.
+String keys and locale names are case-sensitive.
 */
 func (c *Connector) LoadResString(ctx context.Context, stringKey string) (string, error) {
 	if c.stringBundle == nil {
@@ -211,7 +211,11 @@ func (c *Connector) LoadResString(ctx context.Context, stringKey string) (string
 		}
 	}
 	// Fallback to English
-	fallback := str["en"]
+	fallback := str["default"]
+	if fallback != "" {
+		return fallback, nil
+	}
+	fallback = str["en"]
 	if fallback != "" {
 		return fallback, nil
 	}

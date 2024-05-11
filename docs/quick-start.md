@@ -17,10 +17,10 @@ Note: it is recommended to clone the code into a directory structure that mirror
 The `Microbus` framework depends on a few third-party services:
 
 * NATS is a hard requirement used as the communication transport between microservice
-* MariaDB is needed for microservices that depend on it, such as the CRUD example
 * Prometheus is an optional service that can be used to collect metrics from `Microbus` microservices
 * Grafana is an optional service that can visualize metrics collected by Prometheus
 * Jaeger is an optional service that can visualize distributed tracing spans
+* MariaDB is needed only for microservices that depend on it, such as the [directory example](./structure/examples-directory.md)
 
 Use `docker compose` from within the `setup` directory to install the above and set up the development environment.
 
@@ -31,10 +31,10 @@ docker compose -f microbus.yaml -p microbus up
 
 `Docker Desktop` should now show the `microbus` application:
 
-<img src="quick-start-1.png" width="825">
+<img src="quick-start-1.png" width="1113">
 <p>
 
-The `-DV` (debug and verbose) flags of NATS slow down NATS considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to run NATS in a separate terminal window instead of inside `Docker`.
+The `-DV` (debug and verbose) flags of NATS slow it down considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to run NATS in a separate terminal window instead of inside Docker.
 
 ## Run the Examples
 
@@ -63,6 +63,7 @@ Try the following URLs in your browser:
 * http://localhost:8080/messaging.example/home
 * http://localhost:8080/messaging.example/cache-store?key=foo&value=bar
 * http://localhost:8080/messaging.example/cache-load?key=foo
+* http://localhost:8080/browser.example/browse?url=example.com
 
 Feel free to experiment with different values for the query arguments.
 

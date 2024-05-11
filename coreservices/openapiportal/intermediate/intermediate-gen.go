@@ -92,10 +92,10 @@ on the requested port.`)
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `//openapi:*`, svc.impl.List)
 

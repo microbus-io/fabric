@@ -51,7 +51,7 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The Calculator microservice performs simple mathematical operations.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Functions
 	svc.Subscribe(`GET`, `:443/arithmetic`, svc.doArithmetic)
 	svc.Subscribe(`GET`, `:443/square`, svc.doSquare)

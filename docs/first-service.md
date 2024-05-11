@@ -70,7 +70,7 @@ type Game struct {
 }
 ```
 
-A `map[string]*Game` will keep track of all games indexed by an ID.
+A `map[string]*Game` will keep track of all games, indexed by the game ID.
 
 ```go
 type Service struct {
@@ -222,25 +222,31 @@ Include the new microservice in the app in `examples/main/main.go` and run it us
 
 ```go
 func main() {
-	app := application.New(
+	app := application.New()
+	app.Include(
+		// Configurator should start first
 		configurator.NewService(),
-		application.Group{
-			hello.NewService(),
-			messaging.NewService(),
-			messaging.NewService(),
-			messaging.NewService(),
-			calculator.NewService(),
-			eventsource.NewService(),
-			eventsink.NewService(),
-			directory.NewService(),
-    		wordly.NewService(), // <-- Add
-		},
-		application.Group{
-			openapiportal.NewService(),
-			httpingress.NewService(),
-			metrics.NewService(),
-			// inbox.NewService(),
-		},
+	)
+	app.Include(
+		httpegress.NewService(),
+		openapiportal.NewService(),
+		metrics.NewService(),
+		// inbox.NewService(),
+
+		hello.NewService(),
+		messaging.NewService(),
+		messaging.NewService(),
+		messaging.NewService(),
+		calculator.NewService(),
+		eventsource.NewService(),
+		eventsink.NewService(),
+		directory.NewService(),
+		browser.NewService(),
+    	wordly.NewService(), // <-- Add
+	)
+	app.Include(
+		// When everything is ready, begin to accept external requests
+		httpingress.NewService(),
 	)
 	app.Run()
 }

@@ -110,10 +110,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 		cfg.Validation(`int [0,100]`),
 		cfg.DefaultValue(`1`),
 	)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `:443/hello`, svc.impl.Hello)
 	svc.Subscribe(`*`, `:443/echo`, svc.impl.Echo)
@@ -121,7 +121,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`*`, `:443/calculator`, svc.impl.Calculator)
 	svc.Subscribe(`*`, `:443/bus.jpeg`, svc.impl.BusJPEG)
 	svc.Subscribe(`*`, `:443/localization`, svc.impl.Localization)
-	
+
 	// Tickers
 	intervalTickTock, _ := time.ParseDuration("10s")
 	svc.StartTicker("TickTock", intervalTickTock, svc.impl.TickTock)

@@ -52,7 +52,7 @@ func NewMock(version int) *Mock {
 	svc.SetDescription(`This microservice is created for the sake of generating the client API for the :888 control subscriptions.
 The microservice itself does nothing and should not be included in applications.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Functions
 	svc.Subscribe(`*`, `:888/ping`, svc.doPing, sub.NoQueue())
 	svc.Subscribe(`*`, `:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())

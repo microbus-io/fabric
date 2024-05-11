@@ -50,7 +50,7 @@ func NewMock(version int) *Mock {
 	svc.SetDescription(`The OpenAPI microservice lists links to the OpenAPI endpoint of all microservices that provide one
 on the requested port.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `//openapi:*`, svc.doList)
 

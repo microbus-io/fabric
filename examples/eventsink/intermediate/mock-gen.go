@@ -54,10 +54,10 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The event sink microservice handles events that are fired by the event source microservice.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Functions
 	svc.Subscribe(`*`, `:443/registered`, svc.doRegistered)
-	
+
 	// Sinks
 	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.doOnAllowRegister)
 	eventsourceapi2.NewHook(svc).OnRegistered(svc.doOnRegistered)

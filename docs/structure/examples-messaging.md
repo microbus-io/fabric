@@ -2,7 +2,10 @@
 
 ## Messaging
 
-The `/home` endpoint of the `messaging.example` microservice demonstrates three messaging patterns: load-balanced unicast, multicast and direct addressing.
+The `/home` endpoint of the `messaging.example` microservice demonstrates three messaging patterns:
+* Load-balanced unicast
+* Multicast
+* Direct addressing
 
 The output of http://localhost:8080/messaging.example/home looks like this:
 
@@ -30,17 +33,34 @@ GET https://4l284tgjfk.messaging.example/no-queue
 Refresh the page to try again
 ```
 
-The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because there are 3 instances added to the app that are load-balanced, this ID is likely to change on each request.
+The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because `examples/main.go` includes 3 instances of the `messaging.example`, this ID is likely to change on each request with load-balancing.
 
 ```go
 func main() {
-	app := application.New(
-		httpingress.NewService(),
+	app := application.New()
+	app.Include(
+		// Configurator should start first
+		configurator.NewService(),
+	)
+	app.Include(
+		httpegress.NewService(),
+		openapiportal.NewService(),
+		metrics.NewService(),
+		// inbox.NewService(),
+
 		hello.NewService(),
 		messaging.NewService(),
 		messaging.NewService(),
 		messaging.NewService(),
 		calculator.NewService(),
+		eventsource.NewService(),
+		eventsink.NewService(),
+		directory.NewService(),
+		browser.NewService(),
+	)
+	app.Include(
+		// When everything is ready, begin to accept external requests
+		httpingress.NewService(),
 	)
 	app.Run()
 }

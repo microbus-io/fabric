@@ -6,35 +6,21 @@ The `directory.example` microservice is an example of a microservice that provid
 
 It only takes a few steps to add SQL support to a microservice.
 
-Step 1: Create a database `microbus_examples` and a table `directory_persons` in it. For this example do this manually, but this is something you'll want to automate with schema migration tools.
-
-```sql
-CREATE DATABASE my_database
-
-USE my_database
-
-CREATE TABLE directory_persons (
-	person_id BIGINT NOT NULL AUTO_INCREMENT,
-	first_name VARCHAR(32) NOT NULL,
-	last_name VARCHAR(32) NOT NULL,
-	email_address VARCHAR(128) CHARACTER SET ascii NOT NULL,
-	birthday DATE,
-	PRIMARY KEY (person_id),
-	CONSTRAINT UNIQUE INDEX (email_address)
-) CHARACTER SET utf8
-```
-
-Step 2: Edit `service.yaml` to define a configuration property to represent the connection string.
+Step 1: Edit `service.yaml` to define a configuration property to represent the connection string.
 
 ```yaml
 configs:
   - signature: SQL() (dsn string)
-    description: SQL is the data source name to the MariaDB database. For example, root:secret@tcp(127.0.0.1:3306)/microbus_examples
+    description: SQL is the connection string to the database.
 ```
 
-Step 3: Run `go generate`.
+Step 2: Run `go generate` to create the `svc.SQL()` method corresponding to the `SQL` configuration property.
 
-Step 4: Define the database connection `db` as a member property of the `Service`, open it in `OnStartup` and close it in `OnShutdown`.
+```cmd
+go generate
+```
+
+Step 3: Define the database connection `db *sql.DB` as a member property of the `Service`, open it in `OnStartup` and close it in `OnShutdown`.
 
 ```go
 type Service struct {
@@ -67,18 +53,36 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 
 ## Connecting to the Database
 
-If you don't have a MariaDB database running already, you can use `Docker` to install and run it locally:
+If you followed the [quick start guide](../quick-start.md), a MariaDB container should already be running in your Docker.
+If not, you can install and run it using:
 
 ```cmd
 docker pull mariadb
 docker run -p 3306:3306 --name mariadb1 -e MARIADB_ROOT_PASSWORD=secret1234 -d mariadb
 ```
 
-The connection string to the database is pulled from `examples/main/config.yaml` by the configurator and served to the `directory.example` microservice. Uncomment and edit as necessary to point to the location of your MariaDB database.
+Next, create a database named `microbus_examples`.
+
+<img src="examples-directory-1.png" width="498">
+<p>
+
+From the `Exec` panel of the `microbus-mariadb-1` container, type:
+
+```cmd
+mysql -uroot -psecret1234
+```
+
+And then use the SQL command prompt to create the database:
+
+```sql
+CREATE DATABASE microbus_examples;
+```
+
+The connection string to the database is pulled from `examples/main/config.yaml` by the configurator and served to the `directory.example` microservice. Uncomment and adjust it if necessary to point to the location of your MariaDB database.
 
 ```yaml
 all:
-  Maria: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"
+  SQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"
 ```
 
 ## Try It Out

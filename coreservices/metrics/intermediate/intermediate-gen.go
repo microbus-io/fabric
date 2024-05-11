@@ -99,10 +99,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 This key is required except in local development and tests.`),
 		cfg.Secret(),
 	)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `:443/collect`, svc.impl.Collect)
 

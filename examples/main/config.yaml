@@ -12,7 +12,7 @@ http.ingress.sys:
 #  TimeBudget: 20s
 
 inbox.sys:
-  Host: cc.selgine.com
+# Host: mail.example.com
 
 # all:
-#   Maria: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"
+#   SQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"

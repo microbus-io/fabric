@@ -52,12 +52,12 @@ var (
 // Client is an interface to calling the endpoints of the eventsource.example microservice.
 // This simple version is for unicast calls.
 type Client struct {
-	svc  service.PublisherSubscriber
+	svc  service.Publisher
 	host string
 }
 
 // NewClient creates a new unicast client to the eventsource.example microservice.
-func NewClient(caller service.PublisherSubscriber) *Client {
+func NewClient(caller service.Publisher) *Client {
 	return &Client{
 		svc:  caller,
 		host: "eventsource.example",
@@ -73,12 +73,12 @@ func (_c *Client) ForHost(host string) *Client {
 // MulticastClient is an interface to calling the endpoints of the eventsource.example microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
-	svc  service.PublisherSubscriber
+	svc  service.Publisher
 	host string
 }
 
 // NewMulticastClient creates a new multicast client to the eventsource.example microservice.
-func NewMulticastClient(caller service.PublisherSubscriber) *MulticastClient {
+func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	return &MulticastClient{
 		svc:  caller,
 		host: "eventsource.example",
@@ -93,12 +93,12 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 
 // MulticastTrigger is an interface to trigger the events of the eventsource.example microservice.
 type MulticastTrigger struct {
-	svc  service.PublisherSubscriber
+	svc  service.Publisher
 	host string
 }
 
 // NewMulticastTrigger creates a new multicast trigger of the eventsource.example microservice.
-func NewMulticastTrigger(caller service.PublisherSubscriber) *MulticastTrigger {
+func NewMulticastTrigger(caller service.Publisher) *MulticastTrigger {
 	return &MulticastTrigger{
 		svc:  caller,
 		host: "eventsource.example",
@@ -113,12 +113,12 @@ func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
 
 // Hook assists in the subscription to the events of the eventsource.example microservice.
 type Hook struct {
-	svc  service.PublisherSubscriber
+	svc  service.Subscriber
 	host string
 }
 
 // NewHook creates a new hook to the events of the eventsource.example microservice.
-func NewHook(listener service.PublisherSubscriber) *Hook {
+func NewHook(listener service.Subscriber) *Hook {
 	return &Hook{
 		svc:  listener,
 		host: "eventsource.example",

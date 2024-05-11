@@ -18,13 +18,13 @@ The framework's philosophy can be categorized into three conceptual areas:
 
 ## 🚦 Getting Started
 
-👉 Follow the [quick start guide](docs/quick-start.md) to set up your system and run the example app.
+👉 Follow the [quick start guide](docs/quick-start.md) ✨ to set up your system and run the example app.
 
 👉 Go through the [examples](docs/structure/examples.md) ✨ in depth.
 
 👉 Follow the step-by-step guide and [build your first microservice](docs/first-service.md)!
 
-👉 Discover the full power of [code generation](docs/tech/codegen.md). It's totally RAD, dude!
+👉 Discover the full power of [code generation](docs/tech/codegen.md) ✨. It's totally RAD, dude!
 
 👉 Learn how to write thorough [integration tests](docs/tech/integrationtesting.md) and achieve high code coverage.
 

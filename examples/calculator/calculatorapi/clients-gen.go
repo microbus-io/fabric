@@ -54,12 +54,12 @@ var (
 // Client is an interface to calling the endpoints of the calculator.example microservice.
 // This simple version is for unicast calls.
 type Client struct {
-	svc  service.PublisherSubscriber
+	svc  service.Publisher
 	host string
 }
 
 // NewClient creates a new unicast client to the calculator.example microservice.
-func NewClient(caller service.PublisherSubscriber) *Client {
+func NewClient(caller service.Publisher) *Client {
 	return &Client{
 		svc:  caller,
 		host: "calculator.example",
@@ -75,12 +75,12 @@ func (_c *Client) ForHost(host string) *Client {
 // MulticastClient is an interface to calling the endpoints of the calculator.example microservice.
 // This advanced version is for multicast calls.
 type MulticastClient struct {
-	svc  service.PublisherSubscriber
+	svc  service.Publisher
 	host string
 }
 
 // NewMulticastClient creates a new multicast client to the calculator.example microservice.
-func NewMulticastClient(caller service.PublisherSubscriber) *MulticastClient {
+func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	return &MulticastClient{
 		svc:  caller,
 		host: "calculator.example",

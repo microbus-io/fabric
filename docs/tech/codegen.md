@@ -35,6 +35,7 @@ The `general` section of `service.yaml` defines the `host` name of the microserv
 # host - The host name of the microservice
 # description - A human-friendly description of the microservice
 # integrationTests - Whether or not to generate integration tests (defaults to true)
+# openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
   host: email.communication.xyz
   description: The email service delivers emails to recipients.
@@ -84,29 +85,6 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 }
 ```
 
-### Types
-
-All complex (struct) non-primitive types used in `functions` and `events` must be declared in the `types` section. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) and arrays are also allowed. Types that are _owned_ by this microservice are defined locally to this microservice. Types that are owned by other microservices but are _used_ by this microservices must be imported by pointing to their fully-qualified path.
-
-Complex types may contain other complex types in which case those nested types also must be declared.
-
-```yaml
-# Types
-#
-# name - All non-primitive types used in functions must be accounted for
-# description - Documentation
-# define - Define a new type with the specified fields (name: type)
-# import - The package path of the imported type
-types:
-  - name:
-    description:
-    define:
-      fieldName: Type
-  - name:
-    description:
-    import:
-```
-
 ### Functions
 
 `functions` define a web endpoint that is made to appear like a function (RPC). Input arguments are pulled from either the JSON body of the request or from the query arguments. Output arguments are written as JSON to the body of the response.
@@ -121,24 +99,25 @@ types:
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard segment
+#   /obj/*/path - Wildcard path segment
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   :*/path - Any port
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
+# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
 functions:
-  - signature:
-    description:
-    path:
-    queue:
+  # - signature:
+  #   description:
 ```
 
-The `signature` defines the function name (which must start with an uppercase letter) and the input and output arguments. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
+The `signature` defines the function name (which must start with an uppercase letter) and the input and output arguments. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response. If the `signature` contains an unknown type, the code generator automatically defines an empty struct in a file of the same name in the API package of the microservice. 
 
-The code generated functional request handler will look similar to the following. `Microbus` is taking care of marhsaling and unmarshaling behind the scenes.
+The generated functional request handler will look similar to the following. `Microbus` is taking care of marhsaling and unmarshaling behind the scenes.
 
 ```go
 /*
@@ -149,11 +128,13 @@ func (svc *Service) FuncHandler(ctx context.Context, id string) (ok bool, httpSt
 }
 ```
 
+`method` can be used to restrict the function to accept only certain HTTP methods. By default, the function is agnostic to the HTTP method.
+
 Along with the host name of the service, the `path` defines the URL to this endpoint. It defaults to the function name in `kebab-case`.
 
 `queue` defines whether a request is routed to one of the replicas of the microservice (load-balanced) or to all (pervasive).
 
-All complex (struct) non-primitive types used in `functions` and `events` must be declared in the API package of the microservice. Primitive types are `int`, `float`, `byte`, `bool`, `string`, `Time` and `Duration`. Maps (dictionaries) of primitive types are also considered primitives.
+`openApi` controls whether or not to expose the function in the `/openapi.json` endpoint.
 
 ### Event Sources
 
@@ -169,18 +150,18 @@ All complex (struct) non-primitive types used in `functions` and `events` must b
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard segment
+#   /obj/*/path - Wildcard path segment
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path
+#   //example.com:417/path
 #   https://example.com:417/path
 events:
-  - signature:
-    description:
-    path:
+  # - signature:
+  #   description:
 ```
 
-The `signature` defines the event name (which must start with the word `On` followed by an uppercase letter) and the input and output arguments. In `Microbus`, events are bi-directional and event sinks may return values back to the event source. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response.
+The `signature` defines the event name (which must start with the word `On` followed by an uppercase letter) and the input and output arguments. In `Microbus`, events are bi-directional and event sinks may return values back to the event source.
 
 ### Event Sinks
 
@@ -198,10 +179,9 @@ The `signature` defines the event name (which must start with the word `On` foll
 #   default - Load balanced (default)
 #   none - Pervasive
 sinks:
-  - signature:
-    description:
-    event:
-    source:
+  # - signature:
+  #   description:
+  #   source: package/path/of/another/microservice
 ```
 
 The `signature` of an event sink must match that of the event source. The one exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if different event sources use the same name for their events. That becomes necessary because handler function names must be unique in the scope of the sink microservice.
@@ -222,7 +202,7 @@ The optional field `forHost` adjusts the subscription to listen to microservices
 
 ### Web Handlers
 
-The `webs` section defines low-level web handlers which allow the microservice to handle incoming web requests as it sees fit.
+The `webs` section defines raw web handlers which allow the microservice to handle incoming web requests with full access to the `r *http.Request` and full control over the `w http.ResponseWriter`.
 
 ```yaml
 # Web handlers
@@ -234,22 +214,23 @@ The `webs` section defines low-level web handlers which allow the microservice t
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard segment
+#   /obj/*/path - Wildcard path segment
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
+#   :*/path - Any port
+#   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
+# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
 webs:
-  - signature:
-    description:
-    path:
-    queue:
+  # - signature:
+  #   description:
 ```
 
-The `signature` may not include any arguments. The handler receives the typical `http.ResponseWriter`, and `*http.Request` and is expected to extract input from there directly.
+The `signature` must not include any arguments. The handler receives the typical `http.ResponseWriter` and `*http.Request` and is expected to extract input from there directly.
 
 The code generated web handler will look similar to this:
 
@@ -272,12 +253,10 @@ Tickers are means to invoke a function on a periodic basis. The `signature` and 
 # signature - Func()
 # description - Documentation
 # interval - Duration between iterations (e.g. 15m)
-# timeBudget - Duration to complete an iteration
 tickers:
-  - signature:
-    description:
-    interval:
-    timeBudget:
+  # - signature:
+  #   description:
+  #   interval:
 ```
 
 The code generated ticker handler will look similar to this:
@@ -310,10 +289,9 @@ The `metrics` section is used to define arbitrary metrics that are pertinent to 
 # buckets - Bucket boundaries for histograms [x,y,z,...]
 # alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
 metrics:
-  - signature:
-    description:
-    kind:
-    alias:
+  # - signature:
+  #   description:
+  #   kind:
 ```
 
 Metrics support three [collector types](https://prometheus.io/docs/concepts/metric_types/): counter, histogram and gauge.
@@ -322,7 +300,7 @@ The name of the metric is derived from the function signature. It should adhere 
 
 ## Clients
 
-In addition to the server side of things, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to reduce the chance of cyclical dependencies between upstream and downstream microservices.
+In addition to the server side of things, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to avoid cyclical dependencies between upstream and downstream microservices.
 
 With clients, an upstream microservice remotely calling a downstream microservice looks very much like a standard local function call.
 
@@ -342,7 +320,7 @@ A `resources` directory is automatically created with a `//go:embed` directive t
 
 ## Versioning
 
-The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to differentiate among different builds of the microservice.
+The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to identify different builds of the microservice.
 
 ## Generated Code Structure
 
@@ -372,13 +350,13 @@ The code generator creates quite a few files and sub-directories in the director
 
 Files that include `-gen` in their name are fully code generated and should not be edited.
 
-The `app` directory hosts `package main` of an `Application` that runs the microservice. This is what eventually gets built and deployed. The executable will be named like the package name of the microservice.
+The `app` directory hosts `package main` of an `Application` that runs the microservice, and only the microservice. This is what eventually gets built and deployed. The executable will be named like the package name of the microservice.
 
 The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. `MulticastTrigger` and `Hook` are defined if the microservice is a source of events. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
-The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices for that can be used in [integration testing](./integrationtesting.md) when a live version of the microservice cannot.
+The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices that can be used in [integration testing](./integrationtesting.md) when a live version of the microservice cannot.
 
-`integration-gen_test.go` is a testing harness that that facilitates the implementation of integration tests. Those are expected to be implemented in `integration_test.go`
+`integration-gen_test.go` is a testing harness that that facilitates the implementation of integration tests, which are expected to be implemented in `integration_test.go`
 
 The `resources` directory is a place to put static files to be embedded (linked) into the executable of the microservice. Templates, images, scripts, etc. are some examples of what can potentially be embedded.
 

@@ -100,9 +100,9 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 	svc.DefineConfig(
 		"SQL",
-		cfg.Description(`SQL is the data source name to the MariaDB database.`),
+		cfg.Description(`SQL is the connection string to the database.`),
 	)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 
@@ -247,7 +247,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 }
 
 /*
-SQL is the data source name to the MariaDB database.
+SQL is the connection string to the database.
 */
 func (svc *Intermediate) SQL() (dsn string) {
 	_val := svc.Config("SQL")
@@ -255,7 +255,7 @@ func (svc *Intermediate) SQL() (dsn string) {
 }
 
 /*
-SQL is the data source name to the MariaDB database.
+SQL is the connection string to the database.
 */
 func SQL(dsn string) (func(service.Service) error) {
 	return func(svc service.Service) error {

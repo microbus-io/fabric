@@ -94,7 +94,7 @@ The microservice itself does nothing and should not be included in applications.
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 

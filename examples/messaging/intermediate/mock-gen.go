@@ -53,7 +53,7 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The Messaging microservice demonstrates service-to-service communication patterns.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `:443/home`, svc.doHome)
 	svc.Subscribe(`*`, `:443/no-queue`, svc.doNoQueue, sub.NoQueue())

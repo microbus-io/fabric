@@ -126,7 +126,7 @@ func NewConnector() *Connector {
 		metricDefs:       map[string]mtr.Metric{},
 	}
 
-	c.SetResDirFS(".")
+	c.SetResFSDir(".")
 	c.knownResponders.SetMaxWeight(16 * 1024)
 	c.knownResponders.SetMaxAge(24 * time.Hour)
 	c.postRequestData.SetMaxWeight(256 * 1024)

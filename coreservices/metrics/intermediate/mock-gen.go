@@ -49,7 +49,7 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `:443/collect`, svc.doCollect)
 

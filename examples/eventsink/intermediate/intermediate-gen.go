@@ -95,13 +95,13 @@ func NewService(impl ToDo, version int) *Intermediate {
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
-	
+
 	// OpenAPI
 	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
 	svc.Subscribe(`*`, `:443/registered`, svc.doRegistered)
-	
+
 	// Sinks
 	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.impl.OnAllowRegister)
 	eventsourceapi2.NewHook(svc).OnRegistered(svc.impl.OnRegistered)

@@ -49,7 +49,7 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The browser microservice implements a simple web browser that utilizes the egress proxy.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `:443/browse`, svc.doBrowse)
 

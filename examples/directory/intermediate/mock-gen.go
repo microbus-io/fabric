@@ -54,7 +54,7 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The directory microservice stores personal records in a SQL database.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Functions
 	svc.Subscribe(`*`, `:443/create`, svc.doCreate)
 	svc.Subscribe(`*`, `:443/load`, svc.doLoad)

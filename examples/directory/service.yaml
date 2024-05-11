@@ -34,7 +34,7 @@ general:
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
   - signature: SQL() (dsn string)
-    description: SQL is the data source name to the MariaDB database.
+    description: SQL is the connection string to the database.
 
 # Functions
 #

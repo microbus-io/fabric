@@ -54,7 +54,7 @@ func NewMock(version int) *Mock {
 	svc.SetVersion(version)
 	svc.SetDescription(`The Hello microservice demonstrates the various capabilities of a microservice.`)
 	svc.SetOnStartup(svc.doOnStartup)
-	
+
 	// Webs
 	svc.Subscribe(`*`, `:443/hello`, svc.doHello)
 	svc.Subscribe(`*`, `:443/echo`, svc.doEcho)
