@@ -75,7 +75,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 
 	// Check if there's enough time budget
 	if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) <= c.networkHop {
-		err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Method+" "+req.Canonical())
+		err = errors.Newc(http.StatusRequestTimeout, "timeout")
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
@@ -85,7 +85,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	outboundFrame := frame.Of(req.Header)
 	depth := inboundFrame.CallDepth()
 	if depth >= c.maxCallDepth {
-		err = errors.Newc(http.StatusLoopDetected, "call depth overflow", req.Method+" "+req.Canonical())
+		err = errors.Newc(http.StatusLoopDetected, "call depth overflow")
 		errOutput <- pub.NewErrorResponse(err)
 		return errOutput
 	}
@@ -143,7 +143,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	// Prepare the HTTP request (first fragment only)
 	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
 	if err != nil {
-		err = errors.Trace(err, req.Method+" "+req.Canonical())
+		err = errors.Trace(err)
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -160,13 +160,13 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	// Fragment large requests
 	fragger, err := httpx.NewFragRequest(httpReq, c.maxFragmentSize)
 	if err != nil {
-		err = errors.Trace(err, req.Method+" "+req.Canonical())
+		err = errors.Trace(err)
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
 	httpReq, err = fragger.Fragment(1)
 	if err != nil {
-		err = errors.Trace(err, req.Method+" "+req.Canonical())
+		err = errors.Trace(err)
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -190,13 +190,12 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	if httpReq.URL.Port() != "" {
 		portNum, err := strconv.Atoi(httpReq.URL.Port())
 		if err != nil {
-			err = errors.Trace(err, req.Method+" "+req.Canonical())
+			err = errors.Trace(err)
 			output.Push(pub.NewErrorResponse(err))
 			return
 		}
 		if portNum < 1 || portNum > 65535 {
 			err = errors.Newf("invalid port '%d'", portNum)
-			err = errors.Convert(err).Annotate(req.Method + " " + req.Canonical())
 			output.Push(pub.NewErrorResponse(err))
 			return
 		}
@@ -207,7 +206,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	var buf bytes.Buffer
 	err = httpReq.WriteProxy(&buf)
 	if err != nil {
-		err = errors.Trace(err, req.Method+" "+req.Canonical())
+		err = errors.Trace(err)
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -215,7 +214,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	publishTime := time.Now()
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
-		err = errors.Trace(err, req.Method+" "+req.Canonical())
+		err = errors.Trace(err)
 		output.Push(pub.NewErrorResponse(err))
 		return
 	}
@@ -351,7 +350,6 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 				} else {
 					err = errors.Convert(reconstitutedError)
 				}
-				// err = errors.Convert(err).Annotate(c.hostName + " -> " + httpReq.URL.Host + httpReq.URL.Path)
 				output.Push(pub.NewErrorResponse(err))
 				statusCode := reconstitutedError.StatusCode
 				if statusCode == 0 {
@@ -393,7 +391,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 		// Timeout timer
 		case <-timeoutTimer.C:
 			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
-			err = errors.Newc(http.StatusRequestTimeout, "timeout", req.Method+" "+req.Canonical())
+			err = errors.Newc(http.StatusRequestTimeout, "timeout")
 			output.Push(pub.NewErrorResponse(err))
 			c.postRequestData.Store("timeout:"+msgID, subject)
 			_ = c.IncrementMetric(
@@ -430,7 +428,7 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 					c.knownResponders.Delete(subject)
 					c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 				} else {
-					err = errors.Newc(http.StatusNotFound, "ack timeout", req.Method+" "+req.Canonical())
+					err = errors.Newc(http.StatusNotFound, "ack timeout")
 					output.Push(pub.NewErrorResponse(err))
 					_ = c.IncrementMetric(
 						"microbus_request_count_total",

@@ -95,16 +95,14 @@ func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 With this in place, error messages look more like this, making it clear where the error originated from.
 
 ```
-strconv.ParseInt: parsing "not-valid": invalid syntax
+strconv.ParseInt: parsing "nan": invalid syntax
 
 - calculator.(*Service).Square
   /src/github.com/microbus-io/fabric/examples/calculator/service.go:75
 - connector.(*Connector).onRequest
   /src/github.com/microbus-io/fabric/connector/messaging.go:225
-  calculator.example:443/square
 - connector.(*Connector).Publish
   /src/github.com/microbus-io/fabric/connector/messaging.go:94
-  http.ingress.sys -> calculator.example
 - httpingress.(*Service).ServeHTTP
   /src/github.com/microbus-io/fabric/coreservices/httpingress/service.go:124
 ```
@@ -144,10 +142,7 @@ Microbus-Op-Code: Err
 		{
 			"file": "/src/github.com/microbus-io/fabric/connector/messaging.go",
 			"function": "connector.(*Connector).onRequest",
-			"line": 225,
-			"annotations": [
-				"beta.error.connector:443/panic"
-			]
+			"line": 225
 		},
 		{
 			"file": "/src/github.com/microbus-io/fabric/connector/messaging.go",

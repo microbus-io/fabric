@@ -159,7 +159,7 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 	if s.HostSub != nil {
 		err := s.HostSub.Unsubscribe()
 		if err != nil {
-			lastErr = errors.Trace(err, s.Method+" "+s.Canonical())
+			lastErr = errors.Trace(err)
 			c.LogError(c.lifetimeCtx, "Unsubscribing host sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
 		} else {
 			s.HostSub = nil
@@ -168,7 +168,7 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 	if s.DirectSub != nil {
 		err := s.DirectSub.Unsubscribe()
 		if err != nil {
-			lastErr = errors.Trace(err, s.Method+" "+s.Canonical())
+			lastErr = errors.Trace(err)
 			c.LogError(c.lifetimeCtx, "Unsubscribing direct sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
 		} else {
 			s.DirectSub = nil
@@ -331,7 +331,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		cancel()
 
 		if handlerErr != nil {
-			// handlerErr = errors.Convert(handlerErr).Annotate(httpx.JoinHostAndPath(c.hostName, s.Path))
+			handlerErr = errors.Convert(handlerErr)
 			if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
 				handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
 				errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge

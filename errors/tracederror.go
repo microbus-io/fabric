@@ -15,24 +15,32 @@ import (
 	"strings"
 )
 
-// TracedError is a standard Go error augmented with a stack trace and annotations
+var (
+	_ = error(&TracedError{})
+	_ = fmt.Stringer(&TracedError{})
+	_ = fmt.Formatter(&TracedError{})
+	_ = json.Marshaler(&TracedError{})
+	_ = json.Unmarshaler(&TracedError{})
+)
+
+// TracedError is a standard Go error augmented with a stack trace.
 type TracedError struct {
 	error
 	stack      []*trace
 	StatusCode int
 }
 
-// Unwrap returns the underlying error
+// Unwrap returns the underlying error.
 func (e *TracedError) Unwrap() error {
 	return e.error
 }
 
-// String returns a string representation of the error
+// String returns a string representation of the error.
 func (e *TracedError) String() string {
 	var b strings.Builder
 	b.WriteString(e.Error())
-	if e.StatusCode != 0 {
-		b.WriteString(fmt.Sprintf(" [%d]", e.StatusCode))
+	if e.StatusCode != 0 && e.StatusCode != 500 {
+		b.WriteString(fmt.Sprintf("\n[%d]", e.StatusCode))
 	}
 	for i, trace := range e.stack {
 		if i == 0 {
@@ -44,21 +52,7 @@ func (e *TracedError) String() string {
 	return b.String()
 }
 
-// Annotate appends annotations to the last stack trace.
-func (e *TracedError) Annotate(annotations ...any) error {
-	var strAnnotations []string
-	if len(annotations) == 0 || len(e.stack) == 0 {
-		return e
-	}
-	strAnnotations = make([]string, len(annotations))
-	for i := range annotations {
-		strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
-	}
-	e.stack[len(e.stack)-1].Annotations = append(e.stack[len(e.stack)-1].Annotations, strAnnotations...)
-	return e
-}
-
-// MarshalJSON marshals the error to JSON
+// MarshalJSON marshals the error to JSON.
 func (e *TracedError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Error      string   `json:"error,omitempty"`
@@ -71,7 +65,7 @@ func (e *TracedError) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON unmarshals the erro from JSON
+// UnmarshalJSON unmarshals the erro from JSON.
 func (e *TracedError) UnmarshalJSON(data []byte) error {
 	j := &struct {
 		Error      string   `json:"error"`
@@ -89,7 +83,6 @@ func (e *TracedError) UnmarshalJSON(data []byte) error {
 }
 
 // Format the error based on the verb and flag.
-// Implements the fmt.Formatter interface
 func (e *TracedError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':

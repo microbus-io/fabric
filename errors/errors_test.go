@@ -10,7 +10,9 @@ package errors
 import (
 	stderrors "errors"
 	"fmt"
+	"net/http"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,11 +31,9 @@ func TestErrors_RuntimeTrace(t *testing.T) {
 func TestErrors_New(t *testing.T) {
 	t.Parallel()
 
-	tracedErr := New("This is a new error!", "annotation1", "annotation2")
+	tracedErr := New("This is a new error!")
 	assert.Error(t, tracedErr)
 	assert.Equal(t, "This is a new error!", tracedErr.Error())
-	assert.Contains(t, tracedErr.(*TracedError).stack[0].Annotations, "annotation1")
-	assert.Contains(t, tracedErr.(*TracedError).stack[0].Annotations, "annotation1")
 	assert.Len(t, tracedErr.(*TracedError).stack, 1)
 	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_New")
 }
@@ -48,13 +48,63 @@ func TestErrors_Newf(t *testing.T) {
 	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Newf")
 }
 
+func TestErrors_Newc(t *testing.T) {
+	t.Parallel()
+
+	tracedErr := Newc(400, "User Error")
+	assert.Error(t, tracedErr)
+	assert.Equal(t, "User Error", tracedErr.Error())
+	assert.Equal(t, 400, tracedErr.(*TracedError).StatusCode)
+	assert.Len(t, tracedErr.(*TracedError).stack, 1)
+	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Newc")
+}
+
+func TestErrors_Presets(t *testing.T) {
+	t.Parallel()
+
+	e := BadRequest()
+	assert.Equal(t, statusText[http.StatusBadRequest], e.Error())
+	assert.Equal(t, http.StatusBadRequest, e.(*TracedError).StatusCode)
+
+	e = Unauthorized()
+	assert.Equal(t, statusText[http.StatusUnauthorized], e.Error())
+	assert.Equal(t, http.StatusUnauthorized, e.(*TracedError).StatusCode)
+
+	e = Forbidden()
+	assert.Equal(t, statusText[http.StatusForbidden], e.Error())
+	assert.Equal(t, http.StatusForbidden, e.(*TracedError).StatusCode)
+
+	e = NotFound()
+	assert.Equal(t, statusText[http.StatusNotFound], e.Error())
+	assert.Equal(t, http.StatusNotFound, e.(*TracedError).StatusCode)
+
+	e = RequestTimeout()
+	assert.Equal(t, statusText[http.StatusRequestTimeout], e.Error())
+	assert.Equal(t, http.StatusRequestTimeout, e.(*TracedError).StatusCode)
+
+	e = NotImplemented()
+	assert.Equal(t, statusText[http.StatusNotImplemented], e.Error())
+	assert.Equal(t, http.StatusNotImplemented, e.(*TracedError).StatusCode)
+}
+
+func TestErrors_Newcf(t *testing.T) {
+	t.Parallel()
+
+	tracedErr := Newcf(400, "User %s", "Error")
+	assert.Error(t, tracedErr)
+	assert.Equal(t, "User Error", tracedErr.Error())
+	assert.Equal(t, 400, tracedErr.(*TracedError).StatusCode)
+	assert.Len(t, tracedErr.(*TracedError).stack, 1)
+	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Newcf")
+}
+
 func TestErrors_Trace(t *testing.T) {
 	t.Parallel()
 
 	err := stderrors.New("Standard Error")
 	assert.Error(t, err)
 
-	tracedErr := Trace(err, "annotation1")
+	tracedErr := Trace(err)
 	assert.Error(t, tracedErr)
 	assert.Len(t, tracedErr.(*TracedError).stack, 1)
 	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Trace")
@@ -63,7 +113,7 @@ func TestErrors_Trace(t *testing.T) {
 	assert.Len(t, tracedErr.(*TracedError).stack, 2)
 	assert.NotEmpty(t, tracedErr.(*TracedError).String())
 
-	tracedErr = Trace(tracedErr, "annotation2", "annotation3")
+	tracedErr = Trace(tracedErr)
 	assert.Len(t, tracedErr.(*TracedError).stack, 3)
 	assert.NotEmpty(t, tracedErr.(*TracedError).String())
 
@@ -82,7 +132,7 @@ func TestErrors_Convert(t *testing.T) {
 	assert.Error(t, tracedErr)
 	assert.Empty(t, tracedErr.stack)
 
-	err = Trace(tracedErr, "annotate!")
+	err = Trace(tracedErr)
 	tracedErr = Convert(err)
 	assert.Error(t, tracedErr)
 	assert.Len(t, tracedErr.stack, 1)
@@ -134,4 +184,76 @@ func TestErrors_Is(t *testing.T) {
 
 	err := Trace(os.ErrNotExist)
 	assert.True(t, Is(err, os.ErrNotExist))
+}
+
+func TestErrors_Join(t *testing.T) {
+	t.Parallel()
+
+	e1 := stderrors.New("E1")
+	e2 := Newc(400, "E2")
+	e3 := New("E3")
+	e3 = Trace(e3)
+	e4a := stderrors.New("E4a")
+	e4b := stderrors.New("E4b")
+	e4 := Join(e4a, e4b)
+	j := Join(e1, e2, nil, e3, e4)
+	assert.True(t, Is(j, e1))
+	assert.True(t, Is(j, e2))
+	assert.True(t, Is(j, e3))
+	assert.True(t, Is(j, e4))
+	assert.True(t, Is(j, e4a))
+	assert.True(t, Is(j, e4b))
+	jj, ok := j.(*TracedError)
+	if assert.True(t, ok) {
+		assert.Len(t, jj.stack, 1)
+		assert.Equal(t, 500, jj.StatusCode)
+	}
+
+	assert.Nil(t, Join(nil, nil))
+	assert.Equal(t, e3, Join(e3, nil))
+}
+
+func TestErrors_String(t *testing.T) {
+	t.Parallel()
+
+	err := Newc(400, "Oops!")
+	err = Trace(err)
+	s := err.(*TracedError).String()
+	s = regexp.MustCompile(`:[0-9]+`).ReplaceAllString(s, ":###")
+	assert.Equal(t, `Oops!
+[400]
+
+- errors.TestErrors_String
+  /Users/brianwillis/Dev/go/github.com/microbus-io/fabric/errors/errors_test.go:###
+- errors.TestErrors_String
+  /Users/brianwillis/Dev/go/github.com/microbus-io/fabric/errors/errors_test.go:###`,
+		s)
+}
+
+func TestErrors_Unwrap(t *testing.T) {
+	t.Parallel()
+
+	err := stderrors.New("Oops")
+	traced := Trace(err)
+	assert.Equal(t, err, Unwrap(traced))
+}
+
+func TestErrors_TraceFull(t *testing.T) {
+	t.Parallel()
+
+	err := stderrors.New("Oops")
+	traced := Trace(err)
+	tracedUp0 := TraceUp(err, 0)
+	tracedUp1 := TraceUp(err, 1)
+	tracedFull := TraceFull(err, 0)
+
+	assert.Len(t, traced.(*TracedError).stack, 1)
+
+	assert.Len(t, tracedUp0.(*TracedError).stack, 1)
+	assert.Len(t, tracedUp1.(*TracedError).stack, 1)
+	assert.NotEqual(t, tracedUp0.(*TracedError).stack[0].Function, tracedUp1.(*TracedError).stack[0].Function)
+
+	assert.Greater(t, len(tracedFull.(*TracedError).stack), 1)
+	assert.Equal(t, tracedUp0.(*TracedError).stack[0].Function, tracedFull.(*TracedError).stack[0].Function)
+	assert.Equal(t, tracedUp1.(*TracedError).stack[0].Function, tracedFull.(*TracedError).stack[1].Function)
 }

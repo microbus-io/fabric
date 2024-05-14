@@ -51,9 +51,24 @@ func Is(err, target error) bool {
 	return stderrors.Is(err, target)
 }
 
-// Join delegates to the standard Go's errors.Join function.
+// Join aggregates multiple errors into one.
+// The stack traces of the original errors are discarded and a new stack trace is captured.
 func Join(errs ...error) error {
-	return stderrors.Join(errs...)
+	var err error
+	var n int
+	for _, e := range errs {
+		if e != nil {
+			err = e
+			n++
+		}
+	}
+	if n == 0 {
+		return nil
+	}
+	if n == 1 {
+		return TraceUp(err, 1)
+	}
+	return TraceUp(stderrors.Join(errs...), 1)
 }
 
 // Unwrap delegates to the standard Go's errors.Wrap function.
@@ -62,18 +77,16 @@ func Unwrap(err error) error {
 }
 
 // New creates a new error, capturing the current stack location.
-// Optionally annotations may be attached
-func New(text string, annotations ...any) error {
-	return TraceUp(stderrors.New(text), 1, annotations...)
+func New(text string) error {
+	return TraceUp(stderrors.New(text), 1)
 }
 
 // Newc creates a new error with an HTTP status code, capturing the current stack location.
-// Optionally annotations may be attached
-func Newc(statusCode int, text string, annotations ...any) error {
+func Newc(statusCode int, text string) error {
 	if text == "" {
 		text = statusText[statusCode]
 	}
-	err := TraceUp(stderrors.New(text), 1, annotations...)
+	err := TraceUp(stderrors.New(text), 1)
 	err.(*TracedError).StatusCode = statusCode
 	return err
 }
@@ -94,15 +107,13 @@ func Newf(format string, a ...any) error {
 }
 
 // Trace appends the current stack location to the error's stack trace.
-// Optional annotations may be attached
-func Trace(err error, annotations ...any) error {
-	return TraceUp(err, 1, annotations...)
+func Trace(err error) error {
+	return TraceUp(err, 1)
 }
 
 // TraceUp appends the level above the current stack location to the error's stack trace.
 // Level 0 captures the location of the caller.
-// Optional annotations may be attached.
-func TraceUp(err error, level int, annotations ...any) error {
+func TraceUp(err error, level int) error {
 	if err == nil {
 		return nil
 	}
@@ -112,18 +123,10 @@ func TraceUp(err error, level int, annotations ...any) error {
 	tracedErr := Convert(err)
 	file, function, line, ok := RuntimeTrace(1 + level)
 	if ok {
-		var strAnnotations []string
-		if len(annotations) > 0 {
-			strAnnotations = make([]string, len(annotations))
-			for i := range annotations {
-				strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
-			}
-		}
 		tracedErr.stack = append(tracedErr.stack, &trace{
-			File:        file,
-			Function:    function,
-			Line:        line,
-			Annotations: strAnnotations,
+			File:     file,
+			Function: function,
+			Line:     line,
 		})
 	}
 	return tracedErr
@@ -132,8 +135,7 @@ func TraceUp(err error, level int, annotations ...any) error {
 // TraceFull appends the full stack to the error's stack trace,
 // starting at the indicated level.
 // Level 0 captures the location of the caller.
-// Optional annotations may be attached to the first level captured.
-func TraceFull(err error, level int, annotations ...any) error {
+func TraceFull(err error, level int) error {
 	if err == nil {
 		return nil
 	}
@@ -141,14 +143,6 @@ func TraceFull(err error, level int, annotations ...any) error {
 		level = 0
 	}
 	tracedErr := Convert(err)
-
-	var strAnnotations []string
-	if len(annotations) > 0 {
-		strAnnotations = make([]string, len(annotations))
-		for i := range annotations {
-			strAnnotations[i] = fmt.Sprintf("%v", annotations[i])
-		}
-	}
 
 	levels := level - 1
 	for {
@@ -164,12 +158,10 @@ func TraceFull(err error, level int, annotations ...any) error {
 			break
 		}
 		tracedErr.stack = append(tracedErr.stack, &trace{
-			File:        file,
-			Function:    function,
-			Line:        line,
-			Annotations: strAnnotations,
+			File:     file,
+			Function: function,
+			Line:     line,
 		})
-		strAnnotations = nil // Only add to first level
 	}
 	return tracedErr
 }
@@ -207,4 +199,34 @@ func RuntimeTrace(levels int) (file string, function string, line int, ok bool) 
 		}
 	}
 	return file, function, line, ok
+}
+
+// BadRequest returns a new 400 error.
+func BadRequest() error {
+	return Newc(400, "")
+}
+
+// Unauthorized returns a new 401 error.
+func Unauthorized() error {
+	return Newc(401, "")
+}
+
+// Forbidden returns a new 403 error.
+func Forbidden() error {
+	return Newc(403, "")
+}
+
+// NotFound returns a new 404 error.
+func NotFound() error {
+	return Newc(404, "")
+}
+
+// NotFound returns a new 408 error.
+func RequestTimeout() error {
+	return Newc(408, "")
+}
+
+// NotImplemented returns a new 501 error.
+func NotImplemented() error {
+	return Newc(501, "")
 }

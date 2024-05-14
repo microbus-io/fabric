@@ -331,7 +331,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	origin := r.Header.Get("Origin")
 	if origin != "" {
 		if !svc.allowedOrigins["*"] && !svc.allowedOrigins[origin] {
-			return errors.Newc(http.StatusForbidden, "disallowed origin", origin)
+			return errors.Newcf(http.StatusForbidden, "disallowed origin '%s", origin)
 		}
 	}
 

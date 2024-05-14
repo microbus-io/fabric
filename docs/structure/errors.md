@@ -1,14 +1,12 @@
 # Package `errors`
 
-The `errors` package is an enhancement of Go's standard `errors` package. It augments the standard `error`s to capture and print stack traces. For this purpose, it overrides the standard `errors.New` method and provides a new `errors.Newf` (in lieu of `fmt.Error`).
+The `errors` package is an enhancement of Go's standard `errors` package. It augments the standard `error` to capture and print stack traces. For this purpose, it overrides the standard `errors.New` method and adds a new `errors.Newf` (in lieu of `fmt.Errorf`).
 
 ```go
 import "github.com/microbus-io/errors"
 
-err := errors.New("my error")
-// err is augmented with the stack trace of this line
-err = errors.Newf("error in process '%s'", processName)
-// err is augmented with the stack trace of this line
+err := errors.New("my error") // err is augmented with the stack trace of this line
+err = errors.Newf("error in process '%s'", processName) // err is augmented with the stack trace of this line
 ```
 
 Note how it seamlessly replaces the standard `import "errors"` with `import "github.com/microbus-io/errors"`. That is made possible because `github.com/microbus-io/errors` redefines all the constructs in `errors`.
@@ -22,59 +20,30 @@ body, err := io.ReadAll("non/existent.file") // err is a standard Go error
 err = errors.Trace(err) // err is now augmented with the stack trace of this line
 ```
 
-HTTP status codes can be attached to errors using `errors.Newc` or by converting the error to the underlying `TracedError` struct. The status code is returned to upstream clients.
+HTTP status codes can be attached to errors by using `errors.Newc`, or by converting the error to the underlying `*TracedError` manually, or with `errors.Convert`. The status code is returned to upstream clients.
 
 ```go
 notFound := errors.Newc(http.StatusNotFound, "nothing to see here")
 
 body, err := io.ReadAll("non/existent.file") // err is a standard Go error
+err = errors.Trace(err) // err is now augmented with the stack trace of this line
 errors.Convert(err).StatusCode = http.StatusNotFound
+// or
+err.(*errors.TracedError).StatusCode = http.StatusNotFound
 ```
 
-Both `errors.New` and `errors.Trace` support augmenting errors with optional annotations. Annotations can be added per stack location and do not alter the original error message.
-
-Here is a complete example of an error bubbling from `c` to `b` to `a`:
-
-```go
-import "fmt"
-import "github.com/microbus-io/errors"
-
-func main() {
-	a()
-}
-
-func a() {
-	err := b()
-	err = errors.Trace(err, "annotation by a") // Line 10
-	fmt.Printf("%v", err)
-	fmt.Print("\n-----\n")
-	fmt.Printf("%+v", err)
-}
-
-func b() error {
-	err := c()
-	return errors.Trace(err, "annotation by b") // Line 18
-}
-
-func c() error {
-	return errors.New("bad situation", "annotation by c") // Line 22
-}
-```
-
-The `fmt` verb `%v` is used to print the error message while the `%+v` verb can be used to also print the stack trace. Calling `a()` will therefore output something like this:
+The `fmt` verb `%v` is equivalent to `err.Error()` and prints the error message.
+The extended verb `%+v` is equivalent to `errors.Convert(err).String()` and also print the stack trace.
 
 ```
-bad situation
------
-bad situation
+strconv.ParseInt: parsing "nan": invalid syntax
 
-main.c
-	/src/main/main.go:22
-	annotation by c
-main.b
-	/src/main/main.go:18
-	annotation by b
-main.a
-	/src/main/main.go:10
-	annotation by a
+- calculator.(*Service).Square
+  /src/github.com/microbus-io/fabric/examples/calculator/service.go:75
+- connector.(*Connector).onRequest
+  /src/github.com/microbus-io/fabric/connector/messaging.go:225
+- connector.(*Connector).Publish
+  /src/github.com/microbus-io/fabric/connector/messaging.go:94
+- httpingress.(*Service).ServeHTTP
+  /src/github.com/microbus-io/fabric/coreservices/httpingress/service.go:124
 ```

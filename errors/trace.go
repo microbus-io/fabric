@@ -14,10 +14,9 @@ import (
 
 // trace is a single stack trace location
 type trace struct {
-	File        string   `json:"file"`
-	Function    string   `json:"function"`
-	Line        int      `json:"line"`
-	Annotations []string `json:"annotations,omitempty"`
+	File     string `json:"file"`
+	Function string `json:"function"`
+	Line     int    `json:"line"`
 }
 
 // String returns a string representation of the trace
@@ -29,9 +28,5 @@ func (t *trace) String() string {
 	b.WriteString(t.File)
 	b.WriteString(":")
 	b.WriteString(strconv.Itoa(t.Line))
-	for _, a := range t.Annotations {
-		b.WriteString("\n  ")
-		b.WriteString(a)
-	}
 	return b.String()
 }

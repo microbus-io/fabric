@@ -46,7 +46,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [coreservices/metrics](docs/structure/coreservices-metrics.md) - The metrics microservice collects metrics from microservices and delivers them to Prometheus and Grafana
 * [coreservices/openapiportal](docs/structure/coreservices-openapiportal.md) - The OpenAPI portal microservice produces a portal page that lists all microservices with open endpoints
 * [dlru](docs/structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
-* [errors](docs/structure/errors.md) - An enhancement of the standard `errors` package
+* [errors](docs/structure/errors.md) ✨ - An enhancement of the standard `errors` package
 * [examples](docs/structure/examples.md) ✨ - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](docs/structure/httpx.md) - Various HTTP utilities

@@ -109,7 +109,7 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 	c.metricDefs[name] = m
 	err := c.metricsRegistry.Register(m.(prometheus.Collector))
 	if err != nil {
-		return c.captureInitErr(errors.Trace(err, name))
+		return c.captureInitErr(errors.Trace(err))
 	}
 	return nil
 }
@@ -129,7 +129,7 @@ func (c *Connector) DefineCounter(name, help string, labels []string) error {
 	c.metricDefs[name] = m
 	err := c.metricsRegistry.Register(m.(prometheus.Collector))
 	if err != nil {
-		return c.captureInitErr(errors.Trace(err, name))
+		return c.captureInitErr(errors.Trace(err))
 	}
 	return nil
 }
@@ -149,7 +149,7 @@ func (c *Connector) DefineGauge(name, help string, labels []string) error {
 	c.metricDefs[name] = m
 	err := c.metricsRegistry.Register(m.(prometheus.Collector))
 	if err != nil {
-		return c.captureInitErr(errors.Trace(err, name))
+		return c.captureInitErr(errors.Trace(err))
 	}
 	return nil
 }
@@ -172,7 +172,7 @@ func (c *Connector) IncrementMetric(name string, val float64, labels ...string) 
 		return errors.Newf("unknown metric '%s'", name)
 	}
 	err := m.Add(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
-	return errors.Trace(err, name)
+	return errors.Trace(err)
 }
 
 // ObserveMetric observes the given value using a histogram or summary, or sets it as a gauge's value.
@@ -188,5 +188,5 @@ func (c *Connector) ObserveMetric(name string, val float64, labels ...string) er
 		return errors.Newf("unknown metric '%s'", name)
 	}
 	err := m.Observe(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
-	return errors.Trace(err, name)
+	return errors.Trace(err)
 }

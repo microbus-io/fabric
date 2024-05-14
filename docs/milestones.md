@@ -177,3 +177,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Replaced the `Service` interface in the `connector` package with various interfaces in a new `service` package
 * Adjusted the pattern of including microservices in an `Application`
 * Deprecated the SQL database dependency and its corresponding code generation
+* Handling of `errors.Join`
+* Deprecated error annotations

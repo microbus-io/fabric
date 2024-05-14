@@ -305,7 +305,7 @@ func (c *Connector) connectToNATS(ctx context.Context) error {
 	// Connect
 	cn, err := nats.Connect(u, opts...)
 	if err != nil {
-		return errors.Trace(err, u)
+		return errors.Trace(err)
 	}
 
 	// Log connection events
@@ -355,7 +355,7 @@ func (c *Connector) doCallback(ctx context.Context, name string, callback func(c
 		return callback(callbackCtx)
 	})
 	if err != nil {
-		err = errors.Trace(err, name)
+		err = errors.Trace(err)
 		c.LogError(callbackCtx, "Executing callback", log.Error(err), log.String("name", name))
 		// OpenTelemetry: record the error
 		span.SetError(err)

@@ -41,7 +41,7 @@ func URL(url string) Option {
 		if err != nil {
 			// Invalid URLs are often received by hacker scanning tools,
 			// for example, requests to .env
-			return errors.Newc(http.StatusNotFound, "invalid URL", url)
+			return errors.Newcf(http.StatusNotFound, "invalid URL '%s", url)
 		}
 		u.RawQuery += req.queryArgs
 		req.URL = u.String()

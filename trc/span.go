@@ -74,7 +74,10 @@ func (s SpanImpl) SetError(err error) {
 		attribute.String("exception.stacktrace", v),
 	))
 	s.Span.SetStatus(codes.Error, err.Error())
-	s.Span.SetAttributes(attribute.Int("http.response.status_code", errors.Convert(err).StatusCode))
+	sc := errors.Convert(err).StatusCode
+	if sc != 0 {
+		s.Span.SetAttributes(attribute.Int("http.response.status_code", sc))
+	}
 }
 
 // SetOK sets the status of the span to the status code of the response.

@@ -34,7 +34,7 @@ func (c *Connector) SetResFS(fs service.FS) error {
 	c.resourcesFS = fs
 	err := c.initStringBundle()
 	if err != nil {
-		return c.captureInitErr(err)
+		return c.captureInitErr(errors.Trace(err))
 	}
 	return nil
 }
