@@ -202,9 +202,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := svc.Lifetime()
 	handlerStartTime := time.Now()
 	pt := &PassThrough{W: w}
-	var port string
 	err := utils.CatchPanic(func() error {
-		port = r.URL.Port()
 		return svc.serveHTTP(pt, r)
 	})
 	if err != nil {
@@ -238,8 +236,8 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = svc.ObserveMetric(
 		"microbus_response_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
-		"ServeHTTP",
-		port,
+		r.Host+"/",
+		r.URL.Port(),
 		r.Method,
 		strconv.Itoa(pt.SC),
 		func() string {
@@ -252,8 +250,8 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = svc.ObserveMetric(
 		"microbus_response_size_bytes",
 		float64(pt.N),
-		"ServeHTTP",
-		port,
+		r.Host+"/",
+		r.URL.Port(),
 		r.Method,
 		strconv.Itoa(pt.SC),
 		func() string {
@@ -273,19 +271,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := svc.Lifetime()
 	middleware := svc.Middleware()
 
-	// Blocked paths
-	if svc.blockedPaths[r.URL.Path] {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-	dot := strings.LastIndex(r.URL.Path, ".")
-	if dot >= 0 && svc.blockedPaths["*"+r.URL.Path[dot:]] {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-
 	// Fill in the gaps
 	r.URL.Host = r.Host
+	_ = r.URL.Port() // Validates the port
 	if !strings.Contains(r.Host, ":") {
 		if r.TLS != nil {
 			r.URL.Host += ":443"
@@ -297,6 +285,17 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		r.URL.Scheme = "https"
 	} else {
 		r.URL.Scheme = "http"
+	}
+
+	// Blocked paths
+	if svc.blockedPaths[r.URL.Path] {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+	dot := strings.LastIndex(r.URL.Path, ".")
+	if dot >= 0 && svc.blockedPaths["*"+r.URL.Path[dot:]] {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
 	}
 
 	// Detect root path
