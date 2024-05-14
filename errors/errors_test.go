@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -219,15 +219,13 @@ func TestErrors_String(t *testing.T) {
 	err := Newc(400, "Oops!")
 	err = Trace(err)
 	s := err.(*TracedError).String()
-	s = regexp.MustCompile(`:[0-9]+`).ReplaceAllString(s, ":###")
-	assert.Equal(t, `Oops!
-[400]
-
-- errors.TestErrors_String
-  /Users/brianwillis/Dev/go/github.com/microbus-io/fabric/errors/errors_test.go:###
-- errors.TestErrors_String
-  /Users/brianwillis/Dev/go/github.com/microbus-io/fabric/errors/errors_test.go:###`,
-		s)
+	assert.Contains(t, s, "Oops!")
+	assert.Contains(t, s, "[400]")
+	assert.Contains(t, s, "/fabric/errors/errors_test.go:")
+	firstDash := strings.Index(s, "-")
+	assert.Greater(t, firstDash, 0)
+	secondDash := strings.Index(s[firstDash+1:], "-")
+	assert.Greater(t, secondDash, 0)
 }
 
 func TestErrors_Unwrap(t *testing.T) {
