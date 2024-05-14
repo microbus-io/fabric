@@ -8,8 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package errors
 
 import (
-	"strconv"
-	"strings"
+	"fmt"
 )
 
 // trace is a single stack trace location
@@ -21,12 +20,5 @@ type trace struct {
 
 // String returns a string representation of the trace
 func (t *trace) String() string {
-	var b strings.Builder
-	b.WriteString("- ")
-	b.WriteString(t.Function)
-	b.WriteString("\n  ")
-	b.WriteString(t.File)
-	b.WriteString(":")
-	b.WriteString(strconv.Itoa(t.Line))
-	return b.String()
+	return fmt.Sprintf("- %s\n  %s:%d", t.Function, t.File, t.Line)
 }
