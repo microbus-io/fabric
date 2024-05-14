@@ -26,7 +26,9 @@ Another important header included by the client in each request is `Microbus-Msg
 
 ## Example Walk-Through
 
-To look at an example that puts this all together, start NATS in debug mode in another window using `./nats-server -D -V` and then run the `TestConnector_Echo` unit test located in `connector/publish_test.go`. The output below was edited for brevity.
+To look at an example that puts this all together, start NATS in debug mode in another window using `./nats-server -D -V` (debug and verbose) and then run the `TestConnector_Echo` unit test located in `connector/publish_test.go`. The output below was edited for brevity.
+
+The `-D -V` flags of NATS slow it down considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to start NATS in a separate terminal window instead of inside Docker, and only for the duration that these flags are needed.
 
 The microservices `alpha.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.alpha.dvm0oofeb5`.
 

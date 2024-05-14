@@ -28,12 +28,9 @@ cd setup
 docker compose -f microbus.yaml -p microbus up
 ```
 
-`Docker Desktop` should now show the `microbus` application:
+Docker Desktop should now show the `microbus` application:
 
 <img src="quick-start-1.png" width="875">
-<p>
-
-The `-DV` (debug and verbose) flags of NATS slow it down considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to run NATS in a separate terminal window instead of inside Docker, and only for the duration these flags are needed.
 
 ## Run the Examples
 
