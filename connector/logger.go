@@ -153,13 +153,16 @@ func (c *Connector) initLogger() (err error) {
 	if env == LOCAL || env == TESTINGAPP {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05.000")
+		config.DisableStacktrace = true
 		// config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else if env == LAB {
 		config = zap.NewProductionConfig()
 		config.Level.SetLevel(zapcore.DebugLevel)
+		config.DisableStacktrace = true
 	} else {
 		// Default PROD config
 		config = zap.NewProductionConfig()
+		config.DisableStacktrace = true
 	}
 
 	c.logger, err = config.Build(zap.AddCallerSkip(1))

@@ -41,21 +41,5 @@ services:
       - "4222:4222"
     networks:
       - microbus-network
-  mariadb:
-    image: mariadb:10
-    environment:
-      MARIADB_ROOT_PASSWORD: 'secret1234'
-    restart: always
-    ports:
-      - '3306:3306'
-    expose:
-      - '3306'
-    volumes:
-      - db:/var/lib/mariadb
-    networks:
-      - microbus-network
 networks:
   microbus-network:
-volumes:
-  db:
-    driver: local

@@ -4,7 +4,7 @@ The `directory.example` microservice is an example of a microservice that provid
 
 ## Adding SQL Support
 
-It only takes a few steps to add SQL support to a microservice.
+It takes a few steps to add SQL support to a microservice.
 
 Step 1: Edit `service.yaml` to define a configuration property to represent the connection string.
 
@@ -23,6 +23,8 @@ go generate
 Step 3: Define the database connection `db *sql.DB` as a member property of the `Service`, open it in `OnStartup` and close it in `OnShutdown`.
 
 ```go
+import _ "github.com/go-sql-driver/mysql"
+
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
 
@@ -34,6 +36,9 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	dsn := svc.SQL()
 	if dsn != "" {
 		svc.db, err = sql.Open("mysql", dsn)
+		if err == nil {
+			err = svc.db.PingContext(ctx)
+		}
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -53,12 +58,11 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 
 ## Connecting to the Database
 
-If you followed the [quick start guide](../quick-start.md), a MariaDB container should already be running in your Docker.
-If not, you can install and run it using:
+This example requires a MariaDB database instance. If you don't already have one installed, you can add it to Docker using:
 
 ```cmd
 docker pull mariadb
-docker run -p 3306:3306 --name mariadb1 -e MARIADB_ROOT_PASSWORD=secret1234 -d mariadb
+docker run -p 3306:3306 --name mariadb-1 -e MARIADB_ROOT_PASSWORD=secret1234 -d mariadb
 ```
 
 Next, create a database named `microbus_examples`.
@@ -66,7 +70,7 @@ Next, create a database named `microbus_examples`.
 <img src="examples-directory-1.png" width="498">
 <p>
 
-From the `Exec` panel of the `microbus-mariadb-1` container, type:
+From the `Exec` panel of the `mariadb-1` container, type:
 
 ```cmd
 mysql -uroot -psecret1234
@@ -78,10 +82,10 @@ And then use the SQL command prompt to create the database:
 CREATE DATABASE microbus_examples;
 ```
 
-The connection string to the database is pulled from `examples/main/config.yaml` by the configurator and served to the `directory.example` microservice. Uncomment and adjust it if necessary to point to the location of your MariaDB database.
+The connection string to the database is pulled from `examples/main/config.yaml` by the configurator and served to the `directory.example` microservice. Adjust it as necessary to point to the location of your MariaDB database.
 
 ```yaml
-all:
+directory.example:
   SQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"
 ```
 

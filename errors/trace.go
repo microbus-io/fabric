@@ -23,13 +23,14 @@ type trace struct {
 // String returns a string representation of the trace
 func (t *trace) String() string {
 	var b strings.Builder
+	b.WriteString("- ")
 	b.WriteString(t.Function)
-	b.WriteString("\n\t")
+	b.WriteString("\n  ")
 	b.WriteString(t.File)
 	b.WriteString(":")
 	b.WriteString(strconv.Itoa(t.Line))
 	for _, a := range t.Annotations {
-		b.WriteString("\n\t")
+		b.WriteString("\n  ")
 		b.WriteString(a)
 	}
 	return b.String()

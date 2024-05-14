@@ -11,8 +11,5 @@ http.ingress.sys:
 #  Ports: 8080
 #  TimeBudget: 20s
 
-inbox.sys:
-# Host: mail.example.com
-
-# all:
-#   SQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"
+directory.example:
+  SQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"

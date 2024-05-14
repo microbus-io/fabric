@@ -97,16 +97,16 @@ With this in place, error messages look more like this, making it clear where th
 ```
 strconv.ParseInt: parsing "not-valid": invalid syntax
 
-calculator.(*Service).Square
-	/src/github.com/microbus-io/fabric/examples/calculator/service.go:75
-connector.(*Connector).onRequest
-	/src/github.com/microbus-io/fabric/connector/messaging.go:225
-	calculator.example:443/square
-connector.(*Connector).Publish
-	/src/github.com/microbus-io/fabric/connector/messaging.go:94
-	http.ingress.sys -> calculator.example
-httpingress.(*Service).ServeHTTP
-	/src/github.com/microbus-io/fabric/coreservices/httpingress/service.go:124
+- calculator.(*Service).Square
+  /src/github.com/microbus-io/fabric/examples/calculator/service.go:75
+- connector.(*Connector).onRequest
+  /src/github.com/microbus-io/fabric/connector/messaging.go:225
+  calculator.example:443/square
+- connector.(*Connector).Publish
+  /src/github.com/microbus-io/fabric/connector/messaging.go:94
+  http.ingress.sys -> calculator.example
+- httpingress.(*Service).ServeHTTP
+  /src/github.com/microbus-io/fabric/coreservices/httpingress/service.go:124
 ```
 
 ## Propagation Over the Wire

@@ -13,7 +13,6 @@
 general:
   host: directory.example
   description: The directory microservice stores personal records in a SQL database.
-  integrationTests: false
 
 # Config properties
 #

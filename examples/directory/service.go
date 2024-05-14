@@ -12,7 +12,10 @@ import (
 	"database/sql"
 	"net/http"
 
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/log"
 
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
 	"github.com/microbus-io/fabric/examples/directory/intermediate"
@@ -41,8 +44,14 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	dsn := svc.SQL()
 	if dsn != "" {
 		svc.db, err = sql.Open("mysql", dsn)
+		if err == nil {
+			err = svc.db.PingContext(ctx)
+		}
 		if err != nil {
-			return errors.Trace(err)
+			err = errors.Trace(err)
+			// The database may not have been created yet. Tolerate the error so that the example app starts.
+			svc.LogWarn(ctx, "Connecting to database", log.Error(err))
+			return nil
 		}
 		_, err = svc.db.ExecContext(ctx, `
 			CREATE TABLE IF NOT EXISTS directory_persons (
@@ -75,6 +84,9 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 Create registers the person in the directory.
 */
 func (svc *Service) Create(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error) {
+	if svc.db == nil {
+		return nil, errors.Newc(http.StatusServiceUnavailable, "")
+	}
 	err = person.Validate()
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -98,6 +110,9 @@ func (svc *Service) Create(ctx context.Context, person *directoryapi.Person) (cr
 Update updates the person's data in the directory.
 */
 func (svc *Service) Update(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error) {
+	if svc.db == nil {
+		return nil, false, errors.Newc(http.StatusServiceUnavailable, "")
+	}
 	err = person.Validate()
 	if err != nil {
 		return nil, false, errors.Trace(err)
@@ -121,6 +136,9 @@ func (svc *Service) Update(ctx context.Context, person *directoryapi.Person) (up
 Load looks up a person in the directory.
 */
 func (svc *Service) Load(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error) {
+	if svc.db == nil {
+		return nil, false, errors.Newc(http.StatusServiceUnavailable, "")
+	}
 	row := svc.db.QueryRowContext(ctx,
 		`SELECT first_name,last_name,email_address,birthday FROM directory_persons WHERE person_id=?`,
 		key.Seq)
@@ -141,6 +159,9 @@ func (svc *Service) Load(ctx context.Context, key directoryapi.PersonKey) (perso
 Delete removes a person from the directory.
 */
 func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error) {
+	if svc.db == nil {
+		return false, errors.Newc(http.StatusServiceUnavailable, "")
+	}
 	res, err := svc.db.ExecContext(ctx,
 		`DELETE FROM directory_persons WHERE person_id=?`,
 		key.Seq,
@@ -156,6 +177,9 @@ func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (ok 
 LoadByEmail looks up a person in the directory by their email.
 */
 func (svc *Service) LoadByEmail(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error) {
+	if svc.db == nil {
+		return nil, false, errors.Newc(http.StatusServiceUnavailable, "")
+	}
 	row := svc.db.QueryRowContext(ctx,
 		`SELECT person_id,first_name,last_name,birthday FROM directory_persons WHERE email_address=?`,
 		email)
@@ -176,6 +200,9 @@ func (svc *Service) LoadByEmail(ctx context.Context, email string) (person *dire
 List returns the keys of all the persons in the directory.
 */
 func (svc *Service) List(ctx context.Context) (keys []directoryapi.PersonKey, err error) {
+	if svc.db == nil {
+		return nil, errors.Newc(http.StatusServiceUnavailable, "")
+	}
 	rows, err := svc.db.QueryContext(ctx, `SELECT person_id FROM directory_persons`)
 	if err != nil {
 		return nil, errors.Trace(err)

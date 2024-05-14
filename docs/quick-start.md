@@ -20,7 +20,6 @@ The `Microbus` framework depends on a few third-party services:
 * Prometheus is an optional service that can be used to collect metrics from `Microbus` microservices
 * Grafana is an optional service that can visualize metrics collected by Prometheus
 * Jaeger is an optional service that can visualize distributed tracing spans
-* MariaDB is needed only for microservices that depend on it, such as the [directory example](./structure/examples-directory.md)
 
 Use `docker compose` from within the `setup` directory to install the above and set up the development environment.
 
@@ -34,7 +33,7 @@ docker compose -f microbus.yaml -p microbus up
 <img src="quick-start-1.png" width="1113">
 <p>
 
-The `-DV` (debug and verbose) flags of NATS slow it down considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to run NATS in a separate terminal window instead of inside Docker.
+The `-DV` (debug and verbose) flags of NATS slow it down considerably and are therefore disabled in `microbus.yaml`. To run with these flags enabled, it's recommended to run NATS in a separate terminal window instead of inside Docker, and only for the duration these flags are needed.
 
 ## Run the Examples
 
