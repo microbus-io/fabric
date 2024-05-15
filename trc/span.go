@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -204,7 +205,9 @@ func (s SpanImpl) SetRequest(r *http.Request) {
 		attribute.String("url.path", r.URL.Path),
 	}
 	for k, v := range r.Header {
-		attrs = append(attrs, attribute.StringSlice("http.request.header."+k, v))
+		if !strings.HasPrefix(k, frame.HeaderPrefix) && k != "Traceparent" && k != "Tracestate" {
+			attrs = append(attrs, attribute.StringSlice("http.request.header."+k, v))
+		}
 	}
 	encodedQuery := r.URL.Query().Encode()
 	if encodedQuery != "" {

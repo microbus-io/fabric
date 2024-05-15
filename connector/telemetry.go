@@ -138,15 +138,16 @@ func (c *Connector) ForceTrace(ctx context.Context) {
 	if c.traceProcessor != nil {
 		traceID := c.Span(ctx).TraceID()
 		if traceID != "" {
-			c.traceProcessor.Select(traceID)
-			// Broadcast to all microservices to export all spans belonging to this trace
-			c.Go(ctx, func(ctx context.Context) error {
-				traceID := c.Span(ctx).TraceID()
-				for r := range c.Publish(ctx, pub.GET("https://all:888/trace?id="+url.QueryEscape(traceID))) {
-					_, _ = r.Get()
-				}
-				return nil
-			})
+			if c.traceProcessor.Select(traceID) {
+				// Broadcast to all microservices to export all spans belonging to this trace
+				c.Go(ctx, func(ctx context.Context) error {
+					traceID := c.Span(ctx).TraceID()
+					for r := range c.Publish(ctx, pub.GET("https://all:888/trace?id="+url.QueryEscape(traceID))) {
+						_, _ = r.Get()
+					}
+					return nil
+				})
+			}
 		}
 	}
 }

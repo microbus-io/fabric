@@ -120,6 +120,12 @@ type Ticker interface {
 	StartTicker(name string, interval time.Duration, handler TickerHandler) error
 }
 
+// Executor are actions for running jobs in Go routines.
+type Executor interface {
+	Go(ctx context.Context, f func(ctx context.Context) (err error)) error
+	Parallel(jobs ...func() (err error)) error
+}
+
 // Service are all the actions that a connector provides.
 type Service interface {
 	Publisher
@@ -131,4 +137,5 @@ type Service interface {
 	Configurable
 	Resourcer
 	Ticker
+	Executor
 }

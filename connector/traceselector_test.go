@@ -274,3 +274,48 @@ func BenchmarkConnector_TracingOnEnd(b *testing.B) {
 	// 400 B/op
 	// 2 allocs/op
 }
+
+func TestConnector_DuplicateSelect(t *testing.T) {
+	ctx := context.Background()
+
+	countExported := 0
+	exportedSpans := map[string]bool{}
+	ts := newTraceSelector(&exporter{
+		Callback: func(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
+			countExported += len(spans)
+			for _, span := range spans {
+				exportedSpans[span.SpanContext().SpanID().String()] = true
+			}
+			return nil
+		},
+	})
+
+	traceProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSpanProcessor(ts),
+	)
+	tracer := traceProvider.Tracer("")
+
+	// Nothing traced yet
+	assert.Equal(t, 0, int(ts.insertionPoint.Load()))
+	assert.Equal(t, 0, countExported)
+	assert.Equal(t, 0, len(ts.selected1)+len(ts.selected2))
+	assert.Equal(t, 0, ts.lockCount)
+
+	_, span := tracer.Start(ctx, "1")
+	span.End()
+
+	ok := ts.Select(span.SpanContext().TraceID().String())
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(ts.selected1)+len(ts.selected2))
+	assert.Equal(t, 1, ts.lockCount)
+	ts.ForceFlush(ctx) // Flush the queue
+	assert.Equal(t, 1, countExported)
+
+	ok = ts.Select(span.SpanContext().TraceID().String())
+	assert.False(t, ok)
+	assert.Equal(t, 1, len(ts.selected1)+len(ts.selected2))
+	assert.Equal(t, 2, ts.lockCount)
+	ts.ForceFlush(ctx) // Flush the queue
+	assert.Equal(t, 1, countExported)
+}

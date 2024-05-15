@@ -116,9 +116,6 @@ func (svc *Service) Home(w http.ResponseWriter, r *http.Request) (err error) {
 	// Make a direct addressing request to the /no-queue endpoint
 	// Only the specific instance will respond
 	ch = svc.Publish(r.Context(), pub.GET("https://"+lastResponderID+".messaging.example/no-queue"))
-	if err != nil {
-		return errors.Trace(err)
-	}
 	buf.WriteString("Direct addressing multicast\r\n")
 	buf.WriteString("GET https://" + lastResponderID + ".messaging.example/no-queue\r\n")
 	for i := range ch {

@@ -83,7 +83,8 @@ func (e *traceSelector) OnEnd(s sdktrace.ReadOnlySpan) {
 }
 
 // Select pushes all buffered matching the identified trace to the downstream processor as well as future spans.
-func (e *traceSelector) Select(traceID string) {
+// A false return value indicates that the trace had already been selected.
+func (e *traceSelector) Select(traceID string) (ok bool) {
 	// Insert into the selected maps so future spans with this trace ID are delegated on receipt
 	now := e.now()
 	lastSelected := e.lastSelected.Swap(now)
@@ -105,7 +106,7 @@ func (e *traceSelector) Select(traceID string) {
 	}
 	e.mux.Unlock()
 	if selectedAlready {
-		return
+		return false
 	}
 
 	// Push all buffered spans that match the trace ID
@@ -119,6 +120,7 @@ func (e *traceSelector) Select(traceID string) {
 			e.downstreamProcessor.OnEnd((*s))
 		}
 	}
+	return true
 }
 
 // Shutdown prevents further spans from being processed.
