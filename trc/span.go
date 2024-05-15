@@ -30,7 +30,6 @@ type Span interface {
 	End()
 	SetError(err error)
 	SetOK(statusCode int, contentLength int)
-	SetRequestBody(body []byte)
 	Log(severity string, message string, fields ...log.Field)
 	SetString(k string, v string)
 	SetStrings(k string, v []string)
@@ -92,15 +91,6 @@ func (s SpanImpl) SetOK(statusCode int, contentLength int) {
 	if contentLength > 0 {
 		s.Span.SetAttributes(attribute.Int("http.response.body.size", contentLength))
 	}
-}
-
-// SetRequestBody tags the span with the body of the request.
-func (s SpanImpl) SetRequestBody(body []byte) {
-	if s.Span == nil {
-		return
-	}
-	s.Span.SetAttributes(attribute.Int("http.request.body.size", len(body)))
-	s.Span.SetAttributes(attribute.String("http.request.body.content", string(body)))
 }
 
 // Log records a log event on the span.

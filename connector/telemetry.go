@@ -32,20 +32,25 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 		return nil
 	}
 
-	// Use the OTLP HTTP endpoint. Default to the non-secure HTTP protocol
+	// Use the OTLP HTTP endpoint
 	endpoint := env.Get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 	if endpoint == "" {
 		endpoint = env.Get("OTEL_EXPORTER_OTLP_ENDPOINT")
 	}
-	if endpoint == "" && c.deployment == LOCAL {
-		endpoint = "http://127.0.0.1:4318"
-	}
 
 	var sp sdktrace.SpanProcessor
-	var sampler sdktrace.Sampler
 	switch c.deployment {
-	case LOCAL, TESTINGAPP:
-		// Trace all spans
+	case LOCAL:
+		if endpoint == "" {
+			// Default to the non-secure HTTP protocol
+			endpoint = "http://127.0.0.1:4318"
+		}
+		exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		sp = sdktrace.NewBatchSpanProcessor(exp)
+	case TESTINGAPP:
 		var exp *otlptrace.Exporter
 		if endpoint == "" {
 			// Use a nil client rather than return nil to allow for testing of span creation
@@ -57,8 +62,16 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 			return errors.Trace(err)
 		}
 		sp = sdktrace.NewBatchSpanProcessor(exp)
-		sampler = sdktrace.AlwaysSample()
-	default: // PROD, LAB
+	case LAB:
+		if endpoint == "" {
+			return nil // Disables tracing without overhead
+		}
+		exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		sp = sdktrace.NewBatchSpanProcessor(exp)
+	default: // PROD
 		if endpoint == "" {
 			return nil // Disables tracing without overhead
 		}
@@ -69,10 +82,9 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 		}
 		c.traceProcessor = newTraceSelector(exp)
 		sp = c.traceProcessor
-		sampler = sdktrace.AlwaysSample()
 	}
 	c.traceProvider = sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sampler),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithSpanProcessor(sp),
 		sdktrace.WithResource(resource.NewSchemaless(
 			attribute.String("service.namespace", c.plane),

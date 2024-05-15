@@ -179,3 +179,8 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Deprecated the SQL database dependency and its corresponding code generation
 * Handling of `errors.Join`
 * Deprecated error annotations
+* Auto-detect `TESTINGAPP` deployment based on call stack
+* Include trace ID in error messages printed by HTTP ingress proxy
+* Do not record logs on traces in `PROD` deployment
+* Export all tracing spans in `LAB` deployment
+

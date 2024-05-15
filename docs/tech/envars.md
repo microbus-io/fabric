@@ -23,10 +23,10 @@ The deployment environment impacts certain aspects of the framework such as logg
 
 ||`PROD`|`LAB`|`LOCAL`|`TESTINGAPP`|
 |--------|----|---|-----|----------|
-|Logging format|JSON|JSON|Human-friendly|Human-friendly|
 |Logging level|INFO|DEBUG|DEBUG|DEBUG|
+|Logging format|JSON|JSON|Human-friendly|Human-friendly|
 |Logging errors|Standard|Standard|Emphasized|Emphasized|
-|Distributed tracing exporter|Selective|Selective|All spans|All spans|
+|Distributed tracing|Selective|Everything|Everything|Everything|
 |Configurator|Enabled|Enabled|Enabled|Disabled|
 |Tickers|Enabled|Enabled|Enabled|Disabled|
 |Error output|Redacted|Stack trace|Stack trace|Stack trace|

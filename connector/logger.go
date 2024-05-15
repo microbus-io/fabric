@@ -37,7 +37,9 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 	span := c.Span(ctx)
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
-		span.Log("debug", msg, fields...)
+		if c.deployment != PROD {
+			span.Log("debug", msg, fields...)
+		}
 		fields = append(fields, log.String("trace", traceID))
 	}
 	logger.Debug(msg, fields...)
@@ -60,7 +62,9 @@ func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field
 	span := c.Span(ctx)
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
-		span.Log("info", msg, fields...)
+		if c.deployment != PROD {
+			span.Log("info", msg, fields...)
+		}
 		fields = append(fields, log.String("trace", traceID))
 	}
 	logger.Info(msg, fields...)
@@ -83,7 +87,9 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 	span := c.Span(ctx)
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
-		span.Log("warn", msg, fields...)
+		if c.deployment != PROD {
+			span.Log("warn", msg, fields...)
+		}
 		fields = append(fields, log.String("trace", traceID))
 	}
 	logger.Warn(msg, fields...)
@@ -119,7 +125,9 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 	span := c.Span(ctx)
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
-		span.Log("error", msg, fields...)
+		if c.deployment != PROD {
+			span.Log("error", msg, fields...)
+		}
 		fields = append(fields, log.String("trace", traceID))
 	}
 	logger.Error(msg, fields...)

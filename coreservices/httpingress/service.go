@@ -201,6 +201,26 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := svc.Lifetime()
 	handlerStartTime := time.Now()
+
+	// OpenTelemetry: create the root span
+	forceTrace := r.URL.Query().Get("trace") == "force"
+	spanOptions := []trc.Option{
+		// Do not record the request attributes yet because they take a lot of memory,
+		// they will be added if there's an error.
+		trc.Server(),
+	}
+	if svc.Deployment() == connector.LOCAL || forceTrace {
+		// Add the request attributes in LOCAL deployment to facilitate debugging
+		spanOptions = append(spanOptions, trc.Request(r))
+	}
+	var span trc.Span
+	ctx, span = svc.StartSpan(ctx, ":"+r.URL.Port(), spanOptions...)
+	defer span.End()
+	if forceTrace {
+		svc.ForceTrace(ctx)
+	}
+	r = r.WithContext(ctx)
+
 	pt := &PassThrough{W: w}
 	err := utils.CatchPanic(func() error {
 		return svc.serveHTTP(pt, r)
@@ -218,18 +238,27 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if statusCode <= 0 || statusCode >= 1000 {
 			statusCode = http.StatusInternalServerError
 		}
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(statusCode)
 		// Do not leak error details and stack trace
 		if svc.Deployment() == connector.LOCAL && httpx.IsLocalhostAddress(r) {
-			w.Write([]byte(fmt.Sprintf("%+v", err)))
+			w.Write([]byte(fmt.Sprintf("%+v\n\n{%s}", err, span.TraceID())))
 		} else {
-			w.Write([]byte(http.StatusText(statusCode)))
+			w.Write([]byte(http.StatusText(statusCode) + " {" + span.TraceID() + "}"))
 		}
 		if statusCode < 500 {
 			svc.LogWarn(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
 		} else {
 			svc.LogError(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
 		}
+
+		// OpenTelemetry: record the error, adding the request attributes
+		span.SetRequest(r)
+		span.SetError(err)
+		svc.ForceTrace(ctx)
+	} else {
+		// OpenTelemetry: record the status code and content length
+		span.SetOK(pt.SC, pt.N)
 	}
 
 	// Meter
@@ -268,7 +297,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // the microservice at https://echo.example/echo .
 // serveHTTP implements the http.Handler interface
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
-	ctx := svc.Lifetime()
+	ctx := r.Context()
 	middleware := svc.Middleware()
 
 	// Fill in the gaps
@@ -305,24 +334,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 	if r.URL.Path == "/" {
 		r.URL.Path = "/root"
-	}
-
-	// OpenTelemetry: create the root span
-	forceTrace := r.URL.Query().Get("trace") == "force"
-	spanOptions := []trc.Option{
-		// Do not record the request attributes yet because they take a lot of memory,
-		// they will be added if there's an error.
-		trc.Server(),
-	}
-	if svc.Deployment() == connector.LOCAL || forceTrace {
-		// Add the request attributes in LOCAL deployment to facilitate debugging
-		spanOptions = append(spanOptions, trc.Request(r))
-	}
-	var span trc.Span
-	ctx, span = svc.StartSpan(ctx, ":"+r.URL.Port(), spanOptions...)
-	defer span.End()
-	if forceTrace {
-		svc.ForceTrace(ctx)
 	}
 
 	// Block disallowed origins
@@ -430,19 +441,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Delegate the request over NATS
 	internalRes, err := svc.Request(delegateCtx, options...)
 	if err != nil {
-		// OpenTelemetry: record the error, adding the request attributes
-		span.SetRequest(r)
-		span.SetError(err)
-		svc.ForceTrace(delegateCtx)
-		contentType := r.Header.Get("Content-Type")
-		if len(body) > 0 && (strings.HasPrefix(contentType, "text/") || contentType == "application/json") {
-			if len(body) <= 8192 {
-				span.SetRequestBody(body)
-			} else {
-				span.SetRequestBody(body[:8192])
-			}
-		}
-
 		return err // No trace
 	}
 
@@ -512,8 +510,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Write back the status code
 	if internalRes.StatusCode != 0 {
 		w.WriteHeader(internalRes.StatusCode)
-		// OpenTelemetry: record the status code
-		span.SetOK(internalRes.StatusCode, int(internalRes.ContentLength))
 	}
 
 	// Write back the body
