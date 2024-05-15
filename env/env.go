@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2023-2024 Microbus LLC and various contributors
+
+This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
+Neither may be used, copied or distributed without the express written consent of Microbus LLC.
+*/
+
 // Package env wraps the handling of OS environment variables.
 // Before looking for an environment variable in the OS, the package looks for it in an env.yaml file in the current working directory.
 // In addition, it allows for pushing and popping values for testing purposes.
