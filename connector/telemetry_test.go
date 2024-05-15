@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/microbus-io/fabric/trc"
@@ -117,4 +118,33 @@ func TestConnector_TraceRequestAttributes(t *testing.T) {
 
 		assert.Equal(t, codes.Ok, spanStatus(span))
 	}
+}
+
+func TestConnector_TracingCopySpan(t *testing.T) {
+	t.Parallel()
+
+	alpha := New("tracing.copy.span.connector")
+	alpha.SetDeployment(TESTINGAPP)
+	var topSpan trc.Span
+	var goSpan trc.Span
+	var wg sync.WaitGroup
+	wg.Add(1)
+	alpha.SetOnStartup(func(ctx context.Context) error {
+		topSpan = alpha.Span(ctx)
+		alpha.Go(ctx, func(ctx context.Context) (err error) {
+			goSpan = alpha.Span(ctx)
+			wg.Done()
+			return nil
+		})
+		return nil
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+
+	wg.Wait()
+	assert.Equal(t, topSpan.TraceID(), goSpan.TraceID())
+	assert.Equal(t, topSpan, goSpan)
 }

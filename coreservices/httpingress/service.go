@@ -322,7 +322,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx, span = svc.StartSpan(ctx, ":"+r.URL.Port(), spanOptions...)
 	defer span.End()
 	if forceTrace {
-		svc.ForceTrace(span)
+		svc.ForceTrace(ctx)
 	}
 
 	// Block disallowed origins
@@ -433,7 +433,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		// OpenTelemetry: record the error, adding the request attributes
 		span.SetRequest(r)
 		span.SetError(err)
-		svc.ForceTrace(span)
+		svc.ForceTrace(delegateCtx)
 		contentType := r.Header.Get("Content-Type")
 		if len(body) > 0 && (strings.HasPrefix(contentType, "text/") || contentType == "application/json") {
 			if len(body) <= 8192 {

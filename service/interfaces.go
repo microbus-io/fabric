@@ -51,7 +51,7 @@ type Logger interface {
 type Tracer interface {
 	StartSpan(ctx context.Context, spanName string, opts ...trc.Option) (context.Context, trc.Span)
 	Span(ctx context.Context) trc.Span
-	ForceTrace(span trc.Span)
+	ForceTrace(ctx context.Context)
 }
 
 // StartupHandler handles the OnStartup callback.

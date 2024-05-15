@@ -156,7 +156,7 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 						span.SetString("email.from", e.MailFrom.String())
 						span.SetClientIP(e.RemoteIP)
 						span.SetError(err)
-						svc.ForceTrace(span)
+						svc.ForceTrace(ctx)
 						return backends.NewResult(fmt.Sprintf("554 Error: %s", err)), err // No trace
 					}
 					// OpenTelemetry: record the status code

@@ -25,10 +25,6 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-type contextKeyType struct{}
-
-var contextKey contextKeyType
-
 // initTracer initializes an OpenTelemetry tracer
 func (c *Connector) initTracer(ctx context.Context) (err error) {
 	if c.traceProvider != nil {
@@ -52,6 +48,7 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 		// Trace all spans
 		var exp *otlptrace.Exporter
 		if endpoint == "" {
+			// Use a nil client rather than return nil to allow for testing of span creation
 			exp, err = otlptrace.New(ctx, &nilClient{})
 		} else {
 			exp, err = otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
@@ -112,7 +109,6 @@ func (c *Connector) termTracer(ctx context.Context) (err error) {
 func (c *Connector) StartSpan(ctx context.Context, spanName string, opts ...trc.Option) (context.Context, trc.Span) {
 	if c.tracer != nil {
 		ctx, span := c.tracer.Start(ctx, spanName, opts...)
-		ctx = context.WithValue(ctx, contextKey, span)
 		return ctx, trc.NewSpan(span)
 	} else {
 		return ctx, trc.NewSpan(nil)
@@ -121,25 +117,25 @@ func (c *Connector) StartSpan(ctx context.Context, spanName string, opts ...trc.
 
 // Span returns the tracing span stored in the context.
 func (c *Connector) Span(ctx context.Context) trc.Span {
-	span := ctx.Value(contextKey)
-	if span != nil {
-		return trc.NewSpan(span.(trace.Span))
-	} else {
-		return trc.NewSpan(nil)
-	}
+	span := trace.SpanFromContext(ctx)
+	return trc.NewSpan(span)
 }
 
 // ForceTrace forces the trace containing the span to be exported
-func (c *Connector) ForceTrace(span trc.Span) {
+func (c *Connector) ForceTrace(ctx context.Context) {
 	if c.traceProcessor != nil {
-		c.traceProcessor.Select(span.TraceID())
-		// Broadcast to all microservices to export all spans belonging to this trace
-		c.Go(c.lifetimeCtx, func(ctx context.Context) error {
-			for r := range c.Publish(c.lifetimeCtx, pub.GET("https://all:888/trace?id="+url.QueryEscape(span.TraceID()))) {
-				_, _ = r.Get()
-			}
-			return nil
-		})
+		traceID := c.Span(ctx).TraceID()
+		if traceID != "" {
+			c.traceProcessor.Select(traceID)
+			// Broadcast to all microservices to export all spans belonging to this trace
+			c.Go(ctx, func(ctx context.Context) error {
+				traceID := c.Span(ctx).TraceID()
+				for r := range c.Publish(ctx, pub.GET("https://all:888/trace?id="+url.QueryEscape(traceID))) {
+					_, _ = r.Get()
+				}
+				return nil
+			})
+		}
 	}
 }
 

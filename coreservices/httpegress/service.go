@@ -87,7 +87,7 @@ func (svc *Service) MakeRequest(w http.ResponseWriter, r *http.Request) (err err
 		// OpenTelemetry: record the error, adding the request attributes
 		span.SetRequest(req)
 		span.SetError(err)
-		svc.ForceTrace(span)
+		svc.ForceTrace(ctx)
 		return errors.Trace(err)
 	}
 	err = httpx.Copy(w, resp)

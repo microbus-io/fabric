@@ -342,7 +342,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 			span.SetString("http.route", s.Path)
 			span.SetRequest(httpReq)
 			span.SetError(handlerErr)
-			c.ForceTrace(span)
+			c.ForceTrace(ctx)
 
 			// Prepare an error response instead
 			httpRecorder = httpx.NewResponseRecorder()

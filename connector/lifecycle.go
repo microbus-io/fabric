@@ -22,6 +22,7 @@ import (
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // SetOnStartup adds a function to be called during the starting up of the microservice.
@@ -99,7 +100,7 @@ func (c *Connector) Startup() (err error) {
 		if err != nil {
 			// OpenTelemetry: record the error
 			span.SetError(err)
-			c.ForceTrace(span)
+			c.ForceTrace(ctx)
 			c.LogError(ctx, "Starting up", log.Error(err))
 			span.End()
 			c.Shutdown()
@@ -304,7 +305,7 @@ func (c *Connector) Shutdown() error {
 	if lastErr != nil {
 		// OpenTelemetry: record the error
 		span.SetError(lastErr)
-		c.ForceTrace(span)
+		c.ForceTrace(ctx)
 		c.LogError(ctx, "Shutting down", log.Error(lastErr))
 	}
 
@@ -351,7 +352,8 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 		return errors.New("not started")
 	}
 	atomic.AddInt32(&c.pendingOps, 1)
-	subCtx := frame.Copy(c.lifetimeCtx, ctx)
+	subCtx := frame.Copy(c.lifetimeCtx, ctx)                           // Copy the frame headers
+	subCtx = trace.ContextWithSpan(subCtx, trace.SpanFromContext(ctx)) // Copy the tracing context
 	go func() {
 		defer atomic.AddInt32(&c.pendingOps, -1)
 		err := utils.CatchPanic(func() error {

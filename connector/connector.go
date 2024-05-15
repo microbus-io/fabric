@@ -360,7 +360,7 @@ func (c *Connector) doCallback(ctx context.Context, name string, callback func(c
 		c.LogError(callbackCtx, "Executing callback", log.Error(err), log.String("name", name))
 		// OpenTelemetry: record the error
 		span.SetError(err)
-		c.ForceTrace(span)
+		c.ForceTrace(callbackCtx)
 	}
 	_ = c.ObserveMetric(
 		"microbus_callback_duration_seconds",
