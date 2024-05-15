@@ -41,120 +41,120 @@ func TestErrors_New(t *testing.T) {
 func TestErrors_Newf(t *testing.T) {
 	t.Parallel()
 
-	tracedErr := Newf("Error %s", "Error")
-	assert.Error(t, tracedErr)
-	assert.Equal(t, "Error Error", tracedErr.Error())
-	assert.Len(t, tracedErr.(*TracedError).stack, 1)
-	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Newf")
+	err := Newf("Error %s", "Error")
+	assert.Error(t, err)
+	assert.Equal(t, "Error Error", err.Error())
+	assert.Len(t, err.(*TracedError).stack, 1)
+	assert.Contains(t, err.(*TracedError).stack[0].Function, "TestErrors_Newf")
 }
 
 func TestErrors_Newc(t *testing.T) {
 	t.Parallel()
 
-	tracedErr := Newc(400, "User Error")
-	assert.Error(t, tracedErr)
-	assert.Equal(t, "User Error", tracedErr.Error())
-	assert.Equal(t, 400, tracedErr.(*TracedError).StatusCode)
-	assert.Len(t, tracedErr.(*TracedError).stack, 1)
-	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Newc")
-}
-
-func TestErrors_Presets(t *testing.T) {
-	t.Parallel()
-
-	e := BadRequest()
-	assert.Equal(t, statusText[http.StatusBadRequest], e.Error())
-	assert.Equal(t, http.StatusBadRequest, e.(*TracedError).StatusCode)
-
-	e = Unauthorized()
-	assert.Equal(t, statusText[http.StatusUnauthorized], e.Error())
-	assert.Equal(t, http.StatusUnauthorized, e.(*TracedError).StatusCode)
-
-	e = Forbidden()
-	assert.Equal(t, statusText[http.StatusForbidden], e.Error())
-	assert.Equal(t, http.StatusForbidden, e.(*TracedError).StatusCode)
-
-	e = NotFound()
-	assert.Equal(t, statusText[http.StatusNotFound], e.Error())
-	assert.Equal(t, http.StatusNotFound, e.(*TracedError).StatusCode)
-
-	e = RequestTimeout()
-	assert.Equal(t, statusText[http.StatusRequestTimeout], e.Error())
-	assert.Equal(t, http.StatusRequestTimeout, e.(*TracedError).StatusCode)
-
-	e = NotImplemented()
-	assert.Equal(t, statusText[http.StatusNotImplemented], e.Error())
-	assert.Equal(t, http.StatusNotImplemented, e.(*TracedError).StatusCode)
+	err := Newc(400, "User Error")
+	assert.Error(t, err)
+	assert.Equal(t, "User Error", err.Error())
+	assert.Equal(t, 400, err.(*TracedError).StatusCode)
+	assert.Equal(t, 400, StatusCode(err))
+	assert.Len(t, err.(*TracedError).stack, 1)
+	assert.Contains(t, err.(*TracedError).stack[0].Function, "TestErrors_Newc")
 }
 
 func TestErrors_Newcf(t *testing.T) {
 	t.Parallel()
 
-	tracedErr := Newcf(400, "User %s", "Error")
-	assert.Error(t, tracedErr)
-	assert.Equal(t, "User Error", tracedErr.Error())
-	assert.Equal(t, 400, tracedErr.(*TracedError).StatusCode)
-	assert.Len(t, tracedErr.(*TracedError).stack, 1)
-	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Newcf")
+	err := Newcf(400, "User %s", "Error")
+	assert.Error(t, err)
+	assert.Equal(t, "User Error", err.Error())
+	assert.Equal(t, 400, err.(*TracedError).StatusCode)
+	assert.Equal(t, 400, StatusCode(err))
+	assert.Len(t, err.(*TracedError).stack, 1)
+	assert.Contains(t, err.(*TracedError).stack[0].Function, "TestErrors_Newcf")
+}
+
+func TestErrors_Presets(t *testing.T) {
+	t.Parallel()
+
+	errs := []error{
+		BadRequest(),
+		Unauthorized(),
+		Forbidden(),
+		NotFound(),
+		RequestTimeout(),
+		NotImplemented(),
+	}
+	statusCodes := []int{
+		http.StatusBadRequest,
+		http.StatusUnauthorized,
+		http.StatusForbidden,
+		http.StatusNotFound,
+		http.StatusRequestTimeout,
+		http.StatusNotImplemented,
+	}
+	for i := 0; i < len(errs); i++ {
+		assert.Equal(t, statusText[statusCodes[i]], errs[i].Error())
+		assert.Equal(t, statusCodes[i], errs[i].(*TracedError).StatusCode)
+		assert.Equal(t, statusCodes[i], StatusCode(errs[i]))
+	}
 }
 
 func TestErrors_Trace(t *testing.T) {
 	t.Parallel()
 
-	err := stderrors.New("Standard Error")
+	stdErr := stderrors.New("Standard Error")
+	assert.Error(t, stdErr)
+
+	err := Trace(stdErr)
 	assert.Error(t, err)
+	assert.Len(t, err.(*TracedError).stack, 1)
+	assert.Contains(t, err.(*TracedError).stack[0].Function, "TestErrors_Trace")
 
-	tracedErr := Trace(err)
-	assert.Error(t, tracedErr)
-	assert.Len(t, tracedErr.(*TracedError).stack, 1)
-	assert.Contains(t, tracedErr.(*TracedError).stack[0].Function, "TestErrors_Trace")
+	err = Trace(err)
+	assert.Len(t, err.(*TracedError).stack, 2)
+	assert.NotEmpty(t, err.(*TracedError).String())
 
-	tracedErr = Trace(tracedErr)
-	assert.Len(t, tracedErr.(*TracedError).stack, 2)
-	assert.NotEmpty(t, tracedErr.(*TracedError).String())
+	err = Trace(err)
+	assert.Len(t, err.(*TracedError).stack, 3)
+	assert.NotEmpty(t, err.(*TracedError).String())
 
-	tracedErr = Trace(tracedErr)
-	assert.Len(t, tracedErr.(*TracedError).stack, 3)
-	assert.NotEmpty(t, tracedErr.(*TracedError).String())
-
-	err = Trace(nil)
-	assert.NoError(t, err)
-	assert.Nil(t, err)
+	stdErr = Trace(nil)
+	assert.NoError(t, stdErr)
+	assert.Nil(t, stdErr)
 }
 
 func TestErrors_Convert(t *testing.T) {
 	t.Parallel()
 
-	err := stderrors.New("Other standard error")
+	stdErr := stderrors.New("Other standard error")
+	assert.Error(t, stdErr)
+
+	err := Convert(stdErr)
 	assert.Error(t, err)
+	assert.Empty(t, err.stack)
 
-	tracedErr := Convert(err)
-	assert.Error(t, tracedErr)
-	assert.Empty(t, tracedErr.stack)
+	stdErr = Trace(err)
+	err = Convert(stdErr)
+	assert.Error(t, err)
+	assert.Len(t, err.stack, 1)
 
-	err = Trace(tracedErr)
-	tracedErr = Convert(err)
-	assert.Error(t, tracedErr)
-	assert.Len(t, tracedErr.stack, 1)
-
-	tracedErr = Convert(nil)
-	assert.Nil(t, tracedErr)
+	err = Convert(nil)
+	assert.Nil(t, err)
 }
 
 func TestErrors_JSON(t *testing.T) {
 	t.Parallel()
 
-	tracedErr := New("Error!")
+	err := New("Error!")
 
-	b, err := tracedErr.(*TracedError).MarshalJSON()
-	assert.NoError(t, err)
+	b, jsonErr := err.(*TracedError).MarshalJSON()
+	assert.NoError(t, jsonErr)
 
 	var unmarshal TracedError
-	err = unmarshal.UnmarshalJSON(b)
-	assert.NoError(t, err)
+	jsonErr = unmarshal.UnmarshalJSON(b)
+	assert.NoError(t, jsonErr)
 
-	assert.Equal(t, tracedErr.Error(), unmarshal.Error())
-	assert.Equal(t, tracedErr.(*TracedError).String(), unmarshal.String())
+	assert.Equal(t, err.Error(), unmarshal.Error())
+	assert.Equal(t, err.(*TracedError).String(), unmarshal.String())
 }
 
 func TestErrors_Format(t *testing.T) {
@@ -231,27 +231,27 @@ func TestErrors_String(t *testing.T) {
 func TestErrors_Unwrap(t *testing.T) {
 	t.Parallel()
 
-	err := stderrors.New("Oops")
-	traced := Trace(err)
-	assert.Equal(t, err, Unwrap(traced))
+	stdErr := stderrors.New("Oops")
+	err := Trace(stdErr)
+	assert.Equal(t, stdErr, Unwrap(err))
 }
 
 func TestErrors_TraceFull(t *testing.T) {
 	t.Parallel()
 
-	err := stderrors.New("Oops")
-	traced := Trace(err)
-	tracedUp0 := TraceUp(err, 0)
-	tracedUp1 := TraceUp(err, 1)
-	tracedFull := TraceFull(err, 0)
+	stdErr := stderrors.New("Oops")
+	err := Trace(stdErr)
+	errUp0 := TraceUp(stdErr, 0)
+	errUp1 := TraceUp(stdErr, 1)
+	errFull := TraceFull(stdErr, 0)
 
-	assert.Len(t, traced.(*TracedError).stack, 1)
+	assert.Len(t, err.(*TracedError).stack, 1)
 
-	assert.Len(t, tracedUp0.(*TracedError).stack, 1)
-	assert.Len(t, tracedUp1.(*TracedError).stack, 1)
-	assert.NotEqual(t, tracedUp0.(*TracedError).stack[0].Function, tracedUp1.(*TracedError).stack[0].Function)
+	assert.Len(t, errUp0.(*TracedError).stack, 1)
+	assert.Len(t, errUp1.(*TracedError).stack, 1)
+	assert.NotEqual(t, errUp0.(*TracedError).stack[0].Function, errUp1.(*TracedError).stack[0].Function)
 
-	assert.Greater(t, len(tracedFull.(*TracedError).stack), 1)
-	assert.Equal(t, tracedUp0.(*TracedError).stack[0].Function, tracedFull.(*TracedError).stack[0].Function)
-	assert.Equal(t, tracedUp1.(*TracedError).stack[0].Function, tracedFull.(*TracedError).stack[1].Function)
+	assert.Greater(t, len(errFull.(*TracedError).stack), 1)
+	assert.Equal(t, errUp0.(*TracedError).stack[0].Function, errFull.(*TracedError).stack[0].Function)
+	assert.Equal(t, errUp1.(*TracedError).stack[0].Function, errFull.(*TracedError).stack[1].Function)
 }

@@ -201,6 +201,13 @@ func RuntimeTrace(levels int) (file string, function string, line int, ok bool) 
 	return file, function, line, ok
 }
 
+// StatusCode returns the HTTP status code associated with an error.
+// It is the equivalent of Convert(err).StatusCode.
+// If not specified, the default status code is 500.
+func StatusCode(err error) int {
+	return Convert(err).StatusCode
+}
+
 // BadRequest returns a new 400 error.
 func BadRequest() error {
 	return Newc(400, "")

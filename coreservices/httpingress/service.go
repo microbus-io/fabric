@@ -214,7 +214,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			return nil
 		})
-		statusCode := errors.Convert(err).StatusCode
+		statusCode := errors.StatusCode(err)
 		if statusCode <= 0 || statusCode >= 1000 {
 			statusCode = http.StatusInternalServerError
 		}

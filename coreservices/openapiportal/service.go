@@ -78,7 +78,7 @@ func (svc *Service) List(w http.ResponseWriter, r *http.Request) (err error) {
 			u := fmt.Sprintf("https://%s:%s/openapi.json", s, r.URL.Port())
 			res, err := svc.Request(ctx, pub.GET(u))
 			if err != nil {
-				if errors.Convert(err).StatusCode == http.StatusNotFound {
+				if errors.StatusCode(err) == http.StatusNotFound {
 					// No openapi.json for this service
 					return
 				}
