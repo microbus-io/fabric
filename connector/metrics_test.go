@@ -17,7 +17,6 @@ func TestConnector_DefineMetrics(t *testing.T) {
 	t.Parallel()
 
 	con := New("define.metrics.connector")
-	con.SetDeployment(TESTINGAPP)
 	assert.False(t, con.IsStarted())
 
 	// Define all three collector types before starting up
@@ -89,7 +88,6 @@ func TestConnector_ObserveMetrics(t *testing.T) {
 	t.Parallel()
 
 	con := New("observe.metrics.connector")
-	con.SetDeployment(TESTINGAPP)
 	assert.False(t, con.IsStarted())
 
 	// Define all three collector types before starting up
@@ -152,7 +150,6 @@ func TestConnector_StandardMetrics(t *testing.T) {
 	t.Parallel()
 
 	con := New("standard.metrics.connector")
-	con.SetDeployment(TESTINGAPP)
 	assert.Equal(t, 11, len(con.metricDefs))
 	assert.NotNil(t, con.metricDefs["microbus_callback_duration_seconds"])
 	assert.NotNil(t, con.metricDefs["microbus_response_duration_seconds"])

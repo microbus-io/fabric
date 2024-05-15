@@ -9,6 +9,7 @@ package connector
 
 import (
 	"context"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -78,6 +79,20 @@ func (c *Connector) Startup() (err error) {
 			err := c.SetDeployment(deployment)
 			if err != nil {
 				return errors.Trace(err)
+			}
+		}
+		if c.deployment == "" {
+			for lvl := 1; true; lvl++ {
+				pc, _, _, ok := runtime.Caller(lvl)
+				if !ok {
+					break
+				}
+				runtimeFunc := runtime.FuncForPC(pc)
+				// testing.tRunner is the Go test runner indicating we're running inside a test
+				if runtimeFunc.Name() == "testing.tRunner" {
+					c.deployment = TESTINGAPP
+					break
+				}
 			}
 		}
 		if c.deployment == "" {

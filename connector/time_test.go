@@ -22,12 +22,10 @@ func TestConnector_ClockOffset(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.clock.offset.connector")
-	alpha.SetDeployment(TESTINGAPP)
 
 	var betaTime time.Time
 	var betaShift time.Duration
 	beta := New("beta.clock.offset.connector")
-	beta.SetDeployment(TESTINGAPP)
 	beta.Subscribe("GET", "void", func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
 		betaTime = beta.Now(ctx)
@@ -237,7 +235,6 @@ func TestConnector_TickersDisabledInTestingApp(t *testing.T) {
 	t.Parallel()
 
 	con := New("tickers.disabled.in.testing.app.connector")
-	con.SetDeployment(TESTINGAPP)
 
 	interval := 200 * time.Millisecond
 	count := 0

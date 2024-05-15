@@ -26,12 +26,14 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	configSvc := NewService().(*Service)
+	configSvc.SetDeployment(connector.LOCAL)
 	configSvc.SetPlane(plane)
 	services := []application.Service{}
 	n := 16
 	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
 		con := connector.New("many.microservices.configurator")
+		con.SetDeployment(connector.LOCAL)
 		con.SetPlane(plane)
 		con.DefineConfig("foo", cfg.DefaultValue("bar"))
 		con.DefineConfig("moo")
@@ -98,9 +100,11 @@ func TestConfigurator_Callback(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	configSvc := NewService().(*Service)
+	configSvc.SetDeployment(connector.LOCAL)
 	configSvc.SetPlane(plane)
 
 	con := connector.New("callback.configurator")
+	con.SetDeployment(connector.LOCAL)
 	con.SetPlane(plane)
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	var wg sync.WaitGroup
@@ -141,6 +145,7 @@ func TestConfigurator_PeerSync(t *testing.T) {
 
 	// Start the first peer
 	config1 := NewService().(*Service)
+	config1.SetDeployment(connector.LOCAL)
 	config1.SetPlane(plane)
 	config1.loadYAML(`
 www.example.com:
@@ -156,6 +161,7 @@ www.example.com:
 
 	// Start the microservice
 	con := connector.New("www.example.com")
+	con.SetDeployment(connector.LOCAL)
 	con.SetPlane(plane)
 	con.DefineConfig("Foo")
 
@@ -167,6 +173,7 @@ www.example.com:
 
 	// Start the second peer
 	config2 := NewService().(*Service)
+	config2.SetDeployment(connector.LOCAL)
 	config2.SetPlane(plane)
 	config2.loadYAML(`
 www.example.com:

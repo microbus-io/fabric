@@ -23,7 +23,6 @@ func TestConnector_ReadResFile(t *testing.T) {
 
 	// Create the microservices
 	con := New("read.res.file.connector")
-	con.SetDeployment(TESTINGAPP)
 	con.SetResFSDir("testdata")
 
 	assert.Equal(t, "<html>{{ . }}</html>\n", string(con.MustReadResFile("res.txt")))
@@ -48,10 +47,8 @@ func TestConnector_LoadResString(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.load.res.string.connector")
-	alpha.SetDeployment(TESTINGAPP)
 
 	beta := New("beta.load.res.string.connector")
-	beta.SetDeployment(TESTINGAPP)
 	beta.Subscribe("GET", "localized", func(w http.ResponseWriter, r *http.Request) error {
 		s, _ := beta.LoadResString(r.Context(), "hello")
 		w.Write([]byte(s))

@@ -134,7 +134,6 @@ func TestConnector_NoFetchInTestingApp(t *testing.T) {
 
 	// Mock a config service
 	mockCfg := New("configurator.sys")
-	mockCfg.SetDeployment(TESTINGAPP)
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
@@ -148,7 +147,6 @@ func TestConnector_NoFetchInTestingApp(t *testing.T) {
 
 	// Connector
 	con := New("no.fetch.in.testing.app.config.connector")
-	con.SetDeployment(TESTINGAPP)
 	con.SetPlane(plane)
 	err = con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	assert.NoError(t, err)
@@ -172,7 +170,6 @@ func TestConnector_CallbackWhenStarted(t *testing.T) {
 
 	// Connector
 	con := New("callback.when.started.config.connector")
-	con.SetDeployment(TESTINGAPP)
 	err := con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	assert.NoError(t, err)
 	callbackCalled := 0
