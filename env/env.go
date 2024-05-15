@@ -5,9 +5,8 @@ This file and the project encapsulating it are the confidential intellectual pro
 Neither may be used, copied or distributed without the express written consent of Microbus LLC.
 */
 
-// Package env wraps the handling of OS environment variables.
-// Before looking for an environment variable in the OS, the package looks for it in an env.yaml file in the current working directory.
-// In addition, it allows for pushing and popping values for testing purposes.
+// Package env manages the loading of environment variables.
+// Variables are first searched for in an in-memory stack, then in a file `env.yaml` in the current working directory, and finally in the OS.
 package env
 
 import (

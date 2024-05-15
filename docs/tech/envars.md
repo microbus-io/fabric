@@ -19,7 +19,17 @@ Before connecting to NATS, a microservice can't communicate with other microserv
 * `LOCAL` when developing locally
 * `TESTINGAPP` when running inside a testing application
 
-The deployment environment impacts certain aspects of the framework such as the log format and log verbosity level.
+The deployment environment impacts certain aspects of the framework such as logging and distributed tracing.
+
+||`PROD`|`LAB`|`LOCAL`|`TESTINGAPP`|
+|--------|----|---|-----|----------|
+|Logging format|JSON|JSON|Human-friendly|Human-friendly|
+|Logging level|INFO|DEBUG|DEBUG|DEBUG|
+|Logging errors|Standard|Standard|Emphasized|Emphasized|
+|Distributed tracing exporter|Selective|Selective|All spans|All spans|
+|Configurator|Enabled|Enabled|Enabled|Disabled|
+|Tickers|Enabled|Enabled|Enabled|Disabled|
+|Error output|Redacted|Stack trace|Stack trace|Stack trace|
 
 The deployment environment is set according to the value of the `MICROBUS_DEPLOYMENT` environment variable. If not specified, `PROD` is assumed, unless connecting to NATS on `localhost` in which case `LOCAL` is assumed.
 
@@ -37,7 +47,7 @@ This is an advanced feature and in most cases there is no need to customize the 
 
 ## Logging
 
-Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value causes the microservice to log debug messages.
+Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value is required for microservice to log debug-level messages.
  
 ## Distributed Tracing
 

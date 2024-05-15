@@ -46,6 +46,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [coreservices/metrics](docs/structure/coreservices-metrics.md) - The metrics microservice collects metrics from microservices and delivers them to Prometheus and Grafana
 * [coreservices/openapiportal](docs/structure/coreservices-openapiportal.md) - The OpenAPI portal microservice produces a portal page that lists all microservices with open endpoints
 * [dlru](docs/structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
+* [env](docs/structure/env.md) 🎁 - Manages the loading of environment variables
 * [errors](docs/structure/errors.md) ✨ - An enhancement of the standard `errors` package
 * [examples](docs/structure/examples.md) ✨ - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
@@ -75,7 +76,7 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [NATS connection settings](docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
 * [Multicast messaging](docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
 * [Control subscriptions](docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
-* [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
+* [Environment variables](docs/tech/envars.md) ✨ - Environment variables used to initialize microservices
 * [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
