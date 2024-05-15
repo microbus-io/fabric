@@ -11,6 +11,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/microbus-io/fabric/env"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,9 +125,8 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 
 	con := New("deployment.env.connector")
 
-	orig := os.Getenv("MICROBUS_DEPLOYMENT")
-	defer os.Setenv("MICROBUS_DEPLOYMENT", orig)
-	os.Setenv("MICROBUS_DEPLOYMENT", "lAb")
+	env.Push("MICROBUS_DEPLOYMENT", "lAb")
+	defer env.Pop("MICROBUS_DEPLOYMENT")
 
 	err := con.Startup()
 	assert.NoError(t, err)

@@ -10,8 +10,8 @@ package connector
 import (
 	"context"
 	"net/url"
-	"os"
 
+	"github.com/microbus-io/fabric/env"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/trc"
@@ -37,9 +37,9 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 	}
 
 	// Use the OTLP HTTP endpoint. Default to the non-secure HTTP protocol
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+	endpoint := env.Get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 	if endpoint == "" {
-		endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+		endpoint = env.Get("OTEL_EXPORTER_OTLP_ENDPOINT")
 	}
 	if endpoint == "" && c.deployment == LOCAL {
 		endpoint = "http://127.0.0.1:4318"

@@ -18,6 +18,7 @@ import (
 
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/dlru"
+	"github.com/microbus-io/fabric/env"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
@@ -274,15 +275,15 @@ func (c *Connector) connectToNATS(ctx context.Context) error {
 	opts = append(opts, nats.Name(c.id+"."+c.hostName))
 
 	// URL
-	u := os.Getenv("MICROBUS_NATS")
+	u := env.Get("MICROBUS_NATS")
 	if u == "" {
 		u = "nats://127.0.0.1:4222"
 	}
 
 	// Credentials
-	user := os.Getenv("MICROBUS_NATS_USER")
-	pw := os.Getenv("MICROBUS_NATS_PASSWORD")
-	token := os.Getenv("MICROBUS_NATS_TOKEN")
+	user := env.Get("MICROBUS_NATS_USER")
+	pw := env.Get("MICROBUS_NATS_PASSWORD")
+	token := env.Get("MICROBUS_NATS_TOKEN")
 	if user != "" && pw != "" {
 		opts = append(opts, nats.UserInfo(user, pw))
 	}

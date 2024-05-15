@@ -11,6 +11,8 @@ import (
 	"flag"
 	"os"
 	"strings"
+
+	"github.com/microbus-io/fabric/env"
 )
 
 // main is executed when "go generate" is run in the current working directory.
@@ -18,14 +20,14 @@ func main() {
 	// Load flags from environment variable because can't pass arguments to code-generator
 	var flagForce bool
 	var flagVerbose bool
-	env := os.Getenv("MICROBUS_CODEGEN")
-	if env == "" {
-		env = os.Getenv("CODEGEN")
+	envVal := env.Get("MICROBUS_CODEGEN")
+	if envVal == "" {
+		envVal = env.Get("CODEGEN")
 	}
 	flags := flag.NewFlagSet("", flag.ContinueOnError)
 	flags.BoolVar(&flagForce, "f", false, "Force processing even if no change detected")
 	flags.BoolVar(&flagVerbose, "v", false, "Verbose output")
-	_ = flags.Parse(strings.Split(env, " "))
+	_ = flags.Parse(strings.Split(envVal, " "))
 
 	// Run generator
 	gen := NewGenerator()

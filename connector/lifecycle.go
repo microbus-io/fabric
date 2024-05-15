@@ -9,13 +9,13 @@ package connector
 
 import (
 	"context"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/microbus-io/fabric/dlru"
+	"github.com/microbus-io/fabric/env"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
@@ -60,7 +60,7 @@ func (c *Connector) Startup() (err error) {
 
 	// Determine the communication plane
 	if c.plane == "" {
-		if plane := os.Getenv("MICROBUS_PLANE"); plane != "" {
+		if plane := env.Get("MICROBUS_PLANE"); plane != "" {
 			err := c.SetPlane(plane)
 			if err != nil {
 				return errors.Trace(err)
@@ -73,7 +73,7 @@ func (c *Connector) Startup() (err error) {
 
 	// Identify the environment deployment
 	if c.deployment == "" {
-		if deployment := os.Getenv("MICROBUS_DEPLOYMENT"); deployment != "" {
+		if deployment := env.Get("MICROBUS_DEPLOYMENT"); deployment != "" {
 			err := c.SetDeployment(deployment)
 			if err != nil {
 				return errors.Trace(err)
@@ -81,7 +81,7 @@ func (c *Connector) Startup() (err error) {
 		}
 		if c.deployment == "" {
 			c.deployment = LOCAL
-			if nats := os.Getenv("MICROBUS_NATS"); nats != "" {
+			if nats := env.Get("MICROBUS_NATS"); nats != "" {
 				if !strings.Contains(nats, "/127.0.0.1:") &&
 					!strings.Contains(nats, "/0.0.0.0:") &&
 					!strings.Contains(nats, "/localhost:") {

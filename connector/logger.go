@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/microbus-io/fabric/env"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"go.uber.org/zap"
@@ -143,7 +144,7 @@ func (c *Connector) initLogger() (err error) {
 		return nil
 	}
 
-	if debug := os.Getenv("MICROBUS_LOG_DEBUG"); debug != "" {
+	if debug := env.Get("MICROBUS_LOG_DEBUG"); debug != "" {
 		c.logDebug = true
 	}
 

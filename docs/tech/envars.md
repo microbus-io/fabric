@@ -12,7 +12,7 @@ Before connecting to NATS, a microservice can't communicate with other microserv
 
 ## Deployment
 
-`Microbus` recognizes three deployment environments:
+`Microbus` recognizes four deployment environments:
 
 * `PROD` for production deployments
 * `LAB` for fully-functional non-production deployments such as dev integration, testing, staging, etc.
