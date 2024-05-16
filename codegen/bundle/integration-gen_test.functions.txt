@@ -17,22 +17,20 @@ func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.OutputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
-	tc._t.Run(tc._testName, func({{ $t }} *testing.T) {
-		{{- if .Signature.OutputArgs }}
-		if assert.NoError({{ $t }}, tc.err) {
-			{{- range .Signature.OutputArgs }}
-			{{- if eq .Type "time.Time" }}
-			assert.True({{ $t }}, {{ .Name }}.Equal(tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, tc.{{ .Name }})
-			{{- else }}
-			assert.Equal({{ $t }}, {{ .Name }}, tc.{{ .Name }})
-			{{- end}}{{ end }}
-		}
+func (_tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.OutputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
+	{{- if .Signature.OutputArgs }}
+	if assert.NoError(_tc._t, _tc.err) {
+		{{- range .Signature.OutputArgs }}
+		{{- if eq .Type "time.Time" }}
+		assert.True(_tc._t, {{ .Name }}.Equal(_tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, _tc.{{ .Name }})
 		{{- else }}
-		assert.NoError(t, tc.err)
-		{{- end}}
-	})
-	return tc
+		assert.Equal(_tc._t, {{ .Name }}, _tc.{{ .Name }})
+		{{- end}}{{ end }}
+	}
+	{{- else }}
+	assert.NoError(_tc._t, _tc.err)
+	{{- end}}
+	return _tc
 }
 
 // Error asserts an error.

@@ -54,11 +54,14 @@ func NewMock() *Mock {
 	return intermediate.NewMock(Version)
 }
 
-// Config initializers
-var (
-	_ int
-	// Greeting initializes the Greeting config property of the microservice
-	Greeting = intermediate.Greeting
-	// Repeat initializes the Repeat config property of the microservice
-	Repeat = intermediate.Repeat
-)
+/*
+Init enables a single-statement pattern for initializing the microservice.
+
+	svc.Init(func(svc Service) {
+		svc.SetGreeting("Hello")
+	})
+*/
+func (svc *Service) Init(initializer func(svc *Service)) *Service {
+	initializer(svc)
+	return svc
+}

@@ -62,16 +62,15 @@ func Initialize() error {
 	})
 
 	// Include all downstream microservices in the testing app
-	// Use .With(...) to initialize with appropriate config values
 	App.Include(
-		Svc.With(
-			TimeBudget(time.Second*2),
-			Ports("4040,4443"),
-			AllowedOrigins("allowed.origin"),
-			PortMappings("4040:*->*, 4443:*->443"),
-			Middleware("https://middleware.host/serve"),
-			ServerLanguages("en,fr,es-ar"),
-		),
+		Svc.Init(func(svc *Service) {
+			svc.SetTimeBudget(time.Second * 2)
+			svc.SetPorts("4040,4443")
+			svc.SetAllowedOrigins("allowed.origin")
+			svc.SetPortMappings("4040:*->*, 4443:*->443")
+			svc.SetMiddleware("https://middleware.host/serve")
+			svc.SetServerLanguages("en,fr,es-ar")
+		}),
 		middleware,
 	)
 
@@ -79,8 +78,7 @@ func Initialize() error {
 	if err != nil {
 		return err
 	}
-
-	// You may call any of the microservices after the app is started
+	// All microservices are now running
 
 	return nil
 }
@@ -127,8 +125,8 @@ func TestHttpingress_Ports(t *testing.T) {
 func TestHttpingress_RequestMemoryLimit(t *testing.T) {
 	// No parallel
 	memLimit := Svc.RequestMemoryLimit()
-	Svc.With(RequestMemoryLimit(1))
-	defer Svc.With(RequestMemoryLimit(memLimit))
+	Svc.SetRequestMemoryLimit(1)
+	defer Svc.SetRequestMemoryLimit(memLimit)
 
 	entered := make(chan bool)
 	done := make(chan bool)

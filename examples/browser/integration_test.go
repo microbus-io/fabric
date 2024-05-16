@@ -40,7 +40,6 @@ func Initialize() (err error) {
 	}
 
 	// Include all downstream microservices in the testing app
-	// Use .With(...) to initialize with appropriate config values
 	App.Include(
 		Svc,
 		mockEgress,
@@ -50,8 +49,7 @@ func Initialize() (err error) {
 	if err != nil {
 		return err
 	}
-
-	// You may call any of the microservices after the app is started
+	// All microservices are now running
 
 	return nil
 }

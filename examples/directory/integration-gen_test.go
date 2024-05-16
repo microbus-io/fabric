@@ -132,13 +132,11 @@ func (tc *CreateTestCase) Name(testName string) *CreateTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *CreateTestCase) Expect(created *directoryapi.Person) *CreateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, created, tc.created)
-		}
-	})
-	return tc
+func (_tc *CreateTestCase) Expect(created *directoryapi.Person) *CreateTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, created, _tc.created)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -200,14 +198,12 @@ func (tc *LoadTestCase) Name(testName string) *LoadTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *LoadTestCase) Expect(person *directoryapi.Person, ok bool) *LoadTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, person, tc.person)
-			assert.Equal(t, ok, tc.ok)
-		}
-	})
-	return tc
+func (_tc *LoadTestCase) Expect(person *directoryapi.Person, ok bool) *LoadTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, person, _tc.person)
+		assert.Equal(_tc._t, ok, _tc.ok)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -268,13 +264,11 @@ func (tc *DeleteTestCase) Name(testName string) *DeleteTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *DeleteTestCase) Expect(ok bool) *DeleteTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, ok, tc.ok)
-		}
-	})
-	return tc
+func (_tc *DeleteTestCase) Expect(ok bool) *DeleteTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, ok, _tc.ok)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -336,14 +330,12 @@ func (tc *UpdateTestCase) Name(testName string) *UpdateTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *UpdateTestCase) Expect(updated *directoryapi.Person, ok bool) *UpdateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, updated, tc.updated)
-			assert.Equal(t, ok, tc.ok)
-		}
-	})
-	return tc
+func (_tc *UpdateTestCase) Expect(updated *directoryapi.Person, ok bool) *UpdateTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, updated, _tc.updated)
+		assert.Equal(_tc._t, ok, _tc.ok)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -405,14 +397,12 @@ func (tc *LoadByEmailTestCase) Name(testName string) *LoadByEmailTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *LoadByEmailTestCase) Expect(person *directoryapi.Person, ok bool) *LoadByEmailTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, person, tc.person)
-			assert.Equal(t, ok, tc.ok)
-		}
-	})
-	return tc
+func (_tc *LoadByEmailTestCase) Expect(person *directoryapi.Person, ok bool) *LoadByEmailTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, person, _tc.person)
+		assert.Equal(_tc._t, ok, _tc.ok)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -473,13 +463,11 @@ func (tc *ListTestCase) Name(testName string) *ListTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *ListTestCase) Expect(keys []directoryapi.PersonKey) *ListTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, keys, tc.keys)
-		}
-	})
-	return tc
+func (_tc *ListTestCase) Expect(keys []directoryapi.PersonKey) *ListTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, keys, _tc.keys)
+	}
+	return _tc
 }
 
 // Error asserts an error.

@@ -326,13 +326,14 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 }
 
 /*
+SetTimeBudget sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 TimeBudget specifies the timeout for handling a request, after it has been read.
 A value of 0 or less indicates no time budget.
 */
-func TimeBudget(budget time.Duration) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("TimeBudget", fmt.Sprintf("%v", budget))
-	}
+func (svc *Intermediate) SetTimeBudget(budget time.Duration) error {
+	return svc.SetConfig("TimeBudget", fmt.Sprintf("%v", budget))
 }
 
 /*
@@ -344,12 +345,13 @@ func (svc *Intermediate) Ports() (port string) {
 }
 
 /*
+SetPorts sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 Ports is a comma-separated list of HTTP ports on which to listen for requests.
 */
-func Ports(port string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("Ports", fmt.Sprintf("%v", port))
-	}
+func (svc *Intermediate) SetPorts(port string) error {
+	return svc.SetConfig("Ports", fmt.Sprintf("%v", port))
 }
 
 /*
@@ -362,12 +364,13 @@ func (svc *Intermediate) RequestMemoryLimit() (megaBytes int) {
 }
 
 /*
+SetRequestMemoryLimit sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
 */
-func RequestMemoryLimit(megaBytes int) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("RequestMemoryLimit", fmt.Sprintf("%v", megaBytes))
-	}
+func (svc *Intermediate) SetRequestMemoryLimit(megaBytes int) error {
+	return svc.SetConfig("RequestMemoryLimit", fmt.Sprintf("%v", megaBytes))
 }
 
 /*
@@ -380,13 +383,14 @@ func (svc *Intermediate) AllowedOrigins() (origins string) {
 }
 
 /*
+SetAllowedOrigins sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
 The * origin can be used to allow CORS request from all origins.
 */
-func AllowedOrigins(origins string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("AllowedOrigins", fmt.Sprintf("%v", origins))
-	}
+func (svc *Intermediate) SetAllowedOrigins(origins string) error {
+	return svc.SetConfig("AllowedOrigins", fmt.Sprintf("%v", origins))
 }
 
 /*
@@ -405,6 +409,9 @@ func (svc *Intermediate) PortMappings() (mappings string) {
 }
 
 /*
+SetPortMappings sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
 HTTP port, y is the requested NATS port, and z is the port to serve.
 An HTTP request https://ingresshost:x/servicehost:y/path is mapped to internal NATS
@@ -414,10 +421,8 @@ port y without change. Specific rules take precedence over * rules.
 The default mapping grants access to all internal ports via HTTP port 8080 but restricts
 HTTP ports 443 and 80 to only internal port 443.
 */
-func PortMappings(mappings string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("PortMappings", fmt.Sprintf("%v", mappings))
-	}
+func (svc *Intermediate) SetPortMappings(mappings string) error {
+	return svc.SetConfig("PortMappings", fmt.Sprintf("%v", mappings))
 }
 
 /*
@@ -430,12 +435,13 @@ func (svc *Intermediate) ReadTimeout() (timeout time.Duration) {
 }
 
 /*
+SetReadTimeout sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 ReadTimeout specifies the timeout for fully reading a request.
 */
-func ReadTimeout(timeout time.Duration) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("ReadTimeout", fmt.Sprintf("%v", timeout))
-	}
+func (svc *Intermediate) SetReadTimeout(timeout time.Duration) error {
+	return svc.SetConfig("ReadTimeout", fmt.Sprintf("%v", timeout))
 }
 
 /*
@@ -448,12 +454,13 @@ func (svc *Intermediate) WriteTimeout() (timeout time.Duration) {
 }
 
 /*
+SetWriteTimeout sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 WriteTimeout specifies the timeout for fully writing the response to a request.
 */
-func WriteTimeout(timeout time.Duration) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("WriteTimeout", fmt.Sprintf("%v", timeout))
-	}
+func (svc *Intermediate) SetWriteTimeout(timeout time.Duration) error {
+	return svc.SetConfig("WriteTimeout", fmt.Sprintf("%v", timeout))
 }
 
 /*
@@ -466,12 +473,13 @@ func (svc *Intermediate) ReadHeaderTimeout() (timeout time.Duration) {
 }
 
 /*
+SetReadHeaderTimeout sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
 */
-func ReadHeaderTimeout(timeout time.Duration) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))
-	}
+func (svc *Intermediate) SetReadHeaderTimeout(timeout time.Duration) error {
+	return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))
 }
 
 /*
@@ -485,14 +493,15 @@ func (svc *Intermediate) Middleware() (viaURL string) {
 }
 
 /*
+SetMiddleware sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 Middleware defines a microservice to delegate all requests to.
 The URL of the middleware must be fully qualified, for example,
 "https://middle.ware/serve" or "https://middle.ware:123".
 */
-func Middleware(viaURL string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("Middleware", fmt.Sprintf("%v", viaURL))
-	}
+func (svc *Intermediate) SetMiddleware(viaURL string) error {
+	return svc.SetConfig("Middleware", fmt.Sprintf("%v", viaURL))
 }
 
 /*
@@ -505,13 +514,14 @@ func (svc *Intermediate) ServerLanguages() (languages string) {
 }
 
 /*
+SetServerLanguages sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 ServerLanguages is a comma-separated list of languages that the server supports.
 This list is matched against the Accept-Language header of the request.
 */
-func ServerLanguages(languages string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("ServerLanguages", fmt.Sprintf("%v", languages))
-	}
+func (svc *Intermediate) SetServerLanguages(languages string) error {
+	return svc.SetConfig("ServerLanguages", fmt.Sprintf("%v", languages))
 }
 
 /*
@@ -525,12 +535,13 @@ func (svc *Intermediate) BlockedPaths() (blockedPaths string) {
 }
 
 /*
+SetBlockedPaths sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
 Paths should not include any arguments.
 Extensions are specified with "*.ext".
 */
-func BlockedPaths(blockedPaths string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("BlockedPaths", fmt.Sprintf("%v", blockedPaths))
-	}
+func (svc *Intermediate) SetBlockedPaths(blockedPaths string) error {
+	return svc.SetConfig("BlockedPaths", fmt.Sprintf("%v", blockedPaths))
 }

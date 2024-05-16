@@ -70,7 +70,6 @@ type StarterStopper interface {
 	SetHostName(hostName string) error
 	SetDeployment(deployment string) error
 	SetPlane(plane string) error
-	With(options ...func(Service) error) Service
 
 	SetOnStartup(handler StartupHandler) error
 	SetOnShutdown(handler ShutdownHandler) error

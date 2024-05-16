@@ -255,12 +255,13 @@ func (svc *Intermediate) SQL() (dsn string) {
 }
 
 /*
+SetSQL sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 SQL is the connection string to the database.
 */
-func SQL(dsn string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("SQL", fmt.Sprintf("%v", dsn))
-	}
+func (svc *Intermediate) SetSQL(dsn string) error {
+	return svc.SetConfig("SQL", fmt.Sprintf("%v", dsn))
 }
 
 // doCreate handles marshaling for the Create function.

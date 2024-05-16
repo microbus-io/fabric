@@ -132,13 +132,11 @@ func (tc *RegisteredTestCase) Name(testName string) *RegisteredTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *RegisteredTestCase) Expect(emails []string) *RegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, emails, tc.emails)
-		}
-	})
-	return tc
+func (_tc *RegisteredTestCase) Expect(emails []string) *RegisteredTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, emails, _tc.emails)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -199,13 +197,11 @@ func (tc *OnAllowRegisterTestCase) Name(testName string) *OnAllowRegisterTestCas
 }
 
 // Expect asserts no error and exact return values.
-func (tc *OnAllowRegisterTestCase) Expect(allow bool) *OnAllowRegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, allow, tc.allow)
-		}
-	})
-	return tc
+func (_tc *OnAllowRegisterTestCase) Expect(allow bool) *OnAllowRegisterTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, allow, _tc.allow)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -265,11 +261,9 @@ func (tc *OnRegisteredTestCase) Name(testName string) *OnRegisteredTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *OnRegisteredTestCase) Expect() *OnRegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
-	return tc
+func (_tc *OnRegisteredTestCase) Expect() *OnRegisteredTestCase {
+	assert.NoError(_tc._t, _tc.err)
+	return _tc
 }
 
 // Error asserts an error.

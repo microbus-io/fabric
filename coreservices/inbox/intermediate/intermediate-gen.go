@@ -208,12 +208,13 @@ func (svc *Intermediate) Port() (port int) {
 }
 
 /*
+SetPort sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 Port is the TCP port to listen to.
 */
-func Port(port int) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("Port", fmt.Sprintf("%v", port))
-	}
+func (svc *Intermediate) SetPort(port int) error {
+	return svc.SetConfig("Port", fmt.Sprintf("%v", port))
 }
 
 /*
@@ -226,12 +227,13 @@ func (svc *Intermediate) Enabled() (enabled bool) {
 }
 
 /*
+SetEnabled sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 Enabled determines whether the email server is started.
 */
-func Enabled(enabled bool) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("Enabled", fmt.Sprintf("%v", enabled))
-	}
+func (svc *Intermediate) SetEnabled(enabled bool) error {
+	return svc.SetConfig("Enabled", fmt.Sprintf("%v", enabled))
 }
 
 /*
@@ -245,13 +247,14 @@ func (svc *Intermediate) MaxSize() (mb int) {
 }
 
 /*
+SetMaxSize sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 MaxSize is the maximum size of messages that will be accepted, in megabytes.
 Defaults to 10 megabytes.
 */
-func MaxSize(mb int) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("MaxSize", fmt.Sprintf("%v", mb))
-	}
+func (svc *Intermediate) SetMaxSize(mb int) error {
+	return svc.SetConfig("MaxSize", fmt.Sprintf("%v", mb))
 }
 
 /*
@@ -265,13 +268,14 @@ func (svc *Intermediate) MaxClients() (clients int) {
 }
 
 /*
+SetMaxClients sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 MaxClients controls how many client connection can be opened in parallel.
 Defaults to 128.
 */
-func MaxClients(clients int) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("MaxClients", fmt.Sprintf("%v", clients))
-	}
+func (svc *Intermediate) SetMaxClients(clients int) error {
+	return svc.SetConfig("MaxClients", fmt.Sprintf("%v", clients))
 }
 
 /*
@@ -285,11 +289,12 @@ func (svc *Intermediate) Workers() (clients int) {
 }
 
 /*
+SetWorkers sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 Workers controls how many workers process incoming mail.
 Defaults to 8.
 */
-func Workers(clients int) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("Workers", fmt.Sprintf("%v", clients))
-	}
+func (svc *Intermediate) SetWorkers(clients int) error {
+	return svc.SetConfig("Workers", fmt.Sprintf("%v", clients))
 }

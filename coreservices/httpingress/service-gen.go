@@ -54,29 +54,14 @@ func NewMock() *Mock {
 	return intermediate.NewMock(Version)
 }
 
-// Config initializers
-var (
-	_ int
-	// TimeBudget initializes the TimeBudget config property of the microservice
-	TimeBudget = intermediate.TimeBudget
-	// Ports initializes the Ports config property of the microservice
-	Ports = intermediate.Ports
-	// RequestMemoryLimit initializes the RequestMemoryLimit config property of the microservice
-	RequestMemoryLimit = intermediate.RequestMemoryLimit
-	// AllowedOrigins initializes the AllowedOrigins config property of the microservice
-	AllowedOrigins = intermediate.AllowedOrigins
-	// PortMappings initializes the PortMappings config property of the microservice
-	PortMappings = intermediate.PortMappings
-	// ReadTimeout initializes the ReadTimeout config property of the microservice
-	ReadTimeout = intermediate.ReadTimeout
-	// WriteTimeout initializes the WriteTimeout config property of the microservice
-	WriteTimeout = intermediate.WriteTimeout
-	// ReadHeaderTimeout initializes the ReadHeaderTimeout config property of the microservice
-	ReadHeaderTimeout = intermediate.ReadHeaderTimeout
-	// Middleware initializes the Middleware config property of the microservice
-	Middleware = intermediate.Middleware
-	// ServerLanguages initializes the ServerLanguages config property of the microservice
-	ServerLanguages = intermediate.ServerLanguages
-	// BlockedPaths initializes the BlockedPaths config property of the microservice
-	BlockedPaths = intermediate.BlockedPaths
-)
+/*
+Init enables a single-statement pattern for initializing the microservice.
+
+	svc.Init(func(svc Service) {
+		svc.SetGreeting("Hello")
+	})
+*/
+func (svc *Service) Init(initializer func(svc *Service)) *Service {
+	initializer(svc)
+	return svc
+}

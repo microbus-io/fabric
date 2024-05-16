@@ -36,8 +36,7 @@ func Initialize() error {
 	if err != nil {
 		return err
 	}
-
-	// You may call any of the microservices after the app is started
+// All microservices are now running
 
 	return nil
 }
@@ -205,8 +204,7 @@ func Initialize() error {
 	if err != nil {
 		return err
 	}
-
-	// You may call any of the microservices after the app is started
+// All microservices are now running
 
 	return nil
 }

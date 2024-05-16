@@ -15,28 +15,23 @@ var (
 )
 
 // Initialize starts up the testing app.
-func Initialize() (err error) {
-	// TO{{/**/}}DO: Initialize testing app
-	
+func Initialize() (err error) {	
 	// Include all downstream microservices in the testing app
-	// Use .With(...) to initialize with appropriate config values
 	App.Include(
-		Svc
-		{{- if .Configs }}.With(
-		{{- range .Configs }}
-		// {{ .Name }}({{ with index .Signature.OutputArgs 0 }}{{ .Name }}{{ end }}),
-		{{- end}}
-		){{ end -}}
-		,
-		// downstream.NewService().With(),
+		Svc.Init(func(svc *Service) {
+			// Initialize the microservice
+			{{- range .Configs }}
+			// svc.Set{{ .Name }}({{ with index .Signature.OutputArgs 0 }}{{ .Name }}{{ end }})
+			{{- end}}
+		}),
+		// downstream.NewService().Init(func(svc *downstream.Service) {}),
 	)
 
 	err = App.Startup()
 	if err != nil {
 		return err
 	}
-
-	// You may call any of the microservices after the app is started
+	// All microservices are now running
 
 	return nil
 }

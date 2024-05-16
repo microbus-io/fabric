@@ -255,12 +255,13 @@ func (svc *Intermediate) Greeting() (greeting string) {
 }
 
 /*
+SetGreeting sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 Greeting to use.
 */
-func Greeting(greeting string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
-	}
+func (svc *Intermediate) SetGreeting(greeting string) error {
+	return svc.SetConfig("Greeting", fmt.Sprintf("%v", greeting))
 }
 
 /*
@@ -273,10 +274,11 @@ func (svc *Intermediate) Repeat() (count int) {
 }
 
 /*
+SetRepeat sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 Repeat indicates how many times to display the greeting.
 */
-func Repeat(count int) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("Repeat", fmt.Sprintf("%v", count))
-	}
+func (svc *Intermediate) SetRepeat(count int) error {
+	return svc.SetConfig("Repeat", fmt.Sprintf("%v", count))
 }

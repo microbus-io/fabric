@@ -54,9 +54,14 @@ func NewMock() *Mock {
 	return intermediate.NewMock(Version)
 }
 
-// Config initializers
-var (
-	_ int
-	// SecretKey initializes the SecretKey config property of the microservice
-	SecretKey = intermediate.SecretKey
-)
+/*
+Init enables a single-statement pattern for initializing the microservice.
+
+	svc.Init(func(svc Service) {
+		svc.SetGreeting("Hello")
+	})
+*/
+func (svc *Service) Init(initializer func(svc *Service)) *Service {
+	initializer(svc)
+	return svc
+}

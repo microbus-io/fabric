@@ -209,105 +209,87 @@ func (tc *HelloTestCase) Name(testName string) *HelloTestCase {
 
 // StatusOK asserts no error and a status code 200.
 func (tc *HelloTestCase) StatusOK() *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
 	return tc
 }
 
 // StatusCode asserts no error and a status code.
 func (tc *HelloTestCase) StatusCode(statusCode int) *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, statusCode)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
 	return tc
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
 func (tc *HelloTestCase) BodyContains(bodyContains any) *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyContains.(type) {
-			case []byte:
-				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
-			case string:
-				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyContains.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+		case string:
+			assert.True(tc.t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.True(tc.t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
 func (tc *HelloTestCase) BodyNotContains(bodyNotContains any) *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyNotContains.(type) {
-			case []byte:
-				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
-			case string:
-				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyNotContains.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+		case string:
+			assert.False(tc.t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.False(tc.t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
 func (tc *HelloTestCase) HeaderContains(headerName string, valueContains string) *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+	}
 	return tc
 }
 
 // Error asserts an error.
 func (tc *HelloTestCase) Error(errContains string) *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *HelloTestCase) ErrorCode(statusCode int) *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *HelloTestCase) NoError() *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *HelloTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *HelloTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.res, tc.err)
-	})
+	asserter(tc.t, tc.res, tc.err)
 	return tc
 }
 
@@ -365,105 +347,87 @@ func (tc *EchoTestCase) Name(testName string) *EchoTestCase {
 
 // StatusOK asserts no error and a status code 200.
 func (tc *EchoTestCase) StatusOK() *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
 	return tc
 }
 
 // StatusCode asserts no error and a status code.
 func (tc *EchoTestCase) StatusCode(statusCode int) *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, statusCode)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
 	return tc
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
 func (tc *EchoTestCase) BodyContains(bodyContains any) *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyContains.(type) {
-			case []byte:
-				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
-			case string:
-				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyContains.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+		case string:
+			assert.True(tc.t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.True(tc.t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
 func (tc *EchoTestCase) BodyNotContains(bodyNotContains any) *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyNotContains.(type) {
-			case []byte:
-				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
-			case string:
-				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyNotContains.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+		case string:
+			assert.False(tc.t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.False(tc.t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
 func (tc *EchoTestCase) HeaderContains(headerName string, valueContains string) *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+	}
 	return tc
 }
 
 // Error asserts an error.
 func (tc *EchoTestCase) Error(errContains string) *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *EchoTestCase) ErrorCode(statusCode int) *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *EchoTestCase) NoError() *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *EchoTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *EchoTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.res, tc.err)
-	})
+	asserter(tc.t, tc.res, tc.err)
 	return tc
 }
 
@@ -521,105 +485,87 @@ func (tc *PingTestCase) Name(testName string) *PingTestCase {
 
 // StatusOK asserts no error and a status code 200.
 func (tc *PingTestCase) StatusOK() *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
 	return tc
 }
 
 // StatusCode asserts no error and a status code.
 func (tc *PingTestCase) StatusCode(statusCode int) *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, statusCode)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
 	return tc
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
 func (tc *PingTestCase) BodyContains(bodyContains any) *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyContains.(type) {
-			case []byte:
-				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
-			case string:
-				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyContains.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+		case string:
+			assert.True(tc.t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.True(tc.t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
 func (tc *PingTestCase) BodyNotContains(bodyNotContains any) *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyNotContains.(type) {
-			case []byte:
-				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
-			case string:
-				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyNotContains.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+		case string:
+			assert.False(tc.t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.False(tc.t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
 func (tc *PingTestCase) HeaderContains(headerName string, valueContains string) *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+	}
 	return tc
 }
 
 // Error asserts an error.
 func (tc *PingTestCase) Error(errContains string) *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *PingTestCase) ErrorCode(statusCode int) *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *PingTestCase) NoError() *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *PingTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *PingTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.res, tc.err)
-	})
+	asserter(tc.t, tc.res, tc.err)
 	return tc
 }
 
@@ -677,105 +623,87 @@ func (tc *CalculatorTestCase) Name(testName string) *CalculatorTestCase {
 
 // StatusOK asserts no error and a status code 200.
 func (tc *CalculatorTestCase) StatusOK() *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
 	return tc
 }
 
 // StatusCode asserts no error and a status code.
 func (tc *CalculatorTestCase) StatusCode(statusCode int) *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, statusCode)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
 	return tc
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
 func (tc *CalculatorTestCase) BodyContains(bodyContains any) *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyContains.(type) {
-			case []byte:
-				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
-			case string:
-				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyContains.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+		case string:
+			assert.True(tc.t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.True(tc.t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
 func (tc *CalculatorTestCase) BodyNotContains(bodyNotContains any) *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyNotContains.(type) {
-			case []byte:
-				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
-			case string:
-				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyNotContains.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+		case string:
+			assert.False(tc.t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.False(tc.t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
 func (tc *CalculatorTestCase) HeaderContains(headerName string, valueContains string) *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+	}
 	return tc
 }
 
 // Error asserts an error.
 func (tc *CalculatorTestCase) Error(errContains string) *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *CalculatorTestCase) ErrorCode(statusCode int) *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *CalculatorTestCase) NoError() *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *CalculatorTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *CalculatorTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.res, tc.err)
-	})
+	asserter(tc.t, tc.res, tc.err)
 	return tc
 }
 
@@ -833,105 +761,87 @@ func (tc *BusJPEGTestCase) Name(testName string) *BusJPEGTestCase {
 
 // StatusOK asserts no error and a status code 200.
 func (tc *BusJPEGTestCase) StatusOK() *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
 	return tc
 }
 
 // StatusCode asserts no error and a status code.
 func (tc *BusJPEGTestCase) StatusCode(statusCode int) *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, statusCode)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
 	return tc
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
 func (tc *BusJPEGTestCase) BodyContains(bodyContains any) *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyContains.(type) {
-			case []byte:
-				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
-			case string:
-				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyContains.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+		case string:
+			assert.True(tc.t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.True(tc.t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
 func (tc *BusJPEGTestCase) BodyNotContains(bodyNotContains any) *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyNotContains.(type) {
-			case []byte:
-				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
-			case string:
-				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyNotContains.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+		case string:
+			assert.False(tc.t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.False(tc.t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
 func (tc *BusJPEGTestCase) HeaderContains(headerName string, valueContains string) *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+	}
 	return tc
 }
 
 // Error asserts an error.
 func (tc *BusJPEGTestCase) Error(errContains string) *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *BusJPEGTestCase) ErrorCode(statusCode int) *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *BusJPEGTestCase) NoError() *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *BusJPEGTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *BusJPEGTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.res, tc.err)
-	})
+	asserter(tc.t, tc.res, tc.err)
 	return tc
 }
 
@@ -989,105 +899,87 @@ func (tc *LocalizationTestCase) Name(testName string) *LocalizationTestCase {
 
 // StatusOK asserts no error and a status code 200.
 func (tc *LocalizationTestCase) StatusOK() *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, http.StatusOK)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
 	return tc
 }
 
 // StatusCode asserts no error and a status code.
 func (tc *LocalizationTestCase) StatusCode(statusCode int) *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, tc.res.StatusCode, statusCode)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
 	return tc
 }
 
 // BodyContains asserts no error and that the response contains a string or byte array.
 func (tc *LocalizationTestCase) BodyContains(bodyContains any) *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyContains.(type) {
-			case []byte:
-				assert.True(t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
-			case string:
-				assert.True(t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.True(t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyContains.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+		case string:
+			assert.True(tc.t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.True(tc.t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // BodyNotContains asserts no error and that the response does not contain a string or byte array.
 func (tc *LocalizationTestCase) BodyNotContains(bodyNotContains any) *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			body := tc.res.Body.(*httpx.BodyReader).Bytes()
-			switch v := bodyNotContains.(type) {
-			case []byte:
-				assert.False(t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
-			case string:
-				assert.False(t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
-			default:
-				vv := fmt.Sprintf("%v", v)
-				assert.False(t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
-			}
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := bodyNotContains.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+		case string:
+			assert.False(tc.t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.False(tc.t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
 		}
-	})
+	}
 	return tc
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
 func (tc *LocalizationTestCase) HeaderContains(headerName string, valueContains string) *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.True(t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
-		}
-	})
+	if assert.NoError(tc.t, tc.err) {
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+	}
 	return tc
 }
 
 // Error asserts an error.
 func (tc *LocalizationTestCase) Error(errContains string) *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *LocalizationTestCase) ErrorCode(statusCode int) *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *LocalizationTestCase) NoError() *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *LocalizationTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *LocalizationTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.res, tc.err)
-	})
+	asserter(tc.t, tc.res, tc.err)
 	return tc
 }
 
@@ -1144,37 +1036,29 @@ func (tc *TickTockTestCase) Name(testName string) *TickTockTestCase {
 
 // Error asserts an error.
 func (tc *TickTockTestCase) Error(errContains string) *TickTockTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *TickTockTestCase) ErrorCode(statusCode int) *TickTockTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *TickTockTestCase) NoError() *TickTockTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *TickTockTestCase) Assert(asserter func(t *testing.T, err error)) *TickTockTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 

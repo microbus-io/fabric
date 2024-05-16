@@ -132,37 +132,29 @@ func (tc *OnChangedPortsTestCase) Name(testName string) *OnChangedPortsTestCase 
 
 // Error asserts an error.
 func (tc *OnChangedPortsTestCase) Error(errContains string) *OnChangedPortsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedPortsTestCase) ErrorCode(statusCode int) *OnChangedPortsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedPortsTestCase) NoError() *OnChangedPortsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedPortsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedPortsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 
@@ -195,37 +187,29 @@ func (tc *OnChangedAllowedOriginsTestCase) Name(testName string) *OnChangedAllow
 
 // Error asserts an error.
 func (tc *OnChangedAllowedOriginsTestCase) Error(errContains string) *OnChangedAllowedOriginsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedAllowedOriginsTestCase) ErrorCode(statusCode int) *OnChangedAllowedOriginsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedAllowedOriginsTestCase) NoError() *OnChangedAllowedOriginsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedAllowedOriginsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedAllowedOriginsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 
@@ -258,37 +242,29 @@ func (tc *OnChangedPortMappingsTestCase) Name(testName string) *OnChangedPortMap
 
 // Error asserts an error.
 func (tc *OnChangedPortMappingsTestCase) Error(errContains string) *OnChangedPortMappingsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedPortMappingsTestCase) ErrorCode(statusCode int) *OnChangedPortMappingsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedPortMappingsTestCase) NoError() *OnChangedPortMappingsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedPortMappingsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedPortMappingsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 
@@ -321,37 +297,29 @@ func (tc *OnChangedReadTimeoutTestCase) Name(testName string) *OnChangedReadTime
 
 // Error asserts an error.
 func (tc *OnChangedReadTimeoutTestCase) Error(errContains string) *OnChangedReadTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedReadTimeoutTestCase) ErrorCode(statusCode int) *OnChangedReadTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedReadTimeoutTestCase) NoError() *OnChangedReadTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedReadTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedReadTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 
@@ -384,37 +352,29 @@ func (tc *OnChangedWriteTimeoutTestCase) Name(testName string) *OnChangedWriteTi
 
 // Error asserts an error.
 func (tc *OnChangedWriteTimeoutTestCase) Error(errContains string) *OnChangedWriteTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedWriteTimeoutTestCase) ErrorCode(statusCode int) *OnChangedWriteTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedWriteTimeoutTestCase) NoError() *OnChangedWriteTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedWriteTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedWriteTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 
@@ -447,37 +407,29 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) Name(testName string) *OnChangedRe
 
 // Error asserts an error.
 func (tc *OnChangedReadHeaderTimeoutTestCase) Error(errContains string) *OnChangedReadHeaderTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedReadHeaderTimeoutTestCase) ErrorCode(statusCode int) *OnChangedReadHeaderTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedReadHeaderTimeoutTestCase) NoError() *OnChangedReadHeaderTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedReadHeaderTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedReadHeaderTimeoutTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 
@@ -510,37 +462,29 @@ func (tc *OnChangedServerLanguagesTestCase) Name(testName string) *OnChangedServ
 
 // Error asserts an error.
 func (tc *OnChangedServerLanguagesTestCase) Error(errContains string) *OnChangedServerLanguagesTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedServerLanguagesTestCase) ErrorCode(statusCode int) *OnChangedServerLanguagesTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedServerLanguagesTestCase) NoError() *OnChangedServerLanguagesTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedServerLanguagesTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedServerLanguagesTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 
@@ -573,37 +517,29 @@ func (tc *OnChangedBlockedPathsTestCase) Name(testName string) *OnChangedBlocked
 
 // Error asserts an error.
 func (tc *OnChangedBlockedPathsTestCase) Error(errContains string) *OnChangedBlockedPathsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedBlockedPathsTestCase) ErrorCode(statusCode int) *OnChangedBlockedPathsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedBlockedPathsTestCase) NoError() *OnChangedBlockedPathsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChangedBlockedPathsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedBlockedPathsTestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 

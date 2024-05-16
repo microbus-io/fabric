@@ -69,8 +69,8 @@ func (c *Connector) Config(name string) (value string) {
 }
 
 // SetConfig sets the value of a previously defined config property.
-// This value will be overridden on the next fetch of configs from the configurator core microservice.
-// Fetching configs is disabled in the TESTINGAPP environment.
+// This value will be overridden on the next fetch of configs from the configurator core microservice,
+// which is the reason it is disabled in the TESTINGAPP environment.
 // Config property names are case-insensitive.
 func (c *Connector) SetConfig(name string, value any) error {
 	c.configLock.Lock()
@@ -108,8 +108,8 @@ func (c *Connector) SetConfig(name string, value any) error {
 }
 
 // ResetConfig resets the value of a previously defined config property to its default value.
-// This value will be overridden on the next fetch of configs from the configurator core microservice.
-// Fetching configs is disabled in the TESTINGAPP environment.
+// This value will be overridden on the next fetch of configs from the configurator core microservice,
+// which is the reason it is disabled in the TESTINGAPP environment.
 // Config property names are case-insensitive.
 func (c *Connector) ResetConfig(name string) error {
 	c.configLock.Lock()
@@ -118,28 +118,8 @@ func (c *Connector) ResetConfig(name string) error {
 	if !ok {
 		return nil
 	}
-	origValue := config.Value
-	config.Value = config.DefaultValue
-
-	// Call the callback function, if provided
-	if c.started && config.Value != origValue {
-		for i := 0; i < len(c.onConfigChanged); i++ {
-			err := c.doCallback(
-				c.lifetimeCtx,
-				"onconfigchanged",
-				func(ctx context.Context) error {
-					f := func(n string) bool {
-						return strings.EqualFold(n, name)
-					}
-					return c.onConfigChanged[i](ctx, f)
-				},
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-		}
-	}
-	return nil
+	err := c.SetConfig(name, config.DefaultValue)
+	return errors.Trace(err)
 }
 
 // logConfigs prints the config properties to the log.
@@ -263,15 +243,4 @@ func printableConfigValue(value string, secret bool) string {
 		value = string([]rune(value)[:40]) + "..."
 	}
 	return value
-}
-
-// With applies options to a connector during initialization and testing.
-func (c *Connector) With(options ...func(service.Service) error) service.Service {
-	for _, opt := range options {
-		err := opt(c)
-		if err != nil {
-			c.captureInitErr(errors.Trace(err))
-		}
-	}
-	return c
 }

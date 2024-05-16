@@ -30,7 +30,6 @@ type Application struct {
 	mux             sync.Mutex
 	startupTimeout  time.Duration
 	shutdownTimeout time.Duration
-	withInits       []func(service.Service) error
 }
 
 // Service is a microservices that can be managed by the application.
@@ -113,9 +112,6 @@ func (app *Application) Startup() error {
 
 	// Start each of the groups sequentially
 	for _, g := range app.groups {
-		for _, s := range g {
-			s.With(app.withInits...)
-		}
 		err := g.Startup(ctx)
 		if err != nil {
 			return err
@@ -169,10 +165,4 @@ func (app *Application) Run() error {
 		return errors.Trace(err)
 	}
 	return nil
-}
-
-// With adds initializers that are called on each of the included services
-// before they started up.
-func (app *Application) With(inits ...func(service.Service) error) {
-	app.withInits = append(app.withInits, inits...)
 }

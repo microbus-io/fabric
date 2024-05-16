@@ -150,11 +150,12 @@ func (svc *Intermediate) SecretKey() (secretKey string) {
 }
 
 /*
+SetSecretKey sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 SecretKey must be provided with the request to collect the metrics.
 This key is required except in local development and tests.
 */
-func SecretKey(secretKey string) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("SecretKey", fmt.Sprintf("%v", secretKey))
-	}
+func (svc *Intermediate) SetSecretKey(secretKey string) error {
+	return svc.SetConfig("SecretKey", fmt.Sprintf("%v", secretKey))
 }

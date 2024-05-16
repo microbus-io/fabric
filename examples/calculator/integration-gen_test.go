@@ -135,16 +135,14 @@ func (tc *ArithmeticTestCase) Name(testName string) *ArithmeticTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *ArithmeticTestCase) Expect(xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, xEcho, tc.xEcho)
-			assert.Equal(t, opEcho, tc.opEcho)
-			assert.Equal(t, yEcho, tc.yEcho)
-			assert.Equal(t, result, tc.result)
-		}
-	})
-	return tc
+func (_tc *ArithmeticTestCase) Expect(xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, xEcho, _tc.xEcho)
+		assert.Equal(_tc._t, opEcho, _tc.opEcho)
+		assert.Equal(_tc._t, yEcho, _tc.yEcho)
+		assert.Equal(_tc._t, result, _tc.result)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -206,14 +204,12 @@ func (tc *SquareTestCase) Name(testName string) *SquareTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *SquareTestCase) Expect(xEcho int, result int) *SquareTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, xEcho, tc.xEcho)
-			assert.Equal(t, result, tc.result)
-		}
-	})
-	return tc
+func (_tc *SquareTestCase) Expect(xEcho int, result int) *SquareTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, xEcho, _tc.xEcho)
+		assert.Equal(_tc._t, result, _tc.result)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -274,13 +270,11 @@ func (tc *DistanceTestCase) Name(testName string) *DistanceTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *DistanceTestCase) Expect(d float64) *DistanceTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, d, tc.d)
-		}
-	})
-	return tc
+func (_tc *DistanceTestCase) Expect(d float64) *DistanceTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, d, _tc.d)
+	}
+	return _tc
 }
 
 // Error asserts an error.

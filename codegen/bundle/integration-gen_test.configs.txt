@@ -14,37 +14,29 @@ func (tc *OnChanged{{ .Name }}TestCase) Name(testName string) *OnChanged{{ .Name
 
 // Error asserts an error.
 func (tc *OnChanged{{ .Name }}TestCase) Error(errContains string) *OnChanged{{ .Name }}TestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChanged{{ .Name }}TestCase) ErrorCode(statusCode int) *OnChanged{{ .Name }}TestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChanged{{ .Name }}TestCase) NoError() *OnChanged{{ .Name }}TestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnChanged{{ .Name }}TestCase) Assert(asserter func(t *testing.T, err error)) *OnChanged{{ .Name }}TestCase {
-	tc.t.Run(tc.testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc.t, tc.err)
 	return tc
 }
 

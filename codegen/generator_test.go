@@ -122,7 +122,7 @@ tickers:
 		"svc.DefineConfig(",
 		"svc.impl.OnChangedConfig1",
 		") Config1() (b bool)", ") Config2() (dur time.Duration)",
-		"func Config1(b bool)", "func Config2(dur time.Duration)",
+		") SetConfig1(b bool)", ") SetConfig2(dur time.Duration)",
 	)
 	fileContains(
 		filepath.Join("resources", "embed-gen.go"),
@@ -134,10 +134,6 @@ tickers:
 		") Web1(w", ") Web2(w",
 		") Ticker1(ctx", ") Ticker2(ctx",
 		") OnChangedConfig1(ctx",
-	)
-	fileContains(
-		"service-gen.go",
-		"intermediate.Config1", "intermediate.Config2",
 	)
 	fileContains(
 		"version-gen.go",

@@ -45,13 +45,14 @@ func (svc *Intermediate) {{ .Name }}() (
 }
 
 /*
+Set{{ .Name }} sets the value of the configuration property.
+Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
+
 {{ .Description }}
 */
-func {{ .Name }}(
+func (svc *Intermediate) Set{{ .Name }}(
 	{{- with index .Signature.OutputArgs 0 }}{{ .Name }} {{ .Type }}{{ end -}}
-) (func(service.Service) error) {
-	return func(svc service.Service) error {
-		return svc.SetConfig("{{ .Name }}", fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
-	}
+) error {
+	return svc.SetConfig("{{ .Name }}", fmt.Sprintf("%v", {{ (index .Signature.OutputArgs 0).Name }}))
 }
 {{ end }}

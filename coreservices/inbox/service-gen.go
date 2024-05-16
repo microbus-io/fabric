@@ -54,17 +54,14 @@ func NewMock() *Mock {
 	return intermediate.NewMock(Version)
 }
 
-// Config initializers
-var (
-	_ int
-	// Port initializes the Port config property of the microservice
-	Port = intermediate.Port
-	// Enabled initializes the Enabled config property of the microservice
-	Enabled = intermediate.Enabled
-	// MaxSize initializes the MaxSize config property of the microservice
-	MaxSize = intermediate.MaxSize
-	// MaxClients initializes the MaxClients config property of the microservice
-	MaxClients = intermediate.MaxClients
-	// Workers initializes the Workers config property of the microservice
-	Workers = intermediate.Workers
-)
+/*
+Init enables a single-statement pattern for initializing the microservice.
+
+	svc.Init(func(svc Service) {
+		svc.SetGreeting("Hello")
+	})
+*/
+func (svc *Service) Init(initializer func(svc *Service)) *Service {
+	initializer(svc)
+	return svc
+}

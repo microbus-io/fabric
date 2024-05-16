@@ -132,13 +132,11 @@ func (tc *RegisterTestCase) Name(testName string) *RegisterTestCase {
 }
 
 // Expect asserts no error and exact return values.
-func (tc *RegisterTestCase) Expect(allowed bool) *RegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.NoError(t, tc.err) {
-			assert.Equal(t, allowed, tc.allowed)
-		}
-	})
-	return tc
+func (_tc *RegisterTestCase) Expect(allowed bool) *RegisterTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, allowed, _tc.allowed)
+	}
+	return _tc
 }
 
 // Error asserts an error.
@@ -202,24 +200,24 @@ func (tc *OnAllowRegisterTestCase) Name(testName string) *OnAllowRegisterTestCas
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
-func (tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCase {
-    tc._asserters = append(tc._asserters, func(t *testing.T) {
-        assert.Equal(t, email, tc.email)
+func (_tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCase {
+    _tc._asserters = append(_tc._asserters, func(t *testing.T) {
+        assert.Equal(t, email, _tc.email)
     })
-	return tc
+	return _tc
 }
 
 // Assert sets a custom function to assert the input args of the event sink.
-func (tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnAllowRegisterTestCase {
-	tc._asserters = append(tc._asserters, func(t *testing.T) {
-		asserter(t, tc.ctx, tc.email)
+func (_tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnAllowRegisterTestCase {
+	_tc._asserters = append(_tc._asserters, func(_t *testing.T) {
+		asserter(_tc._t, _tc.ctx, _tc.email)
     })
-	return tc
+	return _tc
 }
 
 // OnAllowRegister sets an event listener and returns a corresponding test case.
 func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCase {
-	tc := &OnAllowRegisterTestCase{
+	_tc := &OnAllowRegisterTestCase{
 		_t: t,
 		allow: allow,
 		err: err,
@@ -228,16 +226,16 @@ func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCa
 	con := connector.New(fmt.Sprintf("%s.%d", "OnAllowRegister", sequence))
 	eventsourceapi.NewHook(con).OnAllowRegister(func(ctx context.Context, email string) (allow bool, err error) {
 		eventsourceapi.NewHook(con).OnAllowRegister(nil)
-		tc.ctx = ctx
-        tc.email = email
-		for _, asserter := range tc._asserters {
-			tc._t.Run(tc._testName, asserter)
+		_tc.ctx = ctx
+        _tc.email = email
+		for _, asserter := range _tc._asserters {
+			asserter(_tc._t)
 		}
-		return tc.allow, tc.err
+		return _tc.allow, _tc.err
 	})
 	App.Include(con)
 	con.Startup()
-	return tc
+	return _tc
 }
 
 // OnRegisteredTestCase assists in asserting the sink of OnRegistered.
@@ -257,24 +255,24 @@ func (tc *OnRegisteredTestCase) Name(testName string) *OnRegisteredTestCase {
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
-func (tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
-    tc._asserters = append(tc._asserters, func(t *testing.T) {
-        assert.Equal(t, email, tc.email)
+func (_tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
+    _tc._asserters = append(_tc._asserters, func(t *testing.T) {
+        assert.Equal(t, email, _tc.email)
     })
-	return tc
+	return _tc
 }
 
 // Assert sets a custom function to assert the input args of the event sink.
-func (tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnRegisteredTestCase {
-	tc._asserters = append(tc._asserters, func(t *testing.T) {
-		asserter(t, tc.ctx, tc.email)
+func (_tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnRegisteredTestCase {
+	_tc._asserters = append(_tc._asserters, func(_t *testing.T) {
+		asserter(_tc._t, _tc.ctx, _tc.email)
     })
-	return tc
+	return _tc
 }
 
 // OnRegistered sets an event listener and returns a corresponding test case.
 func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
-	tc := &OnRegisteredTestCase{
+	_tc := &OnRegisteredTestCase{
 		_t: t,
 		err: err,
 	}
@@ -282,14 +280,14 @@ func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
 	con := connector.New(fmt.Sprintf("%s.%d", "OnRegistered", sequence))
 	eventsourceapi.NewHook(con).OnRegistered(func(ctx context.Context, email string) (err error) {
 		eventsourceapi.NewHook(con).OnRegistered(nil)
-		tc.ctx = ctx
-        tc.email = email
-		for _, asserter := range tc._asserters {
-			tc._t.Run(tc._testName, asserter)
+		_tc.ctx = ctx
+        _tc.email = email
+		for _, asserter := range _tc._asserters {
+			asserter(_tc._t)
 		}
-		return tc.err
+		return _tc.err
 	})
 	App.Include(con)
 	con.Startup()
-	return tc
+	return _tc
 }

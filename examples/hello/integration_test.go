@@ -27,30 +27,29 @@ var (
 )
 
 // Initialize starts up the testing app.
-func Initialize() error {
+func Initialize() (err error) {
 	// Include all downstream microservices in the testing app
-	// Use .With(options) to initialize with appropriate config values
 	App.Include(
-		Svc.With(
-			Greeting("Ciao"),
-			Repeat(5),
-		),
+		Svc.Init(func(svc *Service) {
+			// Initialize the microservice
+			svc.SetGreeting("Ciao")
+			svc.SetRepeat(5)
+		}),
 		calculator.NewService(),
 	)
 
-	err := App.Startup()
+	err = App.Startup()
 	if err != nil {
 		return err
 	}
-
-	// You may call any of the microservices after the app is started
+	// All microservices are now running
 
 	return nil
 }
 
 // Terminate shuts down the testing app.
-func Terminate() error {
-	err := App.Shutdown()
+func Terminate() (err error) {
+	err = App.Shutdown()
 	if err != nil {
 		return err
 	}

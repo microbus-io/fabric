@@ -31,17 +31,15 @@ var (
 // Initialize starts up the testing app.
 func Initialize() error {
 	// Include all downstream microservices in the testing app
-	// Use .With(...) to initialize with appropriate config values
 	App.Include(
-		Svc.With(),
+		Svc,
 	)
 
 	err := App.Startup()
 	if err != nil {
 		return err
 	}
-
-	// You may call any of the microservices after the app is started
+	// All microservices are now running
 
 	return nil
 }
@@ -156,10 +154,10 @@ func TestMetrics_GZip(t *testing.T) {
 func TestMetrics_SecretKey(t *testing.T) {
 	// No parallel
 	ctx := Context(t)
-	Svc.With(SecretKey("secret1234"))
+	Svc.SetSecretKey("secret1234")
 	Collect(t, ctx).
 		Error("incorrect secret key").
 		ErrorCode(http.StatusNotFound)
-	Svc.With(SecretKey(""))
+	Svc.SetSecretKey("")
 	Collect(t, ctx).NoError()
 }
