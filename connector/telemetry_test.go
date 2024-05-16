@@ -59,9 +59,11 @@ func TestConnector_TraceRequestAttributes(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.test.request.attributes.connector")
+	alpha.SetPlane(randomPlane)
 
 	var span trace.Span
 	beta := New("beta.test.request.attributes.connector")
+	beta.SetPlane(randomPlane)
 	beta.Subscribe("GET", "handle", func(w http.ResponseWriter, r *http.Request) error {
 		span = beta.Span(r.Context()).(trc.SpanImpl).Span
 
@@ -122,6 +124,7 @@ func TestConnector_TracingCopySpan(t *testing.T) {
 	t.Parallel()
 
 	alpha := New("tracing.copy.span.connector")
+	alpha.SetPlane(randomPlane)
 	// alpha.SetDeployment(TESTINGAPP)
 	var topSpan trc.Span
 	var goSpan trc.Span

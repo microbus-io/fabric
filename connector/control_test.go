@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +22,7 @@ func TestConnector_Ping(t *testing.T) {
 
 	// Create the microservice
 	con := New("ping.connector")
-	con.SetPlane(rand.AlphaNum64(12))
+	con.SetPlane(randomPlane)
 
 	// Startup the microservice
 	err := con.Startup()

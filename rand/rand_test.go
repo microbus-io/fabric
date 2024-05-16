@@ -45,6 +45,13 @@ func BenchmarkRand_CryptoRead(b *testing.B) {
 	// On 2021 MacBook Pro M1 16": 326 ns/op
 }
 
+func BenchmarkRand_New(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		New()
+	}
+	// On 2021 MacBook Pro M1 16": 11368 ns/op
+}
+
 func TestRand_AlphaNum64(t *testing.T) {
 	t.Parallel()
 

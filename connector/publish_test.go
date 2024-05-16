@@ -31,8 +31,10 @@ func TestConnector_Echo(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.echo.connector")
+	alpha.SetPlane(randomPlane)
 
 	beta := New("beta.echo.connector")
+	beta.SetPlane(randomPlane)
 	beta.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)
@@ -62,6 +64,7 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 
 	// Create the microservice
 	con := New("echo.serial.connector")
+	con.SetPlane(randomPlane)
 	con.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, _ := io.ReadAll(r.Body)
 		w.Write(body)
@@ -90,6 +93,7 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 
 	// Create the microservice
 	con := New("echo.parallel.connector")
+	con.SetPlane(randomPlane)
 	con.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
 		body, _ := io.ReadAll(r.Body)
 		w.Write(body)
@@ -126,6 +130,7 @@ func TestConnector_QueryArgs(t *testing.T) {
 
 	// Create the microservices
 	con := New("query.args.connector")
+	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "arg", func(w http.ResponseWriter, r *http.Request) error {
 		arg := r.URL.Query().Get("arg")
 		assert.Equal(t, "not_empty", arg)
@@ -149,17 +154,20 @@ func TestConnector_LoadBalancing(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.load.balancing.connector")
+	alpha.SetPlane(randomPlane)
 
 	count1 := int32(0)
 	count2 := int32(0)
 
 	beta1 := New("beta.load.balancing.connector")
+	beta1.SetPlane(randomPlane)
 	beta1.Subscribe("GET", "lb", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count1, 1)
 		return nil
 	})
 
 	beta2 := New("beta.load.balancing.connector")
+	beta2.SetPlane(randomPlane)
 	beta2.Subscribe("GET", "lb", func(w http.ResponseWriter, r *http.Request) error {
 		atomic.AddInt32(&count2, 1)
 		return nil
@@ -201,8 +209,10 @@ func TestConnector_Concurrent(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.concurrent.connector")
+	alpha.SetPlane(randomPlane)
 
 	beta := New("beta.concurrent.connector")
+	beta.SetPlane(randomPlane)
 	beta.Subscribe("GET", "wait", func(w http.ResponseWriter, r *http.Request) error {
 		ms, _ := strconv.Atoi(r.URL.Query().Get("ms"))
 		time.Sleep(time.Millisecond * time.Duration(ms))
@@ -242,6 +252,7 @@ func TestConnector_CallDepth(t *testing.T) {
 
 	// Create the microservice
 	con := New("call.depth.connector")
+	con.SetPlane(randomPlane)
 	con.maxCallDepth = 8
 	con.Subscribe("GET", "next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
@@ -275,6 +286,7 @@ func TestConnector_TimeoutDrawdown(t *testing.T) {
 
 	// Create the microservice
 	con := New("timeout.drawdown.connector")
+	con.SetPlane(randomPlane)
 	budget := con.networkHop * 8
 	con.Subscribe("GET", "next", func(w http.ResponseWriter, r *http.Request) error {
 		depth++
@@ -303,6 +315,7 @@ func TestConnector_TimeoutContext(t *testing.T) {
 
 	// Create the microservice
 	con := New("timeout.context.connector")
+	con.SetPlane(randomPlane)
 	var deadline time.Time
 	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
 		deadline, _ = r.Context().Deadline()
@@ -332,6 +345,7 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 
 	// Create the microservice
 	con := New("timeout.not.found.connector")
+	con.SetPlane(randomPlane)
 
 	// Startup the microservice
 	err := con.Startup()
@@ -369,6 +383,7 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 
 	// Create the microservice
 	con := New("timeout.slow.connector")
+	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "slow", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(time.Second)
 		return nil
@@ -395,6 +410,7 @@ func TestConnector_ContextTimeout(t *testing.T) {
 	t.Parallel()
 
 	con := New("context.timeout.connector")
+	con.SetPlane(randomPlane)
 
 	done := false
 	con.Subscribe("GET", "timeout", func(w http.ResponseWriter, r *http.Request) error {
@@ -424,36 +440,42 @@ func TestConnector_Multicast(t *testing.T) {
 
 	// Create the microservices
 	noqueue1 := New("multicast.connector")
+	noqueue1.SetPlane(randomPlane)
 	noqueue1.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("noqueue1"))
 		return nil
 	}, sub.NoQueue())
 
 	noqueue2 := New("multicast.connector")
+	noqueue2.SetPlane(randomPlane)
 	noqueue2.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("noqueue2"))
 		return nil
 	}, sub.NoQueue())
 
 	named1 := New("multicast.connector")
+	named1.SetPlane(randomPlane)
 	named1.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("named1"))
 		return nil
 	}, sub.Queue("MyQueue"))
 
 	named2 := New("multicast.connector")
+	named2.SetPlane(randomPlane)
 	named2.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("named2"))
 		return nil
 	}, sub.Queue("MyQueue"))
 
 	def1 := New("multicast.connector")
+	def1.SetPlane(randomPlane)
 	def1.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("def1"))
 		return nil
 	}, sub.DefaultQueue())
 
 	def2 := New("multicast.connector")
+	def2.SetPlane(randomPlane)
 	def2.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("def2"))
 		return nil
@@ -519,6 +541,7 @@ func TestConnector_MulticastDelay(t *testing.T) {
 
 	// Create the microservices
 	slow := New("multicast.delay.connector")
+	slow.SetPlane(randomPlane)
 	delay := AckTimeout
 	slow.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(delay * 2)
@@ -527,12 +550,14 @@ func TestConnector_MulticastDelay(t *testing.T) {
 	}, sub.NoQueue())
 
 	fast := New("multicast.delay.connector")
+	fast.SetPlane(randomPlane)
 	fast.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("fast"))
 		return nil
 	}, sub.NoQueue())
 
 	tooSlow := New("multicast.delay.connector")
+	tooSlow.SetPlane(randomPlane)
 	tooSlow.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(delay * 4)
 		w.Write([]byte("too slow"))
@@ -591,11 +616,13 @@ func TestConnector_MulticastError(t *testing.T) {
 
 	// Create the microservices
 	bad := New("multicast.error.connector")
+	bad.SetPlane(randomPlane)
 	bad.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("bad situation")
 	}, sub.NoQueue())
 
 	good := New("multicast.error.connector")
+	good.SetPlane(randomPlane)
 	good.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("good situation"))
 		return nil
@@ -634,6 +661,7 @@ func TestConnector_MulticastNotFound(t *testing.T) {
 
 	// Create the microservices
 	con := New("multicast.not.found.connector")
+	con.SetPlane(randomPlane)
 
 	// Startup the microservice
 	err := con.Startup()
@@ -661,6 +689,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 
 	// Create the client microservice
 	client := New("client.mass.multicast.connector")
+	client.SetPlane(randomPlane)
 
 	err := client.Startup()
 	assert.NoError(t, err)
@@ -674,6 +703,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			cons[i] = New("mass.multicast.connector")
+			cons[i].SetPlane(randomPlane)
 			cons[i].SetDeployment(TESTINGAPP)
 			cons[i].Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 				w.Write([]byte("ok"))
@@ -717,6 +747,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 
 func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
 	con := New("nats.direct.publishing.connector")
+	con.SetPlane(randomPlane)
 
 	err := con.Startup()
 	assert.NoError(b, err)
@@ -752,21 +783,25 @@ func TestConnector_KnownResponders(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("known.responders.connector")
+	alpha.SetPlane(randomPlane)
 	alpha.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
 
 	beta := New("known.responders.connector")
+	beta.SetPlane(randomPlane)
 	beta.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
 
 	gamma := New("known.responders.connector")
+	gamma.SetPlane(randomPlane)
 	gamma.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
 
 	delta := New("known.responders.connector")
+	delta.SetPlane(randomPlane)
 	delta.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}, sub.NoQueue())
@@ -836,6 +871,7 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 	t.Parallel()
 
 	con := New("lifetime.cancellation.connector")
+	con.SetPlane(randomPlane)
 
 	done := false
 	step := make(chan bool)
@@ -986,12 +1022,14 @@ func TestConnector_Baggage(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.baggage.connector")
+	alpha.SetPlane(randomPlane)
 
 	betaCalled := false
 	betaBaggage := ""
 	betaLanguage := ""
 	betaXFwd := ""
 	beta := New("beta.baggage.connector")
+	beta.SetPlane(randomPlane)
 	beta.Subscribe("GET", "noop", func(w http.ResponseWriter, r *http.Request) error {
 		betaCalled = true
 		betaBaggage = frame.Of(r).Baggage("Suitcase")
@@ -1006,6 +1044,7 @@ func TestConnector_Baggage(t *testing.T) {
 	gammaLanguage := ""
 	gammaXFwd := ""
 	gamma := New("gamma.baggage.connector")
+	gamma.SetPlane(randomPlane)
 	gamma.Subscribe("GET", "noop", func(w http.ResponseWriter, r *http.Request) error {
 		gammaCalled = true
 		gammaBaggage = frame.Of(r).Baggage("Suitcase")

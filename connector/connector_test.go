@@ -8,11 +8,15 @@ Neither may be used, copied or distributed without the express written consent o
 package connector
 
 import (
-	"os"
 	"testing"
 
 	"github.com/microbus-io/fabric/env"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	randomPlane = rand.AlphaNum64(12)
 )
 
 func TestConnector_HostAndID(t *testing.T) {
@@ -52,15 +56,16 @@ func TestConnector_Plane(t *testing.T) {
 	assert.Empty(t, con.Plane())
 	err := con.SetPlane("bad.plane.name")
 	assert.Error(t, err)
-	err = con.SetPlane("123plane456")
+	err = con.SetPlane(randomPlane)
 	assert.NoError(t, err)
-	assert.Equal(t, "123plane456", con.Plane())
+	assert.Equal(t, randomPlane, con.Plane())
 	err = con.SetPlane("")
 	assert.NoError(t, err)
 	assert.Equal(t, "", con.Plane())
 
 	// After starting
 	con = New("plane.connector")
+	con.SetPlane(randomPlane)
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
@@ -75,20 +80,21 @@ func TestConnector_PlaneEnv(t *testing.T) {
 	con := New("plane.env.connector")
 
 	// Bad plane name
-	defer os.Setenv("MICROBUS_PLANE", "")
-	os.Setenv("MICROBUS_PLANE", "bad.plane.name")
+	env.Push("MICROBUS_PLANE", "bad.plane.name")
+	defer env.Pop("MICROBUS_PLANE")
 
 	err := con.Startup()
 	assert.Error(t, err)
 
 	// Good plane name
-	os.Setenv("MICROBUS_PLANE", "goodone")
+	env.Push("MICROBUS_PLANE", randomPlane)
+	defer env.Pop("MICROBUS_PLANE")
 
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	assert.Equal(t, "goodone", con.Plane())
+	assert.Equal(t, randomPlane, con.Plane())
 }
 
 func TestConnector_Deployment(t *testing.T) {
@@ -96,6 +102,7 @@ func TestConnector_Deployment(t *testing.T) {
 
 	// Before starting
 	con := New("deployment.connector")
+	con.SetPlane(randomPlane)
 	assert.Empty(t, con.Deployment())
 	err := con.SetDeployment("NOGOOD")
 	assert.Error(t, err)
@@ -108,6 +115,7 @@ func TestConnector_Deployment(t *testing.T) {
 
 	// After starting
 	con = New("deployment.connector")
+	con.SetPlane(randomPlane)
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
@@ -120,6 +128,7 @@ func TestConnector_DeploymentEnv(t *testing.T) {
 	// No parallel
 
 	con := New("deployment.env.connector")
+	con.SetPlane(randomPlane)
 
 	env.Push("MICROBUS_DEPLOYMENT", "lAb")
 	defer env.Pop("MICROBUS_DEPLOYMENT")
@@ -136,7 +145,8 @@ func TestConnector_Version(t *testing.T) {
 
 	// Before starting
 	con := New("version.connector")
-	assert.Empty(t, con.Plane())
+	con.SetPlane(randomPlane)
+	assert.Equal(t, randomPlane, con.Plane())
 	err := con.SetVersion(-1)
 	assert.Error(t, err)
 	err = con.SetVersion(123)
@@ -148,6 +158,7 @@ func TestConnector_Version(t *testing.T) {
 
 	// After starting
 	con = New("version.connector")
+	con.SetPlane(randomPlane)
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
