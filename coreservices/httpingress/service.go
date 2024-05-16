@@ -258,7 +258,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		svc.ForceTrace(ctx)
 	} else {
 		// OpenTelemetry: record the status code and content length
-		span.SetOK(pt.SC, pt.N)
+		span.SetOK(pt.SC)
 	}
 
 	// Meter

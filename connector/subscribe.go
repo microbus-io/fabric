@@ -408,7 +408,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 
 	// OpenTelemetry: record the status code
 	if handlerErr == nil {
-		span.SetOK(httpResponse.StatusCode, int(httpResponse.ContentLength))
+		span.SetOK(httpResponse.StatusCode)
 	}
 
 	// Send back the response, in fragments if needed

@@ -160,7 +160,7 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 						return backends.NewResult(fmt.Sprintf("554 Error: %s", err)), err // No trace
 					}
 					// OpenTelemetry: record the status code
-					span.SetOK(res.Code(), 0)
+					span.SetOK(res.Code())
 					return res, nil
 				},
 			)

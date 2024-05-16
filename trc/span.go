@@ -30,7 +30,7 @@ var _ = Span(SpanImpl{}) // Ensure interface
 type Span interface {
 	End()
 	SetError(err error)
-	SetOK(statusCode int, contentLength int)
+	SetOK(statusCode int)
 	Log(severity string, message string, fields ...log.Field)
 	SetString(k string, v string)
 	SetStrings(k string, v []string)
@@ -81,16 +81,13 @@ func (s SpanImpl) SetError(err error) {
 }
 
 // SetOK sets the status of the span to the status code of the response.
-func (s SpanImpl) SetOK(statusCode int, contentLength int) {
+func (s SpanImpl) SetOK(statusCode int) {
 	if s.Span == nil {
 		return
 	}
 	s.Span.SetStatus(codes.Ok, "")
 	if statusCode != http.StatusOK {
 		s.Span.SetAttributes(attribute.Int("http.response.status_code", statusCode))
-	}
-	if contentLength > 0 {
-		s.Span.SetAttributes(attribute.Int("http.response.body.size", contentLength))
 	}
 }
 
