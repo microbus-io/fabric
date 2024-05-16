@@ -262,6 +262,10 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// Remove the default user-agent set by the http package
+	if httpReq.Header.Get("User-Agent") == "Go-http-client/1.1" {
+		httpReq.Header.Del("User-Agent")
+	}
 
 	// Get the sender host name and message ID
 	fromHost := frame.Of(httpReq).FromHost()
