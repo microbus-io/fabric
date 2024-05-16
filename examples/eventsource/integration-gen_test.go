@@ -143,37 +143,29 @@ func (tc *RegisterTestCase) Expect(allowed bool) *RegisterTestCase {
 
 // Error asserts an error.
 func (tc *RegisterTestCase) Error(errContains string) *RegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *RegisterTestCase) ErrorCode(statusCode int) *RegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *RegisterTestCase) NoError() *RegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *RegisterTestCase) Assert(asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.allowed, tc.err)
-	})
+	asserter(tc._t, tc.allowed, tc.err)
 	return tc
 }
 

@@ -149,37 +149,29 @@ func (tc *ArithmeticTestCase) Expect(xEcho int, opEcho string, yEcho int, result
 
 // Error asserts an error.
 func (tc *ArithmeticTestCase) Error(errContains string) *ArithmeticTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *ArithmeticTestCase) ErrorCode(statusCode int) *ArithmeticTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *ArithmeticTestCase) NoError() *ArithmeticTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *ArithmeticTestCase) Assert(asserter func(t *testing.T, xEcho int, opEcho string, yEcho int, result int, err error)) *ArithmeticTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err)
-	})
+	asserter(tc._t, tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err)
 	return tc
 }
 
@@ -226,37 +218,29 @@ func (tc *SquareTestCase) Expect(xEcho int, result int) *SquareTestCase {
 
 // Error asserts an error.
 func (tc *SquareTestCase) Error(errContains string) *SquareTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *SquareTestCase) ErrorCode(statusCode int) *SquareTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *SquareTestCase) NoError() *SquareTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *SquareTestCase) Assert(asserter func(t *testing.T, xEcho int, result int, err error)) *SquareTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.xEcho, tc.result, tc.err)
-	})
+	asserter(tc._t, tc.xEcho, tc.result, tc.err)
 	return tc
 }
 
@@ -301,37 +285,29 @@ func (tc *DistanceTestCase) Expect(d float64) *DistanceTestCase {
 
 // Error asserts an error.
 func (tc *DistanceTestCase) Error(errContains string) *DistanceTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *DistanceTestCase) ErrorCode(statusCode int) *DistanceTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *DistanceTestCase) NoError() *DistanceTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *DistanceTestCase) Assert(asserter func(t *testing.T, d float64, err error)) *DistanceTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.d, tc.err)
-	})
+	asserter(tc._t, tc.d, tc.err)
 	return tc
 }
 

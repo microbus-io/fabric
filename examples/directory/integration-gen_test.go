@@ -143,37 +143,29 @@ func (tc *CreateTestCase) Expect(created *directoryapi.Person) *CreateTestCase {
 
 // Error asserts an error.
 func (tc *CreateTestCase) Error(errContains string) *CreateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *CreateTestCase) ErrorCode(statusCode int) *CreateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *CreateTestCase) NoError() *CreateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *CreateTestCase) Assert(asserter func(t *testing.T, created *directoryapi.Person, err error)) *CreateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.created, tc.err)
-	})
+	asserter(tc._t, tc.created, tc.err)
 	return tc
 }
 
@@ -220,37 +212,29 @@ func (tc *LoadTestCase) Expect(person *directoryapi.Person, ok bool) *LoadTestCa
 
 // Error asserts an error.
 func (tc *LoadTestCase) Error(errContains string) *LoadTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *LoadTestCase) ErrorCode(statusCode int) *LoadTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *LoadTestCase) NoError() *LoadTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *LoadTestCase) Assert(asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.person, tc.ok, tc.err)
-	})
+	asserter(tc._t, tc.person, tc.ok, tc.err)
 	return tc
 }
 
@@ -295,37 +279,29 @@ func (tc *DeleteTestCase) Expect(ok bool) *DeleteTestCase {
 
 // Error asserts an error.
 func (tc *DeleteTestCase) Error(errContains string) *DeleteTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *DeleteTestCase) ErrorCode(statusCode int) *DeleteTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *DeleteTestCase) NoError() *DeleteTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *DeleteTestCase) Assert(asserter func(t *testing.T, ok bool, err error)) *DeleteTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.ok, tc.err)
-	})
+	asserter(tc._t, tc.ok, tc.err)
 	return tc
 }
 
@@ -372,37 +348,29 @@ func (tc *UpdateTestCase) Expect(updated *directoryapi.Person, ok bool) *UpdateT
 
 // Error asserts an error.
 func (tc *UpdateTestCase) Error(errContains string) *UpdateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *UpdateTestCase) ErrorCode(statusCode int) *UpdateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *UpdateTestCase) NoError() *UpdateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *UpdateTestCase) Assert(asserter func(t *testing.T, updated *directoryapi.Person, ok bool, err error)) *UpdateTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.updated, tc.ok, tc.err)
-	})
+	asserter(tc._t, tc.updated, tc.ok, tc.err)
 	return tc
 }
 
@@ -449,37 +417,29 @@ func (tc *LoadByEmailTestCase) Expect(person *directoryapi.Person, ok bool) *Loa
 
 // Error asserts an error.
 func (tc *LoadByEmailTestCase) Error(errContains string) *LoadByEmailTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *LoadByEmailTestCase) ErrorCode(statusCode int) *LoadByEmailTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *LoadByEmailTestCase) NoError() *LoadByEmailTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *LoadByEmailTestCase) Assert(asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadByEmailTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.person, tc.ok, tc.err)
-	})
+	asserter(tc._t, tc.person, tc.ok, tc.err)
 	return tc
 }
 
@@ -524,37 +484,29 @@ func (tc *ListTestCase) Expect(keys []directoryapi.PersonKey) *ListTestCase {
 
 // Error asserts an error.
 func (tc *ListTestCase) Error(errContains string) *ListTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *ListTestCase) ErrorCode(statusCode int) *ListTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *ListTestCase) NoError() *ListTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *ListTestCase) Assert(asserter func(t *testing.T, keys []directoryapi.PersonKey, err error)) *ListTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.keys, tc.err)
-	})
+	asserter(tc._t, tc.keys, tc.err)
 	return tc
 }
 

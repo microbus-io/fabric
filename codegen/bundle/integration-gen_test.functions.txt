@@ -37,37 +37,29 @@ func (tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.OutputArgs }
 
 // Error asserts an error.
 func (tc *{{ .Name }}TestCase) Error(errContains string) *{{ .Name }}TestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *{{ .Name }}TestCase) ErrorCode(statusCode int) *{{ .Name }}TestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *{{ .Name }}TestCase) NoError() *{{ .Name }}TestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *{{ .Name }}TestCase) Assert(asserter func({{ $t }} *testing.T, {{ .Out }})) *{{ .Name }}TestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err)
-	})
+	asserter(tc._t, {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err)
 	return tc
 }
 

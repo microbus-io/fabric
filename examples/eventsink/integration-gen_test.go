@@ -143,37 +143,29 @@ func (tc *RegisteredTestCase) Expect(emails []string) *RegisteredTestCase {
 
 // Error asserts an error.
 func (tc *RegisteredTestCase) Error(errContains string) *RegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *RegisteredTestCase) ErrorCode(statusCode int) *RegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *RegisteredTestCase) NoError() *RegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *RegisteredTestCase) Assert(asserter func(t *testing.T, emails []string, err error)) *RegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.emails, tc.err)
-	})
+	asserter(tc._t, tc.emails, tc.err)
 	return tc
 }
 
@@ -218,37 +210,29 @@ func (tc *OnAllowRegisterTestCase) Expect(allow bool) *OnAllowRegisterTestCase {
 
 // Error asserts an error.
 func (tc *OnAllowRegisterTestCase) Error(errContains string) *OnAllowRegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnAllowRegisterTestCase) ErrorCode(statusCode int) *OnAllowRegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnAllowRegisterTestCase) NoError() *OnAllowRegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, allow bool, err error)) *OnAllowRegisterTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.allow, tc.err)
-	})
+	asserter(tc._t, tc.allow, tc.err)
 	return tc
 }
 
@@ -290,37 +274,29 @@ func (tc *OnRegisteredTestCase) Expect() *OnRegisteredTestCase {
 
 // Error asserts an error.
 func (tc *OnRegisteredTestCase) Error(errContains string) *OnRegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Contains(t, tc.err.Error(), errContains)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnRegisteredTestCase) ErrorCode(statusCode int) *OnRegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		if assert.Error(t, tc.err) {
-			assert.Equal(t, statusCode, errors.Convert(tc.err).StatusCode)
-		}
-	})
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnRegisteredTestCase) NoError() *OnRegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		assert.NoError(t, tc.err)
-	})
+	assert.NoError(tc._t, tc.err)
 	return tc
 }
 
 // Assert asserts using a provided function.
 func (tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, err error)) *OnRegisteredTestCase {
-	tc._t.Run(tc._testName, func(t *testing.T) {
-		asserter(t, tc.err)
-	})
+	asserter(tc._t, tc.err)
 	return tc
 }
 
