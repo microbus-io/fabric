@@ -51,7 +51,6 @@ func TestEventsink_Registered(t *testing.T) {
 	t.Parallel()
 	/*
 		Registered(t, ctx).
-			Name(testName).
 			Expect(emails).
 			NoError().
 			Error(errContains).
@@ -77,7 +76,6 @@ func TestEventsink_OnAllowRegister(t *testing.T) {
 	t.Parallel()
 	/*
 		OnAllowRegister(ctx, email).
-			Name(testName).
 			Expect(allow).
 			NoError().
 			Error(errContains).

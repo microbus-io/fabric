@@ -53,7 +53,6 @@ func TestCalculator_Arithmetic(t *testing.T) {
 	t.Parallel()
 	/*
 		Arithmetic(t, ctx, x, op, y).
-			Name(testName).
 			Expect(xEcho, opEcho, yEcho, result).
 			NoError().
 			Error(errContains).
@@ -74,7 +73,6 @@ func TestCalculator_Square(t *testing.T) {
 	t.Parallel()
 	/*
 		Square(t, ctx, x).
-			Name(testName).
 			Expect( xEcho, result).
 			NoError().
 			Error(errContains).
@@ -90,7 +88,6 @@ func TestCalculator_Distance(t *testing.T) {
 	t.Parallel()
 	/*
 		Distance(t, ctx, p1, p2).
-			Name(testName).
 			Expect(td).
 			NoError().
 			Error(errContains).

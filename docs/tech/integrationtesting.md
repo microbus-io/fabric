@@ -147,7 +147,6 @@ func TestExample_OnAllowRegister(t *testing.T) {
 	// No parallel
 	/*
 		OnAllowRegister(t, allow, err).
-			Name(testName).
 			Expect(email).
 			Assert(func(t, ctx, email))
 	*/

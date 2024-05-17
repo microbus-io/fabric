@@ -40,6 +40,7 @@ func Initialize() (err error) {
 	}
 
 	// Include all downstream microservices in the testing app
+	// Use .With(...) to initialize with appropriate config values
 	App.Include(
 		Svc,
 		mockEgress,
@@ -67,7 +68,6 @@ func TestBrowser_Browse(t *testing.T) {
 	t.Parallel()
 	/*
 		Browse(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).

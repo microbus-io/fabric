@@ -4,7 +4,6 @@
 // {{ .Name }}TestCase assists in asserting the sink of {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	_t *testing.T
-	_testName string
     _asserters []func(*testing.T)
     ctx context.Context
 	{{- range .Signature.InputArgs }}
@@ -14,12 +13,6 @@ type {{ .Name }}TestCase struct {
 	{{ .Name }} {{ .Type }}
 	{{- end }}
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.

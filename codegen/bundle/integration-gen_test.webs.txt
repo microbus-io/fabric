@@ -80,15 +80,8 @@ func ContentType(contentType string) WebOption {
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *{{ .Name }}TestCase) Name(testName string) *{{ .Name }}TestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.

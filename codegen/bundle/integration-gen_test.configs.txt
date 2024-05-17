@@ -2,14 +2,7 @@
 // OnChanged{{ .Name }}TestCase assists in asserting against the results of executing OnChanged{{ .Name }}.
 type OnChanged{{ .Name }}TestCase struct {
 	t *testing.T
-	testName string
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *OnChanged{{ .Name }}TestCase) Name(testName string) *OnChanged{{ .Name }}TestCase {
-	tc.testName = testName
-	return tc
 }
 
 // Error asserts an error.

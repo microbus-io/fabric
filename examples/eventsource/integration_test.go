@@ -52,7 +52,6 @@ func TestEventsource_Register(t *testing.T) {
 	t.Parallel()
 	/*
 		Register(t, ctx, email).
-			Name(testName).
 			Expect(allowed).
 			NoError().
 			Error(errContains).
@@ -68,7 +67,6 @@ func TestEventsource_OnAllowRegister(t *testing.T) {
 	// No parallel
 	/*
 		OnAllowRegister(t, allow, err).
-			Name(testName).
 			Expect(email).
 			Assert(func(t, ctx, email))
 	*/
@@ -85,7 +83,6 @@ func TestEventsource_OnRegistered(t *testing.T) {
 	// No parallel
 	/*
 		OnRegistered(t, err).
-			Name(testName).
 			Expect(email).
 			Assert(func(t, ctx, email))
 	*/

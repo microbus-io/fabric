@@ -62,7 +62,6 @@ func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
 		Hello(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -93,7 +92,6 @@ func TestHello_Echo(t *testing.T) {
 	t.Parallel()
 	/*
 		Echo(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -114,7 +112,6 @@ func TestHello_Ping(t *testing.T) {
 	t.Parallel()
 	/*
 		Ping(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -133,7 +130,6 @@ func TestHello_Calculator(t *testing.T) {
 	t.Parallel()
 	/*
 		Calculator(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -152,7 +148,6 @@ func TestHello_BusJPEG(t *testing.T) {
 	t.Parallel()
 	/*
 		BusJPEG(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -175,7 +170,6 @@ func TestHello_TickTock(t *testing.T) {
 	t.Parallel()
 	/*
 		TickTock(t, ctx).
-			Name(testName).
 			NoError().
 			Error(errContains).
 			Assert(func(err))
@@ -188,7 +182,6 @@ func TestHello_Localization(t *testing.T) {
 	t.Parallel()
 	/*
 		Localization(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).

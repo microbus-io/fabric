@@ -46,7 +46,6 @@ func TestMessaging_Home(t *testing.T) {
 	t.Parallel()
 	/*
 		Home(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -67,7 +66,6 @@ func TestMessaging_NoQueue(t *testing.T) {
 	t.Parallel()
 	/*
 		NoQueue(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -87,7 +85,6 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 	t.Parallel()
 	/*
 		DefaultQueue(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -107,7 +104,6 @@ func TestMessaging_CacheLoad(t *testing.T) {
 	t.Parallel()
 	/*
 		CacheLoad(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -138,7 +134,6 @@ func TestMessaging_CacheStore(t *testing.T) {
 	t.Parallel()
 	/*
 		CacheStore(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
-			Name(testName).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
