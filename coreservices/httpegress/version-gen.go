@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package httpegress
 
-const Version = 27
-const SourceCodeSHA256 = "6c3535c908b146033d2267c375ca15b34a68324471d67fb056497de3dbf3b018"
-const Timestamp = "2024-05-17T21:33:04.262697Z"
+const Version = 29
+const SourceCodeSHA256 = "5841ac2213badcf05c113ac8631d678046df635cde3b9883e1521739ad4b0546"
+const Timestamp = "2024-05-17T21:52:15.397697Z"
 
 /* {
-	"ver": 27,
-	"sha256": "6c3535c908b146033d2267c375ca15b34a68324471d67fb056497de3dbf3b018",
-	"ts": "2024-05-17T21:33:04.262697Z"
+	"ver": 29,
+	"sha256": "5841ac2213badcf05c113ac8631d678046df635cde3b9883e1521739ad4b0546",
+	"ts": "2024-05-17T21:52:15.397697Z"
 } */

@@ -147,8 +147,7 @@ HelloGet performs a GET request to the Hello endpoint.
 
 Hello prints a greeting.
 
-If a URL is not provided, it defaults to :443/hello .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) HelloGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfHello, url)
@@ -167,8 +166,7 @@ HelloGet performs a GET request to the Hello endpoint.
 
 Hello prints a greeting.
 
-If a URL is not provided, it defaults to :443/hello .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) HelloGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -184,8 +182,7 @@ HelloPost performs a POST request to the Hello endpoint.
 
 Hello prints a greeting.
 
-If a URL is not provided, it defaults to :443/hello .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -207,8 +204,7 @@ HelloPost performs a POST request to the Hello endpoint.
 
 Hello prints a greeting.
 
-If a URL is not provided, it defaults to :443/hello .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -225,8 +221,7 @@ func (_c *MulticastClient) HelloPost(ctx context.Context, url string, contentTyp
 /*
 Hello prints a greeting.
 
-If a request is not provided, it defaults to GET :443/hello
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Hello(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -249,8 +244,7 @@ func (_c *Client) Hello(ctx context.Context, httpReq *http.Request) (res *http.R
 /*
 Hello prints a greeting.
 
-If a request is not provided, it defaults to GET :443/hello
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Hello(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -272,8 +266,7 @@ EchoGet performs a GET request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
-If a URL is not provided, it defaults to :443/echo .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) EchoGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfEcho, url)
@@ -292,8 +285,7 @@ EchoGet performs a GET request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
-If a URL is not provided, it defaults to :443/echo .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) EchoGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -309,8 +301,7 @@ EchoPost performs a POST request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
-If a URL is not provided, it defaults to :443/echo .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -332,8 +323,7 @@ EchoPost performs a POST request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
-If a URL is not provided, it defaults to :443/echo .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -350,8 +340,7 @@ func (_c *MulticastClient) EchoPost(ctx context.Context, url string, contentType
 /*
 Echo back the incoming request in wire format.
 
-If a request is not provided, it defaults to GET :443/echo
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Echo(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -374,8 +363,7 @@ func (_c *Client) Echo(ctx context.Context, httpReq *http.Request) (res *http.Re
 /*
 Echo back the incoming request in wire format.
 
-If a request is not provided, it defaults to GET :443/echo
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Echo(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -397,8 +385,7 @@ PingGet performs a GET request to the Ping endpoint.
 
 Ping all microservices and list them.
 
-If a URL is not provided, it defaults to :443/ping .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) PingGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfPing, url)
@@ -417,8 +404,7 @@ PingGet performs a GET request to the Ping endpoint.
 
 Ping all microservices and list them.
 
-If a URL is not provided, it defaults to :443/ping .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) PingGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -434,8 +420,7 @@ PingPost performs a POST request to the Ping endpoint.
 
 Ping all microservices and list them.
 
-If a URL is not provided, it defaults to :443/ping .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -457,8 +442,7 @@ PingPost performs a POST request to the Ping endpoint.
 
 Ping all microservices and list them.
 
-If a URL is not provided, it defaults to :443/ping .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -475,8 +459,7 @@ func (_c *MulticastClient) PingPost(ctx context.Context, url string, contentType
 /*
 Ping all microservices and list them.
 
-If a request is not provided, it defaults to GET :443/ping
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Ping(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -499,8 +482,7 @@ func (_c *Client) Ping(ctx context.Context, httpReq *http.Request) (res *http.Re
 /*
 Ping all microservices and list them.
 
-If a request is not provided, it defaults to GET :443/ping
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Ping(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -524,8 +506,7 @@ Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
 
-If a URL is not provided, it defaults to :443/calculator .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CalculatorGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfCalculator, url)
@@ -546,8 +527,7 @@ Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
 
-If a URL is not provided, it defaults to :443/calculator .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) CalculatorGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -565,8 +545,7 @@ Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
 
-If a URL is not provided, it defaults to :443/calculator .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -590,8 +569,7 @@ Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
 
-If a URL is not provided, it defaults to :443/calculator .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -610,8 +588,7 @@ Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
 
-If a request is not provided, it defaults to GET :443/calculator
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Calculator(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -636,8 +613,7 @@ Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
 
-If a request is not provided, it defaults to GET :443/calculator
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Calculator(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -657,8 +633,7 @@ func (_c *MulticastClient) Calculator(ctx context.Context, httpReq *http.Request
 /*
 BusJPEG serves an image from the embedded resources.
 
-If a URL is not provided, it defaults to :443/bus.jpeg .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) BusJPEG(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfBusJPEG, url)
@@ -675,8 +650,7 @@ func (_c *Client) BusJPEG(ctx context.Context, url string) (res *http.Response, 
 /*
 BusJPEG serves an image from the embedded resources.
 
-If a URL is not provided, it defaults to :443/bus.jpeg .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) BusJPEG(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -692,8 +666,7 @@ BusJPEGAny performs a customized request to the BusJPEG endpoint.
 
 BusJPEG serves an image from the embedded resources.
 
-If a request is not provided, it defaults to GET :443/bus.jpeg
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) BusJPEGAny(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -718,8 +691,7 @@ BusJPEGAny performs a customized request to the BusJPEG endpoint.
 
 BusJPEG serves an image from the embedded resources.
 
-If a request is not provided, it defaults to GET :443/bus.jpeg
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) BusJPEGAny(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -741,8 +713,7 @@ LocalizationGet performs a GET request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
-If a URL is not provided, it defaults to :443/localization .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) LocalizationGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfLocalization, url)
@@ -761,8 +732,7 @@ LocalizationGet performs a GET request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
-If a URL is not provided, it defaults to :443/localization .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) LocalizationGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -778,8 +748,7 @@ LocalizationPost performs a POST request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
-If a URL is not provided, it defaults to :443/localization .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -801,8 +770,7 @@ LocalizationPost performs a POST request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
-If a URL is not provided, it defaults to :443/localization .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -819,8 +787,7 @@ func (_c *MulticastClient) LocalizationPost(ctx context.Context, url string, con
 /*
 Localization prints hello in the language best matching the request's Accept-Language header.
 
-If a request is not provided, it defaults to GET :443/localization
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Localization(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -843,8 +810,7 @@ func (_c *Client) Localization(ctx context.Context, httpReq *http.Request) (res 
 /*
 Localization prints hello in the language best matching the request's Accept-Language header.
 
-If a request is not provided, it defaults to GET :443/localization
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Localization(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error

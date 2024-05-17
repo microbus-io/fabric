@@ -141,8 +141,7 @@ func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
 The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
-If a URL is not provided, it defaults to :444/make-request .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -163,8 +162,7 @@ func (_c *Client) MakeRequest(ctx context.Context, url string, contentType strin
 MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
 The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
-If a URL is not provided, it defaults to :444/make-request .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -184,8 +182,7 @@ MakeRequestAny performs a customized request to the MakeRequest endpoint.
 MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
 The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
-If a request is not provided, it defaults to POST :444/make-request
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) MakeRequestAny(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -211,8 +208,7 @@ MakeRequestAny performs a customized request to the MakeRequest endpoint.
 MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
 The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
-If a request is not provided, it defaults to POST :444/make-request
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) MakeRequestAny(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error

@@ -142,8 +142,7 @@ BrowseGet performs a GET request to the Browse endpoint.
 
 Browser shows a simple address bar and the source code of a URL.
 
-If a URL is not provided, it defaults to :443/browse .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) BrowseGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfBrowse, url)
@@ -162,8 +161,7 @@ BrowseGet performs a GET request to the Browse endpoint.
 
 Browser shows a simple address bar and the source code of a URL.
 
-If a URL is not provided, it defaults to :443/browse .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) BrowseGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -179,8 +177,7 @@ BrowsePost performs a POST request to the Browse endpoint.
 
 Browser shows a simple address bar and the source code of a URL.
 
-If a URL is not provided, it defaults to :443/browse .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -202,8 +199,7 @@ BrowsePost performs a POST request to the Browse endpoint.
 
 Browser shows a simple address bar and the source code of a URL.
 
-If a URL is not provided, it defaults to :443/browse .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -220,8 +216,7 @@ func (_c *MulticastClient) BrowsePost(ctx context.Context, url string, contentTy
 /*
 Browser shows a simple address bar and the source code of a URL.
 
-If a request is not provided, it defaults to GET :443/browse
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Browse(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -244,8 +239,7 @@ func (_c *Client) Browse(ctx context.Context, httpReq *http.Request) (res *http.
 /*
 Browser shows a simple address bar and the source code of a URL.
 
-If a request is not provided, it defaults to GET :443/browse
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Browse(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error

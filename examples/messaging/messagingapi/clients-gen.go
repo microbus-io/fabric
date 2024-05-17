@@ -146,8 +146,7 @@ HomeGet performs a GET request to the Home endpoint.
 
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
-If a URL is not provided, it defaults to :443/home .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) HomeGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfHome, url)
@@ -166,8 +165,7 @@ HomeGet performs a GET request to the Home endpoint.
 
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
-If a URL is not provided, it defaults to :443/home .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) HomeGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -183,8 +181,7 @@ HomePost performs a POST request to the Home endpoint.
 
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
-If a URL is not provided, it defaults to :443/home .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -206,8 +203,7 @@ HomePost performs a POST request to the Home endpoint.
 
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
-If a URL is not provided, it defaults to :443/home .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -224,8 +220,7 @@ func (_c *MulticastClient) HomePost(ctx context.Context, url string, contentType
 /*
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
-If a request is not provided, it defaults to GET :443/home
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Home(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -248,8 +243,7 @@ func (_c *Client) Home(ctx context.Context, httpReq *http.Request) (res *http.Re
 /*
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
-If a request is not provided, it defaults to GET :443/home
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Home(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -273,8 +267,7 @@ NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/no-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) NoQueueGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfNoQueue, url)
@@ -295,8 +288,7 @@ NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/no-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) NoQueueGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -314,8 +306,7 @@ NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/no-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -339,8 +330,7 @@ NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/no-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -359,8 +349,7 @@ NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 
-If a request is not provided, it defaults to GET :443/no-queue
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) NoQueue(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -385,8 +374,7 @@ NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
 
-If a request is not provided, it defaults to GET :443/no-queue
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) NoQueue(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -410,8 +398,7 @@ DefaultQueue demonstrates how the DefaultQueue subscription option is used to cr
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/default-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) DefaultQueueGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfDefaultQueue, url)
@@ -432,8 +419,7 @@ DefaultQueue demonstrates how the DefaultQueue subscription option is used to cr
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/default-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) DefaultQueueGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -451,8 +437,7 @@ DefaultQueue demonstrates how the DefaultQueue subscription option is used to cr
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/default-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -476,8 +461,7 @@ DefaultQueue demonstrates how the DefaultQueue subscription option is used to cr
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 
-If a URL is not provided, it defaults to :443/default-queue .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -496,8 +480,7 @@ DefaultQueue demonstrates how the DefaultQueue subscription option is used to cr
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 
-If a request is not provided, it defaults to GET :443/default-queue
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) DefaultQueue(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -522,8 +505,7 @@ DefaultQueue demonstrates how the DefaultQueue subscription option is used to cr
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
 
-If a request is not provided, it defaults to GET :443/default-queue
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) DefaultQueue(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -545,8 +527,7 @@ CacheLoadGet performs a GET request to the CacheLoad endpoint.
 
 CacheLoad looks up an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-load .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CacheLoadGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfCacheLoad, url)
@@ -565,8 +546,7 @@ CacheLoadGet performs a GET request to the CacheLoad endpoint.
 
 CacheLoad looks up an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-load .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) CacheLoadGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -582,8 +562,7 @@ CacheLoadPost performs a POST request to the CacheLoad endpoint.
 
 CacheLoad looks up an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-load .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -605,8 +584,7 @@ CacheLoadPost performs a POST request to the CacheLoad endpoint.
 
 CacheLoad looks up an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-load .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -623,8 +601,7 @@ func (_c *MulticastClient) CacheLoadPost(ctx context.Context, url string, conten
 /*
 CacheLoad looks up an element in the distributed cache of the microservice.
 
-If a request is not provided, it defaults to GET :443/cache-load
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CacheLoad(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -647,8 +624,7 @@ func (_c *Client) CacheLoad(ctx context.Context, httpReq *http.Request) (res *ht
 /*
 CacheLoad looks up an element in the distributed cache of the microservice.
 
-If a request is not provided, it defaults to GET :443/cache-load
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) CacheLoad(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
@@ -670,8 +646,7 @@ CacheStoreGet performs a GET request to the CacheStore endpoint.
 
 CacheStore stores an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-store .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CacheStoreGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfCacheStore, url)
@@ -690,8 +665,7 @@ CacheStoreGet performs a GET request to the CacheStore endpoint.
 
 CacheStore stores an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-store .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) CacheStoreGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -707,8 +681,7 @@ CacheStorePost performs a POST request to the CacheStore endpoint.
 
 CacheStore stores an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-store .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -730,8 +703,7 @@ CacheStorePost performs a POST request to the CacheStore endpoint.
 
 CacheStore stores an element in the distributed cache of the microservice.
 
-If a URL is not provided, it defaults to :443/cache-store .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -748,8 +720,7 @@ func (_c *MulticastClient) CacheStorePost(ctx context.Context, url string, conte
 /*
 CacheStore stores an element in the distributed cache of the microservice.
 
-If a request is not provided, it defaults to GET :443/cache-store
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CacheStore(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -772,8 +743,7 @@ func (_c *Client) CacheStore(ctx context.Context, httpReq *http.Request) (res *h
 /*
 CacheStore stores an element in the distributed cache of the microservice.
 
-If a request is not provided, it defaults to GET :443/cache-store
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) CacheStore(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error

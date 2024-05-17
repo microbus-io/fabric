@@ -142,8 +142,7 @@ CollectGet performs a GET request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
-If a URL is not provided, it defaults to :443/collect .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CollectGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfCollect, url)
@@ -162,8 +161,7 @@ CollectGet performs a GET request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
-If a URL is not provided, it defaults to :443/collect .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) CollectGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -179,8 +177,7 @@ CollectPost performs a POST request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
-If a URL is not provided, it defaults to :443/collect .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -202,8 +199,7 @@ CollectPost performs a POST request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
-If a URL is not provided, it defaults to :443/collect .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -220,8 +216,7 @@ func (_c *MulticastClient) CollectPost(ctx context.Context, url string, contentT
 /*
 Collect returns the latest aggregated metrics.
 
-If a request is not provided, it defaults to GET :443/collect
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) Collect(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -244,8 +239,7 @@ func (_c *Client) Collect(ctx context.Context, httpReq *http.Request) (res *http
 /*
 Collect returns the latest aggregated metrics.
 
-If a request is not provided, it defaults to GET :443/collect
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) Collect(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error

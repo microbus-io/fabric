@@ -143,8 +143,7 @@ ListGet performs a GET request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
-If a URL is not provided, it defaults to //openapi:* .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) ListGet(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOfList, url)
@@ -163,8 +162,7 @@ ListGet performs a GET request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
-If a URL is not provided, it defaults to //openapi:* .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) ListGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -180,8 +178,7 @@ ListPost performs a POST request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
-If a URL is not provided, it defaults to //openapi:* .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -203,8 +200,7 @@ ListPost performs a POST request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
-If a URL is not provided, it defaults to //openapi:* .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -221,8 +217,7 @@ func (_c *MulticastClient) ListPost(ctx context.Context, url string, contentType
 /*
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
-If a request is not provided, it defaults to GET //openapi:*
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) List(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -245,8 +240,7 @@ func (_c *Client) List(ctx context.Context, httpReq *http.Request) (res *http.Re
 /*
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
-If a request is not provided, it defaults to GET //openapi:*
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) List(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error

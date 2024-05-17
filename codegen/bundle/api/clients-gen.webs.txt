@@ -50,8 +50,7 @@ func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) {{ .Name }}Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOf{{ .Name }}, url)
@@ -70,8 +69,7 @@ func (_c *Client) {{ .Name }}Get(ctx context.Context, url string) (res *http.Res
 
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) {{ .Name }}Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -87,8 +85,7 @@ func (_c *MulticastClient) {{ .Name }}Get(ctx context.Context, url string) <-cha
 
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -110,8 +107,7 @@ func (_c *Client) {{ .Name }}Post(ctx context.Context, url string, contentType s
 
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -129,8 +125,7 @@ func (_c *MulticastClient) {{ .Name }}Post(ctx context.Context, url string, cont
 /*
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -150,8 +145,7 @@ func (_c *Client) {{ .Name }}(ctx context.Context, url string, contentType strin
 /*
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 If the body if of type io.Reader, []byte or string, it is serialized in binary form.
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
@@ -169,8 +163,7 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string, contentT
 /*
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) {{ .Name }}(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = _c.resolveURL(URLOf{{ .Name }}, url)
@@ -187,8 +180,7 @@ func (_c *Client) {{ .Name }}(ctx context.Context, url string) (res *http.Respon
 /*
 {{ .Description }}
 
-If a URL is not provided, it defaults to {{ .Path }} .
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
@@ -208,8 +200,7 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *
 
 {{ .Description }}
 
-If a request is not provided, it defaults to {{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }} {{ .Path }}
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
 	if httpReq == nil {
@@ -236,8 +227,7 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(ctx context.Con
 
 {{ .Description }}
 
-If a request is not provided, it defaults to {{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }} {{ .Path }}
-Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *MulticastClient) {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
 	var err error
