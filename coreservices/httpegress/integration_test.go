@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/fabric/application"
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/coreservices/httpegress/httpegressapi"
 	"github.com/stretchr/testify/assert"
 )
@@ -179,7 +181,7 @@ func TestHttpegress_MakeRequest(t *testing.T) {
 }
 
 func TestHttpegress_Mock(t *testing.T) {
-	// No parallel due to side effects
+	t.Parallel()
 
 	mock := NewMock()
 	mock.MockMakeRequest = func(w http.ResponseWriter, r *http.Request) (err error) {
@@ -192,13 +194,20 @@ func TestHttpegress_Mock(t *testing.T) {
 		}
 		return nil
 	}
-	App.Join(mock)
-	err := mock.Startup()
+
+	con := connector.New("mock.http.egress")
+
+	app := application.NewTesting()
+	app.Include(
+		mock,
+		con,
+	)
+	err := app.Startup()
 	assert.NoError(t, err)
-	defer mock.Shutdown()
+	defer app.Shutdown()
 
 	ctx := Context(t)
-	client := httpegressapi.NewClient(Svc).ForHost(mock.ID() + "." + mock.HostName()) // Address the mock by ID
+	client := httpegressapi.NewClient(con).ForHost(mock.ID() + "." + mock.HostName()) // Address the mock by ID
 
 	req, _ := http.NewRequest("DELETE", "https://example.com/ex/5", nil)
 	resp, err := client.Do(ctx, req)

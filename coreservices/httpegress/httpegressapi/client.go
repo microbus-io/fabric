@@ -14,7 +14,6 @@ import (
 	"net/http"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/pub"
 )
 
 // Get makes a GET request to a URL, respecting the timeout set in the context.
@@ -28,7 +27,7 @@ func (c *Client) Get(ctx context.Context, url string) (resp *http.Response, err 
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	resp, err = c.MakeRequest(ctx, pub.Body(buf.Bytes()))
+	resp, err = c.MakeRequest(ctx, "", "", &buf)
 	return resp, errors.Trace(err)
 }
 
@@ -46,7 +45,7 @@ func (c *Client) Post(ctx context.Context, url string, contentType string, body 
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	resp, err = c.MakeRequest(ctx, pub.Body(buf.Bytes()))
+	resp, err = c.MakeRequest(ctx, "", "", &buf)
 	return resp, errors.Trace(err)
 }
 
@@ -57,6 +56,6 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (resp *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	resp, err = c.MakeRequest(ctx, pub.Body(buf.Bytes()))
+	resp, err = c.MakeRequest(ctx, "", "", &buf)
 	return resp, errors.Trace(err)
 }

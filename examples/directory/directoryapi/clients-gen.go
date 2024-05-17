@@ -18,7 +18,9 @@ package directoryapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,12 +50,12 @@ const HostName = "directory.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfCreate = httpx.JoinHostAndPath(HostName, ":443/create")
-	URLOfLoad = httpx.JoinHostAndPath(HostName, ":443/load")
-	URLOfDelete = httpx.JoinHostAndPath(HostName, ":443/delete")
-	URLOfUpdate = httpx.JoinHostAndPath(HostName, ":443/update")
-	URLOfLoadByEmail = httpx.JoinHostAndPath(HostName, ":443/load-by-email")
-	URLOfList = httpx.JoinHostAndPath(HostName, ":443/list")
+	URLOfCreate = httpx.JoinHostAndPath(HostName, `:443/create`)
+	URLOfLoad = httpx.JoinHostAndPath(HostName, `:443/load`)
+	URLOfDelete = httpx.JoinHostAndPath(HostName, `:443/delete`)
+	URLOfUpdate = httpx.JoinHostAndPath(HostName, `:443/update`)
+	URLOfLoadByEmail = httpx.JoinHostAndPath(HostName, `:443/load-by-email`)
+	URLOfList = httpx.JoinHostAndPath(HostName, `:443/list`)
 )
 
 // Client is an interface to calling the endpoints of the directory.example microservice.

@@ -18,7 +18,9 @@ package configuratorapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,9 +50,9 @@ const HostName = "configurator.sys"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfValues = httpx.JoinHostAndPath(HostName, ":443/values")
-	URLOfRefresh = httpx.JoinHostAndPath(HostName, ":443/refresh")
-	URLOfSync = httpx.JoinHostAndPath(HostName, ":443/sync")
+	URLOfValues = httpx.JoinHostAndPath(HostName, `:443/values`)
+	URLOfRefresh = httpx.JoinHostAndPath(HostName, `:443/refresh`)
+	URLOfSync = httpx.JoinHostAndPath(HostName, `:443/sync`)
 )
 
 // Client is an interface to calling the endpoints of the configurator.sys microservice.

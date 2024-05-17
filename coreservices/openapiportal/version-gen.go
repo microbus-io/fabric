@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package openapiportal
 
-const Version = 38
-const SourceCodeSHA256 = "7a4aef6683acc945cd8454b4f63e986282f0139a99697a3b5240df653fc73db4"
-const Timestamp = "2024-05-16T22:53:13.014589Z"
+const Version = 39
+const SourceCodeSHA256 = "10e352d5d4cbab0d2a8c18645ff20a93741082cbf7632c55e53509c7d5438e89"
+const Timestamp = "2024-05-17T21:29:35.137782Z"
 
 /* {
-	"ver": 38,
-	"sha256": "7a4aef6683acc945cd8454b4f63e986282f0139a99697a3b5240df653fc73db4",
-	"ts": "2024-05-16T22:53:13.014589Z"
+	"ver": 39,
+	"sha256": "10e352d5d4cbab0d2a8c18645ff20a93741082cbf7632c55e53509c7d5438e89",
+	"ts": "2024-05-17T21:29:35.137782Z"
 } */

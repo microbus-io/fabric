@@ -60,7 +60,7 @@ func NewMock(version int) *Mock {
 	svc.Subscribe(`*`, `:443/echo`, svc.doEcho)
 	svc.Subscribe(`*`, `:443/ping`, svc.doPing)
 	svc.Subscribe(`*`, `:443/calculator`, svc.doCalculator)
-	svc.Subscribe(`*`, `:443/bus.jpeg`, svc.doBusJPEG)
+	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.doBusJPEG)
 	svc.Subscribe(`*`, `:443/localization`, svc.doLocalization)
 
 	return svc

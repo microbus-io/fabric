@@ -18,7 +18,9 @@ package inboxapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError

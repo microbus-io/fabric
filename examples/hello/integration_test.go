@@ -11,6 +11,8 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -216,4 +218,106 @@ func TestHello_Localization(t *testing.T) {
 	Localization(t, ctx).
 		StatusOK().
 		BodyContains("Salve")
+}
+
+func TestHello_EchoClient(t *testing.T) {
+	t.Parallel()
+	ctx := Context(t)
+	client := helloapi.NewClient(Svc)
+
+	// Nil request
+	res, err := client.Echo(ctx, nil)
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "GET /echo "))
+		}
+	}
+
+	// PATCH request with headers and body
+	req, err := http.NewRequest("PATCH", "", strings.NewReader("Sunshine"))
+	req.Header.Set("X-Location", "California")
+	assert.NoError(t, err)
+	res, err = client.Echo(ctx, req)
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "PATCH /echo "))
+			assert.Contains(t, string(body), "\r\nX-Location: California")
+			assert.Contains(t, string(body), "\r\nSunshine")
+		}
+	}
+
+	// GET with no URL
+	res, err = client.EchoGet(ctx, "")
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "GET /echo "))
+		}
+	}
+
+	// GET with only query string
+	res, err = client.EchoGet(ctx, "?arg=12345")
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
+		}
+	}
+
+	// GET with relative URL and query string
+	res, err = client.EchoGet(ctx, "/echo?arg=12345")
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
+		}
+	}
+
+	// GET with absolute URL and query string
+	res, err = client.EchoGet(ctx, "https://"+HostName+"/echo?arg=12345")
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
+		}
+	}
+
+	// POST with no URL or content type and form data formDataPayload
+	formDataPayload := url.Values{
+		"pay":  []string{"11111"},
+		"load": []string{"22222"},
+	}
+	res, err = client.EchoPost(ctx, "", "", formDataPayload)
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "POST /echo "))
+			assert.Contains(t, string(body), "\r\nload=22222&pay=11111")
+			assert.Contains(t, string(body), "\r\nContent-Type: application/x-www-form-urlencoded")
+		}
+	}
+
+	// POST with query string
+	res, err = client.EchoPost(ctx, "?arg=12345", "", formDataPayload)
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "POST /echo?arg=12345 "))
+			assert.Contains(t, string(body), "\r\nload=22222&pay=11111")
+			assert.Contains(t, string(body), "\r\nContent-Type: application/x-www-form-urlencoded")
+		}
+	}
+
+	// POST with content type
+	res, err = client.EchoPost(ctx, "", "text/plain", formDataPayload)
+	if assert.NoError(t, err) {
+		body, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, strings.HasPrefix(string(body), "POST /echo "))
+			assert.Contains(t, string(body), "\r\nload=22222&pay=11111")
+			assert.Contains(t, string(body), "\r\nContent-Type: text/plain")
+		}
+	}
 }

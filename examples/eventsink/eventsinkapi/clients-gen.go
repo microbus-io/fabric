@@ -18,7 +18,9 @@ package eventsinkapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,7 +50,7 @@ const HostName = "eventsink.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfRegistered = httpx.JoinHostAndPath(HostName, ":443/registered")
+	URLOfRegistered = httpx.JoinHostAndPath(HostName, `:443/registered`)
 )
 
 // Client is an interface to calling the endpoints of the eventsink.example microservice.

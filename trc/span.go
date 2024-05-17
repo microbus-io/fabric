@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/log"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -192,28 +191,7 @@ func (s SpanImpl) SetRequest(r *http.Request) {
 	if s.Span == nil {
 		return
 	}
-	// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server
-	portInt, _ := strconv.Atoi(r.URL.Port())
-	attrs := []attribute.KeyValue{
-		attribute.String("http.method", r.Method),
-		attribute.String("url.scheme", r.URL.Scheme),
-		attribute.String("server.address", r.URL.Hostname()),
-		attribute.Int("server.port", portInt),
-		attribute.String("url.path", r.URL.Path),
-	}
-	for k, v := range r.Header {
-		if !strings.HasPrefix(k, frame.HeaderPrefix) && k != "Traceparent" && k != "Tracestate" {
-			attrs = append(attrs, attribute.StringSlice("http.request.header."+k, v))
-		}
-	}
-	encodedQuery := r.URL.Query().Encode()
-	if encodedQuery != "" {
-		attrs = append(attrs, attribute.String("url.query", encodedQuery))
-	}
-	if r.ContentLength > 0 {
-		attrs = append(attrs, attribute.Int("http.request.body.size", int(r.ContentLength)))
-	}
-	s.Span.SetAttributes(attrs...)
+	s.Span.SetAttributes(attributesOfRequest(r)...)
 	s.SetClientIP(r.RemoteAddr)
 }
 

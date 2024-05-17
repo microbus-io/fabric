@@ -76,6 +76,10 @@ func (svc *Service) Hello(w http.ResponseWriter, r *http.Request) error {
 Echo back the incoming request in wire format.
 */
 func (svc *Service) Echo(w http.ResponseWriter, r *http.Request) error {
+	// Stop the http package from serializing Go-http-client/1.1 as the user-agent
+	if len(r.Header.Values("User-Agent")) == 0 {
+		r.Header.Set("User-Agent", "")
+	}
 	var buf bytes.Buffer
 	err := r.Write(&buf)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/microbus-io/fabric/frame"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -61,23 +62,33 @@ func Float(k string, v float64) Option {
 
 // Request tags the span during its creation with the request data
 func Request(r *http.Request) Option {
+	return trace.WithAttributes(attributesOfRequest(r)...)
+}
+
+// attributesOfRequest populates an attribute array from the HTTP request.
+func attributesOfRequest(r *http.Request) []attribute.KeyValue {
 	// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server
 	portInt, _ := strconv.Atoi(r.URL.Port())
 	attrs := []attribute.KeyValue{
 		attribute.String("http.method", r.Method),
+		attribute.String("url.scheme", r.URL.Scheme),
 		attribute.String("server.address", r.URL.Hostname()),
 		attribute.Int("server.port", portInt),
 		attribute.String("url.path", r.URL.Path),
-		attribute.String("url.scheme", r.URL.Scheme),
 	}
 	for k, v := range r.Header {
-		attrs = append(attrs, attribute.StringSlice("http.request.header."+k, v))
+		if !strings.HasPrefix(k, frame.HeaderPrefix) && k != "Traceparent" && k != "Tracestate" {
+			attrs = append(attrs, attribute.StringSlice("http.request.header."+k, v))
+		}
 	}
 	encodedQuery := r.URL.Query().Encode()
 	if encodedQuery != "" {
 		attrs = append(attrs, attribute.String("url.query", encodedQuery))
 	}
-	return trace.WithAttributes(attrs...)
+	if r.ContentLength > 0 {
+		attrs = append(attrs, attribute.Int("http.request.body.size", int(r.ContentLength)))
+	}
+	return attrs
 }
 
 // ClientIP tags the span during its creation with the IP address and port number of the client

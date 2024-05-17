@@ -18,7 +18,9 @@ package messagingapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,11 +50,11 @@ const HostName = "messaging.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfHome = httpx.JoinHostAndPath(HostName, ":443/home")
-	URLOfNoQueue = httpx.JoinHostAndPath(HostName, ":443/no-queue")
-	URLOfDefaultQueue = httpx.JoinHostAndPath(HostName, ":443/default-queue")
-	URLOfCacheLoad = httpx.JoinHostAndPath(HostName, ":443/cache-load")
-	URLOfCacheStore = httpx.JoinHostAndPath(HostName, ":443/cache-store")
+	URLOfHome = httpx.JoinHostAndPath(HostName, `:443/home`)
+	URLOfNoQueue = httpx.JoinHostAndPath(HostName, `:443/no-queue`)
+	URLOfDefaultQueue = httpx.JoinHostAndPath(HostName, `:443/default-queue`)
+	URLOfCacheLoad = httpx.JoinHostAndPath(HostName, `:443/cache-load`)
+	URLOfCacheStore = httpx.JoinHostAndPath(HostName, `:443/cache-store`)
 )
 
 // Client is an interface to calling the endpoints of the messaging.example microservice.
@@ -95,20 +99,146 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
+// resolveURL resolves a URL in relation to the endpoint's base path.
+func (_c *Client) resolveURL(base string, relative string) (resolved string, err error) {
+	if relative == "" {
+		return base, nil
+	}
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	relativeURL, err := url.Parse(relative)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	resolvedURL := baseURL.ResolveReference(relativeURL)
+	return resolvedURL.String(), nil
+}
+
+// resolveURL resolves a URL in relation to the endpoint's base path.
+func (_c *MulticastClient) resolveURL(base string, relative string) (resolved string, err error) {
+	if relative == "" {
+		return base, nil
+	}
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	relativeURL, err := url.Parse(relative)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	resolvedURL := baseURL.ResolveReference(relativeURL)
+	return resolvedURL.String(), nil
+}
+
+// errChan returns a response channel with a single error response.
+func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
+	ch := make(chan *pub.Response, 1)
+	ch <- pub.NewErrorResponse(err)
+	close(ch)
+	return ch
+}
+
+/*
+HomeGet performs a GET request to the Home endpoint.
+
+Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a URL is not provided, it defaults to :443/home .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) HomeGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfHome, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+HomeGet performs a GET request to the Home endpoint.
+
+Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a URL is not provided, it defaults to :443/home .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) HomeGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfHome, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+HomePost performs a POST request to the Home endpoint.
+
+Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a URL is not provided, it defaults to :443/home .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) HomePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfHome, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+HomePost performs a POST request to the Home endpoint.
+
+Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a URL is not provided, it defaults to :443/home .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) HomePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfHome, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+}
+
 /*
 Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a request is not provided, it defaults to GET :443/home
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Home(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) Home(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/home`)),
+	url, err := _c.resolveURL(URLOfHome, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -117,36 +247,133 @@ func (_c *Client) Home(ctx context.Context, options ...pub.Option) (res *http.Re
 
 /*
 Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a request is not provided, it defaults to GET :443/home
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Home(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) Home(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/home`)),
+	url, err := _c.resolveURL(URLOfHome, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+NoQueueGet performs a GET request to the NoQueue endpoint.
+
+NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/no-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) NoQueueGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfNoQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+NoQueueGet performs a GET request to the NoQueue endpoint.
+
+NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/no-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) NoQueueGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfNoQueue, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+NoQueuePost performs a POST request to the NoQueue endpoint.
+
+NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/no-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) NoQueuePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfNoQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+NoQueuePost performs a POST request to the NoQueue endpoint.
+
+NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/no-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) NoQueuePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfNoQueue, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
+
+If a request is not provided, it defaults to GET :443/no-queue
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) NoQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) NoQueue(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/no-queue`)),
+	url, err := _c.resolveURL(URLOfNoQueue, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -157,36 +384,133 @@ func (_c *Client) NoQueue(ctx context.Context, options ...pub.Option) (res *http
 NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
 All instances of this microservice will respond to each request.
+
+If a request is not provided, it defaults to GET :443/no-queue
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) NoQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) NoQueue(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/no-queue`)),
+	url, err := _c.resolveURL(URLOfNoQueue, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+DefaultQueueGet performs a GET request to the DefaultQueue endpoint.
+
+DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/default-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) DefaultQueueGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+DefaultQueueGet performs a GET request to the DefaultQueue endpoint.
+
+DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/default-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) DefaultQueueGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+DefaultQueuePost performs a POST request to the DefaultQueue endpoint.
+
+DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/default-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) DefaultQueuePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+DefaultQueuePost performs a POST request to the DefaultQueue endpoint.
+
+DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to :443/default-queue .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) DefaultQueuePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
+
+If a request is not provided, it defaults to GET :443/default-queue
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) DefaultQueue(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) DefaultQueue(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/default-queue`)),
+	url, err := _c.resolveURL(URLOfDefaultQueue, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -197,34 +521,123 @@ func (_c *Client) DefaultQueue(ctx context.Context, options ...pub.Option) (res 
 DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
 a unicast request/response communication pattern.
 Only one of the instances of this microservice will respond to each request.
+
+If a request is not provided, it defaults to GET :443/default-queue
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) DefaultQueue(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) DefaultQueue(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/default-queue`)),
+	url, err := _c.resolveURL(URLOfDefaultQueue, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+CacheLoadGet performs a GET request to the CacheLoad endpoint.
+
+CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-load .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) CacheLoadGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+CacheLoadGet performs a GET request to the CacheLoad endpoint.
+
+CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-load .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) CacheLoadGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+CacheLoadPost performs a POST request to the CacheLoad endpoint.
+
+CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-load .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) CacheLoadPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+CacheLoadPost performs a POST request to the CacheLoad endpoint.
+
+CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-load .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) CacheLoadPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a request is not provided, it defaults to GET :443/cache-load
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CacheLoad(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) CacheLoad(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-load`)),
+	url, err := _c.resolveURL(URLOfCacheLoad, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -233,34 +646,123 @@ func (_c *Client) CacheLoad(ctx context.Context, options ...pub.Option) (res *ht
 
 /*
 CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a request is not provided, it defaults to GET :443/cache-load
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) CacheLoad(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) CacheLoad(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-load`)),
+	url, err := _c.resolveURL(URLOfCacheLoad, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+CacheStoreGet performs a GET request to the CacheStore endpoint.
+
+CacheStore stores an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-store .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) CacheStoreGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfCacheStore, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+CacheStoreGet performs a GET request to the CacheStore endpoint.
+
+CacheStore stores an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-store .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) CacheStoreGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfCacheStore, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+CacheStorePost performs a POST request to the CacheStore endpoint.
+
+CacheStore stores an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-store .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) CacheStorePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfCacheStore, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+CacheStorePost performs a POST request to the CacheStore endpoint.
+
+CacheStore stores an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to :443/cache-store .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) CacheStorePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfCacheStore, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 CacheStore stores an element in the distributed cache of the microservice.
+
+If a request is not provided, it defaults to GET :443/cache-store
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CacheStore(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) CacheStore(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-store`)),
+	url, err := _c.resolveURL(URLOfCacheStore, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -269,16 +771,21 @@ func (_c *Client) CacheStore(ctx context.Context, options ...pub.Option) (res *h
 
 /*
 CacheStore stores an element in the distributed cache of the microservice.
+
+If a request is not provided, it defaults to GET :443/cache-store
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) CacheStore(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) CacheStore(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/cache-store`)),
+	url, err := _c.resolveURL(URLOfCacheStore, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 }

@@ -125,7 +125,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 		output = utils.MakeInfiniteChan[*pub.Response](2)
 	}
 	go func() {
-		c.makeHTTPRequest(ctx, req, output)
+		c.makeRequest(ctx, req, output)
 		fullyDrained := output.Close(time.Second)
 		if !fullyDrained {
 			c.LogDebug(ctx, "Unconsumed responses dropped", log.String("url", req.Canonical()), log.String("method", req.Method))
@@ -134,8 +134,8 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	return output.C()
 }
 
-// makeHTTPRequest makes an HTTP request then awaits and pushes the responses to the output channel.
-func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, output *utils.InfiniteChan[*pub.Response]) {
+// makeRequest makes an HTTP request over NATS, then awaits and pushes the responses to the output channel.
+func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *utils.InfiniteChan[*pub.Response]) {
 	// Set a random message ID
 	msgID := rand.AlphaNum64(8)
 	frame.Of(req.Header).SetMessageID(msgID)
@@ -149,6 +149,10 @@ func (c *Connector) makeHTTPRequest(ctx context.Context, req *pub.Request, outpu
 	}
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
+	}
+	// Stop the http package from setting Go-http-client/1.1 as the user-agent
+	if len(httpReq.Header.Values("User-Agent")) == 0 {
+		httpReq.Header.Set("User-Agent", "")
 	}
 	deadline, deadlineOK := ctx.Deadline()
 	if deadlineOK {

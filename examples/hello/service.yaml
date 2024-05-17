@@ -131,6 +131,7 @@ webs:
       The calculation operation is delegated to another microservice in order to demonstrate
       a call from one microservice to another.
   - signature: BusJPEG()
+    method: GET
     path: /bus.jpeg
     description: BusJPEG serves an image from the embedded resources.
   - signature: Localization()

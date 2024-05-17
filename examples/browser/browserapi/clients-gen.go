@@ -18,7 +18,9 @@ package browserapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,7 +50,7 @@ const HostName = "browser.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfBrowse = httpx.JoinHostAndPath(HostName, ":443/browse")
+	URLOfBrowse = httpx.JoinHostAndPath(HostName, `:443/browse`)
 )
 
 // Client is an interface to calling the endpoints of the browser.example microservice.
@@ -91,20 +95,146 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
+// resolveURL resolves a URL in relation to the endpoint's base path.
+func (_c *Client) resolveURL(base string, relative string) (resolved string, err error) {
+	if relative == "" {
+		return base, nil
+	}
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	relativeURL, err := url.Parse(relative)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	resolvedURL := baseURL.ResolveReference(relativeURL)
+	return resolvedURL.String(), nil
+}
+
+// resolveURL resolves a URL in relation to the endpoint's base path.
+func (_c *MulticastClient) resolveURL(base string, relative string) (resolved string, err error) {
+	if relative == "" {
+		return base, nil
+	}
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	relativeURL, err := url.Parse(relative)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	resolvedURL := baseURL.ResolveReference(relativeURL)
+	return resolvedURL.String(), nil
+}
+
+// errChan returns a response channel with a single error response.
+func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
+	ch := make(chan *pub.Response, 1)
+	ch <- pub.NewErrorResponse(err)
+	close(ch)
+	return ch
+}
+
+/*
+BrowseGet performs a GET request to the Browse endpoint.
+
+Browser shows a simple address bar and the source code of a URL.
+
+If a URL is not provided, it defaults to :443/browse .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) BrowseGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfBrowse, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+BrowseGet performs a GET request to the Browse endpoint.
+
+Browser shows a simple address bar and the source code of a URL.
+
+If a URL is not provided, it defaults to :443/browse .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) BrowseGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfBrowse, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+BrowsePost performs a POST request to the Browse endpoint.
+
+Browser shows a simple address bar and the source code of a URL.
+
+If a URL is not provided, it defaults to :443/browse .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) BrowsePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfBrowse, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+BrowsePost performs a POST request to the Browse endpoint.
+
+Browser shows a simple address bar and the source code of a URL.
+
+If a URL is not provided, it defaults to :443/browse .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) BrowsePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfBrowse, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+}
+
 /*
 Browser shows a simple address bar and the source code of a URL.
+
+If a request is not provided, it defaults to GET :443/browse
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Browse(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) Browse(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/browse`)),
+	url, err := _c.resolveURL(URLOfBrowse, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -113,16 +243,21 @@ func (_c *Client) Browse(ctx context.Context, options ...pub.Option) (res *http.
 
 /*
 Browser shows a simple address bar and the source code of a URL.
+
+If a request is not provided, it defaults to GET :443/browse
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Browse(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) Browse(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/browse`)),
+	url, err := _c.resolveURL(URLOfBrowse, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 }

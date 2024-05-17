@@ -119,7 +119,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`*`, `:443/echo`, svc.impl.Echo)
 	svc.Subscribe(`*`, `:443/ping`, svc.impl.Ping)
 	svc.Subscribe(`*`, `:443/calculator`, svc.impl.Calculator)
-	svc.Subscribe(`*`, `:443/bus.jpeg`, svc.impl.BusJPEG)
+	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.impl.BusJPEG)
 	svc.Subscribe(`*`, `:443/localization`, svc.impl.Localization)
 
 	// Tickers
@@ -203,7 +203,7 @@ a call from one microservice to another.`,
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `BusJPEG`,
-			Method:      `*`,
+			Method:      `GET`,
 			Path:        `:443/bus.jpeg`,
 			Summary:     `BusJPEG()`,
 			Description: `BusJPEG serves an image from the embedded resources.`,

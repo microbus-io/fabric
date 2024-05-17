@@ -35,7 +35,6 @@ Here's an example of an HTTP request that was fragmented into 3 fragments of up 
 ```
 POST /too-big HTTP/1.1
 Host: server.example
-User-Agent: Go-http-client/1.1
 Content-Length: 128
 Microbus-Call-Depth: 1
 Microbus-Fragment: 1/3
@@ -65,7 +64,6 @@ The client then sends the remaining fragments.
 ```
 POST /too-big HTTP/1.1
 Host: server.example
-User-Agent: Go-http-client/1.1
 Content-Length: 128
 Microbus-Call-Depth: 1
 Microbus-Fragment: 2/3
@@ -83,7 +81,6 @@ and
 ```
 POST /too-big HTTP/1.1
 Host: server.example
-User-Agent: Go-http-client/1.1
 Content-Length: 16
 Microbus-Call-Depth: 1
 Microbus-Fragment: 3/3

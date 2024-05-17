@@ -225,26 +225,36 @@ func Query(args url.Values) Option {
 // Arguments of type io.Reader, []byte and string are serialized in binary form.
 // url.Values is serialized as form data.
 // All other types are serialized as JSON.
-// The Content-Type and Content-Length headers may be set by this function.
+// The Content-Type header will be set to match the body, if not already set.
+// The Content-Length header will be set to match the body.
 func Body(body any) Option {
 	return func(req *Request) error {
 		if body == nil {
 			return nil
 		}
+		hasContentType := req.Header.Get("Content-Type") != ""
 		switch v := body.(type) {
 		case io.Reader:
 			req.Body = v
 		case []byte:
 			req.Body = httpx.NewBodyReader(v)
+			if !hasContentType {
+				req.Header.Set("Content-Type", http.DetectContentType(v))
+			}
 			req.Header.Set("Content-Length", strconv.Itoa(len(v)))
 		case string:
 			b := []byte(v)
 			req.Body = httpx.NewBodyReader(b)
+			if !hasContentType {
+				req.Header.Set("Content-Type", http.DetectContentType(b))
+			}
 			req.Header.Set("Content-Length", strconv.Itoa(len(b)))
 		case url.Values:
 			b := []byte(v.Encode())
 			req.Body = httpx.NewBodyReader(b)
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			if !hasContentType {
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			}
 			req.Header.Set("Content-Length", strconv.Itoa(len(b)))
 		default:
 			j, err := json.Marshal(body)
@@ -252,7 +262,9 @@ func Body(body any) Option {
 				return errors.Trace(err)
 			}
 			req.Body = httpx.NewBodyReader(j)
-			req.Header.Set("Content-Type", "application/json")
+			if !hasContentType {
+				req.Header.Set("Content-Type", "application/json")
+			}
 			req.Header.Set("Content-Length", strconv.Itoa(len(j)))
 		}
 		return nil

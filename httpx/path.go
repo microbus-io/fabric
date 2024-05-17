@@ -7,7 +7,9 @@ Neither may be used, copied or distributed without the express written consent o
 
 package httpx
 
-import "strings"
+import (
+	"strings"
+)
 
 // JoinHostAndPath combines the path shorthand with a host name.
 func JoinHostAndPath(host string, path string) string {

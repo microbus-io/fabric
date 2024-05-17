@@ -18,7 +18,9 @@ package calculatorapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,9 +50,9 @@ const HostName = "calculator.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfArithmetic = httpx.JoinHostAndPath(HostName, ":443/arithmetic")
-	URLOfSquare = httpx.JoinHostAndPath(HostName, ":443/square")
-	URLOfDistance = httpx.JoinHostAndPath(HostName, ":443/distance")
+	URLOfArithmetic = httpx.JoinHostAndPath(HostName, `:443/arithmetic`)
+	URLOfSquare = httpx.JoinHostAndPath(HostName, `:443/square`)
+	URLOfDistance = httpx.JoinHostAndPath(HostName, `:443/distance`)
 )
 
 // Client is an interface to calling the endpoints of the calculator.example microservice.

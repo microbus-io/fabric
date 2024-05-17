@@ -18,7 +18,9 @@ package helloapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,12 +50,12 @@ const HostName = "hello.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfHello = httpx.JoinHostAndPath(HostName, ":443/hello")
-	URLOfEcho = httpx.JoinHostAndPath(HostName, ":443/echo")
-	URLOfPing = httpx.JoinHostAndPath(HostName, ":443/ping")
-	URLOfCalculator = httpx.JoinHostAndPath(HostName, ":443/calculator")
-	URLOfBusJPEG = httpx.JoinHostAndPath(HostName, ":443/bus.jpeg")
-	URLOfLocalization = httpx.JoinHostAndPath(HostName, ":443/localization")
+	URLOfHello = httpx.JoinHostAndPath(HostName, `:443/hello`)
+	URLOfEcho = httpx.JoinHostAndPath(HostName, `:443/echo`)
+	URLOfPing = httpx.JoinHostAndPath(HostName, `:443/ping`)
+	URLOfCalculator = httpx.JoinHostAndPath(HostName, `:443/calculator`)
+	URLOfBusJPEG = httpx.JoinHostAndPath(HostName, `:443/bus.jpeg`)
+	URLOfLocalization = httpx.JoinHostAndPath(HostName, `:443/localization`)
 )
 
 // Client is an interface to calling the endpoints of the hello.example microservice.
@@ -96,20 +100,146 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
+// resolveURL resolves a URL in relation to the endpoint's base path.
+func (_c *Client) resolveURL(base string, relative string) (resolved string, err error) {
+	if relative == "" {
+		return base, nil
+	}
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	relativeURL, err := url.Parse(relative)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	resolvedURL := baseURL.ResolveReference(relativeURL)
+	return resolvedURL.String(), nil
+}
+
+// resolveURL resolves a URL in relation to the endpoint's base path.
+func (_c *MulticastClient) resolveURL(base string, relative string) (resolved string, err error) {
+	if relative == "" {
+		return base, nil
+	}
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	relativeURL, err := url.Parse(relative)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	resolvedURL := baseURL.ResolveReference(relativeURL)
+	return resolvedURL.String(), nil
+}
+
+// errChan returns a response channel with a single error response.
+func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
+	ch := make(chan *pub.Response, 1)
+	ch <- pub.NewErrorResponse(err)
+	close(ch)
+	return ch
+}
+
+/*
+HelloGet performs a GET request to the Hello endpoint.
+
+Hello prints a greeting.
+
+If a URL is not provided, it defaults to :443/hello .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) HelloGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfHello, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+HelloGet performs a GET request to the Hello endpoint.
+
+Hello prints a greeting.
+
+If a URL is not provided, it defaults to :443/hello .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) HelloGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfHello, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+HelloPost performs a POST request to the Hello endpoint.
+
+Hello prints a greeting.
+
+If a URL is not provided, it defaults to :443/hello .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) HelloPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfHello, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+HelloPost performs a POST request to the Hello endpoint.
+
+Hello prints a greeting.
+
+If a URL is not provided, it defaults to :443/hello .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) HelloPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfHello, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+}
+
 /*
 Hello prints a greeting.
+
+If a request is not provided, it defaults to GET :443/hello
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Hello(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) Hello(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/hello`)),
+	url, err := _c.resolveURL(URLOfHello, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -118,34 +248,123 @@ func (_c *Client) Hello(ctx context.Context, options ...pub.Option) (res *http.R
 
 /*
 Hello prints a greeting.
+
+If a request is not provided, it defaults to GET :443/hello
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Hello(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) Hello(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/hello`)),
+	url, err := _c.resolveURL(URLOfHello, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+EchoGet performs a GET request to the Echo endpoint.
+
+Echo back the incoming request in wire format.
+
+If a URL is not provided, it defaults to :443/echo .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) EchoGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfEcho, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+EchoGet performs a GET request to the Echo endpoint.
+
+Echo back the incoming request in wire format.
+
+If a URL is not provided, it defaults to :443/echo .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) EchoGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfEcho, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+EchoPost performs a POST request to the Echo endpoint.
+
+Echo back the incoming request in wire format.
+
+If a URL is not provided, it defaults to :443/echo .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) EchoPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfEcho, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+EchoPost performs a POST request to the Echo endpoint.
+
+Echo back the incoming request in wire format.
+
+If a URL is not provided, it defaults to :443/echo .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) EchoPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfEcho, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 Echo back the incoming request in wire format.
+
+If a request is not provided, it defaults to GET :443/echo
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Echo(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) Echo(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/echo`)),
+	url, err := _c.resolveURL(URLOfEcho, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -154,34 +373,123 @@ func (_c *Client) Echo(ctx context.Context, options ...pub.Option) (res *http.Re
 
 /*
 Echo back the incoming request in wire format.
+
+If a request is not provided, it defaults to GET :443/echo
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Echo(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) Echo(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/echo`)),
+	url, err := _c.resolveURL(URLOfEcho, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+PingGet performs a GET request to the Ping endpoint.
+
+Ping all microservices and list them.
+
+If a URL is not provided, it defaults to :443/ping .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) PingGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfPing, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+PingGet performs a GET request to the Ping endpoint.
+
+Ping all microservices and list them.
+
+If a URL is not provided, it defaults to :443/ping .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) PingGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfPing, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+PingPost performs a POST request to the Ping endpoint.
+
+Ping all microservices and list them.
+
+If a URL is not provided, it defaults to :443/ping .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) PingPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfPing, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+PingPost performs a POST request to the Ping endpoint.
+
+Ping all microservices and list them.
+
+If a URL is not provided, it defaults to :443/ping .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) PingPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfPing, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 Ping all microservices and list them.
+
+If a request is not provided, it defaults to GET :443/ping
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Ping(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) Ping(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/ping`)),
+	url, err := _c.resolveURL(URLOfPing, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -190,36 +498,133 @@ func (_c *Client) Ping(ctx context.Context, options ...pub.Option) (res *http.Re
 
 /*
 Ping all microservices and list them.
+
+If a request is not provided, it defaults to GET :443/ping
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Ping(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) Ping(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/ping`)),
+	url, err := _c.resolveURL(URLOfPing, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+CalculatorGet performs a GET request to the Calculator endpoint.
+
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+
+If a URL is not provided, it defaults to :443/calculator .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) CalculatorGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfCalculator, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+CalculatorGet performs a GET request to the Calculator endpoint.
+
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+
+If a URL is not provided, it defaults to :443/calculator .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) CalculatorGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfCalculator, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+CalculatorPost performs a POST request to the Calculator endpoint.
+
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+
+If a URL is not provided, it defaults to :443/calculator .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) CalculatorPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfCalculator, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+CalculatorPost performs a POST request to the Calculator endpoint.
+
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+
+If a URL is not provided, it defaults to :443/calculator .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) CalculatorPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfCalculator, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
+
+If a request is not provided, it defaults to GET :443/calculator
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Calculator(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) Calculator(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/calculator`)),
+	url, err := _c.resolveURL(URLOfCalculator, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -230,34 +635,37 @@ func (_c *Client) Calculator(ctx context.Context, options ...pub.Option) (res *h
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
 a call from one microservice to another.
+
+If a request is not provided, it defaults to GET :443/calculator
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Calculator(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) Calculator(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/calculator`)),
+	url, err := _c.resolveURL(URLOfCalculator, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 }
 
 /*
 BusJPEG serves an image from the embedded resources.
+
+If a URL is not provided, it defaults to :443/bus.jpeg .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) BusJPEG(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) BusJPEG(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfBusJPEG, url)
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
-	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(`GET`), pub.URL(url))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -266,34 +674,166 @@ func (_c *Client) BusJPEG(ctx context.Context, options ...pub.Option) (res *http
 
 /*
 BusJPEG serves an image from the embedded resources.
+
+If a URL is not provided, it defaults to :443/bus.jpeg .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) BusJPEG(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) BusJPEG(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfBusJPEG, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/bus.jpeg`)),
+	return _c.svc.Publish(ctx, pub.Method(`GET`), pub.URL(url))
+}
+
+/*
+BusJPEGAny performs a customized request to the BusJPEG endpoint.
+
+BusJPEG serves an image from the embedded resources.
+
+If a request is not provided, it defaults to GET :443/bus.jpeg
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) BusJPEGAny(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	url, err := _c.resolveURL(URLOfBusJPEG, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+BusJPEGAny performs a customized request to the BusJPEG endpoint.
+
+BusJPEG serves an image from the embedded resources.
+
+If a request is not provided, it defaults to GET :443/bus.jpeg
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) BusJPEGAny(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
+	}
+	url, err := _c.resolveURL(URLOfBusJPEG, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+}
+
+/*
+LocalizationGet performs a GET request to the Localization endpoint.
+
+Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to :443/localization .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) LocalizationGet(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfLocalization, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+LocalizationGet performs a GET request to the Localization endpoint.
+
+Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to :443/localization .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) LocalizationGet(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfLocalization, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+LocalizationPost performs a POST request to the Localization endpoint.
+
+Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to :443/localization .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) LocalizationPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = _c.resolveURL(URLOfLocalization, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+LocalizationPost performs a POST request to the Localization endpoint.
+
+Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to :443/localization .
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) LocalizationPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = _c.resolveURL(URLOfLocalization, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
 /*
 Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a request is not provided, it defaults to GET :443/localization
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Localization(ctx context.Context, options ...pub.Option) (res *http.Response, err error) {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *Client) Localization(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/localization`)),
+	url, err := _c.resolveURL(URLOfLocalization, httpReq.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
-	opts = append(opts, options...)
-	res, err = _c.svc.Request(ctx, opts...)
+	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -302,16 +842,21 @@ func (_c *Client) Localization(ctx context.Context, options ...pub.Option) (res 
 
 /*
 Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a request is not provided, it defaults to GET :443/localization
+Otherwise, the request's URL is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Localization(ctx context.Context, options ...pub.Option) <-chan *pub.Response {
-	method := `*`
-	if method == "*" {
-		method = "GET"
+func (_c *MulticastClient) Localization(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+	var err error
+	if httpReq == nil {
+		httpReq, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
 	}
-	opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/localization`)),
+	url, err := _c.resolveURL(URLOfLocalization, httpReq.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
 	}
-	opts = append(opts, options...)
-	return _c.svc.Publish(ctx, opts...)
+	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
 }

@@ -18,7 +18,9 @@ package eventsourceapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,7 +34,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -46,7 +50,7 @@ const HostName = "eventsource.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfRegister = httpx.JoinHostAndPath(HostName, ":443/register")
+	URLOfRegister = httpx.JoinHostAndPath(HostName, `:443/register`)
 )
 
 // Client is an interface to calling the endpoints of the eventsource.example microservice.

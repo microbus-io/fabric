@@ -19,7 +19,9 @@ package controlapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -33,7 +35,9 @@ import (
 var (
 	_ context.Context
 	_ *json.Decoder
+	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ strings.Reader
 	_ time.Duration
 	_ *errors.TracedError
@@ -47,9 +51,9 @@ const HostName = "control.sys"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfPing = httpx.JoinHostAndPath(HostName, ":888/ping")
-	URLOfConfigRefresh = httpx.JoinHostAndPath(HostName, ":888/config-refresh")
-	URLOfTrace = httpx.JoinHostAndPath(HostName, ":888/trace")
+	URLOfPing = httpx.JoinHostAndPath(HostName, `:888/ping`)
+	URLOfConfigRefresh = httpx.JoinHostAndPath(HostName, `:888/config-refresh`)
+	URLOfTrace = httpx.JoinHostAndPath(HostName, `:888/trace`)
 )
 
 // Client is an interface to calling the endpoints of the control.sys microservice.

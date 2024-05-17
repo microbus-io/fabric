@@ -58,7 +58,6 @@ The microservices `alpha.echo.connector` makes a `POST` request to `https://beta
 [TRC] cid:1 - ->> [PUB microbus.443.connector.echo.beta.|.POST.echo 281]
 [TRC] cid:1 - ->> MSG_PAYLOAD: [POST /echo HTTP/1.1
 Host: beta.echo.connector
-User-Agent: Go-http-client/1.1
 Content-Length: 5
 Microbus-Call-Depth: 1
 Microbus-From-Host: alpha.echo.connector
