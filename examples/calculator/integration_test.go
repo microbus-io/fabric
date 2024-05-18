@@ -59,14 +59,14 @@ func TestCalculator_Arithmetic(t *testing.T) {
 			Assert(func(t, xEcho, opEcho, yEcho, result, err))
 	*/
 	ctx := Context(t)
-	Arithmetic(t, ctx, 3, "-", 8).Name("subtraction").Expect(3, "-", 8, -5)
-	Arithmetic(t, ctx, -9, "+", 9).Name("addition").Expect(-9, "+", 9, 0)
-	Arithmetic(t, ctx, -9, " ", 9).Name("space for addition").Expect(-9, "+", 9, 0)
-	Arithmetic(t, ctx, 5, "*", 5).Name("multiplication").Expect(5, "*", 5, 25)
-	Arithmetic(t, ctx, 5, "*", -6).Name("multiplication negative").Expect(5, "*", -6, -30)
-	Arithmetic(t, ctx, 15, "/", 5).Name("division").Expect(15, "/", 5, 3)
-	Arithmetic(t, ctx, 15, "/", 0).Name("division by zero").Error("zero")
-	Arithmetic(t, ctx, 15, "z", 0).Name("invalid op").Error("operator")
+	Arithmetic(t, ctx, 3, "-", 8).Expect(3, "-", 8, -5)
+	Arithmetic(t, ctx, -9, "+", 9).Expect(-9, "+", 9, 0)
+	Arithmetic(t, ctx, -9, " ", 9).Expect(-9, "+", 9, 0)
+	Arithmetic(t, ctx, 5, "*", 5).Expect(5, "*", 5, 25)
+	Arithmetic(t, ctx, 5, "*", -6).Expect(5, "*", -6, -30)
+	Arithmetic(t, ctx, 15, "/", 5).Expect(15, "/", 5, 3)
+	Arithmetic(t, ctx, 15, "/", 0).Error("zero")
+	Arithmetic(t, ctx, 15, "z", 0).Error("operator")
 }
 
 func TestCalculator_Square(t *testing.T) {
@@ -79,9 +79,9 @@ func TestCalculator_Square(t *testing.T) {
 			Assert(func(t, xEcho, result, err))
 	*/
 	ctx := Context(t)
-	Square(t, ctx, 0).Name("zero").Expect(0, 0)
-	Square(t, ctx, 5).Name("positive").Expect(5, 25)
-	Square(t, ctx, -8).Name("negative").Expect(-8, 64)
+	Square(t, ctx, 0).Expect(0, 0)
+	Square(t, ctx, 5).Expect(5, 25)
+	Square(t, ctx, -8).Expect(-8, 64)
 }
 
 func TestCalculator_Distance(t *testing.T) {
@@ -94,12 +94,9 @@ func TestCalculator_Distance(t *testing.T) {
 			Assert(func(t, d, err))
 	*/
 	ctx := Context(t)
-	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).
-		Name("3-4-5 triangle").Expect(5)
-	Distance(t, ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).
-		Name("straight line").Expect(10)
-	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 0, Y: 0}).
-		Name("same point").Expect(0)
+	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).Expect(5)
+	Distance(t, ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).Expect(10)
+	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 0, Y: 0}).Expect(0)
 }
 
 func TestCalculator_OpenAPI(t *testing.T) {

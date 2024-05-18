@@ -39,7 +39,21 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
-		{{ .Name }}(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		{{- if eq .Method "*" }}
+		{{ .Name }}Get(t, ctx, "")
+		-or-
+		{{ .Name }}Post(t, ctx, "", "", body)
+		-or-
+		{{ .Name }}(t, ctx, httpRequest).
+		{{- else if .MethodWithBody }}
+		{{ .Name }}Any(t, ctx, httpRequest)
+		-or-
+		{{ .Name }}(t, ctx, "", "", body).
+		{{- else }}
+		{{ .Name }}Any(t, ctx, httpRequest)
+		-or-
+		{{ .Name }}(t, ctx, "").
+		{{- end }}
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).

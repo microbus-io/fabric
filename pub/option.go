@@ -8,9 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package pub
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -222,51 +220,26 @@ func Query(args url.Values) Option {
 }
 
 // Body sets the body of the request.
-// Arguments of type io.Reader, []byte and string are serialized in binary form.
+// Arguments of type io.Reader, io.ReadCloser, []byte and string are serialized in binary form.
 // url.Values is serialized as form data.
 // All other types are serialized as JSON.
-// The Content-Type header will be set to match the body, if not already set.
-// The Content-Length header will be set to match the body.
+// The Content-Type Content-Length headers will be set to match the body if they can be determined and unless already set.
 func Body(body any) Option {
 	return func(req *Request) error {
 		if body == nil {
 			return nil
 		}
-		hasContentType := req.Header.Get("Content-Type") != ""
-		switch v := body.(type) {
-		case io.Reader:
-			req.Body = v
-		case []byte:
-			req.Body = httpx.NewBodyReader(v)
-			if !hasContentType {
-				req.Header.Set("Content-Type", http.DetectContentType(v))
-			}
-			req.Header.Set("Content-Length", strconv.Itoa(len(v)))
-		case string:
-			b := []byte(v)
-			req.Body = httpx.NewBodyReader(b)
-			if !hasContentType {
-				req.Header.Set("Content-Type", http.DetectContentType(b))
-			}
-			req.Header.Set("Content-Length", strconv.Itoa(len(b)))
-		case url.Values:
-			b := []byte(v.Encode())
-			req.Body = httpx.NewBodyReader(b)
-			if !hasContentType {
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			}
-			req.Header.Set("Content-Length", strconv.Itoa(len(b)))
-		default:
-			j, err := json.Marshal(body)
-			if err != nil {
-				return errors.Trace(err)
-			}
-			req.Body = httpx.NewBodyReader(j)
-			if !hasContentType {
-				req.Header.Set("Content-Type", "application/json")
-			}
-			req.Header.Set("Content-Length", strconv.Itoa(len(j)))
+		r, _ := http.NewRequest("POST", "", nil)
+		if req.Header.Get("Content-Type") != "" {
+			r.Header.Set("Content-Type", req.Header.Get("Content-Type"))
 		}
+		err := httpx.SetRequestBody(r, body)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		req.Body = r.Body
+		req.Header.Set("Content-Type", r.Header.Get("Content-Type"))
+		req.Header.Set("Content-Length", r.Header.Get("Content-Length"))
 		return nil
 	}
 }

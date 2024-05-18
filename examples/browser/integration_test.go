@@ -17,6 +17,7 @@ import (
 
 	"github.com/microbus-io/fabric/coreservices/httpegress"
 	"github.com/microbus-io/fabric/examples/browser/browserapi"
+	"github.com/microbus-io/fabric/httpx"
 )
 
 var (
@@ -67,7 +68,7 @@ func Terminate() (err error) {
 func TestBrowser_Browse(t *testing.T) {
 	t.Parallel()
 	/*
-		Browse(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		Browse(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -79,7 +80,7 @@ func TestBrowser_Browse(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Browse(t, ctx, GET(), QueryArg("url", "https://example.com/")).
+	BrowseGet(t, ctx, "?"+httpx.PrepareQueryString("url", "https://example.com/")).
 		StatusOK().
 		StatusCode(http.StatusOK).
 		BodyContains(`"https://example.com/"`).

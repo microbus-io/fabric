@@ -57,7 +57,7 @@ func TestMetrics_Collect(t *testing.T) {
 	t.Parallel()
 
 	ctx := Context(t)
-	Collect(t, ctx).
+	CollectGet(t, ctx, "").
 		// All three services should be detected
 		BodyContains("metrics.sys").
 		BodyNotContains("one.collect").
@@ -95,7 +95,7 @@ func TestMetrics_Collect(t *testing.T) {
 
 	// Loop until the new services are discovered
 	for {
-		tc := Collect(t, ctx)
+		tc := CollectGet(t, ctx, "")
 		res, err := tc.Get()
 		assert.NoError(t, err)
 		body, err := io.ReadAll(res.Body)
@@ -107,7 +107,7 @@ func TestMetrics_Collect(t *testing.T) {
 		}
 	}
 
-	Collect(t, ctx).
+	CollectGet(t, ctx, "").
 		// All three services should be detected
 		BodyContains("metrics.sys").
 		BodyContains("one.collect").
@@ -139,25 +139,28 @@ func TestMetrics_GZip(t *testing.T) {
 
 	ctx := Context(t)
 
-	Collect(t, ctx, Header("Accept-Encoding", "gzip")).Assert(func(t *testing.T, res *http.Response, err error) {
-		assert.NoError(t, err)
-		assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
-		unzipper, err := gzip.NewReader(res.Body)
-		assert.NoError(t, err)
-		body, err := io.ReadAll(unzipper)
-		unzipper.Close()
-		assert.NoError(t, err)
-		assert.True(t, bytes.Contains(body, []byte("microbus_log_messages_total")))
-	})
+	r, _ := http.NewRequest("GET", "", nil)
+	r.Header.Set("Accept-Encoding", "gzip")
+	Collect(t, ctx, r).
+		Assert(func(t *testing.T, res *http.Response, err error) {
+			assert.NoError(t, err)
+			assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
+			unzipper, err := gzip.NewReader(res.Body)
+			assert.NoError(t, err)
+			body, err := io.ReadAll(unzipper)
+			unzipper.Close()
+			assert.NoError(t, err)
+			assert.True(t, bytes.Contains(body, []byte("microbus_log_messages_total")))
+		})
 }
 
 func TestMetrics_SecretKey(t *testing.T) {
 	// No parallel
 	ctx := Context(t)
 	Svc.SetSecretKey("secret1234")
-	Collect(t, ctx).
+	CollectGet(t, ctx, "").
 		Error("incorrect secret key").
 		ErrorCode(http.StatusNotFound)
 	Svc.SetSecretKey("")
-	Collect(t, ctx).NoError()
+	CollectGet(t, ctx, "").NoError()
 }

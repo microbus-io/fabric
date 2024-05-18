@@ -182,3 +182,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Auto-detect `TESTINGAPP` deployment based on call stack
 * Distributed tracing improvements
 
+[Milestone 22](https://github.com/microbus-io/fabric/tree/milestone/22):
+
+* Create type-safe setter functions for each config property
+* Refactor the interface exposed by the client for web endpoints

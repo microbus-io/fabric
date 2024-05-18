@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -39,6 +40,7 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -117,94 +119,11 @@ func Context(t *testing.T) context.Context {
 	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
 }
 
-type WebOption func(req *pub.Request) error
-
-// GET sets the method of the request.
-func GET() WebOption {
-	return WebOption(pub.Method("GET"))
-}
-
-// DELETE sets the method of the request.
-func DELETE() WebOption {
-	return WebOption(pub.Method("DELETE"))
-}
-
-// HEAD sets the method of the request.
-func HEAD() WebOption {
-	return WebOption(pub.Method("HEAD"))
-}
-
-// POST sets the method and body of the request.
-func POST(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("POST")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PUT sets the method and body of the request.
-func PUT(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PUT")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PATCH sets the method and body of the request.
-func PATCH(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PATCH")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// Method sets the method of the request.
-func Method(method string) WebOption {
-	return WebOption(pub.Method(method))
-}
-
-// Header sets the header of the request. It overwrites any previously set value.
-func Header(name string, value string) WebOption {
-	return WebOption(pub.Header(name, value))
-}
-
-// QueryArg adds the query argument to the request.
-// The same argument may have multiple values.
-func QueryArg(name string, value any) WebOption {
-	return WebOption(pub.QueryArg(name, value))
-}
-
-// Query adds the escaped query arguments to the request.
-// The same argument may have multiple values.
-func Query(escapedQueryArgs string) WebOption {
-	return WebOption(pub.QueryString(escapedQueryArgs))
-}
-
-// Body sets the body of the request.
-// Arguments of type io.Reader, []byte and string are serialized in binary form.
-// url.Values is serialized as form data.
-// All other types are serialized as JSON.
-func Body(body any) WebOption {
-	return WebOption(pub.Body(body))
-}
-
-// ContentType sets the Content-Type header.
-func ContentType(contentType string) WebOption {
-	return WebOption(pub.ContentType(contentType))
-}
-
 // CollectTestCase assists in asserting against the results of executing Collect.
 type CollectTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *CollectTestCase) Name(testName string) *CollectTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -298,34 +217,99 @@ func (tc *CollectTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// Collect executes the web handler and returns a corresponding test case.
-func Collect(t *testing.T, ctx context.Context, options ...WebOption) *CollectTestCase {
+/*
+CollectGet performs a GET request to the Collect endpoint.
+
+Collect returns the latest aggregated metrics.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func CollectGet(t *testing.T, ctx context.Context, url string) *CollectTestCase {
 	tc := &CollectTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("metrics.sys", `:443/collect`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(metricsapi.URLOfCollect, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.Collect(w, r)
+		return Svc.Collect(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+CollectPost performs a POST request to the Collect endpoint.
+
+Collect returns the latest aggregated metrics.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func CollectPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *CollectTestCase {
+	tc := &CollectTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(metricsapi.URLOfCollect, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Collect(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Collect returns the latest aggregated metrics.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Collect(t *testing.T, ctx context.Context, r *http.Request) *CollectTestCase {
+	tc := &CollectTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(metricsapi.URLOfCollect, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Collect(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc

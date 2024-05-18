@@ -58,9 +58,9 @@ func TestEventsource_Register(t *testing.T) {
 			Assert(func(t, allowed, err))
 	*/
 	ctx := Context(t)
-	Register(t, ctx, "brian@hotmail.com").Name("decline hotmail.com").Expect(false)
-	Register(t, ctx, "brian@example.com").Name("accept example.com").Expect(true)
-	Register(t, ctx, "brian@example.com").Name("decline dup").Expect(false)
+	Register(t, ctx, "brian@hotmail.com").Expect(false)
+	Register(t, ctx, "brian@example.com").Expect(true)
+	Register(t, ctx, "brian@example.com").Expect(false)
 }
 
 func TestEventsource_OnAllowRegister(t *testing.T) {

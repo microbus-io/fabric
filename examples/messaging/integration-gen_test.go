@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -39,6 +40,7 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -117,94 +119,11 @@ func Context(t *testing.T) context.Context {
 	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
 }
 
-type WebOption func(req *pub.Request) error
-
-// GET sets the method of the request.
-func GET() WebOption {
-	return WebOption(pub.Method("GET"))
-}
-
-// DELETE sets the method of the request.
-func DELETE() WebOption {
-	return WebOption(pub.Method("DELETE"))
-}
-
-// HEAD sets the method of the request.
-func HEAD() WebOption {
-	return WebOption(pub.Method("HEAD"))
-}
-
-// POST sets the method and body of the request.
-func POST(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("POST")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PUT sets the method and body of the request.
-func PUT(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PUT")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PATCH sets the method and body of the request.
-func PATCH(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PATCH")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// Method sets the method of the request.
-func Method(method string) WebOption {
-	return WebOption(pub.Method(method))
-}
-
-// Header sets the header of the request. It overwrites any previously set value.
-func Header(name string, value string) WebOption {
-	return WebOption(pub.Header(name, value))
-}
-
-// QueryArg adds the query argument to the request.
-// The same argument may have multiple values.
-func QueryArg(name string, value any) WebOption {
-	return WebOption(pub.QueryArg(name, value))
-}
-
-// Query adds the escaped query arguments to the request.
-// The same argument may have multiple values.
-func Query(escapedQueryArgs string) WebOption {
-	return WebOption(pub.QueryString(escapedQueryArgs))
-}
-
-// Body sets the body of the request.
-// Arguments of type io.Reader, []byte and string are serialized in binary form.
-// url.Values is serialized as form data.
-// All other types are serialized as JSON.
-func Body(body any) WebOption {
-	return WebOption(pub.Body(body))
-}
-
-// ContentType sets the Content-Type header.
-func ContentType(contentType string) WebOption {
-	return WebOption(pub.ContentType(contentType))
-}
-
 // HomeTestCase assists in asserting against the results of executing Home.
 type HomeTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *HomeTestCase) Name(testName string) *HomeTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -298,34 +217,99 @@ func (tc *HomeTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// Home executes the web handler and returns a corresponding test case.
-func Home(t *testing.T, ctx context.Context, options ...WebOption) *HomeTestCase {
+/*
+HomeGet performs a GET request to the Home endpoint.
+
+Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func HomeGet(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 	tc := &HomeTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/home`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfHome, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.Home(w, r)
+		return Svc.Home(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+HomePost performs a POST request to the Home endpoint.
+
+Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func HomePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *HomeTestCase {
+	tc := &HomeTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfHome, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Home(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Home demonstrates making requests using multicast and unicast request/response patterns.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Home(t *testing.T, ctx context.Context, r *http.Request) *HomeTestCase {
+	tc := &HomeTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(messagingapi.URLOfHome, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Home(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -334,15 +318,8 @@ func Home(t *testing.T, ctx context.Context, options ...WebOption) *HomeTestCase
 // NoQueueTestCase assists in asserting against the results of executing NoQueue.
 type NoQueueTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *NoQueueTestCase) Name(testName string) *NoQueueTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -436,34 +413,105 @@ func (tc *NoQueueTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// NoQueue executes the web handler and returns a corresponding test case.
-func NoQueue(t *testing.T, ctx context.Context, options ...WebOption) *NoQueueTestCase {
+/*
+NoQueueGet performs a GET request to the NoQueue endpoint.
+
+NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func NoQueueGet(t *testing.T, ctx context.Context, url string) *NoQueueTestCase {
 	tc := &NoQueueTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/no-queue`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfNoQueue, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.NoQueue(w, r)
+		return Svc.NoQueue(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+NoQueuePost performs a POST request to the NoQueue endpoint.
+
+NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func NoQueuePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *NoQueueTestCase {
+	tc := &NoQueueTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfNoQueue, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.NoQueue(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+NoQueue demonstrates how the NoQueue subscription option is used to create
+a multicast request/response communication pattern.
+All instances of this microservice will respond to each request.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func NoQueue(t *testing.T, ctx context.Context, r *http.Request) *NoQueueTestCase {
+	tc := &NoQueueTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(messagingapi.URLOfNoQueue, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.NoQueue(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -472,15 +520,8 @@ func NoQueue(t *testing.T, ctx context.Context, options ...WebOption) *NoQueueTe
 // DefaultQueueTestCase assists in asserting against the results of executing DefaultQueue.
 type DefaultQueueTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *DefaultQueueTestCase) Name(testName string) *DefaultQueueTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -574,34 +615,105 @@ func (tc *DefaultQueueTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// DefaultQueue executes the web handler and returns a corresponding test case.
-func DefaultQueue(t *testing.T, ctx context.Context, options ...WebOption) *DefaultQueueTestCase {
+/*
+DefaultQueueGet performs a GET request to the DefaultQueue endpoint.
+
+DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func DefaultQueueGet(t *testing.T, ctx context.Context, url string) *DefaultQueueTestCase {
 	tc := &DefaultQueueTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/default-queue`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfDefaultQueue, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.DefaultQueue(w, r)
+		return Svc.DefaultQueue(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+DefaultQueuePost performs a POST request to the DefaultQueue endpoint.
+
+DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func DefaultQueuePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *DefaultQueueTestCase {
+	tc := &DefaultQueueTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfDefaultQueue, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.DefaultQueue(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
+a unicast request/response communication pattern.
+Only one of the instances of this microservice will respond to each request.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func DefaultQueue(t *testing.T, ctx context.Context, r *http.Request) *DefaultQueueTestCase {
+	tc := &DefaultQueueTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(messagingapi.URLOfDefaultQueue, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.DefaultQueue(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -610,15 +722,8 @@ func DefaultQueue(t *testing.T, ctx context.Context, options ...WebOption) *Defa
 // CacheLoadTestCase assists in asserting against the results of executing CacheLoad.
 type CacheLoadTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *CacheLoadTestCase) Name(testName string) *CacheLoadTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -712,34 +817,99 @@ func (tc *CacheLoadTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// CacheLoad executes the web handler and returns a corresponding test case.
-func CacheLoad(t *testing.T, ctx context.Context, options ...WebOption) *CacheLoadTestCase {
+/*
+CacheLoadGet performs a GET request to the CacheLoad endpoint.
+
+CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func CacheLoadGet(t *testing.T, ctx context.Context, url string) *CacheLoadTestCase {
 	tc := &CacheLoadTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/cache-load`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfCacheLoad, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.CacheLoad(w, r)
+		return Svc.CacheLoad(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+CacheLoadPost performs a POST request to the CacheLoad endpoint.
+
+CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func CacheLoadPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *CacheLoadTestCase {
+	tc := &CacheLoadTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfCacheLoad, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.CacheLoad(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+CacheLoad looks up an element in the distributed cache of the microservice.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func CacheLoad(t *testing.T, ctx context.Context, r *http.Request) *CacheLoadTestCase {
+	tc := &CacheLoadTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(messagingapi.URLOfCacheLoad, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.CacheLoad(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -748,15 +918,8 @@ func CacheLoad(t *testing.T, ctx context.Context, options ...WebOption) *CacheLo
 // CacheStoreTestCase assists in asserting against the results of executing CacheStore.
 type CacheStoreTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *CacheStoreTestCase) Name(testName string) *CacheStoreTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -850,34 +1013,99 @@ func (tc *CacheStoreTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// CacheStore executes the web handler and returns a corresponding test case.
-func CacheStore(t *testing.T, ctx context.Context, options ...WebOption) *CacheStoreTestCase {
+/*
+CacheStoreGet performs a GET request to the CacheStore endpoint.
+
+CacheStore stores an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func CacheStoreGet(t *testing.T, ctx context.Context, url string) *CacheStoreTestCase {
 	tc := &CacheStoreTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("messaging.example", `:443/cache-store`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfCacheStore, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.CacheStore(w, r)
+		return Svc.CacheStore(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+CacheStorePost performs a POST request to the CacheStore endpoint.
+
+CacheStore stores an element in the distributed cache of the microservice.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func CacheStorePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *CacheStoreTestCase {
+	tc := &CacheStoreTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(messagingapi.URLOfCacheStore, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.CacheStore(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+CacheStore stores an element in the distributed cache of the microservice.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func CacheStore(t *testing.T, ctx context.Context, r *http.Request) *CacheStoreTestCase {
+	tc := &CacheStoreTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(messagingapi.URLOfCacheStore, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.CacheStore(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc

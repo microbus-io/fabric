@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package browser
 
-const Version = 14
-const SourceCodeSHA256 = "1768242568e59e7109526b15e8de609a50d2e3ff39b9a84b791352d7d46ebad2"
-const Timestamp = "2024-05-17T21:52:17.615756Z"
+const Version = 16
+const SourceCodeSHA256 = "a20ec4ed0dfaf64f7769311038f26134f0046d4cef87cc3025439bfa05416e90"
+const Timestamp = "2024-05-18T00:58:31.366652Z"
 
 /* {
-	"ver": 14,
-	"sha256": "1768242568e59e7109526b15e8de609a50d2e3ff39b9a84b791352d7d46ebad2",
-	"ts": "2024-05-17T21:52:17.615756Z"
+	"ver": 16,
+	"sha256": "a20ec4ed0dfaf64f7769311038f26134f0046d4cef87cc3025439bfa05416e90",
+	"ts": "2024-05-18T00:58:31.366652Z"
 } */

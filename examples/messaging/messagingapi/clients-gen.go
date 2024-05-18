@@ -99,40 +99,6 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// resolveURL resolves a URL in relation to the endpoint's base path.
-func (_c *Client) resolveURL(base string, relative string) (resolved string, err error) {
-	if relative == "" {
-		return base, nil
-	}
-	baseURL, err := url.Parse(base)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	relativeURL, err := url.Parse(relative)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	resolvedURL := baseURL.ResolveReference(relativeURL)
-	return resolvedURL.String(), nil
-}
-
-// resolveURL resolves a URL in relation to the endpoint's base path.
-func (_c *MulticastClient) resolveURL(base string, relative string) (resolved string, err error) {
-	if relative == "" {
-		return base, nil
-	}
-	baseURL, err := url.Parse(base)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	relativeURL, err := url.Parse(relative)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	resolvedURL := baseURL.ResolveReference(relativeURL)
-	return resolvedURL.String(), nil
-}
-
 // errChan returns a response channel with a single error response.
 func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 	ch := make(chan *pub.Response, 1)
@@ -149,7 +115,7 @@ Home demonstrates making requests using multicast and unicast request/response p
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) HomeGet(ctx context.Context, url string) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfHome, url)
+	url, err = httpx.ResolveURL(URLOfHome, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -169,7 +135,7 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *MulticastClient) HomeGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfHome, url)
+	url, err = httpx.ResolveURL(URLOfHome, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -187,7 +153,7 @@ If it is of type url.Values, it is serialized as form data. All other types are 
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
 func (_c *Client) HomePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfHome, url)
+	url, err = httpx.ResolveURL(URLOfHome, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -210,7 +176,7 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *MulticastClient) HomePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfHome, url)
+	url, err = httpx.ResolveURL(URLOfHome, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -222,18 +188,18 @@ Home demonstrates making requests using multicast and unicast request/response p
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Home(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+func (_c *Client) Home(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 	}
-	url, err := _c.resolveURL(URLOfHome, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfHome, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -245,19 +211,19 @@ Home demonstrates making requests using multicast and unicast request/response p
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Home(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) Home(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
 	}
-	url, err := _c.resolveURL(URLOfHome, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfHome, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 }
 
 /*
@@ -270,7 +236,7 @@ All instances of this microservice will respond to each request.
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) NoQueueGet(ctx context.Context, url string) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfNoQueue, url)
+	url, err = httpx.ResolveURL(URLOfNoQueue, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -292,7 +258,7 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *MulticastClient) NoQueueGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfNoQueue, url)
+	url, err = httpx.ResolveURL(URLOfNoQueue, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -312,7 +278,7 @@ If it is of type url.Values, it is serialized as form data. All other types are 
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
 func (_c *Client) NoQueuePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfNoQueue, url)
+	url, err = httpx.ResolveURL(URLOfNoQueue, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -337,7 +303,7 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *MulticastClient) NoQueuePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfNoQueue, url)
+	url, err = httpx.ResolveURL(URLOfNoQueue, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -351,18 +317,18 @@ All instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) NoQueue(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+func (_c *Client) NoQueue(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 	}
-	url, err := _c.resolveURL(URLOfNoQueue, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfNoQueue, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -376,19 +342,19 @@ All instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) NoQueue(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) NoQueue(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
 	}
-	url, err := _c.resolveURL(URLOfNoQueue, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfNoQueue, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 }
 
 /*
@@ -401,7 +367,7 @@ Only one of the instances of this microservice will respond to each request.
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) DefaultQueueGet(ctx context.Context, url string) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	url, err = httpx.ResolveURL(URLOfDefaultQueue, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -423,7 +389,7 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *MulticastClient) DefaultQueueGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	url, err = httpx.ResolveURL(URLOfDefaultQueue, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -443,7 +409,7 @@ If it is of type url.Values, it is serialized as form data. All other types are 
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
 func (_c *Client) DefaultQueuePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	url, err = httpx.ResolveURL(URLOfDefaultQueue, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -468,7 +434,7 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *MulticastClient) DefaultQueuePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfDefaultQueue, url)
+	url, err = httpx.ResolveURL(URLOfDefaultQueue, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -482,18 +448,18 @@ Only one of the instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) DefaultQueue(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+func (_c *Client) DefaultQueue(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 	}
-	url, err := _c.resolveURL(URLOfDefaultQueue, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfDefaultQueue, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -507,19 +473,19 @@ Only one of the instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) DefaultQueue(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) DefaultQueue(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
 	}
-	url, err := _c.resolveURL(URLOfDefaultQueue, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfDefaultQueue, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 }
 
 /*
@@ -530,7 +496,7 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CacheLoadGet(ctx context.Context, url string) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	url, err = httpx.ResolveURL(URLOfCacheLoad, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -550,7 +516,7 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *MulticastClient) CacheLoadGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	url, err = httpx.ResolveURL(URLOfCacheLoad, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -568,7 +534,7 @@ If it is of type url.Values, it is serialized as form data. All other types are 
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
 func (_c *Client) CacheLoadPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	url, err = httpx.ResolveURL(URLOfCacheLoad, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -591,7 +557,7 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *MulticastClient) CacheLoadPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfCacheLoad, url)
+	url, err = httpx.ResolveURL(URLOfCacheLoad, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -603,18 +569,18 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CacheLoad(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+func (_c *Client) CacheLoad(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 	}
-	url, err := _c.resolveURL(URLOfCacheLoad, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfCacheLoad, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -626,19 +592,19 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) CacheLoad(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) CacheLoad(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
 	}
-	url, err := _c.resolveURL(URLOfCacheLoad, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfCacheLoad, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 }
 
 /*
@@ -649,7 +615,7 @@ CacheStore stores an element in the distributed cache of the microservice.
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) CacheStoreGet(ctx context.Context, url string) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfCacheStore, url)
+	url, err = httpx.ResolveURL(URLOfCacheStore, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -669,7 +635,7 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *MulticastClient) CacheStoreGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfCacheStore, url)
+	url, err = httpx.ResolveURL(URLOfCacheStore, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -687,7 +653,7 @@ If it is of type url.Values, it is serialized as form data. All other types are 
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
 func (_c *Client) CacheStorePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfCacheStore, url)
+	url, err = httpx.ResolveURL(URLOfCacheStore, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -710,7 +676,7 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *MulticastClient) CacheStorePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfCacheStore, url)
+	url, err = httpx.ResolveURL(URLOfCacheStore, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -722,18 +688,18 @@ CacheStore stores an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CacheStore(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+func (_c *Client) CacheStore(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 	}
-	url, err := _c.resolveURL(URLOfCacheStore, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfCacheStore, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -745,17 +711,17 @@ CacheStore stores an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) CacheStore(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) CacheStore(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
 	}
-	url, err := _c.resolveURL(URLOfCacheStore, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfCacheStore, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 }

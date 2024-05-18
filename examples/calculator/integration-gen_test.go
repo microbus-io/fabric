@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -39,6 +40,7 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -120,18 +122,11 @@ func Context(t *testing.T) context.Context {
 // ArithmeticTestCase assists in asserting against the results of executing Arithmetic.
 type ArithmeticTestCase struct {
 	_t *testing.T
-	_testName string
 	xEcho int
 	opEcho string
 	yEcho int
 	result int
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *ArithmeticTestCase) Name(testName string) *ArithmeticTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -191,16 +186,9 @@ func Arithmetic(t *testing.T, ctx context.Context, x int, op string, y int) *Ari
 // SquareTestCase assists in asserting against the results of executing Square.
 type SquareTestCase struct {
 	_t *testing.T
-	_testName string
 	xEcho int
 	result int
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *SquareTestCase) Name(testName string) *SquareTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -258,15 +246,8 @@ func Square(t *testing.T, ctx context.Context, x int) *SquareTestCase {
 // DistanceTestCase assists in asserting against the results of executing Distance.
 type DistanceTestCase struct {
 	_t *testing.T
-	_testName string
 	d float64
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *DistanceTestCase) Name(testName string) *DistanceTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.

@@ -1,82 +1,6 @@
-{{ if .Webs }}
-type WebOption func(req *pub.Request) error
+{{ $host := .General.Host }}{{ $pkg := .PackageSuffix }}
 
-// GET sets the method of the request.
-func GET() WebOption {
-	return WebOption(pub.Method("GET"))
-}
-
-// DELETE sets the method of the request.
-func DELETE() WebOption {
-	return WebOption(pub.Method("DELETE"))
-}
-
-// HEAD sets the method of the request.
-func HEAD() WebOption {
-	return WebOption(pub.Method("HEAD"))
-}
-
-// POST sets the method and body of the request.
-func POST(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("POST")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PUT sets the method and body of the request.
-func PUT(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PUT")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PATCH sets the method and body of the request.
-func PATCH(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PATCH")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// Method sets the method of the request.
-func Method(method string) WebOption {
-	return WebOption(pub.Method(method))
-}
-
-// Header sets the header of the request. It overwrites any previously set value.
-func Header(name string, value string) WebOption {
-	return WebOption(pub.Header(name, value))
-}
-
-// QueryArg adds the query argument to the request.
-// The same argument may have multiple values.
-func QueryArg(name string, value any) WebOption {
-	return WebOption(pub.QueryArg(name, value))
-}
-
-// Query adds the escaped query arguments to the request.
-// The same argument may have multiple values.
-func Query(escapedQueryArgs string) WebOption {
-	return WebOption(pub.QueryString(escapedQueryArgs))
-}
-
-// Body sets the body of the request.
-// Arguments of type io.Reader, []byte and string are serialized in binary form.
-// url.Values is serialized as form data.
-// All other types are serialized as JSON.
-func Body(body any) WebOption {
-	return WebOption(pub.Body(body))
-}
-
-// ContentType sets the Content-Type header.
-func ContentType(contentType string) WebOption {
-	return WebOption(pub.ContentType(contentType))
-}
-{{ end }}
-
-{{- $host := .General.Host }}{{ range .Webs }}
+{{- range .Webs }}
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	t *testing.T
@@ -175,34 +99,169 @@ func (tc *{{ .Name }}TestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// {{ .Name }} executes the web handler and returns a corresponding test case.
-func {{ .Name }}(t *testing.T, ctx context.Context, options ...WebOption) *{{ .Name }}TestCase {
+{{- if eq .Method "*" }}
+
+/*
+{{ .Name }}Get performs a GET request to the {{ .Name }} endpoint.
+
+{{ .Description }}
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func {{ .Name }}Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("{{ $host }}", `{{ .Path }}`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL({{ $pkg }}api.URLOf{{ .Name }}, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.{{ .Name }}(w, r)
+		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+{{ .Name }}Post performs a POST request to the {{ .Name }} endpoint.
+
+{{ .Description }}
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func {{ .Name }}Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL({{ $pkg }}api.URLOf{{ .Name }}, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+{{- else if .MethodWithBody }}
+/*
+{{ .Description }}
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func {{ .Name }}(t *testing.T, ctx context.Context, url string, contentType string, body any) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL({{ $pkg }}api.URLOf{{ .Name }}, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`{{ .Method }}`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+{{- else }}
+/*
+{{ .Description }}
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL({{ $pkg }}api.URLOf{{ .Name }}, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := http.NewRequest(`{{ .Method }}`, url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+{{- end }}
+
+/*
+{{ if ne .Method "*" }}{{ .Name }}Any performs a customized request to the {{ .Name }} endpoint.
+
+{{ end -}}
+
+{{ .Description }}
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(t *testing.T, ctx context.Context, r *http.Request) *{{ .Name }}TestCase {
+	tc := &{{ .Name }}TestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`{{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL({{ $pkg }}api.URLOf{{ .Name }}, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.{{ .Name }}(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc

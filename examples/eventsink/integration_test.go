@@ -82,12 +82,12 @@ func TestEventsink_OnAllowRegister(t *testing.T) {
 			Assert(func(t, allow, err))
 	*/
 	ctx := Context(t)
-	OnAllowRegister(t, ctx, "nancy@gmail.com").Name("disallow gmail.com").Expect(false)
-	OnAllowRegister(t, ctx, "nancy@hotmail.com").Name("disallow hotmail.com").Expect(false)
+	OnAllowRegister(t, ctx, "nancy@gmail.com").Expect(false)
+	OnAllowRegister(t, ctx, "nancy@hotmail.com").Expect(false)
 
-	OnAllowRegister(t, ctx, "nancy@example.com").Name("allow hotmail.com").Expect(true)
+	OnAllowRegister(t, ctx, "nancy@example.com").Expect(true)
 	OnRegistered(t, ctx, "nancy@example.com").NoError()
-	OnAllowRegister(t, ctx, "nancy@example.com").Name("disallow dup").Expect(false)
+	OnAllowRegister(t, ctx, "nancy@example.com").Expect(false)
 }
 
 func TestEventsink_OnRegistered(t *testing.T) {

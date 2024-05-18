@@ -45,7 +45,7 @@ func Terminate() error {
 func TestMessaging_Home(t *testing.T) {
 	t.Parallel()
 	/*
-		Home(ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		Home(ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -56,8 +56,7 @@ func TestMessaging_Home(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Home(t, ctx, GET()).
-		Name("all replicas").
+	HomeGet(t, ctx, "").
 		BodyContains(Svc.ID()).
 		BodyContains(Svc2.ID())
 }
@@ -65,7 +64,7 @@ func TestMessaging_Home(t *testing.T) {
 func TestMessaging_NoQueue(t *testing.T) {
 	t.Parallel()
 	/*
-		NoQueue(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		NoQueue(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -76,7 +75,7 @@ func TestMessaging_NoQueue(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	NoQueue(t, ctx, GET()).
+	NoQueueGet(t, ctx, "").
 		BodyContains("NoQueue").
 		BodyContains(Svc.ID())
 }
@@ -84,7 +83,7 @@ func TestMessaging_NoQueue(t *testing.T) {
 func TestMessaging_DefaultQueue(t *testing.T) {
 	t.Parallel()
 	/*
-		DefaultQueue(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		DefaultQueue(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -95,7 +94,7 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	DefaultQueue(t, ctx, GET()).
+	DefaultQueueGet(t, ctx, "").
 		BodyContains("DefaultQueue").
 		BodyContains(Svc.ID())
 }
@@ -103,7 +102,7 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 func TestMessaging_CacheLoad(t *testing.T) {
 	t.Parallel()
 	/*
-		CacheLoad(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		CacheLoad(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -114,26 +113,22 @@ func TestMessaging_CacheLoad(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	CacheLoad(t, ctx, GET(), QueryArg("key", "l1")).
-		Name("load not found").
+	CacheLoadGet(t, ctx, "?key=l1").
 		BodyContains("found: no")
-	CacheStore(t, ctx, GET(), QueryArg("key", "l1"), QueryArg("value", "val-l1")).
-		Name("store l1").
+	CacheStoreGet(t, ctx, "?key=l1&value=val-l1").
 		NoError()
-	CacheLoad(t, ctx, GET(), QueryArg("key", "l1")).
-		Name("load found").
+	CacheLoadGet(t, ctx, "?key=l1").
 		BodyContains("found: yes").
 		BodyContains("val-l1")
 
-	CacheLoad(t, ctx, GET()).
-		Name("no key arg on load").
+	CacheLoadGet(t, ctx, "").
 		Error("missing")
 }
 
 func TestMessaging_CacheStore(t *testing.T) {
 	t.Parallel()
 	/*
-		CacheStore(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		CacheStore(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -144,36 +139,27 @@ func TestMessaging_CacheStore(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	CacheStore(t, ctx, GET(), QueryArg("key", "s1"), QueryArg("value", "s1-val")).
-		Name("store s1").
+	CacheStoreGet(t, ctx, "?key=s1&value=s1-val").
 		BodyContains("s1-val").
 		BodyContains(Svc.ID())
-	CacheStore(t, ctx, GET(), QueryArg("key", "s2"), QueryArg("value", "s2-val")).
-		Name("store s2").
+	CacheStoreGet(t, ctx, "?key=s2&value=s2-val").
 		BodyContains("s2-val").
 		BodyContains(Svc.ID())
-	CacheLoad(t, ctx, GET(), QueryArg("key", "s1")).
-		Name("load s1").
+	CacheLoadGet(t, ctx, "?key=s1").
 		BodyContains("found: yes").
 		BodyContains("s1-val")
-	CacheLoad(t, ctx, GET(), QueryArg("key", "s2")).
-		Name("load s2").
+	CacheLoadGet(t, ctx, "?key=s2").
 		BodyContains("found: yes").
 		BodyContains("s2-val")
-	CacheLoad(t, ctx, GET(), QueryArg("key", "s3")).
-		Name("load s3").
+	CacheLoadGet(t, ctx, "?key=s3").
 		BodyContains("found: no")
 
-	CacheStore(t, ctx, GET()).
-		Name("no key and value args on store").
+	CacheStoreGet(t, ctx, "").
 		Error("missing")
-	CacheStore(t, ctx, GET(), QueryArg("key", "x")).
-		Name("no key arg on store").
+	CacheStoreGet(t, ctx, "?key=x").
 		Error("missing")
-	CacheStore(t, ctx, GET(), QueryArg("value", "val-x")).
-		Name("no value arg on store").
+	CacheStoreGet(t, ctx, "?value=val-x").
 		Error("missing")
-	CacheLoad(t, ctx, GET(), QueryArg("key", "x")).
-		Name("no x").
+	CacheLoadGet(t, ctx, "?key=x").
 		BodyContains("found: no")
 }

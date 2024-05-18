@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -39,6 +40,7 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -120,15 +122,8 @@ func Context(t *testing.T) context.Context {
 // CreateTestCase assists in asserting against the results of executing Create.
 type CreateTestCase struct {
 	_t *testing.T
-	_testName string
 	created *directoryapi.Person
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *CreateTestCase) Name(testName string) *CreateTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -185,16 +180,9 @@ func Create(t *testing.T, ctx context.Context, person *directoryapi.Person) *Cre
 // LoadTestCase assists in asserting against the results of executing Load.
 type LoadTestCase struct {
 	_t *testing.T
-	_testName string
 	person *directoryapi.Person
 	ok bool
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *LoadTestCase) Name(testName string) *LoadTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -252,15 +240,8 @@ func Load(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *LoadTe
 // DeleteTestCase assists in asserting against the results of executing Delete.
 type DeleteTestCase struct {
 	_t *testing.T
-	_testName string
 	ok bool
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *DeleteTestCase) Name(testName string) *DeleteTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -317,16 +298,9 @@ func Delete(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *Dele
 // UpdateTestCase assists in asserting against the results of executing Update.
 type UpdateTestCase struct {
 	_t *testing.T
-	_testName string
 	updated *directoryapi.Person
 	ok bool
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *UpdateTestCase) Name(testName string) *UpdateTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -384,16 +358,9 @@ func Update(t *testing.T, ctx context.Context, person *directoryapi.Person) *Upd
 // LoadByEmailTestCase assists in asserting against the results of executing LoadByEmail.
 type LoadByEmailTestCase struct {
 	_t *testing.T
-	_testName string
 	person *directoryapi.Person
 	ok bool
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *LoadByEmailTestCase) Name(testName string) *LoadByEmailTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -451,15 +418,8 @@ func LoadByEmail(t *testing.T, ctx context.Context, email string) *LoadByEmailTe
 // ListTestCase assists in asserting against the results of executing List.
 type ListTestCase struct {
 	_t *testing.T
-	_testName string
 	keys []directoryapi.PersonKey
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *ListTestCase) Name(testName string) *ListTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.

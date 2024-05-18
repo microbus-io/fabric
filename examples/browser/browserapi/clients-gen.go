@@ -95,40 +95,6 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
-// resolveURL resolves a URL in relation to the endpoint's base path.
-func (_c *Client) resolveURL(base string, relative string) (resolved string, err error) {
-	if relative == "" {
-		return base, nil
-	}
-	baseURL, err := url.Parse(base)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	relativeURL, err := url.Parse(relative)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	resolvedURL := baseURL.ResolveReference(relativeURL)
-	return resolvedURL.String(), nil
-}
-
-// resolveURL resolves a URL in relation to the endpoint's base path.
-func (_c *MulticastClient) resolveURL(base string, relative string) (resolved string, err error) {
-	if relative == "" {
-		return base, nil
-	}
-	baseURL, err := url.Parse(base)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	relativeURL, err := url.Parse(relative)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	resolvedURL := baseURL.ResolveReference(relativeURL)
-	return resolvedURL.String(), nil
-}
-
 // errChan returns a response channel with a single error response.
 func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 	ch := make(chan *pub.Response, 1)
@@ -145,7 +111,7 @@ Browser shows a simple address bar and the source code of a URL.
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
 func (_c *Client) BrowseGet(ctx context.Context, url string) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfBrowse, url)
+	url, err = httpx.ResolveURL(URLOfBrowse, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -165,7 +131,7 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *MulticastClient) BrowseGet(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfBrowse, url)
+	url, err = httpx.ResolveURL(URLOfBrowse, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -183,7 +149,7 @@ If it is of type url.Values, it is serialized as form data. All other types are 
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
 func (_c *Client) BrowsePost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
-	url, err = _c.resolveURL(URLOfBrowse, url)
+	url, err = httpx.ResolveURL(URLOfBrowse, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -206,7 +172,7 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *MulticastClient) BrowsePost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
-	url, err = _c.resolveURL(URLOfBrowse, url)
+	url, err = httpx.ResolveURL(URLOfBrowse, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -218,18 +184,18 @@ Browser shows a simple address bar and the source code of a URL.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Browse(ctx context.Context, httpReq *http.Request) (res *http.Response, err error) {
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+func (_c *Client) Browse(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
 	}
-	url, err := _c.resolveURL(URLOfBrowse, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfBrowse, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -241,17 +207,17 @@ Browser shows a simple address bar and the source code of a URL.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) Browse(ctx context.Context, httpReq *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) Browse(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
-	if httpReq == nil {
-		httpReq, err = http.NewRequest(`GET`, "", nil)
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
 	}
-	url, err := _c.resolveURL(URLOfBrowse, httpReq.URL.String())
+	url, err := httpx.ResolveURL(URLOfBrowse, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(httpReq.Method), pub.URL(url), pub.CopyHeaders(httpReq), pub.Body(httpReq.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
 }

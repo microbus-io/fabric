@@ -19,7 +19,6 @@ import (
 
 	"github.com/microbus-io/fabric/examples/calculator"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
-	"github.com/microbus-io/fabric/frame"
 )
 
 var (
@@ -61,7 +60,11 @@ func Terminate() (err error) {
 func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
-		Hello(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		HelloGet(t, ctx, "")
+		-or-
+		HelloPost(t, ctx, "", "", body)
+		-or-
+		Hello(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -69,11 +72,11 @@ func TestHello_Hello(t *testing.T) {
 			HeaderContains(headerName, valueContains).
 			NoError().
 			Error(errContains).
+			ErrorCode(http.StatusOK).
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Hello(t, ctx, GET()).
-		Name("without name arg").
+	HelloGet(t, ctx, "").
 		BodyContains(Svc.Greeting()).
 		BodyNotContains("Maria").
 		Assert(func(t *testing.T, res *http.Response, err error) {
@@ -82,8 +85,7 @@ func TestHello_Hello(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
 		})
-	Hello(t, ctx, GET(), QueryArg("name", "Maria")).
-		Name("with name arg").
+	HelloGet(t, ctx, "?name=Maria").
 		BodyContains(Svc.Greeting()).
 		BodyContains("Maria")
 }
@@ -91,7 +93,11 @@ func TestHello_Hello(t *testing.T) {
 func TestHello_Echo(t *testing.T) {
 	t.Parallel()
 	/*
-		Echo(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		EchoGet(t, ctx, "")
+		-or-
+		EchoPost(t, ctx, "", "", body)
+		-or-
+		Echo(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -99,10 +105,13 @@ func TestHello_Echo(t *testing.T) {
 			HeaderContains(headerName, valueContains).
 			NoError().
 			Error(errContains).
+			ErrorCode(http.StatusOK).
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Echo(t, ctx, POST("PostBody"), Header("Echo123", "EchoEchoEcho"), QueryArg("echo", "123")).
+	r, _ := http.NewRequest("POST", "?echo=123", strings.NewReader("PostBody"))
+	r.Header.Set("Echo123", "EchoEchoEcho")
+	Echo(t, ctx, r).
 		BodyContains("Echo123: EchoEchoEcho").
 		BodyContains("?echo=123").
 		BodyContains("PostBody")
@@ -111,7 +120,11 @@ func TestHello_Echo(t *testing.T) {
 func TestHello_Ping(t *testing.T) {
 	t.Parallel()
 	/*
-		Ping(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		PingGet(t, ctx, "")
+		-or-
+		PingPost(t, ctx, "", "", body)
+		-or-
+		Ping(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -119,17 +132,22 @@ func TestHello_Ping(t *testing.T) {
 			HeaderContains(headerName, valueContains).
 			NoError().
 			Error(errContains).
+			ErrorCode(http.StatusOK).
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Ping(t, ctx, GET()).
+	PingGet(t, ctx, "").
 		BodyContains(Svc.ID() + "." + Svc.HostName())
 }
 
 func TestHello_Calculator(t *testing.T) {
 	t.Parallel()
 	/*
-		Calculator(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		CalculatorGet(t, ctx, "")
+		-or-
+		CalculatorPost(t, ctx, "", "", body)
+		-or-
+		Calculator(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -137,17 +155,29 @@ func TestHello_Calculator(t *testing.T) {
 			HeaderContains(headerName, valueContains).
 			NoError().
 			Error(errContains).
+			ErrorCode(http.StatusOK).
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Calculator(t, ctx, GET(), Query("x=5&op=*&y=80")).BodyContains("400")
-	Calculator(t, ctx, GET(), Query("x=500&op=/&y=5")).BodyContains("100")
+	CalculatorGet(t, ctx, "?x=5&op=*&y=80").
+		BodyContains("400")
+	CalculatorPost(t, ctx, "", "application/x-www-form-urlencoded", `x=500&op=/&y=5`).
+		BodyContains("100")
+	CalculatorPost(t, ctx, "", "",
+		url.Values{
+			"x":  []string{"500"},
+			"op": []string{"+"},
+			"y":  []string{"580"},
+		}).
+		BodyContains("1080")
 }
 
 func TestHello_BusJPEG(t *testing.T) {
 	t.Parallel()
 	/*
-		BusJPEG(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		BusJPEGAny(t, ctx, httpRequest)
+		-or-
+		BusJPEG(t, ctx, "").
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -155,12 +185,13 @@ func TestHello_BusJPEG(t *testing.T) {
 			HeaderContains(headerName, valueContains).
 			NoError().
 			Error(errContains).
+			ErrorCode(http.StatusOK).
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
 	img, err := Svc.ReadResFile("bus.jpeg")
 	assert.NoError(t, err)
-	BusJPEG(t, ctx, GET()).
+	BusJPEG(t, ctx, "").
 		StatusOK().
 		BodyContains(img).
 		HeaderContains("Content-Type", "image/jpeg")
@@ -181,7 +212,11 @@ func TestHello_TickTock(t *testing.T) {
 func TestHello_Localization(t *testing.T) {
 	t.Parallel()
 	/*
-		Localization(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		LocalizationGet(t, ctx, "")
+		-or-
+		LocalizationPost(t, ctx, "", "", body)
+		-or-
+		Localization(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
@@ -193,22 +228,23 @@ func TestHello_Localization(t *testing.T) {
 			Assert(func(t, httpResponse, err))
 	*/
 	ctx := Context(t)
-	Localization(t, ctx).
+	r, _ := http.NewRequest("GET", "", nil)
+	Localization(t, ctx, r).
 		StatusOK().
 		BodyContains("Hello")
 
-	frame.Of(ctx).Set("Accept-Language", "en")
-	Localization(t, ctx).
+	r.Header.Set("Accept-Language", "en")
+	Localization(t, ctx, r).
 		StatusOK().
 		BodyContains("Hello")
 
-	frame.Of(ctx).Set("Accept-Language", "en-NZ")
-	Localization(t, ctx).
+	r.Header.Set("Accept-Language", "en-NZ")
+	Localization(t, ctx, r).
 		StatusOK().
 		BodyContains("Hello")
 
-	frame.Of(ctx).Set("Accept-Language", "it")
-	Localization(t, ctx).
+	r.Header.Set("Accept-Language", "it")
+	Localization(t, ctx, r).
 		StatusOK().
 		BodyContains("Salve")
 }

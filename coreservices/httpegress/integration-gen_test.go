@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -39,6 +40,7 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -117,94 +119,11 @@ func Context(t *testing.T) context.Context {
 	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
 }
 
-type WebOption func(req *pub.Request) error
-
-// GET sets the method of the request.
-func GET() WebOption {
-	return WebOption(pub.Method("GET"))
-}
-
-// DELETE sets the method of the request.
-func DELETE() WebOption {
-	return WebOption(pub.Method("DELETE"))
-}
-
-// HEAD sets the method of the request.
-func HEAD() WebOption {
-	return WebOption(pub.Method("HEAD"))
-}
-
-// POST sets the method and body of the request.
-func POST(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("POST")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PUT sets the method and body of the request.
-func PUT(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PUT")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PATCH sets the method and body of the request.
-func PATCH(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PATCH")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// Method sets the method of the request.
-func Method(method string) WebOption {
-	return WebOption(pub.Method(method))
-}
-
-// Header sets the header of the request. It overwrites any previously set value.
-func Header(name string, value string) WebOption {
-	return WebOption(pub.Header(name, value))
-}
-
-// QueryArg adds the query argument to the request.
-// The same argument may have multiple values.
-func QueryArg(name string, value any) WebOption {
-	return WebOption(pub.QueryArg(name, value))
-}
-
-// Query adds the escaped query arguments to the request.
-// The same argument may have multiple values.
-func Query(escapedQueryArgs string) WebOption {
-	return WebOption(pub.QueryString(escapedQueryArgs))
-}
-
-// Body sets the body of the request.
-// Arguments of type io.Reader, []byte and string are serialized in binary form.
-// url.Values is serialized as form data.
-// All other types are serialized as JSON.
-func Body(body any) WebOption {
-	return WebOption(pub.Body(body))
-}
-
-// ContentType sets the Content-Type header.
-func ContentType(contentType string) WebOption {
-	return WebOption(pub.ContentType(contentType))
-}
-
 // MakeRequestTestCase assists in asserting against the results of executing MakeRequest.
 type MakeRequestTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *MakeRequestTestCase) Name(testName string) *MakeRequestTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -297,35 +216,72 @@ func (tc *MakeRequestTestCase) Assert(asserter func(t *testing.T, res *http.Resp
 func (tc *MakeRequestTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
+/*
+MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
+The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
-// MakeRequest executes the web handler and returns a corresponding test case.
-func MakeRequest(t *testing.T, ctx context.Context, options ...WebOption) *MakeRequestTestCase {
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func MakeRequest(t *testing.T, ctx context.Context, url string, contentType string, body any) *MakeRequestTestCase {
 	tc := &MakeRequestTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("http.egress.sys", `:444/make-request`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(httpegressapi.URLOfMakeRequest, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := httpx.NewRequest(`POST`, url, body)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
 	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.MakeRequest(w, r)
+		return Svc.MakeRequest(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+MakeRequestAny performs a customized request to the MakeRequest endpoint.
+
+MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
+The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func MakeRequestAny(t *testing.T, ctx context.Context, r *http.Request) *MakeRequestTestCase {
+	tc := &MakeRequestTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`POST`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(httpegressapi.URLOfMakeRequest, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.MakeRequest(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc

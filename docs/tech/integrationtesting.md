@@ -77,7 +77,7 @@ Raw web endpoints are tested in a similar fashion, except that their asserters a
 func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
-		Hello(t, ctx, POST(body), ContentType(mime), QueryArg(n, v), Header(n, v)).
+		Hello(t, ctx, httpRequest).
 			StatusOK().
 			StatusCode(statusCode).
 			BodyContains(bodyContains).

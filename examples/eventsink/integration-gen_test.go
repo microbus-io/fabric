@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -39,6 +40,7 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -120,15 +122,8 @@ func Context(t *testing.T) context.Context {
 // RegisteredTestCase assists in asserting against the results of executing Registered.
 type RegisteredTestCase struct {
 	_t *testing.T
-	_testName string
 	emails []string
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *RegisteredTestCase) Name(testName string) *RegisteredTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -185,15 +180,8 @@ func Registered(t *testing.T, ctx context.Context) *RegisteredTestCase {
 // OnAllowRegisterTestCase assists in asserting against the results of executing OnAllowRegister.
 type OnAllowRegisterTestCase struct {
 	_t *testing.T
-	_testName string
 	allow bool
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *OnAllowRegisterTestCase) Name(testName string) *OnAllowRegisterTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.
@@ -250,14 +238,7 @@ func OnAllowRegister(t *testing.T, ctx context.Context, email string) *OnAllowRe
 // OnRegisteredTestCase assists in asserting against the results of executing OnRegistered.
 type OnRegisteredTestCase struct {
 	_t *testing.T
-	_testName string
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *OnRegisteredTestCase) Name(testName string) *OnRegisteredTestCase {
-	tc._testName = testName
-	return tc
 }
 
 // Expect asserts no error and exact return values.

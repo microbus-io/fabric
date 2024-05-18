@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -39,6 +40,7 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
+	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -117,94 +119,11 @@ func Context(t *testing.T) context.Context {
 	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
 }
 
-type WebOption func(req *pub.Request) error
-
-// GET sets the method of the request.
-func GET() WebOption {
-	return WebOption(pub.Method("GET"))
-}
-
-// DELETE sets the method of the request.
-func DELETE() WebOption {
-	return WebOption(pub.Method("DELETE"))
-}
-
-// HEAD sets the method of the request.
-func HEAD() WebOption {
-	return WebOption(pub.Method("HEAD"))
-}
-
-// POST sets the method and body of the request.
-func POST(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("POST")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PUT sets the method and body of the request.
-func PUT(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PUT")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// PATCH sets the method and body of the request.
-func PATCH(body any) WebOption {
-	return func(req *pub.Request) error {
-		pub.Method("PATCH")(req)
-		return pub.Body(body)(req)
-	}
-}
-
-// Method sets the method of the request.
-func Method(method string) WebOption {
-	return WebOption(pub.Method(method))
-}
-
-// Header sets the header of the request. It overwrites any previously set value.
-func Header(name string, value string) WebOption {
-	return WebOption(pub.Header(name, value))
-}
-
-// QueryArg adds the query argument to the request.
-// The same argument may have multiple values.
-func QueryArg(name string, value any) WebOption {
-	return WebOption(pub.QueryArg(name, value))
-}
-
-// Query adds the escaped query arguments to the request.
-// The same argument may have multiple values.
-func Query(escapedQueryArgs string) WebOption {
-	return WebOption(pub.QueryString(escapedQueryArgs))
-}
-
-// Body sets the body of the request.
-// Arguments of type io.Reader, []byte and string are serialized in binary form.
-// url.Values is serialized as form data.
-// All other types are serialized as JSON.
-func Body(body any) WebOption {
-	return WebOption(pub.Body(body))
-}
-
-// ContentType sets the Content-Type header.
-func ContentType(contentType string) WebOption {
-	return WebOption(pub.ContentType(contentType))
-}
-
 // HelloTestCase assists in asserting against the results of executing Hello.
 type HelloTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *HelloTestCase) Name(testName string) *HelloTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -298,34 +217,99 @@ func (tc *HelloTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// Hello executes the web handler and returns a corresponding test case.
-func Hello(t *testing.T, ctx context.Context, options ...WebOption) *HelloTestCase {
+/*
+HelloGet performs a GET request to the Hello endpoint.
+
+Hello prints a greeting.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func HelloGet(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 	tc := &HelloTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/hello`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfHello, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.Hello(w, r)
+		return Svc.Hello(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+HelloPost performs a POST request to the Hello endpoint.
+
+Hello prints a greeting.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func HelloPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *HelloTestCase {
+	tc := &HelloTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfHello, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Hello(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Hello prints a greeting.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Hello(t *testing.T, ctx context.Context, r *http.Request) *HelloTestCase {
+	tc := &HelloTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(helloapi.URLOfHello, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Hello(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -334,15 +318,8 @@ func Hello(t *testing.T, ctx context.Context, options ...WebOption) *HelloTestCa
 // EchoTestCase assists in asserting against the results of executing Echo.
 type EchoTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *EchoTestCase) Name(testName string) *EchoTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -436,34 +413,99 @@ func (tc *EchoTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// Echo executes the web handler and returns a corresponding test case.
-func Echo(t *testing.T, ctx context.Context, options ...WebOption) *EchoTestCase {
+/*
+EchoGet performs a GET request to the Echo endpoint.
+
+Echo back the incoming request in wire format.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func EchoGet(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 	tc := &EchoTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/echo`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfEcho, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.Echo(w, r)
+		return Svc.Echo(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+EchoPost performs a POST request to the Echo endpoint.
+
+Echo back the incoming request in wire format.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func EchoPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *EchoTestCase {
+	tc := &EchoTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfEcho, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Echo(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Echo back the incoming request in wire format.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Echo(t *testing.T, ctx context.Context, r *http.Request) *EchoTestCase {
+	tc := &EchoTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(helloapi.URLOfEcho, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Echo(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -472,15 +514,8 @@ func Echo(t *testing.T, ctx context.Context, options ...WebOption) *EchoTestCase
 // PingTestCase assists in asserting against the results of executing Ping.
 type PingTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *PingTestCase) Name(testName string) *PingTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -574,34 +609,99 @@ func (tc *PingTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// Ping executes the web handler and returns a corresponding test case.
-func Ping(t *testing.T, ctx context.Context, options ...WebOption) *PingTestCase {
+/*
+PingGet performs a GET request to the Ping endpoint.
+
+Ping all microservices and list them.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func PingGet(t *testing.T, ctx context.Context, url string) *PingTestCase {
 	tc := &PingTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/ping`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfPing, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.Ping(w, r)
+		return Svc.Ping(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+PingPost performs a POST request to the Ping endpoint.
+
+Ping all microservices and list them.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func PingPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *PingTestCase {
+	tc := &PingTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfPing, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Ping(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Ping all microservices and list them.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Ping(t *testing.T, ctx context.Context, r *http.Request) *PingTestCase {
+	tc := &PingTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(helloapi.URLOfPing, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Ping(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -610,15 +710,8 @@ func Ping(t *testing.T, ctx context.Context, options ...WebOption) *PingTestCase
 // CalculatorTestCase assists in asserting against the results of executing Calculator.
 type CalculatorTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *CalculatorTestCase) Name(testName string) *CalculatorTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -712,34 +805,105 @@ func (tc *CalculatorTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// Calculator executes the web handler and returns a corresponding test case.
-func Calculator(t *testing.T, ctx context.Context, options ...WebOption) *CalculatorTestCase {
+/*
+CalculatorGet performs a GET request to the Calculator endpoint.
+
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func CalculatorGet(t *testing.T, ctx context.Context, url string) *CalculatorTestCase {
 	tc := &CalculatorTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/calculator`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfCalculator, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.Calculator(w, r)
+		return Svc.Calculator(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+CalculatorPost performs a POST request to the Calculator endpoint.
+
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func CalculatorPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *CalculatorTestCase {
+	tc := &CalculatorTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfCalculator, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Calculator(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Calculator renders a UI for a calculator.
+The calculation operation is delegated to another microservice in order to demonstrate
+a call from one microservice to another.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Calculator(t *testing.T, ctx context.Context, r *http.Request) *CalculatorTestCase {
+	tc := &CalculatorTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(helloapi.URLOfCalculator, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Calculator(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -748,15 +912,8 @@ func Calculator(t *testing.T, ctx context.Context, options ...WebOption) *Calcul
 // BusJPEGTestCase assists in asserting against the results of executing BusJPEG.
 type BusJPEGTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *BusJPEGTestCase) Name(testName string) *BusJPEGTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -849,35 +1006,64 @@ func (tc *BusJPEGTestCase) Assert(asserter func(t *testing.T, res *http.Response
 func (tc *BusJPEGTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
+/*
+BusJPEG serves an image from the embedded resources.
 
-// BusJPEG executes the web handler and returns a corresponding test case.
-func BusJPEG(t *testing.T, ctx context.Context, options ...WebOption) *BusJPEGTestCase {
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
 	tc := &BusJPEGTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/bus.jpeg`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfBusJPEG, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.BusJPEG(w, r)
+		return Svc.BusJPEG(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+BusJPEGAny performs a customized request to the BusJPEG endpoint.
+
+BusJPEG serves an image from the embedded resources.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func BusJPEGAny(t *testing.T, ctx context.Context, r *http.Request) *BusJPEGTestCase {
+	tc := &BusJPEGTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(helloapi.URLOfBusJPEG, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.BusJPEG(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -886,15 +1072,8 @@ func BusJPEG(t *testing.T, ctx context.Context, options ...WebOption) *BusJPEGTe
 // LocalizationTestCase assists in asserting against the results of executing Localization.
 type LocalizationTestCase struct {
 	t *testing.T
-	testName string
 	res *http.Response
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *LocalizationTestCase) Name(testName string) *LocalizationTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -988,34 +1167,99 @@ func (tc *LocalizationTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-// Localization executes the web handler and returns a corresponding test case.
-func Localization(t *testing.T, ctx context.Context, options ...WebOption) *LocalizationTestCase {
+/*
+LocalizationGet performs a GET request to the Localization endpoint.
+
+Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func LocalizationGet(t *testing.T, ctx context.Context, url string) *LocalizationTestCase {
 	tc := &LocalizationTestCase{t: t}
-	pubOptions := []pub.Option{
-		pub.URL(httpx.JoinHostAndPath("hello.example", `:443/localization`)),
-	}
-	frameHeader := frame.Of(ctx).Header()
-	for h := range frameHeader {
-		pubOptions = append(pubOptions, pub.Header(h, frameHeader.Get(h)))
-	}
-	for _, opt := range options {
-		pubOptions = append(pubOptions, pub.Option(opt))
-	}
-	req, err := pub.NewRequest(pubOptions...)
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfLocalization, url)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
+	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
-		panic(err)
+		tc.err = errors.Trace(err)
+		return tc
 	}
-	for name, value := range req.Header {
-		httpReq.Header[name] = value
-	}
-	r := httpReq.WithContext(ctx)
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	tc.err = utils.CatchPanic(func () error {
-		return Svc.Localization(w, r)
+		return Svc.Localization(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+LocalizationPost performs a POST request to the Localization endpoint.
+
+Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func LocalizationPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *LocalizationTestCase {
+	tc := &LocalizationTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(helloapi.URLOfLocalization, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest(`POST`, url, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Localization(w, r.WithContext(ctx))
+	})
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Localization prints hello in the language best matching the request's Accept-Language header.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Localization(t *testing.T, ctx context.Context, r *http.Request) *LocalizationTestCase {
+	tc := &LocalizationTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	u, err := httpx.ResolveURL(helloapi.URLOfLocalization, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = url.Parse(u)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	w := httpx.NewResponseRecorder()
+	tc.err = utils.CatchPanic(func () error {
+		return Svc.Localization(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
 	return tc
@@ -1024,14 +1268,7 @@ func Localization(t *testing.T, ctx context.Context, options ...WebOption) *Loca
 // TickTockTestCase assists in asserting against the results of executing TickTock.
 type TickTockTestCase struct {
 	t *testing.T
-	testName string
 	err error
-}
-
-// Name sets a name to the test case.
-func (tc *TickTockTestCase) Name(testName string) *TickTockTestCase {
-	tc.testName = testName
-	return tc
 }
 
 // Error asserts an error.
