@@ -188,3 +188,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Refactor the interface exposed by the client for web endpoints
 * New test case asserter `CompletedIn`
 * New test case asserters `HeaderExists`, `HeaderNotExists` and `HeaderNotContains` for web endpoints
+* Simulate a database in memory for the directory example if MariaDB is not available

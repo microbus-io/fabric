@@ -1,6 +1,7 @@
 # Package `examples/directory`
 
 The `directory.example` microservice is an example of a microservice that provides a CRUD API backed by a SQL database.
+For the sake of this example, if a connection to the SQL database cannot be established, the microservice emulates a database in-memory.
 
 ## Adding SQL Support
 

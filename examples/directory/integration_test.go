@@ -49,9 +49,6 @@ func Terminate() (err error) {
 }
 
 func TestDirectory_CRUD(t *testing.T) {
-	if Svc.db == nil {
-		t.Skip()
-	}
 	t.Parallel()
 
 	ctx := Context(t)
@@ -108,9 +105,6 @@ func TestDirectory_CRUD(t *testing.T) {
 }
 
 func TestDirectory_Create(t *testing.T) {
-	if Svc.db == nil {
-		t.Skip()
-	}
 	t.Parallel()
 
 	ctx := Context(t)
@@ -161,9 +155,6 @@ func TestDirectory_Load(t *testing.T) {
 }
 
 func TestDirectory_Update(t *testing.T) {
-	if Svc.db == nil {
-		t.Skip()
-	}
 	t.Parallel()
 
 	ctx := Context(t)
