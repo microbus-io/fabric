@@ -124,6 +124,7 @@ type CollectTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -177,9 +178,33 @@ func (tc *CollectTestCase) BodyNotContains(bodyNotContains any) *CollectTestCase
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *CollectTestCase) HeaderContains(headerName string, valueContains string) *CollectTestCase {
+func (tc *CollectTestCase) HeaderContains(headerName string, value string) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *CollectTestCase) HeaderNotContains(headerName string, value string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *CollectTestCase) HeaderExists(headerName string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *CollectTestCase) HeaderNotExists(headerName string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -203,6 +228,12 @@ func (tc *CollectTestCase) ErrorCode(statusCode int) *CollectTestCase {
 // NoError asserts no error.
 func (tc *CollectTestCase) NoError() *CollectTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *CollectTestCase) CompletedIn(threshold time.Duration) *CollectTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -239,9 +270,11 @@ func CollectGet(t *testing.T, ctx context.Context, url string) *CollectTestCase 
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Collect(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -274,9 +307,11 @@ func CollectPost(t *testing.T, ctx context.Context, url string, contentType stri
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Collect(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -308,9 +343,11 @@ func Collect(t *testing.T, ctx context.Context, r *http.Request) *CollectTestCas
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Collect(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }

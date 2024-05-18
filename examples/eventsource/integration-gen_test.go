@@ -124,6 +124,7 @@ type RegisterTestCase struct {
 	_t *testing.T
 	allowed bool
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -156,6 +157,12 @@ func (tc *RegisterTestCase) NoError() *RegisterTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *RegisterTestCase) CompletedIn(threshold time.Duration) *RegisterTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *RegisterTestCase) Assert(asserter func(t *testing.T, allowed bool, err error)) *RegisterTestCase {
 	asserter(tc._t, tc.allowed, tc.err)
@@ -170,10 +177,12 @@ func (tc *RegisterTestCase) Get() (allowed bool, err error) {
 // Register executes the function and returns a corresponding test case.
 func Register(t *testing.T, ctx context.Context, email string) *RegisterTestCase {
 	tc := &RegisterTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.allowed, tc.err = Svc.Register(ctx, email)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -185,6 +194,7 @@ type OnAllowRegisterTestCase struct {
 	email string
 	allow bool
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
@@ -192,6 +202,12 @@ func (_tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCas
     _tc._asserters = append(_tc._asserters, func(t *testing.T) {
         assert.Equal(t, email, _tc.email)
     })
+	return _tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (_tc *OnAllowRegisterTestCase) CompletedIn(threshold time.Duration) *OnAllowRegisterTestCase {
+	assert.LessOrEqual(_tc._t, _tc._dur, threshold)
 	return _tc
 }
 
@@ -211,6 +227,7 @@ func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCa
 		err: err,
 	}
     sequence ++
+	t0 := time.Now()
 	con := connector.New(fmt.Sprintf("%s.%d", "OnAllowRegister", sequence))
 	eventsourceapi.NewHook(con).OnAllowRegister(func(ctx context.Context, email string) (allow bool, err error) {
 		eventsourceapi.NewHook(con).OnAllowRegister(nil)
@@ -219,6 +236,7 @@ func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCa
 		for _, asserter := range _tc._asserters {
 			asserter(_tc._t)
 		}
+		_tc._dur = time.Since(t0)
 		return _tc.allow, _tc.err
 	})
 	App.Include(con)
@@ -233,6 +251,7 @@ type OnRegisteredTestCase struct {
     ctx context.Context
 	email string
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
@@ -240,6 +259,12 @@ func (_tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
     _tc._asserters = append(_tc._asserters, func(t *testing.T) {
         assert.Equal(t, email, _tc.email)
     })
+	return _tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (_tc *OnRegisteredTestCase) CompletedIn(threshold time.Duration) *OnRegisteredTestCase {
+	assert.LessOrEqual(_tc._t, _tc._dur, threshold)
 	return _tc
 }
 
@@ -258,6 +283,7 @@ func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
 		err: err,
 	}
     sequence ++
+	t0 := time.Now()
 	con := connector.New(fmt.Sprintf("%s.%d", "OnRegistered", sequence))
 	eventsourceapi.NewHook(con).OnRegistered(func(ctx context.Context, email string) (err error) {
 		eventsourceapi.NewHook(con).OnRegistered(nil)
@@ -266,6 +292,7 @@ func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
 		for _, asserter := range _tc._asserters {
 			asserter(_tc._t)
 		}
+		_tc._dur = time.Since(t0)
 		return _tc.err
 	})
 	App.Include(con)

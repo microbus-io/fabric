@@ -7,6 +7,7 @@ type {{ .Name }}TestCase struct {
 	{{ .Name }} {{ .Type }}
 	{{- end }}
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -48,6 +49,12 @@ func (tc *{{ .Name }}TestCase) NoError() *{{ .Name }}TestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *{{ .Name }}TestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *{{ .Name }}TestCase) Assert(asserter func({{ $t }} *testing.T, {{ .Out }})) *{{ .Name }}TestCase {
 	asserter(tc._t, {{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err)
@@ -62,10 +69,12 @@ func (tc *{{ .Name }}TestCase) Get() ({{ .Out }}) {
 // {{ .Name }} executes the function and returns a corresponding test case.
 func {{ .Name }}({{ $t }} *testing.T, {{ .In }}) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{_t: {{ $t }}}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		{{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 {{ end }}

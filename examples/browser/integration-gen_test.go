@@ -124,6 +124,7 @@ type BrowseTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -177,9 +178,33 @@ func (tc *BrowseTestCase) BodyNotContains(bodyNotContains any) *BrowseTestCase {
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *BrowseTestCase) HeaderContains(headerName string, valueContains string) *BrowseTestCase {
+func (tc *BrowseTestCase) HeaderContains(headerName string, value string) *BrowseTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *BrowseTestCase) HeaderNotContains(headerName string, value string) *BrowseTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *BrowseTestCase) HeaderExists(headerName string) *BrowseTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *BrowseTestCase) HeaderNotExists(headerName string) *BrowseTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -203,6 +228,12 @@ func (tc *BrowseTestCase) ErrorCode(statusCode int) *BrowseTestCase {
 // NoError asserts no error.
 func (tc *BrowseTestCase) NoError() *BrowseTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *BrowseTestCase) CompletedIn(threshold time.Duration) *BrowseTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -239,9 +270,11 @@ func BrowseGet(t *testing.T, ctx context.Context, url string) *BrowseTestCase {
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Browse(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -274,9 +307,11 @@ func BrowsePost(t *testing.T, ctx context.Context, url string, contentType strin
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Browse(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -308,9 +343,11 @@ func Browse(t *testing.T, ctx context.Context, r *http.Request) *BrowseTestCase 
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Browse(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }

@@ -12,6 +12,7 @@ import (
 	"html"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -83,7 +84,8 @@ func TestBrowser_Browse(t *testing.T) {
 	BrowseGet(t, ctx, "?"+httpx.PrepareQueryString("url", "https://example.com/")).
 		StatusOK().
 		StatusCode(http.StatusOK).
-		BodyContains(`"https://example.com/"`).
-		BodyContains(html.EscapeString(`<html><body>Lorem Ipsum<body></html>`)).
-		NoError()
+		BodyContains(` value="https://example.com/"`).
+		BodyContains(">" + html.EscapeString(`<html><body>Lorem Ipsum<body></html>`) + "</pre>").
+		NoError().
+		CompletedIn(10 * time.Millisecond)
 }

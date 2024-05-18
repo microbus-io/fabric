@@ -127,6 +127,7 @@ type ArithmeticTestCase struct {
 	yEcho int
 	result int
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -162,6 +163,12 @@ func (tc *ArithmeticTestCase) NoError() *ArithmeticTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *ArithmeticTestCase) CompletedIn(threshold time.Duration) *ArithmeticTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *ArithmeticTestCase) Assert(asserter func(t *testing.T, xEcho int, opEcho string, yEcho int, result int, err error)) *ArithmeticTestCase {
 	asserter(tc._t, tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err)
@@ -176,10 +183,12 @@ func (tc *ArithmeticTestCase) Get() (xEcho int, opEcho string, yEcho int, result
 // Arithmetic executes the function and returns a corresponding test case.
 func Arithmetic(t *testing.T, ctx context.Context, x int, op string, y int) *ArithmeticTestCase {
 	tc := &ArithmeticTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err = Svc.Arithmetic(ctx, x, op, y)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -189,6 +198,7 @@ type SquareTestCase struct {
 	xEcho int
 	result int
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -222,6 +232,12 @@ func (tc *SquareTestCase) NoError() *SquareTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *SquareTestCase) CompletedIn(threshold time.Duration) *SquareTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *SquareTestCase) Assert(asserter func(t *testing.T, xEcho int, result int, err error)) *SquareTestCase {
 	asserter(tc._t, tc.xEcho, tc.result, tc.err)
@@ -236,10 +252,12 @@ func (tc *SquareTestCase) Get() (xEcho int, result int, err error) {
 // Square executes the function and returns a corresponding test case.
 func Square(t *testing.T, ctx context.Context, x int) *SquareTestCase {
 	tc := &SquareTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.xEcho, tc.result, tc.err = Svc.Square(ctx, x)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -248,6 +266,7 @@ type DistanceTestCase struct {
 	_t *testing.T
 	d float64
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -280,6 +299,12 @@ func (tc *DistanceTestCase) NoError() *DistanceTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *DistanceTestCase) CompletedIn(threshold time.Duration) *DistanceTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *DistanceTestCase) Assert(asserter func(t *testing.T, d float64, err error)) *DistanceTestCase {
 	asserter(tc._t, tc.d, tc.err)
@@ -294,9 +319,11 @@ func (tc *DistanceTestCase) Get() (d float64, err error) {
 // Distance executes the function and returns a corresponding test case.
 func Distance(t *testing.T, ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) *DistanceTestCase {
 	tc := &DistanceTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.d, tc.err = Svc.Distance(ctx, p1, p2)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }

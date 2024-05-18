@@ -124,6 +124,7 @@ type CreateTestCase struct {
 	_t *testing.T
 	created *directoryapi.Person
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -156,6 +157,12 @@ func (tc *CreateTestCase) NoError() *CreateTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *CreateTestCase) CompletedIn(threshold time.Duration) *CreateTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *CreateTestCase) Assert(asserter func(t *testing.T, created *directoryapi.Person, err error)) *CreateTestCase {
 	asserter(tc._t, tc.created, tc.err)
@@ -170,10 +177,12 @@ func (tc *CreateTestCase) Get() (created *directoryapi.Person, err error) {
 // Create executes the function and returns a corresponding test case.
 func Create(t *testing.T, ctx context.Context, person *directoryapi.Person) *CreateTestCase {
 	tc := &CreateTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.created, tc.err = Svc.Create(ctx, person)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -183,6 +192,7 @@ type LoadTestCase struct {
 	person *directoryapi.Person
 	ok bool
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -216,6 +226,12 @@ func (tc *LoadTestCase) NoError() *LoadTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *LoadTestCase) CompletedIn(threshold time.Duration) *LoadTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *LoadTestCase) Assert(asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadTestCase {
 	asserter(tc._t, tc.person, tc.ok, tc.err)
@@ -230,10 +246,12 @@ func (tc *LoadTestCase) Get() (person *directoryapi.Person, ok bool, err error) 
 // Load executes the function and returns a corresponding test case.
 func Load(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *LoadTestCase {
 	tc := &LoadTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.person, tc.ok, tc.err = Svc.Load(ctx, key)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -242,6 +260,7 @@ type DeleteTestCase struct {
 	_t *testing.T
 	ok bool
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -274,6 +293,12 @@ func (tc *DeleteTestCase) NoError() *DeleteTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *DeleteTestCase) CompletedIn(threshold time.Duration) *DeleteTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *DeleteTestCase) Assert(asserter func(t *testing.T, ok bool, err error)) *DeleteTestCase {
 	asserter(tc._t, tc.ok, tc.err)
@@ -288,10 +313,12 @@ func (tc *DeleteTestCase) Get() (ok bool, err error) {
 // Delete executes the function and returns a corresponding test case.
 func Delete(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *DeleteTestCase {
 	tc := &DeleteTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.ok, tc.err = Svc.Delete(ctx, key)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -301,6 +328,7 @@ type UpdateTestCase struct {
 	updated *directoryapi.Person
 	ok bool
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -334,6 +362,12 @@ func (tc *UpdateTestCase) NoError() *UpdateTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *UpdateTestCase) CompletedIn(threshold time.Duration) *UpdateTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *UpdateTestCase) Assert(asserter func(t *testing.T, updated *directoryapi.Person, ok bool, err error)) *UpdateTestCase {
 	asserter(tc._t, tc.updated, tc.ok, tc.err)
@@ -348,10 +382,12 @@ func (tc *UpdateTestCase) Get() (updated *directoryapi.Person, ok bool, err erro
 // Update executes the function and returns a corresponding test case.
 func Update(t *testing.T, ctx context.Context, person *directoryapi.Person) *UpdateTestCase {
 	tc := &UpdateTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.updated, tc.ok, tc.err = Svc.Update(ctx, person)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -361,6 +397,7 @@ type LoadByEmailTestCase struct {
 	person *directoryapi.Person
 	ok bool
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -394,6 +431,12 @@ func (tc *LoadByEmailTestCase) NoError() *LoadByEmailTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *LoadByEmailTestCase) CompletedIn(threshold time.Duration) *LoadByEmailTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *LoadByEmailTestCase) Assert(asserter func(t *testing.T, person *directoryapi.Person, ok bool, err error)) *LoadByEmailTestCase {
 	asserter(tc._t, tc.person, tc.ok, tc.err)
@@ -408,10 +451,12 @@ func (tc *LoadByEmailTestCase) Get() (person *directoryapi.Person, ok bool, err 
 // LoadByEmail executes the function and returns a corresponding test case.
 func LoadByEmail(t *testing.T, ctx context.Context, email string) *LoadByEmailTestCase {
 	tc := &LoadByEmailTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.person, tc.ok, tc.err = Svc.LoadByEmail(ctx, email)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -420,6 +465,7 @@ type ListTestCase struct {
 	_t *testing.T
 	keys []directoryapi.PersonKey
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -452,6 +498,12 @@ func (tc *ListTestCase) NoError() *ListTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *ListTestCase) CompletedIn(threshold time.Duration) *ListTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *ListTestCase) Assert(asserter func(t *testing.T, keys []directoryapi.PersonKey, err error)) *ListTestCase {
 	asserter(tc._t, tc.keys, tc.err)
@@ -466,9 +518,11 @@ func (tc *ListTestCase) Get() (keys []directoryapi.PersonKey, err error) {
 // List executes the function and returns a corresponding test case.
 func List(t *testing.T, ctx context.Context) *ListTestCase {
 	tc := &ListTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.keys, tc.err = Svc.List(ctx)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }

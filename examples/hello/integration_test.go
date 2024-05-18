@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -79,6 +80,7 @@ func TestHello_Hello(t *testing.T) {
 	HelloGet(t, ctx, "").
 		BodyContains(Svc.Greeting()).
 		BodyNotContains("Maria").
+		CompletedIn(10 * time.Millisecond).
 		Assert(func(t *testing.T, res *http.Response, err error) {
 			assert.NoError(t, err)
 			body, err := io.ReadAll(res.Body)
@@ -87,7 +89,8 @@ func TestHello_Hello(t *testing.T) {
 		})
 	HelloGet(t, ctx, "?name=Maria").
 		BodyContains(Svc.Greeting()).
-		BodyContains("Maria")
+		BodyContains("Maria").
+		CompletedIn(10 * time.Millisecond)
 }
 
 func TestHello_Echo(t *testing.T) {

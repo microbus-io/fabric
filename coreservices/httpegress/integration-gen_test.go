@@ -124,6 +124,7 @@ type MakeRequestTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -177,9 +178,33 @@ func (tc *MakeRequestTestCase) BodyNotContains(bodyNotContains any) *MakeRequest
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *MakeRequestTestCase) HeaderContains(headerName string, valueContains string) *MakeRequestTestCase {
+func (tc *MakeRequestTestCase) HeaderContains(headerName string, value string) *MakeRequestTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *MakeRequestTestCase) HeaderNotContains(headerName string, value string) *MakeRequestTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *MakeRequestTestCase) HeaderExists(headerName string) *MakeRequestTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *MakeRequestTestCase) HeaderNotExists(headerName string) *MakeRequestTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -203,6 +228,12 @@ func (tc *MakeRequestTestCase) ErrorCode(statusCode int) *MakeRequestTestCase {
 // NoError asserts no error.
 func (tc *MakeRequestTestCase) NoError() *MakeRequestTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *MakeRequestTestCase) CompletedIn(threshold time.Duration) *MakeRequestTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -243,9 +274,11 @@ func MakeRequest(t *testing.T, ctx context.Context, url string, contentType stri
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.MakeRequest(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -280,9 +313,11 @@ func MakeRequestAny(t *testing.T, ctx context.Context, r *http.Request) *MakeReq
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.MakeRequest(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }

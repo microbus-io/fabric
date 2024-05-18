@@ -6,6 +6,7 @@ type {{ .Name }}TestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -59,9 +60,33 @@ func (tc *{{ .Name }}TestCase) BodyNotContains(bodyNotContains any) *{{ .Name }}
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *{{ .Name }}TestCase) HeaderContains(headerName string, valueContains string) *{{ .Name }}TestCase {
+func (tc *{{ .Name }}TestCase) HeaderContains(headerName string, value string) *{{ .Name }}TestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *{{ .Name }}TestCase) HeaderNotContains(headerName string, value string) *{{ .Name }}TestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *{{ .Name }}TestCase) HeaderExists(headerName string) *{{ .Name }}TestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *{{ .Name }}TestCase) HeaderNotExists(headerName string) *{{ .Name }}TestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -85,6 +110,12 @@ func (tc *{{ .Name }}TestCase) ErrorCode(statusCode int) *{{ .Name }}TestCase {
 // NoError asserts no error.
 func (tc *{{ .Name }}TestCase) NoError() *{{ .Name }}TestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *{{ .Name }}TestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -123,9 +154,11 @@ func {{ .Name }}Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}T
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -158,9 +191,11 @@ func {{ .Name }}Post(t *testing.T, ctx context.Context, url string, contentType 
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -192,9 +227,11 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string, contentType stri
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -220,9 +257,11 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -260,10 +299,12 @@ func {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(t *testing.T, ctx context.Co
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }
 {{ end }}

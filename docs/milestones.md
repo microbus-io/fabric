@@ -186,3 +186,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Create type-safe setter functions for each config property
 * Refactor the interface exposed by the client for web endpoints
+* New test case asserter `CompletedIn`
+* New test case asserters `HeaderExists`, `HeaderNotExists` and `HeaderNotContains` for web endpoints

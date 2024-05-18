@@ -12,6 +12,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			NoError().
 			Error(errContains).
 			ErrorCode(http.StatusOK).
+			CompletedIn(time.Second).
 			Assert(func({{ $t }}, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err))
 	*/
 	// ctx := Context(t)
@@ -28,6 +29,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			{{- if .Signature.InputArgs }}
 			Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }}).
 			{{- end }}
+			CompletedIn(time.Second).
 			Assert(func({{ $t }}, ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}))
 	*/
 	// ctx := Context(t)
@@ -58,10 +60,14 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			StatusCode(statusCode).
 			BodyContains(bodyContains).
 			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
+			HeaderContains(headerName, value).
+			HeaderNotContains(headerName, value).
+			HeaderExists(headerName).
+			HeaderNotExists(headerName).
 			NoError().
 			Error(errContains).
 			ErrorCode(http.StatusOK).
+			CompletedIn(time.Second).
 			Assert(func(t, httpResponse, err))
 	*/
 	// ctx := Context(t)
@@ -77,6 +83,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			NoError().
 			Error(errContains).
 			ErrorCode(http.StatusOK).
+			CompletedIn(time.Second).
 			Assert(func(err))
 	*/
 	// ctx := Context(t)
@@ -92,6 +99,7 @@ func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
 			NoError().
 			Error(errContains).
 			ErrorCode(http.StatusOK).
+			CompletedIn(time.Second).
 			Assert(func(err))
 	*/
 	// ctx := Context(t)

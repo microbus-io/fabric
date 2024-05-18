@@ -124,6 +124,7 @@ type HomeTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -177,9 +178,33 @@ func (tc *HomeTestCase) BodyNotContains(bodyNotContains any) *HomeTestCase {
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *HomeTestCase) HeaderContains(headerName string, valueContains string) *HomeTestCase {
+func (tc *HomeTestCase) HeaderContains(headerName string, value string) *HomeTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *HomeTestCase) HeaderNotContains(headerName string, value string) *HomeTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *HomeTestCase) HeaderExists(headerName string) *HomeTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *HomeTestCase) HeaderNotExists(headerName string) *HomeTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -203,6 +228,12 @@ func (tc *HomeTestCase) ErrorCode(statusCode int) *HomeTestCase {
 // NoError asserts no error.
 func (tc *HomeTestCase) NoError() *HomeTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *HomeTestCase) CompletedIn(threshold time.Duration) *HomeTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -239,9 +270,11 @@ func HomeGet(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Home(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -274,9 +307,11 @@ func HomePost(t *testing.T, ctx context.Context, url string, contentType string,
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Home(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -308,10 +343,12 @@ func Home(t *testing.T, ctx context.Context, r *http.Request) *HomeTestCase {
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.Home(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -320,6 +357,7 @@ type NoQueueTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -373,9 +411,33 @@ func (tc *NoQueueTestCase) BodyNotContains(bodyNotContains any) *NoQueueTestCase
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *NoQueueTestCase) HeaderContains(headerName string, valueContains string) *NoQueueTestCase {
+func (tc *NoQueueTestCase) HeaderContains(headerName string, value string) *NoQueueTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *NoQueueTestCase) HeaderNotContains(headerName string, value string) *NoQueueTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *NoQueueTestCase) HeaderExists(headerName string) *NoQueueTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *NoQueueTestCase) HeaderNotExists(headerName string) *NoQueueTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -399,6 +461,12 @@ func (tc *NoQueueTestCase) ErrorCode(statusCode int) *NoQueueTestCase {
 // NoError asserts no error.
 func (tc *NoQueueTestCase) NoError() *NoQueueTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *NoQueueTestCase) CompletedIn(threshold time.Duration) *NoQueueTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -437,9 +505,11 @@ func NoQueueGet(t *testing.T, ctx context.Context, url string) *NoQueueTestCase 
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.NoQueue(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -474,9 +544,11 @@ func NoQueuePost(t *testing.T, ctx context.Context, url string, contentType stri
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.NoQueue(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -510,10 +582,12 @@ func NoQueue(t *testing.T, ctx context.Context, r *http.Request) *NoQueueTestCas
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.NoQueue(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -522,6 +596,7 @@ type DefaultQueueTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -575,9 +650,33 @@ func (tc *DefaultQueueTestCase) BodyNotContains(bodyNotContains any) *DefaultQue
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *DefaultQueueTestCase) HeaderContains(headerName string, valueContains string) *DefaultQueueTestCase {
+func (tc *DefaultQueueTestCase) HeaderContains(headerName string, value string) *DefaultQueueTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *DefaultQueueTestCase) HeaderNotContains(headerName string, value string) *DefaultQueueTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *DefaultQueueTestCase) HeaderExists(headerName string) *DefaultQueueTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *DefaultQueueTestCase) HeaderNotExists(headerName string) *DefaultQueueTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -601,6 +700,12 @@ func (tc *DefaultQueueTestCase) ErrorCode(statusCode int) *DefaultQueueTestCase 
 // NoError asserts no error.
 func (tc *DefaultQueueTestCase) NoError() *DefaultQueueTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *DefaultQueueTestCase) CompletedIn(threshold time.Duration) *DefaultQueueTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -639,9 +744,11 @@ func DefaultQueueGet(t *testing.T, ctx context.Context, url string) *DefaultQueu
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.DefaultQueue(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -676,9 +783,11 @@ func DefaultQueuePost(t *testing.T, ctx context.Context, url string, contentType
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.DefaultQueue(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -712,10 +821,12 @@ func DefaultQueue(t *testing.T, ctx context.Context, r *http.Request) *DefaultQu
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.DefaultQueue(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -724,6 +835,7 @@ type CacheLoadTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -777,9 +889,33 @@ func (tc *CacheLoadTestCase) BodyNotContains(bodyNotContains any) *CacheLoadTest
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *CacheLoadTestCase) HeaderContains(headerName string, valueContains string) *CacheLoadTestCase {
+func (tc *CacheLoadTestCase) HeaderContains(headerName string, value string) *CacheLoadTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *CacheLoadTestCase) HeaderNotContains(headerName string, value string) *CacheLoadTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *CacheLoadTestCase) HeaderExists(headerName string) *CacheLoadTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *CacheLoadTestCase) HeaderNotExists(headerName string) *CacheLoadTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -803,6 +939,12 @@ func (tc *CacheLoadTestCase) ErrorCode(statusCode int) *CacheLoadTestCase {
 // NoError asserts no error.
 func (tc *CacheLoadTestCase) NoError() *CacheLoadTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *CacheLoadTestCase) CompletedIn(threshold time.Duration) *CacheLoadTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -839,9 +981,11 @@ func CacheLoadGet(t *testing.T, ctx context.Context, url string) *CacheLoadTestC
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.CacheLoad(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -874,9 +1018,11 @@ func CacheLoadPost(t *testing.T, ctx context.Context, url string, contentType st
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.CacheLoad(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -908,10 +1054,12 @@ func CacheLoad(t *testing.T, ctx context.Context, r *http.Request) *CacheLoadTes
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.CacheLoad(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -920,6 +1068,7 @@ type CacheStoreTestCase struct {
 	t *testing.T
 	res *http.Response
 	err error
+	dur time.Duration
 }
 
 // StatusOK asserts no error and a status code 200.
@@ -973,9 +1122,33 @@ func (tc *CacheStoreTestCase) BodyNotContains(bodyNotContains any) *CacheStoreTe
 }
 
 // HeaderContains asserts no error and that the named header contains a string.
-func (tc *CacheStoreTestCase) HeaderContains(headerName string, valueContains string) *CacheStoreTestCase {
+func (tc *CacheStoreTestCase) HeaderContains(headerName string, value string) *CacheStoreTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), valueContains), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), valueContains)
+		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *CacheStoreTestCase) HeaderNotContains(headerName string, value string) *CacheStoreTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *CacheStoreTestCase) HeaderExists(headerName string) *CacheStoreTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header exists.
+func (tc *CacheStoreTestCase) HeaderNotExists(headerName string) *CacheStoreTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
 	}
 	return tc
 }
@@ -999,6 +1172,12 @@ func (tc *CacheStoreTestCase) ErrorCode(statusCode int) *CacheStoreTestCase {
 // NoError asserts no error.
 func (tc *CacheStoreTestCase) NoError() *CacheStoreTestCase {
 	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *CacheStoreTestCase) CompletedIn(threshold time.Duration) *CacheStoreTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
@@ -1035,9 +1214,11 @@ func CacheStoreGet(t *testing.T, ctx context.Context, url string) *CacheStoreTes
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.CacheStore(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -1070,9 +1251,11 @@ func CacheStorePost(t *testing.T, ctx context.Context, url string, contentType s
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.CacheStore(w, r.WithContext(ctx))
 	})
+	tc.dur = time.Since(t0)
 	tc.res = w.Result()
 	return tc
 }
@@ -1104,9 +1287,11 @@ func CacheStore(t *testing.T, ctx context.Context, r *http.Request) *CacheStoreT
 	}
 	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.CacheStore(w, r.WithContext(ctx))
 	})
 	tc.res = w.Result()
+	tc.dur = time.Since(t0)
 	return tc
 }

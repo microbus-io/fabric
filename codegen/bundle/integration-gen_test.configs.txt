@@ -3,6 +3,7 @@
 type OnChanged{{ .Name }}TestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -27,6 +28,12 @@ func (tc *OnChanged{{ .Name }}TestCase) NoError() *OnChanged{{ .Name }}TestCase 
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChanged{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *OnChanged{{ .Name }}TestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChanged{{ .Name }}TestCase) Assert(asserter func(t *testing.T, err error)) *OnChanged{{ .Name }}TestCase {
 	asserter(tc.t, tc.err)
@@ -41,9 +48,11 @@ func (tc *OnChanged{{ .Name }}TestCase) Get() (err error) {
 // OnChanged{{ .Name }} executes the on changed callback and returns a corresponding test case.
 func OnChanged{{ .Name }}(t *testing.T, ctx context.Context) *OnChanged{{ .Name }}TestCase {
 	tc := &OnChanged{{ .Name }}TestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChanged{{ .Name }}(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 {{ end }}{{ end }}

@@ -124,6 +124,7 @@ type RegisteredTestCase struct {
 	_t *testing.T
 	emails []string
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -156,6 +157,12 @@ func (tc *RegisteredTestCase) NoError() *RegisteredTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *RegisteredTestCase) CompletedIn(threshold time.Duration) *RegisteredTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *RegisteredTestCase) Assert(asserter func(t *testing.T, emails []string, err error)) *RegisteredTestCase {
 	asserter(tc._t, tc.emails, tc.err)
@@ -170,10 +177,12 @@ func (tc *RegisteredTestCase) Get() (emails []string, err error) {
 // Registered executes the function and returns a corresponding test case.
 func Registered(t *testing.T, ctx context.Context) *RegisteredTestCase {
 	tc := &RegisteredTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.emails, tc.err = Svc.Registered(ctx)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -182,6 +191,7 @@ type OnAllowRegisterTestCase struct {
 	_t *testing.T
 	allow bool
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -214,6 +224,12 @@ func (tc *OnAllowRegisterTestCase) NoError() *OnAllowRegisterTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnAllowRegisterTestCase) CompletedIn(threshold time.Duration) *OnAllowRegisterTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, allow bool, err error)) *OnAllowRegisterTestCase {
 	asserter(tc._t, tc.allow, tc.err)
@@ -228,10 +244,12 @@ func (tc *OnAllowRegisterTestCase) Get() (allow bool, err error) {
 // OnAllowRegister executes the function and returns a corresponding test case.
 func OnAllowRegister(t *testing.T, ctx context.Context, email string) *OnAllowRegisterTestCase {
 	tc := &OnAllowRegisterTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.allow, tc.err = Svc.OnAllowRegister(ctx, email)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }
 
@@ -239,6 +257,7 @@ func OnAllowRegister(t *testing.T, ctx context.Context, email string) *OnAllowRe
 type OnRegisteredTestCase struct {
 	_t *testing.T
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -269,6 +288,12 @@ func (tc *OnRegisteredTestCase) NoError() *OnRegisteredTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnRegisteredTestCase) CompletedIn(threshold time.Duration) *OnRegisteredTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, err error)) *OnRegisteredTestCase {
 	asserter(tc._t, tc.err)
@@ -283,9 +308,11 @@ func (tc *OnRegisteredTestCase) Get() (err error) {
 // OnRegistered executes the function and returns a corresponding test case.
 func OnRegistered(t *testing.T, ctx context.Context, email string) *OnRegisteredTestCase {
 	tc := &OnRegisteredTestCase{_t: t}
+	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		tc.err = Svc.OnRegistered(ctx, email)
 		return tc.err
 	})
+	tc._dur = time.Since(t0)
 	return tc
 }

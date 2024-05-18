@@ -3,6 +3,7 @@
 type {{ .Name }}TestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -27,6 +28,12 @@ func (tc *{{ .Name }}TestCase) NoError() *{{ .Name }}TestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *{{ .Name }}TestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *{{ .Name }}TestCase) Assert(asserter func(t *testing.T, err error)) *{{ .Name }}TestCase {
 	asserter(tc.t, tc.err)
@@ -41,9 +48,11 @@ func (tc *{{ .Name }}TestCase) Get() (err error) {
 // {{ .Name }} executes the ticker and returns a corresponding test case.
 func {{ .Name }}(t *testing.T, ctx context.Context) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.{{ .Name }}(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 {{ end }}

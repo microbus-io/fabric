@@ -123,6 +123,7 @@ func Context(t *testing.T) context.Context {
 type OnChangedPortsTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -147,6 +148,12 @@ func (tc *OnChangedPortsTestCase) NoError() *OnChangedPortsTestCase {
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedPortsTestCase) CompletedIn(threshold time.Duration) *OnChangedPortsTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedPortsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedPortsTestCase {
 	asserter(tc.t, tc.err)
@@ -161,9 +168,11 @@ func (tc *OnChangedPortsTestCase) Get() (err error) {
 // OnChangedPorts executes the on changed callback and returns a corresponding test case.
 func OnChangedPorts(t *testing.T, ctx context.Context) *OnChangedPortsTestCase {
 	tc := &OnChangedPortsTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedPorts(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -171,6 +180,7 @@ func OnChangedPorts(t *testing.T, ctx context.Context) *OnChangedPortsTestCase {
 type OnChangedAllowedOriginsTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -195,6 +205,12 @@ func (tc *OnChangedAllowedOriginsTestCase) NoError() *OnChangedAllowedOriginsTes
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedAllowedOriginsTestCase) CompletedIn(threshold time.Duration) *OnChangedAllowedOriginsTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedAllowedOriginsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedAllowedOriginsTestCase {
 	asserter(tc.t, tc.err)
@@ -209,9 +225,11 @@ func (tc *OnChangedAllowedOriginsTestCase) Get() (err error) {
 // OnChangedAllowedOrigins executes the on changed callback and returns a corresponding test case.
 func OnChangedAllowedOrigins(t *testing.T, ctx context.Context) *OnChangedAllowedOriginsTestCase {
 	tc := &OnChangedAllowedOriginsTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedAllowedOrigins(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -219,6 +237,7 @@ func OnChangedAllowedOrigins(t *testing.T, ctx context.Context) *OnChangedAllowe
 type OnChangedPortMappingsTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -243,6 +262,12 @@ func (tc *OnChangedPortMappingsTestCase) NoError() *OnChangedPortMappingsTestCas
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedPortMappingsTestCase) CompletedIn(threshold time.Duration) *OnChangedPortMappingsTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedPortMappingsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedPortMappingsTestCase {
 	asserter(tc.t, tc.err)
@@ -257,9 +282,11 @@ func (tc *OnChangedPortMappingsTestCase) Get() (err error) {
 // OnChangedPortMappings executes the on changed callback and returns a corresponding test case.
 func OnChangedPortMappings(t *testing.T, ctx context.Context) *OnChangedPortMappingsTestCase {
 	tc := &OnChangedPortMappingsTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedPortMappings(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -267,6 +294,7 @@ func OnChangedPortMappings(t *testing.T, ctx context.Context) *OnChangedPortMapp
 type OnChangedReadTimeoutTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -291,6 +319,12 @@ func (tc *OnChangedReadTimeoutTestCase) NoError() *OnChangedReadTimeoutTestCase 
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedReadTimeoutTestCase) CompletedIn(threshold time.Duration) *OnChangedReadTimeoutTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedReadTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedReadTimeoutTestCase {
 	asserter(tc.t, tc.err)
@@ -305,9 +339,11 @@ func (tc *OnChangedReadTimeoutTestCase) Get() (err error) {
 // OnChangedReadTimeout executes the on changed callback and returns a corresponding test case.
 func OnChangedReadTimeout(t *testing.T, ctx context.Context) *OnChangedReadTimeoutTestCase {
 	tc := &OnChangedReadTimeoutTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedReadTimeout(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -315,6 +351,7 @@ func OnChangedReadTimeout(t *testing.T, ctx context.Context) *OnChangedReadTimeo
 type OnChangedWriteTimeoutTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -339,6 +376,12 @@ func (tc *OnChangedWriteTimeoutTestCase) NoError() *OnChangedWriteTimeoutTestCas
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedWriteTimeoutTestCase) CompletedIn(threshold time.Duration) *OnChangedWriteTimeoutTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedWriteTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedWriteTimeoutTestCase {
 	asserter(tc.t, tc.err)
@@ -353,9 +396,11 @@ func (tc *OnChangedWriteTimeoutTestCase) Get() (err error) {
 // OnChangedWriteTimeout executes the on changed callback and returns a corresponding test case.
 func OnChangedWriteTimeout(t *testing.T, ctx context.Context) *OnChangedWriteTimeoutTestCase {
 	tc := &OnChangedWriteTimeoutTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedWriteTimeout(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -363,6 +408,7 @@ func OnChangedWriteTimeout(t *testing.T, ctx context.Context) *OnChangedWriteTim
 type OnChangedReadHeaderTimeoutTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -387,6 +433,12 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) NoError() *OnChangedReadHeaderTime
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedReadHeaderTimeoutTestCase) CompletedIn(threshold time.Duration) *OnChangedReadHeaderTimeoutTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedReadHeaderTimeoutTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedReadHeaderTimeoutTestCase {
 	asserter(tc.t, tc.err)
@@ -401,9 +453,11 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) Get() (err error) {
 // OnChangedReadHeaderTimeout executes the on changed callback and returns a corresponding test case.
 func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedReadHeaderTimeoutTestCase {
 	tc := &OnChangedReadHeaderTimeoutTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedReadHeaderTimeout(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -411,6 +465,7 @@ func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedRea
 type OnChangedServerLanguagesTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -435,6 +490,12 @@ func (tc *OnChangedServerLanguagesTestCase) NoError() *OnChangedServerLanguagesT
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedServerLanguagesTestCase) CompletedIn(threshold time.Duration) *OnChangedServerLanguagesTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedServerLanguagesTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedServerLanguagesTestCase {
 	asserter(tc.t, tc.err)
@@ -449,9 +510,11 @@ func (tc *OnChangedServerLanguagesTestCase) Get() (err error) {
 // OnChangedServerLanguages executes the on changed callback and returns a corresponding test case.
 func OnChangedServerLanguages(t *testing.T, ctx context.Context) *OnChangedServerLanguagesTestCase {
 	tc := &OnChangedServerLanguagesTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedServerLanguages(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }
 
@@ -459,6 +522,7 @@ func OnChangedServerLanguages(t *testing.T, ctx context.Context) *OnChangedServe
 type OnChangedBlockedPathsTestCase struct {
 	t *testing.T
 	err error
+	dur time.Duration
 }
 
 // Error asserts an error.
@@ -483,6 +547,12 @@ func (tc *OnChangedBlockedPathsTestCase) NoError() *OnChangedBlockedPathsTestCas
 	return tc
 }
 
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnChangedBlockedPathsTestCase) CompletedIn(threshold time.Duration) *OnChangedBlockedPathsTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
 // Assert asserts using a provided function.
 func (tc *OnChangedBlockedPathsTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedBlockedPathsTestCase {
 	asserter(tc.t, tc.err)
@@ -497,8 +567,10 @@ func (tc *OnChangedBlockedPathsTestCase) Get() (err error) {
 // OnChangedBlockedPaths executes the on changed callback and returns a corresponding test case.
 func OnChangedBlockedPaths(t *testing.T, ctx context.Context) *OnChangedBlockedPathsTestCase {
 	tc := &OnChangedBlockedPathsTestCase{t: t}
-	tc.err = utils.CatchPanic(func () error {
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
 		return Svc.OnChangedBlockedPaths(ctx)
 	})
+	tc.dur = time.Since(t0)
 	return tc
 }

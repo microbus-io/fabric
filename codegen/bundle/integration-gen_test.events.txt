@@ -13,6 +13,7 @@ type {{ .Name }}TestCase struct {
 	{{ .Name }} {{ .Type }}
 	{{- end }}
 	err error
+	_dur time.Duration
 }
 
 // Expect asserts an exact match for the input arguments of the event sink.
@@ -25,6 +26,12 @@ func (_tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.InputArgs }
         assert.Equal(t, {{ .Name }}, _tc.{{ .Name }})
         {{- end }}{{ end }}
     })
+	return _tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (_tc *{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *{{ .Name }}TestCase {
+	assert.LessOrEqual(_tc._t, _tc._dur, threshold)
 	return _tc
 }
 
@@ -46,6 +53,7 @@ func {{ .Name }}({{ $t }} *testing.T, {{ .Out }}) *{{ .Name }}TestCase {
 		err: err,
 	}
     sequence ++
+	t0 := time.Now()
 	con := connector.New(fmt.Sprintf("%s.%d", "{{ .Name }}", sequence))
 	{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(func({{ .In }}) ({{ .Out }}) {
 		{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(nil)
@@ -56,6 +64,7 @@ func {{ .Name }}({{ $t }} *testing.T, {{ .Out }}) *{{ .Name }}TestCase {
 		for _, asserter := range _tc._asserters {
 			asserter(_tc._t)
 		}
+		_tc._dur = time.Since(t0)
 		return {{ range .Signature.OutputArgs }}_tc.{{ .Name }}, {{ end }}_tc.err
 	})
 	App.Include(con)
