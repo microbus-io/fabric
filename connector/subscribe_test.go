@@ -27,7 +27,6 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	// Create the microservice
 	var count int
 	con := New("directory.subscription.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "directory/", func(w http.ResponseWriter, r *http.Request) error {
 		count++
 		return nil
@@ -59,7 +58,6 @@ func TestConnector_HyphenInHostName(t *testing.T) {
 	// Create the microservice
 	entered := false
 	con := New("hyphen-in-host_name.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "path", func(w http.ResponseWriter, r *http.Request) error {
 		entered = true
 		return nil
@@ -87,7 +85,6 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	parentCount := 0
 	detected := map[string]bool{}
 	con := New("asterisk.subscription.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "/obj/*/alpha", func(w http.ResponseWriter, r *http.Request) error {
 		alphaCount++
 		detected[r.URL.Path] = true
@@ -151,7 +148,6 @@ func TestConnector_MixedAsteriskSubscription(t *testing.T) {
 	// Create the microservice
 	detected := map[string]bool{}
 	con := New("mixed.asterisk.subscription.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "/obj/x*x/gamma", func(w http.ResponseWriter, r *http.Request) error {
 		detected[r.URL.Path] = true
 		return nil
@@ -177,7 +173,6 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 
 	// Create the microservice
 	con := New("error.and.panic.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "usererr", func(w http.ResponseWriter, r *http.Request) error {
 		return errors.Newc(http.StatusBadRequest, "bad input")
 	})
@@ -232,7 +227,6 @@ func TestConnector_DifferentPlanes(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("different.planes.connector")
-	alpha.SetPlane(randomPlane)
 	alpha.SetPlane("alpha")
 	alpha.Subscribe("GET", "id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("alpha"))
@@ -240,7 +234,6 @@ func TestConnector_DifferentPlanes(t *testing.T) {
 	})
 
 	beta := New("different.planes.connector")
-	beta.SetPlane(randomPlane)
 	beta.SetPlane("beta")
 	beta.Subscribe("GET", "id", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("beta"))
@@ -282,7 +275,6 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 	// Create the microservices
 	var beforeCalled, afterCalled bool
 	con := New("subscribe.before.and.after.startup.connector")
-	con.SetPlane(randomPlane)
 
 	// Subscribe before beta is started
 	con.Subscribe("GET", "before", func(w http.ResponseWriter, r *http.Request) error {
@@ -318,7 +310,6 @@ func TestConnector_Unsubscribe(t *testing.T) {
 
 	// Create the microservice
 	con := New("unsubscribe.connector")
-	con.SetPlane(randomPlane)
 
 	// Subscribe
 	con.Subscribe("GET", "sub1", func(w http.ResponseWriter, r *http.Request) error {
@@ -367,19 +358,16 @@ func TestConnector_AnotherHost(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.another.host.connector")
-	alpha.SetPlane(randomPlane)
 	alpha.Subscribe("GET", "https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
 	beta1 := New("beta.another.host.connector")
-	beta1.SetPlane(randomPlane)
 	beta1.Subscribe("GET", "https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 
 	beta2 := New("beta.another.host.connector")
-	beta2.SetPlane(randomPlane)
 	beta2.Subscribe("GET", "https://alternative.host.connector/empty", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
@@ -414,7 +402,6 @@ func TestConnector_DirectAddressing(t *testing.T) {
 
 	// Create the microservice
 	con := New("direct.addressing.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "/hello", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("Hello"))
 		return nil
@@ -445,7 +432,6 @@ func TestConnector_SubPendingOps(t *testing.T) {
 	t.Parallel()
 
 	con := New("sub.pending.ops.connector")
-	con.SetPlane(randomPlane)
 
 	start := make(chan bool)
 	hold := make(chan bool)
@@ -496,7 +482,6 @@ func TestConnector_SubscriptionMethods(t *testing.T) {
 	var post int
 	var star int
 	con := New("subscription.methods.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", "single", func(w http.ResponseWriter, r *http.Request) error {
 		get++
 		return nil
@@ -555,7 +540,6 @@ func TestConnector_SubscriptionPorts(t *testing.T) {
 	var p234 int
 	var star int
 	con := New("subscription.ports.connector")
-	con.SetPlane(randomPlane)
 	con.Subscribe("GET", ":123/single", func(w http.ResponseWriter, r *http.Request) error {
 		p123++
 		return nil

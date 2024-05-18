@@ -9,6 +9,7 @@ package connector
 
 import (
 	"context"
+	"encoding/hex"
 	"runtime"
 	"strings"
 	"sync"
@@ -61,6 +62,7 @@ func (c *Connector) Startup() (err error) {
 	}
 
 	// Determine the communication plane
+	defaultPlane := false
 	if c.plane == "" {
 		if plane := env.Get("MICROBUS_PLANE"); plane != "" {
 			err := c.SetPlane(plane)
@@ -70,6 +72,7 @@ func (c *Connector) Startup() (err error) {
 		}
 		if c.plane == "" {
 			c.plane = "microbus"
+			defaultPlane = true
 		}
 	}
 
@@ -82,16 +85,25 @@ func (c *Connector) Startup() (err error) {
 			}
 		}
 		if c.deployment == "" {
-			for lvl := 1; true; lvl++ {
+			testNameHex := ""
+			for lvl := 0; true; lvl++ {
 				pc, _, _, ok := runtime.Caller(lvl)
 				if !ok {
 					break
 				}
 				runtimeFunc := runtime.FuncForPC(pc)
-				// testing.tRunner is the Go test runner indicating we're running inside a test
-				if runtimeFunc.Name() == "testing.tRunner" {
+				funcName := runtimeFunc.Name()
+				// testing.tRunner is the test runner
+				// testing.(*B).runN is the benchmark runner
+				if strings.HasPrefix(funcName, "testing.") {
 					c.deployment = TESTINGAPP
+					if defaultPlane && testNameHex != "" {
+						c.plane = testNameHex
+					}
 					break
+				} else if strings.Contains(funcName, ".Test") || strings.Contains(funcName, ".Benchmark") {
+					// Generate a unique name for the test to be used as plane if none is explicitly specified
+					testNameHex = hex.EncodeToString([]byte(funcName))
 				}
 			}
 		}

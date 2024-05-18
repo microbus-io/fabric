@@ -22,12 +22,10 @@ func TestConnector_ClockOffset(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.clock.offset.connector")
-	alpha.SetPlane(randomPlane)
 
 	var betaTime time.Time
 	var betaShift time.Duration
 	beta := New("beta.clock.offset.connector")
-	beta.SetPlane(randomPlane)
 	beta.Subscribe("GET", "void", func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
 		betaTime = beta.Now(ctx)
@@ -75,7 +73,6 @@ func TestConnector_Ticker(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.connector")
-	con.SetPlane(randomPlane)
 	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
 
 	interval := 200 * time.Millisecond
@@ -107,7 +104,6 @@ func TestConnector_TickerSkippingBeats(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.skipping.beats.connector")
-	con.SetPlane(randomPlane)
 	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
 
 	interval := 200 * time.Millisecond
@@ -141,7 +137,6 @@ func TestConnector_TickerPendingOps(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.pending.ops.connector")
-	con.SetPlane(randomPlane)
 	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
 
 	interval := 200 * time.Millisecond
@@ -181,7 +176,6 @@ func TestConnector_TickerTimeout(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.timeout.connector")
-	con.SetPlane(randomPlane)
 	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
 
 	interval := 400 * time.Millisecond
@@ -211,7 +205,6 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.lifetime.cancellation.connector")
-	con.SetPlane(randomPlane)
 	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
 
 	interval := 200 * time.Millisecond
@@ -242,7 +235,6 @@ func TestConnector_TickersDisabledInTestingApp(t *testing.T) {
 	t.Parallel()
 
 	con := New("tickers.disabled.in.testing.app.connector")
-	con.SetPlane(randomPlane)
 
 	interval := 200 * time.Millisecond
 	count := 0
