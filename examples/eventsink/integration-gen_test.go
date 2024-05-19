@@ -21,15 +21,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/andybalholm/cascadia"
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 )
@@ -44,18 +46,17 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ cascadia.Sel
 	_ *connector.Connector
 	_ *errors.TracedError
 	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
+	_ = rand.Intn(0)
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
+	_ *html.Node
 	_ *eventsinkapi.Client
-)
-
-var (
-	sequence int
 )
 
 var (

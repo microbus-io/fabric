@@ -161,7 +161,7 @@ func (svc *Service) Calculator(w http.ResponseWriter, r *http.Request) error {
 	buf.WriteString(`"></td><tr>`)
 
 	// Result
-	buf.WriteString(`<tr><td>=</td><td>`)
+	buf.WriteString(`<tr><td>=</td><td id=result>`)
 	if x != "" && y != "" && op != "" {
 		xx, err := strconv.Atoi(x)
 		if err != nil {

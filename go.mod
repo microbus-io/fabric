@@ -25,6 +25,7 @@ require (
 )
 
 require (
+	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

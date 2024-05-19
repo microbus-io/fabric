@@ -46,14 +46,8 @@ func TestMessaging_Home(t *testing.T) {
 	t.Parallel()
 	/*
 		Home(ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	HomeGet(t, ctx, "").
@@ -64,15 +58,15 @@ func TestMessaging_Home(t *testing.T) {
 func TestMessaging_NoQueue(t *testing.T) {
 	t.Parallel()
 	/*
+		NoQueueGet(t, ctx, "").
+			BodyContains(value).
+			NoError()
+		NoQueuePost(t, ctx, "", "", body).
+			BodyContains(value).
+			NoError()
 		NoQueue(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	NoQueueGet(t, ctx, "").
@@ -83,15 +77,15 @@ func TestMessaging_NoQueue(t *testing.T) {
 func TestMessaging_DefaultQueue(t *testing.T) {
 	t.Parallel()
 	/*
+		DefaultQueueGet(t, ctx, "").
+			BodyContains(value).
+			NoError()
+		DefaultQueuePost(t, ctx, "", "", body).
+			BodyContains(value).
+			NoError()
 		DefaultQueue(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	DefaultQueueGet(t, ctx, "").
@@ -102,15 +96,15 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 func TestMessaging_CacheLoad(t *testing.T) {
 	t.Parallel()
 	/*
+		CacheLoadGet(t, ctx, "").
+			BodyContains(value).
+			NoError()
+		CacheLoadPost(t, ctx, "", "", body).
+			BodyContains(value).
+			NoError()
 		CacheLoad(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	CacheLoadGet(t, ctx, "?key=l1").
@@ -128,15 +122,15 @@ func TestMessaging_CacheLoad(t *testing.T) {
 func TestMessaging_CacheStore(t *testing.T) {
 	t.Parallel()
 	/*
+		CacheStoreGet(t, ctx, "").
+			BodyContains(value).
+			NoError()
+		CacheStorePost(t, ctx, "", "", body).
+			BodyContains(value).
+			NoError()
 		CacheStore(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	CacheStoreGet(t, ctx, "?key=s1&value=s1-val").

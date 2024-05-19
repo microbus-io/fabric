@@ -9,7 +9,6 @@ package browser
 
 import (
 	"bufio"
-	"html"
 	"net/http"
 	"testing"
 	"time"
@@ -32,7 +31,7 @@ func Initialize() (err error) {
 	mockEgress := httpegress.NewMock()
 	mockEgress.MockMakeRequest = func(w http.ResponseWriter, r *http.Request) (err error) {
 		req, _ := http.ReadRequest(bufio.NewReader(r.Body))
-		if req.Method == "GET" && req.URL.String() == "https://example.com/" {
+		if req.Method == "GET" && req.URL.String() == "https://mocked.example.com/" {
 			w.Header().Set("Content-Type", "text/html")
 			w.Write([]byte(`<html><body>Lorem Ipsum<body></html>`))
 		} else {
@@ -69,23 +68,21 @@ func Terminate() (err error) {
 func TestBrowser_Browse(t *testing.T) {
 	t.Parallel()
 	/*
+		BrowseGet(t, ctx, "").
+			BodyContains(value).
+			NoError()
+		BrowsePost(t, ctx, "", "", body).
+			BodyContains(value).
+			NoError()
 		Browse(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
-	BrowseGet(t, ctx, "?"+httpx.PrepareQueryString("url", "https://example.com/")).
-		StatusOK().
-		StatusCode(http.StatusOK).
-		BodyContains(` value="https://example.com/"`).
-		BodyContains(">" + html.EscapeString(`<html><body>Lorem Ipsum<body></html>`) + "</pre>").
+	BrowseGet(t, ctx, "?"+httpx.PrepareQueryString("url", "https://mocked.example.com/")).
 		NoError().
+		StatusOK().
+		TagExists(`INPUT[name="url"][type="text"][value="https://mocked.example.com/"]`).
+		TagContains(`PRE`, `<html><body>Lorem Ipsum<body></html>`).
 		CompletedIn(10 * time.Millisecond)
 }

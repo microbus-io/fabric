@@ -21,15 +21,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/andybalholm/cascadia"
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 )
@@ -44,18 +46,17 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ cascadia.Sel
 	_ *connector.Connector
 	_ *errors.TracedError
 	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
+	_ = rand.Intn(0)
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
+	_ *html.Node
 	_ *eventsourceapi.Client
-)
-
-var (
-	sequence int
 )
 
 var (
@@ -226,9 +227,8 @@ func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCa
 		allow: allow,
 		err: err,
 	}
-    sequence ++
 	t0 := time.Now()
-	con := connector.New(fmt.Sprintf("%s.%d", "OnAllowRegister", sequence))
+	con := connector.New("OnAllowRegister." + rand.AlphaNum64(12))
 	eventsourceapi.NewHook(con).OnAllowRegister(func(ctx context.Context, email string) (allow bool, err error) {
 		eventsourceapi.NewHook(con).OnAllowRegister(nil)
 		_tc.ctx = ctx
@@ -282,9 +282,8 @@ func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
 		_t: t,
 		err: err,
 	}
-    sequence ++
 	t0 := time.Now()
-	con := connector.New(fmt.Sprintf("%s.%d", "OnRegistered", sequence))
+	con := connector.New("OnRegistered." + rand.AlphaNum64(12))
 	eventsourceapi.NewHook(con).OnRegistered(func(ctx context.Context, email string) (err error) {
 		eventsourceapi.NewHook(con).OnRegistered(nil)
 		_tc.ctx = ctx

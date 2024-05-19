@@ -61,23 +61,19 @@ func Terminate() (err error) {
 func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
-		HelloGet(t, ctx, "")
-		-or-
-		HelloPost(t, ctx, "", "", body)
-		-or-
+		HelloGet(t, ctx, "").
+			BodyContains(value).
+			NoError()
+		HelloPost(t, ctx, "", "", body).
+			BodyContains(value).
+			NoError()
 		Hello(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	HelloGet(t, ctx, "").
+		ContentType("text/plain").
 		BodyContains(Svc.Greeting()).
 		BodyNotContains("Maria").
 		CompletedIn(10 * time.Millisecond).
@@ -88,6 +84,7 @@ func TestHello_Hello(t *testing.T) {
 			assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
 		})
 	HelloGet(t, ctx, "?name=Maria").
+		ContentType("text/plain").
 		BodyContains(Svc.Greeting()).
 		BodyContains("Maria").
 		CompletedIn(10 * time.Millisecond)
@@ -97,24 +94,20 @@ func TestHello_Echo(t *testing.T) {
 	t.Parallel()
 	/*
 		EchoGet(t, ctx, "")
-		-or-
+			BodyContains(value).
+			NoError()
 		EchoPost(t, ctx, "", "", body)
-		-or-
+			BodyContains(value).
+			NoError()
 		Echo(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	r, _ := http.NewRequest("POST", "?echo=123", strings.NewReader("PostBody"))
 	r.Header.Set("Echo123", "EchoEchoEcho")
 	Echo(t, ctx, r).
+		ContentType("text/plain").
 		BodyContains("Echo123: EchoEchoEcho").
 		BodyContains("?echo=123").
 		BodyContains("PostBody")
@@ -124,22 +117,18 @@ func TestHello_Ping(t *testing.T) {
 	t.Parallel()
 	/*
 		PingGet(t, ctx, "")
-		-or-
+			BodyContains(value).
+			NoError()
 		PingPost(t, ctx, "", "", body)
-		-or-
+			BodyContains(value).
+			NoError()
 		Ping(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	PingGet(t, ctx, "").
+		ContentType("text/plain").
 		BodyContains(Svc.ID() + "." + Svc.HostName())
 }
 
@@ -147,66 +136,59 @@ func TestHello_Calculator(t *testing.T) {
 	t.Parallel()
 	/*
 		CalculatorGet(t, ctx, "")
-		-or-
+			BodyContains(value).
+			NoError()
 		CalculatorPost(t, ctx, "", "", body)
-		-or-
+			BodyContains(value).
+			NoError()
 		Calculator(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
-	CalculatorGet(t, ctx, "?x=5&op=*&y=80").
-		BodyContains("400")
-	CalculatorPost(t, ctx, "", "application/x-www-form-urlencoded", `x=500&op=/&y=5`).
-		BodyContains("100")
 	CalculatorPost(t, ctx, "", "",
 		url.Values{
 			"x":  []string{"500"},
 			"op": []string{"+"},
 			"y":  []string{"580"},
 		}).
-		BodyContains("1080")
+		ContentType("text/html").
+		TagEqual(`TD#result`, "1080").
+		TagExists(`TR TD INPUT[name="x"]`).
+		TagExists(`TR TD SELECT[name="op"]`).
+		TagExists(`TR TD INPUT[name="y"]`)
+	CalculatorGet(t, ctx, "?x=5&op=*&y=80").
+		ContentType("text/html").
+		TagEqual(`TD#result`, "400")
+	CalculatorPost(t, ctx, "", "application/x-www-form-urlencoded", `x=500&op=/&y=5`).
+		ContentType("text/html").
+		TagEqual(`TD#result`, "100")
 }
 
 func TestHello_BusJPEG(t *testing.T) {
 	t.Parallel()
 	/*
 		BusJPEGAny(t, ctx, httpRequest)
-		-or-
+			BodyContains(value).
+			NoError()
 		BusJPEG(t, ctx, "").
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	img, err := Svc.ReadResFile("bus.jpeg")
 	assert.NoError(t, err)
 	BusJPEG(t, ctx, "").
 		StatusOK().
-		BodyContains(img).
-		HeaderContains("Content-Type", "image/jpeg")
+		ContentType("image/jpeg").
+		BodyContains(img)
 }
 
 func TestHello_TickTock(t *testing.T) {
 	t.Parallel()
 	/*
 		TickTock(t, ctx).
-			NoError().
-			Error(errContains).
-			Assert(func(err))
+			NoError()
 	*/
 	ctx := Context(t)
 	TickTock(t, ctx).NoError()
@@ -216,19 +198,14 @@ func TestHello_Localization(t *testing.T) {
 	t.Parallel()
 	/*
 		LocalizationGet(t, ctx, "")
-		-or-
+			BodyContains(value).
+			NoError()
 		LocalizationPost(t, ctx, "", "", body)
-		-or-
+			BodyContains(value).
+			NoError()
 		Localization(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	r, _ := http.NewRequest("GET", "", nil)

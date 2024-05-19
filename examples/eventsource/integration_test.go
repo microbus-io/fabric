@@ -53,9 +53,7 @@ func TestEventsource_Register(t *testing.T) {
 	/*
 		Register(t, ctx, email).
 			Expect(allowed).
-			NoError().
-			Error(errContains).
-			Assert(func(t, allowed, err))
+			NoError()
 	*/
 	ctx := Context(t)
 	Register(t, ctx, "brian@hotmail.com").Expect(false)

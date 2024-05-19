@@ -663,6 +663,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 
 	// Create the client microservice
 	client := New("client.mass.multicast.connector")
+	client.SetDeployment(TESTINGAPP)
 	client.SetPlane(randomPlane)
 
 	err := client.Startup()

@@ -52,9 +52,8 @@ func {{ .Name }}({{ $t }} *testing.T, {{ .Out }}) *{{ .Name }}TestCase {
 		{{- end }}
 		err: err,
 	}
-    sequence ++
 	t0 := time.Now()
-	con := connector.New(fmt.Sprintf("%s.%d", "{{ .Name }}", sequence))
+	con := connector.New("{{ .Name }}." + rand.AlphaNum64(12))
 	{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(func({{ .In }}) ({{ .Out }}) {
 		{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(nil)
 		_tc.ctx = ctx

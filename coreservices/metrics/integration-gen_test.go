@@ -21,15 +21,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/andybalholm/cascadia"
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/coreservices/metrics/metricsapi"
 )
@@ -44,18 +46,17 @@ var (
 	_ os.File
 	_ time.Time
 	_ strings.Builder
+	_ cascadia.Sel
 	_ *connector.Connector
 	_ *errors.TracedError
 	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
+	_ = rand.Intn(0)
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
+	_ *html.Node
 	_ *metricsapi.Client
-)
-
-var (
-	sequence int
 )
 
 var (
@@ -143,44 +144,44 @@ func (tc *CollectTestCase) StatusCode(statusCode int) *CollectTestCase {
 	return tc
 }
 
-// BodyContains asserts no error and that the response contains a string or byte array.
-func (tc *CollectTestCase) BodyContains(bodyContains any) *CollectTestCase {
+// BodyContains asserts no error and that the response contains the string or byte array value.
+func (tc *CollectTestCase) BodyContains(value any) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
-		switch v := bodyContains.(type) {
+		switch v := value.(type) {
 		case []byte:
-			assert.True(tc.t, bytes.Contains(body, v), `"%v" does not contain "%v"`, body, v)
+			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
 		case string:
-			assert.True(tc.t, bytes.Contains(body, []byte(v)), `"%s" does not contain "%s"`, string(body), v)
+			assert.Contains(tc.t, string(body), v)
 		default:
 			vv := fmt.Sprintf("%v", v)
-			assert.True(tc.t, bytes.Contains(body, []byte(vv)), `"%s" does not contain "%s"`, string(body), vv)
+			assert.Contains(tc.t, string(body), vv)
 		}
 	}
 	return tc
 }
 
-// BodyNotContains asserts no error and that the response does not contain a string or byte array.
-func (tc *CollectTestCase) BodyNotContains(bodyNotContains any) *CollectTestCase {
+// BodyNotContains asserts no error and that the response does not contain the string or byte array value.
+func (tc *CollectTestCase) BodyNotContains(value any) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
-		switch v := bodyNotContains.(type) {
+		switch v := value.(type) {
 		case []byte:
-			assert.False(tc.t, bytes.Contains(body, v), `"%v" contains "%v"`, body, v)
+			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
 		case string:
-			assert.False(tc.t, bytes.Contains(body, []byte(v)), `"%s" contains "%s"`, string(body), v)
+			assert.NotContains(tc.t, string(body), v)
 		default:
 			vv := fmt.Sprintf("%v", v)
-			assert.False(tc.t, bytes.Contains(body, []byte(vv)), `"%s" contains "%s"`, string(body), vv)
+			assert.NotContains(tc.t, string(body), vv)
 		}
 	}
 	return tc
 }
 
-// HeaderContains asserts no error and that the named header contains a string.
+// HeaderContains asserts no error and that the named header contains the value.
 func (tc *CollectTestCase) HeaderContains(headerName string, value string) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.True(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" does not contain "%s"`, headerName, tc.res.Header.Get(headerName), value)
+		assert.Contains(tc.t, tc.res.Header.Get(headerName), value)
 	}
 	return tc
 }
@@ -188,7 +189,23 @@ func (tc *CollectTestCase) HeaderContains(headerName string, value string) *Coll
 // HeaderNotContains asserts no error and that the named header does not contain a string.
 func (tc *CollectTestCase) HeaderNotContains(headerName string, value string) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.False(tc.t, strings.Contains(tc.res.Header.Get(headerName), value), `header "%s: %s" contains "%s"`, headerName, tc.res.Header.Get(headerName), value)
+		assert.NotContains(tc.t, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderEqual asserts no error and that the named header matches the value.
+func (tc *CollectTestCase) HeaderEqual(headerName string, value string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, value, tc.res.Header.Get(headerName))
+	}
+	return tc
+}
+
+// HeaderNotEqual asserts no error and that the named header does not matche the value.
+func (tc *CollectTestCase) HeaderNotEqual(headerName string, value string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotEqual(tc.t, value, tc.res.Header.Get(headerName))
 	}
 	return tc
 }
@@ -196,15 +213,271 @@ func (tc *CollectTestCase) HeaderNotContains(headerName string, value string) *C
 // HeaderExists asserts no error and that the named header exists.
 func (tc *CollectTestCase) HeaderExists(headerName string) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.NotZero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" does not exist`, headerName)
+		assert.NotEmpty(tc.t, tc.res.Header.Values(headerName), "header %s does not exist", headerName)
 	}
 	return tc
 }
 
-// HeaderNotExists asserts no error and that the named header exists.
+// HeaderNotExists asserts no error and that the named header does not exists.
 func (tc *CollectTestCase) HeaderNotExists(headerName string) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		assert.Zero(tc.t, len(tc.res.Header.Values(headerName)), `header "%s" exists`, headerName)
+		assert.Empty(tc.t, tc.res.Header.Values(headerName), "header %s exists", headerName)
+	}
+	return tc
+}
+
+// ContentType asserts no error and that the Content-Type header matches the expected value.
+func (tc *CollectTestCase) ContentType(expected string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, expected, tc.res.Header.Get("Content-Type"))
+	}
+	return tc
+}
+
+/*
+TagExists asserts no error and that the at least one tag matches the CSS selector query.
+
+Examples:
+
+	TagExists(`TR > TD > A.expandable[href]`)
+	TagExists(`DIV#main_panel`)
+	TagExists(`TR TD INPUT[name="x"]`)
+*/
+func (tc *CollectTestCase) TagExists(cssSelectorQuery string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		assert.NotEmpty(tc.t, matches, "found no tags matching %s", cssSelectorQuery)
+	}
+	return tc
+}
+
+/*
+TagNotExists asserts no error and that the no tag matches the CSS selector query.
+
+Example:
+
+	TagNotExists(`TR > TD > A.expandable[href]`)
+	TagNotExists(`DIV#main_panel`)
+	TagNotExists(`TR TD INPUT[name="x"]`)
+*/
+func (tc *CollectTestCase) TagNotExists(cssSelectorQuery string) *CollectTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		assert.Empty(tc.t, matches, "found %d tag(s) matching %s", len(matches), cssSelectorQuery)
+	}
+	return tc
+}
+
+/*
+TagEqual asserts no error and that the at least one of the tags matching the CSS selector query
+either contains the exact text itself or has a descendant that does.
+
+Example:
+
+	TagEqual("TR > TD > A.expandable[href]", "Expand")
+	TagEqual("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *CollectTestCase) TagEqual(cssSelectorQuery string, value string) *CollectTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if x.Data == value || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if !assert.NotEmpty(tc.t, matches, "selector %s does not match any tags", cssSelectorQuery) {
+			return tc
+		}
+		if value == "" {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.True(tc.t, found, "no tag matching %s contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagContains asserts no error and that the at least one of the tags matching the CSS selector query
+either contains the text itself or has a descendant that does.
+
+Example:
+
+	TagContains("TR > TD > A.expandable[href]", "Expand")
+	TagContains("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *CollectTestCase) TagContains(cssSelectorQuery string, value string) *CollectTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if strings.Contains(x.Data, value) || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if !assert.NotEmpty(tc.t, matches, "selector %s does not match any tags", cssSelectorQuery) {
+			return tc
+		}
+		if value == "" {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.True(tc.t, found, "no tag matching %s contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagNotEqual asserts no error and that there is no tag matching the CSS selector that
+either contains the exact text itself or has a descendant that does.
+
+Example:
+
+	TagNotEqual("TR > TD > A[href]", "Harry Potter")
+	TagNotEqual("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *CollectTestCase) TagNotEqual(cssSelectorQuery string, value string) *CollectTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if x.Data == value || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if len(matches) == 0 {
+			return tc
+		}
+		if !assert.NotEmpty(tc.t, value, "found tag matching %s", cssSelectorQuery) {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.False(tc.t, found, "found tag matching %s that contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagNotContains asserts no error and that there is no tag matching the CSS selector that
+either contains the text itself or has a descendant that does.
+
+Example:
+
+	TagNotContains("TR > TD > A[href]", "Harry Potter")
+	TagNotContains("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *CollectTestCase) TagNotContains(cssSelectorQuery string, value string) *CollectTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if strings.Contains(x.Data, value) || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if len(matches) == 0 {
+			return tc
+		}
+		if !assert.NotEmpty(tc.t, value, "found tag matching %s", cssSelectorQuery) {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.False(tc.t, found, "found tag matching %s that contains %s", cssSelectorQuery, value)
 	}
 	return tc
 }
@@ -263,7 +536,7 @@ func CollectGet(t *testing.T, ctx context.Context, url string) *CollectTestCase 
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := http.NewRequest(`GET`, url, nil)
+	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -297,7 +570,7 @@ func CollectPost(t *testing.T, ctx context.Context, url string, contentType stri
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest(`POST`, url, body)
+	r, err := httpx.NewRequest("POST", url, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

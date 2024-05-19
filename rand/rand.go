@@ -77,6 +77,9 @@ func AlphaNum32(length int) string {
 
 // Intn generates a random number in the range [0,n).
 func Intn(n int) int {
+	if n == 1 {
+		return 0
+	}
 	r := pool.Get().(*mathrand.Rand)
 	reseed(r)
 	m := r.Intn(n)

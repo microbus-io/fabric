@@ -54,9 +54,7 @@ func TestCalculator_Arithmetic(t *testing.T) {
 	/*
 		Arithmetic(t, ctx, x, op, y).
 			Expect(xEcho, opEcho, yEcho, result).
-			NoError().
-			Error(errContains).
-			Assert(func(t, xEcho, opEcho, yEcho, result, err))
+			NoError()
 	*/
 	ctx := Context(t)
 	Arithmetic(t, ctx, 3, "-", 8).Expect(3, "-", 8, -5)
@@ -73,10 +71,8 @@ func TestCalculator_Square(t *testing.T) {
 	t.Parallel()
 	/*
 		Square(t, ctx, x).
-			Expect( xEcho, result).
-			NoError().
-			Error(errContains).
-			Assert(func(t, xEcho, result, err))
+			Expect(xEcho, result).
+			NoError()
 	*/
 	ctx := Context(t)
 	Square(t, ctx, 0).Expect(0, 0)
@@ -89,9 +85,7 @@ func TestCalculator_Distance(t *testing.T) {
 	/*
 		Distance(t, ctx, p1, p2).
 			Expect(td).
-			NoError().
-			Error(errContains).
-			Assert(func(t, d, err))
+			NoError()
 	*/
 	ctx := Context(t)
 	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).Expect(5)

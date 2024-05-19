@@ -52,10 +52,7 @@ func TestCalculator_Arithmetic(t *testing.T) {
 	/*
 		Arithmetic(t, ctx, x, op, y).
 			Expect(xEcho, opEcho, yEcho, result).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, xEcho, opEcho, yEcho, result, err))
+			NoError()
 	*/
 	ctx := Context(t)
 	Arithmetic(t, ctx, 3, "-", 8).Expect(3, "-", 8, -5)
@@ -77,16 +74,15 @@ Raw web endpoints are tested in a similar fashion, except that their asserters a
 func TestHello_Hello(t *testing.T) {
 	t.Parallel()
 	/*
+		HelloGet(t, ctx, "").
+			BodyContains(value).
+			NoError()
+		HelloPost(t, ctx, "", "", body).
+			BodyContains(value).
+			NoError()
 		Hello(t, ctx, httpRequest).
-			StatusOK().
-			StatusCode(statusCode).
-			BodyContains(bodyContains).
-			BodyNotContains(bodyNotContains).
-			HeaderContains(headerName, valueContains).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(t, func(t, httpResponse, err))
+			BodyContains(value).
+			NoError()
 	*/
 	ctx := Context(t)
 	Hello(t, ctx, GET()).
@@ -107,10 +103,7 @@ func TestHello_TickTock(t *testing.T) {
 	t.Parallel()
 	/*
 		TickTock(t, ctx).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(func(t, err))
+			NoError()
 	*/
 	ctx := Context(t)
 	TickTock(t, ctx).NoError()
@@ -126,10 +119,7 @@ func TestExample_OnChangedConnectionString(t *testing.T) {
 	t.Parallel()
 	/*
 		OnChangedConnectionString(t, ctx).
-			NoError().
-			Error(errContains).
-			ErrorCode(http.StatusOK).
-			Assert(err)
+			NoError()
 	*/
 	ctx := Context(t)
 	OnChangedConnectionString(t, ctx).NoError()
