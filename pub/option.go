@@ -230,15 +230,14 @@ func Body(body any) Option {
 			return nil
 		}
 		r, _ := http.NewRequest("POST", "", nil)
-		if req.Header.Get("Content-Type") != "" {
-			r.Header.Set("Content-Type", req.Header.Get("Content-Type"))
-		}
 		err := httpx.SetRequestBody(r, body)
 		if err != nil {
 			return errors.Trace(err)
 		}
 		req.Body = r.Body
-		req.Header.Set("Content-Type", r.Header.Get("Content-Type"))
+		if req.Header.Get("Content-Type") != "" {
+			req.Header.Set("Content-Type", r.Header.Get("Content-Type"))
+		}
 		req.Header.Set("Content-Length", r.Header.Get("Content-Length"))
 		return nil
 	}

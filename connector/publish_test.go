@@ -73,6 +73,7 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	con.Startup()
 	defer con.Shutdown()
 
+	// The bottleneck is waiting on the network i/o
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		con.POST(ctx, "https://echo.serial.connector/echo", []byte("Hello"))

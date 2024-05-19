@@ -10,10 +10,10 @@ package httpegressapi
 import (
 	"bytes"
 	"context"
-	"io"
 	"net/http"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/httpx"
 )
 
 // Get makes a GET request to a URL, respecting the timeout set in the context.
@@ -32,8 +32,12 @@ func (c *Client) Get(ctx context.Context, url string) (resp *http.Response, err 
 }
 
 // Post makes a POST request to a URL, respecting the timeout set in the context.
-func (c *Client) Post(ctx context.Context, url string, contentType string, body io.Reader) (resp *http.Response, err error) {
-	req, err := http.NewRequest(http.MethodPost, url, body)
+func (c *Client) Post(ctx context.Context, url string, contentType string, body any) (resp *http.Response, err error) {
+	req, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	err = httpx.SetRequestBody(req, body)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
