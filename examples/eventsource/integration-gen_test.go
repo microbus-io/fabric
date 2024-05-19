@@ -52,7 +52,7 @@ var (
 	_ frame.Frame
 	_ *httpx.BodyReader
 	_ pub.Option
-	_ = rand.Intn(0)
+	_ rand.Void
 	_ utils.InfiniteChan[int]
 	_ assert.TestingT
 	_ *html.Node

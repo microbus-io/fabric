@@ -65,8 +65,7 @@ func TestEventsource_OnAllowRegister(t *testing.T) {
 	// No parallel
 	/*
 		OnAllowRegister(t, allow, err).
-			Expect(email).
-			Assert(func(t, ctx, email))
+			Expect(email)
 	*/
 	ctx := Context(t)
 	OnAllowRegister(t, true, nil).
@@ -81,8 +80,7 @@ func TestEventsource_OnRegistered(t *testing.T) {
 	// No parallel
 	/*
 		OnRegistered(t, err).
-			Expect(email).
-			Assert(func(t, ctx, email))
+			Expect(email)
 	*/
 	ctx := Context(t)
 	OnRegistered(t, nil).Expect("harry@example.com")

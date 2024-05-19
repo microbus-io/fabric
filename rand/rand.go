@@ -15,6 +15,9 @@ import (
 	"sync/atomic"
 )
 
+// Void is an empty type.
+type Void any
+
 var (
 	pool sync.Pool
 	ops  int32

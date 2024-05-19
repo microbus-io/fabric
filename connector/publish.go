@@ -237,7 +237,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 	// Await and return the responses
 	var expectedResponders map[string]bool
 	if req.Multicast {
-		expectedResponders, _ = c.knownResponders.Load(subject)
+		expectedResponders, _ = c.knownResponders.Load(subject, lru.Bump(true))
 		if len(expectedResponders) > 0 {
 			c.LogDebug(ctx, "Expecting responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(expectedResponders)))
 		}
