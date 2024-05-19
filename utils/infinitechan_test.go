@@ -30,7 +30,7 @@ func TestUtils_InfiniteChanSlowReadAfterClose(t *testing.T) {
 	t1 := time.Now()
 	assert.WithinDuration(t, t0, t1, 50*time.Millisecond, "Channel should not block")
 	assert.Len(t, inf.queue, 4)
-	assert.Equal(t, n*2, inf.count)
+	assert.Equal(t, int32(n*2), inf.pushed.Load())
 
 	// Close the channel and wait enough to timeout
 	go inf.Close(time.Second)
@@ -42,6 +42,39 @@ func TestUtils_InfiniteChanSlowReadAfterClose(t *testing.T) {
 		m++
 	}
 	assert.Equal(t, n, m)
+}
+
+func TestUtils_InfiniteChanClosed(t *testing.T) {
+	t.Parallel()
+
+	// Under capacity
+	inf := MakeInfiniteChan[int](1)
+	inf.Push(1)
+	<-inf.C()
+	inf.Close(time.Millisecond * 100)
+	assert.True(t, inf.closed.Load())
+	assert.Panics(t, func() { inf.Push(999) })
+	assert.Panics(t, func() { inf.ch <- 999 })
+
+	// Over capacity
+	inf = MakeInfiniteChan[int](1)
+	inf.Push(1)
+	inf.Push(1)
+	<-inf.C()
+	<-inf.C()
+	inf.Close(time.Millisecond * 100)
+	assert.True(t, inf.closed.Load())
+	assert.Panics(t, func() { inf.Push(999) })
+	assert.Panics(t, func() { inf.ch <- 999 })
+
+	// Queue not fully drained
+	inf = MakeInfiniteChan[int](1)
+	inf.Push(1)
+	inf.Push(1)
+	inf.Close(time.Millisecond * 100)
+	assert.True(t, inf.closed.Load())
+	assert.Panics(t, func() { inf.Push(999) })
+	assert.Panics(t, func() { inf.ch <- 999 })
 }
 
 func TestUtils_InfiniteChanFastReadAfterClose(t *testing.T) {
@@ -59,7 +92,7 @@ func TestUtils_InfiniteChanFastReadAfterClose(t *testing.T) {
 	t1 := time.Now()
 	assert.WithinDuration(t, t0, t1, 50*time.Millisecond, "Channel should not block")
 	assert.Len(t, inf.queue, 4)
-	assert.Equal(t, n*2, inf.count)
+	assert.Equal(t, int32(n*2), inf.pushed.Load())
 
 	// Close the channel
 	go inf.Close(time.Second)
@@ -112,12 +145,67 @@ func TestUtils_InfiniteChanReadWhileOpen(t *testing.T) {
 	assert.Equal(t, 0, len(inf.queue))
 }
 
+func TestUtils_InfiniteChanNoLocksBeforeCapacityReached(t *testing.T) {
+	t.Parallel()
+
+	n := 4
+	inf := MakeInfiniteChan[int](n)
+	assert.Equal(t, n, cap(inf.C()))
+	for i := 0; i < n; i++ {
+		inf.Push(i)
+		assert.Zero(t, inf.locks)
+		assert.Equal(t, int32(i+1), inf.pushed.Load())
+	}
+	inf.Push(n)
+	assert.Equal(t, 1, inf.locks)
+	assert.Equal(t, int32(n+1), inf.pushed.Load())
+	for i := 0; i <= n; i++ {
+		assert.Equal(t, i, <-inf.C())
+	}
+}
+
 func BenchmarkUtils_InfiniteChanPushPull(b *testing.B) {
 	inf := MakeInfiniteChan[int](128)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		inf.Push(i)
 		<-inf.C()
 	}
 
-	// On 2021 MacBook Pro M1 16": 52 ns/op
+	// On 2021 MacBook Pro M1 16": 57 ns/op
+}
+
+func BenchmarkUtils_InfiniteChanPushPullUnderCapacity(b *testing.B) {
+	inf := MakeInfiniteChan[int](b.N)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		inf.Push(i)
+		<-inf.C()
+	}
+
+	// On 2021 MacBook Pro M1 16": 28 ns/op
+}
+
+func BenchmarkUtils_InfiniteChanPushPullStandardChan(b *testing.B) {
+	ch := make(chan int, 128)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ch <- i
+		<-ch
+	}
+
+	// On 2021 MacBook Pro M1 16": 27 ns/op
+}
+
+func BenchmarkUtils_InfiniteChanPushAllPullAll(b *testing.B) {
+	inf := MakeInfiniteChan[int](1)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		inf.Push(i)
+	}
+	for i := 0; i < b.N; i++ {
+		<-inf.C()
+	}
+
+	// On 2021 MacBook Pro M1 16": 54 ns/op
 }

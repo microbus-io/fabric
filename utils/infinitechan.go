@@ -9,6 +9,7 @@ package utils
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,12 +17,13 @@ import (
 // Overflowing elements are stored in a queue and are delivered to the channel when it has free capacity.
 // Queued elements may be dropped if the channel is closed and left unread for over the idle timeout,
 type InfiniteChan[T any] struct {
-	ch        chan T
-	queue     []T
-	lock      sync.Mutex
-	closed    bool
-	count     int
-	delivered int
+	ch     chan T
+	queue  []T
+	lock   sync.Mutex
+	locks  int // For testing
+	closed atomic.Bool
+	pushed atomic.Int32
+	queued atomic.Int32
 }
 
 // MakeInfiniteChan creates a new infinite channel backed by a finite buffered channel with the specified capacity.
@@ -37,7 +39,13 @@ func MakeInfiniteChan[T any](capacity int) *InfiniteChan[T] {
 // C is the underlying finite buffered channel.
 // Reading from this channel will block if no elements are available.
 func (oc *InfiniteChan[T]) C() <-chan T {
+	// If less than capacity was pushed, then can return immediately
+	if oc.pushed.Load() <= int32(cap(oc.ch)) {
+		return oc.ch
+	}
+
 	oc.lock.Lock()
+	oc.locks++
 	oc.tryDeliver()
 	oc.lock.Unlock()
 	return oc.ch
@@ -47,13 +55,22 @@ func (oc *InfiniteChan[T]) C() <-chan T {
 // If not, the element if queued for delivery to the channel at a later time.
 // Push therefore never blocks. It will panic if the channel is closed.
 func (oc *InfiniteChan[T]) Push(elem T) {
-	oc.lock.Lock()
-	if oc.closed {
-		oc.lock.Unlock()
+	if oc.closed.Load() {
 		panic("push on closed channel")
 	}
+
+	// The first elements under capacity can be pushed directly to the channel with no need for locking
+	c := oc.pushed.Add(1)
+	if c <= int32(cap(oc.ch)) {
+		oc.ch <- elem
+		return
+	}
+
+	// Queue the element
+	oc.lock.Lock()
+	oc.locks++
 	oc.queue = append(oc.queue, elem)
-	oc.count++
+	oc.queued.Store(int32(len(oc.queue)))
 	oc.tryDeliver()
 	oc.lock.Unlock()
 }
@@ -62,15 +79,16 @@ func (oc *InfiniteChan[T]) Push(elem T) {
 // Must be called under lock!
 func (oc *InfiniteChan[T]) tryDeliver() (delivered int) {
 	for {
-		if len(oc.queue) == 0 || oc.closed {
+		if len(oc.queue) == 0 || oc.closed.Load() {
+			oc.queued.Store(int32(len(oc.queue)))
 			return delivered
 		}
 		select {
 		case oc.ch <- oc.queue[0]:
 			oc.queue = oc.queue[1:]
 			delivered++
-			oc.delivered++
 		default:
+			oc.queued.Store(int32(len(oc.queue)))
 			return delivered
 		}
 	}
@@ -81,30 +99,38 @@ func (oc *InfiniteChan[T]) tryDeliver() (delivered int) {
 // Close will spin-block until reading from the channel is finished or until the channel is
 // abandoned and left unread for the idle timeout.
 func (oc *InfiniteChan[T]) Close(idleTimeout time.Duration) (fullyDelivered bool) {
+	// Check if already closed
+	if oc.closed.Load() {
+		return len(oc.queue) == 0
+	}
+	// If less than capacity was pushed, then can return immediately
+	if oc.pushed.Load() <= int32(cap(oc.ch)) {
+		oc.closed.Store(true)
+		close(oc.ch)
+		return true
+	}
+
 	lastDelivery := time.Now()
 	for {
-		oc.lock.Lock()
-		n := oc.tryDeliver()
-		if len(oc.queue) == 0 {
-			oc.closed = true
+		if oc.queued.Load() == 0 {
+			oc.closed.Store(true)
 			close(oc.ch)
-			oc.lock.Unlock()
-			return true // Fully delivered
+			return true
 		}
+		oc.lock.Lock()
+		oc.locks++
+		n := oc.tryDeliver()
 		oc.lock.Unlock()
 		if n > 0 {
 			lastDelivery = time.Now()
-			time.Sleep(50 * time.Millisecond)
 			continue
 		}
 		if time.Since(lastDelivery) >= idleTimeout {
 			// Nothing was read from the channel in more than the idle timeout
-			oc.lock.Lock()
-			oc.closed = true
+			oc.closed.Store(true)
 			close(oc.ch)
-			oc.lock.Unlock()
 			return false
 		}
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 }
