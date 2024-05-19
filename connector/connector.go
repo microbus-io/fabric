@@ -310,12 +310,16 @@ func (c *Connector) connectToNATS(ctx context.Context) error {
 	}
 
 	// Log connection events
-	c.LogInfo(ctx, "Connected to NATS", log.String("url", cn.ConnectedUrl()))
-	cn.SetDisconnectHandler(func(n *nats.Conn) {
-		c.LogInfo(c.lifetimeCtx, "Disconnected from NATS", log.String("url", cn.ConnectedUrl()))
+	natsURL := cn.ConnectedUrl()
+	natsServerID := cn.ConnectedServerId()
+	c.LogInfo(ctx, "Connected to NATS", log.String("url", natsURL), log.String("server", natsServerID))
+	cn.SetDisconnectErrHandler(func(cn *nats.Conn, err error) {
+		c.LogInfo(c.lifetimeCtx, "Disconnected from NATS", log.String("url", natsURL), log.String("server", natsServerID))
 	})
-	cn.SetReconnectHandler(func(n *nats.Conn) {
-		c.LogInfo(c.lifetimeCtx, "Reconnected to NATS", log.String("url", cn.ConnectedUrl()))
+	cn.SetReconnectHandler(func(cn *nats.Conn) {
+		natsURL = cn.ConnectedUrl()
+		natsServerID = cn.ConnectedServerId()
+		c.LogInfo(c.lifetimeCtx, "Reconnected to NATS", log.String("url", natsURL), log.String("server", natsServerID))
 	})
 
 	c.natsConn = cn
