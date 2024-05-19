@@ -19,7 +19,7 @@ import (
 type InfiniteChan[T any] struct {
 	ch     chan T
 	queue  []T
-	lock   sync.Mutex
+	mux    sync.Mutex
 	locks  int // For testing
 	closed atomic.Bool
 	pushed atomic.Int32
@@ -44,10 +44,10 @@ func (oc *InfiniteChan[T]) C() <-chan T {
 		return oc.ch
 	}
 
-	oc.lock.Lock()
+	oc.mux.Lock()
 	oc.locks++
 	oc.tryDeliver()
-	oc.lock.Unlock()
+	oc.mux.Unlock()
 	return oc.ch
 }
 
@@ -67,12 +67,12 @@ func (oc *InfiniteChan[T]) Push(elem T) {
 	}
 
 	// Queue the element
-	oc.lock.Lock()
+	oc.mux.Lock()
 	oc.locks++
 	oc.queue = append(oc.queue, elem)
 	oc.queued.Store(int32(len(oc.queue)))
 	oc.tryDeliver()
-	oc.lock.Unlock()
+	oc.mux.Unlock()
 }
 
 // tryDeliver delivers to the channel as many elements as its spare capacity.
@@ -117,10 +117,10 @@ func (oc *InfiniteChan[T]) Close(idleTimeout time.Duration) (fullyDelivered bool
 			close(oc.ch)
 			return true
 		}
-		oc.lock.Lock()
+		oc.mux.Lock()
 		oc.locks++
 		n := oc.tryDeliver()
-		oc.lock.Unlock()
+		oc.mux.Unlock()
 		if n > 0 {
 			lastDelivery = time.Now()
 			continue

@@ -334,6 +334,7 @@ func (c *Cache[K, V]) ToMap() map[K]V {
 	return m
 }
 
+// cohesion is used for testing purposes only.
 func (c *Cache[K, V]) cohesion() bool {
 	a := []K{}
 	count := 0

@@ -78,17 +78,14 @@ type Connector struct {
 	started         bool
 	plane           string
 
-	reqs             map[string]*utils.InfiniteChan[*http.Response]
-	reqsLock         sync.Mutex
+	reqs             utils.SyncMap[string, *utils.InfiniteChan[*http.Response]]
 	networkHop       time.Duration
 	maxCallDepth     int
 	maxFragmentSize  int64
 	multicastChanCap int
 
-	requestDefrags      map[string]*httpx.DefragRequest
-	requestDefragsLock  sync.Mutex
-	responseDefrags     map[string]*httpx.DefragResponse
-	responseDefragsLock sync.Mutex
+	requestDefrags  utils.SyncMap[string, *httpx.DefragRequest]
+	responseDefrags utils.SyncMap[string, *httpx.DefragResponse]
 
 	knownResponders *lru.Cache[string, map[string]bool]
 	postRequestData *lru.Cache[string, string]
@@ -112,13 +109,10 @@ type Connector struct {
 func NewConnector() *Connector {
 	c := &Connector{
 		id:               strings.ToLower(rand.AlphaNum32(10)),
-		reqs:             map[string]*utils.InfiniteChan[*http.Response]{},
 		configs:          map[string]*cfg.Config{},
 		networkHop:       250 * time.Millisecond,
 		maxCallDepth:     64,
 		subs:             map[string]*sub.Subscription{},
-		requestDefrags:   map[string]*httpx.DefragRequest{},
-		responseDefrags:  map[string]*httpx.DefragResponse{},
 		tickers:          map[string]*tickerCallback{},
 		lifetimeCtx:      context.Background(),
 		knownResponders:  lru.NewCache[string, map[string]bool](),

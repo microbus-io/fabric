@@ -46,11 +46,13 @@ func TestConnector_Frag(t *testing.T) {
 
 	// Send message and validate that it was received whole
 	res, err := con.POST(ctx, "https://frag.connector/big", bodySent)
-	assert.NoError(t, err)
-	bodyResponded, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, bodySent, bodyReceived)
-	assert.Equal(t, bodySent, bodyResponded)
+	if assert.NoError(t, err) {
+		assert.Equal(t, bodySent, bodyReceived)
+		bodyResponded, err := io.ReadAll(res.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, bodySent, bodyResponded)
+		}
+	}
 }
 
 func TestConnector_FragMulticast(t *testing.T) {

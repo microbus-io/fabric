@@ -11,57 +11,51 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // DefragResponse merges together multiple fragments back into a single HTTP response
 type DefragResponse struct {
-	fragments    map[int]*http.Response
-	maxIndex     int32
-	lock         sync.Mutex
-	lastActivity time.Time
+	fragments    utils.SyncMap[int, *http.Response]
+	maxIndex     atomic.Int32
+	count        atomic.Int32
+	lastActivity atomic.Int64
 }
 
 // NewDefragResponse creates a new response integrator.
 func NewDefragResponse() *DefragResponse {
-	return &DefragResponse{
-		fragments:    map[int]*http.Response{},
-		lastActivity: time.Now(),
-	}
+	st := &DefragResponse{}
+	st.lastActivity.Store(time.Now().UnixMilli())
+	return st
 }
 
 // LastActivity indicates how long ago was the last fragment added.
 func (st *DefragResponse) LastActivity() time.Duration {
-	st.lock.Lock()
-	d := time.Since(st.lastActivity)
-	st.lock.Unlock()
-	return d
+	return time.Duration(time.Now().UnixMilli()-st.lastActivity.Load()) * time.Millisecond
 }
 
 // Integrated indicates if all the fragments have been collected and if so returns them as a single HTTP response.
 func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
-	maxIndex := int(atomic.LoadInt32(&st.maxIndex))
+	maxIndex := st.maxIndex.Load()
 	if maxIndex == 1 {
-		return st.fragments[1], nil
+		onlyFrag, _ := st.fragments.Load(1)
+		return onlyFrag, nil
 	}
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
-	if maxIndex == 0 || len(st.fragments) != maxIndex {
+	if maxIndex == 0 || st.count.Load() != maxIndex {
 		return nil, nil
 	}
 
 	// Serialize the bodies of all fragments
 	bodies := []io.Reader{}
 	var contentLength int64
-	for i := 1; i <= maxIndex; i++ {
-		fragment := st.fragments[i]
-		if fragment == nil {
+	for i := 1; i <= int(maxIndex); i++ {
+		fragment, ok := st.fragments.Load(i)
+		if !ok || fragment == nil {
 			return nil, errors.Newf("missing fragment %d", i)
 		}
 		if fragment.Body == nil {
@@ -77,8 +71,8 @@ func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
 	integratedBody := io.MultiReader(bodies...)
 
 	// Set the integrated body on the first fragment
-	firstFragment := st.fragments[1]
-	if firstFragment == nil {
+	firstFragment, ok := st.fragments.Load(1)
+	if !ok || firstFragment == nil {
 		return nil, errors.New("missing first fragment")
 	}
 	frame.Of(firstFragment).SetFragment(1, 1) // Clear the header
@@ -89,11 +83,10 @@ func (st *DefragResponse) Integrated() (integrated *http.Response, err error) {
 
 // Add a fragment to be integrated.
 func (st *DefragResponse) Add(r *http.Response) error {
-	st.lock.Lock()
 	index, max := frame.Of(r).Fragment()
-	st.fragments[index] = r
-	atomic.StoreInt32(&st.maxIndex, int32(max))
-	st.lastActivity = time.Now()
-	st.lock.Unlock()
+	st.maxIndex.Store(int32(max))
+	st.fragments.Store(index, r)
+	st.count.Add(1)
+	st.lastActivity.Store(time.Now().UnixMilli())
 	return nil
 }

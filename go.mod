@@ -4,6 +4,7 @@ go 1.21.5
 
 require (
 	github.com/andybalholm/brotli v1.0.6
+	github.com/andybalholm/cascadia v1.3.2
 	github.com/flashmob/go-guerrilla v1.6.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/invopop/jsonschema v0.12.0
@@ -20,12 +21,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.25.0
 	go.opentelemetry.io/proto/otlp v1.2.0
 	go.uber.org/zap v1.26.0
+	golang.org/x/net v0.23.0
 	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -53,7 +54,6 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240227224415-6ceb2ff114de // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect

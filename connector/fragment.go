@@ -27,25 +27,21 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 	msgID := frame.Of(r).MessageID()
 	fragKey := fromID + "|" + msgID
 
-	c.requestDefragsLock.Lock()
-	defragger, ok := c.requestDefrags[fragKey]
+	defragger, ok := c.requestDefrags.Load(fragKey)
 	if !ok {
 		defragger = httpx.NewDefragRequest()
-		c.requestDefrags[fragKey] = defragger
+		c.requestDefrags.Store(fragKey, defragger)
 		// Timeout if fragments stop arriving
 		go func() {
 			for {
 				time.Sleep(c.networkHop / 2)
 				if defragger.LastActivity() > c.networkHop {
-					c.requestDefragsLock.Lock()
-					delete(c.requestDefrags, fragKey)
-					c.requestDefragsLock.Unlock()
+					c.requestDefrags.Delete(fragKey)
 					break
 				}
 			}
 		}()
 	}
-	c.requestDefragsLock.Unlock()
 
 	err = defragger.Add(r)
 	if err != nil {
@@ -60,9 +56,7 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 		return nil, nil
 	}
 
-	c.requestDefragsLock.Lock()
-	delete(c.requestDefrags, fragKey)
-	c.requestDefragsLock.Unlock()
+	c.requestDefrags.Delete(fragKey)
 
 	return integrated, nil
 }
@@ -78,25 +72,21 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 	msgID := frame.Of(r).MessageID()
 	fragKey := fromID + "|" + msgID
 
-	c.responseDefragsLock.Lock()
-	defragger, ok := c.responseDefrags[fragKey]
+	defragger, ok := c.responseDefrags.Load(fragKey)
 	if !ok {
 		defragger = httpx.NewDefragResponse()
-		c.responseDefrags[fragKey] = defragger
+		c.responseDefrags.Store(fragKey, defragger)
 		// Timeout if fragments stop arriving
 		go func() {
 			for {
 				time.Sleep(c.networkHop / 2)
 				if defragger.LastActivity() > c.networkHop {
-					c.responseDefragsLock.Lock()
-					delete(c.responseDefrags, fragKey)
-					c.responseDefragsLock.Unlock()
+					c.responseDefrags.Delete(fragKey)
 					break
 				}
 			}
 		}()
 	}
-	c.responseDefragsLock.Unlock()
 
 	err = defragger.Add(r)
 	if err != nil {
@@ -111,9 +101,7 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 		return nil, nil
 	}
 
-	c.responseDefragsLock.Lock()
-	delete(c.responseDefrags, fragKey)
-	c.responseDefragsLock.Unlock()
+	c.responseDefrags.Delete(fragKey)
 
 	return integrated, nil
 }

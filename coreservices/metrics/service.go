@@ -102,7 +102,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 	w.Header().Set("Content-Type", "text/plain")
 
 	var delay time.Duration
-	var lock sync.Mutex
+	var mux sync.Mutex
 	var wg sync.WaitGroup
 	for serviceInfo := range controlapi.NewMulticastClient(svc).ForHost(host).PingServices(ctx) {
 		wg.Add(1)
@@ -137,9 +137,9 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 					rCloser = unzipper
 				}
 
-				lock.Lock()
+				mux.Lock()
 				_, err = io.Copy(writer, reader)
-				lock.Unlock()
+				mux.Unlock()
 				if err != nil {
 					svc.LogWarn(ctx, "Copying metrics", log.Error(err))
 				}

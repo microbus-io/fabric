@@ -177,13 +177,9 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 
 	// Create a channel to await on
 	awaitCh := utils.MakeInfiniteChan[*http.Response](c.multicastChanCap)
-	c.reqsLock.Lock()
-	c.reqs[msgID] = awaitCh
-	c.reqsLock.Unlock()
+	c.reqs.Store(msgID, awaitCh)
 	defer func() {
-		c.reqsLock.Lock()
-		delete(c.reqs, msgID)
-		c.reqsLock.Unlock()
+		c.reqs.Delete(msgID)
 	}()
 
 	// Send the message
@@ -483,9 +479,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 
 	// Push it to the channel matching the message ID
 	msgID := frame.Of(response).MessageID()
-	c.reqsLock.Lock()
-	ch, ok := c.reqs[msgID]
-	c.reqsLock.Unlock()
+	ch, ok := c.reqs.Load(msgID)
 	if ok {
 		ch.Push(response)
 		return
