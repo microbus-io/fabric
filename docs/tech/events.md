@@ -1,6 +1,6 @@
 # Events
 
-Events are a powerful pattern that is often neglected in microservice systems because it is not trivial to implement using HTTP and because the workaround of making direct calls is considered acceptable. Without events however, microservices end up cyclicly depending on one other, resulting in what soon becomes a spaghetti topology. An event-driven architecture on the other hand, uses events to communicate and keeps microservices decoupled.
+Events are a powerful pattern that is often neglected in microservice systems because it is not trivial to implement using HTTP and because the workaround of making direct calls is considered acceptable. Without events however, microservices end up cyclicly depending on one other, resulting in what soon becomes a spaghetti topology. An event-driven architecture done right uses events to communicate and serves to keep microservices decoupled.
 
 To demonstrate, let's look at a common example: a user management microservices. When a user is deleted, many other resources that are tied to the user also need to be deleted. Without the benefit of events, the `DeleteUser` handler needs to make direct requests to all related service and might look similar to this (error checks omitted for brevity):
 
@@ -10,7 +10,7 @@ func (svc *Service) DeleteUser(userID string) (err error) {
     filestoreapi.NewClient(svc).DeleteForUser(userID)
     creditcardapi.NewClient(svc).DeleteForUser(userID)
     groupmanagerapi.NewClient(svc).DeleteForUser(userID)
-    // etc. etc.
+    // etc.
 }
 ```
 
@@ -34,11 +34,11 @@ Other microservices are able to dynamically subscribe to handle the `OnUserDelet
 
 <img src="events-2.svg" width="300">
 
-In `Microbus`, events are simply carefully crafted requests and subscriptions. Event sources publish a multicast request to a URL on their own host name. Event sinks subscribe to handle requests on the host name of the source rather than their own. Since they are fundamentally not any different than regular requests, events can also return values back to the source. The [events example](../structure/examples.md) uses this technique to ask for permission to perform an action. 
+In `Microbus`, events are implemented as carefully crafted requests and subscriptions. Event sources publish a multicast request to a URL on their own host name. Event sinks subscribe to handle requests on the host name of the source rather than their own. Since they are fundamentally not any different than regular requests, events can also return values back to the source. The [events example](../structure/examples.md) uses this technique to ask for permission to perform an action. 
 
 The [code generator](./codegen.md) makes it simple to produce and consume events using the `events` and `sinks` sections, respectively.
 
-By default, events use port `:417` ("force eventing") to differentiate them from standard requests which default to port `:443`. This allows setting up port-based [NATS ACLs](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization) in environments where authorization of microservices is important. The event source can be made the only one allowed to publish to `eventsource.example:417`.
+By default, events use port `:417` ("force eventing") to differentiate them from standard requests which default to port `:443`. This allows setting up port-based [NATS ACLs](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization) in low-trust environments where authorization of microservices is important. This way the event source can be made the only one allowed to publish to `eventsource.example:417`.
 
 ```
 EVENTSOURCE_EXAMPLE = {

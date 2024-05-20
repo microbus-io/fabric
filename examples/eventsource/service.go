@@ -47,7 +47,7 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 Register attempts to register a new user.
 */
 func (svc *Service) Register(ctx context.Context, email string) (allowed bool, err error) {
-	// Trigger an event to check if any event sink blocks the registration
+	// Trigger a synchronous event to check if any event sink blocks the registration
 	for r := range eventsourceapi.NewMulticastTrigger(svc).OnAllowRegister(ctx, email) {
 		allowed, err := r.Get()
 		if err != nil {
@@ -61,13 +61,12 @@ func (svc *Service) Register(ctx context.Context, email string) (allowed bool, e
 	// OK to register the user
 	// ...
 
-	// Trigger an event to inform all event sinks of the new registration
-	for r := range eventsourceapi.NewMulticastTrigger(svc).OnRegistered(ctx, email) {
-		err := r.Get()
-		if err != nil {
-			return true, errors.Trace(err)
+	// Trigger an asynchronous fire-and-forget event to inform all event sinks of the new registration
+	svc.Go(ctx, func(ctx context.Context) (err error) {
+		for range eventsourceapi.NewMulticastTrigger(svc).OnRegistered(ctx, email) {
 		}
-	}
+		return nil
+	})
 
 	return true, nil
 }

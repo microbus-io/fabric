@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package calculator
 
-const Version = 187
+const Version = 189
 const SourceCodeSHA256 = "1d5ac74178e581b7370c1824bb685d8ed281e960c3479d0ec5a844cfce2be871"
-const Timestamp = "2024-05-19T03:15:50.038383Z"
+const Timestamp = "2024-05-20T14:36:56.97345Z"
 
 /* {
-	"ver": 187,
+	"ver": 189,
 	"sha256": "1d5ac74178e581b7370c1824bb685d8ed281e960c3479d0ec5a844cfce2be871",
-	"ts": "2024-05-19T03:15:50.038383Z"
+	"ts": "2024-05-20T14:36:56.97345Z"
 } */

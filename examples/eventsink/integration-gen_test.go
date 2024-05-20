@@ -123,9 +123,9 @@ func Context(t *testing.T) context.Context {
 // RegisteredTestCase assists in asserting against the results of executing Registered.
 type RegisteredTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	emails []string
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -190,9 +190,9 @@ func Registered(t *testing.T, ctx context.Context) *RegisteredTestCase {
 // OnAllowRegisterTestCase assists in asserting against the results of executing OnAllowRegister.
 type OnAllowRegisterTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	allow bool
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -257,8 +257,8 @@ func OnAllowRegister(t *testing.T, ctx context.Context, email string) *OnAllowRe
 // OnRegisteredTestCase assists in asserting against the results of executing OnRegistered.
 type OnRegisteredTestCase struct {
 	_t *testing.T
-	err error
 	_dur time.Duration
+	err error
 }
 
 // Expect asserts no error and exact return values.

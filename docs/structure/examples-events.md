@@ -6,6 +6,7 @@ In this example, the `eventsource.example` mocks a simple user registration micr
 
 Try the following URLs in order:
 
-* http://localhost:8080/eventsource.example/register?email=hi@example.com : example.com domain is allowed.
-* http://localhost:8080/eventsource.example/register?email=hi@gmail.com : gmail.com domain is disallowed.
-* http://localhost:8080/eventsource.example/register?email=hi@example.com : dup registration is disallowed.
+* http://localhost:8080/eventsource.example/register?email=peter@example.com : example.com domain is allowed.
+* http://localhost:8080/eventsource.example/register?email=mary@example.com : example.com domain is allowed.
+* http://localhost:8080/eventsource.example/register?email=paul@gmail.com : gmail.com domain is disallowed.
+* http://localhost:8080/eventsource.example/registered

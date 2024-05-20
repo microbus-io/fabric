@@ -123,8 +123,8 @@ func Context(t *testing.T) context.Context {
 // OnChangedPortsTestCase assists in asserting against the results of executing OnChangedPorts.
 type OnChangedPortsTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.
@@ -180,8 +180,8 @@ func OnChangedPorts(t *testing.T, ctx context.Context) *OnChangedPortsTestCase {
 // OnChangedAllowedOriginsTestCase assists in asserting against the results of executing OnChangedAllowedOrigins.
 type OnChangedAllowedOriginsTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.
@@ -237,8 +237,8 @@ func OnChangedAllowedOrigins(t *testing.T, ctx context.Context) *OnChangedAllowe
 // OnChangedPortMappingsTestCase assists in asserting against the results of executing OnChangedPortMappings.
 type OnChangedPortMappingsTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.
@@ -294,8 +294,8 @@ func OnChangedPortMappings(t *testing.T, ctx context.Context) *OnChangedPortMapp
 // OnChangedReadTimeoutTestCase assists in asserting against the results of executing OnChangedReadTimeout.
 type OnChangedReadTimeoutTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.
@@ -351,8 +351,8 @@ func OnChangedReadTimeout(t *testing.T, ctx context.Context) *OnChangedReadTimeo
 // OnChangedWriteTimeoutTestCase assists in asserting against the results of executing OnChangedWriteTimeout.
 type OnChangedWriteTimeoutTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.
@@ -408,8 +408,8 @@ func OnChangedWriteTimeout(t *testing.T, ctx context.Context) *OnChangedWriteTim
 // OnChangedReadHeaderTimeoutTestCase assists in asserting against the results of executing OnChangedReadHeaderTimeout.
 type OnChangedReadHeaderTimeoutTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.
@@ -465,8 +465,8 @@ func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedRea
 // OnChangedServerLanguagesTestCase assists in asserting against the results of executing OnChangedServerLanguages.
 type OnChangedServerLanguagesTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.
@@ -522,8 +522,8 @@ func OnChangedServerLanguages(t *testing.T, ctx context.Context) *OnChangedServe
 // OnChangedBlockedPathsTestCase assists in asserting against the results of executing OnChangedBlockedPaths.
 type OnChangedBlockedPathsTestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.

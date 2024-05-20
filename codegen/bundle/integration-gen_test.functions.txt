@@ -3,11 +3,11 @@
 // {{ .Name }}TestCase assists in asserting against the results of executing {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	{{- range .Signature.OutputArgs }}
 	{{ .Name }} {{ .Type }}
 	{{- end }}
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.

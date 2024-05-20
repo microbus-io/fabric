@@ -123,9 +123,9 @@ func Context(t *testing.T) context.Context {
 // RegisterTestCase assists in asserting against the results of executing Register.
 type RegisterTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	allowed bool
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -190,111 +190,167 @@ func Register(t *testing.T, ctx context.Context, email string) *RegisterTestCase
 // OnAllowRegisterTestCase assists in asserting the sink of OnAllowRegister.
 type OnAllowRegisterTestCase struct {
 	_t *testing.T
-    _asserters []func(*testing.T)
-    ctx context.Context
+    _asserters []func()
+	_done chan bool
+	_triggered bool
+	ctx context.Context
 	email string
 	allow bool
 	err error
-	_dur time.Duration
 }
 
-// Expect asserts an exact match for the input arguments of the event sink.
+// Expect asserts that the event sink was triggered with an exact match of its input arguments.
 func (_tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCase {
-    _tc._asserters = append(_tc._asserters, func(t *testing.T) {
-        assert.Equal(t, email, _tc.email)
-    })
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			assert.Equal(_tc._t, email, _tc.email)
+		}
+	})
 	return _tc
 }
 
-// CompletedIn checks that the duration of the operation is less than or equal the threshold.
-func (_tc *OnAllowRegisterTestCase) CompletedIn(threshold time.Duration) *OnAllowRegisterTestCase {
-	assert.LessOrEqual(_tc._t, _tc._dur, threshold)
-	return _tc
-}
-
-// Assert sets a custom function to assert the input args of the event sink.
+// Assert asserts that the event sink was triggered with a custom function to assert its input arguments.
 func (_tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnAllowRegisterTestCase {
-	_tc._asserters = append(_tc._asserters, func(_t *testing.T) {
-		asserter(_tc._t, _tc.ctx, _tc.email)
-    })
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			asserter(_tc._t, _tc.ctx, _tc.email)
+		}
+	})
 	return _tc
 }
 
-// OnAllowRegister sets an event listener and returns a corresponding test case.
-func OnAllowRegister(t *testing.T, allow bool, err error) *OnAllowRegisterTestCase {
+// Return sets the values to return from the event sink to the event source.
+func (_tc *OnAllowRegisterTestCase) Return(allow bool, err error) *OnAllowRegisterTestCase {
+	_tc.allow = allow
+	_tc.err = err
+	return _tc
+}
+
+// Wait waits for the event sink to be triggered. It is necessary to wait for events that are triggered asynchronously.
+func (_tc *OnAllowRegisterTestCase) Wait() *OnAllowRegisterTestCase {
+	timeout := 20 * time.Second
+	if deadline, ok := _tc._t.Deadline(); ok {
+		timeout = time.Until(deadline)
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-_tc._done:
+	case <-timer.C:
+		assert.Fail(_tc._t, "Timed out", "Event sink was not triggered")
+	}
+	return _tc
+}
+
+// OnAllowRegister creates a run-once event sink and returns the corresponding test case.
+func OnAllowRegister(t *testing.T) *OnAllowRegisterTestCase {
 	_tc := &OnAllowRegisterTestCase{
 		_t: t,
-		allow: allow,
-		err: err,
+		_done: make(chan bool),
 	}
-	t0 := time.Now()
 	con := connector.New("OnAllowRegister." + rand.AlphaNum64(12))
 	eventsourceapi.NewHook(con).OnAllowRegister(func(ctx context.Context, email string) (allow bool, err error) {
 		eventsourceapi.NewHook(con).OnAllowRegister(nil)
 		_tc.ctx = ctx
-        _tc.email = email
+		_tc.email = email
+		_tc._triggered = true
+		close(_tc._done)
 		for _, asserter := range _tc._asserters {
-			asserter(_tc._t)
+			asserter()
 		}
-		_tc._dur = time.Since(t0)
+		_tc._asserters = nil
 		return _tc.allow, _tc.err
 	})
 	App.Include(con)
 	con.Startup()
+	_tc._t.Cleanup(func() {
+		con.Shutdown()
+		for _, asserter := range _tc._asserters {
+			asserter()
+		}
+	})
 	return _tc
 }
 
 // OnRegisteredTestCase assists in asserting the sink of OnRegistered.
 type OnRegisteredTestCase struct {
 	_t *testing.T
-    _asserters []func(*testing.T)
-    ctx context.Context
+    _asserters []func()
+	_done chan bool
+	_triggered bool
+	ctx context.Context
 	email string
 	err error
-	_dur time.Duration
 }
 
-// Expect asserts an exact match for the input arguments of the event sink.
+// Expect asserts that the event sink was triggered with an exact match of its input arguments.
 func (_tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
-    _tc._asserters = append(_tc._asserters, func(t *testing.T) {
-        assert.Equal(t, email, _tc.email)
-    })
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			assert.Equal(_tc._t, email, _tc.email)
+		}
+	})
 	return _tc
 }
 
-// CompletedIn checks that the duration of the operation is less than or equal the threshold.
-func (_tc *OnRegisteredTestCase) CompletedIn(threshold time.Duration) *OnRegisteredTestCase {
-	assert.LessOrEqual(_tc._t, _tc._dur, threshold)
-	return _tc
-}
-
-// Assert sets a custom function to assert the input args of the event sink.
+// Assert asserts that the event sink was triggered with a custom function to assert its input arguments.
 func (_tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnRegisteredTestCase {
-	_tc._asserters = append(_tc._asserters, func(_t *testing.T) {
-		asserter(_tc._t, _tc.ctx, _tc.email)
-    })
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			asserter(_tc._t, _tc.ctx, _tc.email)
+		}
+	})
 	return _tc
 }
 
-// OnRegistered sets an event listener and returns a corresponding test case.
-func OnRegistered(t *testing.T, err error) *OnRegisteredTestCase {
+// Return sets the values to return from the event sink to the event source.
+func (_tc *OnRegisteredTestCase) Return(err error) *OnRegisteredTestCase {
+	_tc.err = err
+	return _tc
+}
+
+// Wait waits for the event sink to be triggered. It is necessary to wait for events that are triggered asynchronously.
+func (_tc *OnRegisteredTestCase) Wait() *OnRegisteredTestCase {
+	timeout := 20 * time.Second
+	if deadline, ok := _tc._t.Deadline(); ok {
+		timeout = time.Until(deadline)
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-_tc._done:
+	case <-timer.C:
+		assert.Fail(_tc._t, "Timed out", "Event sink was not triggered")
+	}
+	return _tc
+}
+
+// OnRegistered creates a run-once event sink and returns the corresponding test case.
+func OnRegistered(t *testing.T) *OnRegisteredTestCase {
 	_tc := &OnRegisteredTestCase{
 		_t: t,
-		err: err,
+		_done: make(chan bool),
 	}
-	t0 := time.Now()
 	con := connector.New("OnRegistered." + rand.AlphaNum64(12))
 	eventsourceapi.NewHook(con).OnRegistered(func(ctx context.Context, email string) (err error) {
 		eventsourceapi.NewHook(con).OnRegistered(nil)
 		_tc.ctx = ctx
-        _tc.email = email
+		_tc.email = email
+		_tc._triggered = true
+		close(_tc._done)
 		for _, asserter := range _tc._asserters {
-			asserter(_tc._t)
+			asserter()
 		}
-		_tc._dur = time.Since(t0)
+		_tc._asserters = nil
 		return _tc.err
 	})
 	App.Include(con)
 	con.Startup()
+	_tc._t.Cleanup(func() {
+		con.Shutdown()
+		for _, asserter := range _tc._asserters {
+			asserter()
+		}
+	})
 	return _tc
 }

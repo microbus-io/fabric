@@ -8,6 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package eventsource
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ func Initialize() error {
 	// Include all downstream microservices in the testing app
 	App.Include(
 		Svc,
-		eventsink.NewService(),
+		eventsink.NewService(), // Disallows gmail.com and hotmail.com registrations
 	)
 
 	err := App.Startup()
@@ -56,33 +57,68 @@ func TestEventsource_Register(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	Register(t, ctx, "brian@hotmail.com").Expect(false)
-	Register(t, ctx, "brian@example.com").Expect(true)
-	Register(t, ctx, "brian@example.com").Expect(false)
+	Register(t, ctx, "brian@hotmail.com").Expect(false) // hotmail.com is disallowed by eventsink service
+	Register(t, ctx, "brian@example.com").Expect(true)  // example.com is allowed
+	Register(t, ctx, "mandy@example.com").Expect(true)  // example.com is allowed
 }
 
 func TestEventsource_OnAllowRegister(t *testing.T) {
-	// No parallel
+	// No parallel: event sinks might clash across tests
 	/*
-		OnAllowRegister(t, allow, err).
-			Expect(email)
+		tc := OnAllowRegister(t).
+			Expect(email).
+			Return(allow, err)
+		...
+		tc.Wait()
 	*/
 	ctx := Context(t)
-	OnAllowRegister(t, true, nil).
-		Expect("barb@example.com")
+
+	// Sink allows registration
+	tc := OnAllowRegister(t).
+		Expect("barb@example.com").
+		Return(true, nil)
 	Register(t, ctx, "barb@example.com").Expect(true)
-	OnAllowRegister(t, false, nil).
-		Expect("josh@example.com")
+	tc.Wait()
+
+	// Sink blocks registration
+	tc = OnAllowRegister(t).
+		Expect("josh@example.com").
+		Return(false, nil)
 	Register(t, ctx, "josh@example.com").Expect(false)
+	tc.Wait()
+
+	// One sink blocks and the other allows
+	tc1 := OnAllowRegister(t).
+		Expect("josh@example.com").
+		Return(true, nil)
+	tc2 := OnAllowRegister(t).
+		Expect("josh@example.com").
+		Return(false, nil)
+	Register(t, ctx, "josh@example.com").Expect(false)
+	tc1.Wait()
+	tc2.Wait()
+
+	// Sink errors out
+	tc = OnAllowRegister(t).
+		Expect("josh@example.com").
+		Return(false, errors.New("oops"))
+	Register(t, ctx, "josh@example.com").Error("oops")
+	tc.Wait()
 }
 
 func TestEventsource_OnRegistered(t *testing.T) {
-	// No parallel
+	// No parallel: event sinks might clash across tests
 	/*
-		OnRegistered(t, err).
-			Expect(email)
+		tc := OnRegistered(t).
+			Expect(email).
+			Return(err)
+		...
+		tc.Wait()
 	*/
 	ctx := Context(t)
-	OnRegistered(t, nil).Expect("harry@example.com")
+	tc := OnRegistered(t).
+		Expect("harry@example.com").
+		Return(nil)
 	Register(t, ctx, "harry@example.com").Expect(true)
+	tc.Wait()
 }

@@ -2,7 +2,6 @@
 {{- range (JoinHandlers .Functions .Sinks) }}{{- if not .Exists }}
 {{- $t := .Signature.TestingT }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
-	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
 		{{ .Name }}(t, ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
@@ -11,6 +10,8 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			{{- end }}
 			NoError()
 	*/
+
+	// TO{{/**/}}DO: Test {{ .Name }}
 	// ctx := Context(t)
 }
 {{ end }}{{ end }}
@@ -18,21 +19,22 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 {{- range .Events }}{{- if not .Exists }}
 {{- $t := .Signature.TestingT }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
-	// TO{{/**/}}DO: Test {{ .Name }}
-	t.Parallel()
+	// No parallel: event sinks might clash across tests
 	/*
-		{{ .Name }}(t, {{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err)
-			{{- if .Signature.InputArgs }}.
+		tc := {{ .Name }}(t).
 			Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }}).
-			{{- end }}
+			Return({{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err)
+		...
+		tc.Wait()
 	*/
+
+	// TO{{/**/}}DO: Test {{ .Name }}
 	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
 {{- range .Webs }}{{- if not .Exists }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
-	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
 	{{- if eq .Method "*" }}
@@ -61,30 +63,34 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 			NoError()
 	{{- end }}
 	*/
+
+	// TO{{/**/}}DO: Test {{ .Name }}
 	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
 {{- range .Tickers }}{{ if not .Exists }}
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
-	// TO{{/**/}}DO: Test {{ .Name }}
 	t.Parallel()
 	/*
 		{{ .Name }}(t, ctx).
 			NoError()
 	*/
+
+	// TO{{/**/}}DO: Test {{ .Name }}
 	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
 {{- range .Configs }}{{ if .Callback }}{{ if not .Exists }}
 func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
-	// TO{{/**/}}DO: Test OnChanged{{ .Name }}
 	t.Parallel()
 	/*
 		OnChanged{{ .Name }}(t, ctx).
 			NoError()
 	*/
+
+	// TO{{/**/}}DO: Test OnChanged{{ .Name }}
 	// ctx := Context(t)
 }
 {{ end }}{{ end }}{{ end }}

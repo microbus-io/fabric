@@ -113,7 +113,7 @@ func TestHttpegress_Post(t *testing.T) {
 	client := httpegressapi.NewClient(Svc)
 
 	// Echo
-	resp, err := client.Post(ctx, "http://127.0.0.1:5050/echo", "text/plain", strings.NewReader("Lorem Ipsum"))
+	resp, err := client.Post(ctx, "http://127.0.0.1:5050/echo", "text/plain", strings.NewReader("Lorem Ipsum Dolor Sit Amet"))
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		raw, _ := io.ReadAll(resp.Body)
@@ -121,7 +121,7 @@ func TestHttpegress_Post(t *testing.T) {
 		assert.Contains(t, string(raw), "Host: 127.0.0.1:5050\r\n")
 		assert.Contains(t, string(raw), "User-Agent: Go-http-client")
 		assert.Contains(t, string(raw), "Content-Type: text/plain\r\n")
-		assert.Contains(t, string(raw), "\r\n\r\nLorem Ipsum")
+		assert.Contains(t, string(raw), "Lorem Ipsum Dolor Sit Amet")
 	}
 
 	// Not found

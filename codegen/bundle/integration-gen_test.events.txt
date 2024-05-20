@@ -4,8 +4,10 @@
 // {{ .Name }}TestCase assists in asserting the sink of {{ .Name }}.
 type {{ .Name }}TestCase struct {
 	_t *testing.T
-    _asserters []func(*testing.T)
-    ctx context.Context
+    _asserters []func()
+	_done chan bool
+	_triggered bool
+	ctx context.Context
 	{{- range .Signature.InputArgs }}
 	{{ .Name }} {{ .Type }}
 	{{- end }}
@@ -13,61 +15,87 @@ type {{ .Name }}TestCase struct {
 	{{ .Name }} {{ .Type }}
 	{{- end }}
 	err error
-	_dur time.Duration
 }
 
-// Expect asserts an exact match for the input arguments of the event sink.
+// Expect asserts that the event sink was triggered with an exact match of its input arguments.
 func (_tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
-    _tc._asserters = append(_tc._asserters, func(t *testing.T) {
-        {{- range .Signature.InputArgs }}
-        {{- if eq .Type "time.Time" }}
-        assert.True(t, {{ .Name }}.Equal(_tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, _tc.{{ .Name }})
-        {{- else }}
-        assert.Equal(t, {{ .Name }}, _tc.{{ .Name }})
-        {{- end }}{{ end }}
-    })
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			{{- range .Signature.InputArgs }}
+			{{- if eq .Type "time.Time" }}
+			assert.True(_tc._t, {{ .Name }}.Equal(_tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, _tc.{{ .Name }})
+			{{- else }}
+			assert.Equal(_tc._t, {{ .Name }}, _tc.{{ .Name }})
+			{{- end }}{{ end }}
+		}
+	})
 	return _tc
 }
 
-// CompletedIn checks that the duration of the operation is less than or equal the threshold.
-func (_tc *{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *{{ .Name }}TestCase {
-	assert.LessOrEqual(_tc._t, _tc._dur, threshold)
-	return _tc
-}
-
-// Assert sets a custom function to assert the input args of the event sink.
+// Assert asserts that the event sink was triggered with a custom function to assert its input arguments.
 func (_tc *{{ .Name }}TestCase) Assert(asserter func({{ $t }} *testing.T, {{ .In }})) *{{ .Name }}TestCase {
-	_tc._asserters = append(_tc._asserters, func(_t *testing.T) {
-		asserter(_tc._t, _tc.ctx {{- range .Signature.InputArgs }}, _tc.{{ .Name }}{{ end }})
-    })
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			asserter(_tc._t, _tc.ctx {{- range .Signature.InputArgs }}, _tc.{{ .Name }}{{ end }})
+		}
+	})
 	return _tc
 }
 
-// {{ .Name }} sets an event listener and returns a corresponding test case.
-func {{ .Name }}({{ $t }} *testing.T, {{ .Out }}) *{{ .Name }}TestCase {
-	_tc := &{{ .Name }}TestCase{
-		_t: {{ $t }},
-		{{- range .Signature.OutputArgs }}
-		{{ .Name }}: {{ .Name }},
-		{{- end }}
-		err: err,
+// Return sets the values to return from the event sink to the event source.
+func (_tc *{{ .Name }}TestCase) Return({{ .Out }}) *{{ .Name }}TestCase {
+	{{- range .Signature.OutputArgs }}
+	_tc.{{ .Name }} = {{ .Name }}
+	{{- end }}
+	_tc.err = err
+	return _tc
+}
+
+// Wait waits for the event sink to be triggered. It is necessary to wait for events that are triggered asynchronously.
+func (_tc *{{ .Name }}TestCase) Wait() *{{ .Name }}TestCase {
+	timeout := 20 * time.Second
+	if deadline, ok := _tc._t.Deadline(); ok {
+		timeout = time.Until(deadline)
 	}
-	t0 := time.Now()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-_tc._done:
+	case <-timer.C:
+		assert.Fail(_tc._t, "Timed out", "Event sink was not triggered")
+	}
+	return _tc
+}
+
+// {{ .Name }} creates a run-once event sink and returns the corresponding test case.
+func {{ .Name }}(t *testing.T) *{{ .Name }}TestCase {
+	_tc := &{{ .Name }}TestCase{
+		_t: t,
+		_done: make(chan bool),
+	}
 	con := connector.New("{{ .Name }}." + rand.AlphaNum64(12))
 	{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(func({{ .In }}) ({{ .Out }}) {
 		{{ $pkgSuffix }}api.NewHook(con).{{ .Name }}(nil)
 		_tc.ctx = ctx
-        {{- range .Signature.InputArgs }}
-        _tc.{{ .Name }} = {{ .Name }}
-        {{- end }}
+		{{- range .Signature.InputArgs }}
+		_tc.{{ .Name }} = {{ .Name }}
+		{{- end }}
+		_tc._triggered = true
+		close(_tc._done)
 		for _, asserter := range _tc._asserters {
-			asserter(_tc._t)
+			asserter()
 		}
-		_tc._dur = time.Since(t0)
+		_tc._asserters = nil
 		return {{ range .Signature.OutputArgs }}_tc.{{ .Name }}, {{ end }}_tc.err
 	})
 	App.Include(con)
 	con.Startup()
+	_tc._t.Cleanup(func() {
+		con.Shutdown()
+		for _, asserter := range _tc._asserters {
+			asserter()
+		}
+	})
 	return _tc
 }
 {{ end }}

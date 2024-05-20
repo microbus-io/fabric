@@ -9,21 +9,16 @@ package eventsink
 
 import (
 	"context"
-	"net/http"
 	"strings"
 	"sync"
 
-	"github.com/microbus-io/fabric/errors"
-
-	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 	"github.com/microbus-io/fabric/examples/eventsink/intermediate"
 )
 
 var (
-	_ errors.TracedError
-	_ http.Request
-
-	_ eventsinkapi.Client
+	// Emulated data store
+	mux           sync.Mutex
+	registrations []string
 )
 
 /*
@@ -33,14 +28,10 @@ The event sink microservice handles events that are fired by the event source mi
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
-
-	mux           sync.Mutex
-	registrations map[string]bool
 }
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	svc.registrations = map[string]bool{}
 	return nil
 }
 
@@ -58,19 +49,16 @@ func (svc *Service) OnAllowRegister(ctx context.Context, email string) (allow bo
 	if strings.HasSuffix(email, "@gmail.com") || strings.HasSuffix(email, "@hotmail.com") {
 		return false, nil
 	}
-	svc.mux.Lock()
-	defer svc.mux.Unlock()
-	return !svc.registrations[email], nil
+	return true, nil
 }
 
 /*
 OnRegistered keeps track of registrations.
 */
 func (svc *Service) OnRegistered(ctx context.Context, email string) (err error) {
-	email = strings.ToLower(email)
-	svc.mux.Lock()
-	svc.registrations[email] = true
-	svc.mux.Unlock()
+	mux.Lock()
+	registrations = append(registrations, strings.ToLower(email))
+	mux.Unlock()
 	return nil
 }
 
@@ -79,10 +67,8 @@ Registered returns the list of registered users.
 */
 func (svc *Service) Registered(ctx context.Context) (emails []string, err error) {
 	emails = []string{}
-	svc.mux.Lock()
-	for k := range svc.registrations {
-		emails = append(emails, k)
-	}
-	svc.mux.Unlock()
+	mux.Lock()
+	emails = append(emails, registrations...)
+	mux.Unlock()
 	return emails, nil
 }

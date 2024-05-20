@@ -2,8 +2,8 @@
 // OnChanged{{ .Name }}TestCase assists in asserting against the results of executing OnChanged{{ .Name }}.
 type OnChanged{{ .Name }}TestCase struct {
 	t *testing.T
-	err error
 	dur time.Duration
+	err error
 }
 
 // Error asserts an error.

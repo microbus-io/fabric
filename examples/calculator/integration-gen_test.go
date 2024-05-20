@@ -123,12 +123,12 @@ func Context(t *testing.T) context.Context {
 // ArithmeticTestCase assists in asserting against the results of executing Arithmetic.
 type ArithmeticTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	xEcho int
 	opEcho string
 	yEcho int
 	result int
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -196,10 +196,10 @@ func Arithmetic(t *testing.T, ctx context.Context, x int, op string, y int) *Ari
 // SquareTestCase assists in asserting against the results of executing Square.
 type SquareTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	xEcho int
 	result int
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -265,9 +265,9 @@ func Square(t *testing.T, ctx context.Context, x int) *SquareTestCase {
 // DistanceTestCase assists in asserting against the results of executing Distance.
 type DistanceTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	d float64
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.

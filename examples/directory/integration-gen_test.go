@@ -123,9 +123,9 @@ func Context(t *testing.T) context.Context {
 // CreateTestCase assists in asserting against the results of executing Create.
 type CreateTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	created *directoryapi.Person
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -190,10 +190,10 @@ func Create(t *testing.T, ctx context.Context, person *directoryapi.Person) *Cre
 // LoadTestCase assists in asserting against the results of executing Load.
 type LoadTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	person *directoryapi.Person
 	ok bool
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -259,9 +259,9 @@ func Load(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *LoadTe
 // DeleteTestCase assists in asserting against the results of executing Delete.
 type DeleteTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	ok bool
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -326,10 +326,10 @@ func Delete(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *Dele
 // UpdateTestCase assists in asserting against the results of executing Update.
 type UpdateTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	updated *directoryapi.Person
 	ok bool
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -395,10 +395,10 @@ func Update(t *testing.T, ctx context.Context, person *directoryapi.Person) *Upd
 // LoadByEmailTestCase assists in asserting against the results of executing LoadByEmail.
 type LoadByEmailTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	person *directoryapi.Person
 	ok bool
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.
@@ -464,9 +464,9 @@ func LoadByEmail(t *testing.T, ctx context.Context, email string) *LoadByEmailTe
 // ListTestCase assists in asserting against the results of executing List.
 type ListTestCase struct {
 	_t *testing.T
+	_dur time.Duration
 	keys []directoryapi.PersonKey
 	err error
-	_dur time.Duration
 }
 
 // Expect asserts no error and exact return values.

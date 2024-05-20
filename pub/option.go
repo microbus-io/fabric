@@ -235,7 +235,7 @@ func Body(body any) Option {
 			return errors.Trace(err)
 		}
 		req.Body = r.Body
-		if req.Header.Get("Content-Type") != "" {
+		if req.Header.Get("Content-Type") == "" {
 			req.Header.Set("Content-Type", r.Header.Get("Content-Type"))
 		}
 		req.Header.Set("Content-Length", r.Header.Get("Content-Length"))

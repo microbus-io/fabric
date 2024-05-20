@@ -83,7 +83,7 @@ func TestEventsink_OnAllowRegister(t *testing.T) {
 
 	OnAllowRegister(t, ctx, "nancy@example.com").Expect(true)
 	OnRegistered(t, ctx, "nancy@example.com").NoError()
-	OnAllowRegister(t, ctx, "nancy@example.com").Expect(false)
+	OnAllowRegister(t, ctx, "nancy@example.com").Expect(true)
 }
 
 func TestEventsink_OnRegistered(t *testing.T) {
