@@ -65,6 +65,8 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 		if err != nil {
 			return errors.Trace(err)
 		}
+	} else {
+		svc.LogWarn(ctx, "config.yaml not found in CWD")
 	}
 
 	// Sync the current repo to peers before microservices pull the new config
@@ -188,7 +190,7 @@ func (svc *Service) publishSync(ctx context.Context) error {
 	return nil
 }
 
-// loadYAML loads a config.yaml into the repo. For testing only.
+// loadYAML loads a config.yaml into the repo. For testing purposes only.
 func (svc *Service) loadYAML(configYAML string) error {
 	if svc.Deployment() == connector.PROD {
 		return errors.Newf("disallowed in %s deployment", connector.PROD)
