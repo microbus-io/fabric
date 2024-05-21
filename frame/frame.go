@@ -86,6 +86,18 @@ func Copy(dest context.Context, src context.Context) (result context.Context) {
 	return context.WithValue(dest, ContextKey, h)
 }
 
+// ContextWithFrame returns the parent frame, if it already has the frame as one of its values.
+// Otherwise, it derives a new context and sets it with an empty frame.
+// In either case, the returned context is guaranteed to have a frame.
+func ContextWithFrame(parent context.Context) (ctx context.Context) {
+	h := parent.Value(ContextKey)
+	if h != nil {
+		return parent
+	}
+	ctx = context.WithValue(parent, ContextKey, http.Header{})
+	return ctx
+}
+
 // Get returns an arbitrary header.
 func (f Frame) Get(name string) string {
 	return f.h.Get(name)

@@ -134,13 +134,14 @@ func TestDirectory_Create(t *testing.T) {
 		Error("birthday")
 	person.Birthday = timex.Timex{}
 
-	Create(t, ctx, person).
+	person, _ = Create(t, ctx, person).
 		Assert(func(t *testing.T, created *directoryapi.Person, err error) {
 			assert.Equal(t, person.FirstName, created.FirstName)
 			assert.Equal(t, person.LastName, created.LastName)
 			assert.Equal(t, person.Email, created.Email)
 			assert.NotZero(t, created.Key.Seq)
-		})
+		}).
+		Get()
 	List(t, ctx).
 		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
 			assert.Contains(t, keys, person.Key)
