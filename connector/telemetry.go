@@ -50,7 +50,7 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 			return errors.Trace(err)
 		}
 		sp = sdktrace.NewBatchSpanProcessor(exp)
-	case TESTINGAPP:
+	case TESTING:
 		var exp *otlptrace.Exporter
 		if endpoint == "" {
 			// Use a nil client rather than return nil to allow for testing of span creation

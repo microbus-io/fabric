@@ -424,7 +424,7 @@ func {{ .Name }}Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}T
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = frame.Clone(ctx)
+	ctx = frame.CloneContext(ctx)
 	r = r.WithContext(ctx)
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
@@ -460,7 +460,7 @@ func {{ .Name }}Post(t *testing.T, ctx context.Context, url string, contentType 
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = frame.Clone(ctx)
+	ctx = frame.CloneContext(ctx)
 	r = r.WithContext(ctx)
 	r.Header = frame.Of(ctx).Header()
 	err = httpx.SetRequestBody(r, body)
@@ -503,7 +503,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string, contentType stri
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = frame.Clone(ctx)
+	ctx = frame.CloneContext(ctx)
 	r = r.WithContext(ctx)
 	r.Header = frame.Of(ctx).Header()
 	err = httpx.SetRequestBody(r, body)
@@ -543,7 +543,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = frame.Clone(ctx)
+	ctx = frame.CloneContext(ctx)
 	r = r.WithContext(ctx)
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()

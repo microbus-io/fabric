@@ -200,17 +200,17 @@ func (c *Connector) Version() int {
 
 // Deployment environments
 const (
-	PROD       string = "PROD"       // PROD for a production environment
-	LAB        string = "LAB"        // LAB for all non-production environments such as dev integration, test, staging, etc.
-	LOCAL      string = "LOCAL"      // LOCAL when developing on the local machine
-	TESTINGAPP string = "TESTINGAPP" // TESTINGAPP when running inside a testing app
+	PROD    string = "PROD"    // PROD for a production environment
+	LAB     string = "LAB"     // LAB for all non-production environments such as dev integration, test, staging, etc.
+	LOCAL   string = "LOCAL"   // LOCAL when developing on the local machine
+	TESTING string = "TESTING" // TESTING when running inside a testing app
 )
 
 // Deployment indicates what deployment environment the microservice is running in:
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
 // LOCAL when developing on the local machine;
-// TESTINGAPP when running inside a testing app.
+// TESTING when running inside a testing app.
 func (c *Connector) Deployment() string {
 	return c.deployment
 }
@@ -223,13 +223,13 @@ func (c *Connector) Deployment() string {
 // PROD for a production environment;
 // LAB for all non-production environments such as dev integration, test, staging, etc.;
 // LOCAL when developing on the local machine;
-// TESTINGAPP when running inside a testing app.
+// TESTING when running inside a testing app.
 func (c *Connector) SetDeployment(deployment string) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
 	deployment = strings.ToUpper(deployment)
-	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL && deployment != TESTINGAPP {
+	if deployment != "" && deployment != PROD && deployment != LAB && deployment != LOCAL && deployment != TESTING {
 		return c.captureInitErr(errors.Newf("invalid deployment '%s'", deployment))
 	}
 	c.deployment = deployment

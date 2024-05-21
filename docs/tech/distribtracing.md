@@ -5,11 +5,11 @@ Distributed tracing enables the visualization of the flow of function calls amon
 
 `Microbus` exports tracing spans via the OTLP HTTP collector. The `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variables may be used to configure the collector's endpoint.
 By default, the endpoint is set to `http://127.0.0.1:4318` on a `LOCAL` deployment.
-On all other deployments (`TESTINGAPP`, `LAB` and `PROD`), the endpoint must be explicitly specified by one of the aforementioned environment variables.
+On all other deployments (`TESTING`, `LAB` and `PROD`), the endpoint must be explicitly specified by one of the aforementioned environment variables.
 
 Whether or not a trace is exported to the collector depends on the deployment environment of the microservice:
 
-- In `LOCAL` and `TESTINGAPP` deployments, all traces are exported to the collector
+- In `LOCAL` and `TESTING` deployments, all traces are exported to the collector
 - In `PROD` and `LAB` deployments, only traces that contain at least one error span, or those that are explicitly selected using the query argument `trace=force` are exported to the collector
 
 By default, `Microbus` uses [Jaeger](https://www.jaegertracing.io) to collect and visualize tracing data.

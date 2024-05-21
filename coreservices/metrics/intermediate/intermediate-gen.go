@@ -151,7 +151,6 @@ func (svc *Intermediate) SecretKey() (secretKey string) {
 
 /*
 SetSecretKey sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 SecretKey must be provided with the request to collect the metrics.
 This key is required except in local development and tests.

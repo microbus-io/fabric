@@ -96,7 +96,7 @@ func (c *Connector) Startup() (err error) {
 				// testing.tRunner is the test runner
 				// testing.(*B).runN is the benchmark runner
 				if strings.HasPrefix(funcName, "testing.") {
-					c.deployment = TESTINGAPP
+					c.deployment = TESTING
 					if defaultPlane && testNameHex != "" {
 						c.plane = testNameHex
 					}

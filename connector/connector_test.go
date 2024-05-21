@@ -117,7 +117,7 @@ func TestConnector_Deployment(t *testing.T) {
 	err = con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
-	assert.Equal(t, TESTINGAPP, con.Deployment())
+	assert.Equal(t, TESTING, con.Deployment())
 	err = con.SetDeployment(LAB)
 	assert.Error(t, err)
 }

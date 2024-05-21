@@ -205,7 +205,7 @@ func TestConnector_Restart(t *testing.T) {
 	// Set up a configurator
 	plane := rand.AlphaNum64(12)
 	configurator := New("configurator.sys")
-	configurator.SetDeployment(LAB) // Tickers and configs are disabled in TESTINGAPP
+	configurator.SetDeployment(LAB) // Tickers and configs are disabled in TESTING
 	configurator.SetPlane(plane)
 
 	err := configurator.Startup()
@@ -214,7 +214,7 @@ func TestConnector_Restart(t *testing.T) {
 
 	// Set up the connector
 	con := New("restart.connector")
-	con.SetDeployment(LAB) // Tickers and configs are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Tickers and configs are disabled in TESTING
 	con.SetPlane(plane)
 	con.SetOnStartup(func(ctx context.Context) error {
 		startupCalled++

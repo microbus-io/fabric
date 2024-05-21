@@ -95,7 +95,7 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 	logger.Warn(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "WARN")
 
-	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
+	if c.deployment == LOCAL || c.deployment == TESTING {
 		for _, f := range fields {
 			if f.Key == "error" {
 				if err, ok := f.Interface.(error); ok {
@@ -133,7 +133,7 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 	logger.Error(msg, fields...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "ERROR")
 
-	if c.deployment == LOCAL || c.deployment == TESTINGAPP {
+	if c.deployment == LOCAL || c.deployment == TESTING {
 		for _, f := range fields {
 			if f.Key == "error" {
 				if err, ok := f.Interface.(error); ok {
@@ -159,7 +159,7 @@ func (c *Connector) initLogger() (err error) {
 	env := c.Deployment()
 
 	var config zap.Config
-	if env == LOCAL || env == TESTINGAPP {
+	if env == LOCAL || env == TESTING {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05.000")
 		config.DisableStacktrace = true

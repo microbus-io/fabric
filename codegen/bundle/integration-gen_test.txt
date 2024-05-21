@@ -116,6 +116,6 @@ func Context(t *testing.T) context.Context {
 		ctx, cancel = context.WithDeadline(ctx, deadline)
 		t.Cleanup(cancel)
 	}
-	ctx = frame.Clone(ctx)
+	ctx = frame.CloneContext(ctx)
 	return ctx
 }

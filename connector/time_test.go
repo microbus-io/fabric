@@ -73,7 +73,7 @@ func TestConnector_Ticker(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.connector")
-	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Tickers are disabled in TESTING
 
 	interval := 200 * time.Millisecond
 	count := 0
@@ -104,7 +104,7 @@ func TestConnector_TickerSkippingBeats(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.skipping.beats.connector")
-	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Tickers are disabled in TESTING
 
 	interval := 200 * time.Millisecond
 	count := 0
@@ -137,7 +137,7 @@ func TestConnector_TickerPendingOps(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.pending.ops.connector")
-	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Tickers are disabled in TESTING
 
 	interval := 200 * time.Millisecond
 	step1 := make(chan bool)
@@ -176,7 +176,7 @@ func TestConnector_TickerTimeout(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.timeout.connector")
-	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Tickers are disabled in TESTING
 
 	interval := 400 * time.Millisecond
 	start := make(chan bool)
@@ -205,7 +205,7 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 	t.Parallel()
 
 	con := New("ticker.lifetime.cancellation.connector")
-	con.SetDeployment(LAB) // Tickers are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Tickers are disabled in TESTING
 
 	interval := 200 * time.Millisecond
 	start := make(chan bool)

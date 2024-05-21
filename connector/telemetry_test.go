@@ -122,7 +122,7 @@ func TestConnector_TracingCopySpan(t *testing.T) {
 	t.Parallel()
 
 	alpha := New("tracing.copy.span.connector")
-	// alpha.SetDeployment(TESTINGAPP)
+	// alpha.SetDeployment(TESTING)
 	var topSpan trc.Span
 	var goSpan trc.Span
 	var wg sync.WaitGroup

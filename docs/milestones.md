@@ -86,7 +86,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Code generation of an integration test harness
 * Code generation of a mockable stub for microservices
 * Restarting of microservices that were previously shutdown
-* `TESTINGAPP` deployment environment in which tickers and the configurator are disabled
+* `TESTING` deployment environment in which tickers and the configurator are disabled
 * Integration tests for the example microservices
 
 [Milestone 13](https://github.com/microbus-io/fabric/tree/milestone/13):
@@ -179,7 +179,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Deprecated the SQL database dependency and its corresponding code generation
 * Handling of `errors.Join`
 * Deprecated error annotations
-* Auto-detect `TESTINGAPP` deployment based on call stack
+* Auto-detect `TESTING` deployment based on call stack
 * Distributed tracing improvements
 
 [Milestone 22](https://github.com/microbus-io/fabric/tree/milestone/22):

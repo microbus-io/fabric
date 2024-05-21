@@ -664,7 +664,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 
 	// Create the client microservice
 	client := New("client.mass.multicast.connector")
-	client.SetDeployment(TESTINGAPP)
+	client.SetDeployment(TESTING)
 	client.SetPlane(randomPlane)
 
 	err := client.Startup()
@@ -679,7 +679,7 @@ func TestConnector_MassMulticast(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			cons[i] = New("mass.multicast.connector")
-			cons[i].SetDeployment(TESTINGAPP)
+			cons[i].SetDeployment(TESTING)
 			cons[i].SetPlane(randomPlane)
 			cons[i].Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 				w.Write([]byte("ok"))
@@ -885,7 +885,7 @@ func TestConnector_UnconsumedResponse(t *testing.T) {
 		i := i
 		go func() {
 			cons[i] = New("unconsumed.response.connector")
-			cons[i].SetDeployment(TESTINGAPP)
+			cons[i].SetDeployment(TESTING)
 			cons[i].Subscribe("GET", "multicast", func(w http.ResponseWriter, r *http.Request) error {
 				atomic.AddInt32(&responses, 1)
 				return nil
@@ -962,7 +962,7 @@ func TestConnector_UnicastToNoQueue(t *testing.T) {
 		i := i
 		go func() {
 			cons[i] = New("unicast.to.no.queue.connector")
-			cons[i].SetDeployment(TESTINGAPP)
+			cons[i].SetDeployment(TESTING)
 			cons[i].Subscribe("GET", "no-queue", func(w http.ResponseWriter, r *http.Request) error {
 				return nil
 			}, sub.NoQueue())

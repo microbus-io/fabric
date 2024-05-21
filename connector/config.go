@@ -70,7 +70,7 @@ func (c *Connector) Config(name string) (value string) {
 
 // SetConfig sets the value of a previously defined config property.
 // This value will be overridden on the next fetch of configs from the configurator core microservice,
-// which is the reason it is disabled in the TESTINGAPP environment.
+// and should generally be done only in the TESTING deployment in which fetching is disabled for that reason.
 // Config property names are case-insensitive.
 func (c *Connector) SetConfig(name string, value any) error {
 	c.configLock.Lock()
@@ -109,7 +109,7 @@ func (c *Connector) SetConfig(name string, value any) error {
 
 // ResetConfig resets the value of a previously defined config property to its default value.
 // This value will be overridden on the next fetch of configs from the configurator core microservice,
-// which is the reason it is disabled in the TESTINGAPP environment.
+// which is the reason it is disabled in the TESTING environment.
 // Config property names are case-insensitive.
 func (c *Connector) ResetConfig(name string) error {
 	c.configLock.Lock()
@@ -144,7 +144,7 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	var fetchedValues struct {
 		Values map[string]string `json:"values"`
 	}
-	if c.deployment == TESTINGAPP {
+	if c.deployment == TESTING {
 		c.LogDebug(c.Lifetime(), "Configurator disabled while testing")
 		fetchedValues.Values = map[string]string{}
 		c.configLock.Lock()

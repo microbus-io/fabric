@@ -327,7 +327,6 @@ func (svc *Intermediate) TimeBudget() (budget time.Duration) {
 
 /*
 SetTimeBudget sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 TimeBudget specifies the timeout for handling a request, after it has been read.
 A value of 0 or less indicates no time budget.
@@ -346,7 +345,6 @@ func (svc *Intermediate) Ports() (port string) {
 
 /*
 SetPorts sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 Ports is a comma-separated list of HTTP ports on which to listen for requests.
 */
@@ -365,7 +363,6 @@ func (svc *Intermediate) RequestMemoryLimit() (megaBytes int) {
 
 /*
 SetRequestMemoryLimit sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
 */
@@ -384,7 +381,6 @@ func (svc *Intermediate) AllowedOrigins() (origins string) {
 
 /*
 SetAllowedOrigins sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
 The * origin can be used to allow CORS request from all origins.
@@ -410,7 +406,6 @@ func (svc *Intermediate) PortMappings() (mappings string) {
 
 /*
 SetPortMappings sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 PortMappings is a comma-separated list of mappings in the form x:y->z where x is the inbound
 HTTP port, y is the requested NATS port, and z is the port to serve.
@@ -436,7 +431,6 @@ func (svc *Intermediate) ReadTimeout() (timeout time.Duration) {
 
 /*
 SetReadTimeout sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 ReadTimeout specifies the timeout for fully reading a request.
 */
@@ -455,7 +449,6 @@ func (svc *Intermediate) WriteTimeout() (timeout time.Duration) {
 
 /*
 SetWriteTimeout sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 WriteTimeout specifies the timeout for fully writing the response to a request.
 */
@@ -474,7 +467,6 @@ func (svc *Intermediate) ReadHeaderTimeout() (timeout time.Duration) {
 
 /*
 SetReadHeaderTimeout sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
 */
@@ -494,7 +486,6 @@ func (svc *Intermediate) Middleware() (viaURL string) {
 
 /*
 SetMiddleware sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 Middleware defines a microservice to delegate all requests to.
 The URL of the middleware must be fully qualified, for example,
@@ -515,7 +506,6 @@ func (svc *Intermediate) ServerLanguages() (languages string) {
 
 /*
 SetServerLanguages sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 ServerLanguages is a comma-separated list of languages that the server supports.
 This list is matched against the Accept-Language header of the request.
@@ -536,7 +526,6 @@ func (svc *Intermediate) BlockedPaths() (blockedPaths string) {
 
 /*
 SetBlockedPaths sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
 Paths should not include any arguments.

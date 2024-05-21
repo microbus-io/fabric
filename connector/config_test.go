@@ -25,7 +25,7 @@ func TestConnector_SetConfig(t *testing.T) {
 
 	// Mock config service
 	mockCfg := New("configurator.sys")
-	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTINGAPP
+	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTING
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
@@ -39,7 +39,7 @@ func TestConnector_SetConfig(t *testing.T) {
 
 	// Connector
 	con := New("set.config.connector")
-	con.SetDeployment(LAB) // Configs are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Configs are disabled in TESTING
 	con.SetPlane(plane)
 
 	err = con.DefineConfig("s", cfg.DefaultValue("default"))
@@ -72,7 +72,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 
 	// Mock a config service
 	mockCfg := New("configurator.sys")
-	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTINGAPP
+	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTING
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
@@ -86,7 +86,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 
 	// Connector
 	con := New("fetch.config.connector")
-	con.SetDeployment(LAB) // Configs are disabled in TESTINGAPP
+	con.SetDeployment(LAB) // Configs are disabled in TESTING
 	con.SetPlane(plane)
 	err = con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	assert.NoError(t, err)

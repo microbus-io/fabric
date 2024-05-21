@@ -52,12 +52,12 @@ func New() *Application {
 // NewTesting creates a new application for running in a unit test environment.
 // An application is a collection of microservices that run in a single process and share the same lifecycle.
 // A random plane of communication is used to isolate the testing app from other apps.
-// Tickers of microservices do not run in the TESTINGAPP deployment environment.
+// Tickers of microservices do not run in the TESTING deployment environment.
 func NewTesting() *Application {
 	app := &Application{
 		sig:            make(chan os.Signal, 1),
 		plane:          rand.AlphaNum64(12),
-		deployment:     connector.TESTINGAPP,
+		deployment:     connector.TESTING,
 		startupTimeout: time.Second * 8,
 	}
 	return app

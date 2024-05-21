@@ -59,7 +59,7 @@ on the requested port.`)
 
 // doOnStartup makes sure that the mock is not executed in a non-dev environment.
 func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
-	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTINGAPP {
+	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil

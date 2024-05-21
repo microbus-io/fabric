@@ -256,7 +256,6 @@ func (svc *Intermediate) SQL() (dsn string) {
 
 /*
 SetSQL sets the value of the configuration property.
-Settings configs is only enabled in the TESTINGAPP environment where the configurator core microservice is disabled.
 
 SQL is the connection string to the database.
 */

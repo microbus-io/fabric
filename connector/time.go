@@ -30,7 +30,7 @@ type tickerCallback struct {
 }
 
 // StartTicker initiates a recurring job at a set interval.
-// Tickers do not run when the connector is running in the TESTINGAPP deployment environment.
+// Tickers do not run when the connector is running in the TESTING deployment environment.
 func (c *Connector) StartTicker(name string, interval time.Duration, handler service.TickerHandler) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return c.captureInitErr(errors.Trace(err))
@@ -81,7 +81,7 @@ func (c *Connector) runTickers() {
 
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *tickerCallback) {
-	if c.deployment == TESTINGAPP {
+	if c.deployment == TESTING {
 		c.LogDebug(c.Lifetime(), "Ticker disabled while testing", log.String("name", job.Name))
 		return
 	}
