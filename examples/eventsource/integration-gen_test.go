@@ -117,7 +117,14 @@ func TestMain(m *testing.M) {
 
 // Context creates a new context for a test.
 func Context(t *testing.T) context.Context {
-	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		t.Cleanup(cancel)
+	}
+	ctx = frame.CloneContext(ctx)
+	return ctx
 }
 
 // RegisterTestCase assists in asserting against the results of executing Register.

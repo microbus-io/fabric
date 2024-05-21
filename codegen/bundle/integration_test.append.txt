@@ -4,15 +4,16 @@
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	/*
+		ctx := Context(t)
 		{{ .Name }}(t, ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }}).
 			{{- if .Signature.OutputArgs }}
-			Expect({{ range $i, $e := .Signature.OutputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }}).
-			{{- end }}
+			Expect({{ range $i, $e := .Signature.OutputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }})
+			{{- else }}
 			NoError()
+			{{- end }}
 	*/
 
 	// TO{{/**/}}DO: Test {{ .Name }}
-	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
@@ -21,6 +22,7 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	// No parallel: event sinks might clash across tests
 	/*
+		ctx := Context(t)
 		tc := {{ .Name }}(t).
 			Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }}{{ end }}).
 			Return({{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err)
@@ -29,7 +31,6 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	*/
 
 	// TO{{/**/}}DO: Test {{ .Name }}
-	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
@@ -37,35 +38,22 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	/*
+		ctx := Context(t)
+		httpReq := http.NewRequest(method, "", body)
 	{{- if eq .Method "*" }}
-		{{ .Name }}Get(t, ctx, "").
-			BodyContains(value).
-			NoError()
-		{{ .Name }}Post(t, ctx, "", "", body).
-			BodyContains(value).
-			NoError()
-		{{ .Name }}(t, ctx, httpRequest).
-			BodyContains(value).
-			NoError()
+		{{ .Name }}Get(t, ctx, "").BodyContains(value)
+		{{ .Name }}Post(t, ctx, "", "", body).BodyContains(value)
+		{{ .Name }}(t, ctx, httpRequest).BodyContains(value)
 	{{- else if .MethodWithBody }}
-		{{ .Name }}Any(t, ctx, httpRequest).
-			BodyContains(value).
-			NoError()
-		{{ .Name }}(t, ctx, "", "", body).
-			BodyContains(value).
-			NoError()
+		{{ .Name }}Any(t, ctx, httpRequest).BodyContains(value)
+		{{ .Name }}(t, ctx, "", "", body).BodyContains(value)
 	{{- else }}
-		{{ .Name }}Any(t, ctx, httpRequest).
-			BodyContains(value).
-			NoError()
-		{{ .Name }}(t, ctx, "")..
-			BodyContains(value).
-			NoError()
+		{{ .Name }}Any(t, ctx, httpRequest).BodyContains(value)
+		{{ .Name }}(t, ctx, "").BodyContains(value)
 	{{- end }}
 	*/
 
 	// TO{{/**/}}DO: Test {{ .Name }}
-	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
@@ -73,12 +61,11 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	/*
-		{{ .Name }}(t, ctx).
-			NoError()
+		ctx := Context(t)
+		{{ .Name }}(t, ctx).NoError()
 	*/
 
 	// TO{{/**/}}DO: Test {{ .Name }}
-	// ctx := Context(t)
 }
 {{ end }}{{ end }}
 
@@ -86,11 +73,10 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 func Test{{ $pkg }}_OnChanged{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	/*
-		OnChanged{{ .Name }}(t, ctx).
-			NoError()
+		ctx := Context(t)
+		OnChanged{{ .Name }}(t, ctx).NoError()
 	*/
 
 	// TO{{/**/}}DO: Test OnChanged{{ .Name }}
-	// ctx := Context(t)
 }
 {{ end }}{{ end }}{{ end }}

@@ -379,7 +379,7 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 		return errors.New("not started")
 	}
 	atomic.AddInt32(&c.pendingOps, 1)
-	subCtx := frame.Copy(c.lifetimeCtx, ctx)                           // Copy the frame headers
+	subCtx := frame.ContextWithFrameOf(c.lifetimeCtx, ctx)             // Copy the frame headers
 	subCtx = trace.ContextWithSpan(subCtx, trace.SpanFromContext(ctx)) // Copy the tracing context
 	go func() {
 		defer atomic.AddInt32(&c.pendingOps, -1)

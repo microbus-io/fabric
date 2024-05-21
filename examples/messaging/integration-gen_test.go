@@ -117,7 +117,14 @@ func TestMain(m *testing.M) {
 
 // Context creates a new context for a test.
 func Context(t *testing.T) context.Context {
-	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		t.Cleanup(cancel)
+	}
+	ctx = frame.CloneContext(ctx)
+	return ctx
 }
 
 // HomeTestCase assists in asserting against the results of executing Home.
@@ -541,11 +548,13 @@ func HomeGet(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Home(w, r.WithContext(ctx))
+		return Svc.Home(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -570,7 +579,15 @@ func HomePost(t *testing.T, ctx context.Context, url string, contentType string,
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -578,11 +595,10 @@ func HomePost(t *testing.T, ctx context.Context, url string, contentType string,
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Home(w, r.WithContext(ctx))
+		return Svc.Home(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -594,7 +610,7 @@ Home demonstrates making requests using multicast and unicast request/response p
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func Home(t *testing.T, ctx context.Context, r *http.Request) *HomeTestCase {
+func Home(t *testing.T, r *http.Request) *HomeTestCase {
 	tc := &HomeTestCase{t: t}
 	var err error
 	if r == nil {
@@ -614,11 +630,13 @@ func Home(t *testing.T, ctx context.Context, r *http.Request) *HomeTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Home(w, r.WithContext(ctx))
+		return Svc.Home(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -1048,11 +1066,13 @@ func NoQueueGet(t *testing.T, ctx context.Context, url string) *NoQueueTestCase 
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.NoQueue(w, r.WithContext(ctx))
+		return Svc.NoQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1079,7 +1099,15 @@ func NoQueuePost(t *testing.T, ctx context.Context, url string, contentType stri
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1087,11 +1115,10 @@ func NoQueuePost(t *testing.T, ctx context.Context, url string, contentType stri
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.NoQueue(w, r.WithContext(ctx))
+		return Svc.NoQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1105,7 +1132,7 @@ All instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func NoQueue(t *testing.T, ctx context.Context, r *http.Request) *NoQueueTestCase {
+func NoQueue(t *testing.T, r *http.Request) *NoQueueTestCase {
 	tc := &NoQueueTestCase{t: t}
 	var err error
 	if r == nil {
@@ -1125,11 +1152,13 @@ func NoQueue(t *testing.T, ctx context.Context, r *http.Request) *NoQueueTestCas
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.NoQueue(w, r.WithContext(ctx))
+		return Svc.NoQueue(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -1559,11 +1588,13 @@ func DefaultQueueGet(t *testing.T, ctx context.Context, url string) *DefaultQueu
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.DefaultQueue(w, r.WithContext(ctx))
+		return Svc.DefaultQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1590,7 +1621,15 @@ func DefaultQueuePost(t *testing.T, ctx context.Context, url string, contentType
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1598,11 +1637,10 @@ func DefaultQueuePost(t *testing.T, ctx context.Context, url string, contentType
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.DefaultQueue(w, r.WithContext(ctx))
+		return Svc.DefaultQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1616,7 +1654,7 @@ Only one of the instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func DefaultQueue(t *testing.T, ctx context.Context, r *http.Request) *DefaultQueueTestCase {
+func DefaultQueue(t *testing.T, r *http.Request) *DefaultQueueTestCase {
 	tc := &DefaultQueueTestCase{t: t}
 	var err error
 	if r == nil {
@@ -1636,11 +1674,13 @@ func DefaultQueue(t *testing.T, ctx context.Context, r *http.Request) *DefaultQu
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.DefaultQueue(w, r.WithContext(ctx))
+		return Svc.DefaultQueue(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -2068,11 +2108,13 @@ func CacheLoadGet(t *testing.T, ctx context.Context, url string) *CacheLoadTestC
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.CacheLoad(w, r.WithContext(ctx))
+		return Svc.CacheLoad(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -2097,7 +2139,15 @@ func CacheLoadPost(t *testing.T, ctx context.Context, url string, contentType st
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2105,11 +2155,10 @@ func CacheLoadPost(t *testing.T, ctx context.Context, url string, contentType st
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.CacheLoad(w, r.WithContext(ctx))
+		return Svc.CacheLoad(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -2121,7 +2170,7 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func CacheLoad(t *testing.T, ctx context.Context, r *http.Request) *CacheLoadTestCase {
+func CacheLoad(t *testing.T, r *http.Request) *CacheLoadTestCase {
 	tc := &CacheLoadTestCase{t: t}
 	var err error
 	if r == nil {
@@ -2141,11 +2190,13 @@ func CacheLoad(t *testing.T, ctx context.Context, r *http.Request) *CacheLoadTes
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.CacheLoad(w, r.WithContext(ctx))
+		return Svc.CacheLoad(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -2573,11 +2624,13 @@ func CacheStoreGet(t *testing.T, ctx context.Context, url string) *CacheStoreTes
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.CacheStore(w, r.WithContext(ctx))
+		return Svc.CacheStore(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -2602,7 +2655,15 @@ func CacheStorePost(t *testing.T, ctx context.Context, url string, contentType s
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2610,11 +2671,10 @@ func CacheStorePost(t *testing.T, ctx context.Context, url string, contentType s
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.CacheStore(w, r.WithContext(ctx))
+		return Svc.CacheStore(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -2626,7 +2686,7 @@ CacheStore stores an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func CacheStore(t *testing.T, ctx context.Context, r *http.Request) *CacheStoreTestCase {
+func CacheStore(t *testing.T, r *http.Request) *CacheStoreTestCase {
 	tc := &CacheStoreTestCase{t: t}
 	var err error
 	if r == nil {
@@ -2646,11 +2706,13 @@ func CacheStore(t *testing.T, ctx context.Context, r *http.Request) *CacheStoreT
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.CacheStore(w, r.WithContext(ctx))
+		return Svc.CacheStore(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)

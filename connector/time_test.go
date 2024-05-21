@@ -42,7 +42,7 @@ func TestConnector_ClockOffset(t *testing.T) {
 	defer beta.Shutdown()
 
 	// Shift the time in the context one minute in the past
-	ctx := context.WithValue(context.Background(), frame.ContextKey, make(http.Header))
+	ctx := frame.ContextWithFrameOf(context.Background(), nil)
 	frame.Of(ctx).SetClockShift(-time.Minute)
 
 	// Send message and validate that beta receives the offset time
@@ -56,7 +56,7 @@ func TestConnector_ClockOffset(t *testing.T) {
 	assert.Equal(t, -time.Minute, betaShift)
 
 	// Shift the time in the context one hour in the future
-	ctx = context.WithValue(context.Background(), frame.ContextKey, make(http.Header))
+	ctx = frame.ContextWithFrameOf(context.Background(), nil)
 	frame.Of(ctx).SetClockShift(time.Hour)
 
 	// Send message and validate that beta receives the offset time

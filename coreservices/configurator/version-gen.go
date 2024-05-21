@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package configurator
 
-const Version = 130
+const Version = 134
 const SourceCodeSHA256 = "60049a02bb856b0f7c70211e6843e33ba340285ac50cb8d3ab21e02e32a58e80"
-const Timestamp = "2024-05-20T14:36:53.362383Z"
+const Timestamp = "2024-05-21T03:08:48.85178Z"
 
 /* {
-	"ver": 130,
+	"ver": 134,
 	"sha256": "60049a02bb856b0f7c70211e6843e33ba340285ac50cb8d3ab21e02e32a58e80",
-	"ts": "2024-05-20T14:36:53.362383Z"
+	"ts": "2024-05-21T03:08:48.85178Z"
 } */

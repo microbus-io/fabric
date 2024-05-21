@@ -117,7 +117,14 @@ func TestMain(m *testing.M) {
 
 // Context creates a new context for a test.
 func Context(t *testing.T) context.Context {
-	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		t.Cleanup(cancel)
+	}
+	ctx = frame.CloneContext(ctx)
+	return ctx
 }
 
 // BrowseTestCase assists in asserting against the results of executing Browse.
@@ -541,11 +548,13 @@ func BrowseGet(t *testing.T, ctx context.Context, url string) *BrowseTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Browse(w, r.WithContext(ctx))
+		return Svc.Browse(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -570,7 +579,15 @@ func BrowsePost(t *testing.T, ctx context.Context, url string, contentType strin
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -578,11 +595,10 @@ func BrowsePost(t *testing.T, ctx context.Context, url string, contentType strin
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Browse(w, r.WithContext(ctx))
+		return Svc.Browse(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -594,7 +610,7 @@ Browser shows a simple address bar and the source code of a URL.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func Browse(t *testing.T, ctx context.Context, r *http.Request) *BrowseTestCase {
+func Browse(t *testing.T, r *http.Request) *BrowseTestCase {
 	tc := &BrowseTestCase{t: t}
 	var err error
 	if r == nil {
@@ -614,11 +630,13 @@ func Browse(t *testing.T, ctx context.Context, r *http.Request) *BrowseTestCase 
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Browse(w, r.WithContext(ctx))
+		return Svc.Browse(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)

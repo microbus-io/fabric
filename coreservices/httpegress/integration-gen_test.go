@@ -117,7 +117,14 @@ func TestMain(m *testing.M) {
 
 // Context creates a new context for a test.
 func Context(t *testing.T) context.Context {
-	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		t.Cleanup(cancel)
+	}
+	ctx = frame.CloneContext(ctx)
+	return ctx
 }
 
 // MakeRequestTestCase assists in asserting against the results of executing MakeRequest.
@@ -537,7 +544,15 @@ func MakeRequest(t *testing.T, ctx context.Context, url string, contentType stri
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest(`POST`, url, body)
+	r, err := httpx.NewRequest(`POST`, url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -545,11 +560,10 @@ func MakeRequest(t *testing.T, ctx context.Context, url string, contentType stri
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.MakeRequest(w, r.WithContext(ctx))
+		return Svc.MakeRequest(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -564,7 +578,7 @@ The proxied request is expected to be posted in the body of the request in binar
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func MakeRequestAny(t *testing.T, ctx context.Context, r *http.Request) *MakeRequestTestCase {
+func MakeRequestAny(t *testing.T, r *http.Request) *MakeRequestTestCase {
 	tc := &MakeRequestTestCase{t: t}
 	var err error
 	if r == nil {
@@ -584,11 +598,13 @@ func MakeRequestAny(t *testing.T, ctx context.Context, r *http.Request) *MakeReq
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.MakeRequest(w, r.WithContext(ctx))
+		return Svc.MakeRequest(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)

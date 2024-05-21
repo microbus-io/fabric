@@ -117,7 +117,14 @@ func TestMain(m *testing.M) {
 
 // Context creates a new context for a test.
 func Context(t *testing.T) context.Context {
-	return context.WithValue(context.Background(), frame.ContextKey, http.Header{})
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		t.Cleanup(cancel)
+	}
+	ctx = frame.CloneContext(ctx)
+	return ctx
 }
 
 // HelloTestCase assists in asserting against the results of executing Hello.
@@ -541,11 +548,13 @@ func HelloGet(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Hello(w, r.WithContext(ctx))
+		return Svc.Hello(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -570,7 +579,15 @@ func HelloPost(t *testing.T, ctx context.Context, url string, contentType string
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -578,11 +595,10 @@ func HelloPost(t *testing.T, ctx context.Context, url string, contentType string
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Hello(w, r.WithContext(ctx))
+		return Svc.Hello(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -594,7 +610,7 @@ Hello prints a greeting.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func Hello(t *testing.T, ctx context.Context, r *http.Request) *HelloTestCase {
+func Hello(t *testing.T, r *http.Request) *HelloTestCase {
 	tc := &HelloTestCase{t: t}
 	var err error
 	if r == nil {
@@ -614,11 +630,13 @@ func Hello(t *testing.T, ctx context.Context, r *http.Request) *HelloTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Hello(w, r.WithContext(ctx))
+		return Svc.Hello(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -1046,11 +1064,13 @@ func EchoGet(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Echo(w, r.WithContext(ctx))
+		return Svc.Echo(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1075,7 +1095,15 @@ func EchoPost(t *testing.T, ctx context.Context, url string, contentType string,
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1083,11 +1111,10 @@ func EchoPost(t *testing.T, ctx context.Context, url string, contentType string,
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Echo(w, r.WithContext(ctx))
+		return Svc.Echo(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1099,7 +1126,7 @@ Echo back the incoming request in wire format.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func Echo(t *testing.T, ctx context.Context, r *http.Request) *EchoTestCase {
+func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 	tc := &EchoTestCase{t: t}
 	var err error
 	if r == nil {
@@ -1119,11 +1146,13 @@ func Echo(t *testing.T, ctx context.Context, r *http.Request) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Echo(w, r.WithContext(ctx))
+		return Svc.Echo(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -1551,11 +1580,13 @@ func PingGet(t *testing.T, ctx context.Context, url string) *PingTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Ping(w, r.WithContext(ctx))
+		return Svc.Ping(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1580,7 +1611,15 @@ func PingPost(t *testing.T, ctx context.Context, url string, contentType string,
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1588,11 +1627,10 @@ func PingPost(t *testing.T, ctx context.Context, url string, contentType string,
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Ping(w, r.WithContext(ctx))
+		return Svc.Ping(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -1604,7 +1642,7 @@ Ping all microservices and list them.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func Ping(t *testing.T, ctx context.Context, r *http.Request) *PingTestCase {
+func Ping(t *testing.T, r *http.Request) *PingTestCase {
 	tc := &PingTestCase{t: t}
 	var err error
 	if r == nil {
@@ -1624,11 +1662,13 @@ func Ping(t *testing.T, ctx context.Context, r *http.Request) *PingTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Ping(w, r.WithContext(ctx))
+		return Svc.Ping(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -2058,11 +2098,13 @@ func CalculatorGet(t *testing.T, ctx context.Context, url string) *CalculatorTes
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Calculator(w, r.WithContext(ctx))
+		return Svc.Calculator(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -2089,7 +2131,15 @@ func CalculatorPost(t *testing.T, ctx context.Context, url string, contentType s
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2097,11 +2147,10 @@ func CalculatorPost(t *testing.T, ctx context.Context, url string, contentType s
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Calculator(w, r.WithContext(ctx))
+		return Svc.Calculator(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -2115,7 +2164,7 @@ a call from one microservice to another.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func Calculator(t *testing.T, ctx context.Context, r *http.Request) *CalculatorTestCase {
+func Calculator(t *testing.T, r *http.Request) *CalculatorTestCase {
 	tc := &CalculatorTestCase{t: t}
 	var err error
 	if r == nil {
@@ -2135,11 +2184,13 @@ func Calculator(t *testing.T, ctx context.Context, r *http.Request) *CalculatorT
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Calculator(w, r.WithContext(ctx))
+		return Svc.Calculator(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -2564,11 +2615,13 @@ func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.BusJPEG(w, r.WithContext(ctx))
+		return Svc.BusJPEG(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -2582,7 +2635,7 @@ BusJPEG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func BusJPEGAny(t *testing.T, ctx context.Context, r *http.Request) *BusJPEGTestCase {
+func BusJPEGAny(t *testing.T, r *http.Request) *BusJPEGTestCase {
 	tc := &BusJPEGTestCase{t: t}
 	var err error
 	if r == nil {
@@ -2602,11 +2655,13 @@ func BusJPEGAny(t *testing.T, ctx context.Context, r *http.Request) *BusJPEGTest
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.BusJPEG(w, r.WithContext(ctx))
+		return Svc.BusJPEG(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
@@ -3034,11 +3089,13 @@ func LocalizationGet(t *testing.T, ctx context.Context, url string) *Localizatio
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Localization(w, r.WithContext(ctx))
+		return Svc.Localization(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -3063,7 +3120,15 @@ func LocalizationPost(t *testing.T, ctx context.Context, url string, contentType
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3071,11 +3136,10 @@ func LocalizationPost(t *testing.T, ctx context.Context, url string, contentType
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Localization(w, r.WithContext(ctx))
+		return Svc.Localization(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -3087,7 +3151,7 @@ Localization prints hello in the language best matching the request's Accept-Lan
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func Localization(t *testing.T, ctx context.Context, r *http.Request) *LocalizationTestCase {
+func Localization(t *testing.T, r *http.Request) *LocalizationTestCase {
 	tc := &LocalizationTestCase{t: t}
 	var err error
 	if r == nil {
@@ -3107,11 +3171,13 @@ func Localization(t *testing.T, ctx context.Context, r *http.Request) *Localizat
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.Localization(w, r.WithContext(ctx))
+		return Svc.Localization(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)

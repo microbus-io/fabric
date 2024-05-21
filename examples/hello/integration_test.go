@@ -20,6 +20,7 @@ import (
 
 	"github.com/microbus-io/fabric/examples/calculator"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
+	"github.com/microbus-io/fabric/frame"
 )
 
 var (
@@ -103,10 +104,9 @@ func TestHello_Echo(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
 	r, _ := http.NewRequest("POST", "?echo=123", strings.NewReader("PostBody"))
 	r.Header.Set("Echo123", "EchoEchoEcho")
-	Echo(t, ctx, r).
+	Echo(t, r).
 		ContentType("text/plain").
 		BodyContains("Echo123: EchoEchoEcho").
 		BodyContains("?echo=123").
@@ -207,24 +207,25 @@ func TestHello_Localization(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
 	r, _ := http.NewRequest("GET", "", nil)
-	Localization(t, ctx, r).
+	frm := frame.Of(r)
+
+	Localization(t, r).
 		StatusOK().
 		BodyContains("Hello")
 
-	r.Header.Set("Accept-Language", "en")
-	Localization(t, ctx, r).
+	frm.SetLanguages("en")
+	Localization(t, r).
 		StatusOK().
 		BodyContains("Hello")
 
-	r.Header.Set("Accept-Language", "en-NZ")
-	Localization(t, ctx, r).
+	frm.SetLanguages("en-NZ")
+	Localization(t, r).
 		StatusOK().
 		BodyContains("Hello")
 
-	r.Header.Set("Accept-Language", "it")
-	Localization(t, ctx, r).
+	frm.SetLanguages("it")
+	Localization(t, r).
 		StatusOK().
 		BodyContains("Salve")
 }

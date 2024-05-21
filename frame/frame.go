@@ -46,56 +46,42 @@ type Frame struct {
 	h http.Header
 }
 
-// Of creates a new frame for the headers of the HTTP request, response or response writer.
-func Of(r any) Frame {
+// Of creates a new frame wrapping the headers of the HTTP request, response, response writer, header, or context.
+func Of(x any) Frame {
 	var h http.Header
-	switch v := r.(type) {
-	case *http.Request:
-		h = v.Header
-	case *http.Response:
-		h = v.Header
-	case http.ResponseWriter:
-		h = v.Header()
-	case http.Header:
-		h = v
-	case context.Context:
-		h, _ = v.Value(ContextKey).(http.Header)
-		if h == nil {
-			h = make(http.Header)
+	if x != nil {
+		switch v := x.(type) {
+		case *http.Request:
+			h = v.Header
+		case *http.Response:
+			h = v.Header
+		case http.ResponseWriter:
+			h = v.Header()
+		case http.Header:
+			h = v
+		case context.Context:
+			h, _ = v.Value(ContextKey).(http.Header)
 		}
 	}
+	// If h==nil, frame will be read-only, returning empty values
 	return Frame{h}
 }
 
-// Clone returns a new context with the frame of the original context.
-// Manipulating the frame of the result context does not impact the original context.
-// It is the equivalent of Copy(ctx, ctx)
-func Clone(ctx context.Context) (result context.Context) {
-	return Copy(ctx, ctx)
+// CloneContext returns a new context with a copy of the frame of the parent context, or a new frame if it does not have one.
+// Manipulating the frame of the cloned context does not impact the parent's.
+func CloneContext(parent context.Context) (cloned context.Context) {
+	return ContextWithFrameOf(parent, parent)
 }
 
-// Copy takes the frame of the source context and adds it to the destination context.
-// The result is a new context derived from the destination, but with the frame of the source.
-// Manipulating the frame of the new context does not impact the source or destination contexts.
-func Copy(dest context.Context, src context.Context) (result context.Context) {
-	f := Of(src)
+// ContextWithFrameOf returns a new context derived from the parent, with a copy of the frame of x.
+// If the parent included a frame, it will be superseded by the given frame.
+// Manipulating the frame of the new context does not impact the original frame.
+func ContextWithFrameOf(parent context.Context, x any) (ctx context.Context) {
 	h := make(http.Header)
-	for k, v := range f.h {
-		h[k] = v
+	for k, vv := range Of(x).h {
+		h[k] = append(h[k], vv...)
 	}
-	return context.WithValue(dest, ContextKey, h)
-}
-
-// ContextWithFrame returns the parent frame, if it already has the frame as one of its values.
-// Otherwise, it derives a new context and sets it with an empty frame.
-// In either case, the returned context is guaranteed to have a frame.
-func ContextWithFrame(parent context.Context) (ctx context.Context) {
-	h := parent.Value(ContextKey)
-	if h != nil {
-		return parent
-	}
-	ctx = context.WithValue(parent, ContextKey, http.Header{})
-	return ctx
+	return context.WithValue(parent, ContextKey, h)
 }
 
 // Get returns an arbitrary header.
@@ -389,4 +375,13 @@ func (f Frame) Languages() []string {
 		})
 	}
 	return result
+}
+
+// SetLanguages sets the Accept-Language header with the list of languages.
+func (f Frame) SetLanguages(language ...string) {
+	if len(language) == 0 {
+		f.h.Del("Accept-Language")
+	} else {
+		f.h.Set("Accept-Language", strings.Join(language, ", "))
+	}
 }

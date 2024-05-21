@@ -320,7 +320,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpRecorder.WriteHeader(http.StatusNoContent)
 	} else {
 		// Prepare the context
-		ctx := context.WithValue(ctx, frame.ContextKey, httpReq.Header)
+		ctx := frame.ContextWithFrameOf(ctx, httpReq.Header)
 		cancel := func() {}
 		if budget > 0 {
 			// Set the context's timeout to the time budget reduced by a network hop

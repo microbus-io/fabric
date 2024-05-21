@@ -424,11 +424,13 @@ func {{ .Name }}Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}T
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.Clone(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -453,7 +455,15 @@ func {{ .Name }}Post(t *testing.T, ctx context.Context, url string, contentType 
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest("POST", url, body)
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.Clone(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -461,11 +471,10 @@ func {{ .Name }}Post(t *testing.T, ctx context.Context, url string, contentType 
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -489,7 +498,15 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string, contentType stri
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r, err := httpx.NewRequest(`{{ .Method }}`, url, body)
+	r, err := httpx.NewRequest(`{{ .Method }}`, url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.Clone(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -497,11 +514,10 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string, contentType stri
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -527,11 +543,13 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx = frame.Clone(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -549,7 +567,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(t *testing.T, ctx context.Context, r *http.Request) *{{ .Name }}TestCase {
+func {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(t *testing.T, r *http.Request) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
 	var err error
 	if r == nil {
@@ -569,11 +587,13 @@ func {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(t *testing.T, ctx context.Co
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	ctx = context.WithValue(ctx, frame.ContextKey, r.Header)
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.{{ .Name }}(w, r.WithContext(ctx))
+		return Svc.{{ .Name }}(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)

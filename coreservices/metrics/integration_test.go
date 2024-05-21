@@ -137,11 +137,9 @@ func TestMetrics_Collect(t *testing.T) {
 func TestMetrics_GZip(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
-
 	r, _ := http.NewRequest("GET", "", nil)
 	r.Header.Set("Accept-Encoding", "gzip")
-	Collect(t, ctx, r).
+	Collect(t, r).
 		Assert(func(t *testing.T, res *http.Response, err error) {
 			assert.NoError(t, err)
 			assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
