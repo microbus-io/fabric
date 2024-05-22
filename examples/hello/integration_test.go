@@ -73,7 +73,7 @@ func TestHello_Hello(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	HelloGet(t, ctx, "").
+	Hello_Get(t, ctx, "").
 		ContentType("text/plain").
 		BodyContains(Svc.Greeting()).
 		BodyNotContains("Maria").
@@ -84,7 +84,7 @@ func TestHello_Hello(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
 		})
-	HelloGet(t, ctx, "?name=Maria").
+	Hello_Get(t, ctx, "?name=Maria").
 		ContentType("text/plain").
 		BodyContains(Svc.Greeting()).
 		BodyContains("Maria").
@@ -127,7 +127,7 @@ func TestHello_Ping(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	PingGet(t, ctx, "").
+	Ping_Get(t, ctx, "").
 		ContentType("text/plain").
 		BodyContains(Svc.ID() + "." + Svc.HostName())
 }
@@ -146,7 +146,7 @@ func TestHello_Calculator(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	CalculatorPost(t, ctx, "", "",
+	Calculator_Post(t, ctx, "", "",
 		url.Values{
 			"x":  []string{"500"},
 			"op": []string{"+"},
@@ -157,10 +157,10 @@ func TestHello_Calculator(t *testing.T) {
 		TagExists(`TR TD INPUT[name="x"]`).
 		TagExists(`TR TD SELECT[name="op"]`).
 		TagExists(`TR TD INPUT[name="y"]`)
-	CalculatorGet(t, ctx, "?x=5&op=*&y=80").
+	Calculator_Get(t, ctx, "?x=5&op=*&y=80").
 		ContentType("text/html").
 		TagEqual(`TD#result`, "400")
-	CalculatorPost(t, ctx, "", "application/x-www-form-urlencoded", `x=500&op=/&y=5`).
+	Calculator_Post(t, ctx, "", "application/x-www-form-urlencoded", `x=500&op=/&y=5`).
 		ContentType("text/html").
 		TagEqual(`TD#result`, "100")
 }
@@ -259,7 +259,7 @@ func TestHello_EchoClient(t *testing.T) {
 	}
 
 	// GET with no URL
-	res, err = client.EchoGet(ctx, "")
+	res, err = client.Echo_Get(ctx, "")
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -268,7 +268,7 @@ func TestHello_EchoClient(t *testing.T) {
 	}
 
 	// GET with only query string
-	res, err = client.EchoGet(ctx, "?arg=12345")
+	res, err = client.Echo_Get(ctx, "?arg=12345")
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -277,7 +277,7 @@ func TestHello_EchoClient(t *testing.T) {
 	}
 
 	// GET with relative URL and query string
-	res, err = client.EchoGet(ctx, "/echo?arg=12345")
+	res, err = client.Echo_Get(ctx, "/echo?arg=12345")
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -286,7 +286,7 @@ func TestHello_EchoClient(t *testing.T) {
 	}
 
 	// GET with absolute URL and query string
-	res, err = client.EchoGet(ctx, "https://"+HostName+"/echo?arg=12345")
+	res, err = client.Echo_Get(ctx, "https://"+HostName+"/echo?arg=12345")
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -299,7 +299,7 @@ func TestHello_EchoClient(t *testing.T) {
 		"pay":  []string{"11111"},
 		"load": []string{"22222"},
 	}
-	res, err = client.EchoPost(ctx, "", "", formDataPayload)
+	res, err = client.Echo_Post(ctx, "", "", formDataPayload)
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -310,7 +310,7 @@ func TestHello_EchoClient(t *testing.T) {
 	}
 
 	// POST with query string
-	res, err = client.EchoPost(ctx, "?arg=12345", "", formDataPayload)
+	res, err = client.Echo_Post(ctx, "?arg=12345", "", formDataPayload)
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -321,7 +321,7 @@ func TestHello_EchoClient(t *testing.T) {
 	}
 
 	// POST with content type
-	res, err = client.EchoPost(ctx, "", "text/plain", formDataPayload)
+	res, err = client.Echo_Post(ctx, "", "text/plain", formDataPayload)
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {

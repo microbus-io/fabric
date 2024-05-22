@@ -571,14 +571,14 @@ func MakeRequest(t *testing.T, ctx context.Context, url string, contentType stri
 }
 
 /*
-MakeRequestAny performs a customized request to the MakeRequest endpoint.
+MakeRequest_Do performs a customized request to the MakeRequest endpoint.
 
 MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
 The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func MakeRequestAny(t *testing.T, r *http.Request) *MakeRequestTestCase {
+func MakeRequest_Do(t *testing.T, r *http.Request) *MakeRequestTestCase {
 	tc := &MakeRequestTestCase{t: t}
 	var err error
 	if r == nil {

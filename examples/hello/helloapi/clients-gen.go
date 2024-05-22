@@ -109,13 +109,13 @@ func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 }
 
 /*
-HelloGet performs a GET request to the Hello endpoint.
+Hello_Get performs a GET request to the Hello endpoint.
 
 Hello prints a greeting.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) HelloGet(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) Hello_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfHello, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -128,13 +128,13 @@ func (_c *Client) HelloGet(ctx context.Context, url string) (res *http.Response,
 }
 
 /*
-HelloGet performs a GET request to the Hello endpoint.
+Hello_Get performs a GET request to the Hello endpoint.
 
 Hello prints a greeting.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) HelloGet(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) Hello_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfHello, url)
 	if err != nil {
@@ -144,7 +144,7 @@ func (_c *MulticastClient) HelloGet(ctx context.Context, url string) <-chan *pub
 }
 
 /*
-HelloPost performs a POST request to the Hello endpoint.
+Hello_Post performs a POST request to the Hello endpoint.
 
 Hello prints a greeting.
 
@@ -153,7 +153,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) HelloPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) Hello_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfHello, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -166,7 +166,7 @@ func (_c *Client) HelloPost(ctx context.Context, url string, contentType string,
 }
 
 /*
-HelloPost performs a POST request to the Hello endpoint.
+Hello_Post performs a POST request to the Hello endpoint.
 
 Hello prints a greeting.
 
@@ -175,7 +175,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) HelloPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) Hello_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfHello, url)
 	if err != nil {
@@ -228,13 +228,13 @@ func (_c *MulticastClient) Hello(ctx context.Context, r *http.Request) <-chan *p
 }
 
 /*
-EchoGet performs a GET request to the Echo endpoint.
+Echo_Get performs a GET request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) EchoGet(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) Echo_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfEcho, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -247,13 +247,13 @@ func (_c *Client) EchoGet(ctx context.Context, url string) (res *http.Response, 
 }
 
 /*
-EchoGet performs a GET request to the Echo endpoint.
+Echo_Get performs a GET request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) EchoGet(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) Echo_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfEcho, url)
 	if err != nil {
@@ -263,7 +263,7 @@ func (_c *MulticastClient) EchoGet(ctx context.Context, url string) <-chan *pub.
 }
 
 /*
-EchoPost performs a POST request to the Echo endpoint.
+Echo_Post performs a POST request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
@@ -272,7 +272,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) EchoPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) Echo_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfEcho, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -285,7 +285,7 @@ func (_c *Client) EchoPost(ctx context.Context, url string, contentType string, 
 }
 
 /*
-EchoPost performs a POST request to the Echo endpoint.
+Echo_Post performs a POST request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
@@ -294,7 +294,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) EchoPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) Echo_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfEcho, url)
 	if err != nil {
@@ -347,13 +347,13 @@ func (_c *MulticastClient) Echo(ctx context.Context, r *http.Request) <-chan *pu
 }
 
 /*
-PingGet performs a GET request to the Ping endpoint.
+Ping_Get performs a GET request to the Ping endpoint.
 
 Ping all microservices and list them.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) PingGet(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) Ping_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfPing, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -366,13 +366,13 @@ func (_c *Client) PingGet(ctx context.Context, url string) (res *http.Response, 
 }
 
 /*
-PingGet performs a GET request to the Ping endpoint.
+Ping_Get performs a GET request to the Ping endpoint.
 
 Ping all microservices and list them.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) PingGet(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) Ping_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfPing, url)
 	if err != nil {
@@ -382,7 +382,7 @@ func (_c *MulticastClient) PingGet(ctx context.Context, url string) <-chan *pub.
 }
 
 /*
-PingPost performs a POST request to the Ping endpoint.
+Ping_Post performs a POST request to the Ping endpoint.
 
 Ping all microservices and list them.
 
@@ -391,7 +391,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) PingPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) Ping_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfPing, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -404,7 +404,7 @@ func (_c *Client) PingPost(ctx context.Context, url string, contentType string, 
 }
 
 /*
-PingPost performs a POST request to the Ping endpoint.
+Ping_Post performs a POST request to the Ping endpoint.
 
 Ping all microservices and list them.
 
@@ -413,7 +413,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) PingPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) Ping_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfPing, url)
 	if err != nil {
@@ -466,7 +466,7 @@ func (_c *MulticastClient) Ping(ctx context.Context, r *http.Request) <-chan *pu
 }
 
 /*
-CalculatorGet performs a GET request to the Calculator endpoint.
+Calculator_Get performs a GET request to the Calculator endpoint.
 
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
@@ -474,7 +474,7 @@ a call from one microservice to another.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CalculatorGet(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) Calculator_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCalculator, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -487,7 +487,7 @@ func (_c *Client) CalculatorGet(ctx context.Context, url string) (res *http.Resp
 }
 
 /*
-CalculatorGet performs a GET request to the Calculator endpoint.
+Calculator_Get performs a GET request to the Calculator endpoint.
 
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
@@ -495,7 +495,7 @@ a call from one microservice to another.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) CalculatorGet(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) Calculator_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfCalculator, url)
 	if err != nil {
@@ -505,7 +505,7 @@ func (_c *MulticastClient) CalculatorGet(ctx context.Context, url string) <-chan
 }
 
 /*
-CalculatorPost performs a POST request to the Calculator endpoint.
+Calculator_Post performs a POST request to the Calculator endpoint.
 
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
@@ -516,7 +516,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) CalculatorPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) Calculator_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCalculator, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -529,7 +529,7 @@ func (_c *Client) CalculatorPost(ctx context.Context, url string, contentType st
 }
 
 /*
-CalculatorPost performs a POST request to the Calculator endpoint.
+Calculator_Post performs a POST request to the Calculator endpoint.
 
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
@@ -540,7 +540,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) CalculatorPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) Calculator_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfCalculator, url)
 	if err != nil {
@@ -628,13 +628,13 @@ func (_c *MulticastClient) BusJPEG(ctx context.Context, url string) <-chan *pub.
 }
 
 /*
-BusJPEGAny performs a customized request to the BusJPEG endpoint.
+BusJPEG_Do performs a customized request to the BusJPEG endpoint.
 
 BusJPEG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) BusJPEGAny(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) BusJPEG_Do(ctx context.Context, r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -653,13 +653,13 @@ func (_c *Client) BusJPEGAny(ctx context.Context, r *http.Request) (res *http.Re
 }
 
 /*
-BusJPEGAny performs a customized request to the BusJPEG endpoint.
+BusJPEG_Do performs a customized request to the BusJPEG endpoint.
 
 BusJPEG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) BusJPEGAny(ctx context.Context, r *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) BusJPEG_Do(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
@@ -675,13 +675,13 @@ func (_c *MulticastClient) BusJPEGAny(ctx context.Context, r *http.Request) <-ch
 }
 
 /*
-LocalizationGet performs a GET request to the Localization endpoint.
+Localization_Get performs a GET request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) LocalizationGet(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) Localization_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfLocalization, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -694,13 +694,13 @@ func (_c *Client) LocalizationGet(ctx context.Context, url string) (res *http.Re
 }
 
 /*
-LocalizationGet performs a GET request to the Localization endpoint.
+Localization_Get performs a GET request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) LocalizationGet(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) Localization_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfLocalization, url)
 	if err != nil {
@@ -710,7 +710,7 @@ func (_c *MulticastClient) LocalizationGet(ctx context.Context, url string) <-ch
 }
 
 /*
-LocalizationPost performs a POST request to the Localization endpoint.
+Localization_Post performs a POST request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
@@ -719,7 +719,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) LocalizationPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) Localization_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfLocalization, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -732,7 +732,7 @@ func (_c *Client) LocalizationPost(ctx context.Context, url string, contentType 
 }
 
 /*
-LocalizationPost performs a POST request to the Localization endpoint.
+Localization_Post performs a POST request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
@@ -741,7 +741,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) LocalizationPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) Localization_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfLocalization, url)
 	if err != nil {

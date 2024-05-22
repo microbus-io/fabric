@@ -405,13 +405,13 @@ func (tc *{{ .Name }}TestCase) Get() (res *http.Response, err error) {
 {{- if eq .Method "*" }}
 
 /*
-{{ .Name }}Get performs a GET request to the {{ .Name }} endpoint.
+{{ .Name }}_Get performs a GET request to the {{ .Name }} endpoint.
 
 {{ .Description }}
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func {{ .Name }}Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}TestCase {
+func {{ .Name }}_Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL({{ $pkg }}api.URLOf{{ .Name }}, url)
@@ -438,7 +438,7 @@ func {{ .Name }}Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}T
 }
 
 /*
-{{ .Name }}Post performs a POST request to the {{ .Name }} endpoint.
+{{ .Name }}_Post performs a POST request to the {{ .Name }} endpoint.
 
 {{ .Description }}
 
@@ -447,7 +447,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func {{ .Name }}Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *{{ .Name }}TestCase {
+func {{ .Name }}_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL({{ $pkg }}api.URLOf{{ .Name }}, url)
@@ -559,7 +559,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 {{- end }}
 
 /*
-{{ if ne .Method "*" }}{{ .Name }}Any performs a customized request to the {{ .Name }} endpoint.
+{{ if ne .Method "*" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
 
 {{ end -}}
 
@@ -567,7 +567,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(t *testing.T, r *http.Request) *{{ .Name }}TestCase {
+func {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(t *testing.T, r *http.Request) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
 	var err error
 	if r == nil {

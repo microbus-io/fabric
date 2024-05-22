@@ -529,13 +529,13 @@ func (tc *HomeTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-HomeGet performs a GET request to the Home endpoint.
+Home_Get performs a GET request to the Home endpoint.
 
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func HomeGet(t *testing.T, ctx context.Context, url string) *HomeTestCase {
+func Home_Get(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 	tc := &HomeTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfHome, url)
@@ -562,7 +562,7 @@ func HomeGet(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 }
 
 /*
-HomePost performs a POST request to the Home endpoint.
+Home_Post performs a POST request to the Home endpoint.
 
 Home demonstrates making requests using multicast and unicast request/response patterns.
 
@@ -571,7 +571,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func HomePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *HomeTestCase {
+func Home_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *HomeTestCase {
 	tc := &HomeTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfHome, url)
@@ -1045,7 +1045,7 @@ func (tc *NoQueueTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-NoQueueGet performs a GET request to the NoQueue endpoint.
+NoQueue_Get performs a GET request to the NoQueue endpoint.
 
 NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
@@ -1053,7 +1053,7 @@ All instances of this microservice will respond to each request.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func NoQueueGet(t *testing.T, ctx context.Context, url string) *NoQueueTestCase {
+func NoQueue_Get(t *testing.T, ctx context.Context, url string) *NoQueueTestCase {
 	tc := &NoQueueTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfNoQueue, url)
@@ -1080,7 +1080,7 @@ func NoQueueGet(t *testing.T, ctx context.Context, url string) *NoQueueTestCase 
 }
 
 /*
-NoQueuePost performs a POST request to the NoQueue endpoint.
+NoQueue_Post performs a POST request to the NoQueue endpoint.
 
 NoQueue demonstrates how the NoQueue subscription option is used to create
 a multicast request/response communication pattern.
@@ -1091,7 +1091,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func NoQueuePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *NoQueueTestCase {
+func NoQueue_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *NoQueueTestCase {
 	tc := &NoQueueTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfNoQueue, url)
@@ -1567,7 +1567,7 @@ func (tc *DefaultQueueTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-DefaultQueueGet performs a GET request to the DefaultQueue endpoint.
+DefaultQueue_Get performs a GET request to the DefaultQueue endpoint.
 
 DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
 a unicast request/response communication pattern.
@@ -1575,7 +1575,7 @@ Only one of the instances of this microservice will respond to each request.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func DefaultQueueGet(t *testing.T, ctx context.Context, url string) *DefaultQueueTestCase {
+func DefaultQueue_Get(t *testing.T, ctx context.Context, url string) *DefaultQueueTestCase {
 	tc := &DefaultQueueTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfDefaultQueue, url)
@@ -1602,7 +1602,7 @@ func DefaultQueueGet(t *testing.T, ctx context.Context, url string) *DefaultQueu
 }
 
 /*
-DefaultQueuePost performs a POST request to the DefaultQueue endpoint.
+DefaultQueue_Post performs a POST request to the DefaultQueue endpoint.
 
 DefaultQueue demonstrates how the DefaultQueue subscription option is used to create
 a unicast request/response communication pattern.
@@ -1613,7 +1613,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func DefaultQueuePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *DefaultQueueTestCase {
+func DefaultQueue_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *DefaultQueueTestCase {
 	tc := &DefaultQueueTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfDefaultQueue, url)
@@ -2089,13 +2089,13 @@ func (tc *CacheLoadTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-CacheLoadGet performs a GET request to the CacheLoad endpoint.
+CacheLoad_Get performs a GET request to the CacheLoad endpoint.
 
 CacheLoad looks up an element in the distributed cache of the microservice.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func CacheLoadGet(t *testing.T, ctx context.Context, url string) *CacheLoadTestCase {
+func CacheLoad_Get(t *testing.T, ctx context.Context, url string) *CacheLoadTestCase {
 	tc := &CacheLoadTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfCacheLoad, url)
@@ -2122,7 +2122,7 @@ func CacheLoadGet(t *testing.T, ctx context.Context, url string) *CacheLoadTestC
 }
 
 /*
-CacheLoadPost performs a POST request to the CacheLoad endpoint.
+CacheLoad_Post performs a POST request to the CacheLoad endpoint.
 
 CacheLoad looks up an element in the distributed cache of the microservice.
 
@@ -2131,7 +2131,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func CacheLoadPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *CacheLoadTestCase {
+func CacheLoad_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *CacheLoadTestCase {
 	tc := &CacheLoadTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfCacheLoad, url)
@@ -2605,13 +2605,13 @@ func (tc *CacheStoreTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-CacheStoreGet performs a GET request to the CacheStore endpoint.
+CacheStore_Get performs a GET request to the CacheStore endpoint.
 
 CacheStore stores an element in the distributed cache of the microservice.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func CacheStoreGet(t *testing.T, ctx context.Context, url string) *CacheStoreTestCase {
+func CacheStore_Get(t *testing.T, ctx context.Context, url string) *CacheStoreTestCase {
 	tc := &CacheStoreTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfCacheStore, url)
@@ -2638,7 +2638,7 @@ func CacheStoreGet(t *testing.T, ctx context.Context, url string) *CacheStoreTes
 }
 
 /*
-CacheStorePost performs a POST request to the CacheStore endpoint.
+CacheStore_Post performs a POST request to the CacheStore endpoint.
 
 CacheStore stores an element in the distributed cache of the microservice.
 
@@ -2647,7 +2647,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func CacheStorePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *CacheStoreTestCase {
+func CacheStore_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *CacheStoreTestCase {
 	tc := &CacheStoreTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfCacheStore, url)

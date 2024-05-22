@@ -105,13 +105,13 @@ func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 }
 
 /*
-ListGet performs a GET request to the List endpoint.
+List_Get performs a GET request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) ListGet(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) List_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfList, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -124,13 +124,13 @@ func (_c *Client) ListGet(ctx context.Context, url string) (res *http.Response, 
 }
 
 /*
-ListGet performs a GET request to the List endpoint.
+List_Get performs a GET request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) ListGet(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) List_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfList, url)
 	if err != nil {
@@ -140,7 +140,7 @@ func (_c *MulticastClient) ListGet(ctx context.Context, url string) <-chan *pub.
 }
 
 /*
-ListPost performs a POST request to the List endpoint.
+List_Post performs a POST request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
@@ -149,7 +149,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) ListPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) List_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfList, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -162,7 +162,7 @@ func (_c *Client) ListPost(ctx context.Context, url string, contentType string, 
 }
 
 /*
-ListPost performs a POST request to the List endpoint.
+List_Post performs a POST request to the List endpoint.
 
 List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
 
@@ -171,7 +171,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) ListPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) List_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfList, url)
 	if err != nil {

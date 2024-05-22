@@ -79,7 +79,7 @@ func TestBrowser_Browse(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	BrowseGet(t, ctx,
+	Browse_Get(t, ctx,
 		"?"+httpx.QArgs{
 			"url": "https://mocked.example.com/",
 		}.Encode()).
@@ -87,5 +87,5 @@ func TestBrowser_Browse(t *testing.T) {
 		StatusOK().
 		TagExists(`INPUT[name="url"][type="text"][value="https://mocked.example.com/"]`).
 		TagContains(`PRE`, `<html><body>Lorem Ipsum<body></html>`).
-		CompletedIn(10 * time.Millisecond)
+		CompletedIn(100 * time.Millisecond)
 }

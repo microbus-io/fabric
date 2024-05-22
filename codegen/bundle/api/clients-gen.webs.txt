@@ -12,13 +12,13 @@ func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 
 {{- if eq .Method "*" }}
 /*
-{{ .Name }}Get performs a GET request to the {{ .Name }} endpoint.
+{{ .Name }}_Get performs a GET request to the {{ .Name }} endpoint.
 
 {{ .Description }}
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) {{ .Name }}Get(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) {{ .Name }}_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -31,13 +31,13 @@ func (_c *Client) {{ .Name }}Get(ctx context.Context, url string) (res *http.Res
 }
 
 /*
-{{ .Name }}Get performs a GET request to the {{ .Name }} endpoint.
+{{ .Name }}_Get performs a GET request to the {{ .Name }} endpoint.
 
 {{ .Description }}
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) {{ .Name }}Get(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) {{ .Name }}_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
 	if err != nil {
@@ -47,7 +47,7 @@ func (_c *MulticastClient) {{ .Name }}Get(ctx context.Context, url string) <-cha
 }
 
 /*
-{{ .Name }}Post performs a POST request to the {{ .Name }} endpoint.
+{{ .Name }}_Post performs a POST request to the {{ .Name }} endpoint.
 
 {{ .Description }}
 
@@ -56,7 +56,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) {{ .Name }}Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) {{ .Name }}_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -69,7 +69,7 @@ func (_c *Client) {{ .Name }}Post(ctx context.Context, url string, contentType s
 }
 
 /*
-{{ .Name }}Post performs a POST request to the {{ .Name }} endpoint.
+{{ .Name }}_Post performs a POST request to the {{ .Name }} endpoint.
 
 {{ .Description }}
 
@@ -78,7 +78,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) {{ .Name }}Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) {{ .Name }}_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
 	if err != nil {
@@ -160,7 +160,7 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *
 {{- end }}
 
 /*
-{{ if ne .Method "*" }}{{ .Name }}Any performs a customized request to the {{ .Name }} endpoint.
+{{ if ne .Method "*" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
 
 {{ end -}}
 
@@ -168,7 +168,7 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(ctx context.Context, r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`{{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
 		if err != nil {
@@ -187,7 +187,7 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(ctx context.Con
 }
 
 /*
-{{ if ne .Method "*" }}{{ .Name }}Any performs a customized request to the {{ .Name }} endpoint.
+{{ if ne .Method "*" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
 
 {{ end -}}
 
@@ -195,7 +195,7 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(ctx context.Con
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) {{ .Name }}{{ if ne .Method "*" }}Any{{ end }}(ctx context.Context, r *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
 	if r == nil {
 		r, err = http.NewRequest(`{{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)

@@ -104,13 +104,13 @@ func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 }
 
 /*
-CollectGet performs a GET request to the Collect endpoint.
+Collect_Get performs a GET request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CollectGet(ctx context.Context, url string) (res *http.Response, err error) {
+func (_c *Client) Collect_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCollect, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -123,13 +123,13 @@ func (_c *Client) CollectGet(ctx context.Context, url string) (res *http.Respons
 }
 
 /*
-CollectGet performs a GET request to the Collect endpoint.
+Collect_Get performs a GET request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) CollectGet(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) Collect_Get(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfCollect, url)
 	if err != nil {
@@ -139,7 +139,7 @@ func (_c *MulticastClient) CollectGet(ctx context.Context, url string) <-chan *p
 }
 
 /*
-CollectPost performs a POST request to the Collect endpoint.
+Collect_Post performs a POST request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
@@ -148,7 +148,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *Client) CollectPost(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+func (_c *Client) Collect_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCollect, url)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -161,7 +161,7 @@ func (_c *Client) CollectPost(ctx context.Context, url string, contentType strin
 }
 
 /*
-CollectPost performs a POST request to the Collect endpoint.
+Collect_Post performs a POST request to the Collect endpoint.
 
 Collect returns the latest aggregated metrics.
 
@@ -170,7 +170,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func (_c *MulticastClient) CollectPost(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+func (_c *MulticastClient) Collect_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOfCollect, url)
 	if err != nil {

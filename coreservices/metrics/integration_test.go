@@ -57,7 +57,7 @@ func TestMetrics_Collect(t *testing.T) {
 	t.Parallel()
 
 	ctx := Context(t)
-	CollectGet(t, ctx, "").
+	Collect_Get(t, ctx, "").
 		// All three services should be detected
 		BodyContains("metrics.sys").
 		BodyNotContains("one.collect").
@@ -95,7 +95,7 @@ func TestMetrics_Collect(t *testing.T) {
 
 	// Loop until the new services are discovered
 	for {
-		tc := CollectGet(t, ctx, "")
+		tc := Collect_Get(t, ctx, "")
 		res, err := tc.Get()
 		assert.NoError(t, err)
 		body, err := io.ReadAll(res.Body)
@@ -107,7 +107,7 @@ func TestMetrics_Collect(t *testing.T) {
 		}
 	}
 
-	CollectGet(t, ctx, "").
+	Collect_Get(t, ctx, "").
 		// All three services should be detected
 		BodyContains("metrics.sys").
 		BodyContains("one.collect").
@@ -156,9 +156,9 @@ func TestMetrics_SecretKey(t *testing.T) {
 	// No parallel
 	ctx := Context(t)
 	Svc.SetSecretKey("secret1234")
-	CollectGet(t, ctx, "").
+	Collect_Get(t, ctx, "").
 		Error("incorrect secret key").
 		ErrorCode(http.StatusNotFound)
 	Svc.SetSecretKey("")
-	CollectGet(t, ctx, "").NoError()
+	Collect_Get(t, ctx, "").NoError()
 }

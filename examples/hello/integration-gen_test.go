@@ -529,13 +529,13 @@ func (tc *HelloTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-HelloGet performs a GET request to the Hello endpoint.
+Hello_Get performs a GET request to the Hello endpoint.
 
 Hello prints a greeting.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func HelloGet(t *testing.T, ctx context.Context, url string) *HelloTestCase {
+func Hello_Get(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 	tc := &HelloTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfHello, url)
@@ -562,7 +562,7 @@ func HelloGet(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 }
 
 /*
-HelloPost performs a POST request to the Hello endpoint.
+Hello_Post performs a POST request to the Hello endpoint.
 
 Hello prints a greeting.
 
@@ -571,7 +571,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func HelloPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *HelloTestCase {
+func Hello_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *HelloTestCase {
 	tc := &HelloTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfHello, url)
@@ -1045,13 +1045,13 @@ func (tc *EchoTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-EchoGet performs a GET request to the Echo endpoint.
+Echo_Get performs a GET request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func EchoGet(t *testing.T, ctx context.Context, url string) *EchoTestCase {
+func Echo_Get(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 	tc := &EchoTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfEcho, url)
@@ -1078,7 +1078,7 @@ func EchoGet(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 }
 
 /*
-EchoPost performs a POST request to the Echo endpoint.
+Echo_Post performs a POST request to the Echo endpoint.
 
 Echo back the incoming request in wire format.
 
@@ -1087,7 +1087,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func EchoPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *EchoTestCase {
+func Echo_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *EchoTestCase {
 	tc := &EchoTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfEcho, url)
@@ -1561,13 +1561,13 @@ func (tc *PingTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-PingGet performs a GET request to the Ping endpoint.
+Ping_Get performs a GET request to the Ping endpoint.
 
 Ping all microservices and list them.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func PingGet(t *testing.T, ctx context.Context, url string) *PingTestCase {
+func Ping_Get(t *testing.T, ctx context.Context, url string) *PingTestCase {
 	tc := &PingTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfPing, url)
@@ -1594,7 +1594,7 @@ func PingGet(t *testing.T, ctx context.Context, url string) *PingTestCase {
 }
 
 /*
-PingPost performs a POST request to the Ping endpoint.
+Ping_Post performs a POST request to the Ping endpoint.
 
 Ping all microservices and list them.
 
@@ -1603,7 +1603,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func PingPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *PingTestCase {
+func Ping_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *PingTestCase {
 	tc := &PingTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfPing, url)
@@ -2077,7 +2077,7 @@ func (tc *CalculatorTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-CalculatorGet performs a GET request to the Calculator endpoint.
+Calculator_Get performs a GET request to the Calculator endpoint.
 
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
@@ -2085,7 +2085,7 @@ a call from one microservice to another.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func CalculatorGet(t *testing.T, ctx context.Context, url string) *CalculatorTestCase {
+func Calculator_Get(t *testing.T, ctx context.Context, url string) *CalculatorTestCase {
 	tc := &CalculatorTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfCalculator, url)
@@ -2112,7 +2112,7 @@ func CalculatorGet(t *testing.T, ctx context.Context, url string) *CalculatorTes
 }
 
 /*
-CalculatorPost performs a POST request to the Calculator endpoint.
+Calculator_Post performs a POST request to the Calculator endpoint.
 
 Calculator renders a UI for a calculator.
 The calculation operation is delegated to another microservice in order to demonstrate
@@ -2123,7 +2123,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func CalculatorPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *CalculatorTestCase {
+func Calculator_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *CalculatorTestCase {
 	tc := &CalculatorTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfCalculator, url)
@@ -2629,13 +2629,13 @@ func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
 }
 
 /*
-BusJPEGAny performs a customized request to the BusJPEG endpoint.
+BusJPEG_Do performs a customized request to the BusJPEG endpoint.
 
 BusJPEG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func BusJPEGAny(t *testing.T, r *http.Request) *BusJPEGTestCase {
+func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 	tc := &BusJPEGTestCase{t: t}
 	var err error
 	if r == nil {
@@ -3070,13 +3070,13 @@ func (tc *LocalizationTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-LocalizationGet performs a GET request to the Localization endpoint.
+Localization_Get performs a GET request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func LocalizationGet(t *testing.T, ctx context.Context, url string) *LocalizationTestCase {
+func Localization_Get(t *testing.T, ctx context.Context, url string) *LocalizationTestCase {
 	tc := &LocalizationTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfLocalization, url)
@@ -3103,7 +3103,7 @@ func LocalizationGet(t *testing.T, ctx context.Context, url string) *Localizatio
 }
 
 /*
-LocalizationPost performs a POST request to the Localization endpoint.
+Localization_Post performs a POST request to the Localization endpoint.
 
 Localization prints hello in the language best matching the request's Accept-Language header.
 
@@ -3112,7 +3112,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func LocalizationPost(t *testing.T, ctx context.Context, url string, contentType string, body any) *LocalizationTestCase {
+func Localization_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *LocalizationTestCase {
 	tc := &LocalizationTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfLocalization, url)

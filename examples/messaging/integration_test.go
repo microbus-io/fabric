@@ -50,7 +50,7 @@ func TestMessaging_Home(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	HomeGet(t, ctx, "").
+	Home_Get(t, ctx, "").
 		BodyContains(Svc.ID()).
 		BodyContains(Svc2.ID())
 }
@@ -69,7 +69,7 @@ func TestMessaging_NoQueue(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	NoQueueGet(t, ctx, "").
+	NoQueue_Get(t, ctx, "").
 		BodyContains("NoQueue").
 		BodyContains(Svc.ID())
 }
@@ -88,7 +88,7 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	DefaultQueueGet(t, ctx, "").
+	DefaultQueue_Get(t, ctx, "").
 		BodyContains("DefaultQueue").
 		BodyContains(Svc.ID())
 }
@@ -107,15 +107,15 @@ func TestMessaging_CacheLoad(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	CacheLoadGet(t, ctx, "?key=l1").
+	CacheLoad_Get(t, ctx, "?key=l1").
 		BodyContains("found: no")
-	CacheStoreGet(t, ctx, "?key=l1&value=val-l1").
+	CacheStore_Get(t, ctx, "?key=l1&value=val-l1").
 		NoError()
-	CacheLoadGet(t, ctx, "?key=l1").
+	CacheLoad_Get(t, ctx, "?key=l1").
 		BodyContains("found: yes").
 		BodyContains("val-l1")
 
-	CacheLoadGet(t, ctx, "").
+	CacheLoad_Get(t, ctx, "").
 		Error("missing")
 }
 
@@ -133,27 +133,27 @@ func TestMessaging_CacheStore(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	CacheStoreGet(t, ctx, "?key=s1&value=s1-val").
+	CacheStore_Get(t, ctx, "?key=s1&value=s1-val").
 		BodyContains("s1-val").
 		BodyContains(Svc.ID())
-	CacheStoreGet(t, ctx, "?key=s2&value=s2-val").
+	CacheStore_Get(t, ctx, "?key=s2&value=s2-val").
 		BodyContains("s2-val").
 		BodyContains(Svc.ID())
-	CacheLoadGet(t, ctx, "?key=s1").
+	CacheLoad_Get(t, ctx, "?key=s1").
 		BodyContains("found: yes").
 		BodyContains("s1-val")
-	CacheLoadGet(t, ctx, "?key=s2").
+	CacheLoad_Get(t, ctx, "?key=s2").
 		BodyContains("found: yes").
 		BodyContains("s2-val")
-	CacheLoadGet(t, ctx, "?key=s3").
+	CacheLoad_Get(t, ctx, "?key=s3").
 		BodyContains("found: no")
 
-	CacheStoreGet(t, ctx, "").
+	CacheStore_Get(t, ctx, "").
 		Error("missing")
-	CacheStoreGet(t, ctx, "?key=x").
+	CacheStore_Get(t, ctx, "?key=x").
 		Error("missing")
-	CacheStoreGet(t, ctx, "?value=val-x").
+	CacheStore_Get(t, ctx, "?value=val-x").
 		Error("missing")
-	CacheLoadGet(t, ctx, "?key=x").
+	CacheLoad_Get(t, ctx, "?key=x").
 		BodyContains("found: no")
 }

@@ -143,14 +143,14 @@ func (_c *MulticastClient) MakeRequest(ctx context.Context, url string, contentT
 }
 
 /*
-MakeRequestAny performs a customized request to the MakeRequest endpoint.
+MakeRequest_Do performs a customized request to the MakeRequest endpoint.
 
 MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
 The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) MakeRequestAny(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) MakeRequest_Do(ctx context.Context, r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`POST`, "", nil)
 		if err != nil {
@@ -169,14 +169,14 @@ func (_c *Client) MakeRequestAny(ctx context.Context, r *http.Request) (res *htt
 }
 
 /*
-MakeRequestAny performs a customized request to the MakeRequest endpoint.
+MakeRequest_Do performs a customized request to the MakeRequest endpoint.
 
 MakeRequest proxies a request to a URL and returns the HTTP response, respecting the timeout set in the context.
 The proxied request is expected to be posted in the body of the request in binary form (RFC7231).
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) MakeRequestAny(ctx context.Context, r *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) MakeRequest_Do(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
 	if r == nil {
 		r, err = http.NewRequest(`POST`, "", nil)

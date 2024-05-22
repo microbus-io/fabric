@@ -529,13 +529,13 @@ func (tc *BrowseTestCase) Get() (res *http.Response, err error) {
 }
 
 /*
-BrowseGet performs a GET request to the Browse endpoint.
+Browse_Get performs a GET request to the Browse endpoint.
 
 Browser shows a simple address bar and the source code of a URL.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func BrowseGet(t *testing.T, ctx context.Context, url string) *BrowseTestCase {
+func Browse_Get(t *testing.T, ctx context.Context, url string) *BrowseTestCase {
 	tc := &BrowseTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(browserapi.URLOfBrowse, url)
@@ -562,7 +562,7 @@ func BrowseGet(t *testing.T, ctx context.Context, url string) *BrowseTestCase {
 }
 
 /*
-BrowsePost performs a POST request to the Browse endpoint.
+Browse_Post performs a POST request to the Browse endpoint.
 
 Browser shows a simple address bar and the source code of a URL.
 
@@ -571,7 +571,7 @@ If the body if of type io.Reader, []byte or string, it is serialized in binary f
 If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
 If a content type is not explicitly provided, an attempt will be made to derive it from the body.
 */
-func BrowsePost(t *testing.T, ctx context.Context, url string, contentType string, body any) *BrowseTestCase {
+func Browse_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *BrowseTestCase {
 	tc := &BrowseTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(browserapi.URLOfBrowse, url)
