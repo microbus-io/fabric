@@ -39,7 +39,7 @@ var (
 const HostName = "configurator.sys"
 
 // NewService creates a new configurator.sys microservice.
-func NewService() service.Service {
+func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.NewService(s, Version)
 	return s

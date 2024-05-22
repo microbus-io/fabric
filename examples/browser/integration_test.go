@@ -79,7 +79,10 @@ func TestBrowser_Browse(t *testing.T) {
 			NoError()
 	*/
 	ctx := Context(t)
-	BrowseGet(t, ctx, "?"+httpx.PrepareQueryString("url", "https://mocked.example.com/")).
+	BrowseGet(t, ctx,
+		"?"+httpx.QArgs{
+			"url": "https://mocked.example.com/",
+		}.Encode()).
 		NoError().
 		StatusOK().
 		TagExists(`INPUT[name="url"][type="text"][value="https://mocked.example.com/"]`).

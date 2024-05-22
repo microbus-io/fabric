@@ -23,10 +23,3 @@ func TestHttpx_JoinHostAndPath(t *testing.T) {
 	assert.Equal(t, "https://example.org:123/path", JoinHostAndPath("example.com", "https://example.org:123/path"))
 	assert.Equal(t, "https://example.org:123/path", JoinHostAndPath("example.com", "//example.org:123/path"))
 }
-
-func TestHttpx_PrepareQueryString(t *testing.T) {
-	assert.Equal(t, "b=true&i=1&s=x", PrepareQueryString("i", 1, "s", "x", "b", true))
-	assert.Equal(t, "a+p=%26", PrepareQueryString("a p", "&"))
-	assert.Equal(t, "", PrepareQueryString())
-	assert.Panics(t, func() { PrepareQueryString("uneven") })
-}

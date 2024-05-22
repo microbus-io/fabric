@@ -19,8 +19,8 @@ import (
 )
 
 // SetRequestBody sets the body of the request.
-// Arguments of type io.Reader, io.ReadCloser, []byte and string are serialized in binary form.
-// url.Values is serialized as form data.
+// Arguments of type [io.Reader], [io.ReadCloser], []byte and string are serialized in binary form.
+// [url.Values] and [QArgs] are serialized as form data.
 // All other types are serialized as JSON.
 // The Content-Type Content-Length headers will be set to match the body if they can be determined and unless already set.
 func SetRequestBody(r *http.Request, body any) error {
@@ -53,6 +53,13 @@ func SetRequestBody(r *http.Request, body any) error {
 			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 		r.Header.Set("Content-Length", strconv.Itoa(len(b)))
+	case QArgs:
+		b := []byte(v.Encode())
+		r.Body = NewBodyReader(b)
+		if !hasContentType {
+			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+		r.Header.Set("Content-Length", strconv.Itoa(len(b)))
 	default:
 		j, err := json.Marshal(body)
 		if err != nil {
@@ -67,9 +74,9 @@ func SetRequestBody(r *http.Request, body any) error {
 	return nil
 }
 
-// NewRequestWithContext returns a new [Request] given a method, URL, and optional body.
-// A body of type io.Reader, io.ReadCloser, []byte or string is serialized in binary form.
-// url.Values is serialized as form data.
+// NewRequestWithContext returns a new [http.Request] given a method, URL, and optional body.
+// Arguments of type [io.Reader], [io.ReadCloser], []byte and string are serialized in binary form.
+// [url.Values] and [QArgs] are serialized as form data.
 // All other types are serialized as JSON.
 // The Content-Type Content-Length headers will be set to match the body if they can be determined and unless already set.
 func NewRequestWithContext(ctx context.Context, method string, url string, body any) (*http.Request, error) {
@@ -84,7 +91,29 @@ func NewRequestWithContext(ctx context.Context, method string, url string, body 
 	return r, nil
 }
 
+// MustNewRequestWithContext returns a new [http.Request] given a method, URL, and optional body. It panics on error.
+// Arguments of type [io.Reader], [io.ReadCloser], []byte and string are serialized in binary form.
+// [url.Values] and [QArgs] are serialized as form data.
+// All other types are serialized as JSON.
+// The Content-Type Content-Length headers will be set to match the body if they can be determined and unless already set.
+func MustNewRequestWithContext(ctx context.Context, method string, url string, body any) *http.Request {
+	r, err := NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
 // NewRequest wraps [NewRequestWithContext] with the background context.
 func NewRequest(method string, url string, body any) (*http.Request, error) {
 	return NewRequestWithContext(context.Background(), method, url, body)
+}
+
+// MustNewRequest wraps [NewRequestWithContext] with the background context. It panics on error.
+func MustNewRequest(method string, url string, body any) *http.Request {
+	r, err := NewRequestWithContext(context.Background(), method, url, body)
+	if err != nil {
+		panic(err)
+	}
+	return r
 }

@@ -18,7 +18,7 @@ var (
 // Initialize starts up the testing app.
 func Initialize() error {
 	// Include all downstream microservices in the testing app
-	Svc2 = NewService().(*Service)
+	Svc2 = NewService()
 	App.Include(
 		Svc,
 		Svc2,

@@ -13,11 +13,12 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/service"
 )
 
 // group is a collection of microservices that share the same lifecycle.
 // Microservices in a group are started and shutdown in parallel.
-type group []Service
+type group []service.Service
 
 // Startup starts up a group of microservices in parallel.
 // The context deadline is used to limit the time allotted to the operation.

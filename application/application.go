@@ -23,6 +23,7 @@ import (
 
 // Application is a collection of microservices that run in a single process and share the same lifecycle.
 type Application struct {
+	initializer     func(service.Service)
 	groups          []group
 	sig             chan os.Signal
 	plane           string
@@ -32,12 +33,6 @@ type Application struct {
 	shutdownTimeout time.Duration
 }
 
-// Service is a microservices that can be managed by the application.
-type Service interface {
-	service.Identifier
-	service.StarterStopper
-}
-
 // New creates a new application.
 // An application is a collection of microservices that run in a single process and share the same lifecycle.
 func New() *Application {
@@ -45,6 +40,7 @@ func New() *Application {
 		sig:             make(chan os.Signal, 1),
 		startupTimeout:  time.Second * 20,
 		shutdownTimeout: time.Second * 20,
+		initializer:     func(s service.Service) {},
 	}
 	return app
 }
@@ -59,6 +55,7 @@ func NewTesting() *Application {
 		plane:          rand.AlphaNum64(12),
 		deployment:     connector.TESTING,
 		startupTimeout: time.Second * 8,
+		initializer:    func(s service.Service) {},
 	}
 	return app
 }
@@ -76,12 +73,13 @@ In the following example, A is started first, then B1 and B2 in parallel, and fi
 	app.Include(c1, c2)
 	app.Startup()
 */
-func (app *Application) Include(services ...Service) {
+func (app *Application) Include(services ...service.Service) {
 	app.mux.Lock()
 	g := group{}
 	for _, s := range services {
 		s.SetPlane(app.plane)
 		s.SetDeployment(app.deployment)
+		app.initializer(s)
 	}
 	g = append(g, services...)
 	app.groups = append(app.groups, g)
@@ -91,11 +89,24 @@ func (app *Application) Include(services ...Service) {
 // Join sets the plane and deployment of the microservices to that of the app.
 // This allows microservices to be temporarily joined to the app without being permanently included in its lifecycle management.
 // Joined microservices are not included in the app and do not get started up or shut down by the app.
-func (app *Application) Join(services ...Service) {
+func (app *Application) Join(services ...service.Service) {
 	for _, s := range services {
 		s.SetPlane(app.plane)
 		s.SetDeployment(app.deployment)
+		app.initializer(s)
 	}
+}
+
+// Init sets up a method to call on each of the included microservices at the time they are included or joined.
+// It is a convenience method to allow applying a generic operation en masse, for example, setting a shared configuration
+// value during testing.
+//
+// The is only one initializer. Consecutive calls overwrite the previous value. Pass nil to clear the initializer.
+func (app *Application) Init(initializer func(svc service.Service)) {
+	if initializer == nil {
+		initializer = func(s service.Service) {}
+	}
+	app.initializer = initializer
 }
 
 // Startup starts all unstarted microservices included in this app.

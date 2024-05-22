@@ -17,6 +17,7 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,10 +26,10 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 
 	plane := rand.AlphaNum64(12)
 
-	configSvc := NewService().(*Service)
+	configSvc := NewService()
 	configSvc.SetDeployment(connector.LOCAL)
 	configSvc.SetPlane(plane)
-	services := []application.Service{}
+	services := []service.Service{}
 	n := 16
 	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
@@ -99,7 +100,7 @@ func TestConfigurator_Callback(t *testing.T) {
 
 	plane := rand.AlphaNum64(12)
 
-	configSvc := NewService().(*Service)
+	configSvc := NewService()
 	configSvc.SetDeployment(connector.LOCAL)
 	configSvc.SetPlane(plane)
 
@@ -144,7 +145,7 @@ func TestConfigurator_PeerSync(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Start the first peer
-	config1 := NewService().(*Service)
+	config1 := NewService()
 	config1.SetDeployment(connector.LOCAL)
 	config1.SetPlane(plane)
 	config1.loadYAML(`
@@ -172,7 +173,7 @@ www.example.com:
 	assert.Equal(t, "Bar", con.Config("Foo"))
 
 	// Start the second peer
-	config2 := NewService().(*Service)
+	config2 := NewService()
 	config2.SetDeployment(connector.LOCAL)
 	config2.SetPlane(plane)
 	config2.loadYAML(`

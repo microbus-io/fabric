@@ -34,7 +34,7 @@ var (
 const HostName = "{{ .General.Host }}"
 
 // NewService creates a new {{ .General.Host }} microservice.
-func NewService() service.Service {
+func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.NewService(s, Version)
 	return s

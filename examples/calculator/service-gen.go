@@ -39,7 +39,7 @@ var (
 const HostName = "calculator.example"
 
 // NewService creates a new calculator.example microservice.
-func NewService() service.Service {
+func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.NewService(s, Version)
 	return s

@@ -8,7 +8,6 @@ Neither may be used, copied or distributed without the express written consent o
 package httpx
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -55,16 +54,4 @@ func ResolveURL(base string, relative string) (resolved string, err error) {
 	}
 	resolvedURL := baseURL.ResolveReference(relativeURL)
 	return resolvedURL.String(), nil
-}
-
-// PrepareQueryString composes a query string from a list of key-value pairs, making sure to encode appropriately.
-// The arguments are sorted by key.
-func PrepareQueryString(kvPairs ...any) string {
-	vals := url.Values{}
-	for i := 0; i < len(kvPairs); i += 2 {
-		k := fmt.Sprintf("%v", kvPairs[i])
-		v := fmt.Sprintf("%v", kvPairs[i+1])
-		vals[k] = []string{v}
-	}
-	return vals.Encode()
 }

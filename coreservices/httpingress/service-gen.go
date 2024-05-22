@@ -39,7 +39,7 @@ var (
 const HostName = "http.ingress.sys"
 
 // NewService creates a new http.ingress.sys microservice.
-func NewService() service.Service {
+func NewService() *Service {
 	s := &Service{}
 	s.Intermediate = intermediate.NewService(s, Version)
 	return s
