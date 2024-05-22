@@ -123,7 +123,7 @@ func Context(t *testing.T) context.Context {
 		ctx, cancel = context.WithDeadline(ctx, deadline)
 		t.Cleanup(cancel)
 	}
-	ctx = frame.CloneContext(ctx)
+	ctx = frame.ContextWithFrame(ctx)
 	return ctx
 }
 
