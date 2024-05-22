@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/stretchr/testify/assert"
 )
@@ -586,4 +587,34 @@ func TestConnector_SubscriptionPorts(t *testing.T) {
 	assert.Equal(t, 1, p123)
 	assert.Equal(t, 1, p234)
 	assert.Equal(t, 2, star)
+}
+
+func TestConnector_FrameConsistency(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	con := New("frame.consistency.connector")
+	con.Subscribe("GET", "/frame", func(w http.ResponseWriter, r *http.Request) error {
+		f1 := frame.Of(r)
+		f2 := frame.Of(r.Context())
+		assert.Equal(t, f1, f2)
+		f1.Set("ABC", "abc")
+		assert.Equal(t, f1, f2)
+		assert.Equal(t, "abc", f2.Get("ABC"))
+		f2.Set("ABC", "")
+		assert.Equal(t, f1, f2)
+		assert.Equal(t, "", f1.Get("ABC"))
+		return nil
+	})
+
+	// Startup the microservices
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send messages to various locations under the directory
+	_, err = con.Request(ctx, pub.GET("https://frame.consistency.connector/frame"))
+	assert.NoError(t, err)
 }

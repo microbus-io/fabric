@@ -38,8 +38,8 @@ const (
 
 type contextKeyType struct{}
 
-// ContextKey is used to store the request headers in a context.
-var ContextKey = contextKeyType{}
+// contextKey is used to store the request headers in a context.
+var contextKey = contextKeyType{}
 
 // Frame is a utility class that helps with manipulating the control headers.
 type Frame struct {
@@ -51,6 +51,8 @@ func Of(x any) Frame {
 	var h http.Header
 	if x != nil {
 		switch v := x.(type) {
+		case Frame:
+			h = v.h
 		case *http.Request:
 			h = v.Header
 		case *http.Response:
@@ -60,7 +62,7 @@ func Of(x any) Frame {
 		case http.Header:
 			h = v
 		case context.Context:
-			h, _ = v.Value(ContextKey).(http.Header)
+			h, _ = v.Value(contextKey).(http.Header)
 		}
 	}
 	// If h==nil, frame will be read-only, returning empty values
@@ -70,18 +72,24 @@ func Of(x any) Frame {
 // CloneContext returns a new context with a copy of the frame of the parent context, or a new frame if it does not have one.
 // Manipulating the frame of the cloned context does not impact the parent's.
 func CloneContext(parent context.Context) (cloned context.Context) {
-	return ContextWithFrameOf(parent, parent)
-}
-
-// ContextWithFrameOf returns a new context derived from the parent, with a copy of the frame of x.
-// If the parent included a frame, it will be superseded by the given frame.
-// Manipulating the frame of the new context does not impact the original frame.
-func ContextWithFrameOf(parent context.Context, x any) (ctx context.Context) {
-	h := make(http.Header)
-	for k, vv := range Of(x).h {
+	h := http.Header{}
+	for k, vv := range Of(parent).h {
 		h[k] = append(h[k], vv...)
 	}
-	return context.WithValue(parent, ContextKey, h)
+	return context.WithValue(parent, contextKey, h)
+}
+
+// ContextWithFrameOf returns a new context derived from the parent, referencing the frame of x.
+// If the parent includes a frame, it will be superseded by the given frame.
+// Manipulating the frame of the new context impacts the original frame.
+func ContextWithFrameOf(parent context.Context, x any) (ctx context.Context) {
+	return context.WithValue(parent, contextKey, Of(x).h)
+}
+
+// ContextWithFrame adds a new empty frame to the context.
+// If the parent includes a frame, it will be superseded by the given frame.
+func ContextWithFrame(parent context.Context) (ctx context.Context) {
+	return context.WithValue(parent, contextKey, http.Header{})
 }
 
 // Get returns an arbitrary header.

@@ -40,7 +40,7 @@ func TestFrame_Of(t *testing.T) {
 	assert.Equal(t, "123", Of(hdr).MessageID())
 
 	// context.Context
-	ctx := context.WithValue(context.Background(), ContextKey, hdr)
+	ctx := context.WithValue(context.Background(), contextKey, hdr)
 	assert.Equal(t, "123", Of(ctx).MessageID())
 
 	// Empty context.Context should not panic
