@@ -630,9 +630,11 @@ func Home(t *testing.T, r *http.Request) *HomeTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -1152,9 +1154,11 @@ func NoQueue(t *testing.T, r *http.Request) *NoQueueTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -1674,9 +1678,11 @@ func DefaultQueue(t *testing.T, r *http.Request) *DefaultQueueTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -2190,9 +2196,11 @@ func CacheLoad(t *testing.T, r *http.Request) *CacheLoadTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -2706,9 +2714,11 @@ func CacheStore(t *testing.T, r *http.Request) *CacheStoreTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {

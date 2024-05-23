@@ -630,9 +630,11 @@ func Collect(t *testing.T, r *http.Request) *CollectTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {

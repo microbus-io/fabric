@@ -630,9 +630,11 @@ func Hello(t *testing.T, r *http.Request) *HelloTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -1146,9 +1148,11 @@ func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -1662,9 +1666,11 @@ func Ping(t *testing.T, r *http.Request) *PingTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -2184,9 +2190,11 @@ func Calculator(t *testing.T, r *http.Request) *CalculatorTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -2655,9 +2663,11 @@ func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
@@ -3171,9 +3181,11 @@ func Localization(t *testing.T, r *http.Request) *LocalizationTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
 	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
 	r = r.WithContext(ctx)
-	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
