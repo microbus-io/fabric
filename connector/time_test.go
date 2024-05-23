@@ -26,10 +26,21 @@ func TestConnector_ClockOffset(t *testing.T) {
 	var betaTime time.Time
 	var betaShift time.Duration
 	beta := New("beta.clock.offset.connector")
-	beta.Subscribe("GET", "void", func(w http.ResponseWriter, r *http.Request) error {
+	beta.Subscribe("GET", "shift", func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
 		betaTime = beta.Now(ctx)
 		betaShift = frame.Of(ctx).ClockShift()
+		beta.GET(r.Context(), "https://gamma.clock.offset.connector/shift")
+		return nil
+	})
+
+	var gammaTime time.Time
+	var gammaShift time.Duration
+	gamma := New("gamma.clock.offset.connector")
+	gamma.Subscribe("GET", "shift", func(w http.ResponseWriter, r *http.Request) error {
+		ctx := r.Context()
+		gammaTime = beta.Now(ctx)
+		gammaShift = frame.Of(ctx).ClockShift()
 		return nil
 	})
 
@@ -40,6 +51,9 @@ func TestConnector_ClockOffset(t *testing.T) {
 	err = beta.Startup()
 	assert.NoError(t, err)
 	defer beta.Shutdown()
+	err = gamma.Startup()
+	assert.NoError(t, err)
+	defer gamma.Shutdown()
 
 	// Shift the time in the context one minute in the past
 	ctx := frame.ContextWithFrame(context.Background())
@@ -48,12 +62,14 @@ func TestConnector_ClockOffset(t *testing.T) {
 	// Send message and validate that beta receives the offset time
 	realTime := time.Now()
 	time.Sleep(10 * time.Millisecond)
-	alphaTime := alpha.Now(ctx)
+	alphaTime := alpha.Now(ctx) // Offset by -1m
 	assert.Less(t, alphaTime, realTime)
-	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/void")
+	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/shift")
 	assert.NoError(t, err)
 	assert.Less(t, betaTime, realTime)
+	assert.Less(t, gammaTime, realTime)
 	assert.Equal(t, -time.Minute, betaShift)
+	assert.Equal(t, -time.Minute, gammaShift)
 
 	// Shift the time in the context one hour in the future
 	ctx = frame.ContextWithFrame(context.Background())
@@ -61,12 +77,14 @@ func TestConnector_ClockOffset(t *testing.T) {
 
 	// Send message and validate that beta receives the offset time
 	realTime = time.Now()
-	alphaTime = alpha.Now(ctx)
+	alphaTime = alpha.Now(ctx) // Offset by +1h
 	assert.Greater(t, alphaTime, realTime.Add(time.Minute))
-	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/void")
+	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/shift")
 	assert.NoError(t, err)
 	assert.Greater(t, betaTime, realTime.Add(time.Minute))
+	assert.Greater(t, gammaTime, realTime.Add(time.Minute))
 	assert.Equal(t, time.Hour, betaShift)
+	assert.Equal(t, time.Hour, gammaShift)
 }
 
 func TestConnector_Ticker(t *testing.T) {
