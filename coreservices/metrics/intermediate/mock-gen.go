@@ -34,19 +34,18 @@ var (
 	_ metricsapi.Client
 )
 
-// Mock is a mockable version of the metrics.sys microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the metrics.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockCollect func(w http.ResponseWriter, r *http.Request) (err error)
+	mockCollect func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("metrics.sys"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -66,9 +65,15 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doCollect handles the Collect web handler.
 func (svc *Mock) doCollect(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockCollect == nil {
+	if svc.mockCollect == nil {
 		return errors.New("mocked endpoint 'Collect' not implemented")
 	}
-	err = svc.MockCollect(w, r)
+	err = svc.mockCollect(w, r)
 	return errors.Trace(err)
+}
+
+// MockCollect sets up a mock handler for the Collect web handler.
+func (svc *Mock) MockCollect(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockCollect = handler
+	return svc
 }

@@ -34,18 +34,17 @@ var (
 	_ httpingressapi.Client
 )
 
-// Mock is a mockable version of the http.ingress.sys microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the http.ingress.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("http.ingress.sys"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.`)
 	svc.SetOnStartup(svc.doOnStartup)
 

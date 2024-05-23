@@ -183,17 +183,17 @@ func TestHttpegress_MakeRequest(t *testing.T) {
 func TestHttpegress_Mock(t *testing.T) {
 	t.Parallel()
 
-	mock := NewMock()
-	mock.MockMakeRequest = func(w http.ResponseWriter, r *http.Request) (err error) {
-		req, _ := http.ReadRequest(bufio.NewReader(r.Body))
-		if req.Method == "DELETE" && req.URL.String() == "https://example.com/ex/5" {
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"deleted":true}`))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
-		return nil
-	}
+	mock := NewMock().
+		MockMakeRequest(func(w http.ResponseWriter, r *http.Request) (err error) {
+			req, _ := http.ReadRequest(bufio.NewReader(r.Body))
+			if req.Method == "DELETE" && req.URL.String() == "https://example.com/ex/5" {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{"deleted":true}`))
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+			return nil
+		})
 
 	con := connector.New("mock.http.egress")
 

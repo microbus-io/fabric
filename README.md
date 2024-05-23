@@ -50,7 +50,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [errors](docs/structure/errors.md) - An enhancement of the standard `errors` package
 * [examples](docs/structure/examples.md) - Demo microservices 
 * [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
-* [httpx](docs/structure/httpx.md) - Various HTTP utilities
+* [httpx](docs/structure/httpx.md) ✨ - Various HTTP utilities
 * [log](docs/structure/log.md) - Fields for attaching data to log messages
 * [lru](docs/structure/lru.md) - An LRU with with limits on age and weight
 * [mtr](docs/structure/mtr.md) - Metrics collectors
@@ -79,7 +79,7 @@ Go deep into the philosophy and implementation of `Microbus`:
 * [Environment variables](docs/tech/envars.md) - Environment variables used to initialize microservices
 * [Code generation](docs/tech/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
 * [Events](docs/tech/events.md) - Using event-driven architecture to decouple microservices
-* [Integration testing](docs/tech/integrationtesting.md) - Testing multiple microservices together
+* [Integration testing](docs/tech/integrationtesting.md) ✨ - Testing multiple microservices together
 * [Distributed tracing](docs/tech/distribtracing.md) - Distributed tracing using OpenTelemetry and Jaeger
 * [OpenAPI](docs/tech/openapi.md) - OpenAPI document generation for microservices
 

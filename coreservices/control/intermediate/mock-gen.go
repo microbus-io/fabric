@@ -34,21 +34,20 @@ var (
 	_ controlapi.Client
 )
 
-// Mock is a mockable version of the control.sys microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the control.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockPing func(ctx context.Context) (pong int, err error)
-	MockConfigRefresh func(ctx context.Context) (err error)
-	MockTrace func(ctx context.Context, id string) (err error)
+	mockPing func(ctx context.Context) (pong int, err error)
+	mockConfigRefresh func(ctx context.Context) (err error)
+	mockTrace func(ctx context.Context, id string) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("control.sys"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`This microservice is created for the sake of generating the client API for the :888 control subscriptions.
 The microservice itself does nothing and should not be included in applications.`)
 	svc.SetOnStartup(svc.doOnStartup)
@@ -71,7 +70,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doPing handles marshaling for the Ping function.
 func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockPing == nil {
+	if svc.mockPing == nil {
 		return errors.New("mocked endpoint 'Ping' not implemented")
 	}
 	var i controlapi.PingIn
@@ -80,7 +79,7 @@ func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Pong, err = svc.MockPing(
+	o.Pong, err = svc.mockPing(
 		r.Context(),
 	)
 	if err != nil {
@@ -94,9 +93,15 @@ func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// MockPing sets up a mock handler for the Ping function.
+func (svc *Mock) MockPing(handler func(ctx context.Context) (pong int, err error)) *Mock {
+	svc.mockPing = handler
+	return svc
+}
+
 // doConfigRefresh handles marshaling for the ConfigRefresh function.
 func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockConfigRefresh == nil {
+	if svc.mockConfigRefresh == nil {
 		return errors.New("mocked endpoint 'ConfigRefresh' not implemented")
 	}
 	var i controlapi.ConfigRefreshIn
@@ -105,7 +110,7 @@ func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.MockConfigRefresh(
+	err = svc.mockConfigRefresh(
 		r.Context(),
 	)
 	if err != nil {
@@ -119,9 +124,15 @@ func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// MockConfigRefresh sets up a mock handler for the ConfigRefresh function.
+func (svc *Mock) MockConfigRefresh(handler func(ctx context.Context) (err error)) *Mock {
+	svc.mockConfigRefresh = handler
+	return svc
+}
+
 // doTrace handles marshaling for the Trace function.
 func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockTrace == nil {
+	if svc.mockTrace == nil {
 		return errors.New("mocked endpoint 'Trace' not implemented")
 	}
 	var i controlapi.TraceIn
@@ -130,7 +141,7 @@ func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.MockTrace(
+	err = svc.mockTrace(
 		r.Context(),
 		i.ID,
 	)
@@ -143,4 +154,10 @@ func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+// MockTrace sets up a mock handler for the Trace function.
+func (svc *Mock) MockTrace(handler func(ctx context.Context, id string) (err error)) *Mock {
+	svc.mockTrace = handler
+	return svc
 }

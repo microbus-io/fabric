@@ -37,21 +37,20 @@ var (
 	_ eventsinkapi.Client
 )
 
-// Mock is a mockable version of the eventsink.example microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the eventsink.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockRegistered func(ctx context.Context) (emails []string, err error)
-	MockOnAllowRegister func(ctx context.Context, email string) (allow bool, err error)
-	MockOnRegistered func(ctx context.Context, email string) (err error)
+	mockRegistered func(ctx context.Context) (emails []string, err error)
+	mockOnAllowRegister func(ctx context.Context, email string) (allow bool, err error)
+	mockOnRegistered func(ctx context.Context, email string) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("eventsink.example"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The event sink microservice handles events that are fired by the event source microservice.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -75,7 +74,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doRegistered handles marshaling for the Registered function.
 func (svc *Mock) doRegistered(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockRegistered == nil {
+	if svc.mockRegistered == nil {
 		return errors.New("mocked endpoint 'Registered' not implemented")
 	}
 	var i eventsinkapi.RegisteredIn
@@ -84,7 +83,7 @@ func (svc *Mock) doRegistered(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Emails, err = svc.MockRegistered(
+	o.Emails, err = svc.mockRegistered(
 		r.Context(),
 	)
 	if err != nil {
@@ -98,24 +97,42 @@ func (svc *Mock) doRegistered(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// MockRegistered sets up a mock handler for the Registered function.
+func (svc *Mock) MockRegistered(handler func(ctx context.Context) (emails []string, err error)) *Mock {
+	svc.mockRegistered = handler
+	return svc
+}
+
 // doOnAllowRegister handles marshaling for the OnAllowRegister event sink.
 func (svc *Mock) doOnAllowRegister(ctx context.Context, email string) (allow bool, err error) {
-	if svc.MockOnAllowRegister == nil {
+	if svc.mockOnAllowRegister == nil {
 		err = errors.New("mocked endpoint 'OnAllowRegister' not implemented")
 		return
 	}
-	allow, err = svc.MockOnAllowRegister(ctx, email)
+	allow, err = svc.mockOnAllowRegister(ctx, email)
 	err = errors.Trace(err)
 	return
 }
 
+// MockOnAllowRegister sets up a mock handler for the OnAllowRegister event sink.
+func (svc *Mock) MockOnAllowRegister(handler func(ctx context.Context, email string) (allow bool, err error)) *Mock {
+	svc.mockOnAllowRegister = handler
+	return svc
+}
+
 // doOnRegistered handles marshaling for the OnRegistered event sink.
 func (svc *Mock) doOnRegistered(ctx context.Context, email string) (err error) {
-	if svc.MockOnRegistered == nil {
+	if svc.mockOnRegistered == nil {
 		err = errors.New("mocked endpoint 'OnRegistered' not implemented")
 		return
 	}
-	err = svc.MockOnRegistered(ctx, email)
+	err = svc.mockOnRegistered(ctx, email)
 	err = errors.Trace(err)
 	return
+}
+
+// MockOnRegistered sets up a mock handler for the OnRegistered event sink.
+func (svc *Mock) MockOnRegistered(handler func(ctx context.Context, email string) (err error)) *Mock {
+	svc.mockOnRegistered = handler
+	return svc
 }

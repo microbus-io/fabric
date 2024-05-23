@@ -34,19 +34,18 @@ var (
 	_ openapiportalapi.Client
 )
 
-// Mock is a mockable version of the openapiportal.sys microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the openapiportal.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockList func(w http.ResponseWriter, r *http.Request) (err error)
+	mockList func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("openapiportal.sys"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The OpenAPI microservice lists links to the OpenAPI endpoint of all microservices that provide one
 on the requested port.`)
 	svc.SetOnStartup(svc.doOnStartup)
@@ -67,9 +66,15 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doList handles the List web handler.
 func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockList == nil {
+	if svc.mockList == nil {
 		return errors.New("mocked endpoint 'List' not implemented")
 	}
-	err = svc.MockList(w, r)
+	err = svc.mockList(w, r)
 	return errors.Trace(err)
+}
+
+// MockList sets up a mock handler for the List web handler.
+func (svc *Mock) MockList(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockList = handler
+	return svc
 }

@@ -34,21 +34,20 @@ var (
 	_ calculatorapi.Client
 )
 
-// Mock is a mockable version of the calculator.example microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the calculator.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockArithmetic func(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error)
-	MockSquare func(ctx context.Context, x int) (xEcho int, result int, err error)
-	MockDistance func(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error)
+	mockArithmetic func(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error)
+	mockSquare func(ctx context.Context, x int) (xEcho int, result int, err error)
+	mockDistance func(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("calculator.example"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Calculator microservice performs simple mathematical operations.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -70,7 +69,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doArithmetic handles marshaling for the Arithmetic function.
 func (svc *Mock) doArithmetic(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockArithmetic == nil {
+	if svc.mockArithmetic == nil {
 		return errors.New("mocked endpoint 'Arithmetic' not implemented")
 	}
 	var i calculatorapi.ArithmeticIn
@@ -79,7 +78,7 @@ func (svc *Mock) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.MockArithmetic(
+	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.mockArithmetic(
 		r.Context(),
 		i.X,
 		i.Op,
@@ -96,9 +95,15 @@ func (svc *Mock) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// MockArithmetic sets up a mock handler for the Arithmetic function.
+func (svc *Mock) MockArithmetic(handler func(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error)) *Mock {
+	svc.mockArithmetic = handler
+	return svc
+}
+
 // doSquare handles marshaling for the Square function.
 func (svc *Mock) doSquare(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockSquare == nil {
+	if svc.mockSquare == nil {
 		return errors.New("mocked endpoint 'Square' not implemented")
 	}
 	var i calculatorapi.SquareIn
@@ -107,7 +112,7 @@ func (svc *Mock) doSquare(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.XEcho, o.Result, err = svc.MockSquare(
+	o.XEcho, o.Result, err = svc.mockSquare(
 		r.Context(),
 		i.X,
 	)
@@ -122,9 +127,15 @@ func (svc *Mock) doSquare(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// MockSquare sets up a mock handler for the Square function.
+func (svc *Mock) MockSquare(handler func(ctx context.Context, x int) (xEcho int, result int, err error)) *Mock {
+	svc.mockSquare = handler
+	return svc
+}
+
 // doDistance handles marshaling for the Distance function.
 func (svc *Mock) doDistance(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockDistance == nil {
+	if svc.mockDistance == nil {
 		return errors.New("mocked endpoint 'Distance' not implemented")
 	}
 	var i calculatorapi.DistanceIn
@@ -133,7 +144,7 @@ func (svc *Mock) doDistance(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.D, err = svc.MockDistance(
+	o.D, err = svc.mockDistance(
 		r.Context(),
 		i.P1,
 		i.P2,
@@ -147,4 +158,10 @@ func (svc *Mock) doDistance(w http.ResponseWriter, r *http.Request) error {
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+// MockDistance sets up a mock handler for the Distance function.
+func (svc *Mock) MockDistance(handler func(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error)) *Mock {
+	svc.mockDistance = handler
+	return svc
 }

@@ -34,21 +34,20 @@ var (
 	_ configuratorapi.Client
 )
 
-// Mock is a mockable version of the configurator.sys microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the configurator.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockValues func(ctx context.Context, names []string) (values map[string]string, err error)
-	MockRefresh func(ctx context.Context) (err error)
-	MockSync func(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error)
+	mockValues func(ctx context.Context, names []string) (values map[string]string, err error)
+	mockRefresh func(ctx context.Context) (err error)
+	mockSync func(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("configurator.sys"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Configurator is a core microservice that centralizes the dissemination of configuration values to other microservices.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -70,7 +69,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doValues handles marshaling for the Values function.
 func (svc *Mock) doValues(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockValues == nil {
+	if svc.mockValues == nil {
 		return errors.New("mocked endpoint 'Values' not implemented")
 	}
 	var i configuratorapi.ValuesIn
@@ -79,7 +78,7 @@ func (svc *Mock) doValues(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Values, err = svc.MockValues(
+	o.Values, err = svc.mockValues(
 		r.Context(),
 		i.Names,
 	)
@@ -94,9 +93,15 @@ func (svc *Mock) doValues(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// MockValues sets up a mock handler for the Values function.
+func (svc *Mock) MockValues(handler func(ctx context.Context, names []string) (values map[string]string, err error)) *Mock {
+	svc.mockValues = handler
+	return svc
+}
+
 // doRefresh handles marshaling for the Refresh function.
 func (svc *Mock) doRefresh(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockRefresh == nil {
+	if svc.mockRefresh == nil {
 		return errors.New("mocked endpoint 'Refresh' not implemented")
 	}
 	var i configuratorapi.RefreshIn
@@ -105,7 +110,7 @@ func (svc *Mock) doRefresh(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.MockRefresh(
+	err = svc.mockRefresh(
 		r.Context(),
 	)
 	if err != nil {
@@ -119,9 +124,15 @@ func (svc *Mock) doRefresh(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// MockRefresh sets up a mock handler for the Refresh function.
+func (svc *Mock) MockRefresh(handler func(ctx context.Context) (err error)) *Mock {
+	svc.mockRefresh = handler
+	return svc
+}
+
 // doSync handles marshaling for the Sync function.
 func (svc *Mock) doSync(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockSync == nil {
+	if svc.mockSync == nil {
 		return errors.New("mocked endpoint 'Sync' not implemented")
 	}
 	var i configuratorapi.SyncIn
@@ -130,7 +141,7 @@ func (svc *Mock) doSync(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	err = svc.MockSync(
+	err = svc.mockSync(
 		r.Context(),
 		i.Timestamp,
 		i.Values,
@@ -144,4 +155,10 @@ func (svc *Mock) doSync(w http.ResponseWriter, r *http.Request) error {
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+// MockSync sets up a mock handler for the Sync function.
+func (svc *Mock) MockSync(handler func(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error)) *Mock {
+	svc.mockSync = handler
+	return svc
 }

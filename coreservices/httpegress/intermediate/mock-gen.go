@@ -34,19 +34,18 @@ var (
 	_ httpegressapi.Client
 )
 
-// Mock is a mockable version of the http.egress.sys microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the http.egress.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockMakeRequest func(w http.ResponseWriter, r *http.Request) (err error)
+	mockMakeRequest func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("http.egress.sys"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The HTTP egress microservice relays HTTP requests to the internet.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -66,9 +65,15 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doMakeRequest handles the MakeRequest web handler.
 func (svc *Mock) doMakeRequest(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockMakeRequest == nil {
+	if svc.mockMakeRequest == nil {
 		return errors.New("mocked endpoint 'MakeRequest' not implemented")
 	}
-	err = svc.MockMakeRequest(w, r)
+	err = svc.mockMakeRequest(w, r)
 	return errors.Trace(err)
+}
+
+// MockMakeRequest sets up a mock handler for the MakeRequest web handler.
+func (svc *Mock) MockMakeRequest(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockMakeRequest = handler
+	return svc
 }

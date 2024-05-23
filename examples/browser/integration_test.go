@@ -28,23 +28,20 @@ var (
 
 // Initialize starts up the testing app.
 func Initialize() (err error) {
-	mockEgress := httpegress.NewMock()
-	mockEgress.MockMakeRequest = func(w http.ResponseWriter, r *http.Request) (err error) {
-		req, _ := http.ReadRequest(bufio.NewReader(r.Body))
-		if req.Method == "GET" && req.URL.String() == "https://mocked.example.com/" {
-			w.Header().Set("Content-Type", "text/html")
-			w.Write([]byte(`<html><body>Lorem Ipsum<body></html>`))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
-		return nil
-	}
-
 	// Include all downstream microservices in the testing app
-	// Use .With(...) to initialize with appropriate config values
 	App.Include(
 		Svc,
-		mockEgress,
+		httpegress.NewMock().
+			MockMakeRequest(func(w http.ResponseWriter, r *http.Request) (err error) {
+				req, _ := http.ReadRequest(bufio.NewReader(r.Body))
+				if req.Method == "GET" && req.URL.String() == "https://mocked.example.com/" {
+					w.Header().Set("Content-Type", "text/html")
+					w.Write([]byte(`<html><body>Lorem Ipsum<body></html>`))
+				} else {
+					w.WriteHeader(http.StatusNotFound)
+				}
+				return nil
+			}),
 	)
 
 	err = App.Startup()

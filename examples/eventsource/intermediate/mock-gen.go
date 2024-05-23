@@ -34,19 +34,18 @@ var (
 	_ eventsourceapi.Client
 )
 
-// Mock is a mockable version of the eventsource.example microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the eventsource.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockRegister func(ctx context.Context, email string) (allowed bool, err error)
+	mockRegister func(ctx context.Context, email string) (allowed bool, err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("eventsource.example"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The event source microservice fires events that are caught by the event sink microservice.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -66,7 +65,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doRegister handles marshaling for the Register function.
 func (svc *Mock) doRegister(w http.ResponseWriter, r *http.Request) error {
-	if svc.MockRegister == nil {
+	if svc.mockRegister == nil {
 		return errors.New("mocked endpoint 'Register' not implemented")
 	}
 	var i eventsourceapi.RegisterIn
@@ -75,7 +74,7 @@ func (svc *Mock) doRegister(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Allowed, err = svc.MockRegister(
+	o.Allowed, err = svc.mockRegister(
 		r.Context(),
 		i.Email,
 	)
@@ -88,4 +87,10 @@ func (svc *Mock) doRegister(w http.ResponseWriter, r *http.Request) error {
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+// MockRegister sets up a mock handler for the Register function.
+func (svc *Mock) MockRegister(handler func(ctx context.Context, email string) (allowed bool, err error)) *Mock {
+	svc.mockRegister = handler
+	return svc
 }

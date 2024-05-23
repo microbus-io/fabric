@@ -16,13 +16,14 @@ var (
 
 // Initialize starts up the testing app.
 func Initialize() (err error) {	
-	// Include all downstream microservices in the testing app
 	App.Init(func(svc service.Service) {
 		// Initialize all microservices
 	})
+
+	// Include all downstream microservices in the testing app
 	App.Include(
 		Svc.Init(func(svc *Service) {
-			// Initialize the individual microservice
+			// Initialize the microservice under test
 			{{- range .Configs }}
 			// svc.Set{{ .Name }}({{ with index .Signature.OutputArgs 0 }}{{ .Name }}{{ end }})
 			{{- end}}

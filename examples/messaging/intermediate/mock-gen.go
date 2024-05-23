@@ -34,23 +34,22 @@ var (
 	_ messagingapi.Client
 )
 
-// Mock is a mockable version of the messaging.example microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the messaging.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	MockHome func(w http.ResponseWriter, r *http.Request) (err error)
-	MockNoQueue func(w http.ResponseWriter, r *http.Request) (err error)
-	MockDefaultQueue func(w http.ResponseWriter, r *http.Request) (err error)
-	MockCacheLoad func(w http.ResponseWriter, r *http.Request) (err error)
-	MockCacheStore func(w http.ResponseWriter, r *http.Request) (err error)
+	mockHome func(w http.ResponseWriter, r *http.Request) (err error)
+	mockNoQueue func(w http.ResponseWriter, r *http.Request) (err error)
+	mockDefaultQueue func(w http.ResponseWriter, r *http.Request) (err error)
+	mockCacheLoad func(w http.ResponseWriter, r *http.Request) (err error)
+	mockCacheStore func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("messaging.example"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Messaging microservice demonstrates service-to-service communication patterns.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -74,45 +73,75 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 
 // doHome handles the Home web handler.
 func (svc *Mock) doHome(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockHome == nil {
+	if svc.mockHome == nil {
 		return errors.New("mocked endpoint 'Home' not implemented")
 	}
-	err = svc.MockHome(w, r)
+	err = svc.mockHome(w, r)
 	return errors.Trace(err)
+}
+
+// MockHome sets up a mock handler for the Home web handler.
+func (svc *Mock) MockHome(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockHome = handler
+	return svc
 }
 
 // doNoQueue handles the NoQueue web handler.
 func (svc *Mock) doNoQueue(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockNoQueue == nil {
+	if svc.mockNoQueue == nil {
 		return errors.New("mocked endpoint 'NoQueue' not implemented")
 	}
-	err = svc.MockNoQueue(w, r)
+	err = svc.mockNoQueue(w, r)
 	return errors.Trace(err)
+}
+
+// MockNoQueue sets up a mock handler for the NoQueue web handler.
+func (svc *Mock) MockNoQueue(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockNoQueue = handler
+	return svc
 }
 
 // doDefaultQueue handles the DefaultQueue web handler.
 func (svc *Mock) doDefaultQueue(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockDefaultQueue == nil {
+	if svc.mockDefaultQueue == nil {
 		return errors.New("mocked endpoint 'DefaultQueue' not implemented")
 	}
-	err = svc.MockDefaultQueue(w, r)
+	err = svc.mockDefaultQueue(w, r)
 	return errors.Trace(err)
+}
+
+// MockDefaultQueue sets up a mock handler for the DefaultQueue web handler.
+func (svc *Mock) MockDefaultQueue(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockDefaultQueue = handler
+	return svc
 }
 
 // doCacheLoad handles the CacheLoad web handler.
 func (svc *Mock) doCacheLoad(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockCacheLoad == nil {
+	if svc.mockCacheLoad == nil {
 		return errors.New("mocked endpoint 'CacheLoad' not implemented")
 	}
-	err = svc.MockCacheLoad(w, r)
+	err = svc.mockCacheLoad(w, r)
 	return errors.Trace(err)
+}
+
+// MockCacheLoad sets up a mock handler for the CacheLoad web handler.
+func (svc *Mock) MockCacheLoad(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockCacheLoad = handler
+	return svc
 }
 
 // doCacheStore handles the CacheStore web handler.
 func (svc *Mock) doCacheStore(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.MockCacheStore == nil {
+	if svc.mockCacheStore == nil {
 		return errors.New("mocked endpoint 'CacheStore' not implemented")
 	}
-	err = svc.MockCacheStore(w, r)
+	err = svc.mockCacheStore(w, r)
 	return errors.Trace(err)
+}
+
+// MockCacheStore sets up a mock handler for the CacheStore web handler.
+func (svc *Mock) MockCacheStore(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockCacheStore = handler
+	return svc
 }

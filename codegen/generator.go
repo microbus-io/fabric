@@ -156,6 +156,9 @@ func (gen *Generator) Run() error {
 		verNum := 1
 		if v != nil {
 			verNum = v.Version + 1
+			if verNum == 7357 { // Reserved to indicate TEST
+				verNum++
+			}
 		}
 		err := gen.makeVersion(verNum)
 		if err != nil {

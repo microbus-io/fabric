@@ -45,13 +45,12 @@ func NewService() *Service {
 	return s
 }
 
-// Mock is a mockable version of the calculator.example microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the calculator.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock = intermediate.Mock
 
 // New creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	return intermediate.NewMock(Version)
+	return intermediate.NewMock()
 }
 
 /*

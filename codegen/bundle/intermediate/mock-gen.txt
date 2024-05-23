@@ -32,26 +32,25 @@ var (
 	_ {{ .PackageSuffix }}api.Client
 )
 
-// Mock is a mockable version of the {{ .General.Host }} microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the {{ .General.Host }} microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
 
 	{{- range (JoinHandlers .Functions .Sinks)}}
-	Mock{{ .Name }} func({{ .In }}) ({{ .Out }})
+	mock{{ .Name }} func({{ .In }}) ({{ .Out }})
 	{{- end}}
 
 	{{- range .Webs}}
-	Mock{{ .Name }} func(w http.ResponseWriter, r *http.Request) (err error)
+	mock{{ .Name }} func(w http.ResponseWriter, r *http.Request) (err error)
 	{{- end}}
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("{{ .General.Host }}"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`{{ .General.Description }}`)
 	svc.SetOnStartup(svc.doOnStartup)
 
@@ -96,7 +95,7 @@ func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
 {{- range .Functions }}
 // do{{ .Name }} handles marshaling for the {{ .Name }} function.
 func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
-	if svc.Mock{{ .Name }} == nil {
+	if svc.mock{{ .Name }} == nil {
 		return errors.New("mocked endpoint '{{ .Name }}' not implemented")
 	}
 	var i {{ $shortPackage }}api.{{ .Name }}In
@@ -105,7 +104,7 @@ func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = svc.Mock{{ .Name }}(
+	{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = svc.mock{{ .Name }}(
 		r.Context(),
 		{{- range .Signature.InputArgs }}
 		i.{{ CapitalizeIdentifier .Name }},
@@ -124,28 +123,46 @@ func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	}
 	return nil
 }
+
+// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} function.
+func (svc *Mock) Mock{{ .Name }}(handler func({{ .In }}) ({{ .Out }})) *Mock {
+	svc.mock{{ .Name }} = handler
+	return svc
+}
 {{ end}}
 
 {{- range .Webs}}
 // do{{ .Name }} handles the {{ .Name }} web handler.
 func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.Mock{{ .Name }} == nil {
+	if svc.mock{{ .Name }} == nil {
 		return errors.New("mocked endpoint '{{ .Name }}' not implemented")
 	}
-	err = svc.Mock{{ .Name }}(w, r)
+	err = svc.mock{{ .Name }}(w, r)
 	return errors.Trace(err)
+}
+
+// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} web handler.
+func (svc *Mock) Mock{{ .Name }}(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mock{{ .Name }} = handler
+	return svc
 }
 {{ end }}
 
 {{- range .Sinks }}
 // do{{ .Name }} handles marshaling for the {{ .Name }} event sink.
 func (svc *Mock) do{{ .Name }}({{ .In }}) ({{ .Out }}) {
-	if svc.Mock{{ .Name }} == nil {
+	if svc.mock{{ .Name }} == nil {
 		err = errors.New("mocked endpoint '{{ .Name }}' not implemented")
 		return
 	}
-	{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err = svc.Mock{{ .Name }}(ctx{{ range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+	{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err = svc.mock{{ .Name }}(ctx{{ range .Signature.InputArgs }}, {{ .Name }}{{ end }})
 	err = errors.Trace(err)
 	return
+}
+
+// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} event sink.
+func (svc *Mock) Mock{{ .Name }}(handler func({{ .In }}) ({{ .Out }})) *Mock {
+	svc.mock{{ .Name }} = handler
+	return svc
 }
 {{ end }}

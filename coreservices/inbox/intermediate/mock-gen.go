@@ -34,18 +34,17 @@ var (
 	_ inboxapi.Client
 )
 
-// Mock is a mockable version of the inbox.sys microservice,
-// allowing functions, sinks and web handlers to be mocked.
+// Mock is a mockable version of the inbox.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
 }
 
 // NewMock creates a new mockable version of the microservice.
-func NewMock(version int) *Mock {
+func NewMock() *Mock {
 	svc := &Mock{
 		Connector: connector.New("inbox.sys"),
 	}
-	svc.SetVersion(version)
+	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`Inbox listens for incoming emails and fires appropriate events.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
