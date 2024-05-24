@@ -5,12 +5,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/microbus-io/fabric/service"
+
 	"{{ .Package }}/{{ .PackageSuffix }}api"
 )
 
 var (
 	_ *testing.T
 	_ assert.TestingT
+	_ service.Service
 	_ *{{ .PackageSuffix }}api.Client
 )
 
