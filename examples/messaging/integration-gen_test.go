@@ -116,15 +116,8 @@ func TestMain(m *testing.M) {
 }
 
 // Context creates a new context for a test.
-func Context(t *testing.T) context.Context {
-	ctx := context.Background()
-	if deadline, ok := t.Deadline(); ok {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, deadline)
-		t.Cleanup(cancel)
-	}
-	ctx = frame.ContextWithFrame(ctx)
-	return ctx
+func Context() context.Context {
+	return frame.ContextWithFrame(context.Background())
 }
 
 // HomeTestCase assists in asserting against the results of executing Home.

@@ -75,7 +75,7 @@ func TestBrowser_Browse(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Browse_Get(t, ctx,
 		"?"+httpx.QArgs{
 			"url": "https://mocked.example.com/",

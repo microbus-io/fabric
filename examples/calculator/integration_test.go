@@ -56,7 +56,7 @@ func TestCalculator_Arithmetic(t *testing.T) {
 			Expect(xEcho, opEcho, yEcho, result).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Arithmetic(t, ctx, 3, "-", 8).Expect(3, "-", 8, -5)
 	Arithmetic(t, ctx, -9, "+", 9).Expect(-9, "+", 9, 0)
 	Arithmetic(t, ctx, -9, " ", 9).Expect(-9, "+", 9, 0)
@@ -74,7 +74,7 @@ func TestCalculator_Square(t *testing.T) {
 			Expect(xEcho, result).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Square(t, ctx, 0).Expect(0, 0)
 	Square(t, ctx, 5).Expect(5, 25)
 	Square(t, ctx, -8).Expect(-8, 64)
@@ -87,14 +87,14 @@ func TestCalculator_Distance(t *testing.T) {
 			Expect(td).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).Expect(5)
 	Distance(t, ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).Expect(10)
 	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 0, Y: 0}).Expect(0)
 }
 
 func TestCalculator_OpenAPI(t *testing.T) {
-	ctx := Context(t)
+	ctx := Context()
 	res, err := Svc.Request(ctx, pub.GET("https://"+Svc.HostName()+"/openapi.json"))
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)

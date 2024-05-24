@@ -54,7 +54,7 @@ func TestEventsink_Registered(t *testing.T) {
 			Expect(emails).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	registered, err := Registered(t, ctx).Get()
 	assert.NoError(t, err)
 	assert.NotContains(t, registered, "jose@example.com")
@@ -77,7 +77,7 @@ func TestEventsink_OnAllowRegister(t *testing.T) {
 			Expect(allow).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	OnAllowRegister(t, ctx, "nancy@gmail.com").Expect(false)
 	OnAllowRegister(t, ctx, "nancy@hotmail.com").Expect(false)
 

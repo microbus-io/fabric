@@ -74,7 +74,7 @@ func Terminate() error {
 func TestHttpegress_Get(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
+	ctx := Context()
 	client := httpegressapi.NewClient(Svc)
 
 	// Echo
@@ -109,7 +109,7 @@ func TestHttpegress_Get(t *testing.T) {
 func TestHttpegress_Post(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
+	ctx := Context()
 	client := httpegressapi.NewClient(Svc)
 
 	// Echo
@@ -138,7 +138,7 @@ func TestHttpegress_Post(t *testing.T) {
 func TestHttpegress_Do(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
+	ctx := Context()
 	client := httpegressapi.NewClient(Svc)
 
 	// Echo
@@ -209,7 +209,7 @@ func TestHttpegress_Mock(t *testing.T) {
 	assert.NoError(t, err)
 	defer app.Shutdown()
 
-	ctx := Context(t)
+	ctx := Context()
 	client := httpegressapi.NewClient(con).ForHost(mock.ID() + "." + mock.HostName()) // Address the mock by ID
 
 	req, _ := http.NewRequest("DELETE", "https://example.com/ex/5", nil)

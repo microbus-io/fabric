@@ -63,7 +63,7 @@ func TestCalculator_Arithmetic(t *testing.T) {
 			Expect(xEcho, opEcho, yEcho, result).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Arithmetic(t, ctx, 3, "-", 8).Expect(3, "-", 8, -5)
 	Arithmetic(t, ctx, -9, "+", 9).Expect(-9, "+", 9, 0)
 	Arithmetic(t, ctx, -9, " ", 9).Expect(-9, "+", 9, 0)
@@ -99,7 +99,7 @@ func TestHello_Hello(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Hello_Get(t, ctx, "").
 		BodyContains(Svc.Greeting()).
 		BodyNotContains("Maria Chavez")
@@ -138,7 +138,7 @@ func TestHello_TickTock(t *testing.T) {
 		TickTock(t, ctx).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	TickTock(t, ctx).NoError()
 }
 ```
@@ -161,7 +161,7 @@ func TestExample_OnChangedConnectionString(t *testing.T) {
 		OnChangedConnectionString(t, ctx).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	OnChangedConnectionString(t, ctx).NoError()
 }
 ```
@@ -183,7 +183,7 @@ func TestExample_OnAllowRegister(t *testing.T) {
 			Expect(email).
 			Return(allow, err)
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	tc := OnAllowRegister(t).
 		Expect("barb@example.com").
 		Return(true, nil)
@@ -278,7 +278,7 @@ func TestPayment_ChargeUser(t *testing.T) {
 	mockWebPaySvc.Startup()
 	defer mockWebPaySvc.Shutdown()
 
-	ctx := Context(t)
+	ctx := Context()
 	ChargeUser(ctx, "123", 500).Expect(t, false)
 	ChargeUser(ctx, "123", 100).Expect(t, true)
 	ChargeUser(ctx, "123", 503).Error(t, "service unavailable")
@@ -295,7 +295,7 @@ To shift the clock in the test:
 
 ```go
 func TestFoo_DoSomething(t *testing.T) {
-	ctx := Context(t)
+	ctx := Context()
 
 	frame.Of(ctx).SetClockShift(-time.Hour * 24) // Yesterday
 	Svc.DoSomething(ctx, 2).NoError()

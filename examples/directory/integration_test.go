@@ -51,7 +51,7 @@ func Terminate() (err error) {
 func TestDirectory_CRUD(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
+	ctx := Context()
 	person := &directoryapi.Person{
 		FirstName: "Harry",
 		LastName:  "Potter",
@@ -107,7 +107,7 @@ func TestDirectory_CRUD(t *testing.T) {
 func TestDirectory_Create(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
+	ctx := Context()
 
 	person := &directoryapi.Person{
 		FirstName: "",
@@ -158,7 +158,7 @@ func TestDirectory_Load(t *testing.T) {
 func TestDirectory_Update(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
+	ctx := Context()
 	person := &directoryapi.Person{
 		FirstName: "Ron",
 		LastName:  "Weasley",

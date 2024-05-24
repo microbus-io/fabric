@@ -72,7 +72,7 @@ func TestHello_Hello(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Hello_Get(t, ctx, "").
 		ContentType("text/plain").
 		BodyContains(Svc.Greeting()).
@@ -128,7 +128,7 @@ func TestHello_Ping(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Ping_Get(t, ctx, "").
 		ContentType("text/plain").
 		BodyContains(Svc.ID() + "." + Svc.HostName())
@@ -147,7 +147,7 @@ func TestHello_Calculator(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Calculator_Post(t, ctx, "", "",
 		url.Values{
 			"x":  []string{"500"},
@@ -177,7 +177,7 @@ func TestHello_BusJPEG(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	img, err := Svc.ReadResFile("bus.jpeg")
 	assert.NoError(t, err)
 	BusJPEG(t, ctx, "").
@@ -192,7 +192,7 @@ func TestHello_TickTock(t *testing.T) {
 		TickTock(t, ctx).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	TickTock(t, ctx).NoError()
 }
 
@@ -234,7 +234,7 @@ func TestHello_Localization(t *testing.T) {
 
 func TestHello_EchoClient(t *testing.T) {
 	t.Parallel()
-	ctx := Context(t)
+	ctx := Context()
 	client := helloapi.NewClient(Svc)
 
 	// Nil request

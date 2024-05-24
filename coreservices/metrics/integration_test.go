@@ -56,7 +56,7 @@ func Terminate() error {
 func TestMetrics_Collect(t *testing.T) {
 	t.Parallel()
 
-	ctx := Context(t)
+	ctx := Context()
 	Collect_Get(t, ctx, "").
 		// All three services should be detected
 		BodyContains("metrics.sys").
@@ -154,7 +154,7 @@ func TestMetrics_GZip(t *testing.T) {
 
 func TestMetrics_SecretKey(t *testing.T) {
 	// No parallel
-	ctx := Context(t)
+	ctx := Context()
 	Svc.SetSecretKey("secret1234")
 	Collect_Get(t, ctx, "").
 		Error("incorrect secret key").

@@ -56,7 +56,7 @@ func TestEventsource_Register(t *testing.T) {
 			Expect(allowed).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Register(t, ctx, "brian@hotmail.com").Expect(false) // hotmail.com is disallowed by eventsink service
 	Register(t, ctx, "brian@example.com").Expect(true)  // example.com is allowed
 	Register(t, ctx, "mandy@example.com").Expect(true)  // example.com is allowed
@@ -71,7 +71,7 @@ func TestEventsource_OnAllowRegister(t *testing.T) {
 		...
 		tc.Wait()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 
 	// Sink allows registration
 	tc := OnAllowRegister(t).
@@ -115,7 +115,7 @@ func TestEventsource_OnRegistered(t *testing.T) {
 		...
 		tc.Wait()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	tc := OnRegistered(t).
 		Expect("harry@example.com").
 		Return(nil)

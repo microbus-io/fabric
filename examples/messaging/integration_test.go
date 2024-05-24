@@ -49,7 +49,7 @@ func TestMessaging_Home(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	Home_Get(t, ctx, "").
 		BodyContains(Svc.ID()).
 		BodyContains(Svc2.ID())
@@ -68,7 +68,7 @@ func TestMessaging_NoQueue(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	NoQueue_Get(t, ctx, "").
 		BodyContains("NoQueue").
 		BodyContains(Svc.ID())
@@ -87,7 +87,7 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	DefaultQueue_Get(t, ctx, "").
 		BodyContains("DefaultQueue").
 		BodyContains(Svc.ID())
@@ -106,7 +106,7 @@ func TestMessaging_CacheLoad(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	CacheLoad_Get(t, ctx, "?key=l1").
 		BodyContains("found: no")
 	CacheStore_Get(t, ctx, "?key=l1&value=val-l1").
@@ -132,7 +132,7 @@ func TestMessaging_CacheStore(t *testing.T) {
 			BodyContains(value).
 			NoError()
 	*/
-	ctx := Context(t)
+	ctx := Context()
 	CacheStore_Get(t, ctx, "?key=s1&value=s1-val").
 		BodyContains("s1-val").
 		BodyContains(Svc.ID())
