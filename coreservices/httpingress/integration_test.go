@@ -22,6 +22,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/httpingress/httpingressapi"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 )
@@ -42,23 +43,14 @@ func Initialize() error {
 			pub.URL("https:/" + strings.TrimPrefix(r.URL.RequestURI(), "/serve")),
 			pub.Body(r.Body),
 			pub.Unicast(),
-		}
-		for h := range r.Header {
-			options = append(options, pub.Header(h, r.Header.Get(h)))
+			pub.CopyHeaders(r.Header),
 		}
 		res, err := middleware.Request(r.Context(), options...)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		for h := range res.Header {
-			w.Header()[h] = res.Header[h]
-		}
-		w.WriteHeader(res.StatusCode)
-		_, err = io.Copy(w, res.Body)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		return nil
+		err = httpx.Copy(w, res)
+		return errors.Trace(err)
 	})
 
 	// Include all downstream microservices in the testing app
@@ -623,4 +615,42 @@ func TestHttpingress_OnChangedBlockedPaths(t *testing.T) {
 
 func TestHttpingress_OnChangedServerLanguages(t *testing.T) {
 	t.Skip() // Not tested
+}
+
+func TestHttpingress_MultiValueHeaders(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("multi.value.headers")
+	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
+		if assert.Len(t, r.Header["Multi-Value"], 3) {
+			assert.Equal(t, "Send 1", r.Header["Multi-Value"][0])
+			assert.Equal(t, "Send 2", r.Header["Multi-Value"][1])
+			assert.Equal(t, "Send 3", r.Header["Multi-Value"][2])
+		}
+		w.Header()["Multi-Value"] = []string{
+			"Return 1",
+			"Return 2",
+		}
+		return nil
+	})
+	App.Join(con)
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{} // Timeout: time.Second * 2}
+	req, err := http.NewRequest("GET", "http://localhost:4040/multi.value.headers/ok", nil)
+	assert.NoError(t, err)
+	req.Header["Multi-Value"] = []string{
+		"Send 1",
+		"Send 2",
+		"Send 3",
+	}
+	res, err := client.Do(req)
+	if assert.NoError(t, err) {
+		if assert.Len(t, res.Header["Multi-Value"], 2) {
+			assert.Equal(t, "Return 1", res.Header["Multi-Value"][0])
+			assert.Equal(t, "Return 2", res.Header["Multi-Value"][1])
+		}
+	}
 }

@@ -119,7 +119,7 @@ func PATCH(url string) Option {
 	}
 }
 
-// Header sets the header of the request. It overwrites any previously set value.
+// Header sets the header of the request. It overwrites any previously set values.
 func Header(name string, value string) Option {
 	return func(req *Request) error {
 		if value != "" {
@@ -131,12 +131,22 @@ func Header(name string, value string) Option {
 	}
 }
 
-// CopyHeaders copies all non-Microbus headers from an upstream request.
-func CopyHeaders(upstream *http.Request) Option {
+// AddHeader adds a value to the header of the request. It is appended to any previously added values.
+func AddHeader(name string, value string) Option {
 	return func(req *Request) error {
-		for h := range upstream.Header {
+		if value != "" {
+			req.Header.Add(name, value)
+		}
+		return nil
+	}
+}
+
+// CopyHeaders copies all non-Microbus headers from an upstream request.
+func CopyHeaders(headers http.Header) Option {
+	return func(req *Request) error {
+		for h, vv := range headers {
 			if !strings.HasPrefix(h, frame.HeaderPrefix) {
-				req.Header[h] = upstream.Header[h]
+				req.Header[h] = vv
 			}
 		}
 		return nil

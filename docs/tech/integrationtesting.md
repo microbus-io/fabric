@@ -75,6 +75,12 @@ func TestCalculator_Arithmetic(t *testing.T) {
 }
 ```
 
+Available asserters:
+* `Expect` - asserts the return values
+* `Error`, `ErrorCode`, `NoError` - assert the error returned
+* `CompletedIn` - assert the execution time
+* `Assert` - custom asserter
+
 ### Testing Webs
 
 Raw web endpoints are tested in a similar fashion, except that their asserters are customized for a web request. In the following example, the `Hello` endpoint is method-anostic and can be tested with various HTTP methods. The resulting `HelloTestCase` includes asserters that are tailored to an `http.Response` return value. Note how asserters can be chained.
@@ -111,6 +117,16 @@ func TestHello_Hello(t *testing.T) {
 
 URLs are resolved relative to the URL of the endpoint. The empty URL `""` therefore resolves to the exact URL of the endpoint. A URL starting with `?` is the way to pass query arguments. The example uses `httpx.QArgs` to properly encode the query arguments in the `GET` test case, and to pass in form values in the `POST` example. `httpx.MustNewRequestWithContext` is a thin wrapper of the standard `http.NewRequestWithContext` that panics instead of returning an error.
 
+Available asserters:
+* `StatusOK`, `StatusCode` - assert the HTTP response status code
+* `BodyContains`, `BodyNotContains` - assert the HTTP response body content
+* `HeaderExists`, `HeaderNotExists`, `HeaderEqual`, `HeaderNotEqual`,`HeaderContains`, `HeaderNotContains` - assert the headers of the HTTP response
+* `ContentType` - assert the `Content-Type` header of the HTTP response
+* `TagExists`, `TagNotExists`, `TagEqual`, `TagNotEqual`, `TagContains`, `TagNotContains` - parse the HTTP response as HTML and assert HTML tags
+* `Error`, `ErrorCode`, `NoError` - assert the error returned
+* `CompletedIn` - assert the execution time
+* `Assert` - custom asserter
+
 ### Testing Tickers
 
 Tickers are disabled during testing in order to avoid the unpredictability of their running schedule. Instead, tickers can be tested manually like other endpoints. Tickers don't take arguments nor return values so the only testing possible is error validation.
@@ -129,6 +145,11 @@ func TestHello_TickTock(t *testing.T) {
 
 Tickers can be also be called inside other tests via `Svc`.
 
+Available asserters:
+* `Error`, `ErrorCode`, `NoError` - assert the error returned
+* `CompletedIn` - assert the execution time
+* `Assert` - custom asserter
+
 ### Testing Config Callbacks
 
 Callbacks that handle changes to config property values are similarly tested.
@@ -144,6 +165,11 @@ func TestExample_OnChangedConnectionString(t *testing.T) {
 	OnChangedConnectionString(t, ctx).NoError()
 }
 ```
+
+Available asserters:
+* `Error`, `ErrorCode`, `NoError` - assert the error returned
+* `CompletedIn` - assert the execution time
+* `Assert` - custom asserter
 
 ### Testing Event Sources
 
@@ -174,6 +200,12 @@ func TestExample_OnAllowRegister(t *testing.T) {
 Notice how the assertion of an event is reversed: input arguments of the event are `Expect`-ed whereas its output is `Return`-ed.
 
 `Wait`-ing is necessary for events that fire asynchronously (e.g. using a goroutine) and can be be omitted for synchronous events.
+
+Available asserters:
+* `Expect` - asserts the input arguments
+* `Return` - defines the return values of the event sink
+* `Assert` - custom asserter
+* `Wait` - awaits completion of execution
 
 ### Skipping Tests
 
@@ -290,6 +322,18 @@ The clock shift is propagated down the call chain to downstream microservices. T
 Shifting the clock outside the `TESTING` deployment should be done with extreme caution. Unlike the `TESTING` deployment, tickers are enabled in the `LOCAL`, `LAB` and `PROD` deployments and always executed at the real time.
 
 Note that shifting the clock will not cause any timeouts or deadlines to be triggered. It is simply a mechanism of transferring an offset down the call chain.
+
+## Manipulating the Context
+
+`Microbus` uses the `ctx` or `r.Context()` to pass-in adjunct data to that does not affect the business logic of the endpoint. The context is extended with a [frame](../structure/frame.md) which internally holds an `http.Header` that includes various `Microbus` key-value pairs. Shifting the clock is one common example, another is the language.
+
+Use the `frame.Frame` to access and manipulate this header:
+
+```go
+frm := frame.Of(ctx) // or frame.Of(r)
+frm.SetClockShift(-time.Hour)
+frm.SetLanguages("it", "fr")
+```
 
 ## Maximizing Results
 

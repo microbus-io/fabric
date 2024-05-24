@@ -199,7 +199,7 @@ func (_c *Client) Home(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -223,7 +223,7 @@ func (_c *MulticastClient) Home(ctx context.Context, r *http.Request) <-chan *pu
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
 /*
@@ -328,7 +328,7 @@ func (_c *Client) NoQueue(ctx context.Context, r *http.Request) (res *http.Respo
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -354,7 +354,7 @@ func (_c *MulticastClient) NoQueue(ctx context.Context, r *http.Request) <-chan 
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
 /*
@@ -459,7 +459,7 @@ func (_c *Client) DefaultQueue(ctx context.Context, r *http.Request) (res *http.
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -485,7 +485,7 @@ func (_c *MulticastClient) DefaultQueue(ctx context.Context, r *http.Request) <-
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
 /*
@@ -580,7 +580,7 @@ func (_c *Client) CacheLoad(ctx context.Context, r *http.Request) (res *http.Res
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -604,7 +604,7 @@ func (_c *MulticastClient) CacheLoad(ctx context.Context, r *http.Request) <-cha
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
 /*
@@ -699,7 +699,7 @@ func (_c *Client) CacheStore(ctx context.Context, r *http.Request) (res *http.Re
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -723,5 +723,5 @@ func (_c *MulticastClient) CacheStore(ctx context.Context, r *http.Request) <-ch
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }

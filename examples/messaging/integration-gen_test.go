@@ -151,7 +151,7 @@ func (tc *HomeTestCase) StatusCode(statusCode int) *HomeTestCase {
 	return tc
 }
 
-// BodyContains asserts no error and that the response contains the string or byte array value.
+// BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *HomeTestCase) BodyContains(value any) *HomeTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -168,7 +168,7 @@ func (tc *HomeTestCase) BodyContains(value any) *HomeTestCase {
 	return tc
 }
 
-// BodyNotContains asserts no error and that the response does not contain the string or byte array value.
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *HomeTestCase) BodyNotContains(value any) *HomeTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -669,7 +669,7 @@ func (tc *NoQueueTestCase) StatusCode(statusCode int) *NoQueueTestCase {
 	return tc
 }
 
-// BodyContains asserts no error and that the response contains the string or byte array value.
+// BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *NoQueueTestCase) BodyContains(value any) *NoQueueTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -686,7 +686,7 @@ func (tc *NoQueueTestCase) BodyContains(value any) *NoQueueTestCase {
 	return tc
 }
 
-// BodyNotContains asserts no error and that the response does not contain the string or byte array value.
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *NoQueueTestCase) BodyNotContains(value any) *NoQueueTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -1193,7 +1193,7 @@ func (tc *DefaultQueueTestCase) StatusCode(statusCode int) *DefaultQueueTestCase
 	return tc
 }
 
-// BodyContains asserts no error and that the response contains the string or byte array value.
+// BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *DefaultQueueTestCase) BodyContains(value any) *DefaultQueueTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -1210,7 +1210,7 @@ func (tc *DefaultQueueTestCase) BodyContains(value any) *DefaultQueueTestCase {
 	return tc
 }
 
-// BodyNotContains asserts no error and that the response does not contain the string or byte array value.
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *DefaultQueueTestCase) BodyNotContains(value any) *DefaultQueueTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -1717,7 +1717,7 @@ func (tc *CacheLoadTestCase) StatusCode(statusCode int) *CacheLoadTestCase {
 	return tc
 }
 
-// BodyContains asserts no error and that the response contains the string or byte array value.
+// BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *CacheLoadTestCase) BodyContains(value any) *CacheLoadTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -1734,7 +1734,7 @@ func (tc *CacheLoadTestCase) BodyContains(value any) *CacheLoadTestCase {
 	return tc
 }
 
-// BodyNotContains asserts no error and that the response does not contain the string or byte array value.
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *CacheLoadTestCase) BodyNotContains(value any) *CacheLoadTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -2235,7 +2235,7 @@ func (tc *CacheStoreTestCase) StatusCode(statusCode int) *CacheStoreTestCase {
 	return tc
 }
 
-// BodyContains asserts no error and that the response contains the string or byte array value.
+// BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *CacheStoreTestCase) BodyContains(value any) *CacheStoreTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -2252,7 +2252,7 @@ func (tc *CacheStoreTestCase) BodyContains(value any) *CacheStoreTestCase {
 	return tc
 }
 
-// BodyNotContains asserts no error and that the response does not contain the string or byte array value.
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *CacheStoreTestCase) BodyNotContains(value any) *CacheStoreTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()

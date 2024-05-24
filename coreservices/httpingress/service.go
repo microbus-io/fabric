@@ -391,7 +391,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		pub.URL(internalURL),
 		pub.Body(body),
 		pub.Unicast(),
-		pub.CopyHeaders(r),            // Copy non-internal headers
+		pub.CopyHeaders(r.Header),     // Copy non-internal headers
 		pub.ContentLength(len(body)),  // Overwrite the Content-Length header
 		pub.Header("Traceparent", ""), // Disallowed header
 		pub.Header("Tracestate", ""),  // Disallowed header

@@ -195,7 +195,7 @@ func (_c *Client) Collect(ctx context.Context, r *http.Request) (res *http.Respo
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -219,5 +219,5 @@ func (_c *MulticastClient) Collect(ctx context.Context, r *http.Request) <-chan 
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r), pub.Body(r.Body))
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }

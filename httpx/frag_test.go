@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHttpx_Request(t *testing.T) {
+func TestHttpx_FragRequest(t *testing.T) {
 	t.Parallel()
 
 	// Using BodyReader
@@ -43,7 +43,8 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	}
 
 	req, err := http.NewRequest("GET", "https://www.example.com", bodyReader)
-	req.Header.Set("Foo", "Bar")
+	req.Header.Add("Foo", "Bar 1")
+	req.Header.Add("Foo", "Bar 2")
 	assert.NoError(t, err)
 
 	// Fragment
@@ -83,11 +84,13 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	contentLen := intReq.Header.Get("Content-Length")
 	assert.True(t, contentLen == strconv.Itoa(len(body)))
 
-	foo := intReq.Header.Get("Foo")
-	assert.Equal(t, "Bar", foo)
+	if assert.Len(t, intReq.Header["Foo"], 2) {
+		assert.Equal(t, "Bar 1", intReq.Header["Foo"][0])
+		assert.Equal(t, "Bar 2", intReq.Header["Foo"][1])
+	}
 }
 
-func TestHttpx_Response(t *testing.T) {
+func TestHttpx_FragResponse(t *testing.T) {
 	t.Parallel()
 
 	// Using BodyReader
@@ -107,14 +110,16 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 	var res *http.Response
 	if optimized {
 		rec := NewResponseRecorder()
-		rec.Header().Set("Foo", "Bar")
+		rec.Header().Add("Foo", "Bar 1")
+		rec.Header().Add("Foo", "Bar 2")
 		n, err := rec.Write(body)
 		assert.NoError(t, err)
 		assert.Equal(t, len(body), n)
 		res = rec.Result()
 	} else {
 		rec := httptest.NewRecorder()
-		rec.Header().Set("Foo", "Bar")
+		rec.Header().Add("Foo", "Bar 1")
+		rec.Header().Add("Foo", "Bar 2")
 		n, err := rec.Write(body)
 		assert.NoError(t, err)
 		assert.Equal(t, len(body), n)
@@ -158,6 +163,8 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 	contentLen := intRes.Header.Get("Content-Length")
 	assert.True(t, contentLen == strconv.Itoa(len(body)))
 
-	foo := intRes.Header.Get("Foo")
-	assert.Equal(t, "Bar", foo)
+	if assert.Len(t, intRes.Header["Foo"], 2) {
+		assert.Equal(t, "Bar 1", intRes.Header["Foo"][0])
+		assert.Equal(t, "Bar 2", intRes.Header["Foo"][1])
+	}
 }

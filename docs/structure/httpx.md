@@ -92,3 +92,14 @@ Microbus-Time-Budget: 19999
 
 7SLujUrm4W99YLUp
 ```
+
+`QArgs` is a simplification of the standard `url.Values` and can be used to encode query strings in a single easily-readable statement:
+
+```go
+u := "https://example.com?" + httpx.QArgs{
+    "foo":   "bar",
+    "count": 5,
+}.Encode()
+```
+
+`NewRequest`, `MustNewRequest`, `NewRequestWithContext` and `MustNewRequestWithContext` are wrappers over the standard `http.NewRequest` that take in a body of `any` type rather than just a `[]byte` array. `SetRequestBody` is responsible for interpreting the body as the correct type. The `Must-` versions panic instead of returning an error, allowing single statement construction.

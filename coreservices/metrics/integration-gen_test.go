@@ -151,7 +151,7 @@ func (tc *CollectTestCase) StatusCode(statusCode int) *CollectTestCase {
 	return tc
 }
 
-// BodyContains asserts no error and that the response contains the string or byte array value.
+// BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *CollectTestCase) BodyContains(value any) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()
@@ -168,7 +168,7 @@ func (tc *CollectTestCase) BodyContains(value any) *CollectTestCase {
 	return tc
 }
 
-// BodyNotContains asserts no error and that the response does not contain the string or byte array value.
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *CollectTestCase) BodyNotContains(value any) *CollectTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		body := tc.res.Body.(*httpx.BodyReader).Bytes()

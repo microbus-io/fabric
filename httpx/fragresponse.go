@@ -92,9 +92,7 @@ func (fr *FragResponse) Fragment(index int) (f *http.Response, err error) {
 	// Prepare the HTTP response
 	fragment := NewResponseRecorder()
 	for k, vv := range fr.origResponse.Header {
-		for _, v := range vv {
-			fragment.Header().Set(k, v)
-		}
+		fragment.Header()[k] = vv
 	}
 	fragment.Header().Set("Content-Length", strconv.FormatInt(n, 10))
 	frame.Of(fragment).SetFragment(index, len(fr.bodyFragments))

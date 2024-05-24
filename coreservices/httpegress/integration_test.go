@@ -143,6 +143,7 @@ func TestHttpegress_Do(t *testing.T) {
 
 	// Echo
 	req, err := http.NewRequest(http.MethodPut, "http://127.0.0.1:5050/echo", bytes.NewReader([]byte("Lorem Ipsum")))
+	req.Header["Multi-Value"] = []string{"Foo", "Bar"}
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "text/plain")
 
@@ -154,6 +155,8 @@ func TestHttpegress_Do(t *testing.T) {
 		assert.Contains(t, string(raw), "Host: 127.0.0.1:5050\r\n")
 		assert.Contains(t, string(raw), "User-Agent: Go-http-client")
 		assert.Contains(t, string(raw), "Content-Type: text/plain\r\n")
+		assert.Contains(t, string(raw), "Multi-Value: Foo\r\n")
+		assert.Contains(t, string(raw), "Multi-Value: Bar\r\n")
 		assert.Contains(t, string(raw), "\r\n\r\nLorem Ipsum")
 	}
 

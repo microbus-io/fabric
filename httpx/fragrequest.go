@@ -95,9 +95,7 @@ func (fr *FragRequest) Fragment(index int) (f *http.Request, err error) {
 		return nil, errors.Trace(err)
 	}
 	for k, vv := range fr.origRequest.Header {
-		for _, v := range vv {
-			fragment.Header.Set(k, v)
-		}
+		fragment.Header[k] = vv
 	}
 	fragment.Header.Set("Content-Length", strconv.FormatInt(n, 10))
 	frame.Of(fragment).SetFragment(index, len(fr.bodyFragments))

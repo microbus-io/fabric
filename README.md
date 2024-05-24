@@ -49,7 +49,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [env](docs/structure/env.md) - Manages the loading of environment variables
 * [errors](docs/structure/errors.md) - An enhancement of the standard `errors` package
 * [examples](docs/structure/examples.md) - Demo microservices 
-* [frame](docs/structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
+* [frame](docs/structure/frame.md) ✨ - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](docs/structure/httpx.md) ✨ - Various HTTP utilities
 * [log](docs/structure/log.md) - Fields for attaching data to log messages
 * [lru](docs/structure/lru.md) - An LRU with with limits on age and weight
@@ -57,7 +57,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [openapi](docs/structure/openapi.md) - Supports the generation of OpenAPI documents
 * [pub](docs/structure/pub.md) - Options for publishing requests
 * [rand](docs/structure/rand.md) - A utility for generating random numbers
-* [service](docs/structure/service.md) - Definitions of interfaces of microservices
+* [service](docs/structure/service.md) - Interface definitions of microservices
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
 * [trc](docs/structure/trc.md) - Options for creating tracing spans
 * [timex](docs/structure/timex.md) - Enhancement of the standard `time.Time`

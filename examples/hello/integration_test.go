@@ -105,10 +105,12 @@ func TestHello_Echo(t *testing.T) {
 			NoError()
 	*/
 	r, _ := http.NewRequest("POST", "?echo=123", strings.NewReader("PostBody"))
-	r.Header.Set("Echo123", "EchoEchoEcho")
+	r.Header.Add("Echo123", "EchoEchoEcho")
+	r.Header.Add("Echo123", "WhoaWhoaWhoa")
 	Echo(t, r).
 		ContentType("text/plain").
 		BodyContains("Echo123: EchoEchoEcho").
+		BodyContains("Echo123: WhoaWhoaWhoa").
 		BodyContains("?echo=123").
 		BodyContains("PostBody")
 }
