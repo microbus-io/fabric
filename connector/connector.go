@@ -338,7 +338,7 @@ func (c *Connector) DistribCache() *dlru.Cache {
 
 // doCallback sets up the context and calls a callback, making sure to captures panics.
 // It is used for the on startup, on shutdown, on ticker and on config change situations.
-// The path is used to name this callback in telemetry.
+// The name is used to identify this callback in telemetry.
 func (c *Connector) doCallback(ctx context.Context, name string, callback func(ctx context.Context) error) error {
 	if callback == nil {
 		return nil
