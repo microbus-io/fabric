@@ -45,16 +45,16 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: messaging.example.
-const HostName = "messaging.example"
+// Hostname is the default hostname of the microservice: messaging.example.
+const Hostname = "messaging.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfHome = httpx.JoinHostAndPath(HostName, `:443/home`)
-	URLOfNoQueue = httpx.JoinHostAndPath(HostName, `:443/no-queue`)
-	URLOfDefaultQueue = httpx.JoinHostAndPath(HostName, `:443/default-queue`)
-	URLOfCacheLoad = httpx.JoinHostAndPath(HostName, `:443/cache-load`)
-	URLOfCacheStore = httpx.JoinHostAndPath(HostName, `:443/cache-store`)
+	URLOfHome = httpx.JoinHostAndPath(Hostname, `:443/home`)
+	URLOfNoQueue = httpx.JoinHostAndPath(Hostname, `:443/no-queue`)
+	URLOfDefaultQueue = httpx.JoinHostAndPath(Hostname, `:443/default-queue`)
+	URLOfCacheLoad = httpx.JoinHostAndPath(Hostname, `:443/cache-load`)
+	URLOfCacheStore = httpx.JoinHostAndPath(Hostname, `:443/cache-store`)
 )
 
 // Client is an interface to calling the endpoints of the messaging.example microservice.
@@ -72,7 +72,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -93,7 +93,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c

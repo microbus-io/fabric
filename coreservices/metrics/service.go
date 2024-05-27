@@ -69,7 +69,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 	if host == "" {
 		host = "all"
 	}
-	err = utils.ValidateHostName(host)
+	err = utils.ValidateHostname(host)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -145,7 +145,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				}
 				rCloser.Close()
 			}
-		}(serviceInfo.HostName, delay)
+		}(serviceInfo.Hostname, delay)
 		delay += 2 * time.Millisecond
 	}
 	wg.Wait()

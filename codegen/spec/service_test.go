@@ -188,7 +188,7 @@ sinks:
     source: from/somewhere/else
     forHost: invalid.ho$t
 `,
-		"invalid host name",
+		"invalid hostname",
 	}
 
 	tcConfigs := []string{

@@ -15,7 +15,7 @@ import (
 )
 
 type repository struct {
-	values map[string]map[string]string // host name -> config property name -> value
+	values map[string]map[string]string // hostname -> config property name -> value
 }
 
 /*

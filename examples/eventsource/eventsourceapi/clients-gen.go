@@ -45,12 +45,12 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: eventsource.example.
-const HostName = "eventsource.example"
+// Hostname is the default hostname of the microservice: eventsource.example.
+const Hostname = "eventsource.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfRegister = httpx.JoinHostAndPath(HostName, `:443/register`)
+	URLOfRegister = httpx.JoinHostAndPath(Hostname, `:443/register`)
 )
 
 // Client is an interface to calling the endpoints of the eventsource.example microservice.
@@ -68,7 +68,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -89,7 +89,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c
@@ -109,7 +109,7 @@ func NewMulticastTrigger(caller service.Publisher) *MulticastTrigger {
 	}
 }
 
-// ForHost replaces the default host name of this trigger.
+// ForHost replaces the default hostname of this trigger.
 func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
 	_c.host = host
 	return _c
@@ -129,7 +129,7 @@ func NewHook(listener service.Subscriber) *Hook {
 	}
 }
 
-// ForHost replaces the default host name of this hook.
+// ForHost replaces the default hostname of this hook.
 func (_c *Hook) ForHost(host string) *Hook {
 	_c.host = host
 	return _c

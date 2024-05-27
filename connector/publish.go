@@ -92,7 +92,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	outboundFrame.SetCallDepth(depth + 1)
 
 	// Set return address
-	outboundFrame.SetFromHost(c.hostName)
+	outboundFrame.SetFromHost(c.hostname)
 	outboundFrame.SetFromID(c.id)
 	outboundFrame.SetFromVersion(c.version)
 	outboundFrame.SetOpCode(frame.OpCodeRequest)

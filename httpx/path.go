@@ -14,7 +14,7 @@ import (
 	"github.com/microbus-io/fabric/errors"
 )
 
-// JoinHostAndPath combines the path shorthand with a host name.
+// JoinHostAndPath combines the path shorthand with a hostname.
 func JoinHostAndPath(host string, path string) string {
 	if path == "" {
 		// (empty)

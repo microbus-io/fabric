@@ -67,7 +67,7 @@ type StarterStopper interface {
 	IsStarted() bool
 	Lifetime() context.Context
 
-	SetHostName(hostName string) error
+	SetHostname(hostname string) error
 	SetDeployment(deployment string) error
 	SetPlane(plane string) error
 
@@ -78,7 +78,7 @@ type StarterStopper interface {
 // Identifier are the properties used to uniquely identify and address the microservice.
 type Identifier interface {
 	ID() string
-	HostName() string
+	Hostname() string
 	Description() string
 	Version() int
 	Deployment() string

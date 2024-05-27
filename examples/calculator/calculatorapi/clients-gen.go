@@ -45,14 +45,14 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: calculator.example.
-const HostName = "calculator.example"
+// Hostname is the default hostname of the microservice: calculator.example.
+const Hostname = "calculator.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfArithmetic = httpx.JoinHostAndPath(HostName, `:443/arithmetic`)
-	URLOfSquare = httpx.JoinHostAndPath(HostName, `:443/square`)
-	URLOfDistance = httpx.JoinHostAndPath(HostName, `:443/distance`)
+	URLOfArithmetic = httpx.JoinHostAndPath(Hostname, `:443/arithmetic`)
+	URLOfSquare = httpx.JoinHostAndPath(Hostname, `:443/square`)
+	URLOfDistance = httpx.JoinHostAndPath(Hostname, `:443/distance`)
 )
 
 // Client is an interface to calling the endpoints of the calculator.example microservice.
@@ -70,7 +70,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -91,7 +91,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c

@@ -3,7 +3,7 @@
 The `Connector` is the most fundamental construct of the framework, providing key capabilities to `Microbus` microservices:
 
 * Startup and shutdown with corresponding callbacks
-* Service host name and a random instance ID, both used to address the microservice
+* Service hostname and a random instance ID, both used to address the microservice
 * [Connectivity to NATS](../tech/natsconnection.md)
 * HTTP-like communication over NATS, unicast (request/response) and multicast (pub/sub)
 * JSON logger

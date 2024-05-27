@@ -37,7 +37,7 @@ func (grp group) Startup(ctx context.Context) error {
 		go func() {
 			time.Sleep(offsettingDelay)
 			defer wg.Done()
-			err := errors.Newf("'%s' failed to start", s.HostName())
+			err := errors.Newf("'%s' failed to start", s.Hostname())
 			delay := time.Millisecond
 			for {
 				select {

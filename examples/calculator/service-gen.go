@@ -35,8 +35,8 @@ var (
 	_ *calculatorapi.Client
 )
 
-// HostName is the default host name of the microservice: calculator.example.
-const HostName = "calculator.example"
+// Hostname is the default hostname of the microservice: calculator.example.
+const Hostname = "calculator.example"
 
 // NewService creates a new calculator.example microservice.
 func NewService() *Service {

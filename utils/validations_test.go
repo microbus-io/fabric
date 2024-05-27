@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUtils_ValidateHostName(t *testing.T) {
+func TestUtils_ValidateHostname(t *testing.T) {
 	valid := []string{
 		"hello",
 		"hello.WORLD",
@@ -33,10 +33,10 @@ func TestUtils_ValidateHostName(t *testing.T) {
 	}
 
 	for _, x := range valid {
-		assert.NoError(t, ValidateHostName(x), "%s", x)
+		assert.NoError(t, ValidateHostname(x), "%s", x)
 	}
 	for _, x := range invalid {
-		assert.Error(t, ValidateHostName(x), "%s", x)
+		assert.Error(t, ValidateHostname(x), "%s", x)
 	}
 }
 

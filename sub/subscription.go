@@ -40,7 +40,7 @@ type Subscription struct {
 
 /*
 NewSub creates a new subscription for the indicated path.
-If the path does not include a host name, the microservice's default host name is used.
+If the path does not include a hostname, the microservice's default hostname is used.
 If a port is not specified, 443 is used by default. An asterisk "*" can be used to designate all ports.
 The subscription can be limited to one HTTP method such as "GET" or "POST",
 or an asterisk "*" can be used to accept any method.

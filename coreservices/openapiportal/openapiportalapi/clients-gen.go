@@ -46,12 +46,12 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: openapiportal.sys.
-const HostName = "openapiportal.sys"
+// Hostname is the default hostname of the microservice: openapiportal.sys.
+const Hostname = "openapiportal.sys"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfList = httpx.JoinHostAndPath(HostName, `//openapi:*`)
+	URLOfList = httpx.JoinHostAndPath(Hostname, `//openapi:*`)
 )
 
 // Client is an interface to calling the endpoints of the openapiportal.sys microservice.
@@ -69,7 +69,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -90,7 +90,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c

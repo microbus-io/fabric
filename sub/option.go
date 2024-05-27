@@ -47,7 +47,7 @@ func Pervasive() Option {
 	return NoQueue()
 }
 
-// DefaultQueue names the queue of this subscription to the host name of the service.
+// DefaultQueue names the queue of this subscription to the hostname of the service.
 // Requests will be load-balanced among all instances of this microservice.
 func DefaultQueue() Option {
 	return func(sub *Subscription) error {

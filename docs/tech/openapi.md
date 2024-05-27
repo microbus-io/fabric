@@ -58,7 +58,7 @@ OpenAPI generation can be disabled in `service.yaml` using the `openApi: false` 
 ```yaml
 # General
 #
-# host - The host name of the microservice
+# host - The hostname of the microservice
 # description - A human-friendly description of the microservice
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)

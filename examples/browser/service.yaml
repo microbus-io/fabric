@@ -6,7 +6,7 @@
 ---
 # General
 #
-# host - The host name of the microservice
+# host - The hostname of the microservice
 # description - A human-friendly description of the microservice
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
@@ -43,7 +43,7 @@ configs:
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
-# path - The URL path of the subscription, relative to the host name of the microservice
+# path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
@@ -68,7 +68,7 @@ functions:
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. (defaults to "POST")
-# path - The URL path of the subscription, relative to the host name of the microservice
+# path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/ - All paths under the directory
@@ -89,7 +89,7 @@ events:
 # description - Documentation
 # event - The name of the event at the source (defaults to the function name)
 # source - The package path of the microservice that is the source of the event
-# forHost - For an event source with an overridden host name
+# forHost - For an event source with an overridden hostname
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -103,7 +103,7 @@ sinks:
 # signature - Func()
 # description - Documentation
 # method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
-# path - The URL path of the subscription, relative to the host name of the microservice
+# path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory

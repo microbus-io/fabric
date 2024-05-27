@@ -36,8 +36,8 @@ var (
 	_ *openapiportalapi.Client
 )
 
-// HostName is the default host name of the microservice: openapiportal.sys.
-const HostName = "openapiportal.sys"
+// Hostname is the default hostname of the microservice: openapiportal.sys.
+const Hostname = "openapiportal.sys"
 
 // NewService creates a new openapiportal.sys microservice.
 func NewService() *Service {

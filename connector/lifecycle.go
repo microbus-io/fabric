@@ -53,7 +53,7 @@ func (c *Connector) Startup() (err error) {
 	if c.started {
 		return errors.New("already started")
 	}
-	if c.hostName == "" {
+	if c.hostname == "" {
 		return errors.New("hostname is not set")
 	}
 	defer func() { c.initErr = nil }()
@@ -170,7 +170,7 @@ func (c *Connector) Startup() (err error) {
 	}
 
 	// Subscribe to the response subject
-	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostName, c.id), c.id, c.onResponse)
+	c.natsResponseSub, err = c.natsConn.QueueSubscribe(subjectOfResponses(c.plane, c.hostname, c.id), c.id, c.onResponse)
 	if err != nil {
 		err = errors.Trace(err)
 		return err

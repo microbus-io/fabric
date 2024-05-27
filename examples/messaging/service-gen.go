@@ -35,8 +35,8 @@ var (
 	_ *messagingapi.Client
 )
 
-// HostName is the default host name of the microservice: messaging.example.
-const HostName = "messaging.example"
+// Hostname is the default hostname of the microservice: messaging.example.
+const Hostname = "messaging.example"
 
 // NewService creates a new messaging.example microservice.
 func NewService() *Service {

@@ -92,7 +92,7 @@ func TestCodegen_YAMLFile(t *testing.T) {
 
 	// Running now should fix the comments in service.yaml
 	err = gen.Run()
-	assert.Error(t, err) // Missing host name
+	assert.Error(t, err) // Missing hostname
 	onDisk, err = os.ReadFile(filepath.Join(dir, "service.yaml"))
 	assert.NoError(t, err)
 	template, err = bundle.ReadFile("bundle/service.yaml.txt")

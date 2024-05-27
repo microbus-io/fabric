@@ -50,7 +50,7 @@ func (g *General) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // validate validates the data after unmarshaling.
 func (g *General) validate() error {
-	err := utils.ValidateHostName(g.Host)
+	err := utils.ValidateHostname(g.Host)
 	if err != nil {
 		return errors.Trace(err)
 	}

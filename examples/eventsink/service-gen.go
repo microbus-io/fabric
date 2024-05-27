@@ -35,8 +35,8 @@ var (
 	_ *eventsinkapi.Client
 )
 
-// HostName is the default host name of the microservice: eventsink.example.
-const HostName = "eventsink.example"
+// Hostname is the default hostname of the microservice: eventsink.example.
+const Hostname = "eventsink.example"
 
 // NewService creates a new eventsink.example microservice.
 func NewService() *Service {

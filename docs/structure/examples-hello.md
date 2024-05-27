@@ -75,6 +75,6 @@ tr: Merhaba
 sv: God dag
 ```
 
-The `//root` endpoint demonstrates how the magic host name `root` is used to create a subscription to the topmost root path of the web server.
+The `//root` endpoint demonstrates how the magic hostname `root` is used to create a subscription to the topmost root path of the web server.
 
 http://localhost:8080/

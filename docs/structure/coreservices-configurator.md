@@ -26,7 +26,7 @@ domain.name:
 
 Note that both domain names and property names are case-insensitive.
 
-A property value is applicable to a microservice that (1) defines a property with the same name, and (2) whose host name equals or is a sub-domain of the domain name. For example, in the following example, the value of `Foo` is applicable only to the `www.example.com` microservice, while the value of `Moo` is applicable to both `www.example.com` and `zzz.example.com`.
+A property value is applicable to a microservice that (1) defines a property with the same name, and (2) whose hostname equals or is a sub-domain of the domain name. For example, in the following example, the value of `Foo` is applicable only to the `www.example.com` microservice, while the value of `Moo` is applicable to both `www.example.com` and `zzz.example.com`.
 
 ```yaml
 www.example.com:

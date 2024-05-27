@@ -179,7 +179,7 @@ func (c *Connector) initLogger() (err error) {
 		return errors.Trace(err)
 	}
 	c.logger = c.logger.With(
-		log.String("host", c.HostName()),
+		log.String("host", c.Hostname()),
 		log.String("id", c.ID()),
 		log.Int("ver", c.Version()),
 	)

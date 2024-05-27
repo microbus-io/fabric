@@ -35,8 +35,8 @@ var (
 	_ *httpegressapi.Client
 )
 
-// HostName is the default host name of the microservice: http.egress.sys.
-const HostName = "http.egress.sys"
+// Hostname is the default hostname of the microservice: http.egress.sys.
+const Hostname = "http.egress.sys"
 
 // NewService creates a new http.egress.sys microservice.
 func NewService() *Service {

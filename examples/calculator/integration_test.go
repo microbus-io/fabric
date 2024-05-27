@@ -95,7 +95,7 @@ func TestCalculator_Distance(t *testing.T) {
 
 func TestCalculator_OpenAPI(t *testing.T) {
 	ctx := Context()
-	res, err := Svc.Request(ctx, pub.GET("https://"+Svc.HostName()+"/openapi.json"))
+	res, err := Svc.Request(ctx, pub.GET("https://"+Svc.Hostname()+"/openapi.json"))
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {

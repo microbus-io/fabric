@@ -105,7 +105,7 @@ func (svc *Service) List(w http.ResponseWriter, r *http.Request) (err error) {
 			lock.Lock()
 			infos = append(infos, &oapiDoc.Info)
 			lock.Unlock()
-		}(serviceInfo.HostName, delay)
+		}(serviceInfo.Hostname, delay)
 		delay += 2 * time.Millisecond
 	}
 	wg.Wait()

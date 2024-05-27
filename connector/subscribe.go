@@ -37,7 +37,7 @@ type HTTPHandler = sub.HTTPHandler
 Subscribe assigns a function to handle HTTP requests to the given path.
 If the path ends with a / all sub-paths under the path are capture by the subscription
 
-If the path does not include a host name, the default host is used.
+If the path does not include a hostname, the default host is used.
 If a port is not specified, 443 is used by default.
 If a method is not specified, * is used by default to capture all methods.
 
@@ -54,10 +54,10 @@ Examples of valid paths:
 	https://www.example.com:1080/path
 */
 func (c *Connector) Subscribe(method string, path string, handler sub.HTTPHandler, options ...sub.Option) error {
-	if c.hostName == "" {
-		return c.captureInitErr(errors.New("host name is not set"))
+	if c.hostname == "" {
+		return c.captureInitErr(errors.New("hostname is not set"))
 	}
-	newSub, err := sub.NewSub(method, c.hostName, path, handler, options...)
+	newSub, err := sub.NewSub(method, c.hostname, path, handler, options...)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
@@ -77,7 +77,7 @@ func (c *Connector) Subscribe(method string, path string, handler sub.HTTPHandle
 
 // Unsubscribe removes the handler for the specified path
 func (c *Connector) Unsubscribe(method string, path string) error {
-	newSub, err := sub.NewSub(method, c.hostName, path, nil)
+	newSub, err := sub.NewSub(method, c.hostname, path, nil)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -214,7 +214,7 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 	}
 	queue := s.Queue
 	if queue == "" {
-		queue = c.id + "." + c.hostName
+		queue = c.id + "." + c.hostname
 	}
 
 	// Prepare and send the ack
@@ -228,7 +228,7 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 	buf.WriteString("\r\nConnection: close")
 	header := map[string]string{
 		frame.HeaderOpCode:   frame.OpCodeAck,
-		frame.HeaderFromHost: c.hostName,
+		frame.HeaderFromHost: c.hostname,
 		frame.HeaderFromId:   c.id,
 		frame.HeaderMsgId:    msgID,
 		frame.HeaderQueue:    queue,
@@ -267,13 +267,13 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		httpReq.Header.Del("User-Agent")
 	}
 
-	// Get the sender host name and message ID
+	// Get the sender hostname and message ID
 	fromHost := frame.Of(httpReq).FromHost()
 	fromId := frame.Of(httpReq).FromID()
 	msgID := frame.Of(httpReq).MessageID()
 	queue := s.Queue
 	if queue == "" {
-		queue = c.id + "." + c.hostName
+		queue = c.id + "." + c.hostname
 	}
 
 	c.LogDebug(c.lifetimeCtx, "Handling", log.String("msg", msgID), log.String("url", s.Canonical()), log.String("method", s.Method))
@@ -397,7 +397,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 	// Set control headers on the response
 	httpResponse := httpRecorder.Result()
 	frame.Of(httpResponse).SetMessageID(msgID)
-	frame.Of(httpResponse).SetFromHost(c.hostName)
+	frame.Of(httpResponse).SetFromHost(c.hostname)
 	frame.Of(httpResponse).SetFromID(c.id)
 	frame.Of(httpResponse).SetFromVersion(c.version)
 	frame.Of(httpResponse).SetQueue(queue)

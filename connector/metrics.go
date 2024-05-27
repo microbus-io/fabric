@@ -171,7 +171,7 @@ func (c *Connector) IncrementMetric(name string, val float64, labels ...string) 
 	if !ok {
 		return errors.Newf("unknown metric '%s'", name)
 	}
-	err := m.Add(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
+	err := m.Add(val, append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
 	return errors.Trace(err)
 }
 
@@ -187,6 +187,6 @@ func (c *Connector) ObserveMetric(name string, val float64, labels ...string) er
 	if !ok {
 		return errors.Newf("unknown metric '%s'", name)
 	}
-	err := m.Observe(val, append([]string{c.HostName(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
+	err := m.Observe(val, append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
 	return errors.Trace(err)
 }

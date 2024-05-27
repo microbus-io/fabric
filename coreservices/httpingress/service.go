@@ -345,10 +345,10 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	// Use the first segment of the URI as the host name to contact
+	// Use the first segment of the URI as the hostname to contact
 	u, err := resolveInternalURL(r.URL, svc.portMappings)
 	if err != nil {
-		// Ignore requests to invalid internal host names, such as: https://example.com/%3Fterms=1
+		// Ignore requests to invalid internal hostnames, such as: https://example.com/%3Fterms=1
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
@@ -359,7 +359,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 	internalURL := u.String()
 	internalHost := u.Host
-	metrics := internalHost == metricsapi.HostName || strings.HasPrefix(internalHost, metricsapi.HostName+":")
+	metrics := internalHost == metricsapi.Hostname || strings.HasPrefix(internalHost, metricsapi.Hostname+":")
 	if !metrics {
 		if internalHost != "favicon.ico" {
 			svc.LogInfo(ctx, "Request received", log.String("url", internalURL))

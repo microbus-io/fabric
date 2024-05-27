@@ -16,14 +16,14 @@ import (
 	"github.com/microbus-io/fabric/errors"
 )
 
-// ValidateHostName indicates if the host name is a valid microservice host name.
-// Host names must only contain alphanumeric characters, hyphens, underscores and dot separators.
-func ValidateHostName(hostName string) error {
-	hn := strings.ToLower(hostName)
+// ValidateHostname indicates if the hostname is a valid microservice hostname.
+// Hostnames must only contain alphanumeric characters, hyphens, underscores and dot separators.
+func ValidateHostname(hostname string) error {
+	hn := strings.ToLower(hostname)
 	match, _ := regexp.MatchString(`^[a-z0-9_\-]+(\.[a-z0-9_\-]+)*$`, hn)
 	if !match {
 		// The hostname "all" is reserved to refer to all microservices
-		return errors.Newf("invalid host name '%s'", hostName)
+		return errors.Newf("invalid hostname '%s'", hostname)
 	}
 	return nil
 }
@@ -51,7 +51,7 @@ func ValidateTickerName(name string) error {
 }
 
 // ParseURL returns a canonical version of the parsed URL with the scheme and port filled in if omitted.
-// It returns an error if the URL has a invalid scheme, host name or port.
+// It returns an error if the URL has a invalid scheme, hostname or port.
 func ParseURL(u string) (canonical *url.URL, err error) {
 	if strings.Contains(u, "`") {
 		return nil, errors.New("backquote not allowed")
@@ -63,7 +63,7 @@ func ParseURL(u string) (canonical *url.URL, err error) {
 	}
 
 	// Host
-	if err := ValidateHostName(parsed.Hostname()); err != nil {
+	if err := ValidateHostname(parsed.Hostname()); err != nil {
 		return nil, errors.Trace(err)
 	}
 

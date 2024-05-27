@@ -35,8 +35,8 @@ var (
 	_ *httpingressapi.Client
 )
 
-// HostName is the default host name of the microservice: http.ingress.sys.
-const HostName = "http.ingress.sys"
+// Hostname is the default hostname of the microservice: http.ingress.sys.
+const Hostname = "http.ingress.sys"
 
 // NewService creates a new http.ingress.sys microservice.
 func NewService() *Service {

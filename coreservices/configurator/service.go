@@ -123,7 +123,7 @@ Sync is used to synchronize values among replica peers of the configurator.
 */
 func (svc *Service) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
 	// Only respond to peers, and not to self
-	if frame.Of(ctx).FromHost() != svc.HostName() || frame.Of(ctx).FromID() == svc.ID() {
+	if frame.Of(ctx).FromHost() != svc.Hostname() || frame.Of(ctx).FromID() == svc.ID() {
 		return nil
 	}
 

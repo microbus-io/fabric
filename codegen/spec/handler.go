@@ -223,9 +223,9 @@ func (h *Handler) validate() error {
 			return errors.Newf("invalid source '%s' in '%s'", h.Source, h.Name())
 		}
 		if h.ForHost != "" {
-			err := utils.ValidateHostName(h.ForHost)
+			err := utils.ValidateHostname(h.ForHost)
 			if err != nil {
-				return errors.Newf("invalid host name '%s' in '%s'", h.ForHost, h.Name())
+				return errors.Newf("invalid hostname '%s' in '%s'", h.ForHost, h.Name())
 			}
 		}
 		if !startsWithOn.MatchString(h.Event) {

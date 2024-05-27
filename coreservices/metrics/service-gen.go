@@ -35,8 +35,8 @@ var (
 	_ *metricsapi.Client
 )
 
-// HostName is the default host name of the microservice: metrics.sys.
-const HostName = "metrics.sys"
+// Hostname is the default hostname of the microservice: metrics.sys.
+const Hostname = "metrics.sys"
 
 // NewService creates a new metrics.sys microservice.
 func NewService() *Service {

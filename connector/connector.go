@@ -47,7 +47,7 @@ It provides the microservice such functions as connecting to the NATS messaging 
 communications with other microservices, logging, config, etc.
 */
 type Connector struct {
-	hostName    string
+	hostname    string
 	id          string
 	deployment  string
 	description string
@@ -132,10 +132,10 @@ func NewConnector() *Connector {
 	return c
 }
 
-// New constructs a new Connector with the given host name.
-func New(hostName string) *Connector {
+// New constructs a new Connector with the given hostname.
+func New(hostname string) *Connector {
 	c := NewConnector()
-	c.SetHostName(hostName)
+	c.SetHostname(hostname)
 	return c
 }
 
@@ -144,30 +144,30 @@ func (c *Connector) ID() string {
 	return c.id
 }
 
-// SetHostName sets the host name of the microservice.
-// Host names are case-insensitive. Each segment of the host name may contain letters and numbers only.
+// SetHostname sets the hostname of the microservice.
+// Hostnames are case-insensitive. Each segment of the hostname may contain letters and numbers only.
 // Segments are separated by dots.
 // For example, this.is.a.valid.hostname.123.local
-func (c *Connector) SetHostName(hostName string) error {
+func (c *Connector) SetHostname(hostname string) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
 	}
-	hostName = strings.TrimSpace(hostName)
-	if err := utils.ValidateHostName(hostName); err != nil {
+	hostname = strings.TrimSpace(hostname)
+	if err := utils.ValidateHostname(hostname); err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
-	hn := strings.ToLower(hostName)
+	hn := strings.ToLower(hostname)
 	if hn == "all" || strings.HasSuffix(hn, ".all") {
-		return c.captureInitErr(errors.Newf("disallowed host name '%s'", hostName))
+		return c.captureInitErr(errors.Newf("disallowed hostname '%s'", hostname))
 	}
-	c.hostName = hostName
+	c.hostname = hostname
 	return nil
 }
 
-// HostName returns the host name of the microservice.
-// A microservice is addressable by its host name.
-func (c *Connector) HostName() string {
-	return c.hostName
+// Hostname returns the hostname of the microservice.
+// A microservice is addressable by its hostname.
+func (c *Connector) Hostname() string {
+	return c.hostname
 }
 
 // SetDescription sets a human-friendly description of the microservice.
@@ -266,7 +266,7 @@ func (c *Connector) connectToNATS(ctx context.Context) error {
 	opts := []nats.Option{}
 
 	// Unique name to identify this connection
-	opts = append(opts, nats.Name(c.id+"."+c.hostName))
+	opts = append(opts, nats.Name(c.id+"."+c.hostname))
 
 	// URL
 	u := env.Get("MICROBUS_NATS")

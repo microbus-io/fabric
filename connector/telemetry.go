@@ -88,7 +88,7 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 		sdktrace.WithSpanProcessor(sp),
 		sdktrace.WithResource(resource.NewSchemaless(
 			attribute.String("service.namespace", c.plane),
-			attribute.String("service.name", c.hostName),
+			attribute.String("service.name", c.hostname),
 			attribute.Int("service.version", c.version),
 			attribute.String("service.instance.id", c.id),
 		)),

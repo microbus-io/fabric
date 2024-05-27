@@ -36,8 +36,8 @@ var (
 	_ *controlapi.Client
 )
 
-// HostName is the default host name of the microservice: control.sys.
-const HostName = "control.sys"
+// Hostname is the default hostname of the microservice: control.sys.
+const Hostname = "control.sys"
 
 // NewService creates a new control.sys microservice.
 func NewService() *Service {

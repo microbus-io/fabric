@@ -27,12 +27,12 @@ In `service.yaml`, developers are able to define the various pieces of the micro
 
 ### General
 
-The `general` section of `service.yaml` defines the `host` name of the microservice and its human-friendly `description`. The host name is required. It will be how the microservice is addressed by other microservices. A hierarchical naming scheme for host names such as `myservice.mydomain.myproduct` can help avoid conflicts.
+The `general` section of `service.yaml` defines the `host` name of the microservice and its human-friendly `description`. The hostname is required. It will be how the microservice is addressed by other microservices. A hierarchical naming scheme for hostnames such as `myservice.mydomain.myproduct` can help avoid conflicts.
 
 ```yaml
 # General
 #
-# host - The host name of the microservice
+# host - The hostname of the microservice
 # description - A human-friendly description of the microservice
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
@@ -130,7 +130,7 @@ func (svc *Service) FuncHandler(ctx context.Context, id string) (ok bool, httpSt
 
 `method` can be used to restrict the function to accept only certain HTTP methods. By default, the function is agnostic to the HTTP method.
 
-Along with the host name of the service, the `path` defines the URL to this endpoint. It defaults to the function name in `kebab-case`.
+Along with the hostname of the service, the `path` defines the URL to this endpoint. It defaults to the function name in `kebab-case`.
 
 `queue` defines whether a request is routed to one of the replicas of the microservice (load-balanced) or to all (pervasive).
 
@@ -174,7 +174,7 @@ The `signature` defines the event name (which must start with the word `On` foll
 # description - Documentation
 # event - The name of the event at the source (defaults to the function name)
 # source - The package path of the microservice that is the source of the event
-# forHost - For an event source with an overridden host name
+# forHost - For an event source with an overridden hostname
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -198,7 +198,7 @@ sinks:
 
 The `source` must point to the microservice that is the source of the event. This is the fully-qualified package path.
 
-The optional field `forHost` adjusts the subscription to listen to microservices whose host name was overridden with `SetHostName`.
+The optional field `forHost` adjusts the subscription to listen to microservices whose hostname was overridden with `SetHostname`.
 
 ### Web Handlers
 

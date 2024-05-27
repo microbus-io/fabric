@@ -12,10 +12,10 @@ import (
 	"strings"
 )
 
-// reverseHostName reverses the order of the segments in the host name.
+// reverseHostname reverses the order of the segments in the hostname.
 // www.example.com becomes com.example.www
-func reverseHostName(hostName string) string {
-	segments := strings.Split(hostName, ".")
+func reverseHostname(hostname string) string {
+	segments := strings.Split(hostname, ".")
 	for i := 0; i < len(segments)/2; i++ {
 		j := len(segments) - i - 1
 		segments[i], segments[j] = segments[j], segments[i]
@@ -25,20 +25,20 @@ func reverseHostName(hostName string) string {
 
 // subjectOfResponse is the NATS subject where a microservice subscribes to receive responses.
 // For the host example.com with ID a1b2c3d4 that subject looks like microbus.r.com.example.a1b2c3d4
-func subjectOfResponses(plane string, hostName string, id string) string {
-	return plane + ".r." + strings.ToLower(reverseHostName(hostName)) + "." + strings.ToLower(id)
+func subjectOfResponses(plane string, hostname string, id string) string {
+	return plane + ".r." + strings.ToLower(reverseHostname(hostname)) + "." + strings.ToLower(id)
 }
 
 // subjectOfSubscription is the NATS subject where a microservice subscribes to receive incoming requests for a given path.
 // For GET http://example.com:80/path/file.html the subject is microbus.80.com.example.|.GET.path.file_html .
 // For a URL that ends with a / such as POST https://example.com/dir/ the subject is microbus.443.com.example.|.POST.dir.>
-func subjectOfSubscription(plane string, method string, hostName string, port string, path string) string {
+func subjectOfSubscription(plane string, method string, hostname string, port string, path string) string {
 	var b strings.Builder
 	b.WriteString(plane)
 	b.WriteRune('.')
 	b.WriteString(port)
 	b.WriteRune('.')
-	b.WriteString(strings.ToLower(reverseHostName(hostName)))
+	b.WriteString(strings.ToLower(reverseHostname(hostname)))
 	b.WriteString(".|.")
 	b.WriteString(strings.ToUpper(method))
 	b.WriteRune('.')
@@ -58,8 +58,8 @@ func subjectOfSubscription(plane string, method string, hostName string, port st
 // For GET http://example.com:80/path/file.html that subject looks like microbus.80.com.example.|.GET.path.file_html .
 // For a URL that ends with a / such as POST https://example.com/dir/ the subject is microbus.443.com.example.|.POST.dir._
 // so that it is captured by the corresponding subscription microbus.443.com.example.|.POST.dir.>
-func subjectOfRequest(plane string, method string, hostName string, port string, path string) string {
-	subject := subjectOfSubscription(plane, method, hostName, port, path)
+func subjectOfRequest(plane string, method string, hostname string, port string, path string) string {
+	subject := subjectOfSubscription(plane, method, hostname, port, path)
 	if strings.HasSuffix(subject, ">") {
 		subject = strings.TrimSuffix(subject, ">") + "_"
 	}

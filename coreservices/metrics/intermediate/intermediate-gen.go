@@ -115,7 +115,7 @@ This key is required except in local development and tests.`),
 // doOpenAPI renders the OpenAPI document of the microservice.
 func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error {
 	oapiSvc := openapi.Service{
-		ServiceName: svc.HostName(),
+		ServiceName: svc.Hostname(),
 		Description: svc.Description(),
 		Version:     svc.Version(),
 		Endpoints:   []*openapi.Endpoint{},

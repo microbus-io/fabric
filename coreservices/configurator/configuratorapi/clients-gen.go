@@ -45,14 +45,14 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: configurator.sys.
-const HostName = "configurator.sys"
+// Hostname is the default hostname of the microservice: configurator.sys.
+const Hostname = "configurator.sys"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfValues = httpx.JoinHostAndPath(HostName, `:443/values`)
-	URLOfRefresh = httpx.JoinHostAndPath(HostName, `:443/refresh`)
-	URLOfSync = httpx.JoinHostAndPath(HostName, `:443/sync`)
+	URLOfValues = httpx.JoinHostAndPath(Hostname, `:443/values`)
+	URLOfRefresh = httpx.JoinHostAndPath(Hostname, `:443/refresh`)
+	URLOfSync = httpx.JoinHostAndPath(Hostname, `:443/sync`)
 )
 
 // Client is an interface to calling the endpoints of the configurator.sys microservice.
@@ -70,7 +70,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -91,7 +91,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c

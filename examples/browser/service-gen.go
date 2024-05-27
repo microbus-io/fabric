@@ -35,8 +35,8 @@ var (
 	_ *browserapi.Client
 )
 
-// HostName is the default host name of the microservice: browser.example.
-const HostName = "browser.example"
+// Hostname is the default hostname of the microservice: browser.example.
+const Hostname = "browser.example"
 
 // NewService creates a new browser.example microservice.
 func NewService() *Service {

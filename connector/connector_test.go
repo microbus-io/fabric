@@ -20,13 +20,13 @@ func TestConnector_HostAndID(t *testing.T) {
 	t.Parallel()
 
 	con := NewConnector()
-	assert.Empty(t, con.HostName())
+	assert.Empty(t, con.Hostname())
 	assert.NotEmpty(t, con.ID())
-	con.SetHostName("example.com")
-	assert.Equal(t, "example.com", con.HostName())
+	con.SetHostname("example.com")
+	assert.Equal(t, "example.com", con.Hostname())
 }
 
-func TestConnector_BadHostName(t *testing.T) {
+func TestConnector_BadHostname(t *testing.T) {
 	t.Parallel()
 
 	con := NewConnector()
@@ -40,7 +40,7 @@ func TestConnector_BadHostName(t *testing.T) {
 		"",
 	}
 	for _, s := range badHosts {
-		err := con.SetHostName(s)
+		err := con.SetHostname(s)
 		assert.Error(t, err)
 	}
 }

@@ -210,7 +210,7 @@ func TestHttpegress_Mock(t *testing.T) {
 	defer app.Shutdown()
 
 	ctx := Context()
-	client := httpegressapi.NewClient(con).ForHost(mock.ID() + "." + mock.HostName()) // Address the mock by ID
+	client := httpegressapi.NewClient(con).ForHost(mock.ID() + "." + mock.Hostname()) // Address the mock by ID
 
 	req, _ := http.NewRequest("DELETE", "https://example.com/ex/5", nil)
 	resp, err := client.Do(ctx, req)

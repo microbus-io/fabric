@@ -45,12 +45,12 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: browser.example.
-const HostName = "browser.example"
+// Hostname is the default hostname of the microservice: browser.example.
+const Hostname = "browser.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfBrowse = httpx.JoinHostAndPath(HostName, `:443/browse`)
+	URLOfBrowse = httpx.JoinHostAndPath(Hostname, `:443/browse`)
 )
 
 // Client is an interface to calling the endpoints of the browser.example microservice.
@@ -68,7 +68,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -89,7 +89,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c

@@ -35,8 +35,8 @@ var (
 	_ *configuratorapi.Client
 )
 
-// HostName is the default host name of the microservice: configurator.sys.
-const HostName = "configurator.sys"
+// Hostname is the default hostname of the microservice: configurator.sys.
+const Hostname = "configurator.sys"
 
 // NewService creates a new configurator.sys microservice.
 func NewService() *Service {

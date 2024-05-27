@@ -40,7 +40,7 @@ The microservices `alpha.echo.connector` starts up and subscribes to the respons
 [TRC] cid:1 - ->> [SUB microbus.r.connector.echo.alpha.dvm0oofeb5 dvm0oofeb5 1]
 ```
 
-The microservices `beta.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.beta.rouq0u0mf4` and to the endpoint subject `microbus.443.connector.echo.beta.|.*.echo`. If you look closely at `[SUB microbus.443.connector.echo.beta.|.*.echo beta.echo.connector 6]` you'll note that the host name `beta.echo.connector` is set as the queue name of the subscription. In NATS, messages delivered on a queue are delivered to a random consumer rather than to all consumers. Queues allows us to achieve load-balancing between multiple instances of the same microservice.
+The microservices `beta.echo.connector` starts up and subscribes to the response subject `microbus.r.connector.echo.beta.rouq0u0mf4` and to the endpoint subject `microbus.443.connector.echo.beta.|.*.echo`. If you look closely at `[SUB microbus.443.connector.echo.beta.|.*.echo beta.echo.connector 6]` you'll note that the hostname `beta.echo.connector` is set as the queue name of the subscription. In NATS, messages delivered on a queue are delivered to a random consumer rather than to all consumers. Queues allows us to achieve load-balancing between multiple instances of the same microservice.
 
 ```
 [DBG] cid:2 - Client connection created
@@ -106,10 +106,10 @@ Hello]
 
 ## Notes on Subscription Subjects
 
-The pattern of the subscription subject of an endpoint is `<plane>.<port>.<reversed host name>.|.<method>.<path>`.
-A second subscription `<plane>.<port>.<reversed host name>.<id>.|.<method>.<path>` is created to allow targeting the individual microservice by its ID.
-The pattern of the response subscription is `<plane>.<port>.<reversed host name>.<id>`
+The pattern of the subscription subject of an endpoint is `<plane>.<port>.<reversed hostname>.|.<method>.<path>`.
+A second subscription `<plane>.<port>.<reversed hostname>.<id>.|.<method>.<path>` is created to allow targeting the individual microservice by its ID.
+The pattern of the response subscription is `<plane>.<port>.<reversed hostname>.<id>`
 
-[NATS provides means of controlling access to subjects using ACLs](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization). Reversing the order of the segments of the host name enables setting permissions such as `subscribe = "*.*.com.example.>"` which restricts a microservice to communicate only under the `example.com` domain. The two asterisks stand for any plane and any port.
+[NATS provides means of controlling access to subjects using ACLs](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization). Reversing the order of the segments of the hostname enables setting permissions such as `subscribe = "*.*.com.example.>"` which restricts a microservice to communicate only under the `example.com` domain. The two asterisks stand for any plane and any port.
 
 The `microbus` prefix seen in the subscription subjects is referred to as the plane of communication. Microservices on a given plane can only talk to other services on the same plane. Planes therefore provide isolation for groups of microservices that share a single NATS cluster with other groups of unrelated microservices. For example, testing apps use a randomly generated plane to prevent unit tests from conflicting when running in parallel with other unit tests.

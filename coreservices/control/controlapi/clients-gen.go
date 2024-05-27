@@ -46,14 +46,14 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: control.sys.
-const HostName = "control.sys"
+// Hostname is the default hostname of the microservice: control.sys.
+const Hostname = "control.sys"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfPing = httpx.JoinHostAndPath(HostName, `:888/ping`)
-	URLOfConfigRefresh = httpx.JoinHostAndPath(HostName, `:888/config-refresh`)
-	URLOfTrace = httpx.JoinHostAndPath(HostName, `:888/trace`)
+	URLOfPing = httpx.JoinHostAndPath(Hostname, `:888/ping`)
+	URLOfConfigRefresh = httpx.JoinHostAndPath(Hostname, `:888/config-refresh`)
+	URLOfTrace = httpx.JoinHostAndPath(Hostname, `:888/trace`)
 )
 
 // Client is an interface to calling the endpoints of the control.sys microservice.
@@ -71,7 +71,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -92,7 +92,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c

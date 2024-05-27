@@ -4,7 +4,7 @@ All microservices on the `Microbus` subscribe to handle control messages on the 
 
 ## Ping
 
-The `:888/ping` endpoint enables the dynamic discovery of microservices. The ping handler is subscribed to both the host name of the service and to the special host `all`, allowing the discovery of replicas of a specific microservice, or of all microservices.
+The `:888/ping` endpoint enables the dynamic discovery of microservices. The ping handler is subscribed to both the hostname of the service and to the special host `all`, allowing the discovery of replicas of a specific microservice, or of all microservices.
 
 To discover all instances of `www.example.com` using the `Publish` method of the connector:
 
@@ -30,7 +30,7 @@ for r := range ch {
 }
 ```
 
-To discover instances of all microservices replace the host name `www.example.com` with the special host name `all`:
+To discover instances of all microservices replace the hostname `www.example.com` with the special hostname `all`:
 
 ```go
 ch := con.Publish(r.Context(), pub.GET("https://all:888/ping"))

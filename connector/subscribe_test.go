@@ -51,7 +51,7 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	assert.Equal(t, 4, count)
 }
 
-func TestConnector_HyphenInHostName(t *testing.T) {
+func TestConnector_HyphenInHostname(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()

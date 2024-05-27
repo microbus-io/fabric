@@ -68,7 +68,7 @@ type Service interface {
 // NewCache starts a new cache for the service at a given path.
 // It's recommended to use a non-standard port for the path.
 func NewCache(ctx context.Context, svc Service, path string) (*Cache, error) {
-	sub, err := sub.NewSub("GET", svc.HostName(), path, nil)
+	sub, err := sub.NewSub("GET", svc.Hostname(), path, nil)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -160,7 +160,7 @@ func (c *Cache) stop(ctx context.Context) error {
 // handleAll handles a broadcast when the primary connects with its peers.
 func (c *Cache) handleAll(w http.ResponseWriter, r *http.Request) error {
 	// Ignore messages from other hosts
-	if frame.Of(r).FromHost() != c.svc.HostName() {
+	if frame.Of(r).FromHost() != c.svc.Hostname() {
 		return errors.Newf("foreign host '%s'", frame.Of(r).FromHost())
 	}
 	switch r.URL.Query().Get("do") {
@@ -367,7 +367,7 @@ func (c *Cache) rescue(ctx context.Context) {
 	}
 
 	// Count number of peers
-	ch := controlapi.NewMulticastClient(c.svc).ForHost(c.svc.HostName()).Ping(ctx)
+	ch := controlapi.NewMulticastClient(c.svc).ForHost(c.svc.Hostname()).Ping(ctx)
 	peers := 0
 	for r := range ch {
 		_, err := r.Get()

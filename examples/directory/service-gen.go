@@ -35,8 +35,8 @@ var (
 	_ *directoryapi.Client
 )
 
-// HostName is the default host name of the microservice: directory.example.
-const HostName = "directory.example"
+// Hostname is the default hostname of the microservice: directory.example.
+const Hostname = "directory.example"
 
 // NewService creates a new directory.example microservice.
 func NewService() *Service {

@@ -24,7 +24,7 @@ import (
 
 // ServiceInfo is a descriptor of the microservice that answers the ping.
 type ServiceInfo struct {
-	HostName string
+	Hostname string
 	Version  int
 	ID       string
 }
@@ -42,12 +42,12 @@ func (_c *MulticastClient) PingServices(ctx context.Context, options ...pub.Opti
 			}
 			frame := frame.Of(pingRes.HTTPResponse)
 			info := &ServiceInfo{
-				HostName: frame.FromHost(),
+				Hostname: frame.FromHost(),
 			}
-			if seen[info.HostName] {
+			if seen[info.Hostname] {
 				continue
 			}
-			seen[info.HostName] = true
+			seen[info.Hostname] = true
 			filtered <- info
 		}
 		close(filtered)
@@ -68,10 +68,10 @@ func (_c *MulticastClient) PingVersions(ctx context.Context, options ...pub.Opti
 			}
 			frame := frame.Of(pingRes.HTTPResponse)
 			info := &ServiceInfo{
-				HostName: frame.FromHost(),
+				Hostname: frame.FromHost(),
 				Version:  frame.FromVersion(),
 			}
-			key := fmt.Sprintf("%s:%d", info.HostName, info.Version)
+			key := fmt.Sprintf("%s:%d", info.Hostname, info.Version)
 			if seen[key] {
 				continue
 			}
@@ -94,7 +94,7 @@ func (_c *MulticastClient) PingInstances(ctx context.Context, options ...pub.Opt
 			}
 			frame := frame.Of(pingRes.HTTPResponse)
 			info := &ServiceInfo{
-				HostName: frame.FromHost(),
+				Hostname: frame.FromHost(),
 				Version:  frame.FromVersion(),
 				ID:       frame.FromID(),
 			}

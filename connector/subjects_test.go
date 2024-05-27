@@ -49,10 +49,10 @@ func TestConnector_subjectOfResponses(t *testing.T) {
 	assert.Equal(t, "p0.r.com.example.www.abcd1234", subjectOfResponses("p0", "www.EXAMPLE.com", "ABCD1234"))
 }
 
-func TestConnector_ReverseHostName(t *testing.T) {
-	assert.Equal(t, "com.example.sub.www", reverseHostName("www.sub.example.com"))
-	assert.Equal(t, "com.example.www", reverseHostName("www.example.com"))
-	assert.Equal(t, "com.example", reverseHostName("example.com"))
-	assert.Equal(t, "com", reverseHostName("com"))
-	assert.Equal(t, "", reverseHostName(""))
+func TestConnector_ReverseHostname(t *testing.T) {
+	assert.Equal(t, "com.example.sub.www", reverseHostname("www.sub.example.com"))
+	assert.Equal(t, "com.example.www", reverseHostname("www.example.com"))
+	assert.Equal(t, "com.example", reverseHostname("example.com"))
+	assert.Equal(t, "com", reverseHostname("com"))
+	assert.Equal(t, "", reverseHostname(""))
 }

@@ -131,7 +131,7 @@ func TestHello_Ping(t *testing.T) {
 	ctx := Context()
 	Ping_Get(t, ctx, "").
 		ContentType("text/plain").
-		BodyContains(Svc.ID() + "." + Svc.HostName())
+		BodyContains(Svc.ID() + "." + Svc.Hostname())
 }
 
 func TestHello_Calculator(t *testing.T) {
@@ -288,7 +288,7 @@ func TestHello_EchoClient(t *testing.T) {
 	}
 
 	// GET with absolute URL and query string
-	res, err = client.Echo_Get(ctx, "https://"+HostName+"/echo?arg=12345")
+	res, err = client.Echo_Get(ctx, "https://"+Hostname+"/echo?arg=12345")
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {

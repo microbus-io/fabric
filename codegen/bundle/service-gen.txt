@@ -30,8 +30,8 @@ var (
 	_ *{{ .PackageSuffix }}api.Client
 )
 
-// HostName is the default host name of the microservice: {{ .General.Host }}.
-const HostName = "{{ .General.Host }}"
+// Hostname is the default hostname of the microservice: {{ .General.Host }}.
+const Hostname = "{{ .General.Host }}"
 
 // NewService creates a new {{ .General.Host }} microservice.
 func NewService() *Service {

@@ -34,7 +34,7 @@ Other microservices are able to dynamically subscribe to handle the `OnUserDelet
 
 <img src="events-2.svg" width="300">
 
-In `Microbus`, events are implemented as carefully crafted requests and subscriptions. Event sources publish a multicast request to a URL on their own host name. Event sinks subscribe to handle requests on the host name of the source rather than their own. Since they are fundamentally not any different than regular requests, events can also return values back to the source. The [events example](../structure/examples.md) uses this technique to ask for permission to perform an action. 
+In `Microbus`, events are implemented as carefully crafted requests and subscriptions. Event sources publish a multicast request to a URL on their own hostname. Event sinks subscribe to handle requests on the hostname of the source rather than their own. Since they are fundamentally not any different than regular requests, events can also return values back to the source. The [events example](../structure/examples.md) uses this technique to ask for permission to perform an action. 
 
 The [code generator](./codegen.md) makes it simple to produce and consume events using the `events` and `sinks` sections, respectively.
 

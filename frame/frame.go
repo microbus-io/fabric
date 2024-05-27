@@ -150,12 +150,12 @@ func (f Frame) SetOpCode(op string) {
 	}
 }
 
-// FromHost is the host name of the microservice that made the request or response.
+// FromHost is the hostname of the microservice that made the request or response.
 func (f Frame) FromHost() string {
 	return f.h.Get(HeaderFromHost)
 }
 
-// SetFromHost sets the host name of the microservice that is making the request or response.
+// SetFromHost sets the hostname of the microservice that is making the request or response.
 func (f Frame) SetFromHost(host string) {
 	if host == "" {
 		f.h.Del(HeaderFromHost)

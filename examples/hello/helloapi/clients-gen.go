@@ -45,18 +45,18 @@ var (
 	_ sub.Option
 )
 
-// HostName is the default host name of the microservice: hello.example.
-const HostName = "hello.example"
+// Hostname is the default hostname of the microservice: hello.example.
+const Hostname = "hello.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfHello = httpx.JoinHostAndPath(HostName, `:443/hello`)
-	URLOfEcho = httpx.JoinHostAndPath(HostName, `:443/echo`)
-	URLOfPing = httpx.JoinHostAndPath(HostName, `:443/ping`)
-	URLOfCalculator = httpx.JoinHostAndPath(HostName, `:443/calculator`)
-	URLOfBusJPEG = httpx.JoinHostAndPath(HostName, `:443/bus.jpeg`)
-	URLOfLocalization = httpx.JoinHostAndPath(HostName, `:443/localization`)
-	URLOfRoot = httpx.JoinHostAndPath(HostName, `//root`)
+	URLOfHello = httpx.JoinHostAndPath(Hostname, `:443/hello`)
+	URLOfEcho = httpx.JoinHostAndPath(Hostname, `:443/echo`)
+	URLOfPing = httpx.JoinHostAndPath(Hostname, `:443/ping`)
+	URLOfCalculator = httpx.JoinHostAndPath(Hostname, `:443/calculator`)
+	URLOfBusJPEG = httpx.JoinHostAndPath(Hostname, `:443/bus.jpeg`)
+	URLOfLocalization = httpx.JoinHostAndPath(Hostname, `:443/localization`)
+	URLOfRoot = httpx.JoinHostAndPath(Hostname, `//root`)
 )
 
 // Client is an interface to calling the endpoints of the hello.example microservice.
@@ -74,7 +74,7 @@ func NewClient(caller service.Publisher) *Client {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *Client) ForHost(host string) *Client {
 	_c.host = host
 	return _c
@@ -95,7 +95,7 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 	}
 }
 
-// ForHost replaces the default host name of this client.
+// ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	_c.host = host
 	return _c

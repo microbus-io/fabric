@@ -12,4 +12,4 @@ for r := range ch {
 }
 ```
 
-Overriding the host of the client via `ForHost` is required because the default host `control.sys` does not exist. In the example above, the special host name `all` is used to address all microservices.
+Overriding the host of the client via `ForHost` is required because the default host `control.sys` does not exist. In the example above, the special hostname `all` is used to address all microservices.
