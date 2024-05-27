@@ -205,6 +205,9 @@ func RuntimeTrace(levels int) (file string, function string, line int, ok bool) 
 // It is the equivalent of Convert(err).StatusCode.
 // If not specified, the default status code is 500.
 func StatusCode(err error) int {
+	if err == nil {
+		return 0
+	}
 	return Convert(err).StatusCode
 }
 
