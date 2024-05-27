@@ -333,3 +333,16 @@ func TestHello_EchoClient(t *testing.T) {
 		}
 	}
 }
+
+func TestHello_Root(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		Root_Get(t, ctx, "").BodyContains(value)
+		Root_Post(t, ctx, "", "", body).BodyContains(value)
+		Root(t, httpRequest).BodyContains(value)
+	*/
+
+	// TODO: Test Root
+}

@@ -13,7 +13,7 @@ On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP request
 * The proxy filters out `Microbus-` control headers from coming in or leaking out
 * The first segment of the path of the real HTTP request is treated as the host name of the microservice on the bus. So for example, `POST` request `http://localhost:8080/echo.example/echo` is translated to a bus `POST` request `https://echo.example/echo` which is then mapped to the NATS subject `microbus.443.example.echo.|.POST.echo`.
 * Port `:443` is assumed by default when a port is not explicitly specified. Internal ports can be designated in the first segment of the path. For example, `http://localhost:8080/echo.example:1234/echo` is mapped to the bus address `https://echo.example:1234/echo`.
-* The root path is transformed to `/root`, therefore `http://localhost:8080/` is mapped to `https://root`.
+* The empty root path is transformed to `/root`, therefore `http://localhost:8080/` is mapped to `https://root`.
 
 ## Configuration
 

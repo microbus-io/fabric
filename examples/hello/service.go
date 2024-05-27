@@ -214,3 +214,13 @@ func (svc *Service) Localization(w http.ResponseWriter, r *http.Request) (err er
 	w.Write([]byte(hello))
 	return nil
 }
+
+/*
+Root is the top-most root page.
+*/
+func (svc *Service) Root(w http.ResponseWriter, r *http.Request) (err error) {
+	var buf bytes.Buffer
+	buf.WriteString(`<html><body><h1>Microbus</h1></body></html>`)
+	w.Write(buf.Bytes())
+	return nil
+}

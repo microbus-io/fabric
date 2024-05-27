@@ -43,6 +43,7 @@ type Mock struct {
 	mockCalculator func(w http.ResponseWriter, r *http.Request) (err error)
 	mockBusJPEG func(w http.ResponseWriter, r *http.Request) (err error)
 	mockLocalization func(w http.ResponseWriter, r *http.Request) (err error)
+	mockRoot func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -61,6 +62,7 @@ func NewMock() *Mock {
 	svc.Subscribe(`*`, `:443/calculator`, svc.doCalculator)
 	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.doBusJPEG)
 	svc.Subscribe(`*`, `:443/localization`, svc.doLocalization)
+	svc.Subscribe(`*`, `//root`, svc.doRoot)
 
 	return svc
 }
@@ -160,5 +162,20 @@ func (svc *Mock) doLocalization(w http.ResponseWriter, r *http.Request) (err err
 // MockLocalization sets up a mock handler for the Localization web handler.
 func (svc *Mock) MockLocalization(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
 	svc.mockLocalization = handler
+	return svc
+}
+
+// doRoot handles the Root web handler.
+func (svc *Mock) doRoot(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockRoot == nil {
+		return errors.New("mocked endpoint 'Root' not implemented")
+	}
+	err = svc.mockRoot(w, r)
+	return errors.Trace(err)
+}
+
+// MockRoot sets up a mock handler for the Root web handler.
+func (svc *Mock) MockRoot(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockRoot = handler
 	return svc
 }

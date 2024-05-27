@@ -42,17 +42,18 @@ configs:
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
-# path - The URL path of the subscription
+# path - The URL path of the subscription, relative to the host name of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
 #   /obj/*/path - Wildcard path segment
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
-#   :443 - Root path
+#   :443 - Root path of the microservice
 #   :*/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
+#   //root - Root path of the web server
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -74,16 +75,17 @@ functions:
 # signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. (defaults to "POST")
-# path - The URL path of the subscription
+# path - The URL path of the subscription, relative to the host name of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/ - All paths under the directory
 #   /obj/*/path - Wildcard path segment
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
-#   :417 - Root path
+#   :417 - Root path of the microservice
 #   //example.com:417/path
 #   https://example.com:417/path
+#   //root - Root path of the web server
 events:
   # - signature:
   #   description:
@@ -108,17 +110,18 @@ sinks:
 # signature - Func()
 # description - Documentation
 # method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
-# path - The URL path of the subscription
+# path - The URL path of the subscription, relative to the host name of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
 #   /obj/*/path - Wildcard path segment
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
-#   :443 - Root path
+#   :443 - Root path of the microservice
 #   :*/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
+#   //root - Root path of the web server
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive

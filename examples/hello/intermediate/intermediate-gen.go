@@ -74,6 +74,7 @@ type ToDo interface {
 	Calculator(w http.ResponseWriter, r *http.Request) (err error)
 	BusJPEG(w http.ResponseWriter, r *http.Request) (err error)
 	Localization(w http.ResponseWriter, r *http.Request) (err error)
+	Root(w http.ResponseWriter, r *http.Request) (err error)
 	TickTock(ctx context.Context) (err error)
 }
 
@@ -121,6 +122,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`*`, `:443/calculator`, svc.impl.Calculator)
 	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.impl.BusJPEG)
 	svc.Subscribe(`*`, `:443/localization`, svc.impl.Localization)
+	svc.Subscribe(`*`, `//root`, svc.impl.Root)
 
 	// Tickers
 	intervalTickTock, _ := time.ParseDuration("10s")
@@ -221,6 +223,20 @@ a call from one microservice to another.`,
 			Path:        `:443/localization`,
 			Summary:     `Localization()`,
 			Description: `Localization prints hello in the language best matching the request's Accept-Language header.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "*" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Root`,
+			Method:      `*`,
+			Path:        `//root`,
+			Summary:     `Root()`,
+			Description: `Root is the top-most root page.`,
 			InputArgs: struct {
 			}{},
 			OutputArgs: struct {

@@ -56,6 +56,7 @@ var (
 	URLOfCalculator = httpx.JoinHostAndPath(HostName, `:443/calculator`)
 	URLOfBusJPEG = httpx.JoinHostAndPath(HostName, `:443/bus.jpeg`)
 	URLOfLocalization = httpx.JoinHostAndPath(HostName, `:443/localization`)
+	URLOfRoot = httpx.JoinHostAndPath(HostName, `//root`)
 )
 
 // Client is an interface to calling the endpoints of the hello.example microservice.
@@ -787,6 +788,125 @@ func (_c *MulticastClient) Localization(ctx context.Context, r *http.Request) <-
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfLocalization, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+}
+
+/*
+Root_Get performs a GET request to the Root endpoint.
+
+Root is the top-most root page.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) Root_Get(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfRoot, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+Root_Get performs a GET request to the Root endpoint.
+
+Root is the top-most root page.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) Root_Get(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfRoot, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+Root_Post performs a POST request to the Root endpoint.
+
+Root is the top-most root page.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) Root_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfRoot, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+Root_Post performs a POST request to the Root endpoint.
+
+Root is the top-most root page.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) Root_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfRoot, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+}
+
+/*
+Root is the top-most root page.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) Root(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfRoot, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+Root is the top-most root page.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) Root(ctx context.Context, r *http.Request) <-chan *pub.Response {
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfRoot, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

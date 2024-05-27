@@ -189,3 +189,8 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * New test case asserters, mostly for web endpoints
 * Simulate a database in memory for the directory example if MariaDB is not available
 * Support multi-value headers in requests and responses
+
+[Milestone 23](https://github.com/microbus-io/fabric/tree/milestone/23):
+
+* Bug fixes and resiliency improvements
+* Hello example microservice to handle the topmost root path

@@ -4,15 +4,15 @@ The `sub` package defines the internal `Subscription` struct that facilitates th
 
 | Path specification | Fully-qualified URL |
 | - | - |
-| (empty) | https://www.example.com |
-| / | https://www.example.com/ |
-| :1080 | https://www.example.com:1080 |
-| :1080/ | https://www.example.com:1080/ |
-| :1080/path | https://www.example.com:1080/path |
-| /path/with/slash | https://www.example.com:443/path/with/slash |
-| path/with/no/slash | https://www.example.com:443/path/with/no/slash |
-| https://www.example.com/path | https://www.example.com:443/path |
-| https://www.example.com:1080/path | https://www.example.com:1080/path |
+| (empty) | https://example.host |
+| / | https://example.host/ |
+| :1080 | https://example.host:1080 |
+| :1080/ | https://example.host:1080/ |
+| :1080/path | https://example.host:1080/path |
+| /path/with/slash | https://example.host:443/path/with/slash |
+| path/with/no/slash | https://example.host:443/path/with/no/slash |
+| https://example.host/path | https://example.host:443/path |
+| https://example.host:1080/path | https://example.host:1080/path |
 
 This package also defines various `Option`s that can be applied to the `Subscription` using the options pattern. This pattern is used in Go for expressing optional arguments. 
 
