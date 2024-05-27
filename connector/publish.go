@@ -98,14 +98,15 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	outboundFrame.SetOpCode(frame.OpCodeRequest)
 
 	// Copy X-Forwarded headers (set by ingress proxy), baggage, clock shift, and Accept-Language headers
-	for k := range inboundFrame.Header() {
+	for k, vv := range inboundFrame.Header() {
 		if strings.HasPrefix(k, "X-Forwarded-") ||
 			strings.HasPrefix(k, frame.HeaderBaggagePrefix) ||
 			k == "Accept-Language" ||
 			k == frame.HeaderClockShift {
-			v := inboundFrame.Get(k)
-			if v != "" && outboundFrame.Get(k) == "" {
-				outboundFrame.Set(k, v)
+			if len(outboundFrame.Header()[k]) == 0 {
+				for _, v := range vv {
+					outboundFrame.Header().Add(k, v)
+				}
 			}
 		}
 	}
