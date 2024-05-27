@@ -168,3 +168,83 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 		assert.Equal(t, "Bar 2", intRes.Header["Foo"][1])
 	}
 }
+
+func TestHttpx_DefragRequestNoContentLen(t *testing.T) {
+	t.Parallel()
+
+	bodySize := 128*1024 + 16
+	body := []byte(rand.AlphaNum64(int(bodySize)))
+	req, err := http.NewRequest("GET", "https://www.example.com", bytes.NewReader(body))
+	assert.NoError(t, err)
+
+	// Fragment the request
+	frag, err := NewFragRequest(req, 1024)
+	assert.NoError(t, err)
+	for i := 1; i <= frag.N(); i++ {
+		r, err := frag.Fragment(i)
+		assert.NoError(t, err)
+		assert.NotNil(t, r)
+		assert.Greater(t, int(r.ContentLength), 0)
+		assert.NotEmpty(t, r.Header.Get("Content-Length"))
+	}
+
+	// Defrag should still work without knowing the content length
+	defrag := NewDefragRequest()
+	for i := 1; i <= frag.N(); i++ {
+		r, _ := frag.Fragment(i)
+		r.Header.Del("Content-Length")
+		r.ContentLength = -1
+		err := defrag.Add(r)
+		assert.NoError(t, err)
+	}
+	intReq, err := defrag.Integrated()
+	assert.NoError(t, err)
+	assert.NotNil(t, intReq)
+	assert.Equal(t, -1, int(intReq.ContentLength))
+	assert.Empty(t, intReq.Header.Get("Content-Length"))
+	intBody, err := io.ReadAll(intReq.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, body, intBody)
+}
+
+func TestHttpx_DefragResponseNoContentLen(t *testing.T) {
+	t.Parallel()
+
+	bodySize := 128*1024 + 16
+	body := []byte(rand.AlphaNum64(int(bodySize)))
+
+	rec := httptest.NewRecorder()
+	n, err := rec.Write(body)
+	assert.NoError(t, err)
+	assert.Equal(t, len(body), n)
+	res := rec.Result()
+
+	// Fragment the request
+	frag, err := NewFragResponse(res, 1024)
+	assert.NoError(t, err)
+	for i := 1; i <= frag.N(); i++ {
+		r, err := frag.Fragment(i)
+		assert.NoError(t, err)
+		assert.NotNil(t, r)
+		assert.Greater(t, int(r.ContentLength), 0)
+		assert.NotEmpty(t, r.Header.Get("Content-Length"))
+	}
+
+	// Defrag should still work without knowing the content length
+	defrag := NewDefragResponse()
+	for i := 1; i <= frag.N(); i++ {
+		r, _ := frag.Fragment(i)
+		r.Header.Del("Content-Length")
+		r.ContentLength = -1
+		err := defrag.Add(r)
+		assert.NoError(t, err)
+	}
+	intRes, err := defrag.Integrated()
+	assert.NoError(t, err)
+	assert.NotNil(t, intRes)
+	assert.Equal(t, -1, int(intRes.ContentLength))
+	assert.Empty(t, intRes.Header.Get("Content-Length"))
+	intBody, err := io.ReadAll(intRes.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, body, intBody)
+}

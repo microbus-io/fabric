@@ -19,7 +19,7 @@ import (
 // defragRequest assembles all fragments of an incoming HTTP request and returns the integrated HTTP request.
 // If not all fragments are available yet, it returns nil
 func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, err error) {
-	_, fragmentMax := frame.Of(r).Fragment()
+	fragmentIndex, fragmentMax := frame.Of(r).Fragment()
 	if fragmentMax <= 1 {
 		return r, nil
 	}
@@ -29,6 +29,10 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 
 	defragger, ok := c.requestDefrags.Load(fragKey)
 	if !ok {
+		if fragmentIndex != 1 {
+			// Most likely caused after a timeout, but can also happen if initial chunk has wrong index
+			return nil, errors.Newc(http.StatusRequestTimeout, "defrag timeout")
+		}
 		defragger = httpx.NewDefragRequest()
 		c.requestDefrags.Store(fragKey, defragger)
 		// Timeout if fragments stop arriving
@@ -64,7 +68,7 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 // defragResponse assembles all fragments of an incoming HTTP response and returns the integrated HTTP request.
 // If not all fragments are available yet, it returns nil
 func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response, err error) {
-	_, fragmentMax := frame.Of(r).Fragment()
+	fragmentIndex, fragmentMax := frame.Of(r).Fragment()
 	if fragmentMax <= 1 {
 		return r, nil
 	}
@@ -74,6 +78,10 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 
 	defragger, ok := c.responseDefrags.Load(fragKey)
 	if !ok {
+		if fragmentIndex != 1 {
+			// Most likely caused after a timeout, but can also happen if initial chunk has wrong index
+			return nil, errors.Newc(http.StatusRequestTimeout, "defrag timeout")
+		}
 		defragger = httpx.NewDefragResponse()
 		c.responseDefrags.Store(fragKey, defragger)
 		// Timeout if fragments stop arriving

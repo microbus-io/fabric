@@ -53,6 +53,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 	// Serialize the bodies of all fragments.
 	bodies := []io.Reader{}
 	var contentLength int64
+	contentLengthOK := true
 	for i := 1; i <= int(maxIndex); i++ {
 		fragment, ok := st.fragments.Load(i)
 		if !ok || fragment == nil {
@@ -64,7 +65,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 		bodies = append(bodies, fragment.Body)
 		len, err := strconv.ParseInt(fragment.Header.Get("Content-Length"), 10, 64)
 		if err != nil {
-			return nil, errors.New("invalid or missing Content-Length header")
+			contentLengthOK = false
 		}
 		contentLength += len
 	}
@@ -76,7 +77,9 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 		return nil, errors.New("missing first fragment")
 	}
 	frame.Of(firstFragment).SetFragment(1, 1) // Clear the header
-	firstFragment.Header.Set("Content-Length", strconv.FormatInt(contentLength, 10))
+	if contentLengthOK {
+		firstFragment.Header.Set("Content-Length", strconv.FormatInt(contentLength, 10))
+	}
 	firstFragment.Body = io.NopCloser(integratedBody)
 	return firstFragment, nil
 }

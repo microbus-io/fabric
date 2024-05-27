@@ -11,8 +11,12 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
@@ -212,4 +216,156 @@ func BenchmarkConnector_Frag(b *testing.B) {
 	// 64MB payload: 75 ms/op
 	// 128MB payload: 145 ms/op
 	// 256MB payload: 300 ms/op
+}
+
+func TestConnector_DefragRequest(t *testing.T) {
+	t.Parallel()
+
+	con := New("defrag.request.connector")
+	makeChunk := func(msgID string, fragIndex int, fragMax int, content string) *http.Request {
+		r, err := http.NewRequest("GET", "", strings.NewReader(content))
+		assert.NoError(t, err)
+		f := frame.Of(r)
+		f.SetFromID("12345678")
+		f.SetMessageID(msgID)
+		f.SetFragment(fragIndex, fragMax)
+		return r
+	}
+
+	// One chunk only: should return the exact same object
+	r := makeChunk("one", 1, 1, strings.Repeat("1", 1024))
+	integrated, err := con.defragRequest(r)
+	if assert.NoError(t, err) {
+		assert.Same(t, r, integrated)
+	}
+
+	// Three chunks: should return the integrated chunk after the final chunk
+	r = makeChunk("three", 1, 3, strings.Repeat("1", 1024))
+	integrated, err = con.defragRequest(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("three", 2, 3, strings.Repeat("2", 1024))
+	integrated, err = con.defragRequest(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("three", 3, 3, strings.Repeat("3", 1024))
+	integrated, err = con.defragRequest(r)
+	if assert.NoError(t, err) && assert.NotNil(t, integrated) {
+		body, err := io.ReadAll(integrated.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, strings.Repeat("1", 1024)+strings.Repeat("2", 1024)+strings.Repeat("3", 1024), string(body))
+		}
+	}
+
+	// Three chunks not in order: should return the integrated chunk after the final chunk
+	r = makeChunk("outoforder", 1, 3, strings.Repeat("1", 1024))
+	integrated, err = con.defragRequest(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("outoforder", 3, 3, strings.Repeat("3", 1024))
+	integrated, err = con.defragRequest(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("outoforder", 2, 3, strings.Repeat("2", 1024))
+	integrated, err = con.defragRequest(r)
+	if assert.NoError(t, err) && assert.NotNil(t, integrated) {
+		body, err := io.ReadAll(integrated.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, strings.Repeat("1", 1024)+strings.Repeat("2", 1024)+strings.Repeat("3", 1024), string(body))
+		}
+	}
+
+	// Missing the first chunk: should fail
+	r = makeChunk("missingone", 2, 3, strings.Repeat("2", 1024))
+	_, err = con.defragRequest(r)
+	assert.Error(t, err)
+
+	// Taking too long: should timeout
+	r = makeChunk("delayed", 1, 3, strings.Repeat("1", 1024))
+	integrated, err = con.defragRequest(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	time.Sleep(con.networkHop * 2)
+	r = makeChunk("delayed", 2, 3, strings.Repeat("2", 1024))
+	_, err = con.defragRequest(r)
+	assert.Error(t, err)
+	r = makeChunk("delayed", 3, 3, strings.Repeat("3", 1024))
+	_, err = con.defragRequest(r)
+	assert.Error(t, err)
+}
+
+func TestConnector_DefragResponse(t *testing.T) {
+	t.Parallel()
+
+	con := New("defrag.response.connector")
+	makeChunk := func(msgID string, fragIndex int, fragMax int, content string) *http.Response {
+		w := httptest.NewRecorder()
+		f := frame.Of(w)
+		f.SetFromID("12345678")
+		f.SetMessageID(msgID)
+		f.SetFragment(fragIndex, fragMax)
+		w.Write([]byte(content))
+		return w.Result()
+	}
+
+	// One chunk only: should return the exact same object
+	r := makeChunk("one", 1, 1, strings.Repeat("1", 1024))
+	integrated, err := con.defragResponse(r)
+	if assert.NoError(t, err) {
+		assert.Same(t, r, integrated)
+	}
+
+	// Three chunks: should return the integrated chunk after the final chunk
+	r = makeChunk("three", 1, 3, strings.Repeat("1", 1024))
+	integrated, err = con.defragResponse(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("three", 2, 3, strings.Repeat("2", 1024))
+	integrated, err = con.defragResponse(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("three", 3, 3, strings.Repeat("3", 1024))
+	integrated, err = con.defragResponse(r)
+	if assert.NoError(t, err) && assert.NotNil(t, integrated) {
+		body, err := io.ReadAll(integrated.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, strings.Repeat("1", 1024)+strings.Repeat("2", 1024)+strings.Repeat("3", 1024), string(body))
+		}
+	}
+
+	// Three chunks not in order: should return the integrated chunk after the final chunk
+	r = makeChunk("outoforder", 1, 3, strings.Repeat("1", 1024))
+	integrated, err = con.defragResponse(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("outoforder", 3, 3, strings.Repeat("3", 1024))
+	integrated, err = con.defragResponse(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	r = makeChunk("outoforder", 2, 3, strings.Repeat("2", 1024))
+	integrated, err = con.defragResponse(r)
+	if assert.NoError(t, err) && assert.NotNil(t, integrated) {
+		body, err := io.ReadAll(integrated.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, strings.Repeat("1", 1024)+strings.Repeat("2", 1024)+strings.Repeat("3", 1024), string(body))
+		}
+	}
+
+	// Missing the first chunk: should fail
+	r = makeChunk("missingone", 2, 3, strings.Repeat("2", 1024))
+	_, err = con.defragResponse(r)
+	assert.Error(t, err)
+
+	// Taking too long: should timeout
+	r = makeChunk("delayed", 1, 3, strings.Repeat("1", 1024))
+	integrated, err = con.defragResponse(r)
+	assert.NoError(t, err)
+	assert.Nil(t, integrated)
+	time.Sleep(con.networkHop * 2)
+	r = makeChunk("delayed", 2, 3, strings.Repeat("2", 1024))
+	_, err = con.defragResponse(r)
+	assert.Error(t, err)
+	r = makeChunk("delayed", 3, 3, strings.Repeat("3", 1024))
+	_, err = con.defragResponse(r)
+	assert.Error(t, err)
 }
