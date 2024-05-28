@@ -74,12 +74,10 @@ func (s SpanImpl) SetError(err error) {
 	))
 	s.Span.SetStatus(codes.Error, err.Error())
 	sc := errors.StatusCode(err)
-	if sc != 0 {
-		s.Span.SetAttributes(attribute.Int("http.response.status_code", sc))
-	}
+	s.Span.SetAttributes(attribute.Int("http.response.status_code", sc))
 }
 
-// SetOK sets the status of the span to the status code of the response.
+// SetOK sets the status of the span to OK, with the indicated response status code.
 func (s SpanImpl) SetOK(statusCode int) {
 	if s.Span == nil {
 		return

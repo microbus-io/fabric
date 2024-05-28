@@ -126,35 +126,25 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 			return backends.ProcessWith(
 				func(e *mail.Envelope, task backends.SelectTask) (res backends.Result, err error) {
 					// OpenTelemetry: create the root span
-					spanOptions := []trc.Option{
-						trc.Server(),
-						// Do not record the request attributes yet because they take a lot of memory,
-						// they will be added if there's an error.
-					}
-					if svc.Deployment() == connector.LOCAL {
-						// Add the request attributes in LOCAL deployment to facilitate debugging
-						spanOptions = append(spanOptions,
-							trc.String("email.subject", e.Subject),
-							trc.String("email.from", e.MailFrom.String()),
-							trc.ClientIP(e.RemoteIP),
-						)
-					}
-					for k, v := range e.Header {
-						spanOptions = append(spanOptions, trc.Strings(k, v))
-					}
 					var span trc.Span
-					ctx, span = svc.StartSpan(ctx, ":"+strconv.Itoa(svc.Port()), spanOptions...)
+					ctx, span = svc.StartSpan(svc.Lifetime(), ":"+strconv.Itoa(svc.Port()), trc.Server()) // Use lifetime as parent ctx
 					defer span.End()
 
 					err = utils.CatchPanic(func() error {
 						res, err = svc.processEnvelope(p, e, task)
 						return errors.Trace(err)
 					})
-					if err != nil {
-						// OpenTelemetry: record the error, adding the request attributes
+					if err != nil || svc.Deployment() == connector.LOCAL {
+						// The request attributes may take a lot of memory, so record only in LOCAL deployment or if there's an error
 						span.SetString("email.subject", e.Subject)
 						span.SetString("email.from", e.MailFrom.String())
 						span.SetClientIP(e.RemoteIP)
+						for k, v := range e.Header {
+							span.SetStrings("email.header."+k, v)
+						}
+					}
+					if err != nil {
+						// OpenTelemetry: record the error, adding the request attributes
 						span.SetError(err)
 						svc.ForceTrace(ctx)
 						return backends.NewResult(fmt.Sprintf("554 Error: %s", err)), err // No trace

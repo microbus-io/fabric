@@ -142,8 +142,7 @@ func (c *Connector) ForceTrace(ctx context.Context) {
 				// Broadcast to all microservices to export all spans belonging to this trace
 				c.Go(ctx, func(ctx context.Context) error {
 					traceID := c.Span(ctx).TraceID()
-					for r := range c.Publish(ctx, pub.GET("https://all:888/trace?id="+url.QueryEscape(traceID))) {
-						_, _ = r.Get()
+					for range c.Publish(ctx, pub.GET("https://all:888/trace?id="+url.QueryEscape(traceID))) {
 					}
 					return nil
 				})
