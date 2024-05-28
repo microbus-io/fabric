@@ -192,6 +192,7 @@ Extensions are specified with "*.ext".`),
 /scripts/WPnBr.dll
 /.git/config
 /cgi-bin/.%2e/.%2e/.%2e/.%2e/bin/sh
+/cgi-bin/luci/;stok=/locale
 /actuator/gateway/routes
 /actuator/health
 /Public/home/js/check.js
