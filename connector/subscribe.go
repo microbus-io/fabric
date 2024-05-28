@@ -304,9 +304,14 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
 		// Add the request attributes in LOCAL deployment to facilitate debugging
 		spanOptions = append(spanOptions, trc.Request(httpReq), trc.String("http.route", s.Path))
 	}
-	ctx = propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(httpReq.Header))
 	var span trc.Span
-	ctx, span = c.StartSpan(ctx, fmt.Sprintf(":%s%s", s.Port, s.Path), spanOptions...)
+	if s.Port == "888" && s.Path == "/trace" {
+		// Do not trace the requests to :888/trace
+		span = trc.NewSpan(nil) // Noop
+	} else {
+		ctx = propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(httpReq.Header))
+		ctx, span = c.StartSpan(ctx, fmt.Sprintf(":%s%s", s.Port, s.Path), spanOptions...)
+	}
 	defer span.End()
 
 	// Execute the request
