@@ -8,15 +8,20 @@ Neither may be used, copied or distributed without the express written consent o
 package connector
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
+	"github.com/microbus-io/fabric/rand"
+	"github.com/microbus-io/fabric/sub"
+	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -617,4 +622,35 @@ func TestConnector_FrameConsistency(t *testing.T) {
 	// Send messages to various locations under the directory
 	_, err = con.Request(ctx, pub.GET("https://frame.consistency.connector/frame"))
 	assert.NoError(t, err)
+}
+
+func BenchmarkConnection_AckRequest(b *testing.B) {
+	// Startup the microservices
+	con := New("ack.request.connector")
+	err := con.Startup()
+	assert.NoError(b, err)
+	defer con.Shutdown()
+
+	req, _ := http.NewRequest("POST", "https://nowhere/", strings.NewReader(rand.AlphaNum64(16*1024)))
+	f := frame.Of(req)
+	f.SetFromHost("someone")
+	f.SetFromID("me")
+	f.SetMessageID("123456")
+
+	var buf bytes.Buffer
+	req.Write(&buf)
+	msgData := buf.Bytes()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		con.ackRequest(&nats.Msg{
+			Data: msgData,
+		}, &sub.Subscription{})
+	}
+
+	// On 2021 MacBook Pro M1 16":
+	// N=256477
+	// 4782 ns/op (209117 ops/sec)
+	// 6045 B/op
+	// 26 allocs/op
 }
