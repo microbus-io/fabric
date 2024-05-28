@@ -381,7 +381,10 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 	atomic.AddInt32(&c.pendingOps, 1)
 	subCtx := frame.ContextWithFrameOf(c.lifetimeCtx, ctx)             // Copy the frame headers
 	subCtx = trace.ContextWithSpan(subCtx, trace.SpanFromContext(ctx)) // Copy the tracing context
+	subCtx, span := c.StartSpan(subCtx, "Go", trc.Consumer())
+
 	go func() {
+		defer span.End()
 		defer atomic.AddInt32(&c.pendingOps, -1)
 		err := utils.CatchPanic(func() error {
 			return errors.Trace(f(subCtx))

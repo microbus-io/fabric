@@ -17,50 +17,60 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// Option is an alias for trace.SpanStartOption which are options used to create tracing spans
+// Option is an alias for trace.SpanStartOption which are options used to create tracing spans.
 type Option = trace.SpanStartOption
 
-// Server indicates that the span represents the operation of handling a request from a client
+// Server indicates that the span represents the operation of handling a request from a client.
 func Server() Option {
 	return trace.WithSpanKind(trace.SpanKindServer)
 }
 
-// Client indicates that the span represents the operation of client making a request to a server
+// Client indicates that the span represents the operation of client making a request to a server.
 func Client() Option {
 	return trace.WithSpanKind(trace.SpanKindClient)
 }
 
-// Internal indicates that the span represents an internal operation within an application
+// Producer represents the operation of a producer sending a message to a message broker.
+func Producer() Option {
+	return trace.WithSpanKind(trace.SpanKindProducer)
+}
+
+// Consumer represents the operation of a consumer receiving a message from a message broker.
+func Consumer() Option {
+	return trace.WithSpanKind(trace.SpanKindConsumer)
+}
+
+// Internal indicates that the span represents an internal operation within an application.
 func Internal() Option {
 	return trace.WithSpanKind(trace.SpanKindInternal)
 }
 
-// String tags the span during its creation
+// String tags the span during its creation.
 func String(k string, v string) Option {
 	return trace.WithAttributes(attribute.String(k, v))
 }
 
-// Strings tags the span during its creation
+// Strings tags the span during its creation.
 func Strings(k string, v []string) Option {
 	return trace.WithAttributes(attribute.StringSlice(k, v))
 }
 
-// Bool tags the span during its creation
+// Bool tags the span during its creation.
 func Bool(k string, v bool) Option {
 	return trace.WithAttributes(attribute.Bool(k, v))
 }
 
-// Int tags the span during its creation
+// Int tags the span during its creation.
 func Int(k string, v int) Option {
 	return trace.WithAttributes(attribute.Int(k, v))
 }
 
-// Float tags the span during its creation
+// Float tags the span during its creation.
 func Float(k string, v float64) Option {
 	return trace.WithAttributes(attribute.Float64(k, v))
 }
 
-// Request tags the span during its creation with the request data
+// Request tags the span during its creation with the request data.
 func Request(r *http.Request) Option {
 	return trace.WithAttributes(attributesOfRequest(r)...)
 }
@@ -91,7 +101,7 @@ func attributesOfRequest(r *http.Request) []attribute.KeyValue {
 	return attrs
 }
 
-// ClientIP tags the span during its creation with the IP address and port number of the client
+// ClientIP tags the span during its creation with the IP address and port number of the client.
 func ClientIP(ip string) Option {
 	p := strings.LastIndex(ip, ":")
 	if p > 0 {
