@@ -27,7 +27,7 @@ func BenchmarkRand_Intn(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		Intn(1000000)
 	}
-	// On 2021 MacBook Pro M1 16": 15.8 ns/op
+	// On 2021 MacBook Pro M1 16": 14.28 ns/op
 }
 
 func BenchmarkRand_MathIntn(b *testing.B) {
@@ -79,7 +79,7 @@ func TestRand_AlphaNum32(t *testing.T) {
 func TestRand_Intn(t *testing.T) {
 	t.Parallel()
 
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 4096; i++ {
 		n := Intn(100)
 		assert.True(t, n >= 0)
 		assert.True(t, n < 100)
