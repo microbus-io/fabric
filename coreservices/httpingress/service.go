@@ -213,8 +213,16 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Add the request attributes in LOCAL deployment to facilitate debugging
 		spanOptions = append(spanOptions, trc.Request(r))
 	}
+	port := ""
+	if p := strings.LastIndex(r.Host, ":"); p >= 0 {
+		port = r.Host[p+1:]
+	} else if r.TLS != nil {
+		port = "443"
+	} else {
+		port = "80"
+	}
 	var span trc.Span
-	ctx, span = svc.StartSpan(ctx, ":"+r.URL.Port(), spanOptions...)
+	ctx, span = svc.StartSpan(ctx, ":"+port, spanOptions...)
 	defer span.End()
 	if forceTrace {
 		svc.ForceTrace(ctx)
@@ -266,7 +274,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"microbus_response_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
 		r.Host+"/",
-		r.URL.Port(),
+		port,
 		r.Method,
 		strconv.Itoa(pt.SC),
 		func() string {
@@ -280,7 +288,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"microbus_response_size_bytes",
 		float64(pt.N),
 		r.Host+"/",
-		r.URL.Port(),
+		port,
 		r.Method,
 		strconv.Itoa(pt.SC),
 		func() string {
