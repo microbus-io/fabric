@@ -61,7 +61,7 @@ Review each of the major project packages to get oriented in the code structure:
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
 * [trc](docs/structure/trc.md) - Options for creating tracing spans
 * [timex](docs/structure/timex.md) - Enhancement of the standard `time.Time`
-* [utils](docs/structure/utils.md) - Various independent utility classes and functions
+* [utils](docs/structure/utils.md) ✨ - Various independent utility classes and functions
 
 ## 👩‍💻 Technical Deep Dive
 

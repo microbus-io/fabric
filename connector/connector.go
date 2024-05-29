@@ -78,11 +78,12 @@ type Connector struct {
 	started         bool
 	plane           string
 
-	reqs             utils.SyncMap[string, *utils.InfiniteChan[*http.Response]]
+	reqs             utils.SyncMap[string, *transferChan]
 	networkHop       time.Duration
 	maxCallDepth     int
 	maxFragmentSize  int64
 	multicastChanCap int
+	ackTimeout       time.Duration
 
 	requestDefrags  utils.SyncMap[string, *httpx.DefragRequest]
 	responseDefrags utils.SyncMap[string, *httpx.DefragResponse]
@@ -111,6 +112,7 @@ func NewConnector() *Connector {
 		id:               strings.ToLower(rand.AlphaNum32(10)),
 		configs:          map[string]*cfg.Config{},
 		networkHop:       250 * time.Millisecond,
+		ackTimeout:       250 * time.Millisecond,
 		maxCallDepth:     64,
 		subs:             map[string]*sub.Subscription{},
 		tickers:          map[string]*tickerCallback{},

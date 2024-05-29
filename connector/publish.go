@@ -25,12 +25,16 @@ import (
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
-	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel/propagation"
 )
 
-const AckTimeout = 250 * time.Millisecond
+// transferChan is intermediating between the publisher and the responses it receives.
+type transferChan struct {
+	Pushed int
+	C      chan *http.Response
+	Done   chan bool
+}
 
 // GET makes a GET request.
 func (c *Connector) GET(ctx context.Context, url string) (*http.Response, error) {
@@ -119,24 +123,23 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	}
 
 	// Make the request
-	var output *utils.InfiniteChan[*pub.Response]
-	if req.Multicast {
-		output = utils.MakeInfiniteChan[*pub.Response](c.multicastChanCap)
-	} else {
-		output = utils.MakeInfiniteChan[*pub.Response](2)
+	output := c.makeRequest(ctx, req)
+	ch := make(chan *pub.Response, len(output))
+	for _, x := range output {
+		ch <- x
 	}
-	go func() {
-		c.makeRequest(ctx, req, output)
-		fullyDrained := output.Close(time.Second)
-		if !fullyDrained {
-			c.LogDebug(ctx, "Unconsumed responses dropped", log.String("url", req.Canonical()), log.String("method", req.Method))
-		}
-	}()
-	return output.C()
+	close(ch)
+	return ch
 }
 
 // makeRequest makes an HTTP request over NATS, then awaits and pushes the responses to the output channel.
-func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *utils.InfiniteChan[*pub.Response]) {
+func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output []*pub.Response) {
+	if req.Multicast {
+		output = make([]*pub.Response, 0, c.multicastChanCap)
+	} else {
+		output = make([]*pub.Response, 0, 2)
+	}
+
 	// Set a random message ID
 	msgID := rand.AlphaNum64(8)
 	frame.Of(req.Header).SetMessageID(msgID)
@@ -145,8 +148,8 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
 	if err != nil {
 		err = errors.Trace(err)
-		output.Push(pub.NewErrorResponse(err))
-		return
+		output = append(output, pub.NewErrorResponse(err))
+		return output
 	}
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
@@ -166,21 +169,26 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 	fragger, err := httpx.NewFragRequest(httpReq, c.maxFragmentSize)
 	if err != nil {
 		err = errors.Trace(err)
-		output.Push(pub.NewErrorResponse(err))
-		return
+		output = append(output, pub.NewErrorResponse(err))
+		return output
 	}
 	httpReq, err = fragger.Fragment(1)
 	if err != nil {
 		err = errors.Trace(err)
-		output.Push(pub.NewErrorResponse(err))
-		return
+		output = append(output, pub.NewErrorResponse(err))
+		return output
 	}
 
 	// Create a channel to await on
-	awaitCh := utils.MakeInfiniteChan[*http.Response](c.multicastChanCap)
+	awaitCh := &transferChan{
+		C:    make(chan *http.Response, c.multicastChanCap),
+		Done: make(chan bool),
+	}
 	c.reqs.Store(msgID, awaitCh)
 	defer func() {
 		c.reqs.Delete(msgID)
+		close(awaitCh.Done)
+		// awaitCh.Close(0)
 	}()
 
 	// Send the message
@@ -192,13 +200,13 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 		portNum, err := strconv.Atoi(httpReq.URL.Port())
 		if err != nil {
 			err = errors.Trace(err)
-			output.Push(pub.NewErrorResponse(err))
-			return
+			output = append(output, pub.NewErrorResponse(err))
+			return output
 		}
 		if portNum < 1 || portNum > 65535 {
 			err = errors.Newf("invalid port '%d'", portNum)
-			output.Push(pub.NewErrorResponse(err))
-			return
+			output = append(output, pub.NewErrorResponse(err))
+			return output
 		}
 		port = httpReq.URL.Port()
 	}
@@ -208,16 +216,16 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 	err = httpReq.WriteProxy(&buf)
 	if err != nil {
 		err = errors.Trace(err)
-		output.Push(pub.NewErrorResponse(err))
-		return
+		output = append(output, pub.NewErrorResponse(err))
+		return output
 	}
 
 	publishTime := time.Now()
 	err = c.natsConn.Publish(subject, buf.Bytes())
 	if err != nil {
 		err = errors.Trace(err)
-		output.Push(pub.NewErrorResponse(err))
-		return
+		output = append(output, pub.NewErrorResponse(err))
+		return output
 	}
 
 	enumResponders := func(responders map[string]bool) string {
@@ -254,12 +262,12 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 			C: make(<-chan time.Time),
 		}
 	}
-	ackTimer := time.NewTimer(AckTimeout)
+	ackTimer := time.NewTimer(c.ackTimeout)
 	defer ackTimer.Stop()
 	ackTimerStart := time.Now()
 	for {
 		select {
-		case response := <-awaitCh.C():
+		case response := <-awaitCh.C:
 			opCode := frame.Of(response).OpCode()
 			fromID := frame.Of(response).FromID()
 			queue := frame.Of(response).Queue()
@@ -326,7 +334,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 
 			// Response
 			if opCode == frame.OpCodeResponse {
-				output.Push(pub.NewHTTPResponse(response))
+				output = append(output, pub.NewHTTPResponse(response))
 				_ = c.IncrementMetric(
 					"microbus_request_count_total",
 					1,
@@ -351,7 +359,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 				} else {
 					err = errors.Convert(reconstitutedError)
 				}
-				output.Push(pub.NewErrorResponse(err))
+				output = append(output, pub.NewErrorResponse(err))
 				statusCode := reconstitutedError.StatusCode
 				if statusCode == 0 {
 					statusCode = http.StatusInternalServerError
@@ -376,7 +384,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 			if opCode == frame.OpCodeResponse || opCode == frame.OpCodeError {
 				if !req.Multicast {
 					// Return the first result found immediately
-					return
+					return output
 				}
 				seenIDs[fromID] = opCode
 				countResponses++
@@ -385,7 +393,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 					// Known responders optimization
 					c.knownResponders.Store(subject, seenQueues)
 					c.LogDebug(ctx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
-					return
+					return output
 				}
 			}
 
@@ -393,7 +401,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 		case <-timeoutTimer.C:
 			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
 			err = errors.Newc(http.StatusRequestTimeout, "timeout")
-			output.Push(pub.NewErrorResponse(err))
+			output = append(output, pub.NewErrorResponse(err))
 			c.postRequestData.Store("timeout:"+msgID, subject)
 			_ = c.IncrementMetric(
 				"microbus_request_count_total",
@@ -410,14 +418,14 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 				c.knownResponders.Delete(subject)
 				c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 			}
-			return
+			return output
 
 		// Ack timer
 		case <-ackTimer.C:
-			if c.deployment == LOCAL && time.Since(ackTimerStart) >= AckTimeout*8 {
+			if c.deployment == LOCAL && time.Since(ackTimerStart) >= c.ackTimeout*8 {
 				// Likely resuming from a breakpoint that prevented the ack from arriving in time.
 				// Reset the ack timer to allow the ack to arrive.
-				ackTimer.Reset(AckTimeout)
+				ackTimer.Reset(c.ackTimeout)
 				ackTimerStart = time.Now()
 				c.LogDebug(ctx, "Resetting ack timeout", log.String("msg", msgID), log.String("subject", subject))
 				continue
@@ -430,7 +438,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 					c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
 				} else {
 					err = errors.Newc(http.StatusNotFound, "ack timeout")
-					output.Push(pub.NewErrorResponse(err))
+					output = append(output, pub.NewErrorResponse(err))
 					_ = c.IncrementMetric(
 						"microbus_request_count_total",
 						1,
@@ -441,7 +449,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 						"OK",
 					)
 				}
-				return
+				return output
 			}
 			if countResponses == len(seenIDs) {
 				// All responses have been received
@@ -450,7 +458,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request, output *u
 					c.knownResponders.Store(subject, seenQueues)
 					c.LogDebug(ctx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
 				}
-				return
+				return output
 			}
 		}
 	}
@@ -482,11 +490,23 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	msgID := frame.Of(response).MessageID()
 	ch, ok := c.reqs.Load(msgID)
 	if ok {
-		ch.Push(response)
-		return
+		if ch.Pushed < cap(ch.C) {
+			// First cap(ch.C) messages can be pushed safely without blocking
+			ch.C <- response
+			ch.Pushed++
+		} else {
+			// More messages can block, so need to listen to the Done channel
+			select {
+			case ch.C <- response:
+				ch.Pushed++
+				return
+			case <-ch.Done:
+				// Message arrived after the channel was closed
+			}
+		}
 	}
 
-	// Handle message that arrive after the request is done
+	// Handle message that arrive after the request is done.
 	opCode := frame.Of(response).OpCode()
 	if opCode != frame.OpCodeAck {
 		subject, ok := c.postRequestData.Load("multicast:"+msgID, lru.NoBump())

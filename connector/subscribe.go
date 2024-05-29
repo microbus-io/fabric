@@ -96,24 +96,28 @@ func (c *Connector) Unsubscribe(method string, path string) error {
 	return errors.Trace(err)
 }
 
+// onRequest handles an incoming request. It acks it, then calls the handler to process it and responds to the caller.
+func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) {
+	err := c.ackRequest(msg, s)
+	if err != nil {
+		err = errors.Trace(err)
+		c.LogError(c.lifetimeCtx, "Acking request", log.Error(err))
+		return
+	}
+	go func() {
+		err := c.handleRequest(msg, s)
+		if err != nil {
+			err = errors.Trace(err)
+			c.LogError(c.lifetimeCtx, "Processing request", log.Error(err))
+		}
+	}()
+}
+
 // activateSub will subscribe to NATS
 func (c *Connector) activateSub(s *sub.Subscription) error {
 	handler := func(msg *nats.Msg) {
-		err := c.ackRequest(msg, s)
-		if err != nil {
-			err = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Acking request", log.Error(err))
-			return
-		}
-		go func() {
-			err := c.onRequest(msg, s)
-			if err != nil {
-				err = errors.Trace(err)
-				c.LogError(c.lifetimeCtx, "Processing request", log.Error(err))
-			}
-		}()
+		c.onRequest(msg, s)
 	}
-
 	var err error
 	if s.HostSub == nil {
 		if s.Queue != "" {
@@ -249,9 +253,9 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 	return nil
 }
 
-// onRequest is called when an incoming HTTP request is received.
+// handleRequest is called when an incoming HTTP request is received.
 // The message is dispatched to the appropriate web handler and the response is serialized and sent back to the response channel of the sender
-func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) error {
+func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	ctx := c.lifetimeCtx
 
 	atomic.AddInt32(&c.pendingOps, 1)

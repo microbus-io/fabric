@@ -53,7 +53,7 @@ var (
 	_ *httpx.BodyReader
 	_ pub.Option
 	_ rand.Void
-	_ utils.InfiniteChan[int]
+	_ utils.SyncMap[string, string]
 	_ assert.TestingT
 	_ *html.Node
 	_ *messagingapi.Client

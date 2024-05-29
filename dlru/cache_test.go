@@ -392,19 +392,18 @@ func TestDLRU_MulticastOptim(t *testing.T) {
 	assert.NoError(t, err)
 	defer beta.Shutdown()
 
-	// First operation is slow
+	// First operation is slow because of being the first broadcast
 	t0 := time.Now()
 	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
 	assert.NoError(t, err)
-	dur := time.Since(t0)
-	assert.True(t, dur >= connector.AckTimeout)
+	durSlow := time.Since(t0)
 
-	// Second operation is fast, even if not the same action
+	// Second operation is fast, even if not the same action, because of the known responders optimization
 	t0 = time.Now()
 	err = alphaLRU.Clear(ctx)
 	assert.NoError(t, err)
-	dur = time.Since(t0)
-	assert.True(t, dur < connector.AckTimeout)
+	durFast := time.Since(t0)
+	assert.True(t, durFast*2 < durSlow)
 }
 
 func TestDLRU_InvalidRequests(t *testing.T) {

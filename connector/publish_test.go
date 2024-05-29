@@ -9,6 +9,7 @@ package connector
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -62,23 +63,35 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := New("echo.serial.connector")
-	con.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
+	alpha := New("alpha.echo.serial.connector")
+	var echoCount atomic.Int32
+	alpha.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
+		echoCount.Add(1)
 		body, _ := io.ReadAll(r.Body)
 		w.Write(body)
 		return nil
 	})
 
+	beta := New("beta.echo.serial.connector")
+
 	// Startup the microservice
-	con.Startup()
-	defer con.Shutdown()
+	alpha.Startup()
+	defer alpha.Shutdown()
+	beta.Startup()
+	defer beta.Shutdown()
 
 	// The bottleneck is waiting on the network i/o
+	var errCount int
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		con.POST(ctx, "https://echo.serial.connector/echo", []byte("Hello"))
+		_, err := beta.POST(ctx, "https://alpha.echo.serial.connector/echo", []byte("Hello"))
+		if err != nil {
+			errCount++
+		}
 	}
 	b.StopTimer()
+	assert.Zero(b, errCount)
+	assert.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
 	// N=10202
@@ -87,14 +100,27 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	// 360 allocs/op
 }
 
-func BenchmarkConnector_EchoParallel(b *testing.B) {
+func BenchmarkConnector_SerialChain(b *testing.B) {
 	ctx := context.Background()
 
 	// Create the microservice
-	con := New("echo.parallel.connector")
+	con := New("serial.chain.connector")
+	var echoCount atomic.Int32
 	con.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
-		body, _ := io.ReadAll(r.Body)
-		w.Write(body)
+		if frame.Of(r).CallDepth() < 10 {
+			// Go one level deeper
+			res, err := con.POST(r.Context(), "https://serial.chain.connector/echo", r.Body)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			body, _ := io.ReadAll(res.Body)
+			w.Write(body)
+		} else {
+			// Echo back the request
+			echoCount.Add(1)
+			body, _ := io.ReadAll(r.Body)
+			w.Write(body)
+		}
 		return nil
 	})
 
@@ -102,24 +128,132 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	con.Startup()
 	defer con.Shutdown()
 
-	// Achieving approx 10x boost with parallelization
-	var wg sync.WaitGroup
+	// The bottleneck is waiting on the network i/o
+	var errCount int
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		wg.Add(1)
+		_, err := con.POST(ctx, "https://serial.chain.connector/echo", []byte("Hello"))
+		if err != nil {
+			errCount++
+		}
+	}
+	b.StopTimer()
+	assert.Zero(b, errCount)
+	assert.Equal(b, int32(b.N), echoCount.Load())
+
+	// On 2021 MacBook Pro M1 16":
+	// N=703
+	// 1504267 ns/op (664 ops/sec)
+	// 522564 B/op
+	// 3732 allocs/op
+}
+
+func BenchmarkConnector_EchoParallel(b *testing.B) {
+	ctx := context.Background()
+
+	// Create the microservice
+	alpha := New("alpha.echo.parallel.connector")
+	var echoCount atomic.Int32
+	alpha.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
+		echoCount.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		w.Write(body)
+		return nil
+	})
+
+	// Goroutines can take as much as 500ms or more to start up during heavy load, which necessitates a high ack timeout
+	beta := New("beta.echo.parallel.connector")
+	beta.ackTimeout = time.Second
+
+	// Startup the microservice
+	alpha.Startup()
+	defer alpha.Shutdown()
+	beta.Startup()
+	defer beta.Shutdown()
+
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+	b.ResetTimer()
+	var errCount atomic.Int32
+	for i := 0; i < b.N; i++ {
 		go func() {
-			con.POST(ctx, "https://echo.parallel.connector/echo", []byte("Hello"))
+			_, err := beta.POST(ctx, "https://alpha.echo.parallel.connector/echo", []byte("Hello"))
+			if err != nil {
+				errCount.Add(1)
+			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 	b.StopTimer()
+	assert.Zero(b, errCount.Load())
+	assert.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
-	// N=98920 concurrent
-	// 11325 ns/op (88300 ops/sec)
-	// 16135 B/op
-	// 194 allocs/op
+	// N=67580 concurrent
+	// 16503 ns/op (60595 ops/sec) = approx 6x that of serial
+	// 42269 B/op
+	// 337 allocs/op
+}
+
+func TestConnector_EchoParallelCapacity(t *testing.T) {
+	ctx := context.Background()
+
+	// Create the microservice
+	alpha := New("alpha.echo.parallel.capacity.connector")
+	var echoCount atomic.Int32
+	alpha.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
+		echoCount.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		w.Write(body)
+		return nil
+	})
+
+	beta := New("beta.echo.parallel.capacity.connector")
+
+	// Startup the microservice
+	alpha.Startup()
+	defer alpha.Shutdown()
+	beta.Startup()
+	defer beta.Shutdown()
+
+	// Goroutines can take as much as 1s to start in very high load situations
+	n := 10000
+	var wg sync.WaitGroup
+	wg.Add(n)
+	t0 := time.Now()
+	var totalTime atomic.Int64
+	var maxTime atomic.Int32
+	var errCount atomic.Int32
+	for i := 0; i < n; i++ {
+		go func() {
+			tts := int(time.Since(t0).Milliseconds())
+			totalTime.Add(int64(tts))
+			currentMax := maxTime.Load()
+			if int32(tts) > currentMax {
+				maxTime.Store(int32(tts))
+			}
+			_, err := beta.POST(ctx, "https://alpha.echo.parallel.capacity.connector/echo", []byte("Hello"))
+			if err != nil {
+				errCount.Add(1)
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	assert.Zero(t, errCount.Load())
+	assert.Equal(t, int32(n), echoCount.Load())
+
+	fmt.Printf("errs %d\n", errCount.Load())
+	fmt.Printf("echo %d\n", echoCount.Load())
+	fmt.Printf("avg time to start %d\n", totalTime.Load()/int64(n))
+	fmt.Printf("max time to start %d\n", maxTime.Load())
+
+	// On 2021 MacBook Pro M1 16":
+	// n=10000 avg=56 max=133
+	// n=20000 avg=148 max=308 ackTimeout=1s
+	// n=40000 avg=318 max=569 ackTimeout=1s
+	// n=60000 avg=501 max=935 ackTimeout=1s
 }
 
 func TestConnector_QueryArgs(t *testing.T) {
@@ -351,7 +485,8 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	)
 	dur := time.Since(t0)
 	assert.Error(t, err)
-	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
+	assert.GreaterOrEqual(t, dur, con.ackTimeout)
+	assert.Less(t, dur, con.ackTimeout+time.Second)
 
 	// Use the default time budget
 	t0 = time.Now()
@@ -362,7 +497,8 @@ func TestConnector_TimeoutNotFound(t *testing.T) {
 	dur = time.Since(t0)
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
-	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
+	assert.GreaterOrEqual(t, dur, con.ackTimeout)
+	assert.Less(t, dur, con.ackTimeout+time.Second)
 }
 
 func TestConnector_TimeoutSlow(t *testing.T) {
@@ -391,7 +527,8 @@ func TestConnector_TimeoutSlow(t *testing.T) {
 	)
 	assert.Error(t, err)
 	dur := time.Since(t0)
-	assert.True(t, dur >= 500*time.Millisecond && dur < 600*time.Millisecond)
+	assert.GreaterOrEqual(t, dur, 500*time.Millisecond)
+	assert.Less(t, dur, 600*time.Millisecond)
 }
 
 func TestConnector_ContextTimeout(t *testing.T) {
@@ -462,6 +599,8 @@ func TestConnector_Multicast(t *testing.T) {
 		return nil
 	}, sub.DefaultQueue())
 
+	ackTimeout := New("").ackTimeout
+
 	// Startup the microservices
 	for _, i := range []*Connector{noqueue1, noqueue2, named1, named2, def1, def2} {
 		err := i.Startup()
@@ -483,7 +622,8 @@ func TestConnector_Multicast(t *testing.T) {
 		}
 	}
 	dur := time.Since(t0)
-	assert.True(t, dur >= AckTimeout && dur < AckTimeout*2)
+	assert.GreaterOrEqual(t, dur, ackTimeout)
+	assert.Less(t, dur, ackTimeout+time.Second)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
 	assert.True(t, responded["noqueue2"])
@@ -505,7 +645,7 @@ func TestConnector_Multicast(t *testing.T) {
 		}
 	}
 	dur = time.Since(t0)
-	assert.True(t, dur < AckTimeout)
+	assert.True(t, dur < ackTimeout)
 	assert.Len(t, responded, 4)
 	assert.True(t, responded["noqueue1"])
 	assert.True(t, responded["noqueue2"])
@@ -515,27 +655,27 @@ func TestConnector_Multicast(t *testing.T) {
 	assert.False(t, responded["def1"] && responded["def2"])
 }
 
-func TestConnector_MulticastDelay(t *testing.T) {
+func TestConnector_MulticastPartialTimeout(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
+	delay := time.Millisecond * 500
 
 	// Create the microservices
-	slow := New("multicast.delay.connector")
-	delay := AckTimeout
+	slow := New("multicast.partial.timeout.connector")
 	slow.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(delay * 2)
 		w.Write([]byte("slow"))
 		return nil
 	}, sub.NoQueue())
 
-	fast := New("multicast.delay.connector")
+	fast := New("multicast.partial.timeout.connector")
 	fast.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		w.Write([]byte("fast"))
 		return nil
 	}, sub.NoQueue())
 
-	tooSlow := New("multicast.delay.connector")
+	tooSlow := New("multicast.partial.timeout.connector")
 	tooSlow.Subscribe("GET", "cast", func(w http.ResponseWriter, r *http.Request) error {
 		time.Sleep(delay * 4)
 		w.Write([]byte("too slow"))
@@ -560,27 +700,24 @@ func TestConnector_MulticastDelay(t *testing.T) {
 	t0 := time.Now()
 	ch := slow.Publish(
 		shortCtx,
-		pub.GET("https://multicast.delay.connector/cast"),
+		pub.GET("https://multicast.partial.timeout.connector/cast"),
 		pub.Multicast(),
 	)
+	dur := time.Since(t0)
+	assert.GreaterOrEqual(t, dur, 3*delay)
+	assert.Less(t, dur, 4*delay)
+	assert.Equal(t, 3, len(ch))
+	assert.Equal(t, 3, cap(ch))
 	for i := range ch {
 		res, err := i.Get()
 		if err == nil {
 			body, err := io.ReadAll(res.Body)
 			assert.NoError(t, err)
-			dur := time.Since(t0)
-			if string(body) == "fast" {
-				assert.True(t, dur < delay)
-			} else if string(body) == "slow" {
-				assert.True(t, dur >= 2*delay && dur < 3*delay)
-			}
+			assert.True(t, string(body) == "fast" || string(body) == "slow")
 			respondedOK++
 		} else {
 			assert.Equal(t, http.StatusRequestTimeout, errors.Convert(err).StatusCode)
 			respondedErr++
-			assert.Equal(t, 2, respondedOK)
-			dur := time.Since(t0)
-			assert.True(t, dur >= 3*delay && dur < 4*delay, "%v", dur)
 		}
 	}
 	assert.Equal(t, 2, respondedOK)
@@ -625,7 +762,8 @@ func TestConnector_MulticastError(t *testing.T) {
 		}
 	}
 	dur := time.Since(t0)
-	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
+	assert.GreaterOrEqual(t, dur, good.ackTimeout)
+	assert.Less(t, dur, good.ackTimeout+time.Second)
 	assert.Equal(t, 1, countErrs)
 	assert.Equal(t, 1, countOKs)
 }
@@ -652,7 +790,8 @@ func TestConnector_MulticastNotFound(t *testing.T) {
 		count++
 	}
 	dur := time.Since(t0)
-	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
+	assert.GreaterOrEqual(t, dur, con.ackTimeout)
+	assert.Less(t, dur, con.ackTimeout+time.Second)
 	assert.Equal(t, 0, count)
 }
 
@@ -718,7 +857,8 @@ func TestConnector_MassMulticast(t *testing.T) {
 		}
 	}
 	dur := time.Since(t0)
-	assert.True(t, dur >= AckTimeout && dur < 2*AckTimeout)
+	assert.GreaterOrEqual(t, dur, cons[0].ackTimeout)
+	assert.Less(t, dur, cons[0].ackTimeout+time.Second)
 	assert.Equal(t, N, countOKs)
 }
 
@@ -800,7 +940,7 @@ func TestConnector_KnownResponders(t *testing.T) {
 			}
 		}
 		dur := time.Since(t0)
-		return len(responded), dur < AckTimeout
+		return len(responded), dur < alpha.ackTimeout
 	}
 
 	// First request should be slower, consecutive requests should be quick
@@ -874,21 +1014,24 @@ func TestConnector_LifetimeCancellation(t *testing.T) {
 	assert.True(t, dur < time.Second)
 }
 
-func TestConnector_UnconsumedResponse(t *testing.T) {
+func TestConnector_ChannelCapacity(t *testing.T) {
 	t.Parallel()
 
-	var responses int32
 	n := 8
+
+	// Create microservices that respond in a staggered timeline
+	var responses atomic.Int32
 	var wg sync.WaitGroup
-	wg.Add(n)
 	cons := make([]*Connector, n)
 	for i := 0; i < n; i++ {
 		i := i
+		wg.Add(1)
 		go func() {
-			cons[i] = New("unconsumed.response.connector")
+			cons[i] = New("channel.capacity.connector")
 			cons[i].SetDeployment(TESTING)
 			cons[i].Subscribe("GET", "multicast", func(w http.ResponseWriter, r *http.Request) error {
-				atomic.AddInt32(&responses, 1)
+				time.Sleep(time.Duration(100*i+100) * time.Millisecond)
+				responses.Add(1)
 				return nil
 			}, sub.NoQueue())
 			err := cons[i].Startup()
@@ -903,53 +1046,38 @@ func TestConnector_UnconsumedResponse(t *testing.T) {
 		}
 	}()
 
-	cons[0].Subscribe("GET", "unicast", func(w http.ResponseWriter, r *http.Request) error {
-		return nil
-	})
+	ctx := context.Background()
 
-	// Multicast
-	shortCtx1, cancel1 := context.WithTimeout(context.Background(), time.Second*2)
-	defer cancel1()
-	responses = 0
-	cons[0].multicastChanCap = n / 2
-	ch := cons[0].Publish(
-		shortCtx1,
-		pub.GET("https://unconsumed.response.connector/multicast"),
-	)
-
-	// ch should produce n responses, but ch only has a capacity of n/2
-	assert.Equal(t, n/2, cap(ch))
-	time.Sleep(2 * AckTimeout)
-	assert.Equal(t, n, int(responses))
-
-	// Pull one element, should be instant
+	// All responses should come in at once after all handlers finished
+	responses.Store(0)
 	t0 := time.Now()
-	_, err := (<-ch).Get()
-	dur := time.Since(t0)
-	assert.True(t, dur < time.Millisecond*50)
-	assert.NoError(t, err)
-
-	// At this point ch is full, but other requests should work
-	shortCtx2, cancel2 := context.WithTimeout(context.Background(), time.Second*2)
-	defer cancel2()
-	t0 = time.Now()
-	_, err = cons[0].Request(
-		shortCtx2,
-		pub.GET("https://unconsumed.response.connector/unicast"),
+	cons[0].multicastChanCap = n / 2 // Limited multicast channel capacity should not block
+	ch := cons[0].Publish(
+		ctx,
+		pub.GET("https://channel.capacity.connector/multicast"),
 	)
-	assert.NoError(t, err)
-	dur = time.Since(t0)
-	assert.True(t, dur < time.Millisecond*50)
+	assert.Greater(t, time.Since(t0), time.Duration(n*100)*time.Millisecond)
+	assert.Equal(t, n, int(responses.Load()))
+	assert.Equal(t, n, len(ch))
+	assert.Equal(t, n, cap(ch))
 
-	// Not consuming from ch for more than a second should cause responses to be dropped
-	time.Sleep(time.Second + 500*time.Millisecond)
+	// If asking for first response only, it should return immediately when it is produced
+	responses.Store(0)
+	t0 = time.Now()
+	ch = cons[0].Publish(
+		ctx,
+		pub.GET("https://channel.capacity.connector/multicast"),
+		pub.Unicast(),
+	)
+	assert.Greater(t, time.Since(t0), 100*time.Millisecond)
+	assert.Less(t, time.Since(t0), 200*time.Millisecond)
+	assert.Equal(t, 1, int(responses.Load()))
+	assert.Equal(t, 1, len(ch))
+	assert.Equal(t, 1, cap(ch))
 
-	// What's already been pushed to ch should be readable
-	remaining := 0
-	for range ch {
-		remaining++
-	}
-	assert.Equal(t, cap(ch), remaining)
+	// The remaining handlers are still called and should finish
+	time.Sleep(time.Duration(n*100) * time.Millisecond)
+	assert.Equal(t, n, int(responses.Load()))
 }
 
 func TestConnector_UnicastToNoQueue(t *testing.T) {

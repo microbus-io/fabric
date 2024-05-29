@@ -6,4 +6,4 @@ Package `utils` includes various independent utilities.
 
 `CatchPanic` is a utility function that [converts panics into standard errors](../tech/errorcapture.md). It is used by the `Connector` to wrap callbacks to user code.
 
-`InfiniteChan` is a channel backed by a finite channel and an infinite queue. Elements that cannot be written to the channel are instead pushed to the queue and are delivered to the channel when capacity frees up. `InfiniteChan` therefore never blocks on write but may block on read. Queued elements may be dropped if the channel is closed and left unread for over the idle timeout.
+`SyncMap` is a thin wrapper over a subset of the operations of the standard `sync.Map`. It introduces generics to make these more type-safe.

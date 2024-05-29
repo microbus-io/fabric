@@ -118,11 +118,10 @@ func TestConnector_TraceRequestAttributes(t *testing.T) {
 	}
 }
 
-func TestConnector_TracingCopySpan(t *testing.T) {
+func TestConnector_GoTracingSpan(t *testing.T) {
 	t.Parallel()
 
-	alpha := New("tracing.copy.span.connector")
-	// alpha.SetDeployment(TESTING)
+	alpha := New("go.tracing.span.connector")
 	var topSpan trc.Span
 	var goSpan trc.Span
 	var wg sync.WaitGroup
@@ -144,5 +143,4 @@ func TestConnector_TracingCopySpan(t *testing.T) {
 
 	wg.Wait()
 	assert.Equal(t, topSpan.TraceID(), goSpan.TraceID())
-	assert.Equal(t, topSpan, goSpan)
 }

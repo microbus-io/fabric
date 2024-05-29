@@ -78,7 +78,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Code generation of event sources
 * Code generation of event sinks
-* Use `InfiniteChan`s to avoid blocking messaging channels in high-load situations
+* Use `InfiniteChan`s to avoid blocking messaging channels in high-load situations (deprecated in milestone 23)
 
 [Milestone 12](https://github.com/microbus-io/fabric/tree/milestone/12):
 
@@ -194,3 +194,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Bug fixes and resiliency improvements
 * Hello example microservice to handle the topmost root path
+* Deprecated `InfiniteChan` and replaced with an internal `transferChan`
