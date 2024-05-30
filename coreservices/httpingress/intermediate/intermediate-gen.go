@@ -168,8 +168,8 @@ This list is matched against the Accept-Language header of the request.`),
 	svc.DefineConfig(
 		"BlockedPaths",
 		cfg.Description(`BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
-Paths should not include any arguments.
-Extensions are specified with "*.ext".`),
+Paths should not include any arguments and are matched exactly.
+Extensions are specified with "*.ext" and are matched against the extension of the path only.`),
 		cfg.DefaultValue(`/geoserver
 /console/
 /.env
@@ -517,8 +517,8 @@ func (svc *Intermediate) SetServerLanguages(languages string) error {
 
 /*
 BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
-Paths should not include any arguments.
-Extensions are specified with "*.ext".
+Paths should not include any arguments and are matched exactly.
+Extensions are specified with "*.ext" and are matched against the extension of the path only.
 */
 func (svc *Intermediate) BlockedPaths() (blockedPaths string) {
 	_val := svc.Config("BlockedPaths")
@@ -529,8 +529,8 @@ func (svc *Intermediate) BlockedPaths() (blockedPaths string) {
 SetBlockedPaths sets the value of the configuration property.
 
 BlockedPaths - A newline-separated list of paths or extensions to block with a 404.
-Paths should not include any arguments.
-Extensions are specified with "*.ext".
+Paths should not include any arguments and are matched exactly.
+Extensions are specified with "*.ext" and are matched against the extension of the path only.
 */
 func (svc *Intermediate) SetBlockedPaths(blockedPaths string) error {
 	return svc.SetConfig("BlockedPaths", fmt.Sprintf("%v", blockedPaths))

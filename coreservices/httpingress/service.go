@@ -41,6 +41,17 @@ import (
 	"github.com/microbus-io/fabric/coreservices/metrics/metricsapi"
 )
 
+// Middleware is a function that can be added to pre- or post-process a request.
+// Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware,
+// passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware,
+// and passes it back to the preceding (upstream) middleware.
+// Both request and response may be modified.
+type Middleware func(
+	w http.ResponseWriter,
+	r *http.Request,
+	next connector.HTTPHandler,
+) (err error)
+
 var (
 	_ errors.TracedError
 	_ http.Request
@@ -63,6 +74,8 @@ type Service struct {
 	blockedPaths    map[string]bool
 	languageMatcher language.Matcher
 	langMatchCache  *lru.Cache[string, string]
+	middleware      []Middleware
+	handler         connector.HTTPHandler
 }
 
 // OnStartup is called when the microservice is started up.
@@ -72,6 +85,16 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	svc.OnChangedPortMappings(ctx)
 	svc.OnChangedBlockedPaths(ctx)
 	svc.OnChangedServerLanguages(ctx)
+
+	// Setup the middleware chain
+	svc.handler = svc.serveHTTP
+	for h := len(svc.middleware) - 1; h >= 0; h-- {
+		f := svc.middleware[h]
+		svc.handler = func(w http.ResponseWriter, r *http.Request) error {
+			return f(w, r, svc.serveHTTP) // No trace
+		}
+	}
+
 	err = svc.startHTTPServers(ctx)
 	if err != nil {
 		return errors.Trace(err)
@@ -86,6 +109,20 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 		return errors.Trace(err)
 	}
 	return nil
+}
+
+// AddMiddleware adds a [Middleware] to the chain.
+// Middleware is a function that can be added to pre- or post-process a request.
+// Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware,
+// passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware,
+// and passes it back to the preceding (upstream) middleware. The request and/or response may be modified in the process.
+// A middleware should call the next function in the chain.
+func (svc *Service) WithMiddleware(handler ...Middleware) *Service {
+	if svc.IsStarted() {
+		panic("middleware can't be added after starting up")
+	}
+	svc.middleware = append(svc.middleware, handler...)
+	return svc
 }
 
 // OnChangedPorts is triggered when the value of the Ports config property changes.
@@ -213,14 +250,26 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Add the request attributes in LOCAL deployment to facilitate debugging
 		spanOptions = append(spanOptions, trc.Request(r))
 	}
+
+	// Fill in the gaps
 	port := ""
 	if p := strings.LastIndex(r.Host, ":"); p >= 0 {
 		port = r.Host[p+1:]
 	} else if r.TLS != nil {
+		r.Host += ":443"
 		port = "443"
 	} else {
+		r.Host += ":80"
 		port = "80"
 	}
+	r.URL.Host = r.Host
+	if r.TLS != nil {
+		r.URL.Scheme = "https"
+	} else {
+		r.URL.Scheme = "http"
+	}
+
+	// OpenTelemetry: create the span
 	var span trc.Span
 	ctx, span = svc.StartSpan(ctx, ":"+port, spanOptions...)
 	defer span.End()
@@ -231,7 +280,8 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	pt := &PassThrough{W: w}
 	err := utils.CatchPanic(func() error {
-		return svc.serveHTTP(pt, r)
+		_ = r.URL.Port() // Validates the port (may panic in malformed requests)
+		return svc.handler(pt, r)
 	})
 	if err != nil {
 		var urlStr string
@@ -307,22 +357,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	middleware := svc.Middleware()
-
-	// Fill in the gaps
-	r.URL.Host = r.Host
-	_ = r.URL.Port() // Validates the port
-	if !strings.Contains(r.Host, ":") {
-		if r.TLS != nil {
-			r.URL.Host += ":443"
-		} else {
-			r.URL.Host += ":80"
-		}
-	}
-	if r.TLS != nil {
-		r.URL.Scheme = "https"
-	} else {
-		r.URL.Scheme = "http"
-	}
 
 	// Blocked paths
 	if svc.blockedPaths[r.URL.Path] {
@@ -478,10 +512,11 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Compress textual content using gzip or deflate
+	var closer io.Closer
 	var writer io.Writer
 	writer = w
-	var closer io.Closer
-	if internalRes.Body != nil {
+	acceptEncoding := r.Header.Get("Accept-Encoding")
+	if acceptEncoding != "" && internalRes.Body != nil {
 		contentType := internalRes.Header.Get("Content-Type")
 		contentEncoding := internalRes.Header.Get("Content-Encoding")
 		if contentEncoding == "" {
@@ -492,7 +527,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 			!strings.HasPrefix(contentType, "image/") &&
 			!strings.HasPrefix(contentType, "video/") &&
 			!strings.HasPrefix(contentType, "audio/") {
-			acceptEncoding := r.Header.Get("Accept-Encoding")
 			if strings.Contains(acceptEncoding, "br") {
 				w.Header().Del("Content-Length")
 				w.Header().Set("Content-Encoding", "br")

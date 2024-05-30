@@ -93,8 +93,8 @@ configs:
   - signature: BlockedPaths() (blockedPaths string)
     description: |-
       A newline-separated list of paths or extensions to block with a 404.
-      Paths should not include any arguments.
-      Extensions are specified with "*.ext".
+      Paths should not include any arguments and are matched exactly.
+      Extensions are specified with "*.ext" and are matched against the extension of the path only.
     callback: true
     default: |-
       /geoserver
