@@ -18,6 +18,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/timex"
+	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -34,6 +35,9 @@ type tickerCallback struct {
 func (c *Connector) StartTicker(name string, interval time.Duration, handler service.TickerHandler) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return c.captureInitErr(errors.Trace(err))
+	}
+	if handler == nil {
+		return nil
 	}
 	name = strings.ToLower(name)
 
@@ -86,33 +90,51 @@ func (c *Connector) runTicker(job *tickerCallback) {
 		return
 	}
 	c.tickersLock.Lock()
-	if job.Ticker == nil {
-		job.Ticker = time.NewTicker(job.Interval)
-	} else {
-		c.tickersLock.Unlock()
+	defer c.tickersLock.Unlock()
+	if job.Handler == nil {
+		return
+	}
+	if job.Ticker != nil {
 		return // Already running
 	}
+	job.Ticker = time.NewTicker(job.Interval)
 	ticker := job.Ticker
-	c.tickersLock.Unlock()
 	go func() {
 		c.LogDebug(c.Lifetime(), "Ticker started", log.String("name", job.Name))
+		defer c.LogDebug(c.Lifetime(), "Ticker stopped", log.String("name", job.Name))
 		for range ticker.C {
 			if !c.started {
 				continue
 			}
 
-			// Call the callback
+			// OpenTelemetry: create a span for the callback
+			ctx, span := c.StartSpan(c.lifetimeCtx, job.Name, trc.Internal())
+
 			atomic.AddInt32(&c.pendingOps, 1)
-			started := time.Now()
-			_ = c.doCallback(
-				c.lifetimeCtx,
-				job.Name,
-				func(ctx context.Context) error {
-					return job.Handler(ctx)
-				},
-			)
-			dur := time.Since(started)
+			startTime := time.Now()
+			err := utils.CatchPanic(func() error {
+				return job.Handler(ctx)
+			})
+			if err != nil {
+				c.LogError(ctx, "Running ticker", log.Error(err), log.String("name", job.Name))
+				// OpenTelemetry: record the error
+				span.SetError(err)
+				c.ForceTrace(ctx)
+			}
+			dur := time.Since(startTime)
 			atomic.AddInt32(&c.pendingOps, -1)
+			_ = c.ObserveMetric(
+				"microbus_callback_duration_seconds",
+				dur.Seconds(),
+				job.Name,
+				func() string {
+					if err != nil {
+						return "ERROR"
+					}
+					return "OK"
+				}(),
+			)
+			span.End()
 
 			// Drain ticker, in case of a long-running job that spans multiple intervals
 			skipped := 0
@@ -129,7 +151,6 @@ func (c *Connector) runTicker(job *tickerCallback) {
 				c.LogWarn(c.Lifetime(), "Ticker skipped", log.Int("beats", skipped), log.Duration("runtime", dur))
 			}
 		}
-		c.LogDebug(c.Lifetime(), "Ticker stopped", log.String("name", job.Name))
 	}()
 }
 

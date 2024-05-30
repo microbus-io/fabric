@@ -123,16 +123,28 @@ func (c *Connector) Startup() (err error) {
 	// All errors must be assigned to err.
 	span := trc.NewSpan(nil)
 	ctx := context.Background()
+	startTime := time.Now()
 	defer func() {
 		if err != nil {
+			c.LogError(ctx, "Starting up", log.Error(err))
 			// OpenTelemetry: record the error
 			span.SetError(err)
 			c.ForceTrace(ctx)
-			c.LogError(ctx, "Starting up", log.Error(err))
-			span.End()
+		}
+		span.End()
+		_ = c.ObserveMetric(
+			"microbus_callback_duration_seconds",
+			time.Since(startTime).Seconds(),
+			"startup",
+			func() string {
+				if err != nil {
+					return "ERROR"
+				}
+				return "OK"
+			}(),
+		)
+		if err != nil {
 			c.Shutdown()
-		} else {
-			span.End()
 		}
 	}()
 	c.onStartupCalled = false
@@ -145,7 +157,7 @@ func (c *Connector) Startup() (err error) {
 	}
 
 	// OpenTelemetry: create a span for the callback
-	ctx, span = c.StartSpan(ctx, "startup")
+	ctx, span = c.StartSpan(ctx, "startup", trc.Internal())
 
 	// Initialize logger
 	err = c.initLogger()
@@ -194,13 +206,9 @@ func (c *Connector) Startup() (err error) {
 	// Call the callback functions in order
 	c.onStartupCalled = true
 	for i := 0; i < len(c.onStartup); i++ {
-		err = c.doCallback(
-			ctx,
-			"onstartup",
-			func(ctx context.Context) error {
-				return c.onStartup[i](ctx)
-			},
-		)
+		err = utils.CatchPanic(func() error {
+			return c.onStartup[i](ctx)
+		})
 		if err != nil {
 			err = errors.Trace(err)
 			return err
@@ -243,8 +251,9 @@ func (c *Connector) Shutdown() error {
 	c.started = false
 
 	// OpenTelemetry: create a span for the callback
-	ctx, span := c.StartSpan(context.Background(), "shutdown")
+	ctx, span := c.StartSpan(context.Background(), "shutdown", trc.Internal())
 
+	startTime := time.Now()
 	var lastErr error
 
 	// Stop all tickers
@@ -291,13 +300,9 @@ func (c *Connector) Shutdown() error {
 	// Call the callback functions in reverse order
 	if c.onStartupCalled {
 		for i := len(c.onShutdown) - 1; i >= 0; i-- {
-			err = c.doCallback(
-				ctx,
-				"onshutdown",
-				func(ctx context.Context) error {
-					return c.onShutdown[i](ctx)
-				},
-			)
+			err := utils.CatchPanic(func() error {
+				return c.onShutdown[i](ctx)
+			})
 			if err != nil {
 				lastErr = errors.Trace(err)
 			}
@@ -330,21 +335,30 @@ func (c *Connector) Shutdown() error {
 
 	// Last chance to log an error
 	if lastErr != nil {
+		c.LogError(ctx, "Shutting down", log.Error(lastErr))
 		// OpenTelemetry: record the error
 		span.SetError(lastErr)
 		c.ForceTrace(ctx)
-		c.LogError(ctx, "Shutting down", log.Error(lastErr))
 	}
+	_ = c.ObserveMetric(
+		"microbus_callback_duration_seconds",
+		time.Since(startTime).Seconds(),
+		"shutdown",
+		func() string {
+			if lastErr != nil {
+				return "ERROR"
+			}
+			return "OK"
+		}(),
+	)
 
 	// Terminate logger
 	c.LogInfo(ctx, "Shutdown")
-	_ = c.terminateLogger()
-	// No point trying to log the error at this point
+	_ = c.terminateLogger() // No point trying to log errors after this point
 
 	// OpenTelemetry: terminate
 	span.End()
 	_ = c.termTracer(ctx)
-	// No point trying to log the error at this point
 
 	return lastErr
 }
