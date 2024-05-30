@@ -18,6 +18,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/service"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // SetOnConfigChanged adds a function to be called when a new config was received from the configurator.
@@ -68,10 +69,10 @@ func (c *Connector) Config(name string) (value string) {
 	return ""
 }
 
-// SetConfig sets the value of a previously defined config property.
-// This value will be overridden on the next fetch of configs from the configurator core microservice,
-// and should generally be done only in the TESTING deployment in which fetching is disabled for that reason.
-// Config property names are case-insensitive.
+// SetConfig sets the value of a previously defined configuration property.
+// This value will be overridden on the next fetch of values from the configurator core microservice,
+// except in a TESTING deployment wherein the configurator is disabled.
+// Configuration property names are case-insensitive.
 func (c *Connector) SetConfig(name string, value any) error {
 	c.configLock.Lock()
 	config, ok := c.configs[strings.ToLower(name)]
@@ -89,16 +90,14 @@ func (c *Connector) SetConfig(name string, value any) error {
 	// Call the callback function, if provided
 	if c.started && config.Value != origValue {
 		for i := 0; i < len(c.onConfigChanged); i++ {
-			err := c.doCallback(
-				c.lifetimeCtx,
-				"onconfigchanged",
-				func(ctx context.Context) error {
-					f := func(n string) bool {
+			err := utils.CatchPanic(func() error {
+				return c.onConfigChanged[i](
+					c.lifetimeCtx,
+					func(n string) bool {
 						return strings.EqualFold(n, name)
-					}
-					return c.onConfigChanged[i](ctx, f)
-				},
-			)
+					},
+				)
+			})
 			if err != nil {
 				return errors.Trace(err)
 			}
@@ -107,10 +106,10 @@ func (c *Connector) SetConfig(name string, value any) error {
 	return nil
 }
 
-// ResetConfig resets the value of a previously defined config property to its default value.
-// This value will be overridden on the next fetch of configs from the configurator core microservice,
-// which is the reason it is disabled in the TESTING environment.
-// Config property names are case-insensitive.
+// ResetConfig resets the value of a previously defined configuration property to its default value.
+// This value will be overridden on the next fetch of values from the configurator core microservice,
+// except in a TESTING deployment wherein the configurator is disabled.
+// Configuration property names are case-insensitive.
 func (c *Connector) ResetConfig(name string) error {
 	c.configLock.Lock()
 	config, ok := c.configs[strings.ToLower(name)]
@@ -145,7 +144,7 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 		Values map[string]string `json:"values"`
 	}
 	if c.deployment == TESTING {
-		c.LogDebug(c.Lifetime(), "Configurator disabled while testing")
+		c.LogDebug(ctx, "Configurator disabled while testing")
 		fetchedValues.Values = map[string]string{}
 		c.configLock.Lock()
 		for _, config := range c.configs {
@@ -210,16 +209,14 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	// Call the callback function, if provided
 	if callback && len(changed) > 0 {
 		for i := 0; i < len(c.onConfigChanged); i++ {
-			err := c.doCallback(
-				c.lifetimeCtx,
-				"onconfigchanged",
-				func(ctx context.Context) error {
-					f := func(name string) bool {
+			err := utils.CatchPanic(func() error {
+				return c.onConfigChanged[i](
+					ctx,
+					func(name string) bool {
 						return changed[strings.ToLower(name)]
-					}
-					return c.onConfigChanged[i](ctx, f)
-				},
-			)
+					},
+				)
+			})
 			if err != nil {
 				return errors.Trace(err)
 			}

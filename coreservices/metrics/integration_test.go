@@ -113,8 +113,8 @@ func TestMetrics_Collect(t *testing.T) {
 		BodyContains("one.collect").
 		BodyContains("two.collect").
 		// The startup callback should take between 100ms and 500ms
-		BodyContains(`microbus_callback_duration_seconds_bucket{error="OK",handler="onstartup",id="` + con1.ID() + `",service="one.collect",ver="0",le="0.1"} 0`).
-		BodyContains(`microbus_callback_duration_seconds_bucket{error="OK",handler="onstartup",id="` + con1.ID() + `",service="one.collect",ver="0",le="0.5"} 1`).
+		BodyContains(`microbus_callback_duration_seconds_bucket{error="OK",handler="startup",id="` + con1.ID() + `",service="one.collect",ver="0",le="0.1"} 0`).
+		BodyContains(`microbus_callback_duration_seconds_bucket{error="OK",handler="startup",id="` + con1.ID() + `",service="one.collect",ver="0",le="0.5"} 1`).
 		BodyContains(`microbus_log_messages_total{id="` + con1.ID() + `",message="Startup",service="one.collect",severity="INFO",ver="0"} 1`).
 		BodyContains(`microbus_uptime_duration_seconds_total{id="` + con1.ID() + `",service="one.collect",ver="0"}`).
 		// Cache should have 1 element of 10 bytes

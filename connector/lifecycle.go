@@ -244,7 +244,7 @@ func (c *Connector) Startup() (err error) {
 }
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus.
-func (c *Connector) Shutdown() error {
+func (c *Connector) Shutdown() (err error) {
 	if !c.started {
 		return errors.New("not started")
 	}
@@ -257,7 +257,7 @@ func (c *Connector) Shutdown() error {
 	var lastErr error
 
 	// Stop all tickers
-	err := c.stopTickers()
+	err = c.stopTickers()
 	if err != nil {
 		lastErr = errors.Trace(err)
 	}
@@ -300,7 +300,7 @@ func (c *Connector) Shutdown() error {
 	// Call the callback functions in reverse order
 	if c.onStartupCalled {
 		for i := len(c.onShutdown) - 1; i >= 0; i-- {
-			err := utils.CatchPanic(func() error {
+			err = utils.CatchPanic(func() error {
 				return c.onShutdown[i](ctx)
 			})
 			if err != nil {
@@ -320,7 +320,7 @@ func (c *Connector) Shutdown() error {
 
 	// Unsubscribe from the response subject
 	if c.natsResponseSub != nil {
-		err := c.natsResponseSub.Unsubscribe()
+		err = c.natsResponseSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
 		}
