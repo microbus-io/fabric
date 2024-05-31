@@ -18,7 +18,7 @@ import (
 )
 
 // Option is an alias for trace.SpanStartOption which are options used to create tracing spans.
-type Option = trace.SpanStartOption
+type Option trace.SpanStartOption
 
 // Server indicates that the span represents the operation of handling a request from a client.
 func Server() Option {
