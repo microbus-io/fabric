@@ -22,8 +22,6 @@ import (
 	"github.com/microbus-io/fabric/coreservices/httpingress/httpingressapi"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
-	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 )
 
@@ -35,24 +33,6 @@ var (
 
 // Initialize starts up the testing app.
 func Initialize() error {
-	// Create a middleware microservice
-	middleware := connector.New("middleware.host")
-	middleware.Subscribe("*", "/serve/", func(w http.ResponseWriter, r *http.Request) error {
-		options := []pub.Option{
-			pub.Method(r.Method),
-			pub.URL("https:/" + strings.TrimPrefix(r.URL.RequestURI(), "/serve")),
-			pub.Body(r.Body),
-			pub.Unicast(),
-			pub.CopyHeaders(r.Header),
-		}
-		res, err := middleware.Request(r.Context(), options...)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.Copy(w, res)
-		return errors.Trace(err)
-	})
-
 	// Include all downstream microservices in the testing app
 	App.Include(
 		Svc.Init(func(svc *Service) {
@@ -60,10 +40,14 @@ func Initialize() error {
 			svc.SetPorts("4040,4443")
 			svc.SetAllowedOrigins("allowed.origin")
 			svc.SetPortMappings("4040:*->*, 4443:*->443")
-			svc.SetMiddleware("https://middleware.host/serve")
 			svc.SetServerLanguages("en,fr,es-ar")
+			svc.AddMiddleware(func(w http.ResponseWriter, r *http.Request, next connector.HTTPHandler) (err error) {
+				r.Header.Add("Middleware", "Hello")
+				err = next(w, r)
+				w.Header().Add("Middleware", "Goodbye")
+				return err // No trace
+			})
 		}),
-		middleware,
 	)
 
 	err := App.Startup()
@@ -476,15 +460,49 @@ func TestHttpingress_ParseForm(t *testing.T) {
 	}
 }
 
+func TestHttpingress_InternalHeaders(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("internal.headers")
+	con.Subscribe("GET", ":555/ok", func(w http.ResponseWriter, r *http.Request) error {
+		// No Microbus headers should be accepted from client
+		assert.Empty(t, r.Header.Get(frame.HeaderPrefix+"In-Request"))
+		// Microbus headers generated internally should pass through the middleware chain
+		assert.Equal(t, Hostname, frame.Of(r).FromHost())
+
+		w.Header().Set(frame.HeaderPrefix+"In-Response", "STOP")
+		w.Write([]byte("ok"))
+		return nil
+	})
+	App.Join(con)
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{Timeout: time.Second * 2}
+
+	req, err := http.NewRequest("GET", "http://localhost:4040/internal.headers:555/ok", nil)
+	assert.NoError(t, err)
+	req.Header.Set(frame.HeaderPrefix+"In-Request", "STOP")
+	res, err := client.Do(req)
+	if assert.NoError(t, err) {
+		// No Microbus headers should leak outside
+		assert.Empty(t, res.Header.Get(frame.HeaderPrefix+"In-Response"))
+		for h := range res.Header {
+			assert.False(t, strings.HasPrefix(h, frame.HeaderPrefix))
+		}
+	}
+}
+
 func TestHttpingress_Middleware(t *testing.T) {
 	t.Parallel()
 
 	con := connector.New("final.destination")
 	con.Subscribe("GET", ":555/ok", func(w http.ResponseWriter, r *http.Request) error {
-		// The request should be coming from the middleware
-		assert.Equal(t, "middleware.host", frame.Of(r).FromHost())
 		// Headers should pass through
 		assert.Equal(t, "Bearer 123456", r.Header.Get("Authorization"))
+		// Middleware added a request header
+		assert.Equal(t, "Hello", r.Header.Get("Middleware"))
 		w.Write([]byte("ok"))
 		return nil
 	})
@@ -504,6 +522,8 @@ func TestHttpingress_Middleware(t *testing.T) {
 		if assert.NoError(t, err) {
 			assert.Equal(t, "ok", string(b))
 		}
+		// Middleware added a response header
+		assert.Equal(t, "Goodbye", res.Header.Get("Middleware"))
 	}
 }
 

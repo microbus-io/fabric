@@ -42,10 +42,7 @@ import (
 )
 
 // Middleware is a function that can be added to pre- or post-process a request.
-// Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware,
-// passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware,
-// and passes it back to the preceding (upstream) middleware.
-// Both request and response may be modified.
+// A middleware should call the next function in the chain.
 type Middleware func(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -111,18 +108,18 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// AddMiddleware adds a [Middleware] to the chain.
+// AddMiddleware adds a [Middleware] to the chain of middleware.
 // Middleware is a function that can be added to pre- or post-process a request.
 // Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware,
 // passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware,
 // and passes it back to the preceding (upstream) middleware. The request and/or response may be modified in the process.
 // A middleware should call the next function in the chain.
-func (svc *Service) WithMiddleware(handler ...Middleware) *Service {
+func (svc *Service) AddMiddleware(handler ...Middleware) error {
 	if svc.IsStarted() {
-		panic("middleware can't be added after starting up")
+		return errors.New("middleware can't be added after starting up")
 	}
 	svc.middleware = append(svc.middleware, handler...)
-	return svc
+	return nil
 }
 
 // OnChangedPorts is triggered when the value of the Ports config property changes.
@@ -278,11 +275,26 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	r = r.WithContext(ctx)
 
-	pt := &PassThrough{W: w}
+	// Do not accept internal headers
+	for h := range r.Header {
+		if strings.HasPrefix(h, frame.HeaderPrefix) {
+			r.Header.Del(h)
+		}
+	}
+
+	ww := httpx.NewResponseRecorder() // This recorder allows modifying the response after it was written
 	err := utils.CatchPanic(func() error {
 		_ = r.URL.Port() // Validates the port (may panic in malformed requests)
-		return svc.handler(pt, r)
+		return svc.handler(ww, r)
 	})
+
+	// Do not leak internal headers
+	for h := range ww.Header() {
+		if strings.HasPrefix(h, frame.HeaderPrefix) {
+			ww.Header().Del(h)
+		}
+	}
+
 	if err != nil {
 		var urlStr string
 		utils.CatchPanic(func() error {
@@ -296,13 +308,14 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if statusCode <= 0 || statusCode >= 1000 {
 			statusCode = http.StatusInternalServerError
 		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(statusCode)
+		ww.Clear()
+		ww.Header().Set("Content-Type", "text/plain")
+		ww.WriteHeader(statusCode)
 		// Do not leak error details and stack trace
 		if svc.Deployment() == connector.LOCAL && httpx.IsLocalhostAddress(r) {
-			w.Write([]byte(fmt.Sprintf("%+v\n\n{%s}", err, span.TraceID())))
+			ww.Write([]byte(fmt.Sprintf("%+v\n\n{%s}", err, span.TraceID())))
 		} else {
-			w.Write([]byte(http.StatusText(statusCode) + " {" + span.TraceID() + "}"))
+			ww.Write([]byte(http.StatusText(statusCode) + " {" + span.TraceID() + "}"))
 		}
 		if statusCode < 500 {
 			svc.LogWarn(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
@@ -316,8 +329,10 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		svc.ForceTrace(ctx)
 	} else {
 		// OpenTelemetry: record the status code and content length
-		span.SetOK(pt.SC)
+		span.SetOK(ww.StatusCode())
 	}
+
+	_ = httpx.Copy(w, ww.Result())
 
 	// Meter
 	_ = svc.ObserveMetric(
@@ -326,7 +341,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Host+"/",
 		port,
 		r.Method,
-		strconv.Itoa(pt.SC),
+		strconv.Itoa(ww.StatusCode()),
 		func() string {
 			if err != nil {
 				return "ERROR"
@@ -336,11 +351,11 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 	_ = svc.ObserveMetric(
 		"microbus_response_size_bytes",
-		float64(pt.N),
+		float64(ww.ContentLength()),
 		r.Host+"/",
 		port,
 		r.Method,
-		strconv.Itoa(pt.SC),
+		strconv.Itoa(ww.StatusCode()),
 		func() string {
 			if err != nil {
 				return "ERROR"
@@ -356,7 +371,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // serveHTTP implements the http.Handler interface
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	middleware := svc.Middleware()
 
 	// Blocked paths
 	if svc.blockedPaths[r.URL.Path] {
@@ -378,12 +392,24 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		r.URL.Path = "/root"
 	}
 
-	// Block disallowed origins
+	// CORS
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 	origin := r.Header.Get("Origin")
 	if origin != "" {
+		// Block disallowed origins
 		if !svc.allowedOrigins["*"] && !svc.allowedOrigins[origin] {
 			return errors.Newcf(http.StatusForbidden, "disallowed origin '%s", origin)
+		}
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Expose-Headers", "*")
+		if r.Method == "OPTIONS" {
+			// CORS preflight requests are returned empty
+			w.WriteHeader(http.StatusNoContent)
+			return nil
 		}
 	}
 
@@ -405,9 +431,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	if !metrics {
 		if internalHost != "favicon.ico" {
 			svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
-		}
-		if middleware != "" {
-			internalURL = middleware + strings.TrimPrefix(internalURL, "https:/")
 		}
 		// Automatically redirect HTTP port 80 to HTTPS port 443
 		if svc.secure443 && r.TLS == nil && r.URL.Port() == "80" {
@@ -433,7 +456,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		pub.URL(internalURL),
 		pub.Body(body),
 		pub.Unicast(),
-		pub.CopyHeaders(r.Header),     // Copy non-internal headers
+		pub.CopyHeaders(r.Header),     // Copy all headers
 		pub.ContentLength(len(body)),  // Overwrite the Content-Length header
 		pub.Header("Traceparent", ""), // Disallowed header
 		pub.Header("Tracestate", ""),  // Disallowed header
@@ -486,29 +509,16 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		return err // No trace
 	}
 
-	// Write back non-internal headers
+	// Write back headers
 	for hdrName, hdrVals := range internalRes.Header {
-		if !strings.HasPrefix(hdrName, frame.HeaderPrefix) {
-			for _, val := range hdrVals {
-				w.Header().Add(hdrName, val)
-			}
+		for _, val := range hdrVals {
+			w.Header().Add(hdrName, val)
 		}
 	}
 
 	// No caching by default
 	if internalRes.Header.Get("Cache-Control") == "" {
 		w.Header().Set("Cache-Control", "no-store")
-	}
-
-	// CORS headers
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
-	if origin != "" {
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Expose-Headers", "*")
 	}
 
 	// Compress textual content using gzip or deflate

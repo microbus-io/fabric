@@ -50,10 +50,6 @@ Four config properties are used to safeguard against long requests:
 
 `AllowedOrigins` is a comma-separated list of CORS origins to allow requests from. The `*` origin can be used to allow CORS request from all origins.
 
-`Middleware` defines a microservice to delegate all requests to.
-The URL of the middleware must be fully qualified, for example,
-`https://middle.ware/serve` or `https://middle.ware:123`.
-
 ## Respected Headers
 
 The HTTP ingress proxy respects the following incoming headers:
@@ -62,3 +58,37 @@ The HTTP ingress proxy respects the following incoming headers:
 * `Accept-Encoding` with `br`, `deflate` or `gzip` can be used to compress the response
 * `X-Forwarded-Host`, `X-Forwarded-Port`, `X-Forwarded-Proto` and `X-Forwarded-Prefix` are augmented with the ingress proxy's information 
 * `Origin` may cause a request to be blocked
+
+## Middleware
+
+Middleware is a function that can be added to pre- or post-process a request. Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware, passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware, and passes it back to the preceding (upstream) middleware. Both request and response may be modified by the middleware.
+
+A somewhat contrived example:
+
+```go
+ingressSrv := NewService()
+ingressSrv.AddMiddleware(func(w http.ResponseWriter, r *http.Request, next connector.HTTPHandler) (err error) {
+	r.Header.Del("Accept-Encoding") // Disable compression
+	err = next(w, r)
+	w.Header().Add("X-Server", "Microbus")
+	if err == nil {
+		return nil
+	}
+	if rec, ok := w.(*httpx.ResponseRecorder); ok {
+		rec.Clear()
+		rec.WriteHeader(500)
+		rec.Write([]byte(err.Error()))
+		return nil
+	}
+	return err // No trace
+})
+```
+
+Note that the `w` passed to the middleware is an `httpx.ResponseRecorder` whose headers and status code can be modified even after the body had been written. Appending to the body is also allowed. Modifying the body requires casting in order to clear it first:
+
+```go
+if rec, ok := w.(*httpx.ResponseRecorder); ok {
+	rec.Clear()
+	rec.Write([]byte("Brand new content"))
+}
+```

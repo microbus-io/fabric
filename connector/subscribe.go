@@ -322,86 +322,85 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	handlerStartTime := time.Now()
 	httpRecorder := httpx.NewResponseRecorder()
 	var handlerErr error
-	corsPreflight := (httpReq.Method == "OPTIONS" && httpReq.Header.Get("Origin") != "")
-	if corsPreflight {
-		// CORS preflight requests are returned empty
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-		httpRecorder.WriteHeader(http.StatusNoContent)
-	} else {
-		// Prepare the context
-		ctx := frame.ContextWithFrameOf(ctx, httpReq.Header)
-		cancel := func() {}
-		if budget > 0 {
-			// Set the context's timeout to the time budget reduced by a network hop
-			ctx, cancel = context.WithTimeout(ctx, budget-c.networkHop)
-		}
-		httpReq = httpReq.WithContext(ctx)
 
-		// Call the handler
-		handlerErr = utils.CatchPanic(func() error {
-			return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
-		})
-		cancel()
-
-		if handlerErr != nil {
-			handlerErr = errors.Convert(handlerErr)
-			if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
-				handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
-				errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
-			}
-			c.LogError(ctx, "Handling request", log.Error(handlerErr), log.String("path", s.Path))
-
-			// OpenTelemetry: record the error, adding the request attributes
-			span.SetString("http.route", s.Path)
-			span.SetRequest(httpReq)
-			span.SetError(handlerErr)
-			c.ForceTrace(ctx)
-
-			// Prepare an error response instead
-			httpRecorder = httpx.NewResponseRecorder()
-			httpRecorder.Header().Set("Content-Type", "application/json")
-			body, err := json.MarshalIndent(handlerErr, "", "\t")
-			if err != nil {
-				return errors.Trace(err)
-			}
-			statusCode := errors.Convert(handlerErr).StatusCode
-			if statusCode == 0 {
-				statusCode = http.StatusInternalServerError
-			}
-			httpRecorder.WriteHeader(statusCode)
-			httpRecorder.Write(body)
-		}
-
-		// Meter
-		_ = c.ObserveMetric(
-			"microbus_response_duration_seconds",
-			time.Since(handlerStartTime).Seconds(),
-			s.Canonical(),
-			s.Port,
-			httpReq.Method,
-			strconv.Itoa(httpRecorder.StatusCode()),
-			func() string {
-				if handlerErr != nil {
-					return "ERROR"
-				}
-				return "OK"
-			}(),
-		)
-		_ = c.ObserveMetric(
-			"microbus_response_size_bytes",
-			float64(httpRecorder.ContentLength()),
-			s.Canonical(),
-			s.Port,
-			httpReq.Method,
-			strconv.Itoa(httpRecorder.StatusCode()),
-			func() string {
-				if handlerErr != nil {
-					return "ERROR"
-				}
-				return "OK"
-			}(),
-		)
+	// Prepare the context
+	ctx = frame.ContextWithFrameOf(ctx, httpReq.Header)
+	cancel := func() {}
+	if budget > 0 {
+		// Set the context's timeout to the time budget reduced by a network hop
+		ctx, cancel = context.WithTimeout(ctx, budget-c.networkHop)
 	}
+	httpReq = httpReq.WithContext(ctx)
+
+	// Call the handler
+	handlerErr = utils.CatchPanic(func() error {
+		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
+	})
+	cancel()
+
+	if handlerErr != nil {
+		handlerErr = errors.Convert(handlerErr)
+		if handlerErr.Error() == "http: request body too large" || // https://go.dev/src/net/http/request.go#L1150
+			handlerErr.Error() == "http: POST too large" { // https://go.dev/src/net/http/request.go#L1240
+			errors.Convert(handlerErr).StatusCode = http.StatusRequestEntityTooLarge
+		}
+		statusCode := errors.Convert(handlerErr).StatusCode
+		if statusCode == 0 {
+			statusCode = http.StatusInternalServerError
+		}
+		c.LogError(ctx, "Handling request",
+			log.Error(handlerErr),
+			log.String("path", s.Path),
+			log.Int("depth", frame.Of(httpReq).CallDepth()),
+			log.Int("code", statusCode),
+		)
+
+		// OpenTelemetry: record the error, adding the request attributes
+		span.SetString("http.route", s.Path)
+		span.SetRequest(httpReq)
+		span.SetError(handlerErr)
+		c.ForceTrace(ctx)
+
+		// Prepare an error response instead
+		httpRecorder = httpx.NewResponseRecorder()
+		httpRecorder.Header().Set("Content-Type", "application/json")
+		body, err := json.MarshalIndent(handlerErr, "", "\t")
+		if err != nil {
+			return errors.Trace(err)
+		}
+		httpRecorder.WriteHeader(statusCode)
+		httpRecorder.Write(body)
+	}
+
+	// Meter
+	_ = c.ObserveMetric(
+		"microbus_response_duration_seconds",
+		time.Since(handlerStartTime).Seconds(),
+		s.Canonical(),
+		s.Port,
+		httpReq.Method,
+		strconv.Itoa(httpRecorder.StatusCode()),
+		func() string {
+			if handlerErr != nil {
+				return "ERROR"
+			}
+			return "OK"
+		}(),
+	)
+	_ = c.ObserveMetric(
+		"microbus_response_size_bytes",
+		float64(httpRecorder.ContentLength()),
+		s.Canonical(),
+		s.Port,
+		httpReq.Method,
+		strconv.Itoa(httpRecorder.StatusCode()),
+		func() string {
+			if handlerErr != nil {
+				return "ERROR"
+			}
+			return "OK"
+		}(),
+	)
 
 	// Set control headers on the response
 	httpResponse := httpRecorder.Result()

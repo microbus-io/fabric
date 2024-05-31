@@ -155,12 +155,6 @@ HTTP ports 443 and 80 to only internal port 443.`),
 		cfg.DefaultValue(`20s`),
 	)
 	svc.DefineConfig(
-		"Middleware",
-		cfg.Description(`Middleware defines a microservice to delegate all requests to.
-The URL of the middleware must be fully qualified, for example,
-"https://middle.ware/serve" or "https://middle.ware:123".`),
-	)
-	svc.DefineConfig(
 		"ServerLanguages",
 		cfg.Description(`ServerLanguages is a comma-separated list of languages that the server supports.
 This list is matched against the Accept-Language header of the request.`),
@@ -473,27 +467,6 @@ ReadHeaderTimeout specifies the timeout for fully reading the header of a reques
 */
 func (svc *Intermediate) SetReadHeaderTimeout(timeout time.Duration) error {
 	return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))
-}
-
-/*
-Middleware defines a microservice to delegate all requests to.
-The URL of the middleware must be fully qualified, for example,
-"https://middle.ware/serve" or "https://middle.ware:123".
-*/
-func (svc *Intermediate) Middleware() (viaURL string) {
-	_val := svc.Config("Middleware")
-	return _val
-}
-
-/*
-SetMiddleware sets the value of the configuration property.
-
-Middleware defines a microservice to delegate all requests to.
-The URL of the middleware must be fully qualified, for example,
-"https://middle.ware/serve" or "https://middle.ware:123".
-*/
-func (svc *Intermediate) SetMiddleware(viaURL string) error {
-	return svc.SetConfig("Middleware", fmt.Sprintf("%v", viaURL))
 }
 
 /*

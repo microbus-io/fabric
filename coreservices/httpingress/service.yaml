@@ -80,11 +80,6 @@ configs:
     default: 20s
     validation: dur [1s,]
     callback: true
-  - signature: Middleware() (viaURL string)
-    description: |-
-      Middleware defines a microservice to delegate all requests to.
-      The URL of the middleware must be fully qualified, for example,
-      "https://middle.ware/serve" or "https://middle.ware:123".
   - signature: ServerLanguages() (languages string)
     description: |-
       ServerLanguages is a comma-separated list of languages that the server supports.

@@ -145,9 +145,7 @@ func AddHeader(name string, value string) Option {
 func CopyHeaders(headers http.Header) Option {
 	return func(req *Request) error {
 		for h, vv := range headers {
-			if !strings.HasPrefix(h, frame.HeaderPrefix) {
-				req.Header[h] = vv
-			}
+			req.Header[h] = vv
 		}
 		return nil
 	}
