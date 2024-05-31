@@ -25,13 +25,13 @@ func (c *Connector) newMetricsRegistry() error {
 	c.DefineHistogram(
 		"microbus_callback_duration_seconds",
 		"Handler processing duration, in seconds",
-		[]float64{.010, .050, .100, .500, 1, 5, 10, 60},
+		[]float64{.005, .010, .025, .050, .100, .250, .500, 1, 5, 15, 30, 60},
 		[]string{"handler", "error"},
 	)
 	c.DefineHistogram(
 		"microbus_response_duration_seconds",
 		"Response processing duration, in seconds",
-		[]float64{.010, .050, .100, .500, 1, 5, 10, 60},
+		[]float64{.005, .010, .025, .050, .100, .250, .500, 1, 5, 15, 30, 60},
 		[]string{"handler", "port", "method", "code", "error"},
 	)
 	c.DefineHistogram(
@@ -48,7 +48,7 @@ func (c *Connector) newMetricsRegistry() error {
 	c.DefineHistogram(
 		"microbus_ack_duration_seconds",
 		"Ack roundtrip duration, in seconds",
-		[]float64{.010, .050, .100, .500, 1},
+		[]float64{.005, .010, .025, .050, .100, .250, .500, 1},
 		[]string{"host"},
 	)
 	c.DefineCounter(
