@@ -197,6 +197,8 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 }
 
 func TestConnector_EchoParallelCapacity(t *testing.T) {
+	t.Skip() // Dependent on strength of CPU running the test
+
 	ctx := context.Background()
 
 	// Create the microservice
@@ -217,7 +219,7 @@ func TestConnector_EchoParallelCapacity(t *testing.T) {
 	beta.Startup()
 	defer beta.Shutdown()
 
-	// Goroutines can take as much as 1s to start in very high load situations
+	// Goroutines can take as much as 1s to start in very high load situations or slow CPUs
 	n := 10000
 	var wg sync.WaitGroup
 	wg.Add(n)

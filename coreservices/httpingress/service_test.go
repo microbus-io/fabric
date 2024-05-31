@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ResolveInternalURL(t *testing.T) {
+func TestHttpingress_ResolveInternalURL(t *testing.T) {
 	portMappings := map[string]string{
 		"8080:*": "*",
 		"443:*":  "443",
