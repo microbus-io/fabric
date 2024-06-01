@@ -33,6 +33,7 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 	}
 
 	// Use the OTLP HTTP endpoint
+	// https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
 	endpoint := env.Get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 	if endpoint == "" {
 		endpoint = env.Get("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -54,7 +55,7 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 		var exp *otlptrace.Exporter
 		if endpoint == "" {
 			// Use a nil client rather than return nil to allow for testing of span creation
-			exp, err = otlptrace.New(ctx, &nilClient{})
+			exp, err = otlptrace.New(ctx, &nilTraceClient{})
 		} else {
 			exp, err = otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
 		}
@@ -80,11 +81,11 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		c.traceProcessor = newTraceSelector(exp)
+		c.traceProcessor = newSelectiveProcessor(exp, 8192) // Approx 10MB per microservice
 		sp = c.traceProcessor
 	}
 	c.traceProvider = sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSampler(sdktrace.ParentBased(newMuffler())),
 		sdktrace.WithSpanProcessor(sp),
 		sdktrace.WithResource(resource.NewSchemaless(
 			attribute.String("service.namespace", c.plane),
@@ -155,14 +156,14 @@ func (c *Connector) ForceTrace(ctx context.Context) {
 	}
 }
 
-type nilClient struct{}
+type nilTraceClient struct{}
 
-func (nc *nilClient) Start(ctx context.Context) error {
+func (nc *nilTraceClient) Start(ctx context.Context) error {
 	return nil
 }
-func (nc *nilClient) Stop(ctx context.Context) error {
+func (nc *nilTraceClient) Stop(ctx context.Context) error {
 	return nil
 }
-func (nc *nilClient) UploadTraces(ctx context.Context, protoSpans []*tracepb.ResourceSpans) error {
+func (nc *nilTraceClient) UploadTraces(ctx context.Context, protoSpans []*tracepb.ResourceSpans) error {
 	return nil
 }

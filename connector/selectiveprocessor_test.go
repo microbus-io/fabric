@@ -38,7 +38,7 @@ func TestConnector_TracingExport(t *testing.T) {
 
 	countExported := 0
 	exportedSpans := map[string]bool{}
-	ts := newTraceSelector(&exporter{
+	ts := newSelectiveProcessor(&exporter{
 		Callback: func(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
 			countExported += len(spans)
 			for _, span := range spans {
@@ -46,7 +46,7 @@ func TestConnector_TracingExport(t *testing.T) {
 			}
 			return nil
 		},
-	})
+	}, 16)
 
 	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -117,7 +117,7 @@ func TestConnector_TracingExport(t *testing.T) {
 }
 
 func TestConnector_TracingTTLClearMaps(t *testing.T) {
-	ts := newTraceSelector(&exporter{})
+	ts := newSelectiveProcessor(&exporter{}, 16)
 
 	ts.Select("1")
 	assert.Equal(t, 1, len(ts.selected1)+len(ts.selected2))
@@ -153,7 +153,7 @@ func TestConnector_TracingTTLClearMaps(t *testing.T) {
 func TestConnector_TracingTTLNoLock(t *testing.T) {
 	ctx := context.Background()
 
-	ts := newTraceSelector(&exporter{})
+	ts := newSelectiveProcessor(&exporter{}, 16)
 
 	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -189,7 +189,7 @@ func TestConnector_TracingTTLNoLock(t *testing.T) {
 }
 
 func TestConnector_TracingSelectorCapacityRollover(t *testing.T) {
-	ts := newTraceSelector(&exporter{})
+	ts := newSelectiveProcessor(&exporter{}, 16)
 
 	for i := 0; i < maxSelected/2; i++ {
 		ts.Select(strconv.Itoa(i))
@@ -214,7 +214,8 @@ func TestConnector_TracingSelectorCapacityRollover(t *testing.T) {
 func TestConnector_TracingBufferCapacityRollover(t *testing.T) {
 	ctx := context.Background()
 
-	ts := newTraceSelector(&exporter{})
+	n := 16
+	ts := newSelectiveProcessor(&exporter{}, n)
 
 	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -224,7 +225,7 @@ func TestConnector_TracingBufferCapacityRollover(t *testing.T) {
 
 	// Fill in the buffer
 	assert.Zero(t, ts.insertionPoint.Load())
-	for i := 0; i < maxBufferedSpans; i++ {
+	for i := 0; i < n; i++ {
 		assert.Equal(t, int32(i), ts.insertionPoint.Load())
 		assert.Nil(t, ts.buffer[i].Load())
 		_, span := tracer.Start(ctx, "A")
@@ -234,7 +235,7 @@ func TestConnector_TracingBufferCapacityRollover(t *testing.T) {
 	}
 
 	// Second pass should overwrite in the buffer
-	for i := 0; i < maxBufferedSpans; i++ {
+	for i := 0; i < n; i++ {
 		if i > 0 {
 			assert.Equal(t, int32(i), ts.insertionPoint.Load())
 		}
@@ -252,7 +253,7 @@ func TestConnector_TracingBufferCapacityRollover(t *testing.T) {
 func BenchmarkConnector_TracingOnEnd(b *testing.B) {
 	ctx := context.Background()
 
-	ts := newTraceSelector(&exporter{})
+	ts := newSelectiveProcessor(&exporter{}, 8192)
 
 	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -280,7 +281,7 @@ func TestConnector_DuplicateSelect(t *testing.T) {
 
 	countExported := 0
 	exportedSpans := map[string]bool{}
-	ts := newTraceSelector(&exporter{
+	ts := newSelectiveProcessor(&exporter{
 		Callback: func(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
 			countExported += len(spans)
 			for _, span := range spans {
@@ -288,7 +289,7 @@ func TestConnector_DuplicateSelect(t *testing.T) {
 			}
 			return nil
 		},
-	})
+	}, 16)
 
 	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),

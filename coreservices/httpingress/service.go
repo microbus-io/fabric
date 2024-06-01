@@ -236,18 +236,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := svc.Lifetime()
 	handlerStartTime := time.Now()
 
-	// OpenTelemetry: create the root span
-	forceTrace := r.URL.Query().Get("trace") == "force"
-	spanOptions := []trc.Option{
-		// Do not record the request attributes yet because they take a lot of memory,
-		// they will be added if there's an error.
-		trc.Server(),
-	}
-	if svc.Deployment() == connector.LOCAL || forceTrace {
-		// Add the request attributes in LOCAL deployment to facilitate debugging
-		spanOptions = append(spanOptions, trc.Request(r))
-	}
-
 	// Fill in the gaps
 	port := ""
 	if p := strings.LastIndex(r.Host, ":"); p >= 0 {
@@ -266,13 +254,18 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.URL.Scheme = "http"
 	}
 
-	// OpenTelemetry: create the span
-	var span trc.Span
-	ctx, span = svc.StartSpan(ctx, ":"+port, spanOptions...)
-	defer span.End()
-	if forceTrace {
-		svc.ForceTrace(ctx)
+	// OpenTelemetry: create the root span
+	spanOptions := []trc.Option{
+		trc.Server(),
+		// Do not record the request attributes yet because they take a lot of memory, they will be added if there's an error
 	}
+	if svc.Deployment() == connector.LOCAL {
+		// Add the request attributes in LOCAL deployment to facilitate debugging
+		spanOptions = append(spanOptions, trc.Request(r))
+	}
+	var span trc.Span
+	ctx, span = svc.StartSpan(ctx, ":"+port+r.URL.Path, spanOptions...)
+	defer span.End()
 	r = r.WithContext(ctx)
 
 	// Do not accept internal headers

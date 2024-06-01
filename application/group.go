@@ -26,34 +26,33 @@ func (grp group) Startup(ctx context.Context) error {
 	// Start the microservices in parallel
 	startErrs := make(chan error, len(grp))
 	var wg sync.WaitGroup
-	var offsettingDelay time.Duration
+	var delay time.Duration
 	for _, s := range grp {
 		if s.IsStarted() {
 			continue
 		}
-		s := s
 		wg.Add(1)
-		offsettingDelay += 2 * time.Millisecond
-		go func() {
-			time.Sleep(offsettingDelay)
+		go func(s service.Service, delay time.Duration) {
 			defer wg.Done()
+			time.Sleep(delay)
 			err := errors.Newf("'%s' failed to start", s.Hostname())
-			delay := time.Millisecond
+			var tryAfter time.Duration
 			for {
 				select {
 				case <-ctx.Done():
 					// Failed to start in allotted time, return the last error
 					startErrs <- err
 					return
-				case <-time.After(delay):
+				case <-time.After(tryAfter):
 					err = s.Startup()
 					if err == nil {
 						return
 					}
-					delay = time.Second // Try again a second later
+					tryAfter = time.Second // Try again a second later
 				}
 			}
-		}()
+		}(s, delay)
+		delay += time.Millisecond
 	}
 	wg.Wait()
 	close(startErrs)
@@ -77,14 +76,13 @@ func (grp group) Shutdown(ctx context.Context) error {
 		if !s.IsStarted() {
 			continue
 		}
-		s := s
 		wg.Add(1)
-		delay += 2 * time.Millisecond
-		go func() {
+		go func(s service.Service, delay time.Duration) {
+			defer wg.Done()
 			time.Sleep(delay)
 			shutdownErrs <- s.Shutdown()
-			wg.Done()
-		}()
+		}(s, delay)
+		delay += time.Millisecond
 	}
 	wg.Wait()
 	close(shutdownErrs)

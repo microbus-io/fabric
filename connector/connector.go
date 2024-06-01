@@ -69,7 +69,7 @@ type Connector struct {
 
 	traceProvider  *sdktrace.TracerProvider
 	tracer         trace.Tracer
-	traceProcessor *traceSelector
+	traceProcessor *selectiveProcessor
 
 	natsConn        *nats.Conn
 	natsResponseSub *nats.Subscription

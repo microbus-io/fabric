@@ -22,8 +22,10 @@ The `connector` package includes a separate source file for each functional area
 * `lifecycle.go` implements the `Startup` and `Shutdown` logic, as well as `Go` and `Parallel` for running code in goroutines
 * `logger.go` provides a JSON logger for the microservice
 * `metrics.go` collects metrics using Prometheus
+* `muffler.go` is an OpenTelemetry span sampler that excludes noisy spans
 * `publish.go` deals with outbound messaging
 * `res.go` manages the loading of files and localized strings from a resource `FS`
+* `selectiveprocessor.go` is an OpenTelemetry processor of tracing spans that exports only spans that are explicitly selected
 * `subjects.go` crafts the NATS subjects (topics) that a microservice subscribes to or publishes to
 * `subscribe.go` deals with inbound message handling
 * `telemetry.go` supports distributed tracing with OpenTelemetry

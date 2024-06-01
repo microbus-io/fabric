@@ -146,7 +146,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				rCloser.Close()
 			}
 		}(serviceInfo.Hostname, delay)
-		delay += 2 * time.Millisecond
+		delay += time.Millisecond
 	}
 	wg.Wait()
 	if wCloser != nil {

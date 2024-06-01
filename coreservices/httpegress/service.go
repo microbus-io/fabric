@@ -71,8 +71,7 @@ func (svc *Service) MakeRequest(w http.ResponseWriter, r *http.Request) (err err
 	// OpenTelemetry: create a child span
 	spanOptions := []trc.Option{
 		trc.Client(),
-		// Do not record the request attributes yet because they take a lot of memory,
-		// they will be added if there's an error.
+		// Do not record the request attributes yet because they take a lot of memory, they will be added if there's an error
 	}
 	if svc.Deployment() == connector.LOCAL {
 		// Add the request attributes in LOCAL deployment to facilitate debugging

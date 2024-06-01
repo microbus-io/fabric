@@ -61,14 +61,14 @@ Review each of the major project packages to get oriented in the code structure:
 * [sub](docs/structure/sub.md) - Options for subscribing to handle requests
 * [trc](docs/structure/trc.md) - Options for creating tracing spans
 * [timex](docs/structure/timex.md) - Enhancement of the standard `time.Time`
-* [utils](docs/structure/utils.md) ✨ - Various independent utility classes and functions
+* [utils](docs/structure/utils.md) - Various independent utility classes and functions
 
 ## 👩‍💻 Technical Deep Dive
 
 Go deep into the philosophy and implementation of `Microbus`:
 
 * [Unicast messaging](docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
-* [HTTP ingress](docs/tech/httpingress.md) ✨ - The reason for and role of the HTTP ingress proxy service
+* [HTTP ingress](docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](docs/tech/errorcapture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](docs/tech/timebudget.md) - The proper way to manage request timeouts
@@ -87,6 +87,3 @@ Go deep into the philosophy and implementation of `Microbus`:
 
 An explicit license from `Microbus LLC` is required to use the `Microbus` framework.
 Refer to the list of [third-party open source software](docs/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
-
-🎁 = new
-✨ = updated

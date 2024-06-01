@@ -106,7 +106,7 @@ func (svc *Service) List(w http.ResponseWriter, r *http.Request) (err error) {
 			infos = append(infos, &oapiDoc.Info)
 			lock.Unlock()
 		}(serviceInfo.Hostname, delay)
-		delay += 2 * time.Millisecond
+		delay += time.Millisecond
 	}
 	wg.Wait()
 	if lastErr != nil {

@@ -195,4 +195,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Bug fixes and resiliency improvements
 * Hello example microservice to handle the topmost root path
 * Deprecated `InfiniteChan` and replaced with an internal `transferChan`
-* In-process middleware chain in HTTP ingress proxy instead of the delegated service call
+* Middleware chain inside HTTP ingress proxy instead of delegating to a remote microservice
+* Enhancements to distributed tracing and metric collection

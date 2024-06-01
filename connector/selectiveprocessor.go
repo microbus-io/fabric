@@ -16,14 +16,18 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-var _ = sdktrace.SpanProcessor(&traceSelector{}) // Ensure interface
+// Ensure interface
+var _ = sdktrace.SpanProcessor(&selectiveProcessor{})
 
-const maxBufferedSpans = 8192 // Each span can be about 1KB, so this is about 8GB per microservice
-const maxSelected = 8192      // Trace IDs are small so can keep plenty
+const maxSelected = 8192 // Trace IDs are small so can keep plenty
 const maxTTLSeconds = 20
 
-// traceSelector processes spans of traces that have been explicitly selected.
-type traceSelector struct {
+// selectiveProcessor is a selective span processor, which is in essence a tail sampler.
+// This processor buffers spans rather than export them immediately upon ending.
+// When a trace ID is explicitly selected, all buffered spans and future spans matching the selected trace ID get exported.
+// The buffer has a limited capacity and spans may therefore be dropped in high volume situations.
+// https://opentelemetry.io/docs/concepts/sampling/
+type selectiveProcessor struct {
 	downstreamProcessor sdktrace.SpanProcessor
 	buffer              []atomic.Pointer[sdktrace.ReadOnlySpan]
 	insertionPoint      atomic.Int32
@@ -38,27 +42,28 @@ type traceSelector struct {
 	lockCount   int
 }
 
-// newTraceSelector creates a new selective trace processor.
-func newTraceSelector(downstream sdktrace.SpanExporter) *traceSelector {
-	return &traceSelector{
-		downstreamProcessor: sdktrace.NewBatchSpanProcessor(downstream),
-		buffer:              make([]atomic.Pointer[sdktrace.ReadOnlySpan], maxBufferedSpans),
+// newSelectiveProcessor creates a new selective span processor.
+// The capacity determines the number of spans to buffer. Each span can be approx 1KB to buffer.
+func newSelectiveProcessor(exporter sdktrace.SpanExporter, capacity int) *selectiveProcessor {
+	return &selectiveProcessor{
+		downstreamProcessor: sdktrace.NewBatchSpanProcessor(exporter),
+		buffer:              make([]atomic.Pointer[sdktrace.ReadOnlySpan], capacity),
 		selected1:           make(map[string]bool, maxSelected/2),
 		selected2:           make(map[string]bool, maxSelected/2),
 	}
 }
 
 // now returns the current time, offset by the clock offset.
-func (e *traceSelector) now() int64 {
+func (e *selectiveProcessor) now() int64 {
 	return time.Now().Add(e.clockOffset).Unix()
 }
 
 // OnStart is a no op.
-func (e *traceSelector) OnStart(parent context.Context, s sdktrace.ReadWriteSpan) {
+func (e *selectiveProcessor) OnStart(parent context.Context, s sdktrace.ReadWriteSpan) {
 }
 
 // OnEnd collects the span in a buffer for a period of time, to be able to process it if selected in the future.
-func (e *traceSelector) OnEnd(s sdktrace.ReadOnlySpan) {
+func (e *selectiveProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
 	now := e.now()
 	if e.lastSelected.Load() >= now-maxTTLSeconds {
 		traceID := s.SpanContext().TraceID().String()
@@ -84,7 +89,7 @@ func (e *traceSelector) OnEnd(s sdktrace.ReadOnlySpan) {
 
 // Select pushes all buffered matching the identified trace to the downstream processor as well as future spans.
 // A false return value indicates that the trace had already been selected.
-func (e *traceSelector) Select(traceID string) (ok bool) {
+func (e *selectiveProcessor) Select(traceID string) (ok bool) {
 	// Insert into the selected maps so future spans with this trace ID are delegated on receipt
 	now := e.now()
 	lastSelected := e.lastSelected.Swap(now)
@@ -124,13 +129,13 @@ func (e *traceSelector) Select(traceID string) (ok bool) {
 }
 
 // Shutdown prevents further spans from being processed.
-func (e *traceSelector) Shutdown(ctx context.Context) error {
+func (e *selectiveProcessor) Shutdown(ctx context.Context) error {
 	e.downstreamProcessor.Shutdown(ctx)
 	return nil
 }
 
 // ForceFlush delegates to the downstream processor.
-func (e *traceSelector) ForceFlush(ctx context.Context) error {
+func (e *selectiveProcessor) ForceFlush(ctx context.Context) error {
 	e.downstreamProcessor.ForceFlush(ctx)
 	return nil
 }
