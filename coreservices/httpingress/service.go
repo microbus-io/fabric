@@ -310,11 +310,13 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			ww.Write([]byte(http.StatusText(statusCode) + " {" + span.TraceID() + "}"))
 		}
-		if statusCode < 500 {
-			svc.LogWarn(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
-		} else {
-			svc.LogError(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
+		logFunc := svc.LogError
+		if statusCode == http.StatusNotFound {
+			logFunc = svc.LogInfo
+		} else if statusCode < 500 {
+			logFunc = svc.LogWarn
 		}
+		logFunc(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
 
 		// OpenTelemetry: record the error, adding the request attributes
 		span.SetRequest(r)

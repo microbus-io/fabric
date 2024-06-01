@@ -27,18 +27,33 @@ var _ = Span(SpanImpl{}) // Ensure interface
 
 // Span represents an operation that is being traced.
 type Span interface {
+	// End completes the span.
+	// Updates to the span are not allowed after this method has been called.
 	End()
+	// SetError sets the status of the span to error.
 	SetError(err error)
+	// SetOK sets the status of the span to OK, with the indicated response status code.
 	SetOK(statusCode int)
+	// Log records a log event on the span.
 	Log(severity string, message string, fields ...log.Field)
+	// SetString tags the span during its creation.
 	SetString(k string, v string)
+	// SetStrings tags the span during its creation.
 	SetStrings(k string, v []string)
+	// SetBool tags the span during its creation.
 	SetBool(k string, v bool)
+	// SetInt tags the span during its creation.
 	SetInt(k string, v int)
+	// SetFloat tags the span during its creation.
 	SetFloat(k string, v float64)
+	// SetRequest tags the span with the request data.
+	// Warning: this has a large memory footprint.
 	SetRequest(r *http.Request)
+	// SetClientIP tags the span during its creation with the IP address and port number of the client.
 	SetClientIP(ip string)
+	// IsEmpty indicates if the span is not initialized.
 	IsEmpty() bool
+	// TraceID is an identifier that groups related spans together.
 	TraceID() string
 }
 
@@ -52,10 +67,8 @@ func NewSpan(ts trace.Span) Span {
 	return SpanImpl{Span: ts}
 }
 
-// End completes the Span. The Span is considered complete and ready to be
-// delivered through the rest of the telemetry pipeline after this method
-// is called. Therefore, updates to the Span are not allowed after this
-// method has been called.
+// End completes the span.
+// Updates to the span are not allowed after this method has been called.
 func (s SpanImpl) End() {
 	if s.Span == nil {
 		return
@@ -184,7 +197,8 @@ func (s SpanImpl) SetFloat(k string, v float64) {
 	s.Span.SetAttributes(attribute.Float64(k, v))
 }
 
-// SetRequest tags the span during its creation with the request data.
+// SetRequest tags the span with the request data.
+// Warning: this has a large memory footprint.
 func (s SpanImpl) SetRequest(r *http.Request) {
 	if s.Span == nil {
 		return
