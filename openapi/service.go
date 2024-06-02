@@ -87,7 +87,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 
 		// Functions
 		if ep.Type == "function" {
-			if ep.Method == "" || ep.Method == "*" {
+			if ep.Method == "" || ep.Method == "ANY" {
 				ep.Method = "POST"
 			}
 			op = &oapiOperation{
@@ -159,7 +159,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 		}
 
 		if ep.Type == "web" {
-			if ep.Method == "" || ep.Method == "*" {
+			if ep.Method == "" || ep.Method == "ANY" {
 				ep.Method = "GET"
 			}
 			op = &oapiOperation{

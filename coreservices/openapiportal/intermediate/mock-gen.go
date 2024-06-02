@@ -51,7 +51,7 @@ on the requested port.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
 	// Webs
-	svc.Subscribe(`*`, `//openapi:0`, svc.doList)
+	svc.Subscribe(`ANY`, `//openapi:0`, svc.doList)
 
 	return svc
 }

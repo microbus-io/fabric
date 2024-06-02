@@ -15,15 +15,15 @@ import (
 )
 
 var (
-	hostnameRegexp = regexp.MustCompile(`^[a-z0-9_\-]+(\.[a-z0-9_\-]+)*$`)
-	configRegexp   = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
-	tickerRegexp   = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
+	hostnameValidator = regexp.MustCompile(`^[a-z0-9_\-]+(\.[a-z0-9_\-]+)*$`)
+	configValidator   = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
+	tickerValidator   = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
 )
 
 // ValidateHostname indicates if the hostname is a valid microservice hostname.
 // Hostnames must contain only alphanumeric characters, hyphens, underscores and dot separators.
 func ValidateHostname(hostname string) error {
-	if !hostnameRegexp.MatchString(strings.ToLower(hostname)) {
+	if !hostnameValidator.MatchString(strings.ToLower(hostname)) {
 		// The hostname "all" is reserved to refer to all microservices
 		return errors.Newf("invalid hostname '%s'", hostname)
 	}
@@ -33,7 +33,7 @@ func ValidateHostname(hostname string) error {
 // ValidateConfigName indicates if the name can be used for a config.
 // Config names must start with a letter and contain only alphanumeric characters.
 func ValidateConfigName(name string) error {
-	if !configRegexp.MatchString(strings.ToLower(name)) {
+	if !configValidator.MatchString(strings.ToLower(name)) {
 		return errors.Newf("invalid config name '%s'", name)
 	}
 	return nil
@@ -42,7 +42,7 @@ func ValidateConfigName(name string) error {
 // ValidateTickerName indicates if the name can be used for a ticker.
 // Ticker names must start with a letter and contain only alphanumeric characters.
 func ValidateTickerName(name string) error {
-	if !tickerRegexp.MatchString(strings.ToLower(name)) {
+	if !tickerValidator.MatchString(strings.ToLower(name)) {
 		return errors.Newf("invalid ticker name '%s'", name)
 	}
 	return nil

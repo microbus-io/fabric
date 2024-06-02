@@ -33,10 +33,23 @@ func subjectOfResponses(plane string, hostname string, id string) string {
 // For GET http://example.com:80/path/file.html the subject is microbus.80.com.example.|.GET.path.file_html .
 // For a URL that ends with a / such as POST https://example.com/dir/ the subject is microbus.443.com.example.|.POST.dir.> .
 func subjectOfSubscription(plane string, method string, hostname string, port string, path string) string {
+	return subjectOf(true, plane, method, hostname, port, path)
+}
+
+// subjectOfRequest is the NATS subject where a microservice published an outgoing requests for a given path.
+// For GET http://example.com:80/path/file.html that subject looks like microbus.80.com.example.|.GET.path.file_html .
+// For a URL that ends with a / such as POST https://example.com/dir/ the subject is microbus.443.com.example.|.POST.dir._
+// so that it is captured by the corresponding subscription microbus.443.com.example.|.POST.dir.>
+func subjectOfRequest(plane string, method string, hostname string, port string, path string) string {
+	return subjectOf(false, plane, method, hostname, port, path)
+}
+
+// subjectOf composes the NATS subject of subscriptions and requests.
+func subjectOf(wildcards bool, plane string, method string, hostname string, port string, path string) string {
 	var b strings.Builder
 	b.WriteString(plane)
 	b.WriteRune('.')
-	if port == "0" {
+	if wildcards && port == "0" {
 		b.WriteString("*")
 	} else {
 		b.WriteString(port)
@@ -44,7 +57,12 @@ func subjectOfSubscription(plane string, method string, hostname string, port st
 	b.WriteRune('.')
 	b.WriteString(strings.ToLower(reverseHostname(hostname)))
 	b.WriteString(".|.")
-	b.WriteString(strings.ToUpper(method))
+	method = strings.ToUpper(method)
+	if wildcards && method == "ANY" {
+		b.WriteString("*")
+	} else {
+		b.WriteString(method)
+	}
 	b.WriteRune('.')
 	if path == "" {
 		// Exactly the home path
@@ -53,24 +71,13 @@ func subjectOfSubscription(plane string, method string, hostname string, port st
 	}
 	b.WriteString(encodePath(strings.TrimPrefix(path, "/")))
 	if strings.HasSuffix(path, "/") {
-		b.WriteRune('>')
+		if wildcards {
+			b.WriteRune('>')
+		} else {
+			b.WriteRune('_')
+		}
 	}
 	return b.String()
-}
-
-// subjectOfRequest is the NATS subject where a microservice published an outgoing requests for a given path.
-// For GET http://example.com:80/path/file.html that subject looks like microbus.80.com.example.|.GET.path.file_html .
-// For a URL that ends with a / such as POST https://example.com/dir/ the subject is microbus.443.com.example.|.POST.dir._
-// so that it is captured by the corresponding subscription microbus.443.com.example.|.POST.dir.>
-func subjectOfRequest(plane string, method string, hostname string, port string, path string) string {
-	subject := subjectOfSubscription(plane, method, hostname, port, path)
-	if strings.HasSuffix(subject, ">") {
-		subject = strings.TrimSuffix(subject, ">") + "_"
-	}
-	if strings.HasPrefix(subject[len(plane):], ".*.") {
-		subject = plane + ".0." + subject[len(plane)+3:]
-	}
-	return subject
 }
 
 // escapePath escapes special characters in the path to make it suitable for appending to the subscription subject

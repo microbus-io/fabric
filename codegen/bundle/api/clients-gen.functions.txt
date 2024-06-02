@@ -36,7 +36,7 @@ func (_c *Multicast
 {{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
 ) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
 	method := `{{ .Method }}`
-	if method == "*" {
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := {{ .Name }}In{
@@ -91,7 +91,7 @@ func (_c *Multicast
 */
 func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 	method := `{{ .Method }}`
-	if method == "" || method == "*" {
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := {{ .Name }}In{

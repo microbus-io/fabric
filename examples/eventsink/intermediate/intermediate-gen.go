@@ -100,7 +100,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`*`, `:443/registered`, svc.doRegistered)
+	svc.Subscribe(`ANY`, `:443/registered`, svc.doRegistered)
 
 	// Sinks
 	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.impl.OnAllowRegister)
@@ -125,7 +125,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Registered`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/registered`,
 			Summary:     `Registered() (emails []string)`,
 			Description: `Registered returns the list of registered users.`,

@@ -55,7 +55,7 @@ func NewMock() *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 
 	// Functions
-	svc.Subscribe(`*`, `:443/registered`, svc.doRegistered)
+	svc.Subscribe(`ANY`, `:443/registered`, svc.doRegistered)
 
 	// Sinks
 	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.doOnAllowRegister)

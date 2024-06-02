@@ -41,8 +41,8 @@ type Subscription struct {
 NewSub creates a new subscription for the indicated path.
 If the path does not include a hostname, the microservice's default hostname is used.
 If a port is not specified, 443 is used by default. Port 0 is used to designate any port.
-The subscription can be limited to one HTTP method such as "GET" or "POST",
-or an asterisk "*" can be used to accept any method.
+The subscription can be limited to one HTTP method such as "GET", "POST", etc.
+or "ANY" can be used to accept any method.
 
 Examples of valid paths:
 
@@ -70,7 +70,7 @@ func NewSub(method string, defaultHost string, path string, handler HTTPHandler,
 		return nil, errors.Trace(err)
 	}
 	method = strings.ToUpper(method)
-	if method != "*" && !methodValidator.MatchString(method) {
+	if !methodValidator.MatchString(method) {
 		return nil, errors.Newf("invalid method '%s'", method)
 	}
 	sub := &Subscription{

@@ -94,7 +94,7 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
+# method - "GET", "POST", etc. or "ANY" (default)
 # path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
@@ -209,7 +209,7 @@ The `webs` section defines raw web handlers which allow the microservice to hand
 #
 # signature - Func()
 # description - Documentation
-# method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
+# method - "GET", "POST", etc. or "ANY" (default)
 # path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443

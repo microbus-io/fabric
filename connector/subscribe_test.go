@@ -496,7 +496,7 @@ func TestConnector_SubscriptionMethods(t *testing.T) {
 		post++
 		return nil
 	})
-	con.Subscribe("*", "star", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("ANY", "star", func(w http.ResponseWriter, r *http.Request) error {
 		star++
 		return nil
 	})

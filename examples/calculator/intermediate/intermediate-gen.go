@@ -99,7 +99,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	// Functions
 	svc.Subscribe(`GET`, `:443/arithmetic`, svc.doArithmetic)
 	svc.Subscribe(`GET`, `:443/square`, svc.doSquare)
-	svc.Subscribe(`*`, `:443/distance`, svc.doDistance)
+	svc.Subscribe(`ANY`, `:443/distance`, svc.doDistance)
 
 	// Metrics
 	svc.DefineCounter(
@@ -165,7 +165,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Distance`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/distance`,
 			Summary:     `Distance(p1 Point, p2 Point) (d float64)`,
 			Description: `Distance calculates the distance between two points.

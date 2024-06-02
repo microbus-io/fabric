@@ -156,7 +156,7 @@ configs:
 #
 # signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
 # description - Documentation
-# method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
+# method - "GET", "POST", etc. or "ANY" (default)
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
@@ -216,7 +216,7 @@ sinks:
 #
 # signature - Func()
 # description - Documentation
-# method - "GET", "POST", etc. or "*" to accept any method (defaults to "*")
+# method - "GET", "POST", etc. or "ANY" (default)
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443

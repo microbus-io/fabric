@@ -50,7 +50,7 @@ func NewMock() *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 
 	// Functions
-	svc.Subscribe(`*`, `:443/register`, svc.doRegister)
+	svc.Subscribe(`ANY`, `:443/register`, svc.doRegister)
 
 	return svc
 }

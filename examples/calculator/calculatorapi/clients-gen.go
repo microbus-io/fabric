@@ -134,7 +134,7 @@ Arithmetic perform an arithmetic operation between two integers x and y given an
 */
 func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y int, _options ...pub.Option) <-chan *ArithmeticResponse {
 	method := `GET`
-	if method == "*" {
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := ArithmeticIn{
@@ -211,7 +211,7 @@ Square prints the square of the integer x.
 */
 func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Option) <-chan *SquareResponse {
 	method := `GET`
-	if method == "*" {
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := SquareIn{
@@ -285,8 +285,8 @@ Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.
 */
 func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _options ...pub.Option) <-chan *DistanceResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := DistanceIn{
@@ -327,7 +327,7 @@ Arithmetic perform an arithmetic operation between two integers x and y given an
 */
 func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
 	method := `GET`
-	if method == "" || method == "*" {
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := ArithmeticIn{
@@ -368,7 +368,7 @@ Square prints the square of the integer x.
 */
 func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
 	method := `GET`
-	if method == "" || method == "*" {
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := SquareIn{
@@ -405,8 +405,8 @@ Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.
 */
 func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := DistanceIn{

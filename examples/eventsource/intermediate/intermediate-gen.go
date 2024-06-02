@@ -95,7 +95,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`*`, `:443/register`, svc.doRegister)
+	svc.Subscribe(`ANY`, `:443/register`, svc.doRegister)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -116,7 +116,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Register`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/register`,
 			Summary:     `Register(email string) (allowed bool)`,
 			Description: `Register attempts to register a new user.`,

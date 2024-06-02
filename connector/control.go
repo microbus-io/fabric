@@ -45,11 +45,11 @@ func (c *Connector) subscribeControl() error {
 		},
 	}
 	for _, s := range subs {
-		err := c.Subscribe("*", ":888/"+s.path, s.handler, s.options...)
+		err := c.Subscribe("ANY", ":888/"+s.path, s.handler, s.options...)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		err = c.Subscribe("*", "https://all:888/"+s.path, s.handler, s.options...)
+		err = c.Subscribe("ANY", "https://all:888/"+s.path, s.handler, s.options...)
 		if err != nil {
 			return errors.Trace(err)
 		}

@@ -116,13 +116,13 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Webs
-	svc.Subscribe(`*`, `:443/hello`, svc.impl.Hello)
-	svc.Subscribe(`*`, `:443/echo`, svc.impl.Echo)
-	svc.Subscribe(`*`, `:443/ping`, svc.impl.Ping)
-	svc.Subscribe(`*`, `:443/calculator`, svc.impl.Calculator)
+	svc.Subscribe(`ANY`, `:443/hello`, svc.impl.Hello)
+	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
+	svc.Subscribe(`ANY`, `:443/ping`, svc.impl.Ping)
+	svc.Subscribe(`ANY`, `:443/calculator`, svc.impl.Calculator)
 	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.impl.BusJPEG)
-	svc.Subscribe(`*`, `:443/localization`, svc.impl.Localization)
-	svc.Subscribe(`*`, `//root`, svc.impl.Root)
+	svc.Subscribe(`ANY`, `:443/localization`, svc.impl.Localization)
+	svc.Subscribe(`ANY`, `//root`, svc.impl.Root)
 
 	// Tickers
 	intervalTickTock, _ := time.ParseDuration("10s")
@@ -147,7 +147,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Hello`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/hello`,
 			Summary:     `Hello()`,
 			Description: `Hello prints a greeting.`,
@@ -161,7 +161,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Echo`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/echo`,
 			Summary:     `Echo()`,
 			Description: `Echo back the incoming request in wire format.`,
@@ -175,7 +175,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Ping`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/ping`,
 			Summary:     `Ping()`,
 			Description: `Ping all microservices and list them.`,
@@ -189,7 +189,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Calculator`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/calculator`,
 			Summary:     `Calculator()`,
 			Description: `Calculator renders a UI for a calculator.
@@ -219,7 +219,7 @@ a call from one microservice to another.`,
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Localization`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `:443/localization`,
 			Summary:     `Localization()`,
 			Description: `Localization prints hello in the language best matching the request's Accept-Language header.`,
@@ -233,7 +233,7 @@ a call from one microservice to another.`,
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Root`,
-			Method:      `*`,
+			Method:      `ANY`,
 			Path:        `//root`,
 			Summary:     `Root()`,
 			Description: `Root is the top-most root page.`,

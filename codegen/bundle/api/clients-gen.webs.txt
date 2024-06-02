@@ -10,7 +10,7 @@ func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
 
 {{- range .Webs }}
 
-{{- if eq .Method "*" }}
+{{- if eq .Method "ANY" }}
 /*
 {{ .Name }}_Get performs a GET request to the {{ .Name }} endpoint.
 
@@ -160,7 +160,7 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *
 {{- end }}
 
 /*
-{{ if ne .Method "*" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
+{{ if ne .Method "ANY" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
 
 {{ end -}}
 
@@ -168,9 +168,9 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx context.Context, r *http.Request) (res *http.Response, err error) {
 	if r == nil {
-		r, err = http.NewRequest(`{{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
+		r, err = http.NewRequest(`{{ if eq .Method "ANY" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
@@ -187,7 +187,7 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(ctx context.Con
 }
 
 /*
-{{ if ne .Method "*" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
+{{ if ne .Method "ANY" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
 
 {{ end -}}
 
@@ -195,10 +195,10 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(ctx context.Con
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(ctx context.Context, r *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
 	if r == nil {
-		r, err = http.NewRequest(`{{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
+		r, err = http.NewRequest(`{{ if eq .Method "ANY" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}

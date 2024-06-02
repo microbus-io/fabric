@@ -163,8 +163,8 @@ func (_out *RegisterResponse) Get() (allowed bool, err error) {
 Register attempts to register a new user.
 */
 func (_c *MulticastClient) Register(ctx context.Context, email string, _options ...pub.Option) <-chan *RegisterResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := RegisterIn{
@@ -229,7 +229,7 @@ Event sinks are given the opportunity to block the registration.
 */
 func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _options ...pub.Option) <-chan *OnAllowRegisterResponse {
 	method := `POST`
-	if method == "*" {
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := OnAllowRegisterIn{
@@ -291,7 +291,7 @@ OnRegistered is called when a user is successfully registered.
 */
 func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredResponse {
 	method := `POST`
-	if method == "*" {
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := OnRegisteredIn{
@@ -330,8 +330,8 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 Register attempts to register a new user.
 */
 func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := RegisterIn{

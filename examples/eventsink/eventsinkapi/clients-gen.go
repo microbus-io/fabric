@@ -122,8 +122,8 @@ func (_out *RegisteredResponse) Get() (emails []string, err error) {
 Registered returns the list of registered users.
 */
 func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := RegisteredIn{
@@ -161,8 +161,8 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 Registered returns the list of registered users.
 */
 func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := RegisteredIn{

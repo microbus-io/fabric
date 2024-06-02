@@ -104,7 +104,7 @@ This key is required except in local development and tests.`),
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Webs
-	svc.Subscribe(`*`, `:443/collect`, svc.impl.Collect)
+	svc.Subscribe(`ANY`, `:443/collect`, svc.impl.Collect)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)

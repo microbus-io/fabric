@@ -97,7 +97,7 @@ on the requested port.`)
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Webs
-	svc.Subscribe(`*`, `//openapi:0`, svc.impl.List)
+	svc.Subscribe(`ANY`, `//openapi:0`, svc.impl.List)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)

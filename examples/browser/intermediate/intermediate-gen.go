@@ -95,7 +95,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Webs
-	svc.Subscribe(`*`, `:443/browse`, svc.impl.Browse)
+	svc.Subscribe(`ANY`, `:443/browse`, svc.impl.Browse)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)

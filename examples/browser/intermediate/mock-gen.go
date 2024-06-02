@@ -50,7 +50,7 @@ func NewMock() *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 
 	// Webs
-	svc.Subscribe(`*`, `:443/browse`, svc.doBrowse)
+	svc.Subscribe(`ANY`, `:443/browse`, svc.doBrowse)
 
 	return svc
 }

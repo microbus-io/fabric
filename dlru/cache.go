@@ -138,11 +138,11 @@ func (c *Cache) MaxMemory() int {
 
 // start subscribed to handle cache events from peers.
 func (c *Cache) start(ctx context.Context) error {
-	err := c.svc.Subscribe("*", c.basePath+"/all", c.handleAll, sub.NoQueue())
+	err := c.svc.Subscribe("ANY", c.basePath+"/all", c.handleAll, sub.NoQueue())
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = c.svc.Subscribe("*", c.basePath+"/rescue", c.handleRescue, sub.DefaultQueue())
+	err = c.svc.Subscribe("ANY", c.basePath+"/rescue", c.handleRescue, sub.DefaultQueue())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -151,8 +151,8 @@ func (c *Cache) start(ctx context.Context) error {
 
 // start unsubscribes from handling cache events from peers.
 func (c *Cache) stop(ctx context.Context) error {
-	c.svc.Unsubscribe("*", c.basePath+"/rescue")
-	c.svc.Unsubscribe("*", c.basePath+"/all")
+	c.svc.Unsubscribe("ANY", c.basePath+"/rescue")
+	c.svc.Unsubscribe("ANY", c.basePath+"/all")
 	return nil
 }
 

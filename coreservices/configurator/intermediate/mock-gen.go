@@ -52,9 +52,9 @@ func NewMock() *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 
 	// Functions
-	svc.Subscribe(`*`, `:443/values`, svc.doValues)
-	svc.Subscribe(`*`, `:443/refresh`, svc.doRefresh)
-	svc.Subscribe(`*`, `:443/sync`, svc.doSync, sub.NoQueue())
+	svc.Subscribe(`ANY`, `:443/values`, svc.doValues)
+	svc.Subscribe(`ANY`, `:443/refresh`, svc.doRefresh)
+	svc.Subscribe(`ANY`, `:443/sync`, svc.doSync, sub.NoQueue())
 
 	return svc
 }

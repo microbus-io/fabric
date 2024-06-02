@@ -125,8 +125,8 @@ func (_out *ValuesResponse) Get() (values map[string]string, err error) {
 Values returns the values associated with the specified config property names for the caller microservice.
 */
 func (_c *MulticastClient) Values(ctx context.Context, names []string, _options ...pub.Option) <-chan *ValuesResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := ValuesIn{
@@ -187,8 +187,8 @@ Refresh tells all microservices to contact the configurator and refresh their co
 An error is returned if any of the values sent to the microservices fails validation.
 */
 func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := RefreshIn{
@@ -249,8 +249,8 @@ func (_out *SyncResponse) Get() (err error) {
 Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string, _options ...pub.Option) <-chan *SyncResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := SyncIn{
@@ -290,8 +290,8 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 Values returns the values associated with the specified config property names for the caller microservice.
 */
 func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := ValuesIn{
@@ -322,8 +322,8 @@ Refresh tells all microservices to contact the configurator and refresh their co
 An error is returned if any of the values sent to the microservices fails validation.
 */
 func (_c *Client) Refresh(ctx context.Context) (err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := RefreshIn{
@@ -351,8 +351,8 @@ func (_c *Client) Refresh(ctx context.Context) (err error) {
 Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := SyncIn{

@@ -99,9 +99,9 @@ The microservice itself does nothing and should not be included in applications.
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`*`, `:888/ping`, svc.doPing, sub.NoQueue())
-	svc.Subscribe(`*`, `:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())
-	svc.Subscribe(`*`, `:888/trace`, svc.doTrace, sub.NoQueue())
+	svc.Subscribe(`ANY`, `:888/ping`, svc.doPing, sub.NoQueue())
+	svc.Subscribe(`ANY`, `:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())
+	svc.Subscribe(`ANY`, `:888/trace`, svc.doTrace, sub.NoQueue())
 
 	// Resources file system
 	svc.SetResFS(resources.FS)

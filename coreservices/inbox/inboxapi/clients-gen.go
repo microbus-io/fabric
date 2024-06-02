@@ -161,7 +161,7 @@ OnInboxSaveMail is triggered when a new email message is received.
 */
 func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Email, _options ...pub.Option) <-chan *OnInboxSaveMailResponse {
 	method := `POST`
-	if method == "*" {
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := OnInboxSaveMailIn{

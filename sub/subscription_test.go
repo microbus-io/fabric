@@ -69,6 +69,7 @@ func TestSub_Method(t *testing.T) {
 		"ABC123",
 		"!",
 		"",
+		"*",
 	}
 	for _, s := range badSpecs {
 		_, err := NewSub(s, "www.example.com", "/", nil)
@@ -79,7 +80,7 @@ func TestSub_Method(t *testing.T) {
 		"POST", "POST",
 		"post", "POST",
 		"ANyThinG", "ANYTHING",
-		"*", "*",
+		"ANY", "ANY",
 	}
 	for i := 0; i < len(okSpecs); i += 2 {
 		sub, err := NewSub(okSpecs[i], "www.example.com", "/", nil)

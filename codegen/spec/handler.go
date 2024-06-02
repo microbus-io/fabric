@@ -101,7 +101,7 @@ func (h *Handler) validate() error {
 	if h.Kind != "counter" && h.Kind != "gauge" && h.Kind != "histogram" {
 		return errors.Newf("invalid metric kind '%s' in '%s'", h.Kind, h.Name())
 	}
-	if h.Method != "" && h.Method != "*" && !methodValidator.MatchString(h.Method) {
+	if h.Method != "" && !methodValidator.MatchString(h.Method) {
 		return errors.Newf("invalid method '%s'", h.Method)
 	}
 	if strings.Contains(h.Path, "`") {
@@ -132,7 +132,7 @@ func (h *Handler) validate() error {
 		if h.Method == "" {
 			h.Method = "POST"
 		}
-		if h.Method == "*" {
+		if h.Method == "ANY" {
 			return errors.Newf("invalid method '%s'", h.Method)
 		}
 		if u.Port() == "0" {
@@ -140,7 +140,7 @@ func (h *Handler) validate() error {
 		}
 	} else {
 		if h.Method == "" {
-			h.Method = "*"
+			h.Method = "ANY"
 		}
 	}
 

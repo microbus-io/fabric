@@ -56,13 +56,13 @@ func NewMock() *Mock {
 	svc.SetOnStartup(svc.doOnStartup)
 
 	// Webs
-	svc.Subscribe(`*`, `:443/hello`, svc.doHello)
-	svc.Subscribe(`*`, `:443/echo`, svc.doEcho)
-	svc.Subscribe(`*`, `:443/ping`, svc.doPing)
-	svc.Subscribe(`*`, `:443/calculator`, svc.doCalculator)
+	svc.Subscribe(`ANY`, `:443/hello`, svc.doHello)
+	svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
+	svc.Subscribe(`ANY`, `:443/ping`, svc.doPing)
+	svc.Subscribe(`ANY`, `:443/calculator`, svc.doCalculator)
 	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.doBusJPEG)
-	svc.Subscribe(`*`, `:443/localization`, svc.doLocalization)
-	svc.Subscribe(`*`, `//root`, svc.doRoot)
+	svc.Subscribe(`ANY`, `:443/localization`, svc.doLocalization)
+	svc.Subscribe(`ANY`, `//root`, svc.doRoot)
 
 	return svc
 }

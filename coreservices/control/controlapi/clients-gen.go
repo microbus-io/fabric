@@ -125,8 +125,8 @@ func (_out *PingResponse) Get() (pong int, err error) {
 Ping responds to the message with a pong.
 */
 func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := PingIn{
@@ -185,8 +185,8 @@ func (_out *ConfigRefreshResponse) Get() (err error) {
 ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := ConfigRefreshIn{
@@ -246,8 +246,8 @@ func (_out *TraceResponse) Get() (err error) {
 Trace forces exporting the indicated tracing span.
 */
 func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub.Option) <-chan *TraceResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := TraceIn{
@@ -286,8 +286,8 @@ func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub
 Ping responds to the message with a pong.
 */
 func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := PingIn{
@@ -316,8 +316,8 @@ func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := ConfigRefreshIn{
@@ -345,8 +345,8 @@ func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 Trace forces exporting the indicated tracing span.
 */
 func (_c *Client) Trace(ctx context.Context, id string) (err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := TraceIn{

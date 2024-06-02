@@ -402,7 +402,7 @@ func (tc *{{ .Name }}TestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 
-{{- if eq .Method "*" }}
+{{- if eq .Method "ANY" }}
 
 /*
 {{ .Name }}_Get performs a GET request to the {{ .Name }} endpoint.
@@ -559,7 +559,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 {{- end }}
 
 /*
-{{ if ne .Method "*" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
+{{ if ne .Method "ANY" }}{{ .Name }}_Do performs a customized request to the {{ .Name }} endpoint.
 
 {{ end -}}
 
@@ -567,11 +567,11 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func {{ .Name }}{{ if ne .Method "*" }}_Do{{ end }}(t *testing.T, r *http.Request) *{{ .Name }}TestCase {
+func {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(t *testing.T, r *http.Request) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
 	var err error
 	if r == nil {
-		r, err = http.NewRequest(`{{ if eq .Method "*" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
+		r, err = http.NewRequest(`{{ if eq .Method "ANY" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
 		if err != nil {
 			tc.err = errors.Trace(err)
 			return tc

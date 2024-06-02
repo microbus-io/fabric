@@ -128,8 +128,8 @@ func (_out *CreateResponse) Get() (created *Person, err error) {
 Create registers the person in the directory.
 */
 func (_c *MulticastClient) Create(ctx context.Context, person *Person, _options ...pub.Option) <-chan *CreateResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := CreateIn{
@@ -194,8 +194,8 @@ func (_out *LoadResponse) Get() (person *Person, ok bool, err error) {
 Load looks up a person in the directory.
 */
 func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *LoadResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := LoadIn{
@@ -258,8 +258,8 @@ func (_out *DeleteResponse) Get() (ok bool, err error) {
 Delete removes a person from the directory.
 */
 func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *DeleteResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := DeleteIn{
@@ -324,8 +324,8 @@ func (_out *UpdateResponse) Get() (updated *Person, ok bool, err error) {
 Update updates the person's data in the directory.
 */
 func (_c *MulticastClient) Update(ctx context.Context, person *Person, _options ...pub.Option) <-chan *UpdateResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := UpdateIn{
@@ -390,8 +390,8 @@ func (_out *LoadByEmailResponse) Get() (person *Person, ok bool, err error) {
 LoadByEmail looks up a person in the directory by their email.
 */
 func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _options ...pub.Option) <-chan *LoadByEmailResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := LoadByEmailIn{
@@ -453,8 +453,8 @@ func (_out *ListResponse) Get() (keys []PersonKey, err error) {
 List returns the keys of all the persons in the directory.
 */
 func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-chan *ListResponse {
-	method := `*`
-	if method == "*" {
+	method := `ANY`
+	if method == "ANY" {
 		method = "POST"
 	}
 	_in := ListIn{
@@ -492,8 +492,8 @@ func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-c
 Create registers the person in the directory.
 */
 func (_c *Client) Create(ctx context.Context, person *Person) (created *Person, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := CreateIn{
@@ -523,8 +523,8 @@ func (_c *Client) Create(ctx context.Context, person *Person) (created *Person, 
 Load looks up a person in the directory.
 */
 func (_c *Client) Load(ctx context.Context, key PersonKey) (person *Person, ok bool, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := LoadIn{
@@ -555,8 +555,8 @@ func (_c *Client) Load(ctx context.Context, key PersonKey) (person *Person, ok b
 Delete removes a person from the directory.
 */
 func (_c *Client) Delete(ctx context.Context, key PersonKey) (ok bool, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := DeleteIn{
@@ -586,8 +586,8 @@ func (_c *Client) Delete(ctx context.Context, key PersonKey) (ok bool, err error
 Update updates the person's data in the directory.
 */
 func (_c *Client) Update(ctx context.Context, person *Person) (updated *Person, ok bool, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := UpdateIn{
@@ -618,8 +618,8 @@ func (_c *Client) Update(ctx context.Context, person *Person) (updated *Person, 
 LoadByEmail looks up a person in the directory by their email.
 */
 func (_c *Client) LoadByEmail(ctx context.Context, email string) (person *Person, ok bool, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := LoadByEmailIn{
@@ -650,8 +650,8 @@ func (_c *Client) LoadByEmail(ctx context.Context, email string) (person *Person
 List returns the keys of all the persons in the directory.
 */
 func (_c *Client) List(ctx context.Context) (keys []PersonKey, err error) {
-	method := `*`
-	if method == "" || method == "*" {
+	method := `ANY`
+	if method == "" || method == "ANY" {
 		method = "POST"
 	}
 	_in := ListIn{
