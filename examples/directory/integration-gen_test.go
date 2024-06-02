@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -42,7 +41,6 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
-	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder

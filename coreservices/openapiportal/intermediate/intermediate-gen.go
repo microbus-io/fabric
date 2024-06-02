@@ -94,10 +94,10 @@ on the requested port.`)
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 
 	// OpenAPI
-	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Webs
-	svc.Subscribe(`*`, `//openapi:*`, svc.impl.List)
+	svc.Subscribe(`*`, `//openapi:0`, svc.impl.List)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)

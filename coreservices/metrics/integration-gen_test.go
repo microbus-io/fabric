@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -42,7 +41,6 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
-	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -618,7 +616,7 @@ func Collect(t *testing.T, r *http.Request) *CollectTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

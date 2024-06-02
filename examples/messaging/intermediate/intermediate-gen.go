@@ -96,7 +96,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 
 	// OpenAPI
-	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Webs
 	svc.Subscribe(`*`, `:443/home`, svc.impl.Home)
@@ -120,7 +120,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Home`,
@@ -134,7 +134,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `NoQueue`,
@@ -150,7 +150,7 @@ All instances of this microservice will respond to each request.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `DefaultQueue`,
@@ -166,7 +166,7 @@ Only one of the instances of this microservice will respond to each request.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `CacheLoad`,
@@ -180,7 +180,7 @@ Only one of the instances of this microservice will respond to each request.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `CacheStore`,

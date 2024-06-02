@@ -16,8 +16,7 @@ import (
 	"strings"
 
 	"github.com/invopop/jsonschema"
-	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/httpx"
 )
 
 // Service is populated with the microservice's specs in order to generate its OpenAPI document.
@@ -188,18 +187,9 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			}
 		}
 
-		subscr, err := sub.NewSub("GET", s.ServiceName, ep.Path, nil)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		if subscr.Host == "" {
-			subscr.Host = s.ServiceName
-		}
-		path := "/" + subscr.Canonical()
-		// if subscr.Port == 443 {
-		// 	path = strings.Replace(path, ":443", "", 1)
-		// }
-
+		path := httpx.JoinHostAndPath(s.ServiceName, ep.Path)
+		_, path, _ = strings.Cut(path, "://")
+		path = "/" + path
 		// Catch all subscriptions
 		if strings.HasSuffix(ep.Path, "/") {
 			path += "{suffix}"

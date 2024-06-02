@@ -17,7 +17,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/utils"
 )
 
 // Option is used to construct a request in Connector.Publish.
@@ -35,11 +34,9 @@ func Method(method string) Option {
 // URL sets the URL of the request.
 func URL(url string) Option {
 	return func(req *Request) error {
-		u, err := utils.ParseURL(url)
+		u, err := httpx.ParseURL(url)
 		if err != nil {
-			// Invalid URLs are often received by hacker scanning tools,
-			// for example, requests to .env
-			return errors.Newcf(http.StatusNotFound, "invalid URL '%s", url)
+			return errors.Trace(err)
 		}
 		u.RawQuery += req.queryArgs
 		req.URL = u.String()
@@ -182,7 +179,7 @@ func QueryArg(name string, value any) Option {
 			v := fmt.Sprintf("%v", value)
 			req.queryArgs += url.QueryEscape(name) + "=" + url.QueryEscape(v)
 			if req.URL != "" {
-				u, err := utils.ParseURL(req.URL)
+				u, err := httpx.ParseURL(req.URL)
 				if err != nil {
 					return errors.Trace(err)
 				}
@@ -207,7 +204,7 @@ func QueryString(encodedQueryArgs string) Option {
 			}
 			req.queryArgs += encodedQueryArgs
 			if req.URL != "" {
-				u, err := utils.ParseURL(req.URL)
+				u, err := httpx.ParseURL(req.URL)
 				if err != nil {
 					return errors.Trace(err)
 				}

@@ -197,17 +197,6 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 		port = "80"
 	}
 	if httpReq.URL.Port() != "" {
-		portNum, err := strconv.Atoi(httpReq.URL.Port())
-		if err != nil {
-			err = errors.Trace(err)
-			output = append(output, pub.NewErrorResponse(err))
-			return output
-		}
-		if portNum < 1 || portNum > 65535 {
-			err = errors.Newf("invalid port '%d'", portNum)
-			output = append(output, pub.NewErrorResponse(err))
-			return output
-		}
 		port = httpReq.URL.Port()
 	}
 	subject := subjectOfRequest(c.plane, httpReq.Method, httpReq.URL.Hostname(), port, httpReq.URL.Path)

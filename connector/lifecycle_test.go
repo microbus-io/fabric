@@ -178,7 +178,7 @@ func TestConnector_InitError(t *testing.T) {
 	assert.Error(t, err)
 
 	con = New("init.error.connector")
-	err = con.Subscribe("GET", ":99999/path", func(w http.ResponseWriter, r *http.Request) error {
+	err = con.Subscribe("GET", ":BAD/path", func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 	assert.Error(t, err)

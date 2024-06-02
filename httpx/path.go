@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/utils"
 )
 
 // JoinHostAndPath combines the path shorthand with a hostname.
@@ -54,4 +55,29 @@ func ResolveURL(base string, relative string) (resolved string, err error) {
 	}
 	resolvedURL := baseURL.ResolveReference(relativeURL)
 	return resolvedURL.String(), nil
+}
+
+// ParseURL returns a canonical version of the parsed URL with the scheme and port filled in if omitted.
+func ParseURL(rawURL string) (canonical *url.URL, err error) {
+	if strings.Contains(rawURL, "`") {
+		return nil, errors.New("backquote not allowed")
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	if err := utils.ValidateHostname(parsed.Hostname()); err != nil {
+		return nil, errors.Trace(err)
+	}
+	if parsed.Scheme == "" {
+		parsed.Scheme = "https"
+	}
+	if parsed.Port() == "" {
+		port := "443"
+		if parsed.Scheme == "http" {
+			port = "80"
+		}
+		parsed.Host += ":" + port
+	}
+	return parsed, nil
 }

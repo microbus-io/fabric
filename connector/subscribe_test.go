@@ -554,7 +554,7 @@ func TestConnector_SubscriptionPorts(t *testing.T) {
 		p234++
 		return nil
 	})
-	con.Subscribe("GET", ":*/star", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", ":0/any", func(w http.ResponseWriter, r *http.Request) error {
 		star++
 		return nil
 	})
@@ -581,13 +581,13 @@ func TestConnector_SubscriptionPorts(t *testing.T) {
 	assert.Equal(t, 1, p123)
 	assert.Equal(t, 1, p234)
 
-	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:999/star"))
+	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:999/any"))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, p123)
 	assert.Equal(t, 1, p234)
 	assert.Equal(t, 1, star)
 
-	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:10000/star"))
+	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:10000/any"))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, p123)
 	assert.Equal(t, 1, p234)
@@ -654,3 +654,32 @@ func BenchmarkConnection_AckRequest(b *testing.B) {
 	// 6045 B/op
 	// 26 allocs/op
 }
+
+/*
+func TestConnector_PathArguments(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservice
+	var foo string
+	var bar string
+	con := New("path.arguments.connector")
+	con.Subscribe("GET", "/foo/{foo}/bar/{bar}", func(w http.ResponseWriter, r *http.Request) error {
+		foo = r.URL.Query().Get("foo")
+		bar = r.URL.Query().Get("bar")
+		return nil
+	})
+
+	// Startup the microservices
+	err := con.Startup()
+	assert.NoError(t, err)
+	defer con.Shutdown()
+
+	// Send messages to various locations under the directory
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO/bar/BAR"))
+	assert.NoError(t, err)
+	assert.Equal(t, foo, "FOO")
+	assert.Equal(t, bar, "BAR")
+}
+*/

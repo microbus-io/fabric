@@ -54,7 +54,7 @@ configs:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
-#   :*/path - Any port
+#   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
 #   //root - Root path of the web server
@@ -114,7 +114,7 @@ sinks:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
-#   :*/path - Any port
+#   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
 #   //root - Root path of the web server
@@ -125,7 +125,7 @@ sinks:
 webs:
   - signature: List()
     description: List displays links to the OpenAPI endpoint of all microservices that provide one on the request's port.
-    path: //openapi:*
+    path: //openapi:0
 
 # Tickers
 #

@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -42,7 +41,6 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
-	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -618,7 +616,7 @@ func Hello(t *testing.T, r *http.Request) *HelloTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1136,7 +1134,7 @@ func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1654,7 +1652,7 @@ func Ping(t *testing.T, r *http.Request) *PingTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2178,7 +2176,7 @@ func Calculator(t *testing.T, r *http.Request) *CalculatorTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2651,7 +2649,7 @@ func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3169,7 +3167,7 @@ func Localization(t *testing.T, r *http.Request) *LocalizationTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3687,7 +3685,7 @@ func Root(t *testing.T, r *http.Request) *RootTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

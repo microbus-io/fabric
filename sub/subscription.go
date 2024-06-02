@@ -16,17 +16,16 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
 
 var methodValidator = regexp.MustCompile(`^[A-Z]+$`)
 
-// HTTPHandler extends the standard http.Handler to also return an error
+// HTTPHandler extends the standard http.Handler to also return an error.
 type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
 
 // Subscription handles incoming requests.
-// Although technically public, it is used internally and should not be constructed by microservices directly
+// Although technically public, it is used internally and should not be constructed by microservices directly.
 type Subscription struct {
 	Host      string
 	Port      string
@@ -41,7 +40,7 @@ type Subscription struct {
 /*
 NewSub creates a new subscription for the indicated path.
 If the path does not include a hostname, the microservice's default hostname is used.
-If a port is not specified, 443 is used by default. An asterisk "*" can be used to designate all ports.
+If a port is not specified, 443 is used by default. Port 0 is used to designate any port.
 The subscription can be limited to one HTTP method such as "GET" or "POST",
 or an asterisk "*" can be used to accept any method.
 
@@ -49,10 +48,11 @@ Examples of valid paths:
 
 	(empty)
 	/
+	/path
 	:1080
 	:1080/
 	:1080/path
-	:*
+	:0/any/port
 	/path/with/slash
 	path/with/no/slash
 	https://www.example.com/path
@@ -61,15 +61,7 @@ Examples of valid paths:
 */
 func NewSub(method string, defaultHost string, path string, handler HTTPHandler, options ...Option) (*Subscription, error) {
 	joined := httpx.JoinHostAndPath(defaultHost, path)
-	starPort := false
-	if strings.Contains(joined, ":*/") || strings.HasSuffix(joined, ":*") {
-		parts := strings.Split(joined, "/")
-		starPort = strings.HasSuffix(parts[2], ":*")
-		if starPort {
-			joined = strings.Replace(joined, ":*", ":443", 1)
-		}
-	}
-	u, err := utils.ParseURL(joined)
+	u, err := httpx.ParseURL(joined)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -77,17 +69,13 @@ func NewSub(method string, defaultHost string, path string, handler HTTPHandler,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	port := u.Port()
-	if starPort {
-		port = "*"
-	}
 	method = strings.ToUpper(method)
 	if method != "*" && !methodValidator.MatchString(method) {
 		return nil, errors.Newf("invalid method '%s'", method)
 	}
 	sub := &Subscription{
 		Host:    u.Hostname(),
-		Port:    port,
+		Port:    u.Port(),
 		Method:  method,
 		Path:    u.Path,
 		Queue:   defaultHost,
@@ -100,7 +88,7 @@ func NewSub(method string, defaultHost string, path string, handler HTTPHandler,
 	return sub, nil
 }
 
-// Apply the provided options to the subscription
+// Apply the provided options to the subscription.
 func (sub *Subscription) Apply(options ...Option) error {
 	for _, opt := range options {
 		err := opt(sub)
@@ -111,7 +99,7 @@ func (sub *Subscription) Apply(options ...Option) error {
 	return nil
 }
 
-// Canonical returns the fully-qualified canonical path of the subscription
+// Canonical returns the fully-qualified canonical host:port/path of the subscription, not including the scheme.
 func (sub *Subscription) Canonical() string {
 	return fmt.Sprintf("%s:%s%s", sub.Host, sub.Port, sub.Path)
 }

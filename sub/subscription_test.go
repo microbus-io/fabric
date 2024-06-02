@@ -27,6 +27,8 @@ func TestSub_NewSub(t *testing.T) {
 		{"/", "www.example.com", "443", "/"},
 		{":555", "www.example.com", "555", ""},
 		{":555/", "www.example.com", "555", "/"},
+		{":0/", "www.example.com", "0", "/"},
+		{":99999/", "www.example.com", "99999", "/"},
 		{"/path/with/slash", "www.example.com", "443", "/path/with/slash"},
 		{"path/with/no/slash", "www.example.com", "443", "/path/with/no/slash"},
 		{"https://good.example.com", "good.example.com", "443", ""},
@@ -51,8 +53,6 @@ func TestSub_InvalidPort(t *testing.T) {
 	badSpecs := []string{
 		":x/path",
 		":-5/path",
-		":1000000/path",
-		"https://bad.example.com:1000000/path",
 	}
 	for _, s := range badSpecs {
 		_, err := NewSub("GET", "www.example.com", s, nil)

@@ -31,12 +31,16 @@ func subjectOfResponses(plane string, hostname string, id string) string {
 
 // subjectOfSubscription is the NATS subject where a microservice subscribes to receive incoming requests for a given path.
 // For GET http://example.com:80/path/file.html the subject is microbus.80.com.example.|.GET.path.file_html .
-// For a URL that ends with a / such as POST https://example.com/dir/ the subject is microbus.443.com.example.|.POST.dir.>
+// For a URL that ends with a / such as POST https://example.com/dir/ the subject is microbus.443.com.example.|.POST.dir.> .
 func subjectOfSubscription(plane string, method string, hostname string, port string, path string) string {
 	var b strings.Builder
 	b.WriteString(plane)
 	b.WriteRune('.')
-	b.WriteString(port)
+	if port == "0" {
+		b.WriteString("*")
+	} else {
+		b.WriteString(port)
+	}
 	b.WriteRune('.')
 	b.WriteString(strings.ToLower(reverseHostname(hostname)))
 	b.WriteString(".|.")
@@ -62,6 +66,9 @@ func subjectOfRequest(plane string, method string, hostname string, port string,
 	subject := subjectOfSubscription(plane, method, hostname, port, path)
 	if strings.HasSuffix(subject, ">") {
 		subject = strings.TrimSuffix(subject, ">") + "_"
+	}
+	if strings.HasPrefix(subject[len(plane):], ".*.") {
+		subject = plane + ".0." + subject[len(plane)+3:]
 	}
 	return subject
 }

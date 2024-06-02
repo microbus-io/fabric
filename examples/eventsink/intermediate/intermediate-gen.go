@@ -97,7 +97,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.SetOnShutdown(svc.impl.OnShutdown)
 
 	// OpenAPI
-	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)	
+	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
 	svc.Subscribe(`*`, `:443/registered`, svc.doRegistered)
@@ -121,7 +121,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Registered`,

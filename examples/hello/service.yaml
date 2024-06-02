@@ -53,7 +53,7 @@ configs:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
-#   :*/path - Any port
+#   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
 #   //root - Root path of the web server
@@ -113,7 +113,7 @@ sinks:
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
-#   :*/path - Any port
+#   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
 #   //root - Root path of the web server

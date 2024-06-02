@@ -411,7 +411,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	// Use the first segment of the URI as the hostname to contact
 	u, err := resolveInternalURL(r.URL, svc.portMappings)
 	if err != nil {
-		// Ignore requests to invalid internal hostnames, such as: https://example.com/%3Fterms=1
+		// Ignore requests to invalid internal hostnames, such as via https://example.com/%3Fterms=1 or https://example.com/.env
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
@@ -648,12 +648,12 @@ func (svc *Service) OnChangedPortMappings(ctx context.Context) (err error) {
 		if m == "" {
 			continue
 		}
-		q := strings.Index(m, "->")
-		if q < 0 {
+		external, internal, ok := strings.Cut(m, "->")
+		if !ok {
 			svc.LogWarn(ctx, "Invalid port mapping", log.String("mapping", m))
 			continue
 		}
-		newMappings[m[:q]] = m[q+2:]
+		newMappings[external] = internal
 	}
 	svc.portMappings = newMappings
 	return nil
@@ -665,14 +665,11 @@ func resolveInternalURL(externalURL *url.URL, portMappings map[string]string) (n
 	if externalPort == "" {
 		externalPort = "443"
 	}
-	u, err := url.Parse("https:/" + externalURL.RequestURI()) // First part of the URL is the internal host
+	u, err := httpx.ParseURL("https:/" + externalURL.RequestURI()) // First part of the URL is the internal host
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 	internalPort := u.Port()
-	if internalPort == "" {
-		internalPort = "443"
-	}
 	mappedInternalPort := internalPort
 	mappingKeys := []string{
 		externalPort + ":" + internalPort,

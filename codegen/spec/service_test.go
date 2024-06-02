@@ -127,7 +127,7 @@ xxx:
 		`
 functions:
   - signature: Func(s []*int)
-    path: :99999/...
+    path: :BAD/...
 `,
 		"invalid port",
 		// --------------------
@@ -149,14 +149,14 @@ events:
 		`
 events:
   - signature: OnFunc(s []*int)
-    path: :99999/...
+    path: :BAD/...
 `,
 		"invalid port",
 		// --------------------
 		`
 events:
   - signature: OnFunc(s []*int)
-    path: :*/...
+    path: :0/...
 `,
 		"invalid port",
 	}
@@ -287,7 +287,7 @@ webs:
 		`
 webs:
   - signature: Func()
-    path: :99999/...
+    path: :BAD/...
 `,
 		"invalid port",
 		// --------------------

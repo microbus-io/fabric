@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -42,7 +41,6 @@ var (
 	_ fmt.Stringer
 	_ io.Reader
 	_ *http.Request
-	_ *url.URL
 	_ os.File
 	_ time.Time
 	_ strings.Builder
@@ -618,7 +616,7 @@ func Home(t *testing.T, r *http.Request) *HomeTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1142,7 +1140,7 @@ func NoQueue(t *testing.T, r *http.Request) *NoQueueTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1666,7 +1664,7 @@ func DefaultQueue(t *testing.T, r *http.Request) *DefaultQueueTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2184,7 +2182,7 @@ func CacheLoad(t *testing.T, r *http.Request) *CacheLoadTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2702,7 +2700,7 @@ func CacheStore(t *testing.T, r *http.Request) *CacheStoreTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = url.Parse(u)
+	r.URL, err = httpx.ParseURL(u)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

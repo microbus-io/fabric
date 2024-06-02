@@ -14,7 +14,7 @@ import (
 
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/utils"
 )
 
@@ -107,7 +107,7 @@ func (h *Handler) validate() error {
 	if strings.Contains(h.Path, "`") {
 		return errors.Newf("backquote not allowed in path '%s' in '%s'", h.Path, h.Name())
 	}
-	s, err := sub.NewSub("GET", "example.com", h.Path, nil)
+	u, err := httpx.ParseURL(httpx.JoinHostAndPath("hostname", h.Path))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -135,8 +135,8 @@ func (h *Handler) validate() error {
 		if h.Method == "*" {
 			return errors.Newf("invalid method '%s'", h.Method)
 		}
-		if s.Port == "*" {
-			return errors.Newf("invalid port '%s'", s.Port)
+		if u.Port() == "0" {
+			return errors.Newf("invalid port '%s'", u.Port())
 		}
 	} else {
 		if h.Method == "" {
@@ -294,11 +294,12 @@ func (h *Handler) Incrementable() bool {
 
 // Port returns the port number set in the path.
 func (h *Handler) Port() (string, error) {
-	s, err := sub.NewSub("GET", "hostname", h.Path, nil)
+	joined := httpx.JoinHostAndPath("hostname", h.Path)
+	u, err := httpx.ParseURL(joined)
 	if err != nil {
 		return "", err
 	}
-	return s.Port, nil
+	return u.Port(), nil
 }
 
 // MethodWithBody indicates if the HTTP method of the endpoint allows sending a body.

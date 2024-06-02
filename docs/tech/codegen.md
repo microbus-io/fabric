@@ -103,7 +103,7 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
-#   :*/path - Any port
+#   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue
@@ -218,7 +218,7 @@ The `webs` section defines raw web handlers which allow the microservice to hand
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
-#   :*/path - Any port
+#   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
 # queue - The subscription queue

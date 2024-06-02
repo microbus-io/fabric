@@ -226,7 +226,7 @@ Extensions are specified with "*.ext" and are matched against the extension of t
 	)
 
 	// OpenAPI
-	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)

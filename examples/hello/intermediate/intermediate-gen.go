@@ -113,7 +113,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	)
 
 	// OpenAPI
-	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	// Webs
 	svc.Subscribe(`*`, `:443/hello`, svc.impl.Hello)
@@ -143,7 +143,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		Endpoints:   []*openapi.Endpoint{},
 		RemoteURI:   frame.Of(r).XForwardedFullURL(),
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Hello`,
@@ -157,7 +157,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Echo`,
@@ -171,7 +171,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Ping`,
@@ -185,7 +185,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Calculator`,
@@ -201,7 +201,7 @@ a call from one microservice to another.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `BusJPEG`,
@@ -215,7 +215,7 @@ a call from one microservice to another.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Localization`,
@@ -229,7 +229,7 @@ a call from one microservice to another.`,
 			}{},
 		})
 	}
-	if r.URL.Port() == "443" || "443" == "*" {
+	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Root`,

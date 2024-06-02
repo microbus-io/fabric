@@ -51,7 +51,7 @@ const Hostname = "openapiportal.sys"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfList = httpx.JoinHostAndPath(Hostname, `//openapi:*`)
+	URLOfList = httpx.JoinHostAndPath(Hostname, `//openapi:0`)
 )
 
 // Client is an interface to calling the endpoints of the openapiportal.sys microservice.

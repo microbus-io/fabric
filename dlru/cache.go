@@ -28,6 +28,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/control/controlapi"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
@@ -68,20 +69,18 @@ type Service interface {
 // NewCache starts a new cache for the service at a given path.
 // It's recommended to use a non-standard port for the path.
 func NewCache(ctx context.Context, svc Service, path string) (*Cache, error) {
-	sub, err := sub.NewSub("GET", svc.Hostname(), path, nil)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+	basePath := httpx.JoinHostAndPath(svc.Hostname(), path)
+	basePath = strings.TrimSuffix(basePath, "/")
 
 	c := &Cache{
-		basePath: "https://" + strings.TrimSuffix(sub.Canonical(), "/"),
+		basePath: basePath,
 		svc:      svc,
 	}
 	c.localCache = lru.NewCache[string, []byte]()
 	c.localCache.SetMaxAge(time.Hour)
 	c.localCache.SetMaxWeight(32 * 1024 * 1024) // 32MB
 
-	err = c.start(ctx)
+	err := c.start(ctx)
 	if err != nil {
 		c.stop(ctx)
 		return nil, errors.Trace(err)

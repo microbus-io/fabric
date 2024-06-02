@@ -125,7 +125,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	{{- end }}{{ end }}
 
 	// OpenAPI
-	svc.Subscribe("GET", `:*/openapi.json`, svc.doOpenAPI)
+	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)
 
 	{{- if .Functions }}	
 
@@ -191,7 +191,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 	}
 
 	{{- if .General.OpenAPI}}{{- range (JoinHandlers .Functions .Webs) }}{{- if .OpenAPI}}
-	if r.URL.Port() == "{{ .Port }}" || "{{ .Port }}" == "*" {
+	if r.URL.Port() == "{{ .Port }}" || "{{ .Port }}" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `{{.Type}}`,
 			Name:        `{{.Name}}`,

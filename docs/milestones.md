@@ -197,3 +197,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Deprecated `InfiniteChan` and replaced with an internal `transferChan`
 * Middleware chain inside HTTP ingress proxy instead of delegating to a remote microservice
 * Enhancements to distributed tracing and metric collection
+
+[Milestone 24](https://github.com/microbus-io/fabric/tree/milestone/24):
+
+* Use port `:0` to subscribe to any port instead of `:*`
