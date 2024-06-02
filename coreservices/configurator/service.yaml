@@ -48,7 +48,7 @@ configs:
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard path segment
+#   /obj/{id}/path - Path argument
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
@@ -59,7 +59,7 @@ configs:
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
-# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 functions:
   - signature: Values(names []string) (values map[string]string)
     description: Values returns the values associated with the specified config property names for the caller microservice.
@@ -80,7 +80,7 @@ functions:
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard path segment
+#   /obj/{id}/path - Path argument
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path of the microservice
@@ -115,7 +115,7 @@ sinks:
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard path segment
+#   /obj/{id}/path - Path argument
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
@@ -126,7 +126,7 @@ sinks:
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
-# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 webs:
   # - signature:
   #   description:

@@ -14,7 +14,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -296,6 +298,33 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	if httpReq == nil {
 		// Not all fragments arrived yet
 		return nil
+	}
+
+	// Convert path arguments into query arguments so they are accessible by name
+	reqParts := strings.Split(httpReq.URL.Path, "/")
+	subParts := strings.Split(s.Path, "/")
+	var query url.Values
+	for i := range subParts {
+		if i >= len(reqParts) {
+			break
+		}
+		// Capture named path arguments, e.g. /obj/{id}/details
+		if strings.HasPrefix(subParts[i], "{") && strings.HasSuffix(subParts[i], "}") && len(subParts[i]) > 2 {
+			if query == nil {
+				query = httpReq.URL.Query()
+			}
+			query.Set(subParts[i][1:len(subParts[i])-1], reqParts[i])
+		}
+		// Capture path appendix, e.g. /directory/
+		if subParts[i] == "" && i == len(subParts)-1 {
+			if query == nil {
+				query = httpReq.URL.Query()
+			}
+			query.Set("appendix", strings.Join(reqParts[i:], "/"))
+		}
+	}
+	if query != nil {
+		httpReq.URL.RawQuery = query.Encode()
 	}
 
 	// OpenTelemetry: create a child span

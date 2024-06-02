@@ -32,9 +32,11 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 
 	// Create the microservice
 	var count int
+	var appendix string
 	con := New("directory.subscription.connector")
 	con.Subscribe("GET", "directory/", func(w http.ResponseWriter, r *http.Request) error {
 		count++
+		appendix = r.URL.Query().Get("appendix")
 		return nil
 	})
 
@@ -46,12 +48,16 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	// Send messages to various locations under the directory
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/")
 	assert.NoError(t, err)
+	assert.Equal(t, "", appendix)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/1.html")
 	assert.NoError(t, err)
+	assert.Equal(t, "1.html", appendix)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/2.html")
 	assert.NoError(t, err)
+	assert.Equal(t, "2.html", appendix)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/sub/3.html")
 	assert.NoError(t, err)
+	assert.Equal(t, "sub/3.html", appendix)
 
 	assert.Equal(t, 4, count)
 }
@@ -79,7 +85,7 @@ func TestConnector_HyphenInHostname(t *testing.T) {
 	assert.True(t, entered)
 }
 
-func TestConnector_AsteriskSubscription(t *testing.T) {
+func TestConnector_PathArgumentsInSubscription(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -89,26 +95,26 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	betaCount := 0
 	rootCount := 0
 	parentCount := 0
-	detected := map[string]bool{}
-	con := New("asterisk.subscription.connector")
-	con.Subscribe("GET", "/obj/*/alpha", func(w http.ResponseWriter, r *http.Request) error {
+	detected := map[string]string{}
+	con := New("path.arguments.in.subscription.connector")
+	con.Subscribe("GET", "/obj/{id}/alpha", func(w http.ResponseWriter, r *http.Request) error {
 		alphaCount++
-		detected[r.URL.Path] = true
+		detected[r.URL.Path] = r.URL.Query().Get("id")
 		return nil
 	})
-	con.Subscribe("GET", "/obj/*/beta", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/obj/{id}/beta", func(w http.ResponseWriter, r *http.Request) error {
 		betaCount++
-		detected[r.URL.Path] = true
+		detected[r.URL.Path] = r.URL.Query().Get("id")
 		return nil
 	})
-	con.Subscribe("GET", "/obj/*", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "/obj/{id}", func(w http.ResponseWriter, r *http.Request) error {
 		rootCount++
-		detected[r.URL.Path] = true
+		detected[r.URL.Path] = r.URL.Query().Get("id")
 		return nil
 	})
 	con.Subscribe("GET", "/obj", func(w http.ResponseWriter, r *http.Request) error {
 		parentCount++
-		detected[r.URL.Path] = true
+		detected[r.URL.Path] = r.URL.Query().Get("id")
 		return nil
 	})
 
@@ -118,32 +124,32 @@ func TestConnector_AsteriskSubscription(t *testing.T) {
 	defer con.Shutdown()
 
 	// Send messages
-	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/1234/alpha")
+	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/1234/alpha")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, alphaCount)
-	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/2345/alpha")
+	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/2345/alpha")
 	assert.NoError(t, err)
 	assert.Equal(t, 2, alphaCount)
-	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/1111/beta")
+	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/1111/beta")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, betaCount)
-	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/2222/beta")
+	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/2222/beta")
 	assert.NoError(t, err)
 	assert.Equal(t, 2, betaCount)
-	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj/8000")
+	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/8000")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, rootCount)
-	_, err = con.GET(ctx, "https://asterisk.subscription.connector/obj")
+	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, parentCount)
 
 	assert.Len(t, detected, 6)
-	assert.True(t, detected["/obj/1234/alpha"])
-	assert.True(t, detected["/obj/2345/alpha"])
-	assert.True(t, detected["/obj/1111/beta"])
-	assert.True(t, detected["/obj/2222/beta"])
-	assert.True(t, detected["/obj/8000"])
-	assert.True(t, detected["/obj"])
+	assert.Equal(t, "1234", detected["/obj/1234/alpha"])
+	assert.Equal(t, "2345", detected["/obj/2345/alpha"])
+	assert.Equal(t, "1111", detected["/obj/1111/beta"])
+	assert.Equal(t, "2222", detected["/obj/2222/beta"])
+	assert.Equal(t, "8000", detected["/obj/8000"])
+	assert.Equal(t, "", detected["/obj"])
 }
 
 func TestConnector_MixedAsteriskSubscription(t *testing.T) {
@@ -655,7 +661,6 @@ func BenchmarkConnection_AckRequest(b *testing.B) {
 	// 26 allocs/op
 }
 
-/*
 func TestConnector_PathArguments(t *testing.T) {
 	t.Parallel()
 
@@ -677,9 +682,8 @@ func TestConnector_PathArguments(t *testing.T) {
 	defer con.Shutdown()
 
 	// Send messages to various locations under the directory
-	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO/bar/BAR"))
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO/bar/BAR?foo=x&bar=x"))
 	assert.NoError(t, err)
-	assert.Equal(t, foo, "FOO")
-	assert.Equal(t, bar, "BAR")
+	assert.Equal(t, "FOO", foo)
+	assert.Equal(t, "BAR", bar)
 }
-*/

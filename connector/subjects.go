@@ -69,7 +69,21 @@ func subjectOf(wildcards bool, plane string, method string, hostname string, por
 		b.WriteRune('_')
 		return b.String()
 	}
-	b.WriteString(encodePath(strings.TrimPrefix(path, "/")))
+	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	for i := range parts {
+		if i > 0 {
+			b.WriteRune('.')
+		}
+		if wildcards && strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
+			b.WriteRune('*')
+			continue
+		}
+		if wildcards && parts[i] == "*" {
+			b.WriteRune('*')
+			continue
+		}
+		escapePathPart(&b, parts[i])
+	}
 	if strings.HasSuffix(path, "/") {
 		if wildcards {
 			b.WriteRune('>')
@@ -80,21 +94,17 @@ func subjectOf(wildcards bool, plane string, method string, hostname string, por
 	return b.String()
 }
 
-// escapePath escapes special characters in the path to make it suitable for appending to the subscription subject
-func encodePath(path string) string {
-	var b strings.Builder
-	for _, ch := range path {
+// escapePathPart escapes special characters in the path to make it suitable for inclusion in the subscription subject.
+func escapePathPart(b *strings.Builder, part string) {
+	for _, ch := range part {
 		switch {
 		case ch == '.':
 			b.WriteRune('_')
-		case ch == '/':
-			b.WriteRune('.')
-		case (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '*' || ch == '-':
+		case (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-':
 			b.WriteRune(ch)
 		default:
 			b.WriteRune('%')
 			b.WriteString(fmt.Sprintf("%04x", int(ch)))
 		}
 	}
-	return b.String()
 }

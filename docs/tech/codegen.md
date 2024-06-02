@@ -99,7 +99,7 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard path segment
+#   /obj/{id}/path - Path argument
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
@@ -109,7 +109,7 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
-# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 functions:
   # - signature:
   #   description:
@@ -150,7 +150,7 @@ Along with the hostname of the service, the `path` defines the URL to this endpo
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard path segment
+#   /obj/{id}/path - Path argument
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path
@@ -214,7 +214,7 @@ The `webs` section defines raw web handlers which allow the microservice to hand
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/ - All paths under the directory
-#   /obj/*/path - Wildcard path segment
+#   /obj/{id}/path - Path argument
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
@@ -224,7 +224,7 @@ The `webs` section defines raw web handlers which allow the microservice to hand
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
-# openApi - Whether or not to include this endpoint in OpenAPI document of the microservice (defaults to true)
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 webs:
   # - signature:
   #   description:

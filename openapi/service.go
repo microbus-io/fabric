@@ -192,15 +192,15 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 		path = "/" + path
 		// Catch all subscriptions
 		if strings.HasSuffix(ep.Path, "/") {
-			path += "{suffix}"
+			path += "{appendix}"
 
 			op.Parameters = append(op.Parameters, &oapiParameter{
 				In:   "path",
-				Name: "suffix",
+				Name: "appendix",
 				Schema: &jsonschema.Schema{
 					Type: "string",
 				},
-				Description: "Suffix of path",
+				Description: "Appendix of path",
 				Required:    true,
 			})
 		}
