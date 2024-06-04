@@ -21,7 +21,7 @@ type Argument struct {
 }
 
 // EndType returns the final part of the type, excluding map, array and pointer markers.
-// map[string]int -> int; []*User -> User
+// map[string]int -> int; []*User -> User; *time.Time -> time.Time
 func (arg *Argument) EndType() string {
 	star := strings.LastIndex(arg.Type, "*")
 	bracket := strings.LastIndex(arg.Type, "]")

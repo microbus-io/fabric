@@ -163,40 +163,81 @@ func (_out *RegisterResponse) Get() (allowed bool, err error) {
 Register attempts to register a new user.
 */
 func (_c *MulticastClient) Register(ctx context.Context, email string, _options ...pub.Option) <-chan *RegisterResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := RegisterIn{
 		email,
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *RegisterResponse, 1)
+		_res <- &RegisterResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *RegisterResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r RegisterResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r RegisterResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
+}
+
+/*
+Register attempts to register a new user.
+*/
+func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := RegisterIn{
+		email,
+	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out RegisterOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	allowed = _out.Allowed
+	return
 }
 
 // OnAllowRegisterIn are the input arguments of OnAllowRegister.
@@ -228,133 +269,45 @@ OnAllowRegister is called before a user is allowed to register.
 Event sinks are given the opportunity to block the registration.
 */
 func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _options ...pub.Option) <-chan *OnAllowRegisterResponse {
-	method := `POST`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := OnAllowRegisterIn{
 		email,
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *OnAllowRegisterResponse, 1)
+		_res <- &OnAllowRegisterResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *OnAllowRegisterResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r OnAllowRegisterResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r OnAllowRegisterResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
-}
-
-// OnRegisteredIn are the input arguments of OnRegistered.
-type OnRegisteredIn struct {
-	Email string `json:"email"`
-}
-
-// OnRegisteredOut are the return values of OnRegistered.
-type OnRegisteredOut struct {
-}
-
-// OnRegisteredResponse is the response to OnRegistered.
-type OnRegisteredResponse struct {
-	data OnRegisteredOut
-	HTTPResponse *http.Response
-	err error
-}
-
-// Get retrieves the return values.
-func (_out *OnRegisteredResponse) Get() (err error) {
-	err = _out.err
-	return
-}
-
-/*
-OnRegistered is called when a user is successfully registered.
-*/
-func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredResponse {
-	method := `POST`
-	if method == "ANY" {
-		method = "POST"
-	}
-	_in := OnRegisteredIn{
-		email,
-	}
-	_opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-registered`)),
-		pub.Body(_in),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
-
-	_res := make(chan *OnRegisteredResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r OnRegisteredResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
-			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
-			}
-			_res <- &_r
-		}
-		close(_res)
-	}()
-	return _res
-}
-
-/*
-Register attempts to register a new user.
-*/
-func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
-	_in := RegisterIn{
-		email,
-	}
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
-		pub.Body(_in),
-	)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	var _out RegisterOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	allowed = _out.Allowed
-	return
 }
 
 /*
@@ -388,6 +341,73 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 		return _c.svc.Unsubscribe(`POST`, path)
 	}
 	return _c.svc.Subscribe(`POST`, path, doOnAllowRegister, options...)
+}
+
+// OnRegisteredIn are the input arguments of OnRegistered.
+type OnRegisteredIn struct {
+	Email string `json:"email"`
+}
+
+// OnRegisteredOut are the return values of OnRegistered.
+type OnRegisteredOut struct {
+}
+
+// OnRegisteredResponse is the response to OnRegistered.
+type OnRegisteredResponse struct {
+	data OnRegisteredOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *OnRegisteredResponse) Get() (err error) {
+	err = _out.err
+	return
+}
+
+/*
+OnRegistered is called when a user is successfully registered.
+*/
+func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredResponse {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := OnRegisteredIn{
+		email,
+	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *OnRegisteredResponse, 1)
+		_res <- &OnRegisteredResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	_opts := []pub.Option{
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-registered`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *OnRegisteredResponse, cap(_ch))
+	for _i := range _ch {
+		var _r OnRegisteredResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
 }
 
 /*

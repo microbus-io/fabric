@@ -8,6 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package directory
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -58,34 +59,29 @@ func TestDirectory_CRUD(t *testing.T) {
 		Email:     "harry.potter@hogwarts.edu.wiz",
 		Birthday:  timex.MustParse("", "1980-07-31").UTC(),
 	}
-	Create(t, ctx, person).
-		Assert(func(t *testing.T, created *directoryapi.Person, err error) {
-			assert.Equal(t, person.FirstName, created.FirstName)
-			assert.Equal(t, person.LastName, created.LastName)
-			assert.Equal(t, person.Email, created.Email)
-			assert.NotZero(t, created.Key.Seq)
-		})
+	person.Key, _ = Create(t, ctx, person).
+		Assert(func(t *testing.T, key directoryapi.PersonKey, err error) {
+			assert.NotZero(t, key)
+		}).
+		Get()
 
 	Load(t, ctx, person.Key).
-		Expect(person, true)
+		Expect(person)
 	LoadByEmail(t, ctx, person.Email).
-		Expect(person, true)
+		Expect(person)
 	List(t, ctx).
 		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
 			assert.Contains(t, keys, person.Key)
 		})
 
 	person.Email = "harry.potter@gryffindor.wiz"
-	Update(t, ctx, person).
+	Update(t, ctx, person.Key, person).
 		NoError()
 
 	Load(t, ctx, person.Key).
-		Expect(person, true).
-		Assert(func(t *testing.T, person *directoryapi.Person, ok bool, err error) {
-			assert.Equal(t, "harry.potter@gryffindor.wiz", person.Email)
-		})
+		Expect(person)
 	LoadByEmail(t, ctx, person.Email).
-		Expect(person, true)
+		Expect(person)
 
 	dupPerson := &directoryapi.Person{
 		FirstName: "Harry",
@@ -99,9 +95,9 @@ func TestDirectory_CRUD(t *testing.T) {
 		NoError()
 
 	Load(t, ctx, person.Key).
-		Expect(nil, false)
+		ErrorCode(http.StatusNotFound)
 	LoadByEmail(t, ctx, person.Email).
-		Expect(nil, false)
+		ErrorCode(http.StatusNotFound)
 }
 
 func TestDirectory_Create(t *testing.T) {
@@ -134,14 +130,7 @@ func TestDirectory_Create(t *testing.T) {
 		Error("birthday")
 	person.Birthday = timex.Timex{}
 
-	person, _ = Create(t, ctx, person).
-		Assert(func(t *testing.T, created *directoryapi.Person, err error) {
-			assert.Equal(t, person.FirstName, created.FirstName)
-			assert.Equal(t, person.LastName, created.LastName)
-			assert.Equal(t, person.Email, created.Email)
-			assert.NotZero(t, created.Key.Seq)
-		}).
-		Get()
+	person.Key, _ = Create(t, ctx, person).Get()
 	List(t, ctx).
 		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
 			assert.Contains(t, keys, person.Key)
@@ -168,17 +157,17 @@ func TestDirectory_Update(t *testing.T) {
 		NoError()
 
 	person.FirstName = ""
-	Update(t, ctx, person).
+	Update(t, ctx, person.Key, person).
 		Error("empty")
 	person.FirstName = "Ron"
 
 	person.LastName = ""
-	Update(t, ctx, person).
+	Update(t, ctx, person.Key, person).
 		Error("empty")
 	person.LastName = "Weasley"
 
 	person.Email = ""
-	Update(t, ctx, person).
+	Update(t, ctx, person.Key, person).
 		Error("empty")
 	person.Email = "ron.weasley@hogwarts.edu.wiz"
 
@@ -188,11 +177,11 @@ func TestDirectory_Update(t *testing.T) {
 	person.Birthday = timex.Timex{}
 
 	person.Birthday = timex.MustParse("", "1980-03-01").UTC()
-	Update(t, ctx, person).
+	Update(t, ctx, person.Key, person).
 		NoError()
 
 	Load(t, ctx, person.Key).
-		Expect(person, true)
+		Expect(person)
 }
 
 func TestDirectory_LoadByEmail(t *testing.T) {
@@ -205,4 +194,16 @@ func TestDirectory_Delete(t *testing.T) {
 
 func TestDirectory_List(t *testing.T) {
 	t.Skip() // Tested elsewhere
+}
+
+func TestDirectory_WebUI(t *testing.T) {
+	t.Skip()
+
+	/*
+		ctx := Context()
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		WebUI_Get(t, ctx, "").BodyContains(value)
+		WebUI_Post(t, ctx, "", "", body).BodyContains(value)
+		WebUI(t, httpRequest).BodyContains(value)
+	*/
 }

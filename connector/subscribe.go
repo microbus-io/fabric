@@ -308,19 +308,20 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 		if i >= len(reqParts) {
 			break
 		}
+		// Capture path appendix, e.g. /directory/{filename+}
+		if i == len(subParts)-1 && strings.HasPrefix(subParts[i], "{") && strings.HasSuffix(subParts[i], "+}") && len(subParts[i]) > 3 {
+			if query == nil {
+				query = httpReq.URL.Query()
+			}
+			query.Set(subParts[i][1:len(subParts[i])-2], strings.Join(reqParts[i:], "/"))
+			break
+		}
 		// Capture named path arguments, e.g. /obj/{id}/details
 		if strings.HasPrefix(subParts[i], "{") && strings.HasSuffix(subParts[i], "}") && len(subParts[i]) > 2 {
 			if query == nil {
 				query = httpReq.URL.Query()
 			}
 			query.Set(subParts[i][1:len(subParts[i])-1], reqParts[i])
-		}
-		// Capture path appendix, e.g. /directory/
-		if subParts[i] == "" && i == len(subParts)-1 {
-			if query == nil {
-				query = httpReq.URL.Query()
-			}
-			query.Set("appendix", strings.Join(reqParts[i:], "/"))
 		}
 	}
 	if query != nil {

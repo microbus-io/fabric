@@ -37,12 +37,13 @@ var (
 // Mock is a mockable version of the directory.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*connector.Connector
-	mockCreate func(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error)
-	mockLoad func(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error)
-	mockDelete func(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error)
-	mockUpdate func(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error)
-	mockLoadByEmail func(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error)
-	mockList func(ctx context.Context) (keys []directoryapi.PersonKey, err error)
+	mockCreate func(ctx context.Context, httpRequestBody *directoryapi.Person) (key directoryapi.PersonKey, err error)
+	mockLoad func(ctx context.Context, key directoryapi.PersonKey) (httpResponseBody *directoryapi.Person, err error)
+	mockDelete func(ctx context.Context, key directoryapi.PersonKey) (err error)
+	mockUpdate func(ctx context.Context, key directoryapi.PersonKey, httpRequestBody *directoryapi.Person) (err error)
+	mockLoadByEmail func(ctx context.Context, email string) (httpResponseBody *directoryapi.Person, err error)
+	mockList func(ctx context.Context) (httpResponseBody []directoryapi.PersonKey, err error)
+	mockWebUI func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -51,16 +52,19 @@ func NewMock() *Mock {
 		Connector: connector.New("directory.example"),
 	}
 	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The directory microservice stores personal records in a SQL database.`)
+	svc.SetDescription(`The directory microservice exposes a RESTful API for persisting personal records in a SQL database.`)
 	svc.SetOnStartup(svc.doOnStartup)
 
 	// Functions
-	svc.Subscribe(`ANY`, `:443/create`, svc.doCreate)
-	svc.Subscribe(`ANY`, `:443/load`, svc.doLoad)
-	svc.Subscribe(`ANY`, `:443/delete`, svc.doDelete)
-	svc.Subscribe(`ANY`, `:443/update`, svc.doUpdate)
-	svc.Subscribe(`ANY`, `:443/load-by-email`, svc.doLoadByEmail)
-	svc.Subscribe(`ANY`, `:443/list`, svc.doList)
+	svc.Subscribe(`POST`, `:443/persons`, svc.doCreate)
+	svc.Subscribe(`GET`, `:443/persons/key/{key}`, svc.doLoad)
+	svc.Subscribe(`DELETE`, `:443/persons/key/{key}`, svc.doDelete)
+	svc.Subscribe(`PUT`, `:443/persons/key/{key}`, svc.doUpdate)
+	svc.Subscribe(`GET`, `:443/persons/email/{email}`, svc.doLoadByEmail)
+	svc.Subscribe(`GET`, `:443/persons`, svc.doList)
+
+	// Webs
+	svc.Subscribe(`ANY`, `:443/web-ui`, svc.doWebUI)
 
 	return svc
 }
@@ -84,9 +88,9 @@ func (svc *Mock) doCreate(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Created, err = svc.mockCreate(
+	o.Key, err = svc.mockCreate(
 		r.Context(),
-		i.Person,
+		i.HTTPRequestBody,
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -100,7 +104,7 @@ func (svc *Mock) doCreate(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockCreate sets up a mock handler for the Create function.
-func (svc *Mock) MockCreate(handler func(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error)) *Mock {
+func (svc *Mock) MockCreate(handler func(ctx context.Context, httpRequestBody *directoryapi.Person) (key directoryapi.PersonKey, err error)) *Mock {
 	svc.mockCreate = handler
 	return svc
 }
@@ -116,7 +120,7 @@ func (svc *Mock) doLoad(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Person, o.Ok, err = svc.mockLoad(
+	o.HTTPResponseBody, err = svc.mockLoad(
 		r.Context(),
 		i.Key,
 	)
@@ -132,7 +136,7 @@ func (svc *Mock) doLoad(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockLoad sets up a mock handler for the Load function.
-func (svc *Mock) MockLoad(handler func(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error)) *Mock {
+func (svc *Mock) MockLoad(handler func(ctx context.Context, key directoryapi.PersonKey) (httpResponseBody *directoryapi.Person, err error)) *Mock {
 	svc.mockLoad = handler
 	return svc
 }
@@ -148,7 +152,7 @@ func (svc *Mock) doDelete(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Ok, err = svc.mockDelete(
+	err = svc.mockDelete(
 		r.Context(),
 		i.Key,
 	)
@@ -164,7 +168,7 @@ func (svc *Mock) doDelete(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockDelete sets up a mock handler for the Delete function.
-func (svc *Mock) MockDelete(handler func(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error)) *Mock {
+func (svc *Mock) MockDelete(handler func(ctx context.Context, key directoryapi.PersonKey) (err error)) *Mock {
 	svc.mockDelete = handler
 	return svc
 }
@@ -180,9 +184,10 @@ func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Updated, o.Ok, err = svc.mockUpdate(
+	err = svc.mockUpdate(
 		r.Context(),
-		i.Person,
+		i.Key,
+		i.HTTPRequestBody,
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -196,7 +201,7 @@ func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockUpdate sets up a mock handler for the Update function.
-func (svc *Mock) MockUpdate(handler func(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error)) *Mock {
+func (svc *Mock) MockUpdate(handler func(ctx context.Context, key directoryapi.PersonKey, httpRequestBody *directoryapi.Person) (err error)) *Mock {
 	svc.mockUpdate = handler
 	return svc
 }
@@ -212,7 +217,7 @@ func (svc *Mock) doLoadByEmail(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Person, o.Ok, err = svc.mockLoadByEmail(
+	o.HTTPResponseBody, err = svc.mockLoadByEmail(
 		r.Context(),
 		i.Email,
 	)
@@ -228,7 +233,7 @@ func (svc *Mock) doLoadByEmail(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockLoadByEmail sets up a mock handler for the LoadByEmail function.
-func (svc *Mock) MockLoadByEmail(handler func(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error)) *Mock {
+func (svc *Mock) MockLoadByEmail(handler func(ctx context.Context, email string) (httpResponseBody *directoryapi.Person, err error)) *Mock {
 	svc.mockLoadByEmail = handler
 	return svc
 }
@@ -244,7 +249,7 @@ func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) error {
 	if err!=nil {
 		return errors.Trace(err)
 	}
-	o.Keys, err = svc.mockList(
+	o.HTTPResponseBody, err = svc.mockList(
 		r.Context(),
 	)
 	if err != nil {
@@ -259,7 +264,22 @@ func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockList sets up a mock handler for the List function.
-func (svc *Mock) MockList(handler func(ctx context.Context) (keys []directoryapi.PersonKey, err error)) *Mock {
+func (svc *Mock) MockList(handler func(ctx context.Context) (httpResponseBody []directoryapi.PersonKey, err error)) *Mock {
 	svc.mockList = handler
+	return svc
+}
+
+// doWebUI handles the WebUI web handler.
+func (svc *Mock) doWebUI(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockWebUI == nil {
+		return errors.New("mocked endpoint 'WebUI' not implemented")
+	}
+	err = svc.mockWebUI(w, r)
+	return errors.Trace(err)
+}
+
+// MockWebUI sets up a mock handler for the WebUI web handler.
+func (svc *Mock) MockWebUI(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockWebUI = handler
 	return svc
 }

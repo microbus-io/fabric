@@ -111,6 +111,13 @@ func Trace(err error) error {
 	return TraceUp(err, 1)
 }
 
+// Tracec appends the current stack location to the error's stack trace and sets the status code.
+func Tracec(statusCode int, err error) error {
+	err = TraceUp(err, 1)
+	Convert(err).StatusCode = statusCode
+	return err
+}
+
 // TraceUp appends the level above the current stack location to the error's stack trace.
 // Level 0 captures the location of the caller.
 func TraceUp(err error, level int) error {
@@ -209,34 +216,4 @@ func StatusCode(err error) int {
 		return 0
 	}
 	return Convert(err).StatusCode
-}
-
-// BadRequest returns a new 400 error.
-func BadRequest() error {
-	return Newc(400, "")
-}
-
-// Unauthorized returns a new 401 error.
-func Unauthorized() error {
-	return Newc(401, "")
-}
-
-// Forbidden returns a new 403 error.
-func Forbidden() error {
-	return Newc(403, "")
-}
-
-// NotFound returns a new 404 error.
-func NotFound() error {
-	return Newc(404, "")
-}
-
-// NotFound returns a new 408 error.
-func RequestTimeout() error {
-	return Newc(408, "")
-}
-
-// NotImplemented returns a new 501 error.
-func NotImplemented() error {
-	return Newc(501, "")
 }

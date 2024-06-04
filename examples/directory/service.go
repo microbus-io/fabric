@@ -10,6 +10,10 @@ package directory
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -18,6 +22,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
+	"github.com/microbus-io/fabric/pub"
 
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
 	"github.com/microbus-io/fabric/examples/directory/intermediate"
@@ -25,7 +30,7 @@ import (
 
 var (
 	// Emulated database
-	indexByKey   = map[int]*directoryapi.Person{}
+	indexByKey   = map[directoryapi.PersonKey]*directoryapi.Person{}
 	indexByEmail = map[string]*directoryapi.Person{}
 	nextKey      int
 	mux          sync.Mutex
@@ -34,7 +39,7 @@ var (
 /*
 Service implements the directory.example microservice.
 
-The directory microservice stores personal records in a SQL database.
+The directory microservice exposes a RESTful API for persisting personal records in a SQL database.
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
@@ -84,29 +89,30 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 /*
 Create registers the person in the directory.
 */
-func (svc *Service) Create(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error) {
+func (svc *Service) Create(ctx context.Context, httpRequestBody *directoryapi.Person) (key directoryapi.PersonKey, err error) {
+	person := httpRequestBody
 	err = person.Validate()
 	if err != nil {
-		return nil, errors.Trace(err)
+		return 0, errors.Tracec(http.StatusBadRequest, err)
 	}
 
 	if svc.db == nil {
 		// Emulate a database in-memory
 		mux.Lock()
 		defer mux.Unlock()
-		_, ok := indexByKey[person.Key.Seq]
+		_, ok := indexByKey[person.Key]
 		if ok {
-			return nil, errors.New("Duplicate key")
+			return 0, errors.Newc(http.StatusBadRequest, "Duplicate key")
 		}
 		_, ok = indexByEmail[strings.ToLower(person.Email)]
 		if ok {
-			return nil, errors.New("Duplicate key")
+			return 0, errors.Newc(http.StatusBadRequest, "Duplicate key")
 		}
 		nextKey++
-		person.Key = directoryapi.PersonKey{Seq: nextKey}
-		indexByKey[nextKey] = person
+		person.Key = directoryapi.PersonKey(nextKey)
+		indexByKey[person.Key] = person
 		indexByEmail[strings.ToLower(person.Email)] = person
-		return person, nil
+		return person.Key, nil
 	}
 
 	res, err := svc.db.ExecContext(ctx,
@@ -114,154 +120,172 @@ func (svc *Service) Create(ctx context.Context, person *directoryapi.Person) (cr
 		person.FirstName, person.LastName, person.Email, person.Birthday,
 	)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return 0, errors.Trace(err)
 	}
 	insertID, err := res.LastInsertId()
 	if err != nil {
-		return nil, errors.Trace(err)
+		return 0, errors.Trace(err)
 	}
-	person.Key.Seq = int(insertID)
-	return person, nil
+	person.Key = directoryapi.PersonKey(insertID)
+	return person.Key, nil
 }
 
 /*
 Update updates the person's data in the directory.
 */
-func (svc *Service) Update(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error) {
+func (svc *Service) Update(ctx context.Context, key directoryapi.PersonKey, httpRequestBody *directoryapi.Person) (err error) {
+	person := httpRequestBody
 	err = person.Validate()
 	if err != nil {
-		return nil, false, errors.Trace(err)
+		return errors.Tracec(http.StatusBadRequest, err)
 	}
 
 	if svc.db == nil {
 		// Emulate a database in-memory
 		mux.Lock()
 		defer mux.Unlock()
-		existing, ok := indexByKey[person.Key.Seq]
+		existing, ok := indexByKey[key]
 		if !ok {
-			return nil, false, nil
+			return errors.Newc(http.StatusNotFound, "")
 		}
-		delete(indexByKey, existing.Key.Seq)
+		delete(indexByKey, existing.Key)
 		delete(indexByEmail, strings.ToLower(existing.Email))
-		indexByKey[person.Key.Seq] = person
+		person.Key = key
+		indexByKey[key] = person
 		indexByEmail[strings.ToLower(person.Email)] = person
-		return person, true, nil
+		return nil
 	}
 
 	res, err := svc.db.ExecContext(ctx,
 		`UPDATE directory_persons SET first_name=?, last_name=?, email_address=?, birthday=? WHERE person_id=?`,
-		person.FirstName, person.LastName, person.Email, person.Birthday, person.Key.Seq,
+		person.FirstName, person.LastName, person.Email, person.Birthday, key,
 	)
 	if err != nil {
-		return nil, false, errors.Trace(err)
+		return errors.Trace(err)
 	}
 	affected, err := res.RowsAffected()
 	if err == nil && affected == 1 {
-		return person, true, nil
+		return nil
 	}
 	// Zero may be returned if no value was updated so need to verify using load
-	return svc.Load(ctx, person.Key)
+	_, err = svc.Load(ctx, key)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }
 
 /*
 Load looks up a person in the directory.
 */
-func (svc *Service) Load(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error) {
+func (svc *Service) Load(ctx context.Context, key directoryapi.PersonKey) (httpResponseBody *directoryapi.Person, err error) {
 	if svc.db == nil {
 		// Emulate a database in-memory
 		mux.Lock()
 		defer mux.Unlock()
-		loaded, ok := indexByKey[key.Seq]
-		return loaded, ok, nil
+		loaded, ok := indexByKey[key]
+		if ok {
+			return loaded, nil
+		} else {
+			return nil, errors.Newc(http.StatusNotFound, "")
+		}
 	}
 
 	row := svc.db.QueryRowContext(ctx,
 		`SELECT first_name,last_name,email_address,birthday FROM directory_persons WHERE person_id=?`,
-		key.Seq)
-	person = &directoryapi.Person{
+		key)
+	person := &directoryapi.Person{
 		Key: key,
 	}
 	err = row.Scan(&person.FirstName, &person.LastName, &person.Email, &person.Birthday)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, false, nil
+		return nil, errors.Newc(http.StatusNotFound, "")
 	}
 	if err != nil {
-		return nil, false, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
-	return person, true, nil
+	return person, nil
 }
 
 /*
 Delete removes a person from the directory.
 */
-func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error) {
+func (svc *Service) Delete(ctx context.Context, key directoryapi.PersonKey) (err error) {
 	if svc.db == nil {
 		// Emulate a database in-memory
 		mux.Lock()
 		defer mux.Unlock()
-		existing, ok := indexByKey[key.Seq]
+		existing, ok := indexByKey[key]
 		if !ok {
-			return false, nil
+			return errors.Newc(http.StatusNotFound, "")
 		}
-		delete(indexByKey, existing.Key.Seq)
+		delete(indexByKey, existing.Key)
 		delete(indexByEmail, strings.ToLower(existing.Email))
-		return true, nil
+		return nil
 	}
 
 	res, err := svc.db.ExecContext(ctx,
 		`DELETE FROM directory_persons WHERE person_id=?`,
-		key.Seq,
+		key,
 	)
 	if err != nil {
-		return false, errors.Trace(err)
+		return errors.Trace(err)
 	}
 	affected, _ := res.RowsAffected()
-	return affected == 1, nil
+	if affected > 0 {
+		return nil
+	} else {
+		return errors.Newc(http.StatusNotFound, "")
+	}
 }
 
 /*
 LoadByEmail looks up a person in the directory by their email.
 */
-func (svc *Service) LoadByEmail(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error) {
+func (svc *Service) LoadByEmail(ctx context.Context, email string) (httpResponseBody *directoryapi.Person, err error) {
 	if svc.db == nil {
 		// Emulate a database in-memory
 		mux.Lock()
 		defer mux.Unlock()
 		loaded, ok := indexByEmail[strings.ToLower(email)]
-		return loaded, ok, nil
+		if ok {
+			return loaded, nil
+		} else {
+			return nil, errors.Newc(http.StatusNotFound, "")
+		}
 	}
 
 	row := svc.db.QueryRowContext(ctx,
 		`SELECT person_id,first_name,last_name,birthday FROM directory_persons WHERE email_address=?`,
 		email)
-	person = &directoryapi.Person{
+	person := &directoryapi.Person{
 		Email: email,
 	}
-	err = row.Scan(&person.Key.Seq, &person.FirstName, &person.LastName, &person.Birthday)
+	err = row.Scan(&person.Key, &person.FirstName, &person.LastName, &person.Birthday)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, false, nil
+		return nil, errors.Newc(http.StatusNotFound, "")
 	}
 	if err != nil {
-		return nil, false, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
-	return person, true, nil
+	return person, nil
 }
 
 /*
 List returns the keys of all the persons in the directory.
 */
-func (svc *Service) List(ctx context.Context) (keys []directoryapi.PersonKey, err error) {
+func (svc *Service) List(ctx context.Context) (httpResponseBody []directoryapi.PersonKey, err error) {
 	if svc.db == nil {
 		// Emulate a database in-memory
 		mux.Lock()
 		defer mux.Unlock()
 		for _, p := range indexByKey {
-			keys = append(keys, p.Key)
+			httpResponseBody = append(httpResponseBody, p.Key)
 		}
-		sort.Slice(keys, func(i, j int) bool {
-			return keys[i].Seq < keys[j].Seq
+		sort.Slice(httpResponseBody, func(i, j int) bool {
+			return httpResponseBody[i] < httpResponseBody[j]
 		})
-		return keys, nil
+		return httpResponseBody, nil
 	}
 
 	rows, err := svc.db.QueryContext(ctx, `SELECT person_id FROM directory_persons`)
@@ -271,11 +295,72 @@ func (svc *Service) List(ctx context.Context) (keys []directoryapi.PersonKey, er
 	defer rows.Close()
 	for rows.Next() {
 		var key directoryapi.PersonKey
-		err = rows.Scan(&key.Seq)
+		err = rows.Scan(&key)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
-		keys = append(keys, key)
+		httpResponseBody = append(httpResponseBody, key)
 	}
-	return keys, nil
+	return httpResponseBody, nil
+}
+
+/*
+WebUI provides a form for making web requests to the CRUD endpoints.
+*/
+func (svc *Service) WebUI(w http.ResponseWriter, r *http.Request) (err error) {
+	ctx := r.Context()
+	err = r.ParseForm()
+	if err != nil {
+		return errors.Tracec(http.StatusBadRequest, err)
+	}
+
+	data := struct {
+		Method     string
+		Path       string
+		Body       string
+		StatusCode int
+		Response   string
+	}{
+		Method: r.FormValue("method"),
+		Path:   r.FormValue("path"),
+		Body:   r.FormValue("body"),
+	}
+	if r.Method == "POST" {
+		method := r.FormValue("method")
+		u, err := url.JoinPath("https://"+Hostname, r.FormValue("path"))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		var body []byte
+		contentType := ""
+		if method == "POST" || method == "PUT" {
+			body = []byte(r.FormValue("body"))
+			contentType = "application/json"
+		}
+		res, err := svc.Request(
+			ctx,
+			pub.Method(method),
+			pub.URL(u),
+			pub.Body(body),
+			pub.ContentType(contentType),
+		)
+		if err != nil {
+			data.Response = fmt.Sprintf("%+v", err)
+			data.StatusCode = errors.StatusCode(err)
+		} else {
+			data.StatusCode = res.StatusCode
+			b, err := io.ReadAll(res.Body)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			data.Response = string(b)
+		}
+	}
+	output, err := svc.ExecuteResTemplate("webui.html", data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(output))
+	return nil
 }

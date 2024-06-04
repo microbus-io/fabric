@@ -121,10 +121,10 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Summary:     `Register(email string) (allowed bool)`,
 			Description: `Register attempts to register a new user.`,
 			InputArgs: struct {
-				Xemail string `json:"email"`
+				Email string `json:"email"`
 			}{},
 			OutputArgs: struct {
-				Xallowed bool `json:"allowed"`
+				Allowed bool `json:"allowed"`
 			}{},
 		})
 	}
@@ -163,7 +163,11 @@ func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) erro
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

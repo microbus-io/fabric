@@ -171,24 +171,25 @@ func ContentLength(len int) Option {
 // QueryArg adds the query argument to the request.
 // The same argument may have multiple values.
 func QueryArg(name string, value any) Option {
+	if value == "" {
+		return Noop()
+	}
 	return func(req *Request) error {
-		if value != "" {
-			if len(req.queryArgs) > 0 {
-				req.queryArgs += "&"
+		if len(req.queryArgs) > 0 {
+			req.queryArgs += "&"
+		}
+		v := fmt.Sprintf("%v", value)
+		req.queryArgs += url.QueryEscape(name) + "=" + url.QueryEscape(v)
+		if req.URL != "" {
+			u, err := httpx.ParseURL(req.URL)
+			if err != nil {
+				return errors.Trace(err)
 			}
-			v := fmt.Sprintf("%v", value)
-			req.queryArgs += url.QueryEscape(name) + "=" + url.QueryEscape(v)
-			if req.URL != "" {
-				u, err := httpx.ParseURL(req.URL)
-				if err != nil {
-					return errors.Trace(err)
-				}
-				if len(u.RawQuery) > 0 {
-					u.RawQuery += "&"
-				}
-				u.RawQuery += url.QueryEscape(name) + "=" + url.QueryEscape(v)
-				req.URL = u.String()
+			if len(u.RawQuery) > 0 {
+				u.RawQuery += "&"
 			}
+			u.RawQuery += url.QueryEscape(name) + "=" + url.QueryEscape(v)
+			req.URL = u.String()
 		}
 		return nil
 	}
@@ -197,23 +198,24 @@ func QueryArg(name string, value any) Option {
 // Query adds the encoded query arguments to the request.
 // The same argument may have multiple values.
 func QueryString(encodedQueryArgs string) Option {
+	if encodedQueryArgs == "" {
+		return Noop()
+	}
 	return func(req *Request) error {
-		if encodedQueryArgs != "" {
-			if len(req.queryArgs) > 0 {
-				req.queryArgs += "&"
+		if len(req.queryArgs) > 0 {
+			req.queryArgs += "&"
+		}
+		req.queryArgs += encodedQueryArgs
+		if req.URL != "" {
+			u, err := httpx.ParseURL(req.URL)
+			if err != nil {
+				return errors.Trace(err)
 			}
-			req.queryArgs += encodedQueryArgs
-			if req.URL != "" {
-				u, err := httpx.ParseURL(req.URL)
-				if err != nil {
-					return errors.Trace(err)
-				}
-				if len(u.RawQuery) > 0 {
-					u.RawQuery += "&"
-				}
-				u.RawQuery += encodedQueryArgs
-				req.URL = u.String()
+			if len(u.RawQuery) > 0 {
+				u.RawQuery += "&"
 			}
+			u.RawQuery += encodedQueryArgs
+			req.URL = u.String()
 		}
 		return nil
 	}
@@ -221,6 +223,9 @@ func QueryString(encodedQueryArgs string) Option {
 
 // Query adds arguments to the request.
 func Query(args url.Values) Option {
+	if len(args) == 0 {
+		return Noop()
+	}
 	return QueryString(args.Encode())
 }
 
@@ -230,10 +235,10 @@ func Query(args url.Values) Option {
 // All other types are serialized as JSON.
 // The Content-Type Content-Length headers will be set to match the body if they can be determined and unless already set.
 func Body(body any) Option {
+	if body == nil {
+		return Noop()
+	}
 	return func(req *Request) error {
-		if body == nil {
-			return nil
-		}
 		r, _ := http.NewRequest("POST", "", nil)
 		err := httpx.SetRequestBody(r, body)
 		if err != nil {

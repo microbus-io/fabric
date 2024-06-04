@@ -9,6 +9,7 @@ package connector
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"runtime"
 	"strings"
@@ -85,7 +86,7 @@ func (c *Connector) Startup() (err error) {
 			}
 		}
 		if c.deployment == "" {
-			testNameHex := ""
+			testNameHash := ""
 			for lvl := 0; true; lvl++ {
 				pc, _, _, ok := runtime.Caller(lvl)
 				if !ok {
@@ -97,13 +98,15 @@ func (c *Connector) Startup() (err error) {
 				// testing.(*B).runN is the benchmark runner
 				if strings.HasPrefix(funcName, "testing.") {
 					c.deployment = TESTING
-					if defaultPlane && testNameHex != "" {
-						c.plane = testNameHex
+					if defaultPlane && testNameHash != "" {
+						c.plane = testNameHash
 					}
 					break
 				} else if strings.Contains(funcName, ".Test") || strings.Contains(funcName, ".Benchmark") {
 					// Generate a unique name for the test to be used as plane if none is explicitly specified
-					testNameHex = hex.EncodeToString([]byte(funcName))
+					h := sha256.New()
+					h.Write([]byte(funcName))
+					testNameHash = hex.EncodeToString(h.Sum(nil)[:8])
 				}
 			}
 		}

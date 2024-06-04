@@ -202,3 +202,6 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Use port `:0` to subscribe to any port instead of `:*`
 * Use method `ANY` to subscribe to any method instead of `*`
+* Path arguments `{arg}` and `{greedy+}`
+* `httpRequestBody` and `httpResponseBody` magic arguments in functions
+* Change the directory example to RESTful API style

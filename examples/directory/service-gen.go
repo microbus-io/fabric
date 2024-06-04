@@ -10,7 +10,7 @@ Neither may be used, copied or distributed without the express written consent o
 /*
 Package directory implements the directory.example microservice.
 
-The directory microservice stores personal records in a SQL database.
+The directory microservice exposes a RESTful API for persisting personal records in a SQL database.
 */
 package directory
 

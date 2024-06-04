@@ -122,38 +122,43 @@ func (_out *RegisteredResponse) Get() (emails []string, err error) {
 Registered returns the list of registered users.
 */
 func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := RegisteredIn{
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *RegisteredResponse, 1)
+		_res <- &RegisteredResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *RegisteredResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r RegisteredResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r RegisteredResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
 }
 
@@ -161,17 +166,22 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 Registered returns the list of registered users.
 */
 func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := RegisteredIn{
+	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace

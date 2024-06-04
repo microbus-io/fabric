@@ -133,3 +133,23 @@ func (sig *Signature) TestingT() string {
 	}
 	return "t"
 }
+
+// InputArg returns the named input arg, or nil if none exist with this name.
+func (sig *Signature) InputArg(name string) *Argument {
+	for _, arg := range sig.InputArgs {
+		if arg.Name == name {
+			return arg
+		}
+	}
+	return nil
+}
+
+// OutputArg returns the named output arg, or nil if none exist with this name.
+func (sig *Signature) OutputArg(name string) *Argument {
+	for _, arg := range sig.OutputArgs {
+		if arg.Name == name {
+			return arg
+		}
+	}
+	return nil
+}

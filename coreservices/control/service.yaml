@@ -49,8 +49,8 @@ configs:
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
@@ -84,8 +84,8 @@ functions:
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
@@ -119,8 +119,8 @@ tickers:
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path of the microservice

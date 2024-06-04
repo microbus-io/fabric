@@ -8,9 +8,19 @@ Neither may be used, copied or distributed without the express written consent o
 package timex
 
 import (
+	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"strings"
 	"time"
+)
+
+// Ensure interfaces
+var (
+	_ = json.Marshaler(&Timex{})
+	_ = json.Unmarshaler(&Timex{})
+	_ = driver.Valuer(&Timex{})
+	_ = sql.Scanner(&Timex{})
 )
 
 /*
@@ -357,9 +367,18 @@ func (tx *Timex) Scan(value interface{}) error {
 	tm, ok := value.(time.Time)
 	if ok {
 		tx.Time = tm
-	} else {
-		tx.Time = time.Time{} // Zero time
+		return nil
 	}
+	str, ok := value.([]uint8)
+	if ok {
+		tm, err := Parse("", string(str))
+		if err != nil {
+			return err // No trace
+		}
+		tx.Time = tm.Time
+		return nil
+	}
+	tx.Time = time.Time{} // Zero time
 	return nil
 }
 
@@ -369,4 +388,9 @@ func (tx Timex) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return tx.Time, nil
+}
+
+// JSONSchemaAlias indicates to use the JSON schema of time.
+func (tx Timex) JSONSchemaAlias() any {
+	return time.Time{}
 }

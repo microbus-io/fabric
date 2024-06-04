@@ -132,15 +132,15 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Summary:     `Arithmetic(x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int)`,
 			Description: `Arithmetic perform an arithmetic operation between two integers x and y given an operator op.`,
 			InputArgs: struct {
-				Xx int `json:"x"`
-				Xop string `json:"op"`
-				Xy int `json:"y"`
+				X int `json:"x"`
+				Op string `json:"op"`
+				Y int `json:"y"`
 			}{},
 			OutputArgs: struct {
-				XxEcho int `json:"xEcho"`
-				XopEcho string `json:"opEcho"`
-				XyEcho int `json:"yEcho"`
-				Xresult int `json:"result"`
+				XEcho int `json:"xEcho"`
+				OpEcho string `json:"opEcho"`
+				YEcho int `json:"yEcho"`
+				Result int `json:"result"`
 			}{},
 		})
 	}
@@ -153,11 +153,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Summary:     `Square(x int) (xEcho int, result int)`,
 			Description: `Square prints the square of the integer x.`,
 			InputArgs: struct {
-				Xx int `json:"x"`
+				X int `json:"x"`
 			}{},
 			OutputArgs: struct {
-				XxEcho int `json:"xEcho"`
-				Xresult int `json:"result"`
+				XEcho int `json:"xEcho"`
+				Result int `json:"result"`
 			}{},
 		})
 	}
@@ -171,11 +171,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Description: `Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.`,
 			InputArgs: struct {
-				Xp1 calculatorapi.Point `json:"p1"`
-				Xp2 calculatorapi.Point `json:"p2"`
+				P1 calculatorapi.Point `json:"p1"`
+				P2 calculatorapi.Point `json:"p2"`
 			}{},
 			OutputArgs: struct {
-				Xd float64 `json:"d"`
+				D float64 `json:"d"`
 			}{},
 		})
 	}
@@ -216,7 +216,11 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -239,7 +243,11 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -263,7 +271,11 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

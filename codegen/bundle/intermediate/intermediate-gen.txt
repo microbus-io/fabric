@@ -193,21 +193,21 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 	{{- if .General.OpenAPI}}{{- range (JoinHandlers .Functions .Webs) }}{{- if .OpenAPI}}
 	if r.URL.Port() == "{{ .Port }}" || "{{ .Port }}" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
-			Type:        `{{.Type}}`,
-			Name:        `{{.Name}}`,
-			Method:      `{{.Method}}`,
-			Path:        `{{.Path}}`,
-			Summary:     `{{.Signature.OrigString}}`,
-			Description: `{{.Description}}`,
+			Type:        `{{ .Type }}`,
+			Name:        `{{ .Name }}`,
+			Method:      `{{ .Method }}`,
+			Path:        `{{ .Path }}`,
+			Summary:     `{{ .Signature.OrigString }}`,
+			Description: `{{ .Description }}`,
 			InputArgs: struct {
 				{{- range .Signature.InputArgs}}
-				X{{.Name}} {{.Type}} `json:"{{.Name}}"`
+				{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
 				{{- end}}
 			}{},
 			OutputArgs: struct {
 				{{- range .Signature.OutputArgs}}
-				X{{.Name}} {{.Type}} `json:"{{.Name}}"`
-				{{- end}}
+				{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ if eq .Name "httpStatusCode" }}-{{ else }}{{ .Name }}{{ end }}"`
+				{{- end }}
 			}{},
 		})
 	}

@@ -125,40 +125,81 @@ func (_out *ValuesResponse) Get() (values map[string]string, err error) {
 Values returns the values associated with the specified config property names for the caller microservice.
 */
 func (_c *MulticastClient) Values(ctx context.Context, names []string, _options ...pub.Option) <-chan *ValuesResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := ValuesIn{
 		names,
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *ValuesResponse, 1)
+		_res <- &ValuesResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *ValuesResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r ValuesResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r ValuesResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
+}
+
+/*
+Values returns the values associated with the specified config property names for the caller microservice.
+*/
+func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := ValuesIn{
+		names,
+	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out ValuesOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	values = _out.Values
+	return
 }
 
 // RefreshIn are the input arguments of Refresh.
@@ -187,39 +228,79 @@ Refresh tells all microservices to contact the configurator and refresh their co
 An error is returned if any of the values sent to the microservices fails validation.
 */
 func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := RefreshIn{
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *RefreshResponse, 1)
+		_res <- &RefreshResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *RefreshResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r RefreshResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r RefreshResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
+}
+
+/*
+Refresh tells all microservices to contact the configurator and refresh their configs.
+An error is returned if any of the values sent to the microservices fails validation.
+*/
+func (_c *Client) Refresh(ctx context.Context) (err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := RefreshIn{
+	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out RefreshOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	return
 }
 
 // SyncIn are the input arguments of Sync.
@@ -249,121 +330,70 @@ func (_out *SyncResponse) Get() (err error) {
 Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string, _options ...pub.Option) <-chan *SyncResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := SyncIn{
 		timestamp,
 		values,
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *SyncResponse, 1)
+		_res <- &SyncResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *SyncResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r SyncResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r SyncResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
-}
-
-/*
-Values returns the values associated with the specified config property names for the caller microservice.
-*/
-func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
-	_in := ValuesIn{
-		names,
-	}
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
-		pub.Body(_in),
-	)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	var _out ValuesOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	values = _out.Values
-	return
-}
-
-/*
-Refresh tells all microservices to contact the configurator and refresh their configs.
-An error is returned if any of the values sent to the microservices fails validation.
-*/
-func (_c *Client) Refresh(ctx context.Context) (err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
-	_in := RefreshIn{
-	}
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
-		pub.Body(_in),
-	)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	var _out RefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	return
 }
 
 /*
 Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := SyncIn{
 		timestamp,
 		values,
 	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace

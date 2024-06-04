@@ -14,6 +14,16 @@ import (
 	"github.com/microbus-io/fabric/timex"
 )
 
+// Person is a personal record that is registered in the directory.
+// First and last name and email are required. Birthday is optional.
+type Person struct {
+	Birthday  timex.Timex `json:"birthday,omitempty"`
+	Email     string      `json:"email,omitempty"`
+	FirstName string      `json:"firstName,omitempty"`
+	Key       PersonKey   `json:"key,omitempty"`
+	LastName  string      `json:"lastName,omitempty"`
+}
+
 // Validate validates the field of the person.
 // First and last name and email are required. Optional birthday must be in the past.
 func (person *Person) Validate() error {

@@ -9,6 +9,7 @@ package openapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"mime"
 	"reflect"
 	"regexp"
@@ -85,6 +86,34 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 	for _, ep := range s.Endpoints {
 		var op *oapiOperation
 
+		path := httpx.JoinHostAndPath(s.ServiceName, ep.Path)
+		_, path, _ = strings.Cut(path, "://")
+		path = "/" + path
+
+		// Path arguments
+		pathArgs := map[string]*oapiParameter{}
+		parts := strings.Split(path, "/")[2:] // Skip the hostname
+		for i := range parts {
+			if strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
+				name := parts[i]
+				name = strings.TrimSpace(name)
+				name = strings.TrimLeft(name, "{")
+				name = strings.TrimRight(name, "+}")
+				name = strings.TrimSpace(name)
+				if name == "" {
+					name = fmt.Sprintf("path%d", i+1)
+				}
+				pathArgs[name] = &oapiParameter{
+					In:   "path",
+					Name: name,
+					Schema: &jsonschema.Schema{
+						Type: "string",
+					},
+					Required: true,
+				}
+			}
+		}
+
 		// Functions
 		if ep.Type == "function" {
 			if ep.Method == "" || ep.Method == "ANY" {
@@ -109,6 +138,13 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 
 			// OUT is JSON in the response body
 			schemaOut := jsonschema.Reflect(ep.OutputArgs)
+			if field, ok := reflect.TypeOf(ep.OutputArgs).FieldByName("HTTPResponseBody"); ok {
+				schemaOut = jsonschema.ReflectFromType(field.Type)
+				for _, v := range schemaOut.Definitions {
+					schemaOut = v
+					break
+				}
+			}
 			resolveRefs(schemaOut, ep.Name+"_OUT")
 			doc.Components.Schemas[ep.Name+"_OUT"] = schemaOut
 
@@ -125,6 +161,12 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 						In:   "query",
 						Name: name,
 					}
+					if pathArgs[name] != nil {
+						parameter.In = "path"
+						parameter.Required = true
+						delete(pathArgs, name)
+					}
+
 					fieldSchema := jsonschema.ReflectFromType(field.Type)
 					resolveRefs(fieldSchema, ep.Name+"_IN")
 					if fieldSchema.Ref != "" {
@@ -142,6 +184,13 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			} else {
 				// IN is JSON in the request body
 				schemaIn := jsonschema.Reflect(ep.InputArgs)
+				if field, ok := reflect.TypeOf(ep.InputArgs).FieldByName("HTTPRequestBody"); ok {
+					schemaIn = jsonschema.ReflectFromType(field.Type)
+					for _, v := range schemaIn.Definitions {
+						schemaIn = v
+						break
+					}
+				}
 				resolveRefs(schemaIn, ep.Name+"_IN")
 				doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
 
@@ -187,22 +236,9 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			}
 		}
 
-		path := httpx.JoinHostAndPath(s.ServiceName, ep.Path)
-		_, path, _ = strings.Cut(path, "://")
-		path = "/" + path
-		// Catch all subscriptions
-		if strings.HasSuffix(ep.Path, "/") {
-			path += "{appendix}"
-
-			op.Parameters = append(op.Parameters, &oapiParameter{
-				In:   "path",
-				Name: "appendix",
-				Schema: &jsonschema.Schema{
-					Type: "string",
-				},
-				Description: "Appendix of path",
-				Required:    true,
-			})
+		// Path arguments
+		for _, arg := range pathArgs {
+			op.Parameters = append(op.Parameters, arg)
 		}
 
 		// Add to paths

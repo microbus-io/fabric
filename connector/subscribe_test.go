@@ -34,7 +34,7 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	var count int
 	var appendix string
 	con := New("directory.subscription.connector")
-	con.Subscribe("GET", "directory/", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("GET", "directory/{appendix+}", func(w http.ResponseWriter, r *http.Request) error {
 		count++
 		appendix = r.URL.Query().Get("appendix")
 		return nil
@@ -46,9 +46,6 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	defer con.Shutdown()
 
 	// Send messages to various locations under the directory
-	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/")
-	assert.NoError(t, err)
-	assert.Equal(t, "", appendix)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/1.html")
 	assert.NoError(t, err)
 	assert.Equal(t, "1.html", appendix)
@@ -59,7 +56,13 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "sub/3.html", appendix)
 
-	assert.Equal(t, 4, count)
+	assert.Equal(t, 3, count)
+
+	// The path of the directory should not be captured
+	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/")
+	assert.Error(t, err)
+	_, err = con.GET(ctx, "https://directory.subscription.connector/directory")
+	assert.Error(t, err)
 }
 
 func TestConnector_HyphenInHostname(t *testing.T) {

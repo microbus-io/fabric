@@ -37,7 +37,6 @@ func (g *General) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	g.Description = conformDesc(
 		g.Description,
 		`The "`+g.Host+`" microservice.`,
-		"",
 	)
 
 	// Validate

@@ -36,14 +36,46 @@ func SetRequestBody(r *http.Request, body any) error {
 	case []byte:
 		r.Body = NewBodyReader(v)
 		if !hasContentType {
-			r.Header.Set("Content-Type", http.DetectContentType(v))
+			detected := ""
+			if len(v) >= 2 && v[0] == '{' && v[len(v)-1] == '}' {
+				err := json.Unmarshal(v, &map[string]any{})
+				if err == nil {
+					detected = "application/json"
+				}
+			}
+			if len(v) >= 2 && v[0] == '[' && v[len(v)-1] == ']' {
+				err := json.Unmarshal(v, &[]any{})
+				if err == nil {
+					detected = "application/json"
+				}
+			}
+			if detected == "" {
+				detected = http.DetectContentType(v)
+			}
+			r.Header.Set("Content-Type", detected)
 		}
 		r.Header.Set("Content-Length", strconv.Itoa(len(v)))
 	case string:
 		b := []byte(v)
 		r.Body = NewBodyReader(b)
 		if !hasContentType {
-			r.Header.Set("Content-Type", http.DetectContentType(b))
+			detected := ""
+			if len(b) >= 2 && b[0] == '{' && b[len(b)-1] == '}' {
+				err := json.Unmarshal(b, &map[string]any{})
+				if err == nil {
+					detected = "application/json"
+				}
+			}
+			if len(b) >= 2 && b[0] == '[' && b[len(b)-1] == ']' {
+				err := json.Unmarshal(b, &[]any{})
+				if err == nil {
+					detected = "application/json"
+				}
+			}
+			if detected == "" {
+				detected = http.DetectContentType(b)
+			}
+			r.Header.Set("Content-Type", detected)
 		}
 		r.Header.Set("Content-Length", strconv.Itoa(len(b)))
 	case url.Values:

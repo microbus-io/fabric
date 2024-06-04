@@ -2,7 +2,7 @@
 // {{ .Name }}In are the input arguments of {{ .Name }}.
 type {{ .Name }}In struct {
 	{{- range .Signature.InputArgs }}
-	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ .Name }}"`
+	{{ CapitalizeIdentifier .Name }} {{ .Type }} `json:"{{ if eq .Name "httpRequestBody" }}-{{ else }}{{ .Name }}{{ end }}"`
 	{{- end }}
 }
 
@@ -35,101 +35,113 @@ func (_out *{{ .Name }}Response) Get() ({{ .Out }}) {
 func (_c *Multicast
 {{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
 ) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
-	method := `{{ .Method }}`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
 		{{- end }}
 	}
 	{{- if not .MethodWithBody }}
-	_inValues, _err := httpx.EncodeDeepObject(_in)
+	_query, _err = httpx.EncodeDeepObject(_in)
+	{{- else if .Signature.InputArg "httpRequestBody" }}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	_body = httpRequestBody
+	{{- else }}
+	_body = _in
+	{{- end}}
 	if _err != nil {
 		_res := make(chan *{{ .Name }}Response, 1)
-		var _r {{ .Name }}Response
-		_r.err = _err // No trace
-		_res <- &_r
+		_res <- &{{ .Name }}Response{err: _err} // No trace
 		close(_res)
 		return _res
 	}
-	{{- end}}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`{{ if eq .Method "ANY" }}POST{{ else }}{{ .Method }}{{ end }}`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
-		{{ if .MethodWithBody }}pub.Body(_in){{ else }}pub.Query(_inValues){{ end }},
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *{{ .Name }}Response, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r {{ .Name }}Response
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r {{ .Name }}Response
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data
+				{{- if .Signature.OutputArg "httpResponseBody" }}.HTTPResponseBody{{ end -}}
+			))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
+			{{- if .Signature.OutputArg "httpStatusCode" }}
+			_r.data.HTTPStatusCode = _httpRes.StatusCode
+			{{- end}}
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
 }
-{{ end }}
-
-{{- range .Functions }}
+{{ if eq .Type "function" }}
 /*
 {{ .Description }}
 */
 func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
-	method := `{{ .Method }}`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
 		{{- end }}
 	}
 	{{- if not .MethodWithBody }}
-	_inValues, _err := httpx.EncodeDeepObject(_in)
+	_query, _err = httpx.EncodeDeepObject(_in)
+	{{- else if .Signature.InputArg "httpRequestBody" }}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	_body = httpRequestBody
+	{{- else }}
+	_body = _in
+	{{- end}}
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
-	{{- end}}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
+		pub.Method(`{{ if eq .Method "ANY" }}POST{{ else }}{{ .Method }}{{ end }}`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
-		{{ if .MethodWithBody }}pub.Body(_in){{ else }}pub.Query(_inValues){{ end }},
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
 	var _out {{ .Name }}Out
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out
+		{{- if .Signature.OutputArg "httpResponseBody" }}.HTTPResponseBody{{ end -}}
+	)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
+	{{- if .Signature.OutputArg "httpStatusCode" }}
+	_out.HTTPStatusCode = _httpRes.StatusCode
+	{{- end}}
 	{{- range .Signature.OutputArgs }}
 	{{ .Name }} = _out.{{ CapitalizeIdentifier .Name }}
 	{{- end }}
 	return
 }
-{{ end }}
-
-{{- range .Events }}
+{{ else if eq .Type "event" }}
 /*
 {{ .Description }}
 */
@@ -167,3 +179,4 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 	return _c.svc.Subscribe(`{{ .Method }}`, path, do{{ .Name }}, options...)
 }
 {{ end }}
+{{- end }}

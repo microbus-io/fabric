@@ -64,18 +64,25 @@ func subjectOf(wildcards bool, plane string, method string, hostname string, por
 		b.WriteString(method)
 	}
 	b.WriteRune('.')
+	path = strings.TrimPrefix(path, "/")
+	path = strings.TrimSuffix(path, "/")
 	if path == "" {
 		// Exactly the home path
 		b.WriteRune('_')
 		return b.String()
 	}
-	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	parts := strings.Split(path, "/")
 	for i := range parts {
 		if i > 0 {
 			b.WriteRune('.')
 		}
 		if wildcards && strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
-			b.WriteRune('*')
+			if i == len(parts)-1 && strings.HasSuffix(parts[i], "+}") {
+				// Greedy
+				b.WriteRune('>')
+			} else {
+				b.WriteRune('*')
+			}
 			continue
 		}
 		if wildcards && parts[i] == "*" {
@@ -83,13 +90,6 @@ func subjectOf(wildcards bool, plane string, method string, hostname string, por
 			continue
 		}
 		escapePathPart(&b, parts[i])
-	}
-	if strings.HasSuffix(path, "/") {
-		if wildcards {
-			b.WriteRune('>')
-		} else {
-			b.WriteRune('_')
-		}
 	}
 	return b.String()
 }

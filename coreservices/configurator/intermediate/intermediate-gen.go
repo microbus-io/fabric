@@ -156,7 +156,11 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -178,7 +182,11 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -202,7 +210,11 @@ func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

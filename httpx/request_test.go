@@ -42,6 +42,24 @@ func TestHttpx_Request(t *testing.T) {
 		assert.Equal(t, "<html><body>hello</body></html>", string(body))
 	}
 
+	req, err = NewRequest("POST", "https://example.com", `{"foo":"bar"}`)
+	if assert.NoError(t, err) {
+		assert.Equal(t, "POST", req.Method)
+		assert.Equal(t, "https://example.com", req.URL.String())
+		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		body, _ := io.ReadAll(req.Body)
+		assert.Equal(t, `{"foo":"bar"}`, string(body))
+	}
+
+	req, err = NewRequest("POST", "https://example.com", []byte(`[1,2,3,4]`))
+	if assert.NoError(t, err) {
+		assert.Equal(t, "POST", req.Method)
+		assert.Equal(t, "https://example.com", req.URL.String())
+		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		body, _ := io.ReadAll(req.Body)
+		assert.Equal(t, `[1,2,3,4]`, string(body))
+	}
+
 	req, err = NewRequest("PUT", "https://example.com", strings.NewReader("hello"))
 	if assert.NoError(t, err) {
 		assert.Equal(t, "PUT", req.Method)

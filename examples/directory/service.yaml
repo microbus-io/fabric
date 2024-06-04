@@ -12,7 +12,7 @@
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
   host: directory.example
-  description: The directory microservice stores personal records in a SQL database.
+  description: The directory microservice exposes a RESTful API for persisting personal records in a SQL database.
 
 # Config properties
 #
@@ -43,8 +43,8 @@ configs:
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
@@ -57,18 +57,30 @@ configs:
 #   none - Pervasive
 # openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 functions:
-  - signature: Create(person *Person) (created *Person)
+  - signature: Create(httpRequestBody *Person) (key PersonKey)
     description: Create registers the person in the directory.
-  - signature: Load(key PersonKey) (person *Person, ok bool)
+    method: POST
+    path: /persons
+  - signature: Load(key PersonKey) (httpResponseBody *Person)
     description: Load looks up a person in the directory.
-  - signature: Delete(key PersonKey) (ok bool)
+    method: GET
+    path: /persons/key/{key}
+  - signature: Delete(key PersonKey)
     description: Delete removes a person from the directory.
-  - signature: Update(person *Person) (updated *Person, ok bool)
+    method: DELETE
+    path: /persons/key/{key}
+  - signature: Update(key PersonKey, httpRequestBody *Person)
     description: Update updates the person's data in the directory.
-  - signature: LoadByEmail(email string) (person *Person, ok bool)
+    method: PUT
+    path: /persons/key/{key}
+  - signature: LoadByEmail(email string) (httpResponseBody *Person)
     description: LoadByEmail looks up a person in the directory by their email.
-  - signature: List() (keys []PersonKey)
+    method: GET
+    path: /persons/email/{email}
+  - signature: List() (httpResponseBody []PersonKey)
     description: List returns the keys of all the persons in the directory.
+    method: GET
+    path: /persons
 
 # Event sources
 #
@@ -78,8 +90,8 @@ functions:
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path of the microservice
@@ -113,8 +125,8 @@ sinks:
 # path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path of the microservice
@@ -127,8 +139,8 @@ sinks:
 #   none - Pervasive
 # openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 webs:
-  # - signature:
-  #   description:
+  - signature: WebUI()
+    description: WebUI provides a form for making web requests to the CRUD endpoints.
 
 # Tickers
 #

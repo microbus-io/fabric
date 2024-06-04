@@ -1179,3 +1179,39 @@ func TestConnector_Baggage(t *testing.T) {
 	assert.Equal(t, "1.2.3.4", betaXFwd)
 	assert.Equal(t, "1.2.3.4", gammaXFwd)
 }
+
+func TestConnector_MultiValueHeader(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := New("alpha.multi.value.header.connector")
+
+	beta := New("beta.multi.value.header.connector")
+	beta.Subscribe("GET", "receive", func(w http.ResponseWriter, r *http.Request) error {
+		assert.Len(t, r.Header["Multi-Value-In"], 3)
+		w.Header().Add("Multi-Value-Out", "1")
+		w.Header().Add("Multi-Value-Out", "2")
+		w.Header().Add("Multi-Value-Out", "3")
+		return nil
+	})
+
+	// Startup the microservices
+	err := alpha.Startup()
+	assert.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	assert.NoError(t, err)
+	defer beta.Shutdown()
+
+	// Send message and validate that it's echoed back
+	response, err := alpha.Request(ctx,
+		pub.GET("https://beta.multi.value.header.connector/receive"),
+		pub.AddHeader("Multi-Value-In", "1"),
+		pub.AddHeader("Multi-Value-In", "2"),
+		pub.AddHeader("Multi-Value-In", "3"),
+	)
+	assert.NoError(t, err)
+	assert.Len(t, response.Header["Multi-Value-Out"], 3)
+}

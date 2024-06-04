@@ -125,39 +125,79 @@ func (_out *PingResponse) Get() (pong int, err error) {
 Ping responds to the message with a pong.
 */
 func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := PingIn{
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *PingResponse, 1)
+		_res <- &PingResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *PingResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r PingResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r PingResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
+}
+
+/*
+Ping responds to the message with a pong.
+*/
+func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := PingIn{
+	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out PingOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	pong = _out.Pong
+	return
 }
 
 // ConfigRefreshIn are the input arguments of ConfigRefresh.
@@ -185,39 +225,78 @@ func (_out *ConfigRefreshResponse) Get() (err error) {
 ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := ConfigRefreshIn{
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *ConfigRefreshResponse, 1)
+		_res <- &ConfigRefreshResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *ConfigRefreshResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r ConfigRefreshResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r ConfigRefreshResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
+}
+
+/*
+ConfigRefresh pulls the latest config values from the configurator service.
+*/
+func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := ConfigRefreshIn{
+	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out ConfigRefreshOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	return
 }
 
 // TraceIn are the input arguments of Trace.
@@ -246,117 +325,68 @@ func (_out *TraceResponse) Get() (err error) {
 Trace forces exporting the indicated tracing span.
 */
 func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub.Option) <-chan *TraceResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := TraceIn{
 		id,
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *TraceResponse, 1)
+		_res <- &TraceResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *TraceResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r TraceResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r TraceResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
-}
-
-/*
-Ping responds to the message with a pong.
-*/
-func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
-	_in := PingIn{
-	}
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
-		pub.Body(_in),
-	)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	var _out PingOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	pong = _out.Pong
-	return
-}
-
-/*
-ConfigRefresh pulls the latest config values from the configurator service.
-*/
-func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
-	_in := ConfigRefreshIn{
-	}
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
-		pub.Body(_in),
-	)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	var _out ConfigRefreshOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	return
 }
 
 /*
 Trace forces exporting the indicated tracing span.
 */
 func (_c *Client) Trace(ctx context.Context, id string) (err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := TraceIn{
 		id,
 	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace

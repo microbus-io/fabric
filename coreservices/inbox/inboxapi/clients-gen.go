@@ -160,39 +160,44 @@ func (_out *OnInboxSaveMailResponse) Get() (err error) {
 OnInboxSaveMail is triggered when a new email message is received.
 */
 func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Email, _options ...pub.Option) <-chan *OnInboxSaveMailResponse {
-	method := `POST`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := OnInboxSaveMailIn{
 		mailMessage,
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *OnInboxSaveMailResponse, 1)
+		_res <- &OnInboxSaveMailResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-inbox-save-mail`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *OnInboxSaveMailResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r OnInboxSaveMailResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r OnInboxSaveMailResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
 }
 

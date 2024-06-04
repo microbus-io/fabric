@@ -10,7 +10,6 @@ package errors
 import (
 	stderrors "errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -70,32 +69,6 @@ func TestErrors_Newcf(t *testing.T) {
 	assert.Equal(t, 400, StatusCode(err))
 	assert.Len(t, err.(*TracedError).stack, 1)
 	assert.Contains(t, err.(*TracedError).stack[0].Function, "TestErrors_Newcf")
-}
-
-func TestErrors_Presets(t *testing.T) {
-	t.Parallel()
-
-	errs := []error{
-		BadRequest(),
-		Unauthorized(),
-		Forbidden(),
-		NotFound(),
-		RequestTimeout(),
-		NotImplemented(),
-	}
-	statusCodes := []int{
-		http.StatusBadRequest,
-		http.StatusUnauthorized,
-		http.StatusForbidden,
-		http.StatusNotFound,
-		http.StatusRequestTimeout,
-		http.StatusNotImplemented,
-	}
-	for i := 0; i < len(errs); i++ {
-		assert.Equal(t, statusText[statusCodes[i]], errs[i].Error())
-		assert.Equal(t, statusCodes[i], errs[i].(*TracedError).StatusCode)
-		assert.Equal(t, statusCodes[i], StatusCode(errs[i]))
-	}
 }
 
 func TestErrors_Trace(t *testing.T) {

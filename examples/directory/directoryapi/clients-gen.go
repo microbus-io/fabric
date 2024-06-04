@@ -11,7 +11,7 @@ Neither may be used, copied or distributed without the express written consent o
 Package directoryapi implements the public API of the directory.example microservice,
 including clients and data structures.
 
-The directory microservice stores personal records in a SQL database.
+The directory microservice exposes a RESTful API for persisting personal records in a SQL database.
 */
 package directoryapi
 
@@ -50,12 +50,13 @@ const Hostname = "directory.example"
 
 // Fully-qualified URLs of the microservice's endpoints.
 var (
-	URLOfCreate = httpx.JoinHostAndPath(Hostname, `:443/create`)
-	URLOfLoad = httpx.JoinHostAndPath(Hostname, `:443/load`)
-	URLOfDelete = httpx.JoinHostAndPath(Hostname, `:443/delete`)
-	URLOfUpdate = httpx.JoinHostAndPath(Hostname, `:443/update`)
-	URLOfLoadByEmail = httpx.JoinHostAndPath(Hostname, `:443/load-by-email`)
-	URLOfList = httpx.JoinHostAndPath(Hostname, `:443/list`)
+	URLOfCreate = httpx.JoinHostAndPath(Hostname, `:443/persons`)
+	URLOfLoad = httpx.JoinHostAndPath(Hostname, `:443/persons/key/{key}`)
+	URLOfDelete = httpx.JoinHostAndPath(Hostname, `:443/persons/key/{key}`)
+	URLOfUpdate = httpx.JoinHostAndPath(Hostname, `:443/persons/key/{key}`)
+	URLOfLoadByEmail = httpx.JoinHostAndPath(Hostname, `:443/persons/email/{email}`)
+	URLOfList = httpx.JoinHostAndPath(Hostname, `:443/persons`)
+	URLOfWebUI = httpx.JoinHostAndPath(Hostname, `:443/web-ui`)
 )
 
 // Client is an interface to calling the endpoints of the directory.example microservice.
@@ -100,14 +101,141 @@ func (_c *MulticastClient) ForHost(host string) *MulticastClient {
 	return _c
 }
 
+// errChan returns a response channel with a single error response.
+func (_c *MulticastClient) errChan(err error) <-chan *pub.Response {
+	ch := make(chan *pub.Response, 1)
+	ch <- pub.NewErrorResponse(err)
+	close(ch)
+	return ch
+}
+
+/*
+WebUI_Get performs a GET request to the WebUI endpoint.
+
+WebUI provides a form for making web requests to the CRUD endpoints.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) WebUI_Get(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfWebUI, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+WebUI_Get performs a GET request to the WebUI endpoint.
+
+WebUI provides a form for making web requests to the CRUD endpoints.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) WebUI_Get(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfWebUI, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+WebUI_Post performs a POST request to the WebUI endpoint.
+
+WebUI provides a form for making web requests to the CRUD endpoints.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) WebUI_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfWebUI, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+WebUI_Post performs a POST request to the WebUI endpoint.
+
+WebUI provides a form for making web requests to the CRUD endpoints.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) WebUI_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfWebUI, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+}
+
+/*
+WebUI provides a form for making web requests to the CRUD endpoints.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) WebUI(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfWebUI, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+WebUI provides a form for making web requests to the CRUD endpoints.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) WebUI(ctx context.Context, r *http.Request) <-chan *pub.Response {
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfWebUI, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+}
+
 // CreateIn are the input arguments of Create.
 type CreateIn struct {
-	Person *Person `json:"person"`
+	HTTPRequestBody *Person `json:"-"`
 }
 
 // CreateOut are the return values of Create.
 type CreateOut struct {
-	Created *Person `json:"created"`
+	Key PersonKey `json:"key"`
 }
 
 // CreateResponse is the response to Create.
@@ -118,8 +246,8 @@ type CreateResponse struct {
 }
 
 // Get retrieves the return values.
-func (_out *CreateResponse) Get() (created *Person, err error) {
-	created = _out.data.Created
+func (_out *CreateResponse) Get() (key PersonKey, err error) {
+	key = _out.data.Key
 	err = _out.err
 	return
 }
@@ -127,383 +255,71 @@ func (_out *CreateResponse) Get() (created *Person, err error) {
 /*
 Create registers the person in the directory.
 */
-func (_c *MulticastClient) Create(ctx context.Context, person *Person, _options ...pub.Option) <-chan *CreateResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+func (_c *MulticastClient) Create(ctx context.Context, httpRequestBody *Person, _options ...pub.Option) <-chan *CreateResponse {
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := CreateIn{
-		person,
+		httpRequestBody,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	_body = httpRequestBody
+	if _err != nil {
+		_res := make(chan *CreateResponse, 1)
+		_res <- &CreateResponse{err: _err} // No trace
+		close(_res)
+		return _res
 	}
 	_opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/create`)),
-		pub.Body(_in),
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *CreateResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r CreateResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r CreateResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
-	return _res
-}
-
-// LoadIn are the input arguments of Load.
-type LoadIn struct {
-	Key PersonKey `json:"key"`
-}
-
-// LoadOut are the return values of Load.
-type LoadOut struct {
-	Person *Person `json:"person"`
-	Ok bool `json:"ok"`
-}
-
-// LoadResponse is the response to Load.
-type LoadResponse struct {
-	data LoadOut
-	HTTPResponse *http.Response
-	err error
-}
-
-// Get retrieves the return values.
-func (_out *LoadResponse) Get() (person *Person, ok bool, err error) {
-	person = _out.data.Person
-	ok = _out.data.Ok
-	err = _out.err
-	return
-}
-
-/*
-Load looks up a person in the directory.
-*/
-func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *LoadResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
+		_res <- &_r
 	}
-	_in := LoadIn{
-		key,
-	}
-	_opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load`)),
-		pub.Body(_in),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
-
-	_res := make(chan *LoadResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r LoadResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
-			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
-			}
-			_res <- &_r
-		}
-		close(_res)
-	}()
-	return _res
-}
-
-// DeleteIn are the input arguments of Delete.
-type DeleteIn struct {
-	Key PersonKey `json:"key"`
-}
-
-// DeleteOut are the return values of Delete.
-type DeleteOut struct {
-	Ok bool `json:"ok"`
-}
-
-// DeleteResponse is the response to Delete.
-type DeleteResponse struct {
-	data DeleteOut
-	HTTPResponse *http.Response
-	err error
-}
-
-// Get retrieves the return values.
-func (_out *DeleteResponse) Get() (ok bool, err error) {
-	ok = _out.data.Ok
-	err = _out.err
-	return
-}
-
-/*
-Delete removes a person from the directory.
-*/
-func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *DeleteResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
-	_in := DeleteIn{
-		key,
-	}
-	_opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/delete`)),
-		pub.Body(_in),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
-
-	_res := make(chan *DeleteResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r DeleteResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
-			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
-			}
-			_res <- &_r
-		}
-		close(_res)
-	}()
-	return _res
-}
-
-// UpdateIn are the input arguments of Update.
-type UpdateIn struct {
-	Person *Person `json:"person"`
-}
-
-// UpdateOut are the return values of Update.
-type UpdateOut struct {
-	Updated *Person `json:"updated"`
-	Ok bool `json:"ok"`
-}
-
-// UpdateResponse is the response to Update.
-type UpdateResponse struct {
-	data UpdateOut
-	HTTPResponse *http.Response
-	err error
-}
-
-// Get retrieves the return values.
-func (_out *UpdateResponse) Get() (updated *Person, ok bool, err error) {
-	updated = _out.data.Updated
-	ok = _out.data.Ok
-	err = _out.err
-	return
-}
-
-/*
-Update updates the person's data in the directory.
-*/
-func (_c *MulticastClient) Update(ctx context.Context, person *Person, _options ...pub.Option) <-chan *UpdateResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
-	_in := UpdateIn{
-		person,
-	}
-	_opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/update`)),
-		pub.Body(_in),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
-
-	_res := make(chan *UpdateResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r UpdateResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
-			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
-			}
-			_res <- &_r
-		}
-		close(_res)
-	}()
-	return _res
-}
-
-// LoadByEmailIn are the input arguments of LoadByEmail.
-type LoadByEmailIn struct {
-	Email string `json:"email"`
-}
-
-// LoadByEmailOut are the return values of LoadByEmail.
-type LoadByEmailOut struct {
-	Person *Person `json:"person"`
-	Ok bool `json:"ok"`
-}
-
-// LoadByEmailResponse is the response to LoadByEmail.
-type LoadByEmailResponse struct {
-	data LoadByEmailOut
-	HTTPResponse *http.Response
-	err error
-}
-
-// Get retrieves the return values.
-func (_out *LoadByEmailResponse) Get() (person *Person, ok bool, err error) {
-	person = _out.data.Person
-	ok = _out.data.Ok
-	err = _out.err
-	return
-}
-
-/*
-LoadByEmail looks up a person in the directory by their email.
-*/
-func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _options ...pub.Option) <-chan *LoadByEmailResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
-	_in := LoadByEmailIn{
-		email,
-	}
-	_opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load-by-email`)),
-		pub.Body(_in),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
-
-	_res := make(chan *LoadByEmailResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r LoadByEmailResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
-			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
-			}
-			_res <- &_r
-		}
-		close(_res)
-	}()
-	return _res
-}
-
-// ListIn are the input arguments of List.
-type ListIn struct {
-}
-
-// ListOut are the return values of List.
-type ListOut struct {
-	Keys []PersonKey `json:"keys"`
-}
-
-// ListResponse is the response to List.
-type ListResponse struct {
-	data ListOut
-	HTTPResponse *http.Response
-	err error
-}
-
-// Get retrieves the return values.
-func (_out *ListResponse) Get() (keys []PersonKey, err error) {
-	keys = _out.data.Keys
-	err = _out.err
-	return
-}
-
-/*
-List returns the keys of all the persons in the directory.
-*/
-func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-chan *ListResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
-	_in := ListIn{
-	}
-	_opts := []pub.Option{
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/list`)),
-		pub.Body(_in),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
-
-	_res := make(chan *ListResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r ListResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
-			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
-			}
-			_res <- &_r
-		}
-		close(_res)
-	}()
+	close(_res)
 	return _res
 }
 
 /*
 Create registers the person in the directory.
 */
-func (_c *Client) Create(ctx context.Context, person *Person) (created *Person, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+func (_c *Client) Create(ctx context.Context, httpRequestBody *Person) (key PersonKey, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := CreateIn{
-		person,
+		httpRequestBody,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	_body = httpRequestBody
+	if _err != nil {
+		err = _err // No trace
+		return
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/create`)),
-		pub.Body(_in),
+		pub.Method(`POST`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace
@@ -515,58 +331,203 @@ func (_c *Client) Create(ctx context.Context, person *Person) (created *Person, 
 		err = errors.Trace(_err)
 		return
 	}
-	created = _out.Created
+	key = _out.Key
+	return
+}
+
+// LoadIn are the input arguments of Load.
+type LoadIn struct {
+	Key PersonKey `json:"key"`
+}
+
+// LoadOut are the return values of Load.
+type LoadOut struct {
+	HTTPResponseBody *Person `json:"httpResponseBody"`
+}
+
+// LoadResponse is the response to Load.
+type LoadResponse struct {
+	data LoadOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *LoadResponse) Get() (httpResponseBody *Person, err error) {
+	httpResponseBody = _out.data.HTTPResponseBody
+	err = _out.err
 	return
 }
 
 /*
 Load looks up a person in the directory.
 */
-func (_c *Client) Load(ctx context.Context, key PersonKey) (person *Person, ok bool, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *LoadResponse {
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := LoadIn{
 		key,
 	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *LoadResponse, 1)
+		_res <- &LoadResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	_opts := []pub.Option{
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *LoadResponse, cap(_ch))
+	for _i := range _ch {
+		var _r LoadResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data.HTTPResponseBody))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+Load looks up a person in the directory.
+*/
+func (_c *Client) Load(ctx context.Context, key PersonKey) (httpResponseBody *Person, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := LoadIn{
+		key,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load`)),
-		pub.Body(_in),
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
 	var _out LoadOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out.HTTPResponseBody)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	person = _out.Person
-	ok = _out.Ok
+	httpResponseBody = _out.HTTPResponseBody
+	return
+}
+
+// DeleteIn are the input arguments of Delete.
+type DeleteIn struct {
+	Key PersonKey `json:"key"`
+}
+
+// DeleteOut are the return values of Delete.
+type DeleteOut struct {
+}
+
+// DeleteResponse is the response to Delete.
+type DeleteResponse struct {
+	data DeleteOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *DeleteResponse) Get() (err error) {
+	err = _out.err
 	return
 }
 
 /*
 Delete removes a person from the directory.
 */
-func (_c *Client) Delete(ctx context.Context, key PersonKey) (ok bool, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *DeleteResponse {
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := DeleteIn{
 		key,
 	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *DeleteResponse, 1)
+		_res <- &DeleteResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	_opts := []pub.Option{
+		pub.Method(`DELETE`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *DeleteResponse, cap(_ch))
+	for _i := range _ch {
+		var _r DeleteResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+Delete removes a person from the directory.
+*/
+func (_c *Client) Delete(ctx context.Context, key PersonKey) (err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := DeleteIn{
+		key,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/delete`)),
-		pub.Body(_in),
+		pub.Method(`DELETE`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace
@@ -578,26 +539,102 @@ func (_c *Client) Delete(ctx context.Context, key PersonKey) (ok bool, err error
 		err = errors.Trace(_err)
 		return
 	}
-	ok = _out.Ok
+	return
+}
+
+// UpdateIn are the input arguments of Update.
+type UpdateIn struct {
+	Key PersonKey `json:"key"`
+	HTTPRequestBody *Person `json:"-"`
+}
+
+// UpdateOut are the return values of Update.
+type UpdateOut struct {
+}
+
+// UpdateResponse is the response to Update.
+type UpdateResponse struct {
+	data UpdateOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *UpdateResponse) Get() (err error) {
+	err = _out.err
 	return
 }
 
 /*
 Update updates the person's data in the directory.
 */
-func (_c *Client) Update(ctx context.Context, person *Person) (updated *Person, ok bool, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+func (_c *MulticastClient) Update(ctx context.Context, key PersonKey, httpRequestBody *Person, _options ...pub.Option) <-chan *UpdateResponse {
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := UpdateIn{
-		person,
+		key,
+		httpRequestBody,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	_body = httpRequestBody
+	if _err != nil {
+		_res := make(chan *UpdateResponse, 1)
+		_res <- &UpdateResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	_opts := []pub.Option{
+		pub.Method(`PUT`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *UpdateResponse, cap(_ch))
+	for _i := range _ch {
+		var _r UpdateResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+Update updates the person's data in the directory.
+*/
+func (_c *Client) Update(ctx context.Context, key PersonKey, httpRequestBody *Person) (err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := UpdateIn{
+		key,
+		httpRequestBody,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	_body = httpRequestBody
+	if _err != nil {
+		err = _err // No trace
+		return
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/update`)),
-		pub.Body(_in),
+		pub.Method(`PUT`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace
@@ -609,69 +646,212 @@ func (_c *Client) Update(ctx context.Context, person *Person) (updated *Person, 
 		err = errors.Trace(_err)
 		return
 	}
-	updated = _out.Updated
-	ok = _out.Ok
+	return
+}
+
+// LoadByEmailIn are the input arguments of LoadByEmail.
+type LoadByEmailIn struct {
+	Email string `json:"email"`
+}
+
+// LoadByEmailOut are the return values of LoadByEmail.
+type LoadByEmailOut struct {
+	HTTPResponseBody *Person `json:"httpResponseBody"`
+}
+
+// LoadByEmailResponse is the response to LoadByEmail.
+type LoadByEmailResponse struct {
+	data LoadByEmailOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *LoadByEmailResponse) Get() (httpResponseBody *Person, err error) {
+	httpResponseBody = _out.data.HTTPResponseBody
+	err = _out.err
 	return
 }
 
 /*
 LoadByEmail looks up a person in the directory by their email.
 */
-func (_c *Client) LoadByEmail(ctx context.Context, email string) (person *Person, ok bool, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _options ...pub.Option) <-chan *LoadByEmailResponse {
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := LoadByEmailIn{
 		email,
 	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *LoadByEmailResponse, 1)
+		_res <- &LoadByEmailResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	_opts := []pub.Option{
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *LoadByEmailResponse, cap(_ch))
+	for _i := range _ch {
+		var _r LoadByEmailResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data.HTTPResponseBody))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+LoadByEmail looks up a person in the directory by their email.
+*/
+func (_c *Client) LoadByEmail(ctx context.Context, email string) (httpResponseBody *Person, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := LoadByEmailIn{
+		email,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/load-by-email`)),
-		pub.Body(_in),
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
 	var _out LoadByEmailOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out.HTTPResponseBody)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	person = _out.Person
-	ok = _out.Ok
+	httpResponseBody = _out.HTTPResponseBody
+	return
+}
+
+// ListIn are the input arguments of List.
+type ListIn struct {
+}
+
+// ListOut are the return values of List.
+type ListOut struct {
+	HTTPResponseBody []PersonKey `json:"httpResponseBody"`
+}
+
+// ListResponse is the response to List.
+type ListResponse struct {
+	data ListOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *ListResponse) Get() (httpResponseBody []PersonKey, err error) {
+	httpResponseBody = _out.data.HTTPResponseBody
+	err = _out.err
 	return
 }
 
 /*
 List returns the keys of all the persons in the directory.
 */
-func (_c *Client) List(ctx context.Context) (keys []PersonKey, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-chan *ListResponse {
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := ListIn{
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *ListResponse, 1)
+		_res <- &ListResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	_opts := []pub.Option{
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *ListResponse, cap(_ch))
+	for _i := range _ch {
+		var _r ListResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data.HTTPResponseBody))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+List returns the keys of all the persons in the directory.
+*/
+func (_c *Client) List(ctx context.Context) (httpResponseBody []PersonKey, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := ListIn{
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
 	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/list`)),
-		pub.Body(_in),
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
 	var _out ListOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out.HTTPResponseBody)
 	if _err != nil {
 		err = errors.Trace(_err)
 		return
 	}
-	keys = _out.Keys
+	httpResponseBody = _out.HTTPResponseBody
 	return
 }

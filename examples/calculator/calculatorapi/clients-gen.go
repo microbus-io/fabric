@@ -133,51 +133,88 @@ func (_out *ArithmeticResponse) Get() (xEcho int, opEcho string, yEcho int, resu
 Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
 */
 func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y int, _options ...pub.Option) <-chan *ArithmeticResponse {
-	method := `GET`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := ArithmeticIn{
 		x,
 		op,
 		y,
 	}
-	_inValues, _err := httpx.EncodeDeepObject(_in)
+	_query, _err = httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *ArithmeticResponse, 1)
-		var _r ArithmeticResponse
-		_r.err = _err // No trace
-		_res <- &_r
+		_res <- &ArithmeticResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`GET`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
-		pub.Query(_inValues),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *ArithmeticResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r ArithmeticResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r ArithmeticResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
+}
+
+/*
+Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
+*/
+func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := ArithmeticIn{
+		x,
+		op,
+		y,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out ArithmeticOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	xEcho = _out.XEcho
+	opEcho = _out.OpEcho
+	yEcho = _out.YEcho
+	result = _out.Result
+	return
 }
 
 // SquareIn are the input arguments of Square.
@@ -210,49 +247,82 @@ func (_out *SquareResponse) Get() (xEcho int, result int, err error) {
 Square prints the square of the integer x.
 */
 func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Option) <-chan *SquareResponse {
-	method := `GET`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := SquareIn{
 		x,
 	}
-	_inValues, _err := httpx.EncodeDeepObject(_in)
+	_query, _err = httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *SquareResponse, 1)
-		var _r SquareResponse
-		_r.err = _err // No trace
-		_res <- &_r
+		_res <- &SquareResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`GET`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
-		pub.Query(_inValues),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *SquareResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r SquareResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r SquareResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
+}
+
+/*
+Square prints the square of the integer x.
+*/
+func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
+	var _err error
+	var _query url.Values
+	var _body any
+	_in := SquareIn{
+		x,
+	}
+	_query, _err = httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`GET`),
+		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out SquareOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	xEcho = _out.XEcho
+	result = _out.Result
+	return
 }
 
 // DistanceIn are the input arguments of Distance.
@@ -285,119 +355,46 @@ Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.
 */
 func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _options ...pub.Option) <-chan *DistanceResponse {
-	method := `ANY`
-	if method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := DistanceIn{
 		p1,
 		p2,
 	}
+	_body = _in
+	if _err != nil {
+		_res := make(chan *DistanceResponse, 1)
+		_res <- &DistanceResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
 	_opts := []pub.Option{
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	}
 	_opts = append(_opts, _options...)
 	_ch := _c.svc.Publish(ctx, _opts...)
 
 	_res := make(chan *DistanceResponse, cap(_ch))
-	go func() {
-		for _i := range _ch {
-			var _r DistanceResponse
-			_httpRes, _err := _i.Get()
-			_r.HTTPResponse = _httpRes
+	for _i := range _ch {
+		var _r DistanceResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
 			if _err != nil {
-				_r.err = _err // No trace
-			} else {
-				_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
-				if _err != nil {
-					_r.err = errors.Trace(_err)
-				}
+				_r.err = errors.Trace(_err)
 			}
-			_res <- &_r
 		}
-		close(_res)
-	}()
+		_res <- &_r
+	}
+	close(_res)
 	return _res
-}
-
-/*
-Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
-*/
-func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
-	method := `GET`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
-	_in := ArithmeticIn{
-		x,
-		op,
-		y,
-	}
-	_inValues, _err := httpx.EncodeDeepObject(_in)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)),
-		pub.Query(_inValues),
-	)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	var _out ArithmeticOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	xEcho = _out.XEcho
-	opEcho = _out.OpEcho
-	yEcho = _out.YEcho
-	result = _out.Result
-	return
-}
-
-/*
-Square prints the square of the integer x.
-*/
-func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
-	method := `GET`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
-	_in := SquareIn{
-		x,
-	}
-	_inValues, _err := httpx.EncodeDeepObject(_in)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	_httpRes, _err := _c.svc.Request(
-		ctx,
-		pub.Method(method),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/square`)),
-		pub.Query(_inValues),
-	)
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
-	var _out SquareOut
-	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
-	if _err != nil {
-		err = errors.Trace(_err)
-		return
-	}
-	xEcho = _out.XEcho
-	result = _out.Result
-	return
 }
 
 /*
@@ -405,19 +402,24 @@ Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.
 */
 func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, err error) {
-	method := `ANY`
-	if method == "" || method == "ANY" {
-		method = "POST"
-	}
+	var _err error
+	var _query url.Values
+	var _body any
 	_in := DistanceIn{
 		p1,
 		p2,
 	}
+	_body = _in
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
-		pub.Method(method),
+		pub.Method(`POST`),
 		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/distance`)),
-		pub.Body(_in),
+		pub.Query(_query),
+		pub.Body(_body),
 	)
 	if _err != nil {
 		err = _err // No trace

@@ -1,0 +1,41 @@
+<!--
+Copyright (c) 2023-2024 Microbus LLC and various contributors
+
+This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
+Neither may be used, copied or distributed without the express written consent of Microbus LLC.
+-->
+
+<html>
+    <head>
+        <title>Directory example</title>
+        <script>
+            function bodyVisibility() {
+                const method = document.querySelector('[name="method"]').value;
+                let v = "unset";
+                if (method!="POST" && method!="PUT") {
+                    v = "none";
+                }
+                document.querySelector('[name="body"]').style.display = v;
+            }
+            window.onload = bodyVisibility;
+        </script>
+    </head>
+    <body>
+        <form method="POST">
+            <select name="method" onchange="bodyVisibility()">
+                <option {{ if eq .Method "GET" }}selected{{ end }}>GET</option>
+                <option {{ if eq .Method "POST" }}selected{{ end }}>POST</option>
+                <option {{ if eq .Method "PUT" }}selected{{ end }}>PUT</option>
+                <option {{ if eq .Method "DELETE" }}selected{{ end }}>DELETE</option>
+            </select>
+            <input type="text" name="path" value="{{ .Path }}" size="80" placeholder="/persons/...">
+            <p>
+            <textarea name="body" rows="6" cols="75" placeholder="{...}">{{ .Body }}</textarea>
+            <p>
+            <input type="submit" value="Submit">
+        </form>
+        {{ .StatusCode }}
+        <br>
+        <pre>{{ .Response }}</pre>
+    </body>
+</html>

@@ -48,14 +48,5 @@ func ParseRequestData(r *http.Request, data any) error {
 		return errors.Trace(err)
 	}
 
-	// // Parse path segments
-	// segments := strings.Split(r.URL.Path, "/")
-	// for i := 1; i < len(segments); i++ {
-	// 	err := readOneArg(fmt.Sprintf("path%d", i-1), segments[i], data)
-	// 	if err != nil {
-	// 		return errors.Trace(err)
-	// 	}
-	// }
-
 	return nil
 }

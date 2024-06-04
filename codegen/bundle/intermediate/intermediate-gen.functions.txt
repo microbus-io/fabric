@@ -3,10 +3,21 @@
 func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	var i {{ $shortPackage }}api.{{ .Name }}In
 	var o {{ $shortPackage }}api.{{ .Name }}Out
+	{{- if .Signature.InputArg "httpRequestBody" }}
+	err := httpx.ParseRequestData(r, &i.{{ CapitalizeIdentifier "httpRequestBody" }})
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	{{- else }}
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	{{- end }}
 	{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = svc.impl.{{ .Name }}(
 		r.Context(),
 		{{- range .Signature.InputArgs }}
@@ -17,10 +28,18 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}
+	{{- if .Signature.OutputArg "httpStatusCode" }}{{- if eq "int" (.Signature.OutputArg "httpStatusCode").Type }}
 	w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
 	{{- end}}{{- end}}
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	{{- if .Signature.OutputArg "httpResponseBody" }}
+	err = encoder.Encode(o.{{ CapitalizeIdentifier "httpResponseBody" }})
+	{{- else }}
+	err = encoder.Encode(o)
+	{{- end }}
 	if err != nil {
 		return errors.Trace(err)
 	}

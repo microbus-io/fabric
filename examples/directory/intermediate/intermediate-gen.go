@@ -10,7 +10,7 @@ Neither may be used, copied or distributed without the express written consent o
 /*
 Package intermediate serves as the foundation of the directory.example microservice.
 
-The directory microservice stores personal records in a SQL database.
+The directory microservice exposes a RESTful API for persisting personal records in a SQL database.
 */
 package intermediate
 
@@ -68,12 +68,13 @@ var (
 type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
-	Create(ctx context.Context, person *directoryapi.Person) (created *directoryapi.Person, err error)
-	Load(ctx context.Context, key directoryapi.PersonKey) (person *directoryapi.Person, ok bool, err error)
-	Delete(ctx context.Context, key directoryapi.PersonKey) (ok bool, err error)
-	Update(ctx context.Context, person *directoryapi.Person) (updated *directoryapi.Person, ok bool, err error)
-	LoadByEmail(ctx context.Context, email string) (person *directoryapi.Person, ok bool, err error)
-	List(ctx context.Context) (keys []directoryapi.PersonKey, err error)
+	Create(ctx context.Context, httpRequestBody *directoryapi.Person) (key directoryapi.PersonKey, err error)
+	Load(ctx context.Context, key directoryapi.PersonKey) (httpResponseBody *directoryapi.Person, err error)
+	Delete(ctx context.Context, key directoryapi.PersonKey) (err error)
+	Update(ctx context.Context, key directoryapi.PersonKey, httpRequestBody *directoryapi.Person) (err error)
+	LoadByEmail(ctx context.Context, email string) (httpResponseBody *directoryapi.Person, err error)
+	List(ctx context.Context) (httpResponseBody []directoryapi.PersonKey, err error)
+	WebUI(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -90,7 +91,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 		impl: impl,
 	}
 	svc.SetVersion(version)
-	svc.SetDescription(`The directory microservice stores personal records in a SQL database.`)
+	svc.SetDescription(`The directory microservice exposes a RESTful API for persisting personal records in a SQL database.`)
 	
 	// Lifecycle
 	svc.SetOnStartup(svc.impl.OnStartup)
@@ -107,12 +108,15 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe("GET", `:0/openapi.json`, svc.doOpenAPI)	
 
 	// Functions
-	svc.Subscribe(`ANY`, `:443/create`, svc.doCreate)
-	svc.Subscribe(`ANY`, `:443/load`, svc.doLoad)
-	svc.Subscribe(`ANY`, `:443/delete`, svc.doDelete)
-	svc.Subscribe(`ANY`, `:443/update`, svc.doUpdate)
-	svc.Subscribe(`ANY`, `:443/load-by-email`, svc.doLoadByEmail)
-	svc.Subscribe(`ANY`, `:443/list`, svc.doList)
+	svc.Subscribe(`POST`, `:443/persons`, svc.doCreate)
+	svc.Subscribe(`GET`, `:443/persons/key/{key}`, svc.doLoad)
+	svc.Subscribe(`DELETE`, `:443/persons/key/{key}`, svc.doDelete)
+	svc.Subscribe(`PUT`, `:443/persons/key/{key}`, svc.doUpdate)
+	svc.Subscribe(`GET`, `:443/persons/email/{email}`, svc.doLoadByEmail)
+	svc.Subscribe(`GET`, `:443/persons`, svc.doList)
+
+	// Webs
+	svc.Subscribe(`ANY`, `:443/web-ui`, svc.impl.WebUI)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -133,15 +137,15 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Create`,
-			Method:      `ANY`,
-			Path:        `:443/create`,
-			Summary:     `Create(person *Person) (created *Person)`,
+			Method:      `POST`,
+			Path:        `:443/persons`,
+			Summary:     `Create(httpRequestBody *Person) (key PersonKey)`,
 			Description: `Create registers the person in the directory.`,
 			InputArgs: struct {
-				Xperson *directoryapi.Person `json:"person"`
+				HTTPRequestBody *directoryapi.Person `json:"httpRequestBody"`
 			}{},
 			OutputArgs: struct {
-				Xcreated *directoryapi.Person `json:"created"`
+				Key directoryapi.PersonKey `json:"key"`
 			}{},
 		})
 	}
@@ -149,16 +153,15 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Load`,
-			Method:      `ANY`,
-			Path:        `:443/load`,
-			Summary:     `Load(key PersonKey) (person *Person, ok bool)`,
+			Method:      `GET`,
+			Path:        `:443/persons/key/{key}`,
+			Summary:     `Load(key PersonKey) (httpResponseBody *Person)`,
 			Description: `Load looks up a person in the directory.`,
 			InputArgs: struct {
-				Xkey directoryapi.PersonKey `json:"key"`
+				Key directoryapi.PersonKey `json:"key"`
 			}{},
 			OutputArgs: struct {
-				Xperson *directoryapi.Person `json:"person"`
-				Xok bool `json:"ok"`
+				HTTPResponseBody *directoryapi.Person `json:"httpResponseBody"`
 			}{},
 		})
 	}
@@ -166,15 +169,14 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Delete`,
-			Method:      `ANY`,
-			Path:        `:443/delete`,
-			Summary:     `Delete(key PersonKey) (ok bool)`,
+			Method:      `DELETE`,
+			Path:        `:443/persons/key/{key}`,
+			Summary:     `Delete(key PersonKey)`,
 			Description: `Delete removes a person from the directory.`,
 			InputArgs: struct {
-				Xkey directoryapi.PersonKey `json:"key"`
+				Key directoryapi.PersonKey `json:"key"`
 			}{},
 			OutputArgs: struct {
-				Xok bool `json:"ok"`
 			}{},
 		})
 	}
@@ -182,16 +184,15 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `Update`,
-			Method:      `ANY`,
-			Path:        `:443/update`,
-			Summary:     `Update(person *Person) (updated *Person, ok bool)`,
+			Method:      `PUT`,
+			Path:        `:443/persons/key/{key}`,
+			Summary:     `Update(key PersonKey, httpRequestBody *Person)`,
 			Description: `Update updates the person's data in the directory.`,
 			InputArgs: struct {
-				Xperson *directoryapi.Person `json:"person"`
+				Key directoryapi.PersonKey `json:"key"`
+				HTTPRequestBody *directoryapi.Person `json:"httpRequestBody"`
 			}{},
 			OutputArgs: struct {
-				Xupdated *directoryapi.Person `json:"updated"`
-				Xok bool `json:"ok"`
 			}{},
 		})
 	}
@@ -199,16 +200,15 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `LoadByEmail`,
-			Method:      `ANY`,
-			Path:        `:443/load-by-email`,
-			Summary:     `LoadByEmail(email string) (person *Person, ok bool)`,
+			Method:      `GET`,
+			Path:        `:443/persons/email/{email}`,
+			Summary:     `LoadByEmail(email string) (httpResponseBody *Person)`,
 			Description: `LoadByEmail looks up a person in the directory by their email.`,
 			InputArgs: struct {
-				Xemail string `json:"email"`
+				Email string `json:"email"`
 			}{},
 			OutputArgs: struct {
-				Xperson *directoryapi.Person `json:"person"`
-				Xok bool `json:"ok"`
+				HTTPResponseBody *directoryapi.Person `json:"httpResponseBody"`
 			}{},
 		})
 	}
@@ -216,14 +216,28 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
 			Name:        `List`,
-			Method:      `ANY`,
-			Path:        `:443/list`,
-			Summary:     `List() (keys []PersonKey)`,
+			Method:      `GET`,
+			Path:        `:443/persons`,
+			Summary:     `List() (httpResponseBody []PersonKey)`,
 			Description: `List returns the keys of all the persons in the directory.`,
 			InputArgs: struct {
 			}{},
 			OutputArgs: struct {
-				Xkeys []directoryapi.PersonKey `json:"keys"`
+				HTTPResponseBody []directoryapi.PersonKey `json:"httpResponseBody"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `WebUI`,
+			Method:      `ANY`,
+			Path:        `:443/web-ui`,
+			Summary:     `WebUI()`,
+			Description: `WebUI provides a form for making web requests to the CRUD endpoints.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
 			}{},
 		})
 	}
@@ -267,19 +281,27 @@ func (svc *Intermediate) SetSQL(dsn string) error {
 func (svc *Intermediate) doCreate(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.CreateIn
 	var o directoryapi.CreateOut
-	err := httpx.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i.HTTPRequestBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.Created, err = svc.impl.Create(
+	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Key, err = svc.impl.Create(
 		r.Context(),
-		i.Person,
+		i.HTTPRequestBody,
 	)
 	if err != nil {
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -294,7 +316,7 @@ func (svc *Intermediate) doLoad(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.Person, o.Ok, err = svc.impl.Load(
+	o.HTTPResponseBody, err = svc.impl.Load(
 		r.Context(),
 		i.Key,
 	)
@@ -302,7 +324,11 @@ func (svc *Intermediate) doLoad(w http.ResponseWriter, r *http.Request) error {
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -317,7 +343,7 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.Ok, err = svc.impl.Delete(
+	err = svc.impl.Delete(
 		r.Context(),
 		i.Key,
 	)
@@ -325,7 +351,11 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -336,19 +366,28 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 func (svc *Intermediate) doUpdate(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.UpdateIn
 	var o directoryapi.UpdateOut
-	err := httpx.ParseRequestData(r, &i)
+	err := httpx.ParseRequestData(r, &i.HTTPRequestBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.Updated, o.Ok, err = svc.impl.Update(
+	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = svc.impl.Update(
 		r.Context(),
-		i.Person,
+		i.Key,
+		i.HTTPRequestBody,
 	)
 	if err != nil {
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -363,7 +402,7 @@ func (svc *Intermediate) doLoadByEmail(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.Person, o.Ok, err = svc.impl.LoadByEmail(
+	o.HTTPResponseBody, err = svc.impl.LoadByEmail(
 		r.Context(),
 		i.Email,
 	)
@@ -371,7 +410,11 @@ func (svc *Intermediate) doLoadByEmail(w http.ResponseWriter, r *http.Request) e
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -386,14 +429,18 @@ func (svc *Intermediate) doList(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.Keys, err = svc.impl.List(
+	o.HTTPResponseBody, err = svc.impl.List(
 		r.Context(),
 	)
 	if err != nil {
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
 		return errors.Trace(err)
 	}

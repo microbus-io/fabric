@@ -98,8 +98,8 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 # path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path
@@ -149,8 +149,8 @@ Along with the hostname of the service, the `path` defines the URL to this endpo
 # path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
 #   :417 - Root path
@@ -213,8 +213,8 @@ The `webs` section defines raw web handlers which allow the microservice to hand
 # path - The URL path of the subscription
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
-#   /directory/ - All paths under the directory
-#   /obj/{id}/path - Path argument
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
 #   :443 - Root path

@@ -19,7 +19,6 @@ import (
 )
 
 var methodValidator = regexp.MustCompile(`^[A-Z]+$`)
-var portValidator = regexp.MustCompile(`^[0-9]+$`)
 
 // Handler is the spec of a callback handler.
 // Web requests, lifecycle events, config changes, tickers, etc.
@@ -155,7 +154,6 @@ func (h *Handler) validate() error {
 	h.Description = conformDesc(
 		h.Description,
 		h.Name()+" is a "+h.Type+".",
-		h.Name(),
 	)
 
 	// Validate types and number of arguments
