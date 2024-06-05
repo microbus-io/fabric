@@ -199,7 +199,7 @@ func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Em
 /*
 OnInboxSaveMail is triggered when a new email message is received.
 */
-func (_c *Hook) OnInboxSaveMail(handler func(ctx context.Context, mailMessage *Email) (err error), options ...sub.Option) error {
+func (_c *Hook) OnInboxSaveMail(handler func(ctx context.Context, mailMessage *Email) (err error)) error {
 	doOnInboxSaveMail := func(w http.ResponseWriter, r *http.Request) error {
 		var i OnInboxSaveMailIn
 		var o OnInboxSaveMailOut
@@ -215,7 +215,8 @@ func (_c *Hook) OnInboxSaveMail(handler func(ctx context.Context, mailMessage *E
 			return err // No trace
 		}
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(o)
+		encoder := json.NewEncoder(w)
+		err = encoder.Encode(o)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -225,5 +226,5 @@ func (_c *Hook) OnInboxSaveMail(handler func(ctx context.Context, mailMessage *E
 	if handler == nil {
 		return _c.svc.Unsubscribe(`POST`, path)
 	}
-	return _c.svc.Subscribe(`POST`, path, doOnInboxSaveMail, options...)
+	return _c.svc.Subscribe(`POST`, path, doOnInboxSaveMail)
 }

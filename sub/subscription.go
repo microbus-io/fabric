@@ -16,6 +16,7 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
+	"github.com/microbus-io/fabric/utils"
 	"github.com/nats-io/nats.go"
 )
 
@@ -72,6 +73,21 @@ func NewSub(method string, defaultHost string, path string, handler HTTPHandler,
 	method = strings.ToUpper(method)
 	if !methodValidator.MatchString(method) {
 		return nil, errors.Newf("invalid method '%s'", method)
+	}
+	parts := strings.Split(u.Path, "/")
+	for i := range parts {
+		if strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
+			name := parts[i]
+			name = strings.TrimPrefix(name, "{")
+			name = strings.TrimSuffix(name, "}")
+			if strings.HasSuffix(name, "+") && i != len(parts)-1 {
+				return nil, errors.Newf("greedy path argument %s must be at end of path", parts[i])
+			}
+			name = strings.TrimSuffix(name, "+")
+			if name != "" && !utils.IsLowerCaseIdentifier(name) {
+				return nil, errors.Newf("invalid path argument name %s", parts[i])
+			}
+		}
 	}
 	sub := &Subscription{
 		Host:    u.Hostname(),

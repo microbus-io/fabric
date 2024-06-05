@@ -100,8 +100,9 @@ func InjectPathArguments(u string, values map[string]any) string {
 		}
 		greedy := strings.HasSuffix(parts[i], "+}")
 		argIndex++
-		parts[i] = strings.TrimLeft(parts[i], "{")
-		parts[i] = strings.TrimRight(parts[i], "+}")
+		parts[i] = strings.TrimPrefix(parts[i], "{")
+		parts[i] = strings.TrimSuffix(parts[i], "}")
+		parts[i] = strings.TrimSuffix(parts[i], "+")
 		if parts[i] == "" {
 			parts[i] = fmt.Sprintf("path%d", argIndex)
 		}
@@ -139,8 +140,9 @@ func ResolvePathArguments(u string) (resolved string, err error) {
 		}
 		greedy := strings.HasSuffix(parts[i], "+}")
 		argIndex++
-		parts[i] = strings.TrimLeft(parts[i], "{")
-		parts[i] = strings.TrimRight(parts[i], "+}")
+		parts[i] = strings.TrimPrefix(parts[i], "{")
+		parts[i] = strings.TrimSuffix(parts[i], "}")
+		parts[i] = strings.TrimSuffix(parts[i], "+")
 		if parts[i] == "" {
 			parts[i] = fmt.Sprintf("path%d", argIndex)
 		}

@@ -98,8 +98,9 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			if strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
 				argIndex++
 				name := parts[i]
-				name = strings.TrimLeft(name, "{")
-				name = strings.TrimRight(name, "}")
+				name = strings.TrimPrefix(name, "{")
+				name = strings.TrimSuffix(name, "}")
+				name = strings.TrimSuffix(name, "+")
 				if name == "" {
 					name = fmt.Sprintf("path%d", argIndex)
 					parts[i] = "{" + name + "}"

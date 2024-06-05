@@ -678,15 +678,49 @@ func TestConnector_PathArguments(t *testing.T) {
 		bar = r.URL.Query().Get("bar")
 		return nil
 	})
+	con.Subscribe("GET", "/1/x{mmm}x", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+	con.Subscribe("GET", "/2/{}x", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+	con.Subscribe("GET", "/3/x*", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+	con.Subscribe("GET", "/4/x{+}", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
 
 	// Startup the microservices
 	err := con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	// Send messages to various locations under the directory
+	// Send messages
 	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO/bar/BAR?foo=x&bar=x"))
 	assert.NoError(t, err)
 	assert.Equal(t, "FOO", foo)
 	assert.Equal(t, "BAR", bar)
+
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/1/xMMMMMx"))
+	assert.Equal(t, http.StatusNotFound, errors.StatusCode(err))
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/1/x{mmm}x"))
+	assert.NoError(t, err)
+
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/2/MMMMx"))
+	assert.Equal(t, http.StatusNotFound, errors.StatusCode(err))
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/2/{}x"))
+	assert.NoError(t, err)
+
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/3/xMMMMM"))
+	assert.Equal(t, http.StatusNotFound, errors.StatusCode(err))
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/3/x*"))
+	assert.NoError(t, err)
+
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/4/xMMMMM"))
+	assert.Equal(t, http.StatusNotFound, errors.StatusCode(err))
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/4/x/MMMMM"))
+	assert.Equal(t, http.StatusNotFound, errors.StatusCode(err))
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/4/x{+}"))
+	assert.NoError(t, err)
 }

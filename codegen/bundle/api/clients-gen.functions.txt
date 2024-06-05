@@ -165,14 +165,25 @@ func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 /*
 {{ .Description }}
 */
-func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub.Option) error {
+func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }})) error {
 	do{{ .Name }} := func(w http.ResponseWriter, r *http.Request) error {
 		var i {{ .Name }}In
 		var o {{ .Name }}Out
+		{{- if .Signature.InputArg "httpRequestBody" }}
+		err := httpx.ParseRequestBody(r, &i.{{ CapitalizeIdentifier "httpRequestBody" }})
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(r.URL.Query(), &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		{{- else }}
 		err := httpx.ParseRequestData(r, &i)
 		if err != nil {
 			return errors.Trace(err)
 		}
+		{{- end }}
 		{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = handler(
 			r.Context(),
 			{{- range .Signature.InputArgs }}
@@ -183,10 +194,15 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 			return err // No trace
 		}
 		w.Header().Set("Content-Type", "application/json")
-		{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}
+		{{- if .Signature.OutputArg "httpStatusCode" }}
 		w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
-		{{- end}}{{- end}}
-		err = json.NewEncoder(w).Encode(o)
+		{{- end}}
+		encoder := json.NewEncoder(w)
+		{{- if .Signature.OutputArg "httpResponseBody" }}
+		err = encoder.Encode(o.{{ CapitalizeIdentifier "httpResponseBody" }})
+		{{- else }}
+		err = encoder.Encode(o)
+		{{- end }}
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -196,7 +212,7 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 	if handler == nil {
 		return _c.svc.Unsubscribe(`{{ .Method }}`, path)
 	}
-	return _c.svc.Subscribe(`{{ .Method }}`, path, do{{ .Name }}, options...)
+	return _c.svc.Subscribe(`{{ .Method }}`, path, do{{ .Name }})
 }
 {{ end }}
 {{- end }}

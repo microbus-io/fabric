@@ -317,8 +317,9 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 			query = httpReq.URL.Query()
 		}
 		name := subParts[i]
-		name = strings.TrimLeft(name, "{")
-		name = strings.TrimRight(name, "+}")
+		name = strings.TrimPrefix(name, "{")
+		name = strings.TrimSuffix(name, "}")
+		name = strings.TrimSuffix(name, "+")
 		if name == "" {
 			name = fmt.Sprintf("path%d", argIndex)
 		}

@@ -303,7 +303,7 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string) <
 OnAllowRegister is called before a user is allowed to register.
 Event sinks are given the opportunity to block the registration.
 */
-func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) (allow bool, err error), options ...sub.Option) error {
+func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) (allow bool, err error)) error {
 	doOnAllowRegister := func(w http.ResponseWriter, r *http.Request) error {
 		var i OnAllowRegisterIn
 		var o OnAllowRegisterOut
@@ -319,7 +319,8 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 			return err // No trace
 		}
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(o)
+		encoder := json.NewEncoder(w)
+		err = encoder.Encode(o)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -329,7 +330,7 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 	if handler == nil {
 		return _c.svc.Unsubscribe(`POST`, path)
 	}
-	return _c.svc.Subscribe(`POST`, path, doOnAllowRegister, options...)
+	return _c.svc.Subscribe(`POST`, path, doOnAllowRegister)
 }
 
 // OnRegisteredIn are the input arguments of OnRegistered.
@@ -397,7 +398,7 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string) <-ch
 /*
 OnRegistered is called when a user is successfully registered.
 */
-func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (err error), options ...sub.Option) error {
+func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (err error)) error {
 	doOnRegistered := func(w http.ResponseWriter, r *http.Request) error {
 		var i OnRegisteredIn
 		var o OnRegisteredOut
@@ -413,7 +414,8 @@ func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (er
 			return err // No trace
 		}
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(o)
+		encoder := json.NewEncoder(w)
+		err = encoder.Encode(o)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -423,5 +425,5 @@ func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (er
 	if handler == nil {
 		return _c.svc.Unsubscribe(`POST`, path)
 	}
-	return _c.svc.Subscribe(`POST`, path, doOnRegistered, options...)
+	return _c.svc.Subscribe(`POST`, path, doOnRegistered)
 }

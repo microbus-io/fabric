@@ -43,7 +43,11 @@ configs:
 
 # Functions
 #
-# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# signature - Go-style method signature
+#   Func(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   Func(val Complex, ptr *Complex)
+#   Func(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   Func(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. or "ANY" (default)
 # path - The URL path of the subscription, relative to the hostname of the microservice
@@ -78,7 +82,8 @@ functions:
 
 # Web handlers
 #
-# signature - Func()
+# signature - Go-style method signature (no arguments)
+#   Handler()
 # description - Documentation
 # method - "GET", "POST", etc. or "ANY" (default)
 # path - The URL path of the subscription, relative to the hostname of the microservice
@@ -103,7 +108,8 @@ webs:
 
 # Tickers
 #
-# signature - Func()
+# signature - Go-style method signature (no arguments)
+#   Ticker()
 # description - Documentation
 # interval - Duration between iterations (e.g. 15m)
 tickers:
@@ -113,7 +119,11 @@ tickers:
 
 # Event sources
 #
-# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# signature - Go-style method signature
+#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   OnEvent(val Complex, ptr *Complex)
+#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. (defaults to "POST")
 # path - The URL path of the subscription, relative to the hostname of the microservice
@@ -133,7 +143,11 @@ events:
 
 # Event sinks
 #
-# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# signature - Go-style method signature
+#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   OnEvent(val Complex, ptr *Complex)
+#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
 # description - Documentation
 # event - The name of the event at the source (defaults to the function name)
 # source - The package path of the microservice that is the source of the event
@@ -148,7 +162,7 @@ sinks:
 
 # Metrics
 #
-# signature - Func(measure Type, label Type, label Type)
+# signature - Go-style method signature (numeric measure, ...labels)
 #   RequestDurationSeconds(dur time.Duration, method string, success bool)
 #   MemoryUsageBytes(b int64)
 #   DistanceMiles(miles float64, countryCode int)
