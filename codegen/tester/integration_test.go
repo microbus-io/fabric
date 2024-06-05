@@ -8,6 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package tester
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"math"
@@ -107,6 +108,36 @@ func TestTester_StringCut(t *testing.T) {
 		Expect("Hello", "World", true)
 	StringCut(t, ctx, "Hello World", "X").
 		Expect("Hello World", "", false)
+
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/string-cut?s=Foo+Bar&Sep=+"))
+	if assert.NoError(t, err) {
+		var out testerapi.StringCutOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, "Foo", out.Before)
+		assert.Equal(t, "Bar", out.After)
+		assert.Equal(t, true, out.Found)
+	}
+
+	mock := NewMock()
+	mock.SetHostname("string-cut.mock")
+	mock.MockStringCut(func(ctx context.Context, s, sep string) (before string, after string, found bool, err error) {
+		assert.Equal(t, s, "123XMX456")
+		assert.Equal(t, sep, "XMX")
+		return "123", "456", true, nil
+	})
+	App.Join(mock)
+	err = mock.Startup()
+	assert.NoError(t, err)
+	defer mock.Shutdown()
+
+	res, err = Svc.Request(ctx, pub.GET("https://string-cut.mock/string-cut?s=123XMX456&sep=XMX"))
+	if assert.NoError(t, err) {
+		var out testerapi.StringCutOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, "123", out.Before)
+		assert.Equal(t, "456", out.After)
+		assert.Equal(t, true, out.Found)
+	}
 }
 
 func TestTester_PointDistance(t *testing.T) {
@@ -128,6 +159,32 @@ func TestTester_PointDistance(t *testing.T) {
 		})
 	PointDistance(t, ctx, testerapi.XYCoord{X: 6.1, Y: 7.6}, &testerapi.XYCoord{X: 6.1, Y: 7.6}).
 		Expect(0)
+
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
+	if assert.NoError(t, err) {
+		var out testerapi.PointDistanceOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, 5.0, out.D)
+	}
+
+	mock := NewMock()
+	mock.SetHostname("point-distance.mock")
+	mock.MockPointDistance(func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error) {
+		assert.Equal(t, testerapi.XYCoord{X: 1, Y: 1}, p1)
+		assert.Equal(t, &testerapi.XYCoord{X: 4, Y: 5}, p2)
+		return 5.0, nil
+	})
+	App.Join(mock)
+	err = mock.Startup()
+	assert.NoError(t, err)
+	defer mock.Shutdown()
+
+	res, err = Svc.Request(ctx, pub.GET("https://point-distance.mock/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
+	if assert.NoError(t, err) {
+		var out testerapi.PointDistanceOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, 5.0, out.D)
+	}
 }
 
 func TestTester_SubArrayRange(t *testing.T) {
@@ -169,6 +226,28 @@ func TestTester_SubArrayRange(t *testing.T) {
 	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
 	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
 	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
+
+	mock := NewMock()
+	mock.SetHostname("sub-array-range.mock")
+	mock.MockSubArrayRange(func(ctx context.Context, httpRequestBody []int, min, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error) {
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, httpRequestBody)
+		assert.Equal(t, 2, min)
+		assert.Equal(t, 4, max)
+		return []int{2, 3, 4}, 9, http.StatusAccepted, nil
+	})
+	App.Join(mock)
+	err = mock.Startup()
+	assert.NoError(t, err)
+	defer mock.Shutdown()
+
+	res, err := Svc.Request(ctx, pub.POST("https://sub-array-range.mock/sub-array-range/4?min=2"), pub.Body("[1,2,3,4,5]"), pub.ContentType("application/json"))
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusAccepted, res.StatusCode)
+		var httpResponseBody []int
+		json.NewDecoder(res.Body).Decode(&httpResponseBody)
+		assert.Equal(t, []int{2, 3, 4}, httpResponseBody)
+		// Sum cannot be returned because httpResponseBody is present
+	}
 }
 
 func TestTester_WebPathArguments(t *testing.T) {

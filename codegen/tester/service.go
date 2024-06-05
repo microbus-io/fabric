@@ -42,8 +42,8 @@ type Service struct {
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	if svc.Deployment() != connector.TESTING && svc.Deployment() != connector.LOCAL {
-		return errors.Newf("not allowed in '%s' deployment", svc.Deployment())
+	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
+		return errors.Newf("service disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }

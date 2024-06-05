@@ -28,9 +28,9 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	{{- if .Signature.OutputArg "httpStatusCode" }}{{- if eq "int" (.Signature.OutputArg "httpStatusCode").Type }}
+	{{- if .Signature.OutputArg "httpStatusCode" }}
 	w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
-	{{- end}}{{- end}}
+	{{- end}}
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
 		encoder.SetIndent("", "  ")

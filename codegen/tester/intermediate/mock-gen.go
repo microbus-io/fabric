@@ -56,22 +56,22 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The tester is used to test the code generator's functions.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		// Functions
+		svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
+		svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
+		svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
+		svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
+		svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
+		svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
+		svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
+		// Webs
+		svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
+		svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doWebPathArguments)
+		svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedWebPathArguments)
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	// Functions
-	svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
-	svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
-	svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
-	svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
-	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
-	svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
-	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
-
-	// Webs
-	svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
-	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doWebPathArguments)
-	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedWebPathArguments)
-
 	return svc
 }
 
@@ -100,10 +100,11 @@ func (svc *Mock) doStringCut(w http.ResponseWriter, r *http.Request) error {
 		i.Sep,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -133,10 +134,11 @@ func (svc *Mock) doPointDistance(w http.ResponseWriter, r *http.Request) error {
 		i.P2,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -156,7 +158,11 @@ func (svc *Mock) doSubArrayRange(w http.ResponseWriter, r *http.Request) error {
 	}
 	var i testerapi.SubArrayRangeIn
 	var o testerapi.SubArrayRangeOut
-	err := httpx.ParseRequestData(r, &i)
+	err := httpx.ParseRequestBody(r, &i.HTTPRequestBody)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -167,11 +173,12 @@ func (svc *Mock) doSubArrayRange(w http.ResponseWriter, r *http.Request) error {
 		i.Max,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(o.HTTPStatusCode)
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -201,11 +208,12 @@ func (svc *Mock) doSumTwoIntegers(w http.ResponseWriter, r *http.Request) error 
 		i.Y,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(o.HTTPStatusCode)
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -236,10 +244,11 @@ func (svc *Mock) doFunctionPathArguments(w http.ResponseWriter, r *http.Request)
 		i.Suffix,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -270,10 +279,11 @@ func (svc *Mock) doNonStringPathArguments(w http.ResponseWriter, r *http.Request
 		i.Suffix,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -304,10 +314,11 @@ func (svc *Mock) doUnnamedFunctionPathArguments(w http.ResponseWriter, r *http.R
 		i.Path3,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

@@ -52,33 +52,31 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`{{ .General.Description }}`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		{{- if .Functions }}
+		// Functions
+		{{- range .Functions }}
+		svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+		{{- end }}{{ end }}
+
+		{{- if .Webs }}
+		// Webs
+		{{- range .Webs }}
+		svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
+		{{- end }}{{ end }}
+
+		{{- if .Sinks }}
+		// Sinks
+		{{- range $i, $s := .Sinks }}
+		{{ .SourceSuffix }}api{{ Add $i 1 }}.NewHook(svc).
+		{{- if .ForHost }}ForHost(`{{ .ForHost }}`).{{ end }}
+		{{- .Event }}(svc.do{{ .Name }}
+		{{- if eq .Queue "none"}}, sub.NoQueue(){{ end -}}
+		)
+		{{- end }}{{ end }}
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	{{- if .Functions }}
-
-	// Functions
-	{{- range .Functions }}
-	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
-	{{- end }}{{ end }}
-
-	{{- if .Webs }}
-
-	// Webs
-	{{- range .Webs }}
-	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
-	{{- end }}{{ end }}
-
-	{{- if .Sinks }}
-
-	// Sinks
-	{{- range $i, $s := .Sinks }}
-	{{ .SourceSuffix }}api{{ Add $i 1 }}.NewHook(svc).
-	{{- if .ForHost }}ForHost(`{{ .ForHost }}`).{{ end }}
-	{{- .Event }}(svc.do{{ .Name }}
-	{{- if eq .Queue "none"}}, sub.NoQueue(){{ end -}}
-	)
-	{{- end }}{{ end }}
-
 	return svc
 }
 
@@ -100,10 +98,21 @@ func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 	}
 	var i {{ $shortPackage }}api.{{ .Name }}In
 	var o {{ $shortPackage }}api.{{ .Name }}Out
+	{{- if .Signature.InputArg "httpRequestBody" }}
+	err := httpx.ParseRequestBody(r, &i.{{ CapitalizeIdentifier "httpRequestBody" }})
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	{{- else }}
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	{{- end }}
 	{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = svc.mock{{ .Name }}(
 		r.Context(),
 		{{- range .Signature.InputArgs }}
@@ -111,13 +120,18 @@ func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
 		{{- end}}
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	{{- range .Signature.OutputArgs }}{{ if and (eq .Name "httpStatusCode") (eq .Type "int") }}
+	{{- if .Signature.OutputArg "httpStatusCode" }}
 	w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
-	{{- end}}{{- end}}
-	err = json.NewEncoder(w).Encode(o)
+	{{- end}}
+	encoder := json.NewEncoder(w)
+	{{- if .Signature.OutputArg "httpResponseBody" }}
+	err = encoder.Encode(o.{{ CapitalizeIdentifier "httpResponseBody" }})
+	{{- else }}
+	err = encoder.Encode(o)
+	{{- end }}
 	if err != nil {
 		return errors.Trace(err)
 	}
