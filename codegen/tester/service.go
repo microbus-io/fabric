@@ -17,6 +17,7 @@ import (
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/frame"
 
 	"github.com/microbus-io/fabric/codegen/tester/intermediate"
 	"github.com/microbus-io/fabric/codegen/tester/testerapi"
@@ -137,4 +138,26 @@ func (svc *Service) SumTwoIntegers(ctx context.Context, x int, y int) (sum int, 
 	} else {
 		return x + y, http.StatusNotAcceptable, nil
 	}
+}
+
+/*
+Echo tests a typical web handler.
+*/
+func (svc *Service) Echo(w http.ResponseWriter, r *http.Request) (err error) {
+	// Verify that the frame in the context points to the header of the request
+	frameHdr := frame.Of(r.Context()).Header()
+	frameHdr.Add("Magic-Header", "Harry Potter")
+	for k, vv1 := range frameHdr {
+		vv2, ok := r.Header[k]
+		if !ok || len(vv1) != len(vv2) {
+			return errors.New("headers not same")
+		}
+		for i := 0; i < len(vv1); i++ {
+			if vv1[i] != vv2[i] {
+				return errors.New("headers not same")
+			}
+		}
+	}
+	r.Write(w)
+	return nil
 }

@@ -331,3 +331,44 @@ func TestTester_SumTwoIntegers(t *testing.T) {
 		assert.NotContains(t, strconv.Itoa(http.StatusAccepted), string(body))
 	}
 }
+
+func TestTester_Echo(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		Echo_Get(t, ctx, "").BodyContains(value)
+		Echo_Post(t, ctx, "", "", body).BodyContains(value)
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		Echo(t, httpReq).BodyContains(value)
+	*/
+
+	ctx := Context()
+	Echo_Get(t, ctx, "?alpha=111&beta=222").
+		BodyContains("GET /").
+		BodyContains("alpha=111&beta=222").
+		NoError()
+	Echo_Post(t, ctx, "?alpha=111&beta=222", "text/plain", "HEAVY PAYLOAD").
+		BodyContains("POST /").
+		BodyContains("alpha=111&beta=222").
+		BodyContains("text/plain").
+		BodyContains("HEAVY PAYLOAD").
+		NoError()
+
+	httpReq, _ := http.NewRequestWithContext(ctx, "PUT", "?alpha=111&beta=222", strings.NewReader("HEAVY PAYLOAD"))
+	httpReq.Header.Set("Content-Type", "text/plain")
+	Echo(t, httpReq).
+		BodyContains("PUT /").
+		BodyContains("alpha=111&beta=222").
+		BodyContains("text/plain").
+		BodyContains("HEAVY PAYLOAD").
+		NoError()
+
+	res, err := Svc.Request(ctx, pub.PATCH("https://"+Hostname+"/echo?alpha=111&beta=222"), pub.Body("HEAVY PAYLOAD"), pub.ContentType("text/plain"))
+	if assert.NoError(t, err) {
+		body, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(body), "PATCH /")
+		assert.Contains(t, string(body), "alpha=111&beta=222")
+		assert.Contains(t, string(body), "text/plain")
+		assert.Contains(t, string(body), "HEAVY PAYLOAD")
+	}
+}

@@ -145,6 +145,10 @@ sinks:
 #   none - Pervasive
 # openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 webs:
+  # Typical case
+  - signature: Echo()
+    description: Echo tests a typical web handler.
+  # Path arguments
   - signature: WebPathArguments()
     description: WebPathArguments tests path arguments in web handlers.
     path: /.../fixed/{named}/{}/{suffix+}

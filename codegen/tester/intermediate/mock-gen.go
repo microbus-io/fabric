@@ -44,6 +44,7 @@ type Mock struct {
 	mockFunctionPathArguments func(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
 	mockNonStringPathArguments func(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
 	mockUnnamedFunctionPathArguments func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
+	mockEcho func(w http.ResponseWriter, r *http.Request) (err error)
 	mockWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 	mockUnnamedWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 }
@@ -67,6 +68,7 @@ func NewMock() *Mock {
 	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
 
 	// Webs
+	svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doWebPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedWebPathArguments)
 
@@ -315,6 +317,21 @@ func (svc *Mock) doUnnamedFunctionPathArguments(w http.ResponseWriter, r *http.R
 // MockUnnamedFunctionPathArguments sets up a mock handler for the UnnamedFunctionPathArguments function.
 func (svc *Mock) MockUnnamedFunctionPathArguments(handler func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)) *Mock {
 	svc.mockUnnamedFunctionPathArguments = handler
+	return svc
+}
+
+// doEcho handles the Echo web handler.
+func (svc *Mock) doEcho(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockEcho == nil {
+		return errors.New("mocked endpoint 'Echo' not implemented")
+	}
+	err = svc.mockEcho(w, r)
+	return errors.Trace(err)
+}
+
+// MockEcho sets up a mock handler for the Echo web handler.
+func (svc *Mock) MockEcho(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockEcho = handler
 	return svc
 }
 

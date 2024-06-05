@@ -39,17 +39,19 @@ func Test{{ $pkg }}_{{ .Name }}(t *testing.T) {
 	t.Parallel()
 	/*
 		ctx := Context()
-		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
 	{{- if eq .Method "ANY" }}
 		{{ .Name }}_Get(t, ctx, "").BodyContains(value)
 		{{ .Name }}_Post(t, ctx, "", "", body).BodyContains(value)
-		{{ .Name }}(t, httpRequest).BodyContains(value)
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		{{ .Name }}(t, httpReq).BodyContains(value)
 	{{- else if .MethodWithBody }}
 		{{ .Name }}(t, ctx, "", "", body).BodyContains(value)
-		{{ .Name }}_Do(t, httpRequest).BodyContains(value)
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		{{ .Name }}_Do(t, httpReq).BodyContains(value)
 	{{- else }}
 		{{ .Name }}(t, ctx, "").BodyContains(value)
-		{{ .Name }}_Do(t, httpRequest).BodyContains(value)
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		{{ .Name }}_Do(t, httpReq).BodyContains(value)
 	{{- end }}
 	*/
 

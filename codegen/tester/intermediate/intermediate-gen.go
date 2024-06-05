@@ -75,6 +75,7 @@ type ToDo interface {
 	FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
 	NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
 	UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
+	Echo(w http.ResponseWriter, r *http.Request) (err error)
 	WebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 	UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 }
@@ -112,6 +113,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
 
 	// Webs
+	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.impl.WebPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.impl.UnnamedWebPathArguments)
 
@@ -257,6 +259,20 @@ An httpResponseBody argument prevents returning additional values, except for th
 			}{},
 			OutputArgs: struct {
 				Joined string `json:"joined"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Echo`,
+			Method:      `ANY`,
+			Path:        `:443/echo`,
+			Summary:     `Echo()`,
+			Description: `Echo tests a typical web handler.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
 			}{},
 		})
 	}
