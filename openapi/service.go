@@ -93,15 +93,15 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 		// Path arguments
 		pathArgs := map[string]*oapiParameter{}
 		parts := strings.Split(path, "/")[2:] // Skip the hostname
+		argIndex := 0
 		for i := range parts {
 			if strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
+				argIndex++
 				name := parts[i]
-				name = strings.TrimSpace(name)
 				name = strings.TrimLeft(name, "{")
 				name = strings.TrimRight(name, "+}")
-				name = strings.TrimSpace(name)
 				if name == "" {
-					name = fmt.Sprintf("path%d", i+1)
+					name = fmt.Sprintf("path%d", argIndex)
 				}
 				pathArgs[name] = &oapiParameter{
 					In:   "path",
@@ -139,6 +139,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			// OUT is JSON in the response body
 			schemaOut := jsonschema.Reflect(ep.OutputArgs)
 			if field, ok := reflect.TypeOf(ep.OutputArgs).FieldByName("HTTPResponseBody"); ok {
+				// httpResponseBody argument overrides the response body and preempts all other return values
 				schemaOut = jsonschema.ReflectFromType(field.Type)
 				for _, v := range schemaOut.Definitions {
 					schemaOut = v
@@ -148,13 +149,39 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			resolveRefs(schemaOut, ep.Name+"_OUT")
 			doc.Components.Schemas[ep.Name+"_OUT"] = schemaOut
 
-			if !methodHasBody(ep.Method) {
+			// httpRequestBody argument overrides the request body and forces all other arguments to be in the query or path
+			httpRequestBodyExists := false
+			if field, ok := reflect.TypeOf(ep.InputArgs).FieldByName("HTTPRequestBody"); ok {
+				httpRequestBodyExists = true  // Makes all other args query or path args
+				if methodHasBody(ep.Method) { // Only works if the method has a body
+					schemaIn := jsonschema.ReflectFromType(field.Type)
+					for _, v := range schemaIn.Definitions {
+						schemaIn = v
+						break
+					}
+					resolveRefs(schemaIn, ep.Name+"_IN")
+					doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
+
+					op.RequestBody = &oapiRequestBody{
+						Required: true,
+						Content: map[string]*oapiMediaType{
+							"application/json": {
+								Schema: &jsonschema.Schema{
+									Ref: "#/components/schemas/" + ep.Name + "_IN",
+								},
+							},
+						},
+					}
+				}
+			}
+
+			if !methodHasBody(ep.Method) || httpRequestBodyExists {
 				// IN are explodable query arguments
 				inType := reflect.TypeOf(ep.InputArgs)
 				for i := 0; i < inType.NumField(); i++ {
 					field := inType.Field(i)
 					name := fieldName(field)
-					if name == "" {
+					if name == "" || name == "httpRequestBody" {
 						continue
 					}
 					parameter := &oapiParameter{
@@ -184,13 +211,6 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			} else {
 				// IN is JSON in the request body
 				schemaIn := jsonschema.Reflect(ep.InputArgs)
-				if field, ok := reflect.TypeOf(ep.InputArgs).FieldByName("HTTPRequestBody"); ok {
-					schemaIn = jsonschema.ReflectFromType(field.Type)
-					for _, v := range schemaIn.Definitions {
-						schemaIn = v
-						break
-					}
-				}
 				resolveRefs(schemaIn, ep.Name+"_IN")
 				doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
 

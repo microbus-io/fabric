@@ -163,22 +163,18 @@ func (_out *RegisterResponse) Get() (allowed bool, err error) {
 Register attempts to register a new user.
 */
 func (_c *MulticastClient) Register(ctx context.Context, email string, _options ...pub.Option) <-chan *RegisterResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/register`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`email`: email,
+	})
 	_in := RegisterIn{
 		email,
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *RegisterResponse, 1)
-		_res <- &RegisterResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -209,20 +205,19 @@ Register attempts to register a new user.
 */
 func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/register`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`email`: email,
+	})
 	_in := RegisterIn{
 		email,
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/register`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -269,22 +264,18 @@ OnAllowRegister is called before a user is allowed to register.
 Event sinks are given the opportunity to block the registration.
 */
 func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _options ...pub.Option) <-chan *OnAllowRegisterResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`email`: email,
+	})
 	_in := OnAllowRegisterIn{
 		email,
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *OnAllowRegisterResponse, 1)
-		_res <- &OnAllowRegisterResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -319,7 +310,7 @@ func (_c *Hook) OnAllowRegister(handler func(ctx context.Context, email string) 
 		var i OnAllowRegisterIn
 		var o OnAllowRegisterOut
 		err := httpx.ParseRequestData(r, &i)
-		if err!=nil {
+		if err != nil {
 			return errors.Trace(err)
 		}
 		o.Allow, err = handler(
@@ -369,22 +360,18 @@ func (_out *OnRegisteredResponse) Get() (err error) {
 OnRegistered is called when a user is successfully registered.
 */
 func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:417/on-registered`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`email`: email,
+	})
 	_in := OnRegisteredIn{
 		email,
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *OnRegisteredResponse, 1)
-		_res <- &OnRegisteredResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-registered`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -418,7 +405,7 @@ func (_c *Hook) OnRegistered(handler func(ctx context.Context, email string) (er
 		var i OnRegisteredIn
 		var o OnRegisteredOut
 		err := httpx.ParseRequestData(r, &i)
-		if err!=nil {
+		if err != nil {
 			return errors.Trace(err)
 		}
 		err = handler(

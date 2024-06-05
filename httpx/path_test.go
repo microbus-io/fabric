@@ -8,6 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package httpx
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,5 +60,22 @@ func TestHttpx_ParseURLInvalid(t *testing.T) {
 		u, err := ParseURL(x)
 		assert.Error(t, err, "%s", x)
 		assert.Nil(t, u)
+	}
+}
+
+func TestHttpx_ResolvePathArguments(t *testing.T) {
+	testCases := []string{
+		"https://example.com/article/{user}/comment/{comment}?user=123&comment=456", "https://example.com/article/123/comment/456",
+		"https://example.com/article/{user}/comment/{comment}?user=123&comment=456&x=789", "https://example.com/article/123/comment/456?x=789",
+		"https://example.com/article/{}/comment/{}?path1=123&path2=456&x=789", "https://example.com/article/123/comment/456?x=789",
+		"https://example.com/fixed/{named}/{}/{suffix+}?named=1&path2=2&suffix=3/4&q=5", "https://example.com/fixed/1/2/3/4?q=5",
+		"https://example.com/fixed/{named}/{}/{suffix+}", "https://example.com/fixed///",
+		"https://example.com/fixed/{named}/{suffix+}?named=" + url.QueryEscape("[a&b/c]") + "&suffix=" + url.QueryEscape("[d&e/f]"), "https://example.com/fixed/" + url.PathEscape("[a&b/c]") + "/" + url.PathEscape("[d&e") + "/" + url.PathEscape("f]"),
+	}
+	for i := 0; i < len(testCases); i += 2 {
+		resolved, err := ResolvePathArguments(testCases[i])
+		if assert.NoError(t, err) {
+			assert.Equal(t, testCases[i+1], resolved)
+		}
 	}
 }

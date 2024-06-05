@@ -75,7 +75,7 @@ func (svc *Mock) doValues(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.ValuesIn
 	var o configuratorapi.ValuesOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Values, err = svc.mockValues(
@@ -107,7 +107,7 @@ func (svc *Mock) doRefresh(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.RefreshIn
 	var o configuratorapi.RefreshOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.mockRefresh(
@@ -138,7 +138,7 @@ func (svc *Mock) doSync(w http.ResponseWriter, r *http.Request) error {
 	var i configuratorapi.SyncIn
 	var o configuratorapi.SyncOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.mockSync(

@@ -119,6 +119,10 @@ func (_c *Client) Home_Get(ctx context.Context, url string) (res *http.Response,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
 	if err != nil {
 		return nil, err // No trace
@@ -139,6 +143,10 @@ func (_c *MulticastClient) Home_Get(ctx context.Context, url string) <-chan *pub
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -154,6 +162,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) Home_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfHome, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -180,6 +192,10 @@ func (_c *MulticastClient) Home_Post(ctx context.Context, url string, contentTyp
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -196,6 +212,10 @@ func (_c *Client) Home(ctx context.Context, r *http.Request) (res *http.Response
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfHome, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -223,6 +243,10 @@ func (_c *MulticastClient) Home(ctx context.Context, r *http.Request) <-chan *pu
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
@@ -237,6 +261,10 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *Client) NoQueue_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfNoQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -262,6 +290,10 @@ func (_c *MulticastClient) NoQueue_Get(ctx context.Context, url string) <-chan *
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -279,6 +311,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) NoQueue_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfNoQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -307,6 +343,10 @@ func (_c *MulticastClient) NoQueue_Post(ctx context.Context, url string, content
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -325,6 +365,10 @@ func (_c *Client) NoQueue(ctx context.Context, r *http.Request) (res *http.Respo
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfNoQueue, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -354,6 +398,10 @@ func (_c *MulticastClient) NoQueue(ctx context.Context, r *http.Request) <-chan 
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
@@ -368,6 +416,10 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *Client) DefaultQueue_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfDefaultQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -393,6 +445,10 @@ func (_c *MulticastClient) DefaultQueue_Get(ctx context.Context, url string) <-c
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -410,6 +466,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) DefaultQueue_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfDefaultQueue, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -438,6 +498,10 @@ func (_c *MulticastClient) DefaultQueue_Post(ctx context.Context, url string, co
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -456,6 +520,10 @@ func (_c *Client) DefaultQueue(ctx context.Context, r *http.Request) (res *http.
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfDefaultQueue, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -485,6 +553,10 @@ func (_c *MulticastClient) DefaultQueue(ctx context.Context, r *http.Request) <-
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
@@ -497,6 +569,10 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *Client) CacheLoad_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCacheLoad, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -520,6 +596,10 @@ func (_c *MulticastClient) CacheLoad_Get(ctx context.Context, url string) <-chan
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -535,6 +615,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) CacheLoad_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCacheLoad, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -561,6 +645,10 @@ func (_c *MulticastClient) CacheLoad_Post(ctx context.Context, url string, conte
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -577,6 +665,10 @@ func (_c *Client) CacheLoad(ctx context.Context, r *http.Request) (res *http.Res
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfCacheLoad, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -604,6 +696,10 @@ func (_c *MulticastClient) CacheLoad(ctx context.Context, r *http.Request) <-cha
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
@@ -616,6 +712,10 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *Client) CacheStore_Get(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCacheStore, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -639,6 +739,10 @@ func (_c *MulticastClient) CacheStore_Get(ctx context.Context, url string) <-cha
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -654,6 +758,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) CacheStore_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfCacheStore, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -680,6 +788,10 @@ func (_c *MulticastClient) CacheStore_Post(ctx context.Context, url string, cont
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -696,6 +808,10 @@ func (_c *Client) CacheStore(ctx context.Context, r *http.Request) (res *http.Re
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfCacheStore, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -720,6 +836,10 @@ func (_c *MulticastClient) CacheStore(ctx context.Context, r *http.Request) <-ch
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfCacheStore, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

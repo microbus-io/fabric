@@ -14,13 +14,10 @@ import (
 	"github.com/microbus-io/fabric/errors"
 )
 
-// ParseRequestData parses the body and query arguments of an incoming request
-// and populates the fields of a data object.
+// ParseRequestBody parses the body of an incoming request and populates the fields of a data object.
+// It supports JSON and URL-encoded form data content types.
 // Use json tags to designate the name of the argument to map to each field.
-// An argument name can be hierarchical using either notation "a[b][c]" or "a.b.c",
-// in which case it is read into the corresponding nested field.
-// Tagging a field with "path{index}" reads the indexed segment of the path of the request.
-func ParseRequestData(r *http.Request, data any) error {
+func ParseRequestBody(r *http.Request, data any) error {
 	// Parse JSON in the body
 	contentType := r.Header.Get("Content-Type")
 	if contentType == "application/json" {
@@ -29,7 +26,6 @@ func ParseRequestData(r *http.Request, data any) error {
 			return errors.Trace(err)
 		}
 	}
-
 	// Parse form in body
 	if contentType == "application/x-www-form-urlencoded" {
 		err := r.ParseForm()
@@ -41,12 +37,18 @@ func ParseRequestData(r *http.Request, data any) error {
 			return errors.Trace(err)
 		}
 	}
-
-	// Parse query args
-	err := DecodeDeepObject(r.URL.Query(), data)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
 	return nil
+}
+
+// ParseRequestData parses the body and query arguments of an incoming request
+// and populates the fields of a data object.
+// Use json tags to designate the name of the argument to map to each field.
+// An argument name can be hierarchical using either notation "a[b][c]" or "a.b.c",
+// in which case it is read into the corresponding nested field.
+func ParseRequestData(r *http.Request, data any) error {
+	err := ParseRequestBody(r, data)
+	if err == nil {
+		err = DecodeDeepObject(r.URL.Query(), data)
+	}
+	return errors.Trace(err)
 }

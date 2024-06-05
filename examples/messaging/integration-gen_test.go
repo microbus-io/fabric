@@ -534,6 +534,11 @@ func Home_Get(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -566,6 +571,11 @@ func Home_Post(t *testing.T, ctx context.Context, url string, contentType string
 	tc := &HomeTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfHome, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -611,12 +621,17 @@ func Home(t *testing.T, r *http.Request) *HomeTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(messagingapi.URLOfHome, r.URL.String())
+	url, err := httpx.ResolveURL(messagingapi.URLOfHome, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1054,6 +1069,11 @@ func NoQueue_Get(t *testing.T, ctx context.Context, url string) *NoQueueTestCase
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -1088,6 +1108,11 @@ func NoQueue_Post(t *testing.T, ctx context.Context, url string, contentType str
 	tc := &NoQueueTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfNoQueue, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1135,12 +1160,17 @@ func NoQueue(t *testing.T, r *http.Request) *NoQueueTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(messagingapi.URLOfNoQueue, r.URL.String())
+	url, err := httpx.ResolveURL(messagingapi.URLOfNoQueue, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1578,6 +1608,11 @@ func DefaultQueue_Get(t *testing.T, ctx context.Context, url string) *DefaultQue
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -1612,6 +1647,11 @@ func DefaultQueue_Post(t *testing.T, ctx context.Context, url string, contentTyp
 	tc := &DefaultQueueTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfDefaultQueue, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1659,12 +1699,17 @@ func DefaultQueue(t *testing.T, r *http.Request) *DefaultQueueTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(messagingapi.URLOfDefaultQueue, r.URL.String())
+	url, err := httpx.ResolveURL(messagingapi.URLOfDefaultQueue, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2100,6 +2145,11 @@ func CacheLoad_Get(t *testing.T, ctx context.Context, url string) *CacheLoadTest
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -2132,6 +2182,11 @@ func CacheLoad_Post(t *testing.T, ctx context.Context, url string, contentType s
 	tc := &CacheLoadTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfCacheLoad, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2177,12 +2232,17 @@ func CacheLoad(t *testing.T, r *http.Request) *CacheLoadTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(messagingapi.URLOfCacheLoad, r.URL.String())
+	url, err := httpx.ResolveURL(messagingapi.URLOfCacheLoad, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2618,6 +2678,11 @@ func CacheStore_Get(t *testing.T, ctx context.Context, url string) *CacheStoreTe
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -2650,6 +2715,11 @@ func CacheStore_Post(t *testing.T, ctx context.Context, url string, contentType 
 	tc := &CacheStoreTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(messagingapi.URLOfCacheStore, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2695,12 +2765,17 @@ func CacheStore(t *testing.T, r *http.Request) *CacheStoreTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(messagingapi.URLOfCacheStore, r.URL.String())
+	url, err := httpx.ResolveURL(messagingapi.URLOfCacheStore, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

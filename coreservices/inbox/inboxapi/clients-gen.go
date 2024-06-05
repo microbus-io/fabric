@@ -160,22 +160,18 @@ func (_out *OnInboxSaveMailResponse) Get() (err error) {
 OnInboxSaveMail is triggered when a new email message is received.
 */
 func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Email, _options ...pub.Option) <-chan *OnInboxSaveMailResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:417/on-inbox-save-mail`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`mailMessage`: mailMessage,
+	})
 	_in := OnInboxSaveMailIn{
 		mailMessage,
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *OnInboxSaveMailResponse, 1)
-		_res <- &OnInboxSaveMailResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:417/on-inbox-save-mail`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -209,7 +205,7 @@ func (_c *Hook) OnInboxSaveMail(handler func(ctx context.Context, mailMessage *E
 		var i OnInboxSaveMailIn
 		var o OnInboxSaveMailOut
 		err := httpx.ParseRequestData(r, &i)
-		if err!=nil {
+		if err != nil {
 			return errors.Trace(err)
 		}
 		err = handler(

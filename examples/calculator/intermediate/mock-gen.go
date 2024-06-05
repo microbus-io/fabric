@@ -75,7 +75,7 @@ func (svc *Mock) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.ArithmeticIn
 	var o calculatorapi.ArithmeticOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.mockArithmetic(
@@ -109,7 +109,7 @@ func (svc *Mock) doSquare(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.SquareIn
 	var o calculatorapi.SquareOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.XEcho, o.Result, err = svc.mockSquare(
@@ -141,7 +141,7 @@ func (svc *Mock) doDistance(w http.ResponseWriter, r *http.Request) error {
 	var i calculatorapi.DistanceIn
 	var o calculatorapi.DistanceOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.D, err = svc.mockDistance(

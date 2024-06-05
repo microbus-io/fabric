@@ -8,6 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package httpx
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -54,7 +55,10 @@ func ResolveURL(base string, relative string) (resolved string, err error) {
 		return "", errors.Trace(err)
 	}
 	resolvedURL := baseURL.ResolveReference(relativeURL)
-	return resolvedURL.String(), nil
+	result := resolvedURL.String()
+	result = strings.ReplaceAll(result, "%7B", "{")
+	result = strings.ReplaceAll(result, "%7D", "}")
+	return result, nil
 }
 
 // ParseURL returns a canonical version of the parsed URL with the scheme and port filled in if omitted.
@@ -80,4 +84,81 @@ func ParseURL(rawURL string) (canonical *url.URL, err error) {
 		parsed.Host += ":" + port
 	}
 	return parsed, nil
+}
+
+// InjectPathArguments fills URL path arguments such as {arg} from the named value.
+// If the argument is not named, e.g. {}, then a default name of path1, path2, etc. is assumed.
+func InjectPathArguments(u string, values map[string]any) string {
+	if !strings.Contains(u, "{") || !strings.Contains(u, "}") {
+		return u
+	}
+	parts := strings.Split(u, "/")
+	argIndex := 0
+	for i := range parts {
+		if !strings.HasPrefix(parts[i], "{") || !strings.HasSuffix(parts[i], "}") {
+			continue
+		}
+		greedy := strings.HasSuffix(parts[i], "+}")
+		argIndex++
+		parts[i] = strings.TrimLeft(parts[i], "{")
+		parts[i] = strings.TrimRight(parts[i], "+}")
+		if parts[i] == "" {
+			parts[i] = fmt.Sprintf("path%d", argIndex)
+		}
+		if v, ok := values[parts[i]]; ok {
+			parts[i] = url.PathEscape(fmt.Sprintf("%v", v))
+			if greedy {
+				// Allow slashes in greedy arguments
+				parts[i] = strings.ReplaceAll(parts[i], "%2F", "/")
+			}
+		} else {
+			parts[i] = ""
+		}
+	}
+	return strings.Join(parts, "/")
+}
+
+// ResolvePathArguments transfers query arguments into path arguments, if present.
+func ResolvePathArguments(u string) (resolved string, err error) {
+	if !strings.Contains(u, "{") || !strings.Contains(u, "}") {
+		return u, nil
+	}
+	var query url.Values
+	u, q, found := strings.Cut(u, "?")
+	if found {
+		query, err = url.ParseQuery(q)
+		if err != nil {
+			return "", errors.Trace(err)
+		}
+	}
+	parts := strings.Split(u, "/")
+	argIndex := 0
+	for i := range parts {
+		if !strings.HasPrefix(parts[i], "{") || !strings.HasSuffix(parts[i], "}") {
+			continue
+		}
+		greedy := strings.HasSuffix(parts[i], "+}")
+		argIndex++
+		parts[i] = strings.TrimLeft(parts[i], "{")
+		parts[i] = strings.TrimRight(parts[i], "+}")
+		if parts[i] == "" {
+			parts[i] = fmt.Sprintf("path%d", argIndex)
+		}
+		if vv, ok := query[parts[i]]; ok && len(vv) > 0 {
+			delete(query, parts[i])
+			v := vv[len(vv)-1]
+			parts[i] = url.PathEscape(fmt.Sprintf("%v", v))
+			if greedy {
+				// Allow slashes in greedy arguments
+				parts[i] = strings.ReplaceAll(parts[i], "%2F", "/")
+			}
+		} else {
+			parts[i] = ""
+		}
+	}
+	u = strings.Join(parts, "/")
+	if len(query) > 0 {
+		u += "?" + query.Encode()
+	}
+	return u, nil
 }

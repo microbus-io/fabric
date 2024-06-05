@@ -71,7 +71,7 @@ func (svc *Mock) doRegister(w http.ResponseWriter, r *http.Request) error {
 	var i eventsourceapi.RegisterIn
 	var o eventsourceapi.RegisterOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Allowed, err = svc.mockRegister(

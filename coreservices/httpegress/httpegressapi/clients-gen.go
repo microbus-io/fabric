@@ -117,6 +117,10 @@ func (_c *Client) MakeRequest(ctx context.Context, url string, contentType strin
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	res, err = _c.svc.Request(ctx, pub.Method(`POST`), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 	if err != nil {
 		return nil, err // No trace
@@ -139,6 +143,10 @@ func (_c *MulticastClient) MakeRequest(ctx context.Context, url string, contentT
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method(`POST`), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -158,6 +166,10 @@ func (_c *Client) MakeRequest_Do(ctx context.Context, r *http.Request) (res *htt
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfMakeRequest, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -185,6 +197,10 @@ func (_c *MulticastClient) MakeRequest_Do(ctx context.Context, r *http.Request) 
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfMakeRequest, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

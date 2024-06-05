@@ -125,21 +125,16 @@ func (_out *PingResponse) Get() (pong int, err error) {
 Ping responds to the message with a pong.
 */
 func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:888/ping`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := PingIn{
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *PingResponse, 1)
-		_res <- &PingResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -170,19 +165,17 @@ Ping responds to the message with a pong.
 */
 func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:888/ping`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := PingIn{
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/ping`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -225,21 +218,16 @@ func (_out *ConfigRefreshResponse) Get() (err error) {
 ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := ConfigRefreshIn{
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *ConfigRefreshResponse, 1)
-		_res <- &ConfigRefreshResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -270,19 +258,17 @@ ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := ConfigRefreshIn{
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -325,22 +311,18 @@ func (_out *TraceResponse) Get() (err error) {
 Trace forces exporting the indicated tracing span.
 */
 func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub.Option) <-chan *TraceResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:888/trace`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`id`: id,
+	})
 	_in := TraceIn{
 		id,
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *TraceResponse, 1)
-		_res <- &TraceResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -371,20 +353,19 @@ Trace forces exporting the indicated tracing span.
 */
 func (_c *Client) Trace(ctx context.Context, id string) (err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:888/trace`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`id`: id,
+	})
 	_in := TraceIn{
 		id,
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:888/trace`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)

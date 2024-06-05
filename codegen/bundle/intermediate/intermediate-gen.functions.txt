@@ -4,7 +4,7 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 	var i {{ $shortPackage }}api.{{ .Name }}In
 	var o {{ $shortPackage }}api.{{ .Name }}Out
 	{{- if .Signature.InputArg "httpRequestBody" }}
-	err := httpx.ParseRequestData(r, &i.{{ CapitalizeIdentifier "httpRequestBody" }})
+	err := httpx.ParseRequestBody(r, &i.{{ CapitalizeIdentifier "httpRequestBody" }})
 	if err != nil {
 		return errors.Trace(err)
 	}

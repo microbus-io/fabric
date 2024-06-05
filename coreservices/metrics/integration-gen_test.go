@@ -534,6 +534,11 @@ func Collect_Get(t *testing.T, ctx context.Context, url string) *CollectTestCase
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -566,6 +571,11 @@ func Collect_Post(t *testing.T, ctx context.Context, url string, contentType str
 	tc := &CollectTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(metricsapi.URLOfCollect, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -611,12 +621,17 @@ func Collect(t *testing.T, r *http.Request) *CollectTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(metricsapi.URLOfCollect, r.URL.String())
+	url, err := httpx.ResolveURL(metricsapi.URLOfCollect, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

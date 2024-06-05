@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package eventsink
 
-const Version = 173
-const SourceCodeSHA256 = "7495842d5d9cedb6b548bc8c2b76411cb8e2a3556882e9beb6c7564c4cdeaaf8"
-const Timestamp = "2024-06-04T03:06:17.766313Z"
+const Version = 177
+const SourceCodeSHA256 = "c42452dc7d161d38775803f4558e469d480a97c5230d592f66cc3b903876b030"
+const Timestamp = "2024-06-05T01:54:58.225655Z"
 
 /* {
-	"ver": 173,
-	"sha256": "7495842d5d9cedb6b548bc8c2b76411cb8e2a3556882e9beb6c7564c4cdeaaf8",
-	"ts": "2024-06-04T03:06:17.766313Z"
+	"ver": 177,
+	"sha256": "c42452dc7d161d38775803f4558e469d480a97c5230d592f66cc3b903876b030",
+	"ts": "2024-06-05T01:54:58.225655Z"
 } */

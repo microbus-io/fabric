@@ -80,7 +80,7 @@ func (svc *Mock) doRegistered(w http.ResponseWriter, r *http.Request) error {
 	var i eventsinkapi.RegisteredIn
 	var o eventsinkapi.RegisteredOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Emails, err = svc.mockRegistered(

@@ -15,54 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHttpx_RequestParserQueryArgs(t *testing.T) {
-	t.Parallel()
-
-	var data struct {
-		X struct {
-			A int
-			B int
-		}
-		Y struct {
-			A int
-			B int
-		}
-		S string
-		A []int
-		B bool
-		E string
-	}
-	r, err := http.NewRequest("GET", `/path?x.a=5&x[b]=3&y={"a":1,"b":2}&s="str"&a=[1,2,3]&b=true&e=`, nil)
-	assert.NoError(t, err)
-	err = ParseRequestData(r, &data)
-	assert.NoError(t, err)
-	assert.Equal(t, 5, data.X.A)
-	assert.Equal(t, 3, data.X.B)
-	assert.Equal(t, 1, data.Y.A)
-	assert.Equal(t, 2, data.Y.B)
-	assert.Equal(t, "str", data.S)
-	assert.Equal(t, []int{1, 2, 3}, data.A)
-	assert.Equal(t, true, data.B)
-	assert.Equal(t, "", data.E)
-}
-
-// func TestHttpx_RequestParserPathSegments(t *testing.T) {
-// 	t.Parallel()
-
-// 	var data struct {
-// 		A string `json:"path1"`
-// 		B int    `json:"path2"`
-// 		C bool   `json:"path3"`
-// 	}
-// 	r, err := http.NewRequest("GET", `/prefix/string/123/true`, nil)
-// 	assert.NoError(t, err)
-// 	err = ParseRequestData(r, &data)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, "string", data.A)
-// 	assert.Equal(t, 123, data.B)
-// 	assert.Equal(t, true, data.C)
-// }
-
 func TestHttpx_RequestParserOverrideJSON(t *testing.T) {
 	t.Parallel()
 

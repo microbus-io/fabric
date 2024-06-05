@@ -534,6 +534,11 @@ func Hello_Get(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -566,6 +571,11 @@ func Hello_Post(t *testing.T, ctx context.Context, url string, contentType strin
 	tc := &HelloTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfHello, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -611,12 +621,17 @@ func Hello(t *testing.T, r *http.Request) *HelloTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(helloapi.URLOfHello, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfHello, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1052,6 +1067,11 @@ func Echo_Get(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -1084,6 +1104,11 @@ func Echo_Post(t *testing.T, ctx context.Context, url string, contentType string
 	tc := &EchoTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfEcho, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1129,12 +1154,17 @@ func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(helloapi.URLOfEcho, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfEcho, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1570,6 +1600,11 @@ func Ping_Get(t *testing.T, ctx context.Context, url string) *PingTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -1602,6 +1637,11 @@ func Ping_Post(t *testing.T, ctx context.Context, url string, contentType string
 	tc := &PingTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfPing, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1647,12 +1687,17 @@ func Ping(t *testing.T, r *http.Request) *PingTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(helloapi.URLOfPing, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfPing, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2090,6 +2135,11 @@ func Calculator_Get(t *testing.T, ctx context.Context, url string) *CalculatorTe
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -2124,6 +2174,11 @@ func Calculator_Post(t *testing.T, ctx context.Context, url string, contentType 
 	tc := &CalculatorTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfCalculator, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2171,12 +2226,17 @@ func Calculator(t *testing.T, r *http.Request) *CalculatorTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(helloapi.URLOfCalculator, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfCalculator, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2609,6 +2669,11 @@ func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -2644,12 +2709,17 @@ func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(helloapi.URLOfBusJPEG, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfBusJPEG, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3085,6 +3155,11 @@ func Localization_Get(t *testing.T, ctx context.Context, url string) *Localizati
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -3117,6 +3192,11 @@ func Localization_Post(t *testing.T, ctx context.Context, url string, contentTyp
 	tc := &LocalizationTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfLocalization, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3162,12 +3242,17 @@ func Localization(t *testing.T, r *http.Request) *LocalizationTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(helloapi.URLOfLocalization, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfLocalization, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3603,6 +3688,11 @@ func Root_Get(t *testing.T, ctx context.Context, url string) *RootTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -3635,6 +3725,11 @@ func Root_Post(t *testing.T, ctx context.Context, url string, contentType string
 	tc := &RootTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(helloapi.URLOfRoot, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3680,12 +3775,17 @@ func Root(t *testing.T, r *http.Request) *RootTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(helloapi.URLOfRoot, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfRoot, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

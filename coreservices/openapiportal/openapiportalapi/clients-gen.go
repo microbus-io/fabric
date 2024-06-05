@@ -116,6 +116,10 @@ func (_c *Client) List_Get(ctx context.Context, url string) (res *http.Response,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
 	if err != nil {
 		return nil, err // No trace
@@ -136,6 +140,10 @@ func (_c *MulticastClient) List_Get(ctx context.Context, url string) <-chan *pub
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -151,6 +159,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) List_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfList, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -177,6 +189,10 @@ func (_c *MulticastClient) List_Post(ctx context.Context, url string, contentTyp
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -193,6 +209,10 @@ func (_c *Client) List(ctx context.Context, r *http.Request) (res *http.Response
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfList, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -217,6 +237,10 @@ func (_c *MulticastClient) List(ctx context.Context, r *http.Request) <-chan *pu
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfList, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

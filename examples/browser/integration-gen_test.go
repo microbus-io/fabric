@@ -534,6 +534,11 @@ func Browse_Get(t *testing.T, ctx context.Context, url string) *BrowseTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -566,6 +571,11 @@ func Browse_Post(t *testing.T, ctx context.Context, url string, contentType stri
 	tc := &BrowseTestCase{t: t}
 	var err error
 	url, err = httpx.ResolveURL(browserapi.URLOfBrowse, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -611,12 +621,17 @@ func Browse(t *testing.T, r *http.Request) *BrowseTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(browserapi.URLOfBrowse, r.URL.String())
+	url, err := httpx.ResolveURL(browserapi.URLOfBrowse, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

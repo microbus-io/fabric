@@ -85,7 +85,7 @@ func (svc *Mock) doCreate(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.CreateIn
 	var o directoryapi.CreateOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Key, err = svc.mockCreate(
@@ -117,7 +117,7 @@ func (svc *Mock) doLoad(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.LoadIn
 	var o directoryapi.LoadOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.HTTPResponseBody, err = svc.mockLoad(
@@ -149,7 +149,7 @@ func (svc *Mock) doDelete(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.DeleteIn
 	var o directoryapi.DeleteOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.mockDelete(
@@ -181,7 +181,7 @@ func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.UpdateIn
 	var o directoryapi.UpdateOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.mockUpdate(
@@ -214,7 +214,7 @@ func (svc *Mock) doLoadByEmail(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.LoadByEmailIn
 	var o directoryapi.LoadByEmailOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.HTTPResponseBody, err = svc.mockLoadByEmail(
@@ -246,7 +246,7 @@ func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.ListIn
 	var o directoryapi.ListOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.HTTPResponseBody, err = svc.mockList(

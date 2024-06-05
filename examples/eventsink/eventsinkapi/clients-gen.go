@@ -122,21 +122,16 @@ func (_out *RegisteredResponse) Get() (emails []string, err error) {
 Registered returns the list of registered users.
 */
 func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/registered`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := RegisteredIn{
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *RegisteredResponse, 1)
-		_res <- &RegisteredResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -167,19 +162,17 @@ Registered returns the list of registered users.
 */
 func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/registered`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := RegisteredIn{
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/registered`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)

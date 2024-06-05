@@ -76,7 +76,7 @@ func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.PingIn
 	var o controlapi.PingOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	o.Pong, err = svc.mockPing(
@@ -107,7 +107,7 @@ func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.ConfigRefreshIn
 	var o controlapi.ConfigRefreshOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.mockConfigRefresh(
@@ -138,7 +138,7 @@ func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
 	var i controlapi.TraceIn
 	var o controlapi.TraceOut
 	err := httpx.ParseRequestData(r, &i)
-	if err!=nil {
+	if err != nil {
 		return errors.Trace(err)
 	}
 	err = svc.mockTrace(

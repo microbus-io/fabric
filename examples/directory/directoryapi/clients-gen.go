@@ -121,6 +121,10 @@ func (_c *Client) WebUI_Get(ctx context.Context, url string) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
 	if err != nil {
 		return nil, err // No trace
@@ -141,6 +145,10 @@ func (_c *MulticastClient) WebUI_Get(ctx context.Context, url string) <-chan *pu
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -156,6 +164,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) WebUI_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOfWebUI, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -182,6 +194,10 @@ func (_c *MulticastClient) WebUI_Post(ctx context.Context, url string, contentTy
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -198,6 +214,10 @@ func (_c *Client) WebUI(ctx context.Context, r *http.Request) (res *http.Respons
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfWebUI, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -222,6 +242,10 @@ func (_c *MulticastClient) WebUI(ctx context.Context, r *http.Request) <-chan *p
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfWebUI, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -256,23 +280,23 @@ func (_out *CreateResponse) Get() (key PersonKey, err error) {
 Create registers the person in the directory.
 */
 func (_c *MulticastClient) Create(ctx context.Context, httpRequestBody *Person, _options ...pub.Option) <-chan *CreateResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := CreateIn{
 		httpRequestBody,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	_body = httpRequestBody
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *CreateResponse, 1)
 		_res <- &CreateResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
+	_body := httpRequestBody
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -303,21 +327,22 @@ Create registers the person in the directory.
 */
 func (_c *Client) Create(ctx context.Context, httpRequestBody *Person) (key PersonKey, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := CreateIn{
 		httpRequestBody,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	_body = httpRequestBody
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
+	_body := httpRequestBody
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -363,22 +388,24 @@ func (_out *LoadResponse) Get() (httpResponseBody *Person, err error) {
 Load looks up a person in the directory.
 */
 func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *LoadResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`key`: key,
+	})
 	_in := LoadIn{
 		key,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *LoadResponse, 1)
 		_res <- &LoadResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
+	var _body any
 	_opts := []pub.Option{
 		pub.Method(`GET`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -409,20 +436,23 @@ Load looks up a person in the directory.
 */
 func (_c *Client) Load(ctx context.Context, key PersonKey) (httpResponseBody *Person, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`key`: key,
+	})
 	_in := LoadIn{
 		key,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
+	var _body any
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`GET`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -466,22 +496,24 @@ func (_out *DeleteResponse) Get() (err error) {
 Delete removes a person from the directory.
 */
 func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *DeleteResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`key`: key,
+	})
 	_in := DeleteIn{
 		key,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *DeleteResponse, 1)
 		_res <- &DeleteResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
+	var _body any
 	_opts := []pub.Option{
 		pub.Method(`DELETE`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -512,20 +544,23 @@ Delete removes a person from the directory.
 */
 func (_c *Client) Delete(ctx context.Context, key PersonKey) (err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`key`: key,
+	})
 	_in := DeleteIn{
 		key,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
+	var _body any
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`DELETE`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -569,24 +604,25 @@ func (_out *UpdateResponse) Get() (err error) {
 Update updates the person's data in the directory.
 */
 func (_c *MulticastClient) Update(ctx context.Context, key PersonKey, httpRequestBody *Person, _options ...pub.Option) <-chan *UpdateResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`key`: key,
+	})
 	_in := UpdateIn{
 		key,
 		httpRequestBody,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	_body = httpRequestBody
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *UpdateResponse, 1)
 		_res <- &UpdateResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
+	_body := httpRequestBody
 	_opts := []pub.Option{
 		pub.Method(`PUT`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -617,22 +653,24 @@ Update updates the person's data in the directory.
 */
 func (_c *Client) Update(ctx context.Context, key PersonKey, httpRequestBody *Person) (err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`key`: key,
+	})
 	_in := UpdateIn{
 		key,
 		httpRequestBody,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	_body = httpRequestBody
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
+	_body := httpRequestBody
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`PUT`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -677,22 +715,24 @@ func (_out *LoadByEmailResponse) Get() (httpResponseBody *Person, err error) {
 LoadByEmail looks up a person in the directory by their email.
 */
 func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _options ...pub.Option) <-chan *LoadByEmailResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`email`: email,
+	})
 	_in := LoadByEmailIn{
 		email,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *LoadByEmailResponse, 1)
 		_res <- &LoadByEmailResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
+	var _body any
 	_opts := []pub.Option{
 		pub.Method(`GET`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -723,20 +763,23 @@ LoadByEmail looks up a person in the directory by their email.
 */
 func (_c *Client) LoadByEmail(ctx context.Context, email string) (httpResponseBody *Person, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`email`: email,
+	})
 	_in := LoadByEmailIn{
 		email,
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
+	var _body any
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`GET`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -781,21 +824,22 @@ func (_out *ListResponse) Get() (httpResponseBody []PersonKey, err error) {
 List returns the keys of all the persons in the directory.
 */
 func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-chan *ListResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := ListIn{
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *ListResponse, 1)
 		_res <- &ListResponse{err: _err} // No trace
 		close(_res)
 		return _res
 	}
+	var _body any
 	_opts := []pub.Option{
 		pub.Method(`GET`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -826,19 +870,21 @@ List returns the keys of all the persons in the directory.
 */
 func (_c *Client) List(ctx context.Context) (httpResponseBody []PersonKey, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := ListIn{
 	}
-	_query, _err = httpx.EncodeDeepObject(_in)
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
+	var _body any
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`GET`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/persons`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)

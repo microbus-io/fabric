@@ -35,31 +35,42 @@ func (_out *{{ .Name }}Response) Get() ({{ .Out }}) {
 func (_c *Multicast
 {{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
 ) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		{{- range .Signature.InputArgs }}{{- if ne .Name "httpRequestBody" }}
+		`{{ .Name }}`: {{ .Name }},
+		{{- end }}{{ end }}
+	})
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
 		{{- end }}
 	}
 	{{- if not .MethodWithBody }}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	{{- else if .Signature.InputArg "httpRequestBody" }}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	_body = httpRequestBody
-	{{- else }}
-	_body = _in
-	{{- end}}
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		_res := make(chan *{{ .Name }}Response, 1)
 		_res <- &{{ .Name }}Response{err: _err} // No trace
 		close(_res)
 		return _res
 	}
+	var _body any
+	{{- else if .Signature.InputArg "httpRequestBody" }}
+	_query, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *{{ .Name }}Response, 1)
+		_res <- &{{ .Name }}Response{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	_body := httpRequestBody
+	{{- else }}
+	var _query url.Values
+	_body := _in
+	{{- end}}
 	_opts := []pub.Option{
 		pub.Method(`{{ if eq .Method "ANY" }}POST{{ else }}{{ .Method }}{{ end }}`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -95,29 +106,39 @@ func (_c *Multicast
 */
 func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		{{- range .Signature.InputArgs }}{{- if ne .Name "httpRequestBody" }}
+		`{{ .Name }}`: {{ .Name }},
+		{{- end }}{{ end }}
+	})
 	_in := {{ .Name }}In{
 		{{- range .Signature.InputArgs }}
 		{{ .Name }},
 		{{- end }}
 	}
 	{{- if not .MethodWithBody }}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	{{- else if .Signature.InputArg "httpRequestBody" }}
-	_query, _err = httpx.EncodeDeepObject(_in)
-	_body = httpRequestBody
-	{{- else }}
-	_body = _in
-	{{- end}}
+	_query, _err := httpx.EncodeDeepObject(_in)
 	if _err != nil {
 		err = _err // No trace
 		return
 	}
+	var _body any
+	{{- else if .Signature.InputArg "httpRequestBody" }}
+	_query, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	_body := httpRequestBody
+	{{- else }}
+	var _query url.Values
+	_body := _in
+	{{- end}}
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`{{ if eq .Method "ANY" }}POST{{ else }}{{ .Method }}{{ end }}`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -150,7 +171,7 @@ func (_c *Hook) {{ .Name }}(handler func({{ .In }}) ({{ .Out }}), options ...sub
 		var i {{ .Name }}In
 		var o {{ .Name }}Out
 		err := httpx.ParseRequestData(r, &i)
-		if err!=nil {
+		if err != nil {
 			return errors.Trace(err)
 		}
 		{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = handler(

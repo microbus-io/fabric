@@ -125,22 +125,18 @@ func (_out *ValuesResponse) Get() (values map[string]string, err error) {
 Values returns the values associated with the specified config property names for the caller microservice.
 */
 func (_c *MulticastClient) Values(ctx context.Context, names []string, _options ...pub.Option) <-chan *ValuesResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/values`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`names`: names,
+	})
 	_in := ValuesIn{
 		names,
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *ValuesResponse, 1)
-		_res <- &ValuesResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -171,20 +167,19 @@ Values returns the values associated with the specified config property names fo
 */
 func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/values`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`names`: names,
+	})
 	_in := ValuesIn{
 		names,
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/values`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -228,21 +223,16 @@ Refresh tells all microservices to contact the configurator and refresh their co
 An error is returned if any of the values sent to the microservices fails validation.
 */
 func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/refresh`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := RefreshIn{
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *RefreshResponse, 1)
-		_res <- &RefreshResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -274,19 +264,17 @@ An error is returned if any of the values sent to the microservices fails valida
 */
 func (_c *Client) Refresh(ctx context.Context) (err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/refresh`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+	})
 	_in := RefreshIn{
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/refresh`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)
@@ -330,23 +318,20 @@ func (_out *SyncResponse) Get() (err error) {
 Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string, _options ...pub.Option) <-chan *SyncResponse {
-	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/sync`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`timestamp`: timestamp,
+		`values`: values,
+	})
 	_in := SyncIn{
 		timestamp,
 		values,
 	}
-	_body = _in
-	if _err != nil {
-		_res := make(chan *SyncResponse, 1)
-		_res <- &SyncResponse{err: _err} // No trace
-		close(_res)
-		return _res
-	}
+	var _query url.Values
+	_body := _in
 	_opts := []pub.Option{
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	}
@@ -377,21 +362,21 @@ Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
 	var _err error
-	var _query url.Values
-	var _body any
+	_url := httpx.JoinHostAndPath(_c.host, `:443/sync`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`timestamp`: timestamp,
+		`values`: values,
+	})
 	_in := SyncIn{
 		timestamp,
 		values,
 	}
-	_body = _in
-	if _err != nil {
-		err = _err // No trace
-		return
-	}
+	var _query url.Values
+	_body := _in
 	_httpRes, _err := _c.svc.Request(
 		ctx,
 		pub.Method(`POST`),
-		pub.URL(httpx.JoinHostAndPath(_c.host, `:443/sync`)),
+		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
 	)

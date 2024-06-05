@@ -1,0 +1,165 @@
+# Copyright (c) 2023-2024 Microbus LLC and various contributors
+# 
+# This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
+# Neither may be used, copied or distributed without the express written consent of Microbus LLC.
+
+---
+# General
+#
+# host - The hostname of the microservice
+# description - A human-friendly description of the microservice
+# integrationTests - Whether or not to generate integration tests (defaults to true)
+# openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
+general:
+  host: codegen.test
+  description: The tester is used to test the code generator's functions.
+
+# Config properties
+#
+# signature - Func() (val Type)
+# description - Documentation
+# default - A default value (defaults to empty)
+# validation - A validation pattern
+#   str ^[a-zA-Z0-9]+$
+#   bool
+#   int [0,60]
+#   float [0.0,1.0)
+#   dur (0s,24h]
+#   set Red|Green|Blue
+#   url
+#   email
+#   json
+# callback - "true" to handle the change event (defaults to "false")
+# secret - "true" to indicate a secret (defaults to "false")
+configs:
+  # - signature:
+  #   description:
+  #   default:
+  #   validation:
+
+# Functions
+#
+# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# method - "GET", "POST", etc. or "ANY" (default)
+# path - The URL path of the subscription, relative to the hostname of the microservice
+#   (empty) - The function name in kebab-case
+#   /path - Default port :443
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path of the microservice
+#   :0/path - Any port
+#   //example.com:443/path
+#   https://example.com:443/path
+#   //root - Root path of the web server
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
+functions:
+  - signature: StringCut(s string, sep string) (before string, after string, found bool)
+    description: StringCut tests a standard function that takes multiple input arguments and returns multiple values.
+  - signature: PointDistance(p1 XYCoord, p2 XYCoord) (d float64)
+    description: PointDistance tests passing non-primitive types via query arguments.
+    method: GET
+  - signature: SubArrayRange(httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int)
+    description: |
+      SubArrayRange tests sending arguments as the entire request and response bodies.
+      An httpRequestBody argument allows sending other arguments via query or path.
+      An httpResponseBody argument prevents returning additional values, except for the status code.
+    path: /sub-array-range/{max}
+  - signature: FunctionPathArguments(named string, path2 string, suffix string) (joined string)
+    description: FunctionPathArguments tests path arguments in functions.
+    path: /.../fixed/{named}/{}/{suffix+}
+    method: GET
+
+# Event sources
+#
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# method - "GET", "POST", etc. (defaults to "POST")
+# path - The URL path of the subscription, relative to the hostname of the microservice
+#   (empty) - The function name in kebab-case
+#   /path - Default port :417
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
+#   :417/path
+#   :417/... - Ellipsis denotes the function name in kebab-case
+#   :417 - Root path of the microservice
+#   //example.com:417/path
+#   https://example.com:417/path
+#   //root - Root path of the web server
+events:
+  # - signature:
+  #   description:
+
+# Event sinks
+#
+# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# description - Documentation
+# event - The name of the event at the source (defaults to the function name)
+# source - The package path of the microservice that is the source of the event
+# forHost - For an event source with an overridden hostname
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+sinks:
+  # - signature:
+  #   description:
+  #   source: package/path/of/another/microservice
+
+# Web handlers
+#
+# signature - Func()
+# description - Documentation
+# method - "GET", "POST", etc. or "ANY" (default)
+# path - The URL path of the subscription, relative to the hostname of the microservice
+#   (empty) - The function name in kebab-case
+#   /path - Default port :443
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path of the microservice
+#   :0/path - Any port
+#   //example.com:443/path
+#   https://example.com:443/path
+#   //root - Root path of the web server
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
+webs:
+  - signature: WebPathArguments()
+    description: WebPathArguments tests path arguments in web handlers.
+    path: /.../fixed/{named}/{}/{suffix+}
+
+# Tickers
+#
+# signature - Func()
+# description - Documentation
+# interval - Duration between iterations (e.g. 15m)
+tickers:
+  # - signature:
+  #   description:
+  #   interval:
+
+# Metrics
+#
+# signature - Func(measure Type, label Type, label Type)
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# buckets - Bucket boundaries for histograms [x,y,z,...]
+# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
+metrics:
+  # - signature:
+  #   description:
+  #   kind:

@@ -281,7 +281,7 @@ func (svc *Intermediate) SetSQL(dsn string) error {
 func (svc *Intermediate) doCreate(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.CreateIn
 	var o directoryapi.CreateOut
-	err := httpx.ParseRequestData(r, &i.HTTPRequestBody)
+	err := httpx.ParseRequestBody(r, &i.HTTPRequestBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -366,7 +366,7 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 func (svc *Intermediate) doUpdate(w http.ResponseWriter, r *http.Request) error {
 	var i directoryapi.UpdateIn
 	var o directoryapi.UpdateOut
-	err := httpx.ParseRequestData(r, &i.HTTPRequestBody)
+	err := httpx.ParseRequestBody(r, &i.HTTPRequestBody)
 	if err != nil {
 		return errors.Trace(err)
 	}

@@ -535,6 +535,11 @@ func MakeRequest(t *testing.T, ctx context.Context, url string, contentType stri
 		tc.err = errors.Trace(err)
 		return tc
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
 	r, err := httpx.NewRequest(`POST`, url, nil)
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -579,12 +584,17 @@ func MakeRequest_Do(t *testing.T, r *http.Request) *MakeRequestTestCase {
 			return tc
 		}
 	}
-	u, err := httpx.ResolveURL(httpegressapi.URLOfMakeRequest, r.URL.String())
+	url, err := httpx.ResolveURL(httpegressapi.URLOfMakeRequest, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	r.URL, err = httpx.ParseURL(u)
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

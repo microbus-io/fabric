@@ -23,6 +23,10 @@ func (_c *Client) {{ .Name }}_Get(ctx context.Context, url string) (res *http.Re
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
 	if err != nil {
 		return nil, err // No trace
@@ -43,6 +47,10 @@ func (_c *MulticastClient) {{ .Name }}_Get(ctx context.Context, url string) <-ch
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
 }
 
@@ -58,6 +66,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) {{ .Name }}_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -84,6 +96,10 @@ func (_c *MulticastClient) {{ .Name }}_Post(ctx context.Context, url string, con
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -98,6 +114,10 @@ If a content type is not explicitly provided, an attempt will be made to derive 
 */
 func (_c *Client) {{ .Name }}(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -122,6 +142,10 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string, contentT
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
 	return _c.svc.Publish(ctx, pub.Method(`{{ .Method }}`), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
 }
 
@@ -133,6 +157,10 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 */
 func (_c *Client) {{ .Name }}(ctx context.Context, url string) (res *http.Response, err error) {
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -151,6 +179,10 @@ If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it 
 func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
 	url, err = httpx.ResolveURL(URLOf{{ .Name }}, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -179,6 +211,10 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx context.C
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
@@ -204,6 +240,10 @@ func (_c *MulticastClient) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx 
 		}
 	}
 	url, err := httpx.ResolveURL(URLOf{{ .Name }}, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
