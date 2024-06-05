@@ -92,16 +92,20 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 
 		// Path arguments
 		pathArgs := map[string]*oapiParameter{}
-		parts := strings.Split(path, "/")[2:] // Skip the hostname
+		parts := strings.Split(path, "/")
 		argIndex := 0
 		for i := range parts {
 			if strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
 				argIndex++
 				name := parts[i]
 				name = strings.TrimLeft(name, "{")
-				name = strings.TrimRight(name, "+}")
+				name = strings.TrimRight(name, "}")
 				if name == "" {
 					name = fmt.Sprintf("path%d", argIndex)
+					parts[i] = "{" + name + "}"
+				} else if name == "+" {
+					name = fmt.Sprintf("path%d+", argIndex)
+					parts[i] = "{" + name + "}"
 				}
 				pathArgs[name] = &oapiParameter{
 					In:   "path",
@@ -113,6 +117,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 				}
 			}
 		}
+		path = strings.Join(parts, "/")
 
 		// Functions
 		if ep.Type == "function" {
@@ -192,6 +197,11 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 						parameter.In = "path"
 						parameter.Required = true
 						delete(pathArgs, name)
+					} else if pathArgs[name+"+"] != nil {
+						parameter.Name += "+"
+						parameter.In = "path"
+						parameter.Required = true
+						delete(pathArgs, name+"+")
 					}
 
 					fieldSchema := jsonschema.ReflectFromType(field.Type)

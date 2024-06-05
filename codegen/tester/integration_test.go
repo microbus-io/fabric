@@ -9,6 +9,7 @@ package tester
 
 import (
 	"encoding/json"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -69,6 +70,30 @@ func Terminate() (err error) {
 	return nil
 }
 
+func openAPIValue(path string) any {
+	var at any
+	at = openAPI
+	parts := strings.Split(path, "|")
+	for i := range parts {
+		var next any
+		if m, ok := at.(map[string]any); ok {
+			next = m[parts[i]]
+		}
+		if a, ok := at.([]any); ok {
+			i, _ := strconv.Atoi(parts[i])
+			next = a[i]
+		}
+		if i == len(parts)-1 {
+			return next
+		}
+		if next == nil {
+			return nil
+		}
+		at = next
+	}
+	return nil
+}
+
 func TestTester_StringCut(t *testing.T) {
 	t.Parallel()
 	/*
@@ -93,15 +118,15 @@ func TestTester_PointDistance(t *testing.T) {
 	*/
 
 	ctx := Context()
-	PointDistance(t, ctx, testerapi.XYCoord{X: 1, Y: 1}, testerapi.XYCoord{X: 4, Y: 5}).
+	PointDistance(t, ctx, testerapi.XYCoord{X: 1, Y: 1}, &testerapi.XYCoord{X: 4, Y: 5}).
 		Expect(5)
-	PointDistance(t, ctx, testerapi.XYCoord{X: 4, Y: 5}, testerapi.XYCoord{X: 1, Y: 1}).
+	PointDistance(t, ctx, testerapi.XYCoord{X: 4, Y: 5}, &testerapi.XYCoord{X: 1, Y: 1}).
 		Expect(5)
-	PointDistance(t, ctx, testerapi.XYCoord{X: 1.5, Y: 1.6}, testerapi.XYCoord{X: 2.5, Y: 2.6}).
+	PointDistance(t, ctx, testerapi.XYCoord{X: 1.5, Y: 1.6}, &testerapi.XYCoord{X: 2.5, Y: 2.6}).
 		Assert(func(t *testing.T, d float64, err error) {
 			assert.InDelta(t, math.Sqrt(2.0), d, 0.01)
 		})
-	PointDistance(t, ctx, testerapi.XYCoord{X: 6.1, Y: 7.6}, testerapi.XYCoord{X: 6.1, Y: 7.6}).
+	PointDistance(t, ctx, testerapi.XYCoord{X: 6.1, Y: 7.6}, &testerapi.XYCoord{X: 6.1, Y: 7.6}).
 		Expect(0)
 }
 
@@ -144,30 +169,6 @@ func TestTester_SubArrayRange(t *testing.T) {
 	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
 	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
 	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
-}
-
-func openAPIValue(path string) any {
-	var at any
-	at = openAPI
-	parts := strings.Split(path, "|")
-	for i := range parts {
-		var next any
-		if m, ok := at.(map[string]any); ok {
-			next = m[parts[i]]
-		}
-		if a, ok := at.([]any); ok {
-			i, _ := strconv.Atoi(parts[i])
-			next = a[i]
-		}
-		if i == len(parts)-1 {
-			return next
-		}
-		if next == nil {
-			return nil
-		}
-		at = next
-	}
-	return nil
 }
 
 func TestTester_WebPathArguments(t *testing.T) {
@@ -218,4 +219,115 @@ func TestTester_FunctionPathArguments(t *testing.T) {
 		Expect("  ")
 	FunctionPathArguments(t, ctx, "[a&b/c]", "[d&e/f]", "[g&h/i]").
 		Expect("[a&b/c] [d&e/f] [g&h/i]")
+}
+
+func TestTester_NonStringPathArguments(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		NonStringPathArguments(t, ctx, named, path2, suffix).
+			Expect(joined)
+	*/
+
+	ctx := Context()
+	NonStringPathArguments(t, ctx, 1, true, 0.75).
+		Expect("1 true 0.75")
+
+	_, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1.5/true/0.75"))
+	assert.ErrorContains(t, err, "json")
+	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/x/0.75"))
+	assert.ErrorContains(t, err, "json")
+	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/true/x"))
+	assert.ErrorContains(t, err, "json")
+	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/true/0.75"))
+	assert.NoError(t, err)
+
+	// OpenAPI
+	basePath := "paths|/" + Hostname + ":443/non-string-path-arguments/fixed/{named}/{path2}/{suffix+}|get|"
+	// named
+	assert.Equal(t, "named", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
+	assert.Equal(t, "integer", openAPIValue(basePath+"parameters|0|schema|type"))
+	// path2
+	assert.Equal(t, "path2", openAPIValue(basePath+"parameters|1|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|1|in"))
+	assert.Equal(t, "boolean", openAPIValue(basePath+"parameters|1|schema|type"))
+	// suffix
+	assert.Equal(t, "suffix+", openAPIValue(basePath+"parameters|2|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|2|in"))
+	assert.Equal(t, "number", openAPIValue(basePath+"parameters|2|schema|type"))
+}
+
+func TestTester_UnnamedFunctionPathArguments(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		UnnamedFunctionPathArguments(t, ctx, path1, path2, path3).
+			Expect(joined)
+	*/
+
+	ctx := Context()
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/unnamed-function-path-arguments/x123/foo/y345/bar/z1/z2/z3"))
+	assert.NoError(t, err)
+	body, _ := io.ReadAll(res.Body)
+	assert.Contains(t, string(body), "x123 y345 z1/z2/z3")
+
+	// OpenAPI
+	basePath := "paths|/" + Hostname + ":443/unnamed-function-path-arguments/{path1}/foo/{path2}/bar/{path3+}|get|"
+	assert.Equal(t, "path1", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
+	assert.Equal(t, "path2", openAPIValue(basePath+"parameters|1|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|1|in"))
+	assert.Equal(t, "path3+", openAPIValue(basePath+"parameters|2|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|2|in"))
+}
+
+func TestTester_UnnamedWebPathArguments(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		UnnamedWebPathArguments(t, ctx, "").BodyContains(value)
+		UnnamedWebPathArguments_Do(t, httpRequest).BodyContains(value)
+	*/
+
+	ctx := Context()
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/unnamed-web-path-arguments/x123/foo/y345/bar/z1/z2/z3"))
+	assert.NoError(t, err)
+	body, _ := io.ReadAll(res.Body)
+	assert.Contains(t, string(body), "x123 y345 z1/z2/z3")
+
+	// OpenAPI
+	basePath := "paths|/" + Hostname + ":443/unnamed-web-path-arguments/{path1}/foo/{path2}/bar/{path3+}|get|"
+	assert.Equal(t, "path1", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
+	assert.Equal(t, "path2", openAPIValue(basePath+"parameters|1|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|1|in"))
+	assert.Equal(t, "path3+", openAPIValue(basePath+"parameters|2|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|2|in"))
+}
+
+func TestTester_SumTwoIntegers(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		SumTwoIntegers(t, ctx, x, y).
+			Expect(sum, httpStatusCode)
+	*/
+
+	ctx := Context()
+	SumTwoIntegers(t, ctx, 5, 6).
+		Expect(11, http.StatusAccepted)
+	SumTwoIntegers(t, ctx, 5, -6).
+		Expect(-1, http.StatusNotAcceptable)
+
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/sum-two-integers?x=73&y=83"))
+	if assert.NoError(t, err) {
+		// The status code is not returned in the body but only through the status code field of the response
+		assert.Equal(t, http.StatusAccepted, res.StatusCode)
+		body, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(body), "156")
+		assert.NotContains(t, "httpStatusCode", string(body))
+		assert.NotContains(t, strconv.Itoa(http.StatusAccepted), string(body))
+	}
 }

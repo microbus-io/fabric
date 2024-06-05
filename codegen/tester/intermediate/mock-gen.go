@@ -38,10 +38,14 @@ var (
 type Mock struct {
 	*connector.Connector
 	mockStringCut func(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
-	mockPointDistance func(ctx context.Context, p1 testerapi.XYCoord, p2 testerapi.XYCoord) (d float64, err error)
+	mockPointDistance func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
 	mockSubArrayRange func(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error)
+	mockSumTwoIntegers func(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	mockFunctionPathArguments func(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
+	mockNonStringPathArguments func(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
+	mockUnnamedFunctionPathArguments func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
 	mockWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
+	mockUnnamedWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -57,10 +61,14 @@ func NewMock() *Mock {
 	svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
 	svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
 	svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
+	svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
 	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
+	svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
+	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
 
 	// Webs
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doWebPathArguments)
+	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedWebPathArguments)
 
 	return svc
 }
@@ -134,7 +142,7 @@ func (svc *Mock) doPointDistance(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockPointDistance sets up a mock handler for the PointDistance function.
-func (svc *Mock) MockPointDistance(handler func(ctx context.Context, p1 testerapi.XYCoord, p2 testerapi.XYCoord) (d float64, err error)) *Mock {
+func (svc *Mock) MockPointDistance(handler func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)) *Mock {
 	svc.mockPointDistance = handler
 	return svc
 }
@@ -174,6 +182,40 @@ func (svc *Mock) MockSubArrayRange(handler func(ctx context.Context, httpRequest
 	return svc
 }
 
+// doSumTwoIntegers handles marshaling for the SumTwoIntegers function.
+func (svc *Mock) doSumTwoIntegers(w http.ResponseWriter, r *http.Request) error {
+	if svc.mockSumTwoIntegers == nil {
+		return errors.New("mocked endpoint 'SumTwoIntegers' not implemented")
+	}
+	var i testerapi.SumTwoIntegersIn
+	var o testerapi.SumTwoIntegersOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Sum, o.HTTPStatusCode, err = svc.mockSumTwoIntegers(
+		r.Context(),
+		i.X,
+		i.Y,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(o.HTTPStatusCode)
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// MockSumTwoIntegers sets up a mock handler for the SumTwoIntegers function.
+func (svc *Mock) MockSumTwoIntegers(handler func(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)) *Mock {
+	svc.mockSumTwoIntegers = handler
+	return svc
+}
+
 // doFunctionPathArguments handles marshaling for the FunctionPathArguments function.
 func (svc *Mock) doFunctionPathArguments(w http.ResponseWriter, r *http.Request) error {
 	if svc.mockFunctionPathArguments == nil {
@@ -208,6 +250,74 @@ func (svc *Mock) MockFunctionPathArguments(handler func(ctx context.Context, nam
 	return svc
 }
 
+// doNonStringPathArguments handles marshaling for the NonStringPathArguments function.
+func (svc *Mock) doNonStringPathArguments(w http.ResponseWriter, r *http.Request) error {
+	if svc.mockNonStringPathArguments == nil {
+		return errors.New("mocked endpoint 'NonStringPathArguments' not implemented")
+	}
+	var i testerapi.NonStringPathArgumentsIn
+	var o testerapi.NonStringPathArgumentsOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Joined, err = svc.mockNonStringPathArguments(
+		r.Context(),
+		i.Named,
+		i.Path2,
+		i.Suffix,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// MockNonStringPathArguments sets up a mock handler for the NonStringPathArguments function.
+func (svc *Mock) MockNonStringPathArguments(handler func(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)) *Mock {
+	svc.mockNonStringPathArguments = handler
+	return svc
+}
+
+// doUnnamedFunctionPathArguments handles marshaling for the UnnamedFunctionPathArguments function.
+func (svc *Mock) doUnnamedFunctionPathArguments(w http.ResponseWriter, r *http.Request) error {
+	if svc.mockUnnamedFunctionPathArguments == nil {
+		return errors.New("mocked endpoint 'UnnamedFunctionPathArguments' not implemented")
+	}
+	var i testerapi.UnnamedFunctionPathArgumentsIn
+	var o testerapi.UnnamedFunctionPathArgumentsOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Joined, err = svc.mockUnnamedFunctionPathArguments(
+		r.Context(),
+		i.Path1,
+		i.Path2,
+		i.Path3,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// MockUnnamedFunctionPathArguments sets up a mock handler for the UnnamedFunctionPathArguments function.
+func (svc *Mock) MockUnnamedFunctionPathArguments(handler func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)) *Mock {
+	svc.mockUnnamedFunctionPathArguments = handler
+	return svc
+}
+
 // doWebPathArguments handles the WebPathArguments web handler.
 func (svc *Mock) doWebPathArguments(w http.ResponseWriter, r *http.Request) (err error) {
 	if svc.mockWebPathArguments == nil {
@@ -220,5 +330,20 @@ func (svc *Mock) doWebPathArguments(w http.ResponseWriter, r *http.Request) (err
 // MockWebPathArguments sets up a mock handler for the WebPathArguments web handler.
 func (svc *Mock) MockWebPathArguments(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
 	svc.mockWebPathArguments = handler
+	return svc
+}
+
+// doUnnamedWebPathArguments handles the UnnamedWebPathArguments web handler.
+func (svc *Mock) doUnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockUnnamedWebPathArguments == nil {
+		return errors.New("mocked endpoint 'UnnamedWebPathArguments' not implemented")
+	}
+	err = svc.mockUnnamedWebPathArguments(w, r)
+	return errors.Trace(err)
+}
+
+// MockUnnamedWebPathArguments sets up a mock handler for the UnnamedWebPathArguments web handler.
+func (svc *Mock) MockUnnamedWebPathArguments(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockUnnamedWebPathArguments = handler
 	return svc
 }

@@ -9,6 +9,7 @@ package tester
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"net/http"
 	"strings"
@@ -40,8 +41,8 @@ type Service struct {
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	if svc.Deployment() != connector.TESTING {
-		return errors.Newf("restricted to '%s' deployment", connector.TESTING)
+	if svc.Deployment() != connector.TESTING && svc.Deployment() != connector.LOCAL {
+		return errors.Newf("not allowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
@@ -62,7 +63,7 @@ func (svc *Service) StringCut(ctx context.Context, s string, sep string) (before
 /*
 PointDistance tests passing non-primitive types via query arguments.
 */
-func (svc *Service) PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 testerapi.XYCoord) (d float64, err error) {
+func (svc *Service) PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error) {
 	dx := (p1.X - p2.X)
 	dy := (p1.Y - p2.Y)
 	d = math.Sqrt(dx*dx + dy*dy)
@@ -98,5 +99,42 @@ func (svc *Service) WebPathArguments(w http.ResponseWriter, r *http.Request) (er
 FunctionPathArguments tests path arguments in functions.
 */
 func (svc *Service) FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error) {
-	return named + " " + path2 + " " + suffix, nil
+	return fmt.Sprintf("%v %v %v", named, path2, suffix), nil
+}
+
+/*
+NonStringPathArguments tests path arguments that are not strings.
+*/
+func (svc *Service) NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error) {
+	return fmt.Sprintf("%v %v %v", named, path2, suffix), nil
+}
+
+/*
+UnnamedFunctionPathArguments tests path arguments that are not named.
+*/
+func (svc *Service) UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error) {
+	return fmt.Sprintf("%v %v %v", path1, path2, path3), nil
+}
+
+/*
+UnnamedWebPathArguments tests path arguments that are not named.
+*/
+func (svc *Service) UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error) {
+	q := r.URL.Query()
+	path1 := q.Get("path1")
+	path2 := q.Get("path2")
+	path3 := q.Get("path3")
+	w.Write([]byte(fmt.Sprintf("%v %v %v", path1, path2, path3)))
+	return nil
+}
+
+/*
+SumTwoIntegers tests returning a status code from a function.
+*/
+func (svc *Service) SumTwoIntegers(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error) {
+	if x+y > 0 {
+		return x + y, http.StatusAccepted, nil
+	} else {
+		return x + y, http.StatusNotAcceptable, nil
+	}
 }

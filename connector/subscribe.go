@@ -304,25 +304,30 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	reqParts := strings.Split(httpReq.URL.Path, "/")
 	subParts := strings.Split(s.Path, "/")
 	var query url.Values
+	argIndex := 0
 	for i := range subParts {
 		if i >= len(reqParts) {
 			break
 		}
+		if !strings.HasPrefix(subParts[i], "{") || !strings.HasSuffix(subParts[i], "}") {
+			continue
+		}
+		argIndex++
+		if query == nil {
+			query = httpReq.URL.Query()
+		}
+		name := subParts[i]
+		name = strings.TrimLeft(name, "{")
+		name = strings.TrimRight(name, "+}")
+		if name == "" {
+			name = fmt.Sprintf("path%d", argIndex)
+		}
 		// Capture path appendix, e.g. /directory/{filename+}
-		if i == len(subParts)-1 && strings.HasPrefix(subParts[i], "{") && strings.HasSuffix(subParts[i], "+}") && len(subParts[i]) > 3 {
-			if query == nil {
-				query = httpReq.URL.Query()
-			}
-			query.Set(subParts[i][1:len(subParts[i])-2], strings.Join(reqParts[i:], "/"))
+		if i == len(subParts)-1 && strings.HasSuffix(subParts[i], "+}") {
+			query.Set(name, strings.Join(reqParts[i:], "/"))
 			break
 		}
-		// Capture named path arguments, e.g. /obj/{id}/details
-		if strings.HasPrefix(subParts[i], "{") && strings.HasSuffix(subParts[i], "}") && len(subParts[i]) > 2 {
-			if query == nil {
-				query = httpReq.URL.Query()
-			}
-			query.Set(subParts[i][1:len(subParts[i])-1], reqParts[i])
-		}
+		query.Set(name, reqParts[i])
 	}
 	if query != nil {
 		httpReq.URL.RawQuery = query.Encode()

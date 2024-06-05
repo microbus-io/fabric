@@ -53,8 +53,12 @@ var (
 	URLOfStringCut = httpx.JoinHostAndPath(Hostname, `:443/string-cut`)
 	URLOfPointDistance = httpx.JoinHostAndPath(Hostname, `:443/point-distance`)
 	URLOfSubArrayRange = httpx.JoinHostAndPath(Hostname, `:443/sub-array-range/{max}`)
+	URLOfSumTwoIntegers = httpx.JoinHostAndPath(Hostname, `:443/sum-two-integers`)
 	URLOfFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
+	URLOfNonStringPathArguments = httpx.JoinHostAndPath(Hostname, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
+	URLOfUnnamedFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
 	URLOfWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`)
+	URLOfUnnamedWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`)
 )
 
 // Client is an interface to calling the endpoints of the codegen.test microservice.
@@ -250,6 +254,100 @@ func (_c *MulticastClient) WebPathArguments(ctx context.Context, r *http.Request
 	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 }
 
+/*
+UnnamedWebPathArguments tests path arguments that are not named.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) UnnamedWebPathArguments(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfUnnamedWebPathArguments, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(`GET`), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+UnnamedWebPathArguments tests path arguments that are not named.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) UnnamedWebPathArguments(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfUnnamedWebPathArguments, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(`GET`), pub.URL(url))
+}
+
+/*
+UnnamedWebPathArguments_Do performs a customized request to the UnnamedWebPathArguments endpoint.
+
+UnnamedWebPathArguments tests path arguments that are not named.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) UnnamedWebPathArguments_Do(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfUnnamedWebPathArguments, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+UnnamedWebPathArguments_Do performs a customized request to the UnnamedWebPathArguments endpoint.
+
+UnnamedWebPathArguments tests path arguments that are not named.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) UnnamedWebPathArguments_Do(ctx context.Context, r *http.Request) <-chan *pub.Response {
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfUnnamedWebPathArguments, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.ResolvePathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+}
+
 // StringCutIn are the input arguments of StringCut.
 type StringCutIn struct {
 	S string `json:"s"`
@@ -364,7 +462,7 @@ func (_c *Client) StringCut(ctx context.Context, s string, sep string) (before s
 // PointDistanceIn are the input arguments of PointDistance.
 type PointDistanceIn struct {
 	P1 XYCoord `json:"p1"`
-	P2 XYCoord `json:"p2"`
+	P2 *XYCoord `json:"p2"`
 }
 
 // PointDistanceOut are the return values of PointDistance.
@@ -389,7 +487,7 @@ func (_out *PointDistanceResponse) Get() (d float64, err error) {
 /*
 PointDistance tests passing non-primitive types via query arguments.
 */
-func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 XYCoord, _options ...pub.Option) <-chan *PointDistanceResponse {
+func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord, _options ...pub.Option) <-chan *PointDistanceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/point-distance`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`p1`: p1,
@@ -438,7 +536,7 @@ func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 XYC
 /*
 PointDistance tests passing non-primitive types via query arguments.
 */
-func (_c *Client) PointDistance(ctx context.Context, p1 XYCoord, p2 XYCoord) (d float64, err error) {
+func (_c *Client) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord) (d float64, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/point-distance`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
@@ -606,6 +704,116 @@ func (_c *Client) SubArrayRange(ctx context.Context, httpRequestBody []int, min 
 	return
 }
 
+// SumTwoIntegersIn are the input arguments of SumTwoIntegers.
+type SumTwoIntegersIn struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+// SumTwoIntegersOut are the return values of SumTwoIntegers.
+type SumTwoIntegersOut struct {
+	Sum int `json:"sum"`
+	HTTPStatusCode int `json:"-"`
+}
+
+// SumTwoIntegersResponse is the response to SumTwoIntegers.
+type SumTwoIntegersResponse struct {
+	data SumTwoIntegersOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *SumTwoIntegersResponse) Get() (sum int, httpStatusCode int, err error) {
+	sum = _out.data.Sum
+	httpStatusCode = _out.data.HTTPStatusCode
+	err = _out.err
+	return
+}
+
+/*
+SumTwoIntegers tests returning a status code from a function.
+*/
+func (_c *MulticastClient) SumTwoIntegers(ctx context.Context, x int, y int, _options ...pub.Option) <-chan *SumTwoIntegersResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:443/sum-two-integers`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`x`: x,
+		`y`: y,
+	})
+	_in := SumTwoIntegersIn{
+		x,
+		y,
+	}
+	var _query url.Values
+	_body := _in
+	_opts := []pub.Option{
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *SumTwoIntegersResponse, cap(_ch))
+	for _i := range _ch {
+		var _r SumTwoIntegersResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+			_r.data.HTTPStatusCode = _httpRes.StatusCode
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+SumTwoIntegers tests returning a status code from a function.
+*/
+func (_c *Client) SumTwoIntegers(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error) {
+	var _err error
+	_url := httpx.JoinHostAndPath(_c.host, `:443/sum-two-integers`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`x`: x,
+		`y`: y,
+	})
+	_in := SumTwoIntegersIn{
+		x,
+		y,
+	}
+	var _query url.Values
+	_body := _in
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out SumTwoIntegersOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	_out.HTTPStatusCode = _httpRes.StatusCode
+	sum = _out.Sum
+	httpStatusCode = _out.HTTPStatusCode
+	return
+}
+
 // FunctionPathArgumentsIn are the input arguments of FunctionPathArguments.
 type FunctionPathArgumentsIn struct {
 	Named string `json:"named"`
@@ -717,6 +925,246 @@ func (_c *Client) FunctionPathArguments(ctx context.Context, named string, path2
 		return
 	}
 	var _out FunctionPathArgumentsOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	joined = _out.Joined
+	return
+}
+
+// NonStringPathArgumentsIn are the input arguments of NonStringPathArguments.
+type NonStringPathArgumentsIn struct {
+	Named int `json:"named"`
+	Path2 bool `json:"path2"`
+	Suffix float64 `json:"suffix"`
+}
+
+// NonStringPathArgumentsOut are the return values of NonStringPathArguments.
+type NonStringPathArgumentsOut struct {
+	Joined string `json:"joined"`
+}
+
+// NonStringPathArgumentsResponse is the response to NonStringPathArguments.
+type NonStringPathArgumentsResponse struct {
+	data NonStringPathArgumentsOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *NonStringPathArgumentsResponse) Get() (joined string, err error) {
+	joined = _out.data.Joined
+	err = _out.err
+	return
+}
+
+/*
+NonStringPathArguments tests path arguments that are not strings.
+*/
+func (_c *MulticastClient) NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64, _options ...pub.Option) <-chan *NonStringPathArgumentsResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`named`: named,
+		`path2`: path2,
+		`suffix`: suffix,
+	})
+	_in := NonStringPathArgumentsIn{
+		named,
+		path2,
+		suffix,
+	}
+	_query, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *NonStringPathArgumentsResponse, 1)
+		_res <- &NonStringPathArgumentsResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	var _body any
+	_opts := []pub.Option{
+		pub.Method(`GET`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *NonStringPathArgumentsResponse, cap(_ch))
+	for _i := range _ch {
+		var _r NonStringPathArgumentsResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+NonStringPathArguments tests path arguments that are not strings.
+*/
+func (_c *Client) NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error) {
+	var _err error
+	_url := httpx.JoinHostAndPath(_c.host, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`named`: named,
+		`path2`: path2,
+		`suffix`: suffix,
+	})
+	_in := NonStringPathArgumentsIn{
+		named,
+		path2,
+		suffix,
+	}
+	_query, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _body any
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`GET`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out NonStringPathArgumentsOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	joined = _out.Joined
+	return
+}
+
+// UnnamedFunctionPathArgumentsIn are the input arguments of UnnamedFunctionPathArguments.
+type UnnamedFunctionPathArgumentsIn struct {
+	Path1 string `json:"path1"`
+	Path2 string `json:"path2"`
+	Path3 string `json:"path3"`
+}
+
+// UnnamedFunctionPathArgumentsOut are the return values of UnnamedFunctionPathArguments.
+type UnnamedFunctionPathArgumentsOut struct {
+	Joined string `json:"joined"`
+}
+
+// UnnamedFunctionPathArgumentsResponse is the response to UnnamedFunctionPathArguments.
+type UnnamedFunctionPathArgumentsResponse struct {
+	data UnnamedFunctionPathArgumentsOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *UnnamedFunctionPathArgumentsResponse) Get() (joined string, err error) {
+	joined = _out.data.Joined
+	err = _out.err
+	return
+}
+
+/*
+UnnamedFunctionPathArguments tests path arguments that are not named.
+*/
+func (_c *MulticastClient) UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string, _options ...pub.Option) <-chan *UnnamedFunctionPathArgumentsResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`path1`: path1,
+		`path2`: path2,
+		`path3`: path3,
+	})
+	_in := UnnamedFunctionPathArgumentsIn{
+		path1,
+		path2,
+		path3,
+	}
+	_query, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		_res := make(chan *UnnamedFunctionPathArgumentsResponse, 1)
+		_res <- &UnnamedFunctionPathArgumentsResponse{err: _err} // No trace
+		close(_res)
+		return _res
+	}
+	var _body any
+	_opts := []pub.Option{
+		pub.Method(`GET`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	}
+	_opts = append(_opts, _options...)
+	_ch := _c.svc.Publish(ctx, _opts...)
+
+	_res := make(chan *UnnamedFunctionPathArgumentsResponse, cap(_ch))
+	for _i := range _ch {
+		var _r UnnamedFunctionPathArgumentsResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+UnnamedFunctionPathArguments tests path arguments that are not named.
+*/
+func (_c *Client) UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error) {
+	var _err error
+	_url := httpx.JoinHostAndPath(_c.host, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`path1`: path1,
+		`path2`: path2,
+		`path3`: path3,
+	})
+	_in := UnnamedFunctionPathArgumentsIn{
+		path1,
+		path2,
+		path3,
+	}
+	_query, _err := httpx.EncodeDeepObject(_in)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _body any
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`GET`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out UnnamedFunctionPathArgumentsOut
 	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
 	if _err != nil {
 		err = errors.Trace(_err)

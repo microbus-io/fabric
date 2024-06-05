@@ -69,10 +69,14 @@ type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
 	StringCut(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
-	PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 testerapi.XYCoord) (d float64, err error)
+	PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
 	SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error)
+	SumTwoIntegers(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
+	NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
+	UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
 	WebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
+	UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -102,10 +106,14 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
 	svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
 	svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
+	svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
 	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
+	svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
+	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
 
 	// Webs
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.impl.WebPathArguments)
+	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.impl.UnnamedWebPathArguments)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -147,11 +155,11 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Name:        `PointDistance`,
 			Method:      `GET`,
 			Path:        `:443/point-distance`,
-			Summary:     `PointDistance(p1 XYCoord, p2 XYCoord) (d float64)`,
+			Summary:     `PointDistance(p1 XYCoord, p2 *XYCoord) (d float64)`,
 			Description: `PointDistance tests passing non-primitive types via query arguments.`,
 			InputArgs: struct {
 				P1 testerapi.XYCoord `json:"p1"`
-				P2 testerapi.XYCoord `json:"p2"`
+				P2 *testerapi.XYCoord `json:"p2"`
 			}{},
 			OutputArgs: struct {
 				D float64 `json:"d"`
@@ -183,6 +191,24 @@ An httpResponseBody argument prevents returning additional values, except for th
 	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `function`,
+			Name:        `SumTwoIntegers`,
+			Method:      `ANY`,
+			Path:        `:443/sum-two-integers`,
+			Summary:     `SumTwoIntegers(x int, y int) (sum int, httpStatusCode int)`,
+			Description: `SumTwoIntegers tests returning a status code from a function.`,
+			InputArgs: struct {
+				X int `json:"x"`
+				Y int `json:"y"`
+			}{},
+			OutputArgs: struct {
+				Sum int `json:"sum"`
+				HTTPStatusCode int `json:"-"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
 			Name:        `FunctionPathArguments`,
 			Method:      `GET`,
 			Path:        `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`,
@@ -200,12 +226,62 @@ An httpResponseBody argument prevents returning additional values, except for th
 	}
 	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `NonStringPathArguments`,
+			Method:      `GET`,
+			Path:        `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`,
+			Summary:     `NonStringPathArguments(named int, path2 bool, suffix float64) (joined string)`,
+			Description: `NonStringPathArguments tests path arguments that are not strings.`,
+			InputArgs: struct {
+				Named int `json:"named"`
+				Path2 bool `json:"path2"`
+				Suffix float64 `json:"suffix"`
+			}{},
+			OutputArgs: struct {
+				Joined string `json:"joined"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `UnnamedFunctionPathArguments`,
+			Method:      `GET`,
+			Path:        `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`,
+			Summary:     `UnnamedFunctionPathArguments(path1 string, path2 string, path3 string) (joined string)`,
+			Description: `UnnamedFunctionPathArguments tests path arguments that are not named.`,
+			InputArgs: struct {
+				Path1 string `json:"path1"`
+				Path2 string `json:"path2"`
+				Path3 string `json:"path3"`
+			}{},
+			OutputArgs: struct {
+				Joined string `json:"joined"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `WebPathArguments`,
 			Method:      `ANY`,
 			Path:        `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`,
 			Summary:     `WebPathArguments()`,
 			Description: `WebPathArguments tests path arguments in web handlers.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `UnnamedWebPathArguments`,
+			Method:      `GET`,
+			Path:        `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`,
+			Summary:     `UnnamedWebPathArguments()`,
+			Description: `UnnamedWebPathArguments tests path arguments that are not named.`,
 			InputArgs: struct {
 			}{},
 			OutputArgs: struct {
@@ -321,6 +397,35 @@ func (svc *Intermediate) doSubArrayRange(w http.ResponseWriter, r *http.Request)
 	return nil
 }
 
+// doSumTwoIntegers handles marshaling for the SumTwoIntegers function.
+func (svc *Intermediate) doSumTwoIntegers(w http.ResponseWriter, r *http.Request) error {
+	var i testerapi.SumTwoIntegersIn
+	var o testerapi.SumTwoIntegersOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Sum, o.HTTPStatusCode, err = svc.impl.SumTwoIntegers(
+		r.Context(),
+		i.X,
+		i.Y,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(o.HTTPStatusCode)
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
 // doFunctionPathArguments handles marshaling for the FunctionPathArguments function.
 func (svc *Intermediate) doFunctionPathArguments(w http.ResponseWriter, r *http.Request) error {
 	var i testerapi.FunctionPathArgumentsIn
@@ -334,6 +439,64 @@ func (svc *Intermediate) doFunctionPathArguments(w http.ResponseWriter, r *http.
 		i.Named,
 		i.Path2,
 		i.Suffix,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doNonStringPathArguments handles marshaling for the NonStringPathArguments function.
+func (svc *Intermediate) doNonStringPathArguments(w http.ResponseWriter, r *http.Request) error {
+	var i testerapi.NonStringPathArgumentsIn
+	var o testerapi.NonStringPathArgumentsOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Joined, err = svc.impl.NonStringPathArguments(
+		r.Context(),
+		i.Named,
+		i.Path2,
+		i.Suffix,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doUnnamedFunctionPathArguments handles marshaling for the UnnamedFunctionPathArguments function.
+func (svc *Intermediate) doUnnamedFunctionPathArguments(w http.ResponseWriter, r *http.Request) error {
+	var i testerapi.UnnamedFunctionPathArgumentsIn
+	var o testerapi.UnnamedFunctionPathArgumentsOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Joined, err = svc.impl.UnnamedFunctionPathArguments(
+		r.Context(),
+		i.Path1,
+		i.Path2,
+		i.Path3,
 	)
 	if err != nil {
 		return err // No trace

@@ -59,20 +59,33 @@ configs:
 #   none - Pervasive
 # openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 functions:
+  # Typical arguments
   - signature: StringCut(s string, sep string) (before string, after string, found bool)
     description: StringCut tests a standard function that takes multiple input arguments and returns multiple values.
-  - signature: PointDistance(p1 XYCoord, p2 XYCoord) (d float64)
+  - signature: PointDistance(p1 XYCoord, p2 *XYCoord) (d float64)
     description: PointDistance tests passing non-primitive types via query arguments.
     method: GET
+  # HTTP arguments
   - signature: SubArrayRange(httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int)
     description: |
       SubArrayRange tests sending arguments as the entire request and response bodies.
       An httpRequestBody argument allows sending other arguments via query or path.
       An httpResponseBody argument prevents returning additional values, except for the status code.
     path: /sub-array-range/{max}
+  - signature: SumTwoIntegers(x int, y int) (sum int, httpStatusCode int)
+    description: SumTwoIntegers tests returning a status code from a function.
+  # Path arguments
   - signature: FunctionPathArguments(named string, path2 string, suffix string) (joined string)
     description: FunctionPathArguments tests path arguments in functions.
     path: /.../fixed/{named}/{}/{suffix+}
+    method: GET
+  - signature: NonStringPathArguments(named int, path2 bool, suffix float64) (joined string)
+    description: NonStringPathArguments tests path arguments that are not strings.
+    path: /.../fixed/{named}/{}/{suffix+}
+    method: GET
+  - signature: UnnamedFunctionPathArguments(path1 string, path2 string, path3 string) (joined string)
+    description: UnnamedFunctionPathArguments tests path arguments that are not named.
+    path: /.../{}/foo/{}/bar/{+}
     method: GET
 
 # Event sources
@@ -135,6 +148,10 @@ webs:
   - signature: WebPathArguments()
     description: WebPathArguments tests path arguments in web handlers.
     path: /.../fixed/{named}/{}/{suffix+}
+  - signature: UnnamedWebPathArguments()
+    description: UnnamedWebPathArguments tests path arguments that are not named.
+    path: /.../{}/foo/{}/bar/{+}
+    method: GET
 
 # Tickers
 #
