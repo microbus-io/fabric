@@ -162,7 +162,7 @@ func (_out *RegisterResponse) Get() (allowed bool, err error) {
 /*
 Register attempts to register a new user.
 */
-func (_c *MulticastClient) Register(ctx context.Context, email string, _options ...pub.Option) <-chan *RegisterResponse {
+func (_c *MulticastClient) Register(ctx context.Context, email string) <-chan *RegisterResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/register`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`email`: email,
@@ -172,14 +172,13 @@ func (_c *MulticastClient) Register(ctx context.Context, email string, _options 
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *RegisterResponse, cap(_ch))
 	for _i := range _ch {
@@ -263,7 +262,7 @@ func (_out *OnAllowRegisterResponse) Get() (allow bool, err error) {
 OnAllowRegister is called before a user is allowed to register.
 Event sinks are given the opportunity to block the registration.
 */
-func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _options ...pub.Option) <-chan *OnAllowRegisterResponse {
+func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string) <-chan *OnAllowRegisterResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`email`: email,
@@ -273,14 +272,13 @@ func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string, _
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *OnAllowRegisterResponse, cap(_ch))
 	for _i := range _ch {
@@ -359,7 +357,7 @@ func (_out *OnRegisteredResponse) Get() (err error) {
 /*
 OnRegistered is called when a user is successfully registered.
 */
-func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _options ...pub.Option) <-chan *OnRegisteredResponse {
+func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string) <-chan *OnRegisteredResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:417/on-registered`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`email`: email,
@@ -369,14 +367,13 @@ func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string, _opt
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *OnRegisteredResponse, cap(_ch))
 	for _i := range _ch {

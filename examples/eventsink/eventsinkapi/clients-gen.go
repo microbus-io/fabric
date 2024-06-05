@@ -121,7 +121,7 @@ func (_out *RegisteredResponse) Get() (emails []string, err error) {
 /*
 Registered returns the list of registered users.
 */
-func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Option) <-chan *RegisteredResponse {
+func (_c *MulticastClient) Registered(ctx context.Context) <-chan *RegisteredResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/registered`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 	})
@@ -129,14 +129,13 @@ func (_c *MulticastClient) Registered(ctx context.Context, _options ...pub.Optio
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *RegisteredResponse, cap(_ch))
 	for _i := range _ch {

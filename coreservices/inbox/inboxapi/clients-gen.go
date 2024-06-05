@@ -159,7 +159,7 @@ func (_out *OnInboxSaveMailResponse) Get() (err error) {
 /*
 OnInboxSaveMail is triggered when a new email message is received.
 */
-func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Email, _options ...pub.Option) <-chan *OnInboxSaveMailResponse {
+func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Email) <-chan *OnInboxSaveMailResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:417/on-inbox-save-mail`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`mailMessage`: mailMessage,
@@ -169,14 +169,13 @@ func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Em
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *OnInboxSaveMailResponse, cap(_ch))
 	for _i := range _ch {

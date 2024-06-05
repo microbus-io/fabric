@@ -34,7 +34,7 @@ func (_out *{{ .Name }}Response) Get() ({{ .Out }}) {
 */
 func (_c *Multicast
 {{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
-) {{ .Name }}({{ .In }}, _options ...pub.Option) <-chan *{{ .Name }}Response {
+) {{ .Name }}({{ .In }}) <-chan *{{ .Name }}Response {
 	_url := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		{{- range .Signature.InputArgs }}{{- if ne .Name "httpRequestBody" }}
@@ -68,14 +68,13 @@ func (_c *Multicast
 	var _query url.Values
 	_body := _in
 	{{- end}}
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`{{ if eq .Method "ANY" }}POST{{ else }}{{ .Method }}{{ end }}`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *{{ .Name }}Response, cap(_ch))
 	for _i := range _ch {

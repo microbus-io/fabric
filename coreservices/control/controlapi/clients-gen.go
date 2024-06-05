@@ -124,7 +124,7 @@ func (_out *PingResponse) Get() (pong int, err error) {
 /*
 Ping responds to the message with a pong.
 */
-func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-chan *PingResponse {
+func (_c *MulticastClient) Ping(ctx context.Context) <-chan *PingResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:888/ping`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 	})
@@ -132,14 +132,13 @@ func (_c *MulticastClient) Ping(ctx context.Context, _options ...pub.Option) <-c
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *PingResponse, cap(_ch))
 	for _i := range _ch {
@@ -217,7 +216,7 @@ func (_out *ConfigRefreshResponse) Get() (err error) {
 /*
 ConfigRefresh pulls the latest config values from the configurator service.
 */
-func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Option) <-chan *ConfigRefreshResponse {
+func (_c *MulticastClient) ConfigRefresh(ctx context.Context) <-chan *ConfigRefreshResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 	})
@@ -225,14 +224,13 @@ func (_c *MulticastClient) ConfigRefresh(ctx context.Context, _options ...pub.Op
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *ConfigRefreshResponse, cap(_ch))
 	for _i := range _ch {
@@ -310,7 +308,7 @@ func (_out *TraceResponse) Get() (err error) {
 /*
 Trace forces exporting the indicated tracing span.
 */
-func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub.Option) <-chan *TraceResponse {
+func (_c *MulticastClient) Trace(ctx context.Context, id string) <-chan *TraceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:888/trace`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`id`: id,
@@ -320,14 +318,13 @@ func (_c *MulticastClient) Trace(ctx context.Context, id string, _options ...pub
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *TraceResponse, cap(_ch))
 	for _i := range _ch {

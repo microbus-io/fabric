@@ -124,7 +124,7 @@ func (_out *ValuesResponse) Get() (values map[string]string, err error) {
 /*
 Values returns the values associated with the specified config property names for the caller microservice.
 */
-func (_c *MulticastClient) Values(ctx context.Context, names []string, _options ...pub.Option) <-chan *ValuesResponse {
+func (_c *MulticastClient) Values(ctx context.Context, names []string) <-chan *ValuesResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/values`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`names`: names,
@@ -134,14 +134,13 @@ func (_c *MulticastClient) Values(ctx context.Context, names []string, _options 
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *ValuesResponse, cap(_ch))
 	for _i := range _ch {
@@ -222,7 +221,7 @@ func (_out *RefreshResponse) Get() (err error) {
 Refresh tells all microservices to contact the configurator and refresh their configs.
 An error is returned if any of the values sent to the microservices fails validation.
 */
-func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) <-chan *RefreshResponse {
+func (_c *MulticastClient) Refresh(ctx context.Context) <-chan *RefreshResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/refresh`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 	})
@@ -230,14 +229,13 @@ func (_c *MulticastClient) Refresh(ctx context.Context, _options ...pub.Option) 
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *RefreshResponse, cap(_ch))
 	for _i := range _ch {
@@ -317,7 +315,7 @@ func (_out *SyncResponse) Get() (err error) {
 /*
 Sync is used to synchronize values among replica peers of the configurator.
 */
-func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string, _options ...pub.Option) <-chan *SyncResponse {
+func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) <-chan *SyncResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sync`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`timestamp`: timestamp,
@@ -329,14 +327,13 @@ func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *SyncResponse, cap(_ch))
 	for _i := range _ch {

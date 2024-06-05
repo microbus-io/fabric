@@ -46,8 +46,10 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`Inbox listens for incoming emails and fires appropriate events.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
 	return svc
 }
 

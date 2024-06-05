@@ -53,19 +53,19 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The directory microservice exposes a RESTful API for persisting personal records in a SQL database.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		// Functions
+		svc.Subscribe(`POST`, `:443/persons`, svc.doCreate)
+		svc.Subscribe(`GET`, `:443/persons/key/{key}`, svc.doLoad)
+		svc.Subscribe(`DELETE`, `:443/persons/key/{key}`, svc.doDelete)
+		svc.Subscribe(`PUT`, `:443/persons/key/{key}`, svc.doUpdate)
+		svc.Subscribe(`GET`, `:443/persons/email/{email}`, svc.doLoadByEmail)
+		svc.Subscribe(`GET`, `:443/persons`, svc.doList)
+		// Webs
+		svc.Subscribe(`ANY`, `:443/web-ui`, svc.doWebUI)
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	// Functions
-	svc.Subscribe(`POST`, `:443/persons`, svc.doCreate)
-	svc.Subscribe(`GET`, `:443/persons/key/{key}`, svc.doLoad)
-	svc.Subscribe(`DELETE`, `:443/persons/key/{key}`, svc.doDelete)
-	svc.Subscribe(`PUT`, `:443/persons/key/{key}`, svc.doUpdate)
-	svc.Subscribe(`GET`, `:443/persons/email/{email}`, svc.doLoadByEmail)
-	svc.Subscribe(`GET`, `:443/persons`, svc.doList)
-
-	// Webs
-	svc.Subscribe(`ANY`, `:443/web-ui`, svc.doWebUI)
-
 	return svc
 }
 
@@ -84,7 +84,11 @@ func (svc *Mock) doCreate(w http.ResponseWriter, r *http.Request) error {
 	}
 	var i directoryapi.CreateIn
 	var o directoryapi.CreateOut
-	err := httpx.ParseRequestData(r, &i)
+	err := httpx.ParseRequestBody(r, &i.HTTPRequestBody)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -93,10 +97,11 @@ func (svc *Mock) doCreate(w http.ResponseWriter, r *http.Request) error {
 		i.HTTPRequestBody,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -125,10 +130,11 @@ func (svc *Mock) doLoad(w http.ResponseWriter, r *http.Request) error {
 		i.Key,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -157,10 +163,11 @@ func (svc *Mock) doDelete(w http.ResponseWriter, r *http.Request) error {
 		i.Key,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -180,7 +187,11 @@ func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
 	}
 	var i directoryapi.UpdateIn
 	var o directoryapi.UpdateOut
-	err := httpx.ParseRequestData(r, &i)
+	err := httpx.ParseRequestBody(r, &i.HTTPRequestBody)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -190,10 +201,11 @@ func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
 		i.HTTPRequestBody,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -222,10 +234,11 @@ func (svc *Mock) doLoadByEmail(w http.ResponseWriter, r *http.Request) error {
 		i.Email,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -253,10 +266,11 @@ func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) error {
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
 		return errors.Trace(err)
 	}

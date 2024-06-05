@@ -205,3 +205,5 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Path arguments `{arg}` and `{greedy+}`
 * `httpRequestBody` and `httpResponseBody` magic arguments in functions
 * Change the directory example to RESTful API style
+* Introduced a microservice for testing of the code generator
+* Deprecated variadic options in code-generated clients

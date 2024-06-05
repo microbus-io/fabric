@@ -132,7 +132,7 @@ func (_out *ArithmeticResponse) Get() (xEcho int, opEcho string, yEcho int, resu
 /*
 Arithmetic perform an arithmetic operation between two integers x and y given an operator op.
 */
-func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y int, _options ...pub.Option) <-chan *ArithmeticResponse {
+func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y int) <-chan *ArithmeticResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`x`: x,
@@ -152,14 +152,13 @@ func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y i
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *ArithmeticResponse, cap(_ch))
 	for _i := range _ch {
@@ -255,7 +254,7 @@ func (_out *SquareResponse) Get() (xEcho int, result int, err error) {
 /*
 Square prints the square of the integer x.
 */
-func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Option) <-chan *SquareResponse {
+func (_c *MulticastClient) Square(ctx context.Context, x int) <-chan *SquareResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/square`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`x`: x,
@@ -271,14 +270,13 @@ func (_c *MulticastClient) Square(ctx context.Context, x int, _options ...pub.Op
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *SquareResponse, cap(_ch))
 	for _i := range _ch {
@@ -368,7 +366,7 @@ func (_out *DistanceResponse) Get() (d float64, err error) {
 Distance calculates the distance between two points.
 It demonstrates the use of the defined type Point.
 */
-func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _options ...pub.Option) <-chan *DistanceResponse {
+func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point) <-chan *DistanceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/distance`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`p1`: p1,
@@ -380,14 +378,13 @@ func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point, _op
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *DistanceResponse, cap(_ch))
 	for _i := range _ch {

@@ -47,11 +47,12 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The browser microservice implements a simple web browser that utilizes the egress proxy.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		// Webs
+		svc.Subscribe(`ANY`, `:443/browse`, svc.doBrowse)
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	// Webs
-	svc.Subscribe(`ANY`, `:443/browse`, svc.doBrowse)
-
 	return svc
 }
 

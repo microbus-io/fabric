@@ -524,7 +524,7 @@ func (_out *StringCutResponse) Get() (before string, after string, found bool, e
 /*
 StringCut tests a standard function that takes multiple input arguments and returns multiple values.
 */
-func (_c *MulticastClient) StringCut(ctx context.Context, s string, sep string, _options ...pub.Option) <-chan *StringCutResponse {
+func (_c *MulticastClient) StringCut(ctx context.Context, s string, sep string) <-chan *StringCutResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/string-cut`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`s`: s,
@@ -536,14 +536,13 @@ func (_c *MulticastClient) StringCut(ctx context.Context, s string, sep string, 
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *StringCutResponse, cap(_ch))
 	for _i := range _ch {
@@ -631,7 +630,7 @@ func (_out *PointDistanceResponse) Get() (d float64, err error) {
 /*
 PointDistance tests passing non-primitive types via query arguments.
 */
-func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord, _options ...pub.Option) <-chan *PointDistanceResponse {
+func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord) <-chan *PointDistanceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/point-distance`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`p1`: p1,
@@ -649,14 +648,13 @@ func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 *XY
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *PointDistanceResponse, cap(_ch))
 	for _i := range _ch {
@@ -753,7 +751,7 @@ SubArrayRange tests sending arguments as the entire request and response bodies.
 An httpRequestBody argument allows sending other arguments via query or path.
 An httpResponseBody argument prevents returning additional values, except for the status code.
 */
-func (_c *MulticastClient) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int, _options ...pub.Option) <-chan *SubArrayRangeResponse {
+func (_c *MulticastClient) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) <-chan *SubArrayRangeResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sub-array-range/{max}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`min`: min,
@@ -772,14 +770,13 @@ func (_c *MulticastClient) SubArrayRange(ctx context.Context, httpRequestBody []
 		return _res
 	}
 	_body := httpRequestBody
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *SubArrayRangeResponse, cap(_ch))
 	for _i := range _ch {
@@ -878,7 +875,7 @@ func (_out *SumTwoIntegersResponse) Get() (sum int, httpStatusCode int, err erro
 /*
 SumTwoIntegers tests returning a status code from a function.
 */
-func (_c *MulticastClient) SumTwoIntegers(ctx context.Context, x int, y int, _options ...pub.Option) <-chan *SumTwoIntegersResponse {
+func (_c *MulticastClient) SumTwoIntegers(ctx context.Context, x int, y int) <-chan *SumTwoIntegersResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sum-two-integers`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`x`: x,
@@ -890,14 +887,13 @@ func (_c *MulticastClient) SumTwoIntegers(ctx context.Context, x int, y int, _op
 	}
 	var _query url.Values
 	_body := _in
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *SumTwoIntegersResponse, cap(_ch))
 	for _i := range _ch {
@@ -987,7 +983,7 @@ func (_out *FunctionPathArgumentsResponse) Get() (joined string, err error) {
 /*
 FunctionPathArguments tests path arguments in functions.
 */
-func (_c *MulticastClient) FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string, _options ...pub.Option) <-chan *FunctionPathArgumentsResponse {
+func (_c *MulticastClient) FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) <-chan *FunctionPathArgumentsResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`named`: named,
@@ -1007,14 +1003,13 @@ func (_c *MulticastClient) FunctionPathArguments(ctx context.Context, named stri
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *FunctionPathArgumentsResponse, cap(_ch))
 	for _i := range _ch {
@@ -1107,7 +1102,7 @@ func (_out *NonStringPathArgumentsResponse) Get() (joined string, err error) {
 /*
 NonStringPathArguments tests path arguments that are not strings.
 */
-func (_c *MulticastClient) NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64, _options ...pub.Option) <-chan *NonStringPathArgumentsResponse {
+func (_c *MulticastClient) NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) <-chan *NonStringPathArgumentsResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`named`: named,
@@ -1127,14 +1122,13 @@ func (_c *MulticastClient) NonStringPathArguments(ctx context.Context, named int
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *NonStringPathArgumentsResponse, cap(_ch))
 	for _i := range _ch {
@@ -1227,7 +1221,7 @@ func (_out *UnnamedFunctionPathArgumentsResponse) Get() (joined string, err erro
 /*
 UnnamedFunctionPathArguments tests path arguments that are not named.
 */
-func (_c *MulticastClient) UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string, _options ...pub.Option) <-chan *UnnamedFunctionPathArgumentsResponse {
+func (_c *MulticastClient) UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) <-chan *UnnamedFunctionPathArgumentsResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`path1`: path1,
@@ -1247,14 +1241,13 @@ func (_c *MulticastClient) UnnamedFunctionPathArguments(ctx context.Context, pat
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *UnnamedFunctionPathArgumentsResponse, cap(_ch))
 	for _i := range _ch {

@@ -46,8 +46,10 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
 	return svc
 }
 

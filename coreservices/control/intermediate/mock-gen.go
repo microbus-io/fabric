@@ -50,13 +50,14 @@ func NewMock() *Mock {
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`This microservice is created for the sake of generating the client API for the :888 control subscriptions.
 The microservice itself does nothing and should not be included in applications.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		// Functions
+		svc.Subscribe(`ANY`, `:888/ping`, svc.doPing, sub.NoQueue())
+		svc.Subscribe(`ANY`, `:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())
+		svc.Subscribe(`ANY`, `:888/trace`, svc.doTrace, sub.NoQueue())
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	// Functions
-	svc.Subscribe(`ANY`, `:888/ping`, svc.doPing, sub.NoQueue())
-	svc.Subscribe(`ANY`, `:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())
-	svc.Subscribe(`ANY`, `:888/trace`, svc.doTrace, sub.NoQueue())
-
 	return svc
 }
 
@@ -83,10 +84,11 @@ func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) error {
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -114,10 +116,11 @@ func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -146,10 +149,11 @@ func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
 		i.ID,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

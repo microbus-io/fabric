@@ -279,7 +279,7 @@ func (_out *CreateResponse) Get() (key PersonKey, err error) {
 /*
 Create registers the person in the directory.
 */
-func (_c *MulticastClient) Create(ctx context.Context, httpRequestBody *Person, _options ...pub.Option) <-chan *CreateResponse {
+func (_c *MulticastClient) Create(ctx context.Context, httpRequestBody *Person) <-chan *CreateResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 	})
@@ -294,14 +294,13 @@ func (_c *MulticastClient) Create(ctx context.Context, httpRequestBody *Person, 
 		return _res
 	}
 	_body := httpRequestBody
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`POST`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *CreateResponse, cap(_ch))
 	for _i := range _ch {
@@ -387,7 +386,7 @@ func (_out *LoadResponse) Get() (httpResponseBody *Person, err error) {
 /*
 Load looks up a person in the directory.
 */
-func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *LoadResponse {
+func (_c *MulticastClient) Load(ctx context.Context, key PersonKey) <-chan *LoadResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`key`: key,
@@ -403,14 +402,13 @@ func (_c *MulticastClient) Load(ctx context.Context, key PersonKey, _options ...
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *LoadResponse, cap(_ch))
 	for _i := range _ch {
@@ -495,7 +493,7 @@ func (_out *DeleteResponse) Get() (err error) {
 /*
 Delete removes a person from the directory.
 */
-func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options ...pub.Option) <-chan *DeleteResponse {
+func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey) <-chan *DeleteResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`key`: key,
@@ -511,14 +509,13 @@ func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey, _options .
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`DELETE`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *DeleteResponse, cap(_ch))
 	for _i := range _ch {
@@ -603,7 +600,7 @@ func (_out *UpdateResponse) Get() (err error) {
 /*
 Update updates the person's data in the directory.
 */
-func (_c *MulticastClient) Update(ctx context.Context, key PersonKey, httpRequestBody *Person, _options ...pub.Option) <-chan *UpdateResponse {
+func (_c *MulticastClient) Update(ctx context.Context, key PersonKey, httpRequestBody *Person) <-chan *UpdateResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`key`: key,
@@ -620,14 +617,13 @@ func (_c *MulticastClient) Update(ctx context.Context, key PersonKey, httpReques
 		return _res
 	}
 	_body := httpRequestBody
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`PUT`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *UpdateResponse, cap(_ch))
 	for _i := range _ch {
@@ -714,7 +710,7 @@ func (_out *LoadByEmailResponse) Get() (httpResponseBody *Person, err error) {
 /*
 LoadByEmail looks up a person in the directory by their email.
 */
-func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _options ...pub.Option) <-chan *LoadByEmailResponse {
+func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string) <-chan *LoadByEmailResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 		`email`: email,
@@ -730,14 +726,13 @@ func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string, _optio
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *LoadByEmailResponse, cap(_ch))
 	for _i := range _ch {
@@ -823,7 +818,7 @@ func (_out *ListResponse) Get() (httpResponseBody []PersonKey, err error) {
 /*
 List returns the keys of all the persons in the directory.
 */
-func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-chan *ListResponse {
+func (_c *MulticastClient) List(ctx context.Context) <-chan *ListResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
 	})
@@ -837,14 +832,13 @@ func (_c *MulticastClient) List(ctx context.Context, _options ...pub.Option) <-c
 		return _res
 	}
 	var _body any
-	_opts := []pub.Option{
+	_ch := _c.svc.Publish(
+		ctx,
 		pub.Method(`GET`),
 		pub.URL(_url),
 		pub.Query(_query),
 		pub.Body(_body),
-	}
-	_opts = append(_opts, _options...)
-	_ch := _c.svc.Publish(ctx, _opts...)
+	)
 
 	_res := make(chan *ListResponse, cap(_ch))
 	for _i := range _ch {

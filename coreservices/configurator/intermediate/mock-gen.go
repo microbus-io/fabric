@@ -49,13 +49,14 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Configurator is a core microservice that centralizes the dissemination of configuration values to other microservices.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		// Functions
+		svc.Subscribe(`ANY`, `:443/values`, svc.doValues)
+		svc.Subscribe(`ANY`, `:443/refresh`, svc.doRefresh)
+		svc.Subscribe(`ANY`, `:443/sync`, svc.doSync, sub.NoQueue())
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	// Functions
-	svc.Subscribe(`ANY`, `:443/values`, svc.doValues)
-	svc.Subscribe(`ANY`, `:443/refresh`, svc.doRefresh)
-	svc.Subscribe(`ANY`, `:443/sync`, svc.doSync, sub.NoQueue())
-
 	return svc
 }
 
@@ -83,10 +84,11 @@ func (svc *Mock) doValues(w http.ResponseWriter, r *http.Request) error {
 		i.Names,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -114,10 +116,11 @@ func (svc *Mock) doRefresh(w http.ResponseWriter, r *http.Request) error {
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -147,10 +150,11 @@ func (svc *Mock) doSync(w http.ResponseWriter, r *http.Request) error {
 		i.Values,
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

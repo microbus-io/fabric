@@ -52,15 +52,15 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The event sink microservice handles events that are fired by the event source microservice.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		// Functions
+		svc.Subscribe(`ANY`, `:443/registered`, svc.doRegistered)
+		// Sinks
+		eventsourceapi1.NewHook(svc).OnAllowRegister(svc.doOnAllowRegister)
+		eventsourceapi2.NewHook(svc).OnRegistered(svc.doOnRegistered)
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	// Functions
-	svc.Subscribe(`ANY`, `:443/registered`, svc.doRegistered)
-
-	// Sinks
-	eventsourceapi1.NewHook(svc).OnAllowRegister(svc.doOnAllowRegister)
-	eventsourceapi2.NewHook(svc).OnRegistered(svc.doOnRegistered)
-
 	return svc
 }
 
@@ -87,10 +87,11 @@ func (svc *Mock) doRegistered(w http.ResponseWriter, r *http.Request) error {
 		r.Context(),
 	)
 	if err != nil {
-		return errors.Trace(err)
+		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(o)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
 	if err != nil {
 		return errors.Trace(err)
 	}

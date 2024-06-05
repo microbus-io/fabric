@@ -47,11 +47,12 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.`)
+	svc.SetOnStartup(func(ctx context.Context) (err error) {
+		// Webs
+		svc.Subscribe(`ANY`, `:443/collect`, svc.doCollect)
+		return nil
+	})
 	svc.SetOnStartup(svc.doOnStartup)
-
-	// Webs
-	svc.Subscribe(`ANY`, `:443/collect`, svc.doCollect)
-
 	return svc
 }
 
