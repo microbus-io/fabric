@@ -8,13 +8,11 @@ Neither may be used, copied or distributed without the express written consent o
 package calculator
 
 import (
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
-	"github.com/microbus-io/fabric/pub"
 )
 
 var (
@@ -91,32 +89,4 @@ func TestCalculator_Distance(t *testing.T) {
 	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 3, Y: 4}).Expect(5)
 	Distance(t, ctx, calculatorapi.Point{X: -5, Y: -8}, calculatorapi.Point{X: 5, Y: -8}).Expect(10)
 	Distance(t, ctx, calculatorapi.Point{X: 0, Y: 0}, calculatorapi.Point{X: 0, Y: 0}).Expect(0)
-}
-
-func TestCalculator_OpenAPI(t *testing.T) {
-	ctx := Context()
-	res, err := Svc.Request(ctx, pub.GET("https://"+Svc.Hostname()+"/openapi.json"))
-	if assert.NoError(t, err) {
-		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			fns := []string{
-				"443", "Arithmetic",
-				"443", "Square",
-				"443", "Distance",
-			}
-			for i := 0; i < len(fns); i += 2 {
-				if assert.NoError(t, err) {
-					res.Body.Close()
-					assert.Contains(t, string(body), `"summary": "`+fns[i+1]+"(")
-					assert.Contains(t, string(body), fns[i+1]+"_OUT")
-				}
-			}
-
-			assert.Contains(t, string(body), `"Distance_IN_Point":`)
-			assert.Contains(t, string(body), `"p1":`)
-			assert.Contains(t, string(body), `"p2":`)
-			assert.Contains(t, string(body), `"x":`)
-			assert.Contains(t, string(body), `"y":`)
-		}
-	}
 }

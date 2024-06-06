@@ -100,7 +100,6 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 				name := parts[i]
 				name = strings.TrimPrefix(name, "{")
 				name = strings.TrimSuffix(name, "}")
-				name = strings.TrimSuffix(name, "+")
 				if name == "" {
 					name = fmt.Sprintf("path%d", argIndex)
 					parts[i] = "{" + name + "}"
@@ -143,14 +142,10 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			}
 
 			// OUT is JSON in the response body
-			schemaOut := jsonschema.Reflect(ep.OutputArgs)
+			schemaOut := schemaOfType(reflect.TypeOf(ep.OutputArgs))
 			if field, ok := reflect.TypeOf(ep.OutputArgs).FieldByName("HTTPResponseBody"); ok {
 				// httpResponseBody argument overrides the response body and preempts all other return values
-				schemaOut = jsonschema.ReflectFromType(field.Type)
-				for _, v := range schemaOut.Definitions {
-					schemaOut = v
-					break
-				}
+				schemaOut = schemaOfType(field.Type)
 			}
 			resolveRefs(schemaOut, ep.Name+"_OUT")
 			doc.Components.Schemas[ep.Name+"_OUT"] = schemaOut
@@ -160,11 +155,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			if field, ok := reflect.TypeOf(ep.InputArgs).FieldByName("HTTPRequestBody"); ok {
 				httpRequestBodyExists = true  // Makes all other args query or path args
 				if methodHasBody(ep.Method) { // Only works if the method has a body
-					schemaIn := jsonschema.ReflectFromType(field.Type)
-					for _, v := range schemaIn.Definitions {
-						schemaIn = v
-						break
-					}
+					schemaIn := schemaOfType(field.Type)
 					resolveRefs(schemaIn, ep.Name+"_IN")
 					doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
 
@@ -205,23 +196,23 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 						delete(pathArgs, name+"+")
 					}
 
-					fieldSchema := jsonschema.ReflectFromType(field.Type)
+					fieldSchema := schemaOfType(field.Type)
 					resolveRefs(fieldSchema, ep.Name+"_IN")
 					if fieldSchema.Ref != "" {
 						// Non-primitive type
 						parameter.Schema = &jsonschema.Schema{
-							Ref: "#/components/schemas/" + ep.Name + "_IN_" + field.Type.Name(),
+							Ref: strings.Replace(fieldSchema.Ref, "#/$defs/", "#/components/schemas/"+ep.Name+"_IN_", 1),
 						}
-						parameter.Style = "deepObject"
-						parameter.Explode = true
 					} else {
 						parameter.Schema = fieldSchema
 					}
+					parameter.Style = "deepObject"
+					parameter.Explode = true
 					op.Parameters = append(op.Parameters, parameter)
 				}
 			} else {
 				// IN is JSON in the request body
-				schemaIn := jsonschema.Reflect(ep.InputArgs)
+				schemaIn := schemaOfType(reflect.TypeOf(ep.InputArgs))
 				resolveRefs(schemaIn, ep.Name+"_IN")
 				doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
 
@@ -326,4 +317,17 @@ func fieldName(field reflect.StructField) string {
 		name = ""
 	}
 	return name
+}
+
+// schemaOfType returns the JSON schema for the given Go type.
+func schemaOfType(t reflect.Type) *jsonschema.Schema {
+	// for t.Kind() == reflect.Pointer {
+	// 	t = t.Elem()
+	// }
+	schema := jsonschema.ReflectFromType(t)
+	for _, v := range schema.Definitions {
+		schema = v
+		break
+	}
+	return schema
 }

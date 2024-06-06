@@ -104,11 +104,14 @@ func TestTester_StringCut(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// Test cases
 	StringCut(t, ctx, "Hello World", " ").
 		Expect("Hello", "World", true)
 	StringCut(t, ctx, "Hello World", "X").
 		Expect("Hello World", "", false)
 
+	// Request
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/string-cut?s=Foo+Bar&Sep=+"))
 	if assert.NoError(t, err) {
 		var out testerapi.StringCutOut
@@ -118,6 +121,7 @@ func TestTester_StringCut(t *testing.T) {
 		assert.Equal(t, true, out.Found)
 	}
 
+	// Mock
 	mock := NewMock()
 	mock.SetHostname("string-cut.mock")
 	mock.MockStringCut(func(ctx context.Context, s, sep string) (before string, after string, found bool, err error) {
@@ -149,6 +153,8 @@ func TestTester_PointDistance(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// Test cases
 	PointDistance(t, ctx, testerapi.XYCoord{X: 1, Y: 1}, &testerapi.XYCoord{X: 4, Y: 5}).
 		Expect(5)
 	PointDistance(t, ctx, testerapi.XYCoord{X: 4, Y: 5}, &testerapi.XYCoord{X: 1, Y: 1}).
@@ -160,6 +166,7 @@ func TestTester_PointDistance(t *testing.T) {
 	PointDistance(t, ctx, testerapi.XYCoord{X: 6.1, Y: 7.6}, &testerapi.XYCoord{X: 6.1, Y: 7.6}).
 		Expect(0)
 
+	// Request
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
 	if assert.NoError(t, err) {
 		var out testerapi.PointDistanceOut
@@ -167,6 +174,7 @@ func TestTester_PointDistance(t *testing.T) {
 		assert.Equal(t, 5.0, out.D)
 	}
 
+	// Mock
 	mock := NewMock()
 	mock.SetHostname("point-distance.mock")
 	mock.MockPointDistance(func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error) {
@@ -185,6 +193,26 @@ func TestTester_PointDistance(t *testing.T) {
 		json.NewDecoder(res.Body).Decode(&out)
 		assert.Equal(t, 5.0, out.D)
 	}
+
+	// OpenAPI
+	basePath := "paths|/" + Hostname + ":443/point-distance|get|"
+	// Argument 1
+	assert.Equal(t, "p1", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "query", openAPIValue(basePath+"parameters|0|in"))
+	assert.Equal(t, "object", openAPIValue(basePath+"parameters|0|schema|type"))
+	assert.Equal(t, "number", openAPIValue(basePath+"parameters|0|schema|properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(basePath+"parameters|0|schema|properties|y|type"))
+	// Argument 2
+	assert.Equal(t, "p2", openAPIValue(basePath+"parameters|1|name"))
+	assert.Equal(t, "query", openAPIValue(basePath+"parameters|1|in"))
+	assert.Equal(t, "object", openAPIValue(basePath+"parameters|1|schema|type"))
+	assert.Equal(t, "number", openAPIValue(basePath+"parameters|1|schema|properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(basePath+"parameters|1|schema|properties|y|type"))
+	// Response schema
+	schemaRef := openAPIValue(basePath + "responses|200|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|d|type"))
 }
 
 func TestTester_SubArrayRange(t *testing.T) {
