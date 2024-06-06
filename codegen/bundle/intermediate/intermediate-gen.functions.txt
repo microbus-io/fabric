@@ -33,7 +33,7 @@ func (svc *Intermediate) do{{ .Name }}(w http.ResponseWriter, r *http.Request) e
 	{{- end}}
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	{{- if .Signature.OutputArg "httpResponseBody" }}
 	err = encoder.Encode(o.{{ CapitalizeIdentifier "httpResponseBody" }})
