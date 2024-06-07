@@ -51,16 +51,15 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Messaging microservice demonstrates service-to-service communication patterns.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Webs
-		svc.Subscribe(`ANY`, `:443/home`, svc.doHome)
-		svc.Subscribe(`ANY`, `:443/no-queue`, svc.doNoQueue, sub.NoQueue())
-		svc.Subscribe(`ANY`, `:443/default-queue`, svc.doDefaultQueue)
-		svc.Subscribe(`ANY`, `:443/cache-load`, svc.doCacheLoad)
-		svc.Subscribe(`ANY`, `:443/cache-store`, svc.doCacheStore)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+
+	// Webs
+	svc.Subscribe(`ANY`, `:443/home`, svc.doHome)
+	svc.Subscribe(`ANY`, `:443/no-queue`, svc.doNoQueue, sub.NoQueue())
+	svc.Subscribe(`ANY`, `:443/default-queue`, svc.doDefaultQueue)
+	svc.Subscribe(`ANY`, `:443/cache-load`, svc.doCacheLoad)
+	svc.Subscribe(`ANY`, `:443/cache-store`, svc.doCacheStore)
+
 	return svc
 }
 

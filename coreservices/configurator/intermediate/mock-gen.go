@@ -49,14 +49,13 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Configurator is a core microservice that centralizes the dissemination of configuration values to other microservices.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Functions
-		svc.Subscribe(`ANY`, `:443/values`, svc.doValues)
-		svc.Subscribe(`ANY`, `:443/refresh`, svc.doRefresh)
-		svc.Subscribe(`ANY`, `:443/sync`, svc.doSync, sub.NoQueue())
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+	
+	// Functions
+	svc.Subscribe(`ANY`, `:443/values`, svc.doValues)
+	svc.Subscribe(`ANY`, `:443/refresh`, svc.doRefresh)
+	svc.Subscribe(`ANY`, `:443/sync`, svc.doSync, sub.NoQueue())
+
 	return svc
 }
 

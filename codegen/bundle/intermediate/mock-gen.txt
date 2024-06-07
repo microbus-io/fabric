@@ -52,31 +52,33 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`{{ .General.Description }}`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		{{- if .Functions }}
-		// Functions
-		{{- range .Functions }}
-		svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
-		{{- end }}{{ end }}
-
-		{{- if .Webs }}
-		// Webs
-		{{- range .Webs }}
-		svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
-		{{- end }}{{ end }}
-
-		{{- if .Sinks }}
-		// Sinks
-		{{- range $i, $s := .Sinks }}
-		{{ .SourceSuffix }}api{{ Add $i 1 }}.NewHook(svc).
-		{{- if .ForHost }}ForHost(`{{ .ForHost }}`).{{ end }}
-		{{- .Event }}(svc.do{{ .Name }}
-		{{- if eq .Queue "none"}}, sub.NoQueue(){{ end -}}
-		)
-		{{- end }}{{ end }}
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+
+	{{- if .Functions }}
+	
+	// Functions
+	{{- range .Functions }}
+	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
+	{{- end }}{{ end }}
+
+	{{- if .Webs }}
+
+	// Webs
+	{{- range .Webs }}
+	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
+	{{- end }}{{ end }}
+
+	{{- if .Sinks }}
+
+	// Sinks
+	{{- range $i, $s := .Sinks }}
+	{{ .SourceSuffix }}api{{ Add $i 1 }}.NewHook(svc).
+	{{- if .ForHost }}ForHost(`{{ .ForHost }}`).{{ end }}
+	{{- .Event }}(svc.do{{ .Name }}
+	{{- if eq .Queue "none"}}, sub.NoQueue(){{ end -}}
+	)
+	{{- end }}{{ end }}
+
 	return svc
 }
 

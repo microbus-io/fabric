@@ -47,12 +47,11 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The HTTP egress microservice relays HTTP requests to the internet.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Webs
-		svc.Subscribe(`POST`, `:444/make-request`, svc.doMakeRequest)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+
+	// Webs
+	svc.Subscribe(`POST`, `:444/make-request`, svc.doMakeRequest)
+
 	return svc
 }
 

@@ -56,22 +56,22 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The tester is used to test the code generator's functions.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Functions
-		svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
-		svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
-		svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
-		svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
-		svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
-		svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
-		svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
-		// Webs
-		svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
-		svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doWebPathArguments)
-		svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedWebPathArguments)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+	
+	// Functions
+	svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
+	svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
+	svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
+	svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
+	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
+	svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
+	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
+
+	// Webs
+	svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
+	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doWebPathArguments)
+	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedWebPathArguments)
+
 	return svc
 }
 

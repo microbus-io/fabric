@@ -48,12 +48,11 @@ func NewMock() *Mock {
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The OpenAPI microservice lists links to the OpenAPI endpoint of all microservices that provide one
 on the requested port.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Webs
-		svc.Subscribe(`ANY`, `//openapi:0`, svc.doList)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+
+	// Webs
+	svc.Subscribe(`ANY`, `//openapi:0`, svc.doList)
+
 	return svc
 }
 

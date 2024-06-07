@@ -53,19 +53,19 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The directory microservice exposes a RESTful API for persisting personal records in a SQL database.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Functions
-		svc.Subscribe(`POST`, `:443/persons`, svc.doCreate)
-		svc.Subscribe(`GET`, `:443/persons/key/{key}`, svc.doLoad)
-		svc.Subscribe(`DELETE`, `:443/persons/key/{key}`, svc.doDelete)
-		svc.Subscribe(`PUT`, `:443/persons/key/{key}`, svc.doUpdate)
-		svc.Subscribe(`GET`, `:443/persons/email/{email}`, svc.doLoadByEmail)
-		svc.Subscribe(`GET`, `:443/persons`, svc.doList)
-		// Webs
-		svc.Subscribe(`ANY`, `:443/web-ui`, svc.doWebUI)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+	
+	// Functions
+	svc.Subscribe(`POST`, `:443/persons`, svc.doCreate)
+	svc.Subscribe(`GET`, `:443/persons/key/{key}`, svc.doLoad)
+	svc.Subscribe(`DELETE`, `:443/persons/key/{key}`, svc.doDelete)
+	svc.Subscribe(`PUT`, `:443/persons/key/{key}`, svc.doUpdate)
+	svc.Subscribe(`GET`, `:443/persons/email/{email}`, svc.doLoadByEmail)
+	svc.Subscribe(`GET`, `:443/persons`, svc.doList)
+
+	// Webs
+	svc.Subscribe(`ANY`, `:443/web-ui`, svc.doWebUI)
+
 	return svc
 }
 

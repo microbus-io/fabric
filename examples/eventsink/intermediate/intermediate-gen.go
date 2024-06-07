@@ -172,7 +172,7 @@ func (svc *Intermediate) doRegistered(w http.ResponseWriter, r *http.Request) er
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {

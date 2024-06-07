@@ -154,7 +154,7 @@ func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -180,7 +180,7 @@ func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -207,7 +207,7 @@ func (svc *Intermediate) doTrace(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {

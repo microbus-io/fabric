@@ -256,7 +256,7 @@ tickers:
 	err = yaml.Unmarshal([]byte(general+`
 tickers:
   - signature: Func()
-    interval: -2m
+    interval: "-2m"
 `), &svc)
 	assert.ErrorContains(t, err, "non-positive interval")
 }

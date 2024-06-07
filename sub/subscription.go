@@ -36,6 +36,7 @@ type Subscription struct {
 	Handler   any
 	HostSub   *nats.Subscription
 	DirectSub *nats.Subscription
+	specPath  string
 }
 
 /*
@@ -90,12 +91,13 @@ func NewSub(method string, defaultHost string, path string, handler HTTPHandler,
 		}
 	}
 	sub := &Subscription{
-		Host:    u.Hostname(),
-		Port:    u.Port(),
-		Method:  method,
-		Path:    u.Path,
-		Queue:   defaultHost,
-		Handler: handler,
+		Host:     u.Hostname(),
+		Port:     u.Port(),
+		Method:   method,
+		Path:     u.Path,
+		Queue:    defaultHost,
+		Handler:  handler,
+		specPath: path,
 	}
 	err = sub.Apply(options...)
 	if err != nil {
@@ -118,4 +120,15 @@ func (sub *Subscription) Apply(options ...Option) error {
 // Canonical returns the fully-qualified canonical host:port/path of the subscription, not including the scheme.
 func (sub *Subscription) Canonical() string {
 	return fmt.Sprintf("%s:%s%s", sub.Host, sub.Port, sub.Path)
+}
+
+// RefreshHostname refreshes the subscription for a different hostname.
+func (sub *Subscription) RefreshHostname(defaultHost string) error {
+	joined := httpx.JoinHostAndPath(defaultHost, sub.specPath)
+	u, err := httpx.ParseURL(joined)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	sub.Host = u.Hostname()
+	return nil
 }

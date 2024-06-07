@@ -49,14 +49,13 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Calculator microservice performs simple mathematical operations.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Functions
-		svc.Subscribe(`GET`, `:443/arithmetic`, svc.doArithmetic)
-		svc.Subscribe(`GET`, `:443/square`, svc.doSquare)
-		svc.Subscribe(`ANY`, `:443/distance`, svc.doDistance)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+	
+	// Functions
+	svc.Subscribe(`GET`, `:443/arithmetic`, svc.doArithmetic)
+	svc.Subscribe(`GET`, `:443/square`, svc.doSquare)
+	svc.Subscribe(`ANY`, `:443/distance`, svc.doDistance)
+
 	return svc
 }
 

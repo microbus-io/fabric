@@ -53,18 +53,17 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The Hello microservice demonstrates the various capabilities of a microservice.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Webs
-		svc.Subscribe(`ANY`, `:443/hello`, svc.doHello)
-		svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
-		svc.Subscribe(`ANY`, `:443/ping`, svc.doPing)
-		svc.Subscribe(`ANY`, `:443/calculator`, svc.doCalculator)
-		svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.doBusJPEG)
-		svc.Subscribe(`ANY`, `:443/localization`, svc.doLocalization)
-		svc.Subscribe(`ANY`, `//root`, svc.doRoot)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+
+	// Webs
+	svc.Subscribe(`ANY`, `:443/hello`, svc.doHello)
+	svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
+	svc.Subscribe(`ANY`, `:443/ping`, svc.doPing)
+	svc.Subscribe(`ANY`, `:443/calculator`, svc.doCalculator)
+	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.doBusJPEG)
+	svc.Subscribe(`ANY`, `:443/localization`, svc.doLocalization)
+	svc.Subscribe(`ANY`, `//root`, svc.doRoot)
+
 	return svc
 }
 

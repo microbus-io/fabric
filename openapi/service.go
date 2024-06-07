@@ -138,6 +138,12 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 							},
 						},
 					},
+					"4XX": {
+						Description: "User error",
+						Content: map[string]*oapiMediaType{
+							"text/plain": {},
+						},
+					},
 					"5XX": {
 						Description: "Server error",
 						Content: map[string]*oapiMediaType{

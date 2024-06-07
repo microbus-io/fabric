@@ -47,12 +47,11 @@ func NewMock() *Mock {
 	}
 	svc.SetVersion(7357) // Stands for TEST
 	svc.SetDescription(`The event source microservice fires events that are caught by the event sink microservice.`)
-	svc.SetOnStartup(func(ctx context.Context) (err error) {
-		// Functions
-		svc.Subscribe(`ANY`, `:443/register`, svc.doRegister)
-		return nil
-	})
 	svc.SetOnStartup(svc.doOnStartup)
+	
+	// Functions
+	svc.Subscribe(`ANY`, `:443/register`, svc.doRegister)
+
 	return svc
 }
 

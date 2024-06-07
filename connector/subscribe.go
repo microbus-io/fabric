@@ -116,11 +116,19 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) {
 }
 
 // activateSub will subscribe to NATS
-func (c *Connector) activateSub(s *sub.Subscription) error {
+func (c *Connector) activateSub(s *sub.Subscription) (err error) {
+	if s.HostSub != nil && s.DirectSub != nil {
+		return nil
+	}
+	// Recalculate the subscription path in case the hostname changed since it was created
+	err = s.RefreshHostname(c.hostname)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	// Create the NATS subscriptions
 	handler := func(msg *nats.Msg) {
 		c.onRequest(msg, s)
 	}
-	var err error
 	if s.HostSub == nil {
 		if s.Queue != "" {
 			s.HostSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Method, s.Host, s.Port, s.Path), s.Queue, handler)

@@ -218,7 +218,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -245,7 +245,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -273,7 +273,7 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
