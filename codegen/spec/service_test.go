@@ -8,345 +8,317 @@ Neither may be used, copied or distributed without the express written consent o
 package spec
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
-func TestSpec_ErrorsInYAML(t *testing.T) {
+func TestSpec_ErrorsInFunctions(t *testing.T) {
 	t.Parallel()
 
-	tcGeneral := []string{
-		`
+	var svc Service
+	general := `
 general:
-`,
-		"invalid host",
-		// --------------------
-		`
-general:
-  host: $uper.$ervice
-`,
-		"invalid host",
-	}
+  host: ok.host
+`
 
-	tcTypedHandlers := []string{
-		`
-xxx:
-  - signature: OnFunc(ctx context.Context) (result int)
-`,
-		"context type not allowed",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(x int) (result int, err error)
-`,
-		"error type not allowed",
-		// --------------------
-		`
-xxx:
-  - signature: onFunc(x int) (y int)
-`,
-		"start with uppercase",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(X int) (y int)
-`,
-		"start with lowercase",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(x float64) (Y float64)
-`,
-		"start with lowercase",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(x os.File) (y int)
-`,
-		"dot notation",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(x Time) (x Duration)
-`,
-		"duplicate arg",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(b boolean, x uint64, x int) (y int)
-`,
-		"duplicate arg",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(x map[string]string) (y int, b bool, y int)
-`,
-		"duplicate arg",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(m map[int]int)
-`,
-		"map keys",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(m mutex)
-`,
-		"primitive type",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(m int
-`,
-		"closing parenthesis",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(m int) (x int
-`,
-		"closing parenthesis",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(mint) (x int)
-`,
-		"invalid argument",
-		// --------------------
-		`
-xxx:
-  - signature: OnFunc(x int) (mint)
-`,
-		"invalid argument",
-	}
-
-	tcFunctions := []string{
-		`
+	err := yaml.Unmarshal([]byte(general+`
 functions:
   - signature: Func(s []*int)
     path: :BAD/...
-`,
-		"invalid port",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "invalid port")
+
+	err = yaml.Unmarshal([]byte(general+`
 functions:
   - signature: Func(s string)
     queue: skip
-`,
-		"invalid queue",
-	}
+`), &svc)
+	assert.ErrorContains(t, err, "invalid queue")
 
-	tcEvents := []string{
-		`
+	err = yaml.Unmarshal([]byte(general+`
+functions:
+  - signature: Func(s string)
+    path: //bad.ho$t
+`), &svc)
+	assert.ErrorContains(t, err, "invalid hostname")
+}
+
+func TestSpec_ErrorsInPathArguments(t *testing.T) {
+	t.Parallel()
+
+	var svc Service
+	general := `
+general:
+  host: ok.host
+`
+
+	err := yaml.Unmarshal([]byte(general+`
+functions:
+  - signature: Func(s string)
+    path: /{ }
+`), &svc)
+	assert.ErrorContains(t, err, "must be an identifier")
+
+	err = yaml.Unmarshal([]byte(general+`
+functions:
+  - signature: Func(s string)
+    path: /{p$}
+`), &svc)
+	assert.ErrorContains(t, err, "must be an identifier")
+
+	err = yaml.Unmarshal([]byte(general+`
+functions:
+  - signature: Func(s string)
+    path: /{p +}
+`), &svc)
+	assert.ErrorContains(t, err, "must be an identifier")
+
+	err = yaml.Unmarshal([]byte(general+`
+functions:
+  - signature: Func(s string)
+    path: /{ +}
+`), &svc)
+	assert.ErrorContains(t, err, "must be an identifier")
+
+	err = yaml.Unmarshal([]byte(general+`
+functions:
+  - signature: Func(s string)
+    path: /{$+}
+`), &svc)
+	assert.ErrorContains(t, err, "must be an identifier")
+
+	err = yaml.Unmarshal([]byte(general+`
+functions:
+  - signature: Func(s string)
+    path: /{+}/hello
+`), &svc)
+	assert.ErrorContains(t, err, "must end path")
+}
+
+func TestSpec_ErrorsInEvents(t *testing.T) {
+	t.Parallel()
+
+	var svc Service
+	general := `
+general:
+  host: ok.host
+`
+
+	err := yaml.Unmarshal([]byte(general+`
 events:
   - signature: Func(s []*int)
-`,
-		"must start with 'On'",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "must start with 'On'")
+
+	err = yaml.Unmarshal([]byte(general+`
 events:
   - signature: OnFunc(s []*int)
     path: :BAD/...
-`,
-		"invalid port",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "invalid port")
+
+	err = yaml.Unmarshal([]byte(general+`
 events:
   - signature: OnFunc(s []*int)
     path: :0/...
-`,
-		"invalid port",
-	}
+`), &svc)
+	assert.ErrorContains(t, err, "invalid port")
+}
 
-	tcSinks := []string{
-		`
+func TestSpec_ErrorsInSinks(t *testing.T) {
+	t.Parallel()
+
+	var svc Service
+	general := `
+general:
+  host: ok.host
+`
+
+	err := yaml.Unmarshal([]byte(general+`
 sinks:
   - signature: Func(s []*int)
     source: from/somewhere/else
-`,
-		"must start with 'On'",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "must start with 'On'")
+
+	err = yaml.Unmarshal([]byte(general+`
 sinks:
   - signature: OnFunc(s []*int)
-`,
-		"invalid source",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "invalid source")
+
+	err = yaml.Unmarshal([]byte(general+`
 sinks:
   - signature: OnFunc(s []*int)
     source: https://www.example.com
-`,
-		"invalid source",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "invalid source")
+
+	err = yaml.Unmarshal([]byte(general+`
 sinks:
   - signature: OnFunc(s []*int)
     source: from/somewhere/else
     forHost: invalid.ho$t
-`,
-		"invalid hostname",
-	}
+`), &svc)
+	assert.ErrorContains(t, err, "invalid hostname")
+}
 
-	tcConfigs := []string{
-		`
+func TestSpec_ErrorsInConfigs(t *testing.T) {
+	t.Parallel()
+
+	var svc Service
+	general := `
+general:
+  host: ok.host
+`
+
+	err := yaml.Unmarshal([]byte(general+`
 configs:
   - signature: func() (b bool)
-`,
-		"start with uppercase",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "start with uppercase")
+
+	err = yaml.Unmarshal([]byte(general+`
 configs:
   - signature: Func()
-`,
-		"single return value",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "single return value")
+
+	err = yaml.Unmarshal([]byte(general+`
+configs:
+  - signature: Func() (x int, y int)
+`), &svc)
+	assert.ErrorContains(t, err, "single return value")
+
+	err = yaml.Unmarshal([]byte(general+`
 configs:
   - signature: Func(x int) (b bool)
-`,
-		"arguments not allowed",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "arguments not allowed")
+
+	err = yaml.Unmarshal([]byte(general+`
 configs:
   - signature: Func() (b byte)
-`,
-		"invalid return type",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "invalid return type")
+
+	err = yaml.Unmarshal([]byte(general+`
 configs:
   - signature: Func() (b string)
     validation: xyz
-`,
-		"invalid validation rule",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "invalid validation rule")
+
+	err = yaml.Unmarshal([]byte(general+`
 configs:
   - signature: Func() (b string)
     validation: str ^[a-z]+$
     default: 123
-`,
-		"doesn't validate against rule",
-	}
+`), &svc)
+	assert.ErrorContains(t, err, "doesn't validate against rule")
+}
 
-	tcTickers := []string{
-		`
+func TestSpec_ErrorsInTickers(t *testing.T) {
+	t.Parallel()
+
+	var svc Service
+	general := `
+general:
+  host: ok.host
+`
+
+	err := yaml.Unmarshal([]byte(general+`
 tickers:
   - signature: func()
-`,
-		"start with uppercase",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "start with uppercase")
+
+	err = yaml.Unmarshal([]byte(general+`
 tickers:
   - signature: Func(x int)
-`,
-		"arguments or return values not allowed",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "arguments or return values not allowed")
+
+	err = yaml.Unmarshal([]byte(general+`
 tickers:
-  - signature: Func() (x string)
-`,
-		"arguments or return values not allowed",
-		// --------------------
-		`
+  - signature: Func() (x int)
+`), &svc)
+	assert.ErrorContains(t, err, "arguments or return values not allowed")
+
+	err = yaml.Unmarshal([]byte(general+`
 tickers:
   - signature: Func()
-`,
-		"non-positive interval",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "non-positive interval")
+
+	err = yaml.Unmarshal([]byte(general+`
 tickers:
   - signature: Func()
     interval: -2m
-`,
-		"non-positive interval",
-	}
+`), &svc)
+	assert.ErrorContains(t, err, "non-positive interval")
+}
 
-	tcWebs := []string{
-		`
+func TestSpec_ErrorsInWebs(t *testing.T) {
+	t.Parallel()
+
+	var svc Service
+	general := `
+general:
+  host: ok.host
+`
+
+	err := yaml.Unmarshal([]byte(general+`
 webs:
   - signature: func()
-`,
-		"start with uppercase",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "start with uppercase")
+
+	err = yaml.Unmarshal([]byte(general+`
 webs:
   - signature: Func(x int)
-`,
-		"arguments or return values not allowed",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "arguments or return values not allowed")
+
+	err = yaml.Unmarshal([]byte(general+`
 webs:
-  - signature: Func() (x string)
-`,
-		"arguments or return values not allowed",
-		// --------------------
-		`
+  - signature: Func() (x int)
+`), &svc)
+	assert.ErrorContains(t, err, "arguments or return values not allowed")
+
+	err = yaml.Unmarshal([]byte(general+`
 webs:
   - signature: Func()
     path: :BAD/...
-`,
-		"invalid port",
-		// --------------------
-		`
+`), &svc)
+	assert.ErrorContains(t, err, "invalid port")
+
+	err = yaml.Unmarshal([]byte(general+`
 webs:
   - signature: Func()
     queue: skip
-`,
-		"invalid queue",
-	}
+`), &svc)
+	assert.ErrorContains(t, err, "invalid queue")
+}
 
-	tcService := []string{
-		`
+func TestSpec_ErrorsInService(t *testing.T) {
+	t.Parallel()
+
+	var svc Service
+	general := `
+general:
+  host: ok.host
+`
+
+	err := yaml.Unmarshal([]byte(general+`
 functions:
   - signature: Func(x int) (y int)
 webs:
   - signature: Func()
-`,
-		"duplicate",
-	}
-
-	testCases := []string{}
-	testCases = append(testCases, tcConfigs...)
-	testCases = append(testCases, tcEvents...)
-	testCases = append(testCases, tcFunctions...)
-	testCases = append(testCases, tcGeneral...)
-	testCases = append(testCases, tcService...)
-	testCases = append(testCases, tcSinks...)
-	testCases = append(testCases, tcTickers...)
-	testCases = append(testCases, tcWebs...)
-	for i := 0; i < len(testCases); i += 2 {
-		tc := testCases[i]
-		if !strings.Contains(tc, "general:") {
-			tc = `
-general:
-  host: any.host
-` + tc
-		}
-		var svc Service
-		err := yaml.Unmarshal([]byte(tc), &svc)
-		if assert.Error(t, err, "%s", tc) {
-			assert.Contains(t, err.Error(), testCases[i+1], "%s", tc)
-		}
-	}
-
-	for i := 0; i < len(tcTypedHandlers); i += 2 {
-		for _, x := range []string{"functions:", "events:", "sinks:"} {
-			tc := `
-general:
-  host: any.host
-` + strings.ReplaceAll(tcTypedHandlers[i], "xxx:", x) +
-				`    source: this/path/is/ok`
-			var svc Service
-			err := yaml.Unmarshal([]byte(tc), &svc)
-			if assert.Error(t, err, "%s", tc) {
-				assert.Contains(t, err.Error(), tcTypedHandlers[i+1], "%s", tc)
-			}
-		}
-	}
+`), &svc)
+	assert.ErrorContains(t, err, "duplicate")
 }
 
 func TestSpec_HandlerInAndOut(t *testing.T) {

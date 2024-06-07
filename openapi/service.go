@@ -128,7 +128,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 				Summary:     cleanEndpointSummary(ep.Summary),
 				Description: ep.Description,
 				Responses: map[string]*oapiResponse{
-					"200": {
+					"2XX": {
 						Description: "OK",
 						Content: map[string]*oapiMediaType{
 							"application/json": {
@@ -136,6 +136,12 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 									Ref: "#/components/schemas/" + ep.Name + "_OUT",
 								},
 							},
+						},
+					},
+					"5XX": {
+						Description: "Server error",
+						Content: map[string]*oapiMediaType{
+							"text/plain": {},
 						},
 					},
 				},

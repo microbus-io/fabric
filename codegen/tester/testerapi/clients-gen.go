@@ -726,7 +726,6 @@ type SubArrayRangeIn struct {
 // SubArrayRangeOut are the return values of SubArrayRange.
 type SubArrayRangeOut struct {
 	HTTPResponseBody []int `json:"httpResponseBody"`
-	Sum int `json:"sum"`
 	HTTPStatusCode int `json:"-"`
 }
 
@@ -738,9 +737,8 @@ type SubArrayRangeResponse struct {
 }
 
 // Get retrieves the return values.
-func (_out *SubArrayRangeResponse) Get() (httpResponseBody []int, sum int, httpStatusCode int, err error) {
+func (_out *SubArrayRangeResponse) Get() (httpResponseBody []int, httpStatusCode int, err error) {
 	httpResponseBody = _out.data.HTTPResponseBody
-	sum = _out.data.Sum
 	httpStatusCode = _out.data.HTTPStatusCode
 	err = _out.err
 	return
@@ -803,7 +801,7 @@ SubArrayRange tests sending arguments as the entire request and response bodies.
 An httpRequestBody argument allows sending other arguments via query or path.
 An httpResponseBody argument prevents returning additional values, except for the status code.
 */
-func (_c *Client) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error) {
+func (_c *Client) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sub-array-range/{max}`)
 	_url = httpx.InjectPathArguments(_url, map[string]any{
@@ -840,7 +838,6 @@ func (_c *Client) SubArrayRange(ctx context.Context, httpRequestBody []int, min 
 	}
 	_out.HTTPStatusCode = _httpRes.StatusCode
 	httpResponseBody = _out.HTTPResponseBody
-	sum = _out.Sum
 	httpStatusCode = _out.HTTPStatusCode
 	return
 }

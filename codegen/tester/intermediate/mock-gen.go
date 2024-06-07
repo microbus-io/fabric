@@ -39,7 +39,7 @@ type Mock struct {
 	*connector.Connector
 	mockStringCut func(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
 	mockPointDistance func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
-	mockSubArrayRange func(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error)
+	mockSubArrayRange func(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error)
 	mockSumTwoIntegers func(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	mockFunctionPathArguments func(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
 	mockNonStringPathArguments func(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
@@ -166,7 +166,7 @@ func (svc *Mock) doSubArrayRange(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.HTTPResponseBody, o.Sum, o.HTTPStatusCode, err = svc.mockSubArrayRange(
+	o.HTTPResponseBody, o.HTTPStatusCode, err = svc.mockSubArrayRange(
 		r.Context(),
 		i.HTTPRequestBody,
 		i.Min,
@@ -186,7 +186,7 @@ func (svc *Mock) doSubArrayRange(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MockSubArrayRange sets up a mock handler for the SubArrayRange function.
-func (svc *Mock) MockSubArrayRange(handler func(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error)) *Mock {
+func (svc *Mock) MockSubArrayRange(handler func(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error)) *Mock {
 	svc.mockSubArrayRange = handler
 	return svc
 }

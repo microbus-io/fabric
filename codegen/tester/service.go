@@ -76,14 +76,13 @@ SubArrayRange tests sending arguments as the entire request and response bodies.
 An httpRequestBody argument allows sending other arguments via query or path.
 An httpResponseBody argument prevents returning additional values, except for the status code.
 */
-func (svc *Service) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error) {
+func (svc *Service) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error) {
 	for _, i := range httpRequestBody {
 		if i >= min && i <= max {
 			httpResponseBody = append(httpResponseBody, i)
-			sum += i // Will fail to return
 		}
 	}
-	return httpResponseBody, sum, http.StatusAccepted, nil
+	return httpResponseBody, http.StatusAccepted, nil
 }
 
 /*

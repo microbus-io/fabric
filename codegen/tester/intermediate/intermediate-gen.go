@@ -70,7 +70,7 @@ type ToDo interface {
 	OnShutdown(ctx context.Context) (err error)
 	StringCut(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
 	PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
-	SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error)
+	SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error)
 	SumTwoIntegers(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
 	NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
@@ -174,7 +174,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Name:        `SubArrayRange`,
 			Method:      `ANY`,
 			Path:        `:443/sub-array-range/{max}`,
-			Summary:     `SubArrayRange(httpRequestBody []int, min int, max int) (httpResponseBody []int, sum int, httpStatusCode int)`,
+			Summary:     `SubArrayRange(httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int)`,
 			Description: `SubArrayRange tests sending arguments as the entire request and response bodies.
 An httpRequestBody argument allows sending other arguments via query or path.
 An httpResponseBody argument prevents returning additional values, except for the status code.`,
@@ -185,7 +185,6 @@ An httpResponseBody argument prevents returning additional values, except for th
 			}{},
 			OutputArgs: struct {
 				HTTPResponseBody []int `json:"httpResponseBody"`
-				Sum int `json:"sum"`
 				HTTPStatusCode int `json:"-"`
 			}{},
 		})
@@ -342,7 +341,7 @@ func (svc *Intermediate) doStringCut(w http.ResponseWriter, r *http.Request) err
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -370,7 +369,7 @@ func (svc *Intermediate) doPointDistance(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -391,7 +390,7 @@ func (svc *Intermediate) doSubArrayRange(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	o.HTTPResponseBody, o.Sum, o.HTTPStatusCode, err = svc.impl.SubArrayRange(
+	o.HTTPResponseBody, o.HTTPStatusCode, err = svc.impl.SubArrayRange(
 		r.Context(),
 		i.HTTPRequestBody,
 		i.Min,
@@ -404,7 +403,7 @@ func (svc *Intermediate) doSubArrayRange(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(o.HTTPStatusCode)
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
@@ -433,7 +432,7 @@ func (svc *Intermediate) doSumTwoIntegers(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(o.HTTPStatusCode)
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -462,7 +461,7 @@ func (svc *Intermediate) doFunctionPathArguments(w http.ResponseWriter, r *http.
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -491,7 +490,7 @@ func (svc *Intermediate) doNonStringPathArguments(w http.ResponseWriter, r *http
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -520,7 +519,7 @@ func (svc *Intermediate) doUnnamedFunctionPathArguments(w http.ResponseWriter, r
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "  ")
+		encoder.SetIndent("", "    ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {

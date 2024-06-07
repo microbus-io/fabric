@@ -106,6 +106,20 @@ func (sig *Signature) validate() error {
 		return errors.Newf("handler '%s' must not start with 'Test' in '%s'", sig.Name, sig.OrigString)
 	}
 
+	dedup := map[string]bool{}
+	for _, arg := range sig.InputArgs {
+		if dedup[arg.Name] {
+			return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, sig.OrigString)
+		}
+		dedup[arg.Name] = true
+	}
+	for _, arg := range sig.OutputArgs {
+		if dedup[arg.Name] {
+			return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, sig.OrigString)
+		}
+		dedup[arg.Name] = true
+	}
+
 	allArgs := []*Argument{}
 	allArgs = append(allArgs, sig.InputArgs...)
 	allArgs = append(allArgs, sig.OutputArgs...)
@@ -114,6 +128,30 @@ func (sig *Signature) validate() error {
 		if err != nil {
 			return errors.Newf("%s in '%s'", err.Error(), sig.OrigString)
 		}
+	}
+
+	for _, arg := range sig.InputArgs {
+		if arg.Name == "httpResponseBody" || arg.Name == "httpStatusCode" {
+			return errors.Newf("'%s' in '%s' can only be an output argument", arg.Name, sig.OrigString)
+		}
+	}
+	hasResponseBody := false
+	hasStandard := false
+	for _, arg := range sig.OutputArgs {
+		if arg.Name == "httpResponseBody" {
+			hasResponseBody = true
+		} else if arg.Name != "httpStatusCode" {
+			hasStandard = true
+		}
+		if arg.Name == "httpRequestBody" {
+			return errors.Newf("'%s' in '%s' can only be an input argument", arg.Name, sig.OrigString)
+		}
+		if arg.Name == "httpStatusCode" && arg.Type != "int" {
+			return errors.Newf("'%s' in '%s' must be of type int", arg.Name, sig.OrigString)
+		}
+	}
+	if hasResponseBody && hasStandard {
+		return errors.Newf("cannot return other arguments along with 'httpResponseBody' in '%s'", sig.OrigString)
 	}
 	return nil
 }

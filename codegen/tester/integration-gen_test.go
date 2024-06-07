@@ -261,16 +261,14 @@ type SubArrayRangeTestCase struct {
 	_t *testing.T
 	_dur time.Duration
 	httpResponseBody []int
-	sum int
 	httpStatusCode int
 	err error
 }
 
 // Expect asserts no error and exact return values.
-func (_tc *SubArrayRangeTestCase) Expect(httpResponseBody []int, sum int, httpStatusCode int) *SubArrayRangeTestCase {
+func (_tc *SubArrayRangeTestCase) Expect(httpResponseBody []int, httpStatusCode int) *SubArrayRangeTestCase {
 	if assert.NoError(_tc._t, _tc.err) {
 		assert.Equal(_tc._t, httpResponseBody, _tc.httpResponseBody)
-		assert.Equal(_tc._t, sum, _tc.sum)
 		assert.Equal(_tc._t, httpStatusCode, _tc.httpStatusCode)
 	}
 	return _tc
@@ -305,14 +303,14 @@ func (tc *SubArrayRangeTestCase) CompletedIn(threshold time.Duration) *SubArrayR
 }
 
 // Assert asserts using a provided function.
-func (tc *SubArrayRangeTestCase) Assert(asserter func(t *testing.T, httpResponseBody []int, sum int, httpStatusCode int, err error)) *SubArrayRangeTestCase {
-	asserter(tc._t, tc.httpResponseBody, tc.sum, tc.httpStatusCode, tc.err)
+func (tc *SubArrayRangeTestCase) Assert(asserter func(t *testing.T, httpResponseBody []int, httpStatusCode int, err error)) *SubArrayRangeTestCase {
+	asserter(tc._t, tc.httpResponseBody, tc.httpStatusCode, tc.err)
 	return tc
 }
 
 // Get returns the result of executing SubArrayRange.
-func (tc *SubArrayRangeTestCase) Get() (httpResponseBody []int, sum int, httpStatusCode int, err error) {
-	return tc.httpResponseBody, tc.sum, tc.httpStatusCode, tc.err
+func (tc *SubArrayRangeTestCase) Get() (httpResponseBody []int, httpStatusCode int, err error) {
+	return tc.httpResponseBody, tc.httpStatusCode, tc.err
 }
 
 // SubArrayRange executes the function and returns a corresponding test case.
@@ -320,7 +318,7 @@ func SubArrayRange(t *testing.T, ctx context.Context, httpRequestBody []int, min
 	tc := &SubArrayRangeTestCase{_t: t}
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		tc.httpResponseBody, tc.sum, tc.httpStatusCode, tc.err = Svc.SubArrayRange(ctx, httpRequestBody, min, max)
+		tc.httpResponseBody, tc.httpStatusCode, tc.err = Svc.SubArrayRange(ctx, httpRequestBody, min, max)
 		return tc.err
 	})
 	tc._dur = time.Since(t0)

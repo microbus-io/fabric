@@ -110,6 +110,21 @@ func (h *Handler) validate() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	parts := strings.Split(u.Path, "/")
+	for i, part := range parts {
+		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
+			part = strings.TrimPrefix(part, "{")
+			part = strings.TrimSuffix(part, "}")
+			greedy := strings.HasSuffix(part, "+")
+			part = strings.TrimSuffix(part, "+")
+			if part != "" && !utils.IsLowerCaseIdentifier(part) {
+				return errors.Newf("name of path argument %s in '%s' must be an identifier", parts[i], h.Name())
+			}
+			if greedy && i != len(parts)-1 {
+				return errors.Newf("greedy path argument %s in '%s' must end path", parts[i], h.Name())
+			}
+		}
+	}
 	if h.Validation != "" {
 		_, err := cfg.NewConfig(
 			h.Name(),
@@ -181,18 +196,10 @@ func (h *Handler) validate() error {
 			return errors.Newf("non-positive interval '%v' in '%s'", h.Interval, h.Name())
 		}
 	case "function", "event", "sink":
-		argNames := map[string]bool{}
 		for _, arg := range h.Signature.InputArgs {
-			if argNames[arg.Name] {
-				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
+			if !h.MethodWithBody() && arg.Name == "httpRequestBody" {
+				return errors.Newf("cannot use '%s' in '%s' because method '%s' has no body", arg.Name, h.Signature.OrigString, h.Method)
 			}
-			argNames[arg.Name] = true
-		}
-		for _, arg := range h.Signature.OutputArgs {
-			if argNames[arg.Name] {
-				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
-			}
-			argNames[arg.Name] = true
 		}
 	case "metric":
 		if len(h.Signature.OutputArgs) != 0 {
@@ -200,13 +207,6 @@ func (h *Handler) validate() error {
 		}
 		if len(h.Signature.InputArgs) == 0 {
 			return errors.Newf("at least one argument expected in '%s'", h.Signature.OrigString)
-		}
-		argNames := map[string]bool{}
-		for _, arg := range h.Signature.InputArgs {
-			if argNames[arg.Name] {
-				return errors.Newf("duplicate arg name '%s' in '%s'", arg.Name, h.Signature.OrigString)
-			}
-			argNames[arg.Name] = true
 		}
 		t := h.Signature.InputArgs[0].Type
 		if t != "int" && t != "time.Duration" && t != "float64" {

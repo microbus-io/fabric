@@ -81,11 +81,11 @@ func NewSub(method string, defaultHost string, path string, handler HTTPHandler,
 			name = strings.TrimPrefix(name, "{")
 			name = strings.TrimSuffix(name, "}")
 			if strings.HasSuffix(name, "+") && i != len(parts)-1 {
-				return nil, errors.Newf("greedy path argument %s must be at end of path", parts[i])
+				return nil, errors.Newf("greedy path argument %s must end path", parts[i])
 			}
 			name = strings.TrimSuffix(name, "+")
 			if name != "" && !utils.IsLowerCaseIdentifier(name) {
-				return nil, errors.Newf("invalid path argument name %s", parts[i])
+				return nil, errors.Newf("name of path argument %s must be an identifier", parts[i])
 			}
 		}
 	}

@@ -128,3 +128,21 @@ func TestSub_Canonical(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "zzz.example.com:80/path", s.Canonical()) // default port 80 for http
 }
+
+func TestSub_PathArguments(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewSub("GET", "www.example.com", ":567/path/{named}/{suffix+}", nil)
+	assert.NoError(t, err)
+	_, err = NewSub("GET", "www.example.com", ":567/path/{}/{+}", nil)
+	assert.NoError(t, err)
+	_, err = NewSub("GET", "www.example.com", ":567/path/x{}x/x{+}", nil)
+	assert.NoError(t, err)
+
+	_, err = NewSub("GET", "www.example.com", ":567/path/{%!@}", nil)
+	assert.Error(t, err)
+	_, err = NewSub("GET", "www.example.com", ":567/path/{%!@+}", nil)
+	assert.Error(t, err)
+	_, err = NewSub("GET", "www.example.com", ":567/path/{+}/{}", nil)
+	assert.Error(t, err)
+}

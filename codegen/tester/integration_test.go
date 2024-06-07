@@ -209,7 +209,7 @@ func TestTester_PointDistance(t *testing.T) {
 	assert.Equal(t, "number", openAPIValue(basePath+"parameters|1|schema|properties|x|type"))
 	assert.Equal(t, "number", openAPIValue(basePath+"parameters|1|schema|properties|y|type"))
 	// Response schema
-	schemaRef := openAPIValue(basePath + "responses|200|content|application/json|schema|$ref").(string)
+	schemaRef := openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
 	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
 	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
 	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|d|type"))
@@ -220,17 +220,16 @@ func TestTester_SubArrayRange(t *testing.T) {
 	/*
 		ctx := Context()
 		SubArrayRange(t, ctx, httpRequestBody, min, max).
-			Expect(httpResponseBody, sum)
+			Expect(httpResponseBody, httpStatusCode)
 	*/
 
 	ctx := Context()
 	SubArrayRange(t, ctx, []int{1, 2, 3, 4, 5, 6}, 2, 4).
-		Expect([]int{2, 3, 4}, 9, http.StatusAccepted) // Sum is returned because calling directly
+		Expect([]int{2, 3, 4}, http.StatusAccepted) // Sum is returned because calling directly
 
-	sub, sum, status, err := testerapi.NewClient(Svc).SubArrayRange(ctx, []int{1, 2, 3, 4, 5, 6}, 2, 4)
+	sub, status, err := testerapi.NewClient(Svc).SubArrayRange(ctx, []int{1, 2, 3, 4, 5, 6}, 2, 4)
 	if assert.NoError(t, err) {
 		assert.Equal(t, sub, []int{2, 3, 4})
-		assert.Equal(t, 0, sum) // Sum cannot be returned because httpResponseBody is present
 		assert.Equal(t, http.StatusAccepted, status)
 	}
 
@@ -250,18 +249,18 @@ func TestTester_SubArrayRange(t *testing.T) {
 	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
 	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
 	// Response schema is an array
-	schemaRef = openAPIValue(basePath + "responses|200|content|application/json|schema|$ref").(string)
+	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
 	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
 	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
 	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
 
 	mock := NewMock()
 	mock.SetHostname("sub-array-range.mock")
-	mock.MockSubArrayRange(func(ctx context.Context, httpRequestBody []int, min, max int) (httpResponseBody []int, sum int, httpStatusCode int, err error) {
+	mock.MockSubArrayRange(func(ctx context.Context, httpRequestBody []int, min, max int) (httpResponseBody []int, httpStatusCode int, err error) {
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, httpRequestBody)
 		assert.Equal(t, 2, min)
 		assert.Equal(t, 4, max)
-		return []int{2, 3, 4}, 9, http.StatusAccepted, nil
+		return []int{2, 3, 4}, http.StatusAccepted, nil
 	})
 	App.Join(mock)
 	err = mock.Startup()
@@ -274,7 +273,6 @@ func TestTester_SubArrayRange(t *testing.T) {
 		var httpResponseBody []int
 		json.NewDecoder(res.Body).Decode(&httpResponseBody)
 		assert.Equal(t, []int{2, 3, 4}, httpResponseBody)
-		// Sum cannot be returned because httpResponseBody is present
 	}
 }
 
