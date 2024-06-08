@@ -39,7 +39,7 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error { // Returnin
 	return nil
 }
 
-func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
+func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 	err := UserCodeHandler(w, r)
 	if err != nil {
 		// Standard error capture
@@ -61,10 +61,9 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	panic("omg")
 }
 
-func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
-	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
+func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
+	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)}) // Convert panics to errors
 	if err != nil {
-		// Standard error capture
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(fmt.Sprintf("%+v", err))
 		log.LogError(r.Context(), "Handling request", err)
@@ -76,7 +75,7 @@ func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
 
 ## Stack Trace
 
-Errors in Go are as simple as an error message and do not include a stack trace. In distributed systems that are built by distributed teams, that makes it very difficult to identify the root cause. To address that, the framework is replacing the standard `errors` package with its [own implementation](../structure/errors.md) that is able to augment errors with stack locations. This is not entirely transparent and app developers must use `errors.Trace` to capture the stack location.
+Errors in Go are as simple as an error message and do not include a stack trace. In distributed systems that are built by distributed teams, that makes it very difficult to identify the root cause. To address that, the framework is replacing the standard `errors` package with its own implementation of [augmented errors](../structure/errors.md) with stack locations. This is not entirely transparent and app developers must use `errors.Trace` to capture the stack location.
 
 ```go
 import "github.com/microbus-io/errors"
@@ -84,7 +83,7 @@ import "github.com/microbus-io/errors"
 func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	err := doSomething()
 	if err != nil {
-		return errors.Trace(err) // Add stack trace
+		return errors.Trace(err) // Capture this line into the errors' stack trace
 	}
 	return nil
 }
@@ -98,8 +97,6 @@ strconv.ParseInt: parsing "nan": invalid syntax
 
 - calculator.(*Service).Square
   /src/github.com/microbus-io/fabric/examples/calculator/service.go:75
-- connector.(*Connector).onRequest
-  /src/github.com/microbus-io/fabric/connector/messaging.go:225
 - connector.(*Connector).Publish
   /src/github.com/microbus-io/fabric/connector/messaging.go:94
 - httpingress.(*Service).ServeHTTP
@@ -111,24 +108,22 @@ strconv.ParseInt: parsing "nan": invalid syntax
 All microservices are ultimately web servers where it is common practice to return an appropriate HTTP status code along with an error. To facilitate that, `Microbus` allows status codes to be associated with errors.
 
 ```go
-var err error
-// New error with status code
-err = errors.Newc(http.StatusNotFound, "record not found")
-// Wrap existing error and attach a status code
-err = doSomething()
+if obj, ok := m[key]; !ok {
+	return errors.Newc(http.StatusNotFound, "record not found") // New error with status code
+}
+err = doSomething(obj)
 if err != nil {
-	return errors.Tracec(http.StatusNotFound, err)
+	return errors.Tracec(http.StatusNotFound, err) // Wrap existing error and attach a status code
 }
 ```
 
 The web handler wrapper function now looks like this:
 
 ```go
-func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
+func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
 	if err != nil {
-		// Standard error capture
-		w.WriteHeader(errors.StatusCode(err))
+		w.WriteHeader(errors.StatusCode(err)) // Return the error's status code
 		w.Write(fmt.Sprintf("%+v", err))
 		log.LogError(r.Context(), "Handling request", err)
 		metrics.IncrementErrorCount(1)
@@ -186,14 +181,13 @@ Microbus-Op-Code: Err
 The web handler wrapper function now looks similar to the folowing:
 
 ```go
-func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
+func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
 	if err != nil {
-		// Standard error capture
-		w.Header().Set("Microbus-Op-Code", "Err")
+		w.Header().Set("Microbus-Op-Code", "Err") // Mark the response as an error
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(errors.StatusCode(err))
-		json.NewEncoder(w).Encode(err)
+		json.NewEncoder(w).Encode(err) // Marhsal the error as JSON
 		log.LogError(r.Context(), "Handling request", err)
 		metrics.IncrementErrorCount(1)
 		return

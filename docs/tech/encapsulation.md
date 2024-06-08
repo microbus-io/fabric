@@ -1,7 +1,5 @@
 # Encapsulation Pattern
 
-## Philosophy
-
 The `Microbus` framework is opinionated about the interfaces (APIs) that are exposed to the developer and therefore opts to encapsulate underlying technologies behind its own interfaces.
 
 There are various reasons for this philosophy:
@@ -14,8 +12,6 @@ There are various reasons for this philosophy:
 * The framework is able to seamlessly integrate building blocks together. This will take shape as more building blocks are introduced
 * Bugs or CVEs in the underlying technologies are quicker to fix because there is only one source of truth. A bug such as [Log4Shell CVE-2021-44228](https://logging.apache.org/log4j/2.x/security.html) would require no code changes to the microservices, only to the framework
 
-## Examples
-
-One example of this pattern is with the configuration of microservices. Rather than leave things up to each individual developer how to fetch config values, the `Connector` defines an interface that encapsulates the underlying implementation. Today, the framework looks for config values in both the environment variables and an `env.yaml` file. In the future, it might be extended to fetch configs from a remote location.
+One example of this pattern is with the configuration of microservices. Rather than leave things up to each individual developer how to fetch config values, the `Connector` defines an interface that encapsulates the underlying implementation. Today, the framework looks for config values in a `config.yaml` file. In the future, it might be extended to fetch configs from a remote location.
 
 Another example is the logging API provided by the `Connector` to the microservice developer. Under the hood, the `Connector` creates a [Zap logger](https://pkg.go.dev/go.uber.org/zap) and initializes it based on the deployment environment (`PROD`, `LAB`, `LOCAL`, `TESTING`). Because only a limited set of functions is exposed - `LogDebug`, `LogInfo`, `LogWarn`, and `LogError` - replacing Zap to another logging engine would most likely be a simple matter of plug and play. Letting the framework control the logger guarantees that all microservices consistently use the same technology.

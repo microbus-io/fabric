@@ -5,6 +5,8 @@ The `Microbus` framework uses environment variables for various purposes:
 * Initializing the connection to NATS
 * Identifying the deployment environment (`PROD`, `LAB`, `LOCAL`, `TESTING`)
 * Designating a plane of communication
+* Enabling output of debug-level messages
+* Configuring the URL to the OpenTelemetry collector endpoint
 
 ## NATS Connection
 
