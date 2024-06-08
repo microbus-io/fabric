@@ -91,6 +91,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 		path = "/" + path
 
 		// Path arguments
+		pathArgsOrder := []string{}
 		pathArgs := map[string]*oapiParameter{}
 		parts := strings.Split(path, "/")
 		argIndex := 0
@@ -115,6 +116,7 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 					},
 					Required: true,
 				}
+				pathArgsOrder = append(pathArgsOrder, name)
 			}
 		}
 		path = strings.Join(parts, "/")
@@ -271,8 +273,11 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 		}
 
 		// Path arguments
-		for _, arg := range pathArgs {
-			op.Parameters = append(op.Parameters, arg)
+		for i := range pathArgsOrder {
+			arg := pathArgs[pathArgsOrder[i]]
+			if arg != nil {
+				op.Parameters = append(op.Parameters, arg)
+			}
 		}
 
 		// Add to paths

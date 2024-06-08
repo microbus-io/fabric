@@ -595,6 +595,73 @@ func UnnamedFunctionPathArguments(t *testing.T, ctx context.Context, path1 strin
 	return tc
 }
 
+// PathArgumentsPriorityTestCase assists in asserting against the results of executing PathArgumentsPriority.
+type PathArgumentsPriorityTestCase struct {
+	_t *testing.T
+	_dur time.Duration
+	echo string
+	err error
+}
+
+// Expect asserts no error and exact return values.
+func (_tc *PathArgumentsPriorityTestCase) Expect(echo string) *PathArgumentsPriorityTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, echo, _tc.echo)
+	}
+	return _tc
+}
+
+// Error asserts an error.
+func (tc *PathArgumentsPriorityTestCase) Error(errContains string) *PathArgumentsPriorityTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *PathArgumentsPriorityTestCase) ErrorCode(statusCode int) *PathArgumentsPriorityTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *PathArgumentsPriorityTestCase) NoError() *PathArgumentsPriorityTestCase {
+	assert.NoError(tc._t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *PathArgumentsPriorityTestCase) CompletedIn(threshold time.Duration) *PathArgumentsPriorityTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *PathArgumentsPriorityTestCase) Assert(asserter func(t *testing.T, echo string, err error)) *PathArgumentsPriorityTestCase {
+	asserter(tc._t, tc.echo, tc.err)
+	return tc
+}
+
+// Get returns the result of executing PathArgumentsPriority.
+func (tc *PathArgumentsPriorityTestCase) Get() (echo string, err error) {
+	return tc.echo, tc.err
+}
+
+// PathArgumentsPriority executes the function and returns a corresponding test case.
+func PathArgumentsPriority(t *testing.T, ctx context.Context, foo string) *PathArgumentsPriorityTestCase {
+	tc := &PathArgumentsPriorityTestCase{_t: t}
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		tc.echo, tc.err = Svc.PathArgumentsPriority(ctx, foo)
+		return tc.err
+	})
+	tc._dur = time.Since(t0)
+	return tc
+}
+
 // EchoTestCase assists in asserting against the results of executing Echo.
 type EchoTestCase struct {
 	t *testing.T

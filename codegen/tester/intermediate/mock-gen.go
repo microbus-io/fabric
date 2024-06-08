@@ -44,6 +44,7 @@ type Mock struct {
 	mockFunctionPathArguments func(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
 	mockNonStringPathArguments func(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
 	mockUnnamedFunctionPathArguments func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
+	mockPathArgumentsPriority func(ctx context.Context, foo string) (echo string, err error)
 	mockEcho func(w http.ResponseWriter, r *http.Request) (err error)
 	mockWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 	mockUnnamedWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
@@ -66,6 +67,7 @@ func NewMock() *Mock {
 	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
 	svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
+	svc.Subscribe(`ANY`, `:443/path-arguments-priority/{foo}`, svc.doPathArgumentsPriority)
 
 	// Webs
 	svc.Subscribe(`ANY`, `:443/echo`, svc.doEcho)
@@ -328,6 +330,39 @@ func (svc *Mock) doUnnamedFunctionPathArguments(w http.ResponseWriter, r *http.R
 // MockUnnamedFunctionPathArguments sets up a mock handler for the UnnamedFunctionPathArguments function.
 func (svc *Mock) MockUnnamedFunctionPathArguments(handler func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)) *Mock {
 	svc.mockUnnamedFunctionPathArguments = handler
+	return svc
+}
+
+// doPathArgumentsPriority handles marshaling for the PathArgumentsPriority function.
+func (svc *Mock) doPathArgumentsPriority(w http.ResponseWriter, r *http.Request) error {
+	if svc.mockPathArgumentsPriority == nil {
+		return errors.New("mocked endpoint 'PathArgumentsPriority' not implemented")
+	}
+	var i testerapi.PathArgumentsPriorityIn
+	var o testerapi.PathArgumentsPriorityOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Echo, err = svc.mockPathArgumentsPriority(
+		r.Context(),
+		i.Foo,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// MockPathArgumentsPriority sets up a mock handler for the PathArgumentsPriority function.
+func (svc *Mock) MockPathArgumentsPriority(handler func(ctx context.Context, foo string) (echo string, err error)) *Mock {
+	svc.mockPathArgumentsPriority = handler
 	return svc
 }
 

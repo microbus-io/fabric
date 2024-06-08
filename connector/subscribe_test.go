@@ -658,9 +658,9 @@ func BenchmarkConnection_AckRequest(b *testing.B) {
 	}
 
 	// On 2021 MacBook Pro M1 16":
-	// N=256477
-	// 4782 ns/op (209117 ops/sec)
-	// 6045 B/op
+	// N=271141
+	// 4412 ns/op (226654 ops/sec)
+	// 5917 B/op
 	// 26 allocs/op
 }
 
@@ -673,7 +673,7 @@ func TestConnector_PathArguments(t *testing.T) {
 	var foo string
 	var bar string
 	con := New("path.arguments.connector")
-	con.Subscribe("GET", "/foo/{foo}/bar/{bar}", func(w http.ResponseWriter, r *http.Request) error {
+	con.Subscribe("ANY", "/foo/{foo}/bar/{bar}", func(w http.ResponseWriter, r *http.Request) error {
 		foo = r.URL.Query().Get("foo")
 		bar = r.URL.Query().Get("bar")
 		return nil
@@ -696,12 +696,31 @@ func TestConnector_PathArguments(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	// Send messages
-	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO/bar/BAR?foo=x&bar=x"))
+	// Values provided in path should win over those in the query
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO1/bar/BAR1?foo=x&bar=x"))
 	assert.NoError(t, err)
-	assert.Equal(t, "FOO", foo)
-	assert.Equal(t, "BAR", bar)
+	assert.Equal(t, "FOO1", foo)
+	assert.Equal(t, "BAR1", bar)
 
+	// If no values are given in the path, take from the query
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/{foo}/bar/{bar}?foo=FOO2&bar=BAR2"))
+	assert.NoError(t, err)
+	assert.Equal(t, "FOO2", foo)
+	assert.Equal(t, "BAR2", bar)
+
+	// If no values are given at all, assume empty
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/{foo}/bar/{bar}"))
+	assert.NoError(t, err)
+	assert.Equal(t, "", foo)
+	assert.Equal(t, "", bar)
+
+	// To be considered empty, must match subscription path exactly
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/{FOO}/bar/{BAR}"))
+	assert.NoError(t, err)
+	assert.Equal(t, "{FOO}", foo)
+	assert.Equal(t, "{BAR}", bar)
+
+	// Variables must span the entire part of the path or otherwise considered a static string
 	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/1/xMMMMMx"))
 	assert.Equal(t, http.StatusNotFound, errors.StatusCode(err))
 	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/1/x{mmm}x"))

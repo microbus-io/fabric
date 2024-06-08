@@ -477,3 +477,56 @@ func TestTester_Echo(t *testing.T) {
 		assert.Contains(t, string(body), "HEAVY PAYLOAD")
 	}
 }
+
+func TestTester_PathArgumentsPriority(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		PathArgumentsPriority(t, ctx, foo).
+			Expect(echo)
+	*/
+
+	ctx := Context()
+	PathArgumentsPriority(t, ctx, "BAR").
+		Expect("BAR")
+	PathArgumentsPriority(t, ctx, "XYZ").
+		Expect("XYZ")
+
+	// Argument in the path should take priority over that in the query
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/path-arguments-priority/BAR?foo=XYZ"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "BAR")
+		assert.NotContains(t, string(b), "XYZ")
+	}
+
+	// If argument is not provided in the path, take from the query
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/path-arguments-priority/{foo}?foo=BAR"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "BAR")
+	}
+
+	// Argument in the path should take priority over that in the body
+	res, err = Svc.Request(ctx, pub.POST("https://"+Hostname+"/path-arguments-priority/BAR"), pub.Body(`{"foo":"XYZ"}`))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "BAR")
+		assert.NotContains(t, string(b), "XYZ")
+	}
+
+	// If argument is not provided in the path, take from the body
+	res, err = Svc.Request(ctx, pub.POST("https://"+Hostname+"/path-arguments-priority/{foo}"), pub.Body(`{"foo":"BAR"}`))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "BAR")
+	}
+
+	// If argument is not provided in the path, take from the query over the body
+	res, err = Svc.Request(ctx, pub.POST("https://"+Hostname+"/path-arguments-priority/{foo}?foo=BAR"), pub.Body(`{"foo":"XYZ"}`))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "BAR")
+		assert.NotContains(t, string(b), "XYZ")
+	}
+}

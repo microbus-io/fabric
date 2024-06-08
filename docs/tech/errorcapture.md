@@ -1,38 +1,37 @@
 # Error Capture and Propagation
 
-The philosophy of `Microbus` is that errors will happen, they will be unpredictable, they must never bring down the system, and they should be observable and easily debuggable. With this in mind, the framework is taking an opinionated approach to standardize the capturing and surfacing of errors. Note that "capturing" does not mean "handling". The latter cannot be generalized and is left up to the app developer (or user).
+The philosophy of `Microbus` is that errors will happen, they will be unpredictable, they must never bring down the system, and they should be observable and easily debuggable. With this in mind, the framework is taking an opinionated "throw and log" approach to standardize the capturing and surfacing of errors. Note that "capturing" does not mean "handling". The latter is left up to the app developer (or user).
 
 ## Web Handler Returns Error
 
-The standard `http.Handler` signature in Go does not return an `error` but rather leaves it to the developer to set the status code (often to `500`) and output an error message to the body of the response. This pattern results in repetitive error handling code that app developers may or may not conform to.
+The standard `http.HandlerFunc` signature in Go does not return an `error` but rather leaves it to the developer to set the status code (often to `500`) and output an error message to the body of the response. This results in repetitive "log and throw" error handling pattern that app developers may or may not consistently conform to.
 
 ```go
 func StandardHandler(w http.ResponseWriter, r *http.Request) {
 	err := doSomething()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		svc.Log(r.Context(), "doing something", log.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = doSomethingElse()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		svc.Log(r.Context(), "doing something else", log.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 ```
 
-`Microbus` takes the approach of extending the default signature to include an `error` return value. The error is then processed by the framework in a wrapper function. With this pattern, the original code is simpler and more Go-like, and any errors are reported and surfaced in a consistent manner. For example, error may be printed to the body of the response, logged, and metered so that alerts can be triggered.
+`Microbus` takes the approach of extending the default web handler signature to also include an `error` return value. The error is then processed by the framework in a wrapper function that itself conforms to the standard `http.HandlerFunc` signature. With this pattern, the original code is simpler and more Go-like, and any errors are reported and surfaced in a consistent manner. Specifically, error are printed to the body of the response, logged, and metered so that alerts can be triggered.
 
 ```go
-func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
+func UserCodeHandler(w http.ResponseWriter, r *http.Request) error { // Returning an error
 	err := doSomething()
 	if err != nil {
 		return err
 	}
-
 	err = doSomethingElse()
 	if err != nil {
 		return err
@@ -40,9 +39,10 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
+func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
 	err := UserCodeHandler(w, r)
 	if err != nil {
+		// Standard error capture
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(fmt.Sprintf("%+v", err))
 		log.LogError(r.Context(), "Handling request", err)
@@ -61,10 +61,15 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	panic("omg")
 }
 
-func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
+func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
 	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
 	if err != nil {
-		...
+		// Standard error capture
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(fmt.Sprintf("%+v", err))
+		log.LogError(r.Context(), "Handling request", err)
+		metrics.IncrementErrorCount(1)
+		return
 	}
 }
 ```
@@ -79,23 +84,17 @@ import "github.com/microbus-io/errors"
 func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	err := doSomething()
 	if err != nil {
-		return errors.Trace(err)
+		return errors.Trace(err) // Add stack trace
 	}
 	return nil
 }
-
-func WrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-	err := catchPanic(func() error {return UserCodeHandler(w, r)})
-	if err != nil {
-		...
-	}
-}
 ```
 
-With this in place, error messages look more like this, making it clear where the error originated from.
+With this in place, error messages make it clear where the error originated from.
 
 ```
 strconv.ParseInt: parsing "nan": invalid syntax
+[400]
 
 - calculator.(*Service).Square
   /src/github.com/microbus-io/fabric/examples/calculator/service.go:75
@@ -105,6 +104,37 @@ strconv.ParseInt: parsing "nan": invalid syntax
   /src/github.com/microbus-io/fabric/connector/messaging.go:94
 - httpingress.(*Service).ServeHTTP
   /src/github.com/microbus-io/fabric/coreservices/httpingress/service.go:124
+```
+
+## Status Codes
+
+All microservices are ultimately web servers where it is common practice to return an appropriate HTTP status code along with an error. To facilitate that, `Microbus` allows status codes to be associated with errors.
+
+```go
+var err error
+// New error with status code
+err = errors.Newc(http.StatusNotFound, "record not found")
+// Wrap existing error and attach a status code
+err = doSomething()
+if err != nil {
+	return errors.Tracec(http.StatusNotFound, err)
+}
+```
+
+The web handler wrapper function now looks like this:
+
+```go
+func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
+	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
+	if err != nil {
+		// Standard error capture
+		w.WriteHeader(errors.StatusCode(err))
+		w.Write(fmt.Sprintf("%+v", err))
+		log.LogError(r.Context(), "Handling request", err)
+		metrics.IncrementErrorCount(1)
+		return
+	}
+}
 ```
 
 ## Propagation Over the Wire
@@ -120,7 +150,7 @@ func (s *Service) MyEndpoint(w http.ResponseWriter, r *http.Request) error {
 }
 ```
 
-The `Microbus` framework serializes any error generated by the remote microservice and reconstitutes it on the client side. Errors responses are identified by the special header `Microbus-Op-Code: Err` with the error serialized in the body as JSON, including its stack trace.
+The `Microbus` framework serializes any error generated by the remote microservice and reconstitutes it on the client side. Errors responses are identified by the special header `Microbus-Op-Code: Err` with the error serialized in the body as JSON, including its stack trace. The status code of the error is reflected in the status code of the HTTP.
 
 ```
 HTTP/1.1 500 Internal Server Error
@@ -153,11 +183,30 @@ Microbus-Op-Code: Err
 }
 ```
 
+The web handler wrapper function now looks similar to the folowing:
+
+```go
+func WrapperOfUserCodeHandler(w http.ResponseWriter, r *http.Request) {
+	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
+	if err != nil {
+		// Standard error capture
+		w.Header().Set("Microbus-Op-Code", "Err")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(errors.StatusCode(err))
+		json.NewEncoder(w).Encode(err)
+		log.LogError(r.Context(), "Handling request", err)
+		metrics.IncrementErrorCount(1)
+		return
+	}
+}
+```
+
 ## Summary
 
-By delegating errors to the framework, it is able to improve system stability, observability and developer experience.
+The capturing of errors at the framework level improves system stability, observability and developer experience.
 
 * All errors are logged and metered
 * Panics are captured
-* Errors are propagated over the wire
 * Stack traces help identify the root cause
+* HTTP status codes can be associated with an error
+* Errors are propagated over the wire, including their stack trace and status code

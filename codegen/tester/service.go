@@ -160,3 +160,10 @@ func (svc *Service) Echo(w http.ResponseWriter, r *http.Request) (err error) {
 	r.Write(w)
 	return nil
 }
+
+/*
+PathArgumentsPriority tests the priority of path arguments in functions.
+*/
+func (svc *Service) PathArgumentsPriority(ctx context.Context, foo string) (echo string, err error) {
+	return foo, nil
+}

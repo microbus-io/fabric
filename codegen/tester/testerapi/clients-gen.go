@@ -57,6 +57,7 @@ var (
 	URLOfFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfNonStringPathArguments = httpx.JoinHostAndPath(Hostname, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfUnnamedFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
+	URLOfPathArgumentsPriority = httpx.JoinHostAndPath(Hostname, `:443/path-arguments-priority/{foo}`)
 	URLOfEcho = httpx.JoinHostAndPath(Hostname, `:443/echo`)
 	URLOfWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfUnnamedWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`)
@@ -1305,5 +1306,104 @@ func (_c *Client) UnnamedFunctionPathArguments(ctx context.Context, path1 string
 		return
 	}
 	joined = _out.Joined
+	return
+}
+
+// PathArgumentsPriorityIn are the input arguments of PathArgumentsPriority.
+type PathArgumentsPriorityIn struct {
+	Foo string `json:"foo"`
+}
+
+// PathArgumentsPriorityOut are the return values of PathArgumentsPriority.
+type PathArgumentsPriorityOut struct {
+	Echo string `json:"echo"`
+}
+
+// PathArgumentsPriorityResponse is the response to PathArgumentsPriority.
+type PathArgumentsPriorityResponse struct {
+	data PathArgumentsPriorityOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *PathArgumentsPriorityResponse) Get() (echo string, err error) {
+	echo = _out.data.Echo
+	err = _out.err
+	return
+}
+
+/*
+PathArgumentsPriority tests the priority of path arguments in functions.
+*/
+func (_c *MulticastClient) PathArgumentsPriority(ctx context.Context, foo string) <-chan *PathArgumentsPriorityResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:443/path-arguments-priority/{foo}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`foo`: foo,
+	})
+	_in := PathArgumentsPriorityIn{
+		foo,
+	}
+	var _query url.Values
+	_body := _in
+	_ch := _c.svc.Publish(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+
+	_res := make(chan *PathArgumentsPriorityResponse, cap(_ch))
+	for _i := range _ch {
+		var _r PathArgumentsPriorityResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+PathArgumentsPriority tests the priority of path arguments in functions.
+*/
+func (_c *Client) PathArgumentsPriority(ctx context.Context, foo string) (echo string, err error) {
+	var _err error
+	_url := httpx.JoinHostAndPath(_c.host, `:443/path-arguments-priority/{foo}`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`foo`: foo,
+	})
+	_in := PathArgumentsPriorityIn{
+		foo,
+	}
+	var _query url.Values
+	_body := _in
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out PathArgumentsPriorityOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	echo = _out.Echo
 	return
 }

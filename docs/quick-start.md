@@ -60,6 +60,10 @@ Try the following URLs in your browser:
 * http://localhost:8080/messaging.example/cache-store?key=foo&value=bar
 * http://localhost:8080/messaging.example/cache-load?key=foo
 * http://localhost:8080/browser.example/browse?url=example.com
+* http://localhost:8080/directory.example/web-ui?method=POST&path=/persons&body=%7B%22firstName%22:%22Harry%22,%22lastName%22:%22Potter%22,%22email%22:%22hp@hogwarts.edu%22%7D (push submit to perform the POST request)
+* http://localhost:8080/directory.example/persons
+* http://localhost:8080/directory.example/persons/key/1
+* http://localhost:8080/directory.example/web-ui?method=DELETE&path=/persons/key/1 (push submit to perform the DELETE request)
 
 Feel free to experiment with different values for the query arguments.
 

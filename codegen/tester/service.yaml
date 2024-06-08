@@ -91,6 +91,9 @@ functions:
     description: UnnamedFunctionPathArguments tests path arguments that are not named.
     path: /.../{}/foo/{}/bar/{+}
     method: GET
+  - signature: PathArgumentsPriority(foo string) (echo string)
+    description: PathArgumentsPriority tests the priority of path arguments in functions.
+    path: /.../{foo}
 
 # Event sources
 #

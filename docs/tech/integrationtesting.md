@@ -1,12 +1,12 @@
 # Integration Testing
 
-## Testing App
+Thorough testing is an important cornerstone of good software. Testing a microservice is generally difficult because it almost always depends on downstream microservices which are not easy to spin up during testing. Common workarounds include mocking the downstream microservices or testing against a live test deployment but each of these comes with its own drawbacks. A mock doesn't test the actual internal business logic of the microservice, obscuring changes made to it over time. A live test deployment doesn't suffer from the drawbacks of a mock but it is a single point of failure that can block an entire development team when it's down. It also tends to become inconsistent over time and is expensive to run 24/7.
 
-Thorough testing is an important cornerstone of good software. Testing a microservice is generally difficult because it almost always depends on downstream microservices which are not easy to spin up during testing. Common workarounds include mocking the downstream microservices or testing against a live test deployment environment but each of these comes with its own drawbacks. A mock doesn't test the actual internal business logic of the microservice, obscuring changes made to it over time. A live test environment doesn't suffer from the drawbacks of a mock but it is a single point of failure that can block an entire development team when it's down. It also tends to become inconsistent over time and is expensive to run 24/7.
+## Testing App
 
 `Microbus` takes a different approach and spins up the actual downstream microservices along with the microservice being tested into a single process. The microservices are collected into an isolated [`Application`](../structure/application.md) that is started up for the duration of running the test suite and shutdown immediately thereafter. The microservices communicate via NATS on a random [plane of communications](./unicast.md), which keeps them isolated from other test suites that may run in parallel.
 
-Mocks can be added to the application when it's impractical to run the actual downstream microservice, for example if that microservice is calling a third-party web service such as a payment processor. The preference however should be to include the actual microservice whenever possible and not rely on mocks. Note that in `Microbus` microservices are mocked rather than clients. The upstream microservice still sends messages over NATS which are responded to by the mock.
+Mocks can be added to the application when it's impractical to run the actual downstream microservice, for example if that microservice is calling a third-party web service such as a payment processor. The preference however should be to include the actual microservice whenever possible and not rely on mocks. Note that in `Microbus` microservices are mocked rather than clients. The upstream microservice still sends messages over NATS which are responded to by the mock of the downstream microservice.
 
 <img src="integrationtesting-1.svg" width="350">
 
@@ -75,11 +75,30 @@ func TestCalculator_Arithmetic(t *testing.T) {
 }
 ```
 
-Available asserters:
+Test cases support the following asserters:
+
 * `Expect` - asserts the return values
 * `Error`, `ErrorCode`, `NoError` - assert the error returned
 * `CompletedIn` - assert the execution time
 * `Assert` - custom asserter
+
+They also support a `Get` function that returns the values returned by the call to the underlying endpoint.
+
+```go
+x, op, y, sum, err := Arithmetic(t, ctx, 3, "-", 8).Get()
+```
+
+It is not required to use the provided test cases and asserters. For example, `Arithmetic(t, ctx, 3, "-", 8).Expect(3, "-", 8, -5)` can also be expressed as:
+
+```go
+x, op, y, sum, err := Svc.Arithmetic(ctx, 3, "-", 8)
+if assert.NoError(t, err) {
+	assert.Equal(t, 3, x)
+	assert.Equal(t, "-", op)
+	assert.Equal(t, 8, y)
+	assert.Equal(t, -5, sum)
+}
+```
 
 ### Testing Webs
 
@@ -118,6 +137,7 @@ func TestHello_Hello(t *testing.T) {
 URLs are resolved relative to the URL of the endpoint. The empty URL `""` therefore resolves to the exact URL of the endpoint. A URL starting with `?` is the way to pass query arguments. The example uses `httpx.QArgs` to properly encode the query arguments in the `GET` test case, and to pass in form values in the `POST` example. `httpx.MustNewRequestWithContext` is a thin wrapper of the standard `http.NewRequestWithContext` that panics instead of returning an error.
 
 Available asserters:
+
 * `StatusOK`, `StatusCode` - assert the HTTP response status code
 * `BodyContains`, `BodyNotContains` - assert the HTTP response body content
 * `HeaderExists`, `HeaderNotExists`, `HeaderEqual`, `HeaderNotEqual`,`HeaderContains`, `HeaderNotContains` - assert the headers of the HTTP response
@@ -126,6 +146,12 @@ Available asserters:
 * `Error`, `ErrorCode`, `NoError` - assert the error returned
 * `CompletedIn` - assert the execution time
 * `Assert` - custom asserter
+
+The `Get` function returns the HTTP response and error returned by the call to the underlying endpoint.
+
+```go
+res, err := Hello_Get(t, ctx, "")
+```
 
 ### Testing Tickers
 
@@ -146,6 +172,7 @@ func TestHello_TickTock(t *testing.T) {
 Tickers can be also be called inside other tests via `Svc`.
 
 Available asserters:
+
 * `Error`, `ErrorCode`, `NoError` - assert the error returned
 * `CompletedIn` - assert the execution time
 * `Assert` - custom asserter
@@ -167,6 +194,7 @@ func TestExample_OnChangedConnectionString(t *testing.T) {
 ```
 
 Available asserters:
+
 * `Error`, `ErrorCode`, `NoError` - assert the error returned
 * `CompletedIn` - assert the execution time
 * `Assert` - custom asserter
@@ -202,6 +230,7 @@ Notice how the assertion of an event is reversed: input arguments of the event a
 `Wait`-ing is necessary for events that fire asynchronously (e.g. using a goroutine) and can be be omitted for synchronous events.
 
 Available asserters:
+
 * `Expect` - asserts the input arguments
 * `Return` - defines the return values of the event sink
 * `Assert` - custom asserter

@@ -92,20 +92,25 @@ func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
 ```yaml
 # Functions
 #
-# signature - Func(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# signature - Go-style method signature
+#   Func(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   Func(val Complex, ptr *Complex)
+#   Func(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   Func(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. or "ANY" (default)
-# path - The URL path of the subscription
+# path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/{filename+} - Greedy path argument
 #   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
-#   :443 - Root path
+#   :443 - Root path of the microservice
 #   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
+#   //root - Root path of the web server
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -115,22 +120,24 @@ functions:
   #   description:
 ```
 
-The `signature` defines the function name (which must start with an uppercase letter) and the input and output arguments. The special output argument `httpStatusCode` can be used to set the HTTP status code of the response. If the `signature` contains an unknown type, the code generator automatically defines an empty struct in a file of the same name in the API package of the microservice. 
+The `signature` defines the function name (which must start with an uppercase letter) and the input and output arguments. For any unknown type, the code generator automatically defines an empty struct in a file of the same name in the API package of the microservice. 
 
-The generated functional request handler will look similar to the following. `Microbus` is taking care of marhsaling and unmarshaling behind the scenes.
+`Microbus` takes care of marhsaling and unmarshaling of arguments and return values behind the scenes. Input arguments are unmarshaled from either the HTTP request path (if [path arguments](./patharguments.md) of the same name are defined), HTTP query arguments of the same name, or the JSON or URL form encoded body of the HTTP request. Output arguments are marshaled as JSON to the HTTP response body. Specially named [HTTP magic arguments](./httparguments.md) allow finer control over the marhsaling and unmarshaling of arguments.
+
+A typical generated functional request handler will look similar to the following:
 
 ```go
 /*
 FuncHandler is an example of a functional handler.
 */
-func (svc *Service) FuncHandler(ctx context.Context, id string) (ok bool, httpStatusCode int, err error) {
-    return
+func (svc *Service) FuncHandler(ctx context.Context, id string) (ok bool, err error) {
+    return ok, nil
 }
 ```
 
 `method` can be used to restrict the function to accept only certain HTTP methods. By default, the function is agnostic to the HTTP method.
 
-Along with the hostname of the service, the `path` defines the URL to this endpoint. It defaults to the function name in `kebab-case`.
+Along with the hostname of the microservice, the `path` defines the URL to this endpoint. It defaults to the function name in `kebab-case`. It may include [path arguments](./patharguments.md).
 
 `queue` defines whether a request is routed to one of the replicas of the microservice (load-balanced) or to all (pervasive).
 
@@ -143,19 +150,24 @@ Along with the hostname of the service, the `path` defines the URL to this endpo
 ```yaml
 # Event sources
 #
-# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# signature - Go-style method signature
+#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   OnEvent(val Complex, ptr *Complex)
+#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
 # description - Documentation
 # method - "GET", "POST", etc. (defaults to "POST")
-# path - The URL path of the subscription
+# path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :417
 #   /directory/{filename+} - Greedy path argument
 #   /article/{aid}/comment/{cid} - Path arguments
 #   :417/path
 #   :417/... - Ellipsis denotes the function name in kebab-case
-#   :417 - Root path
+#   :417 - Root path of the microservice
 #   //example.com:417/path
 #   https://example.com:417/path
+#   //root - Root path of the web server
 events:
   # - signature:
   #   description:
@@ -165,12 +177,16 @@ The `signature` defines the event name (which must start with the word `On` foll
 
 ### Event Sinks
 
-`sinks` are the flip side of event sources. A sink subscribes to receive notification of events that are generated by other services.
+`sinks` are the flip side of event sources. A sink subscribes to consume events that are generated by other microservices.
 
 ```yaml
 # Event sinks
 #
-# signature - OnFunc(name Type, name Type) (name Type, name Type, httpStatusCode int)
+# signature - Go-style method signature
+#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   OnEvent(val Complex, ptr *Complex)
+#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
 # description - Documentation
 # event - The name of the event at the source (defaults to the function name)
 # source - The package path of the microservice that is the source of the event
@@ -198,7 +214,7 @@ sinks:
 
 The `source` must point to the microservice that is the source of the event. This is the fully-qualified package path.
 
-The optional field `forHost` adjusts the subscription to listen to microservices whose hostname was overridden with `SetHostname`.
+The optional field `forHost` adjusts the subscription to listen to microservices whose hostname was changed with `SetHostname`.
 
 ### Web Handlers
 
@@ -207,20 +223,22 @@ The `webs` section defines raw web handlers which allow the microservice to hand
 ```yaml
 # Web handlers
 #
-# signature - Func()
+# signature - Go-style method signature (no arguments)
+#   Handler()
 # description - Documentation
 # method - "GET", "POST", etc. or "ANY" (default)
-# path - The URL path of the subscription
+# path - The URL path of the subscription, relative to the hostname of the microservice
 #   (empty) - The function name in kebab-case
 #   /path - Default port :443
 #   /directory/{filename+} - Greedy path argument
 #   /article/{aid}/comment/{cid} - Path arguments
 #   :443/path
 #   :443/... - Ellipsis denotes the function name in kebab-case
-#   :443 - Root path
+#   :443 - Root path of the microservice
 #   :0/path - Any port
 #   //example.com:443/path
 #   https://example.com:443/path
+#   //root - Root path of the web server
 # queue - The subscription queue
 #   default - Load balanced (default)
 #   none - Pervasive
@@ -230,7 +248,7 @@ webs:
   #   description:
 ```
 
-The `signature` must not include any arguments. The handler receives the typical `http.ResponseWriter` and `*http.Request` and is expected to extract input from there directly.
+The `signature` must not include any arguments. The handler receives the `*http.Request` from where it is expected to extract the input, and the `http.ResponseWriter` where it can write the response.
 
 The code generated web handler will look similar to this:
 
@@ -250,7 +268,8 @@ Tickers are means to invoke a function on a periodic basis. The `signature` and 
 ```yaml
 # Tickers
 #
-# signature - Func()
+# signature - Go-style method signature (no arguments)
+#   Ticker()
 # description - Documentation
 # interval - Duration between iterations (e.g. 15m)
 tickers:
@@ -277,7 +296,7 @@ The `metrics` section is used to define arbitrary metrics that are pertinent to 
 ```yaml
 # Metrics
 #
-# signature - Func(measure Type, label Type, label Type)
+# signature - Go-style method signature (numeric measure, ...labels)
 #   RequestDurationSeconds(dur time.Duration, method string, success bool)
 #   MemoryUsageBytes(b int64)
 #   DistanceMiles(miles float64, countryCode int)
@@ -302,7 +321,7 @@ The name of the metric is derived from the function signature. It should adhere 
 
 In addition to the server side of things, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to avoid cyclical dependencies between upstream and downstream microservices.
 
-With clients, an upstream microservice remotely calling a downstream microservice looks very much like a standard local function call.
+Using clients, an upstream microservice remotely calling a downstream microservice looks very much like a standard local function call.
 
 ```go
 result, err := downstreamapi.NewClient(upstreamSvc).Add(ctx, x, y)
@@ -356,11 +375,11 @@ The `{service}api` directory (and package) defines the `Client` and `MulticastCl
 
 The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices that can be used in [integration testing](./integrationtesting.md) when a live version of the microservice cannot.
 
-`integration-gen_test.go` is a testing harness that that facilitates the implementation of integration tests, which are expected to be implemented in `integration_test.go`
+`integration-gen_test.go` is a testing harness that facilitates the implementation of integration tests, which are expected to be implemented in `integration_test.go`
 
 The `resources` directory is a place to put static files to be embedded (linked) into the executable of the microservice. Templates, images, scripts, etc. are some examples of what can potentially be embedded.
 
-`service-gen.go` primarily includes the function to create a `NewService`. It may also alias the config initializers of the `Intermediate` and its `With` function, if appropriate.
+`service-gen.go` primarily includes the function to create a `NewService`.
 
 `service.go` is where application developers are expected to introduce the business logic of the microservice. `service.go` implements `Service`, which extends `Intermediate` as mentioned earlier. Most of the tools that a microservice needs are available through the receiver `(svc *Service)` which points to the `Intermediate` and by extension the `Connector`. It include the methods of the `Connector` as well as type-specific methods defined in the `Intermediate`.
 

@@ -75,6 +75,7 @@ type ToDo interface {
 	FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
 	NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
 	UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
+	PathArgumentsPriority(ctx context.Context, foo string) (echo string, err error)
 	Echo(w http.ResponseWriter, r *http.Request) (err error)
 	WebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 	UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
@@ -111,6 +112,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
 	svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
+	svc.Subscribe(`ANY`, `:443/path-arguments-priority/{foo}`, svc.doPathArgumentsPriority)
 
 	// Webs
 	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
@@ -258,6 +260,22 @@ An httpResponseBody argument prevents returning additional values, except for th
 			}{},
 			OutputArgs: struct {
 				Joined string `json:"joined"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `PathArgumentsPriority`,
+			Method:      `ANY`,
+			Path:        `:443/path-arguments-priority/{foo}`,
+			Summary:     `PathArgumentsPriority(foo string) (echo string)`,
+			Description: `PathArgumentsPriority tests the priority of path arguments in functions.`,
+			InputArgs: struct {
+				Foo string `json:"foo"`
+			}{},
+			OutputArgs: struct {
+				Echo string `json:"echo"`
 			}{},
 		})
 	}
@@ -512,6 +530,33 @@ func (svc *Intermediate) doUnnamedFunctionPathArguments(w http.ResponseWriter, r
 		i.Path1,
 		i.Path2,
 		i.Path3,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "    ")
+	}
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doPathArgumentsPriority handles marshaling for the PathArgumentsPriority function.
+func (svc *Intermediate) doPathArgumentsPriority(w http.ResponseWriter, r *http.Request) error {
+	var i testerapi.PathArgumentsPriorityIn
+	var o testerapi.PathArgumentsPriorityOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Echo, err = svc.impl.PathArgumentsPriority(
+		r.Context(),
+		i.Foo,
 	)
 	if err != nil {
 		return err // No trace

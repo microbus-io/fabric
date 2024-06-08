@@ -146,6 +146,9 @@ func (c *Connector) activateSub(s *sub.Subscription) (err error) {
 			s.DirectSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Method, c.id+"."+s.Host, s.Port, s.Path), handler)
 		}
 		if err != nil {
+			if s.HostSub.Unsubscribe() == nil {
+				s.HostSub = nil
+			}
 			return errors.Trace(err)
 		}
 	}
@@ -321,6 +324,10 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 			continue
 		}
 		argIndex++
+		if reqParts[i] == subParts[i] {
+			// No value provided in path
+			continue
+		}
 		if query == nil {
 			query = httpReq.URL.Query()
 		}

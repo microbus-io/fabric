@@ -37,6 +37,7 @@ The extended verb `%+v` is equivalent to `errors.Convert(err).String()` and also
 
 ```
 strconv.ParseInt: parsing "nan": invalid syntax
+[400]
 
 - calculator.(*Service).Square
   /src/github.com/microbus-io/fabric/examples/calculator/service.go:75
