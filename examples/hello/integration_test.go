@@ -344,5 +344,6 @@ func TestHello_Root(t *testing.T) {
 		Root(t, httpRequest).BodyContains(value)
 	*/
 
-	// TODO: Test Root
+	ctx := Context()
+	Root_Get(t, ctx, "").NoError()
 }
