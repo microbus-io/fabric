@@ -111,18 +111,30 @@ func (h *Handler) validate() error {
 		return errors.Trace(err)
 	}
 	parts := strings.Split(u.Path, "/")
-	for i, part := range parts {
-		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
-			part = strings.TrimPrefix(part, "{")
-			part = strings.TrimSuffix(part, "}")
-			greedy := strings.HasSuffix(part, "+")
-			part = strings.TrimSuffix(part, "+")
-			if part != "" && !utils.IsLowerCaseIdentifier(part) {
-				return errors.Newf("name of path argument %s in '%s' must be an identifier", parts[i], h.Name())
-			}
-			if greedy && i != len(parts)-1 {
-				return errors.Newf("greedy path argument %s in '%s' must end path", parts[i], h.Name())
-			}
+	for i := range parts {
+		open := strings.Index(parts[i], "{")
+		if open > 0 {
+			return errors.Newf("path argument '%s' in '%s' must span entire section", parts[i], h.Name())
+		}
+		close := strings.LastIndex(parts[i], "}")
+		if open == -1 && close == -1 {
+			continue
+		}
+		if close <= open || open == -1 {
+			return errors.Newf("malformed path argument '%s' in '%s'", parts[i], h.Name())
+		}
+		if close < len(parts[i])-1 {
+			return errors.Newf("path argument '%s' in '%s' must span entire section", parts[i], h.Name())
+		}
+		name := parts[i]
+		name = strings.TrimPrefix(name, "{")
+		name = strings.TrimSuffix(name, "}")
+		if strings.HasSuffix(name, "+") && i != len(parts)-1 {
+			return errors.Newf("greedy path argument '%s' in '%s' must end path", parts[i], h.Name())
+		}
+		name = strings.TrimSuffix(name, "+")
+		if name != "" && !utils.IsLowerCaseIdentifier(name) {
+			return errors.Newf("name of path argument '%s' in '%s' must be an identifier", parts[i], h.Name())
 		}
 	}
 	if h.Validation != "" {

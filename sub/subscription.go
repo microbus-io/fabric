@@ -77,17 +77,29 @@ func NewSub(method string, defaultHost string, path string, handler HTTPHandler,
 	}
 	parts := strings.Split(u.Path, "/")
 	for i := range parts {
-		if strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
-			name := parts[i]
-			name = strings.TrimPrefix(name, "{")
-			name = strings.TrimSuffix(name, "}")
-			if strings.HasSuffix(name, "+") && i != len(parts)-1 {
-				return nil, errors.Newf("greedy path argument %s must end path", parts[i])
-			}
-			name = strings.TrimSuffix(name, "+")
-			if name != "" && !utils.IsLowerCaseIdentifier(name) {
-				return nil, errors.Newf("name of path argument %s must be an identifier", parts[i])
-			}
+		open := strings.Index(parts[i], "{")
+		if open > 0 {
+			return nil, errors.Newf("path argument '%s' must span entire section", parts[i])
+		}
+		close := strings.LastIndex(parts[i], "}")
+		if open == -1 && close == -1 {
+			continue
+		}
+		if close <= open || open == -1 {
+			return nil, errors.Newf("malformed path argument '%s'", parts[i])
+		}
+		if close < len(parts[i])-1 {
+			return nil, errors.Newf("path argument '%s' must span entire section", parts[i])
+		}
+		name := parts[i]
+		name = strings.TrimPrefix(name, "{")
+		name = strings.TrimSuffix(name, "}")
+		if strings.HasSuffix(name, "+") && i != len(parts)-1 {
+			return nil, errors.Newf("greedy path argument '%s' must end path", parts[i])
+		}
+		name = strings.TrimSuffix(name, "+")
+		if name != "" && !utils.IsLowerCaseIdentifier(name) {
+			return nil, errors.Newf("name of path argument '%s' must be an identifier", parts[i])
 		}
 	}
 	sub := &Subscription{
