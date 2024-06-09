@@ -70,6 +70,7 @@ type ToDo interface {
 	OnShutdown(ctx context.Context) (err error)
 	StringCut(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
 	PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
+	ShiftPoint(ctx context.Context, p *testerapi.XYCoord, x float64, y float64) (shifted *testerapi.XYCoord, err error)
 	SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error)
 	SumTwoIntegers(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
@@ -107,6 +108,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	// Functions
 	svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
 	svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
+	svc.Subscribe(`ANY`, `:443/shift-point`, svc.doShiftPoint)
 	svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
 	svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
 	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
@@ -167,6 +169,24 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 			OutputArgs: struct {
 				D float64 `json:"d"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `ShiftPoint`,
+			Method:      `ANY`,
+			Path:        `:443/shift-point`,
+			Summary:     `ShiftPoint(p *XYCoord, x float64, y float64) (shifted *XYCoord)`,
+			Description: `ShiftPoint tests passing pointers to non-primitive types.`,
+			InputArgs: struct {
+				P *testerapi.XYCoord `json:"p"`
+				X float64 `json:"x"`
+				Y float64 `json:"y"`
+			}{},
+			OutputArgs: struct {
+				Shifted *testerapi.XYCoord `json:"shifted"`
 			}{},
 		})
 	}
@@ -380,6 +400,35 @@ func (svc *Intermediate) doPointDistance(w http.ResponseWriter, r *http.Request)
 		r.Context(),
 		i.P1,
 		i.P2,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "    ")
+	}
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doShiftPoint handles marshaling for the ShiftPoint function.
+func (svc *Intermediate) doShiftPoint(w http.ResponseWriter, r *http.Request) error {
+	var i testerapi.ShiftPointIn
+	var o testerapi.ShiftPointOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Shifted, err = svc.impl.ShiftPoint(
+		r.Context(),
+		i.P,
+		i.X,
+		i.Y,
 	)
 	if err != nil {
 		return err // No trace

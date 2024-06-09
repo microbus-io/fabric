@@ -69,6 +69,8 @@ functions:
   - signature: PointDistance(p1 XYCoord, p2 *XYCoord) (d float64)
     description: PointDistance tests passing non-primitive types via query arguments.
     method: GET
+  - signature: ShiftPoint(p *XYCoord, x float64, y float64) (shifted *XYCoord)
+    description: ShiftPoint tests passing pointers to non-primitive types.
   # HTTP arguments
   - signature: SubArrayRange(httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int)
     description: |

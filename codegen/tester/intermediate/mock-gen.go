@@ -39,6 +39,7 @@ type Mock struct {
 	*connector.Connector
 	mockStringCut func(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
 	mockPointDistance func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
+	mockShiftPoint func(ctx context.Context, p *testerapi.XYCoord, x float64, y float64) (shifted *testerapi.XYCoord, err error)
 	mockSubArrayRange func(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error)
 	mockSumTwoIntegers func(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	mockFunctionPathArguments func(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
@@ -62,6 +63,7 @@ func NewMock() *Mock {
 	// Functions
 	svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
 	svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
+	svc.Subscribe(`ANY`, `:443/shift-point`, svc.doShiftPoint)
 	svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
 	svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
 	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
@@ -150,6 +152,41 @@ func (svc *Mock) doPointDistance(w http.ResponseWriter, r *http.Request) error {
 // MockPointDistance sets up a mock handler for the PointDistance function.
 func (svc *Mock) MockPointDistance(handler func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)) *Mock {
 	svc.mockPointDistance = handler
+	return svc
+}
+
+// doShiftPoint handles marshaling for the ShiftPoint function.
+func (svc *Mock) doShiftPoint(w http.ResponseWriter, r *http.Request) error {
+	if svc.mockShiftPoint == nil {
+		return errors.New("mocked endpoint 'ShiftPoint' not implemented")
+	}
+	var i testerapi.ShiftPointIn
+	var o testerapi.ShiftPointOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	o.Shifted, err = svc.mockShiftPoint(
+		r.Context(),
+		i.P,
+		i.X,
+		i.Y,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// MockShiftPoint sets up a mock handler for the ShiftPoint function.
+func (svc *Mock) MockShiftPoint(handler func(ctx context.Context, p *testerapi.XYCoord, x float64, y float64) (shifted *testerapi.XYCoord, err error)) *Mock {
+	svc.mockShiftPoint = handler
 	return svc
 }
 

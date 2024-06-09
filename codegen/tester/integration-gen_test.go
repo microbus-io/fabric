@@ -256,6 +256,73 @@ func PointDistance(t *testing.T, ctx context.Context, p1 testerapi.XYCoord, p2 *
 	return tc
 }
 
+// ShiftPointTestCase assists in asserting against the results of executing ShiftPoint.
+type ShiftPointTestCase struct {
+	_t *testing.T
+	_dur time.Duration
+	shifted *testerapi.XYCoord
+	err error
+}
+
+// Expect asserts no error and exact return values.
+func (_tc *ShiftPointTestCase) Expect(shifted *testerapi.XYCoord) *ShiftPointTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, shifted, _tc.shifted)
+	}
+	return _tc
+}
+
+// Error asserts an error.
+func (tc *ShiftPointTestCase) Error(errContains string) *ShiftPointTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *ShiftPointTestCase) ErrorCode(statusCode int) *ShiftPointTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *ShiftPointTestCase) NoError() *ShiftPointTestCase {
+	assert.NoError(tc._t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *ShiftPointTestCase) CompletedIn(threshold time.Duration) *ShiftPointTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *ShiftPointTestCase) Assert(asserter func(t *testing.T, shifted *testerapi.XYCoord, err error)) *ShiftPointTestCase {
+	asserter(tc._t, tc.shifted, tc.err)
+	return tc
+}
+
+// Get returns the result of executing ShiftPoint.
+func (tc *ShiftPointTestCase) Get() (shifted *testerapi.XYCoord, err error) {
+	return tc.shifted, tc.err
+}
+
+// ShiftPoint executes the function and returns a corresponding test case.
+func ShiftPoint(t *testing.T, ctx context.Context, p *testerapi.XYCoord, x float64, y float64) *ShiftPointTestCase {
+	tc := &ShiftPointTestCase{_t: t}
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		tc.shifted, tc.err = Svc.ShiftPoint(ctx, p, x, y)
+		return tc.err
+	})
+	tc._dur = time.Since(t0)
+	return tc
+}
+
 // SubArrayRangeTestCase assists in asserting against the results of executing SubArrayRange.
 type SubArrayRangeTestCase struct {
 	_t *testing.T

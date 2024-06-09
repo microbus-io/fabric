@@ -52,6 +52,7 @@ const Hostname = "codegen.test"
 var (
 	URLOfStringCut = httpx.JoinHostAndPath(Hostname, `:443/string-cut`)
 	URLOfPointDistance = httpx.JoinHostAndPath(Hostname, `:443/point-distance`)
+	URLOfShiftPoint = httpx.JoinHostAndPath(Hostname, `:443/shift-point`)
 	URLOfSubArrayRange = httpx.JoinHostAndPath(Hostname, `:443/sub-array-range/{max}`)
 	URLOfSumTwoIntegers = httpx.JoinHostAndPath(Hostname, `:443/sum-two-integers`)
 	URLOfFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
@@ -714,6 +715,115 @@ func (_c *Client) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord) (d
 		return
 	}
 	d = _out.D
+	return
+}
+
+// ShiftPointIn are the input arguments of ShiftPoint.
+type ShiftPointIn struct {
+	P *XYCoord `json:"p"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// ShiftPointOut are the return values of ShiftPoint.
+type ShiftPointOut struct {
+	Shifted *XYCoord `json:"shifted"`
+}
+
+// ShiftPointResponse is the response to ShiftPoint.
+type ShiftPointResponse struct {
+	data ShiftPointOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *ShiftPointResponse) Get() (shifted *XYCoord, err error) {
+	shifted = _out.data.Shifted
+	err = _out.err
+	return
+}
+
+/*
+ShiftPoint tests passing pointers to non-primitive types.
+*/
+func (_c *MulticastClient) ShiftPoint(ctx context.Context, p *XYCoord, x float64, y float64) <-chan *ShiftPointResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:443/shift-point`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`p`: p,
+		`x`: x,
+		`y`: y,
+	})
+	_in := ShiftPointIn{
+		p,
+		x,
+		y,
+	}
+	var _query url.Values
+	_body := _in
+	_ch := _c.svc.Publish(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+
+	_res := make(chan *ShiftPointResponse, cap(_ch))
+	for _i := range _ch {
+		var _r ShiftPointResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+ShiftPoint tests passing pointers to non-primitive types.
+*/
+func (_c *Client) ShiftPoint(ctx context.Context, p *XYCoord, x float64, y float64) (shifted *XYCoord, err error) {
+	var _err error
+	_url := httpx.JoinHostAndPath(_c.host, `:443/shift-point`)
+	_url = httpx.InjectPathArguments(_url, map[string]any{
+		`p`: p,
+		`x`: x,
+		`y`: y,
+	})
+	_in := ShiftPointIn{
+		p,
+		x,
+		y,
+	}
+	var _query url.Values
+	_body := _in
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out ShiftPointOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	shifted = _out.Shifted
 	return
 }
 

@@ -72,6 +72,13 @@ func (svc *Service) PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 
 }
 
 /*
+ShiftPoint tests passing pointers to non-primitive types.
+*/
+func (svc *Service) ShiftPoint(ctx context.Context, p *testerapi.XYCoord, x float64, y float64) (shifted *testerapi.XYCoord, err error) {
+	return &testerapi.XYCoord{X: p.X + x, Y: p.Y + y}, nil
+}
+
+/*
 SubArrayRange tests sending arguments as the entire request and response bodies.
 An httpRequestBody argument allows sending other arguments via query or path.
 An httpResponseBody argument prevents returning additional values, except for the status code.

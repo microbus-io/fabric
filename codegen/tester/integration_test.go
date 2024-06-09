@@ -10,6 +10,7 @@ package tester
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"math"
 	"net/http"
@@ -105,13 +106,13 @@ func TestTester_StringCut(t *testing.T) {
 
 	ctx := Context()
 
-	// Test cases
+	// --- Test cases ---
 	StringCut(t, ctx, "Hello World", " ").
 		Expect("Hello", "World", true)
 	StringCut(t, ctx, "Hello World", "X").
 		Expect("Hello World", "", false)
 
-	// Request
+	// --- Requests ---
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/string-cut?s=Foo+Bar&Sep=+"))
 	if assert.NoError(t, err) {
 		var out testerapi.StringCutOut
@@ -121,7 +122,7 @@ func TestTester_StringCut(t *testing.T) {
 		assert.Equal(t, true, out.Found)
 	}
 
-	// Mock
+	// --- Mock ---
 	mock := NewMock()
 	mock.SetHostname("string-cut.mock")
 	mock.MockStringCut(func(ctx context.Context, s, sep string) (before string, after string, found bool, err error) {
@@ -154,7 +155,7 @@ func TestTester_PointDistance(t *testing.T) {
 
 	ctx := Context()
 
-	// Test cases
+	// --- Test cases ---
 	PointDistance(t, ctx, testerapi.XYCoord{X: 1, Y: 1}, &testerapi.XYCoord{X: 4, Y: 5}).
 		Expect(5)
 	PointDistance(t, ctx, testerapi.XYCoord{X: 4, Y: 5}, &testerapi.XYCoord{X: 1, Y: 1}).
@@ -166,7 +167,7 @@ func TestTester_PointDistance(t *testing.T) {
 	PointDistance(t, ctx, testerapi.XYCoord{X: 6.1, Y: 7.6}, &testerapi.XYCoord{X: 6.1, Y: 7.6}).
 		Expect(0)
 
-	// Request
+	// --- Requests ---
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
 	if assert.NoError(t, err) {
 		var out testerapi.PointDistanceOut
@@ -174,7 +175,7 @@ func TestTester_PointDistance(t *testing.T) {
 		assert.Equal(t, 5.0, out.D)
 	}
 
-	// Mock
+	// --- Mock ---
 	mock := NewMock()
 	mock.SetHostname("point-distance.mock")
 	mock.MockPointDistance(func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error) {
@@ -187,32 +188,129 @@ func TestTester_PointDistance(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Shutdown()
 
-	res, err = Svc.Request(ctx, pub.GET("https://point-distance.mock/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
+	res, err = Svc.Request(ctx, pub.GET("https://"+mock.Hostname()+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
 	if assert.NoError(t, err) {
 		var out testerapi.PointDistanceOut
 		json.NewDecoder(res.Body).Decode(&out)
 		assert.Equal(t, 5.0, out.D)
 	}
 
-	// OpenAPI
+	// --- OpenAPI ---
 	basePath := "paths|/" + Hostname + ":443/point-distance|get|"
-	// Argument 1
+	// Input argument p1 refers to XYCoors with its own x and y
 	assert.Equal(t, "p1", openAPIValue(basePath+"parameters|0|name"))
 	assert.Equal(t, "query", openAPIValue(basePath+"parameters|0|in"))
-	assert.Equal(t, "object", openAPIValue(basePath+"parameters|0|schema|type"))
-	assert.Equal(t, "number", openAPIValue(basePath+"parameters|0|schema|properties|x|type"))
-	assert.Equal(t, "number", openAPIValue(basePath+"parameters|0|schema|properties|y|type"))
-	// Argument 2
+	schemaRef := openAPIValue(basePath + "parameters|0|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|y|type"))
+	// Input argument p2 refers to XYCoors with its own x and y
 	assert.Equal(t, "p2", openAPIValue(basePath+"parameters|1|name"))
 	assert.Equal(t, "query", openAPIValue(basePath+"parameters|1|in"))
-	assert.Equal(t, "object", openAPIValue(basePath+"parameters|1|schema|type"))
-	assert.Equal(t, "number", openAPIValue(basePath+"parameters|1|schema|properties|x|type"))
-	assert.Equal(t, "number", openAPIValue(basePath+"parameters|1|schema|properties|y|type"))
-	// Response schema
-	schemaRef := openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = openAPIValue(basePath + "parameters|1|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|y|type"))
+	// Output argument d is an int
+	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
 	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
 	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
 	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|d|type"))
+}
+
+func TestTester_ShiftPoint(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		ShiftPoint(t, ctx, p, x, y).
+			Expect(shifted)
+	*/
+
+	ctx := Context()
+
+	// --- Test cases ---
+	ShiftPoint(t, ctx, &testerapi.XYCoord{X: 5, Y: 6}, 3, 4).
+		Expect(&testerapi.XYCoord{X: 5 + 3, Y: 6 + 4})
+	ShiftPoint(t, ctx, &testerapi.XYCoord{X: 5, Y: 6}, -5, -6).
+		Expect(&testerapi.XYCoord{})
+
+	// --- Requests ---
+	res, err := Svc.Request(ctx,
+		pub.POST("https://"+Hostname+"/shift-point?x=10&y=10"),
+		pub.Body(testerapi.ShiftPointIn{
+			P: &testerapi.XYCoord{
+				X: 5,
+				Y: 6,
+			},
+		}))
+	if assert.NoError(t, err) {
+		var out testerapi.ShiftPointOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, 15.0, out.Shifted.X)
+		assert.Equal(t, 16.0, out.Shifted.Y)
+	}
+
+	// --- Mock ---
+	mock := NewMock()
+	mock.SetHostname("shift-point.mock")
+	mock.MockShiftPoint(func(ctx context.Context, p *testerapi.XYCoord, x, y float64) (shifted *testerapi.XYCoord, err error) {
+		if x == 0 && y == 0 {
+			return nil, errors.New("zero")
+		}
+		return &testerapi.XYCoord{X: 88, Y: 99}, nil
+	})
+	App.Join(mock)
+	err = mock.Startup()
+	assert.NoError(t, err)
+	defer mock.Shutdown()
+
+	res, err = Svc.Request(ctx,
+		pub.POST("https://"+mock.Hostname()+"/shift-point?x=10&y=10"),
+		pub.Body(testerapi.ShiftPointIn{
+			P: &testerapi.XYCoord{
+				X: 5,
+				Y: 6,
+			},
+		}))
+	if assert.NoError(t, err) {
+		var out testerapi.ShiftPointOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, 88.0, out.Shifted.X)
+		assert.Equal(t, 99.0, out.Shifted.Y)
+	}
+
+	_, err = Svc.Request(ctx,
+		pub.POST("https://"+mock.Hostname()+"/shift-point"),
+		pub.Body(testerapi.ShiftPointIn{
+			P: &testerapi.XYCoord{
+				X: 5,
+				Y: 6,
+			},
+		}))
+	assert.ErrorContains(t, err, "zero")
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/shift-point|post|"
+	// Input arguments x and y are ints
+	schemaRef := openAPIValue(basePath + "requestBody|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|y|type"))
+	// Input argument p refers to XYCoors with its own x and y
+	schemaRef = openAPIValue(schemaRef + "properties|p|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|y|type"))
+	// Output argument shifted also refers to XYCoors
+	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	schemaRef = openAPIValue(schemaRef + "properties|shifted|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(schemaRef+"properties|y|type"))
 }
 
 func TestTester_SubArrayRange(t *testing.T) {
@@ -224,6 +322,8 @@ func TestTester_SubArrayRange(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	SubArrayRange(t, ctx, []int{1, 2, 3, 4, 5, 6}, 2, 4).
 		Expect([]int{2, 3, 4}, http.StatusAccepted) // Sum is returned because calling directly
 
@@ -233,27 +333,7 @@ func TestTester_SubArrayRange(t *testing.T) {
 		assert.Equal(t, http.StatusAccepted, status)
 	}
 
-	// OpenAPI
-	basePath := "paths|/" + Hostname + ":443/sub-array-range/{max}|post|"
-	// Argument pushed to query because of httpRequestBody
-	assert.Equal(t, "min", openAPIValue(basePath+"parameters|0|name"))
-	assert.Equal(t, "query", openAPIValue(basePath+"parameters|0|in"))
-	// Argument indicated in path
-	assert.Equal(t, "max", openAPIValue(basePath+"parameters|1|name"))
-	assert.Equal(t, "path", openAPIValue(basePath+"parameters|1|in"))
-	// httpRequestBody should not be listed as an argument
-	assert.Len(t, openAPIValue(basePath+"parameters"), 2)
-	// Request schema is an array
-	schemaRef := openAPIValue(basePath + "requestBody|content|application/json|schema|$ref").(string)
-	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
-	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
-	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
-	// Response schema is an array
-	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
-	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
-	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
-	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
-
+	// --- Mock ---
 	mock := NewMock()
 	mock.SetHostname("sub-array-range.mock")
 	mock.MockSubArrayRange(func(ctx context.Context, httpRequestBody []int, min, max int) (httpResponseBody []int, httpStatusCode int, err error) {
@@ -274,6 +354,27 @@ func TestTester_SubArrayRange(t *testing.T) {
 		json.NewDecoder(res.Body).Decode(&httpResponseBody)
 		assert.Equal(t, []int{2, 3, 4}, httpResponseBody)
 	}
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/sub-array-range/{max}|post|"
+	// Argument pushed to query because of httpRequestBody
+	assert.Equal(t, "min", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "query", openAPIValue(basePath+"parameters|0|in"))
+	// Argument indicated in path
+	assert.Equal(t, "max", openAPIValue(basePath+"parameters|1|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|1|in"))
+	// httpRequestBody should not be listed as an argument
+	assert.Len(t, openAPIValue(basePath+"parameters"), 2)
+	// --- Requests --- schema is an array
+	schemaRef := openAPIValue(basePath + "requestBody|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
+	// Response schema is an array
+	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "array", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "integer", openAPIValue(schemaRef+"items|type"))
 }
 
 func TestTester_WebPathArguments(t *testing.T) {
@@ -287,6 +388,8 @@ func TestTester_WebPathArguments(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	WebPathArguments_Get(t, ctx, "?named=1&path2=2&suffix=3/4").
 		BodyContains("/fixed/1/2/3/4$").
 		BodyNotContains("?").
@@ -318,6 +421,8 @@ func TestTester_FunctionPathArguments(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	FunctionPathArguments(t, ctx, "1", "2", "3/4").
 		Expect("1 2 3/4")
 	FunctionPathArguments(t, ctx, "", "", "").
@@ -335,9 +440,12 @@ func TestTester_NonStringPathArguments(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	NonStringPathArguments(t, ctx, 1, true, 0.75).
 		Expect("1 true 0.75")
 
+	// --- Requests ---
 	_, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1.5/true/0.75"))
 	assert.ErrorContains(t, err, "json")
 	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/x/0.75"))
@@ -347,7 +455,7 @@ func TestTester_NonStringPathArguments(t *testing.T) {
 	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/true/0.75"))
 	assert.NoError(t, err)
 
-	// OpenAPI
+	// --- OpenAPI ---
 	basePath := "paths|/" + Hostname + ":443/non-string-path-arguments/fixed/{named}/{path2}/{suffix+}|get|"
 	// named
 	assert.Equal(t, "named", openAPIValue(basePath+"parameters|0|name"))
@@ -372,12 +480,14 @@ func TestTester_UnnamedFunctionPathArguments(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Requests ---
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/unnamed-function-path-arguments/x123/foo/y345/bar/z1/z2/z3"))
 	assert.NoError(t, err)
 	body, _ := io.ReadAll(res.Body)
 	assert.Contains(t, string(body), "x123 y345 z1/z2/z3")
 
-	// OpenAPI
+	// --- OpenAPI ---
 	basePath := "paths|/" + Hostname + ":443/unnamed-function-path-arguments/{path1}/foo/{path2}/bar/{path3+}|get|"
 	assert.Equal(t, "path1", openAPIValue(basePath+"parameters|0|name"))
 	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
@@ -397,12 +507,14 @@ func TestTester_UnnamedWebPathArguments(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Requests ---
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/unnamed-web-path-arguments/x123/foo/y345/bar/z1/z2/z3"))
 	assert.NoError(t, err)
 	body, _ := io.ReadAll(res.Body)
 	assert.Contains(t, string(body), "x123 y345 z1/z2/z3")
 
-	// OpenAPI
+	// --- OpenAPI ---
 	basePath := "paths|/" + Hostname + ":443/unnamed-web-path-arguments/{path1}/foo/{path2}/bar/{path3+}|get|"
 	assert.Equal(t, "path1", openAPIValue(basePath+"parameters|0|name"))
 	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
@@ -421,11 +533,14 @@ func TestTester_SumTwoIntegers(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	SumTwoIntegers(t, ctx, 5, 6).
 		Expect(11, http.StatusAccepted)
 	SumTwoIntegers(t, ctx, 5, -6).
 		Expect(-1, http.StatusNotAcceptable)
 
+	// --- Requests ---
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/sum-two-integers?x=73&y=83"))
 	if assert.NoError(t, err) {
 		// The status code is not returned in the body but only through the status code field of the response
@@ -448,6 +563,8 @@ func TestTester_Echo(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	Echo_Get(t, ctx, "?alpha=111&beta=222").
 		BodyContains("GET /").
 		BodyContains("alpha=111&beta=222").
@@ -459,6 +576,7 @@ func TestTester_Echo(t *testing.T) {
 		BodyContains("HEAVY PAYLOAD").
 		NoError()
 
+	// --- Requests ---
 	httpReq, _ := http.NewRequestWithContext(ctx, "PUT", "?alpha=111&beta=222", strings.NewReader("HEAVY PAYLOAD"))
 	httpReq.Header.Set("Content-Type", "text/plain")
 	Echo(t, httpReq).
@@ -487,11 +605,14 @@ func TestTester_PathArgumentsPriority(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	PathArgumentsPriority(t, ctx, "BAR").
 		Expect("BAR")
 	PathArgumentsPriority(t, ctx, "XYZ").
 		Expect("XYZ")
 
+	// --- Requests ---
 	// Argument in the path should take priority over that in the query
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/path-arguments-priority/BAR?foo=XYZ"))
 	if assert.NoError(t, err) {

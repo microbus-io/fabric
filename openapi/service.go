@@ -58,31 +58,6 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	resolveRefs := func(schema *jsonschema.Schema, endpoint string) {
-		// Resolve all $def references to the components section of the document
-		for pair := schema.Properties.Oldest(); pair != nil; pair = pair.Next() {
-			if strings.HasPrefix(pair.Value.Ref, "#/$defs/") {
-				// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
-				pair.Value.Ref = "#/components/schemas/" + endpoint + "_" + pair.Value.Ref[8:]
-			}
-		}
-
-		// Move $defs into the components section of the document
-		// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
-		for defKey, defSchema := range schema.Definitions {
-			// Resolve all nested $def references to the components section of the document
-			for pair := defSchema.Properties.Oldest(); pair != nil; pair = pair.Next() {
-				if strings.HasPrefix(pair.Value.Ref, "#/$defs/") {
-					// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
-					pair.Value.Ref = "#/components/schemas/" + endpoint + "_" + pair.Value.Ref[8:]
-				}
-			}
-			doc.Components.Schemas[endpoint+"_"+defKey] = defSchema
-		}
-		schema.Definitions = nil
-		schema.Version = "" // Avoid rendering the $schema property
-	}
-
 	for _, ep := range s.Endpoints {
 		var op *oapiOperation
 
@@ -156,12 +131,14 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			}
 
 			// OUT is JSON in the response body
-			schemaOut := schemaOfType(reflect.TypeOf(ep.OutputArgs))
+			var schemaOut *jsonschema.Schema
 			if field, ok := reflect.TypeOf(ep.OutputArgs).FieldByName("HTTPResponseBody"); ok {
 				// httpResponseBody argument overrides the response body and preempts all other return values
-				schemaOut = schemaOfType(field.Type)
+				schemaOut = jsonschema.ReflectFromType(field.Type)
+			} else {
+				schemaOut = jsonschema.Reflect(ep.OutputArgs)
 			}
-			resolveRefs(schemaOut, ep.Name+"_OUT")
+			resolveRefs(doc, schemaOut, ep.Name+"_OUT")
 			doc.Components.Schemas[ep.Name+"_OUT"] = schemaOut
 
 			// httpRequestBody argument overrides the request body and forces all other arguments to be in the query or path
@@ -169,8 +146,8 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 			if field, ok := reflect.TypeOf(ep.InputArgs).FieldByName("HTTPRequestBody"); ok {
 				httpRequestBodyExists = true  // Makes all other args query or path args
 				if methodHasBody(ep.Method) { // Only works if the method has a body
-					schemaIn := schemaOfType(field.Type)
-					resolveRefs(schemaIn, ep.Name+"_IN")
+					schemaIn := jsonschema.ReflectFromType(field.Type)
+					resolveRefs(doc, schemaIn, ep.Name+"_IN")
 					doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
 
 					op.RequestBody = &oapiRequestBody{
@@ -210,8 +187,8 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 						delete(pathArgs, name+"+")
 					}
 
-					fieldSchema := schemaOfType(field.Type)
-					resolveRefs(fieldSchema, ep.Name+"_IN")
+					fieldSchema := jsonschema.ReflectFromType(field.Type)
+					resolveRefs(doc, fieldSchema, ep.Name+"_IN")
 					if fieldSchema.Ref != "" {
 						// Non-primitive type
 						parameter.Schema = &jsonschema.Schema{
@@ -226,8 +203,8 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 				}
 			} else {
 				// IN is JSON in the request body
-				schemaIn := schemaOfType(reflect.TypeOf(ep.InputArgs))
-				resolveRefs(schemaIn, ep.Name+"_IN")
+				schemaIn := jsonschema.Reflect(ep.InputArgs)
+				resolveRefs(doc, schemaIn, ep.Name+"_IN")
 				doc.Components.Schemas[ep.Name+"_IN"] = schemaIn
 
 				op.RequestBody = &oapiRequestBody{
@@ -336,15 +313,22 @@ func fieldName(field reflect.StructField) string {
 	return name
 }
 
-// schemaOfType returns the JSON schema for the given Go type.
-func schemaOfType(t reflect.Type) *jsonschema.Schema {
-	// for t.Kind() == reflect.Pointer {
-	// 	t = t.Elem()
-	// }
-	schema := jsonschema.ReflectFromType(t)
-	for _, v := range schema.Definitions {
-		schema = v
-		break
+// resolveRefs recursively resolves all type references in the schema and moves them to the component section of the OpenAPI document.
+func resolveRefs(doc oapiDoc, schema *jsonschema.Schema, endpoint string) {
+	// Move $defs into the components section of the document
+	// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
+	for defKey, defSchema := range schema.Definitions {
+		doc.Components.Schemas[endpoint+"_"+defKey] = defSchema
+		// Recurse on nested schemas
+		resolveRefs(doc, defSchema, endpoint)
 	}
-	return schema
+	// Resolve all $def references to the components section of the document
+	for pair := schema.Properties.Oldest(); pair != nil; pair = pair.Next() {
+		if strings.HasPrefix(pair.Value.Ref, "#/$defs/") {
+			// #/$defs/ABC ===> #/components/schemas/ENDPOINT_ABC
+			pair.Value.Ref = "#/components/schemas/" + endpoint + "_" + pair.Value.Ref[8:]
+		}
+	}
+	schema.Definitions = nil
+	schema.Version = "" // Avoid rendering the $schema property
 }
