@@ -51,6 +51,7 @@ type Mock struct {
 	mockEcho func(w http.ResponseWriter, r *http.Request) (err error)
 	mockWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 	mockUnnamedWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
+	mockDirectoryServer func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -250,5 +251,20 @@ func (svc *Mock) UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request)
 		return errors.New("mocked endpoint 'UnnamedWebPathArguments' not implemented")
 	}
 	err = svc.mockUnnamedWebPathArguments(w, r)
+	return errors.Trace(err)
+}
+
+// MockDirectoryServer sets up a mock handler for the DirectoryServer endpoint.
+func (svc *Mock) MockDirectoryServer(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockDirectoryServer = handler
+	return svc
+}
+
+// DirectoryServer runs the mock handler set by MockDirectoryServer.
+func (svc *Mock) DirectoryServer(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockDirectoryServer == nil {
+		return errors.New("mocked endpoint 'DirectoryServer' not implemented")
+	}
+	err = svc.mockDirectoryServer(w, r)
 	return errors.Trace(err)
 }

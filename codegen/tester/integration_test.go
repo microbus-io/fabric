@@ -651,3 +651,24 @@ func TestTester_PathArgumentsPriority(t *testing.T) {
 		assert.NotContains(t, string(b), "XYZ")
 	}
 }
+
+func TestTester_DirectoryServer(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		DirectoryServer(t, ctx, "").BodyContains(value)
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		DirectoryServer_Do(t, httpReq).BodyContains(value)
+	*/
+
+	ctx := Context()
+	DirectoryServer(t, ctx, "1.txt").BodyContains("111")
+	DirectoryServer(t, ctx, "/directory-server/1.txt").BodyContains("111")
+	DirectoryServer(t, ctx, "https://"+Hostname+"/directory-server/1.txt").BodyContains("111")
+
+	DirectoryServer(t, ctx, "sub/2.txt").BodyContains("222")
+	DirectoryServer(t, ctx, "sub/3.txt").ErrorCode(http.StatusNotFound)
+
+	DirectoryServer(t, ctx, "../3.txt").ErrorCode(http.StatusNotFound)
+	DirectoryServer(t, ctx, "sub/../../3.txt").ErrorCode(http.StatusNotFound)
+}

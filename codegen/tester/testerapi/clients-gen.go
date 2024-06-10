@@ -62,6 +62,7 @@ var (
 	URLOfEcho = httpx.JoinHostAndPath(Hostname, `:443/echo`)
 	URLOfWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfUnnamedWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`)
+	URLOfDirectoryServer = httpx.JoinHostAndPath(Hostname, `:443/directory-server/{path+}`)
 )
 
 // Client is an interface to calling the endpoints of the codegen.test microservice.
@@ -484,6 +485,100 @@ func (_c *MulticastClient) UnnamedWebPathArguments_Do(ctx context.Context, r *ht
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfUnnamedWebPathArguments, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+}
+
+/*
+DirectoryServer tests service resources given a greedy path argument.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) DirectoryServer(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfDirectoryServer, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(`GET`), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+DirectoryServer tests service resources given a greedy path argument.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) DirectoryServer(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfDirectoryServer, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(`GET`), pub.URL(url))
+}
+
+/*
+DirectoryServer_Do performs a customized request to the DirectoryServer endpoint.
+
+DirectoryServer tests service resources given a greedy path argument.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) DirectoryServer_Do(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfDirectoryServer, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+DirectoryServer_Do performs a customized request to the DirectoryServer endpoint.
+
+DirectoryServer tests service resources given a greedy path argument.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) DirectoryServer_Do(ctx context.Context, r *http.Request) <-chan *pub.Response {
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfDirectoryServer, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -173,4 +174,20 @@ PathArgumentsPriority tests the priority of path arguments in functions.
 */
 func (svc *Service) PathArgumentsPriority(ctx context.Context, foo string) (echo string, err error) {
 	return foo, nil
+}
+
+/*
+DirectoryServer tests service resources given a greedy path argument.
+*/
+func (svc *Service) DirectoryServer(w http.ResponseWriter, r *http.Request) (err error) {
+	_, path, _ := strings.Cut(r.URL.Path, "/directory-server/")
+	path, _ = url.JoinPath("static", path)
+	if !strings.HasPrefix(path, "static/") {
+		return errors.Newc(http.StatusNotFound, "")
+	}
+	err = svc.ServeResFile(path, w, r)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }

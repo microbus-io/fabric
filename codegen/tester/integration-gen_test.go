@@ -2277,3 +2277,486 @@ func UnnamedWebPathArguments_Do(t *testing.T, r *http.Request) *UnnamedWebPathAr
 	tc.dur = time.Since(t0)
 	return tc
 }
+
+// DirectoryServerTestCase assists in asserting against the results of executing DirectoryServer.
+type DirectoryServerTestCase struct {
+	t *testing.T
+	dur time.Duration
+	res *http.Response
+	err error
+}
+
+// StatusOK asserts no error and a status code 200.
+func (tc *DirectoryServerTestCase) StatusOK() *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
+	return tc
+}
+
+// StatusCode asserts no error and a status code.
+func (tc *DirectoryServerTestCase) StatusCode(statusCode int) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
+	return tc
+}
+
+// BodyContains asserts no error and that the response body contains the string or byte array value.
+func (tc *DirectoryServerTestCase) BodyContains(value any) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := value.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
+		case string:
+			assert.Contains(tc.t, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.Contains(tc.t, string(body), vv)
+		}
+	}
+	return tc
+}
+
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
+func (tc *DirectoryServerTestCase) BodyNotContains(value any) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		switch v := value.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
+		case string:
+			assert.NotContains(tc.t, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.NotContains(tc.t, string(body), vv)
+		}
+	}
+	return tc
+}
+
+// HeaderContains asserts no error and that the named header contains the value.
+func (tc *DirectoryServerTestCase) HeaderContains(headerName string, value string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *DirectoryServerTestCase) HeaderNotContains(headerName string, value string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotContains(tc.t, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderEqual asserts no error and that the named header matches the value.
+func (tc *DirectoryServerTestCase) HeaderEqual(headerName string, value string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, value, tc.res.Header.Get(headerName))
+	}
+	return tc
+}
+
+// HeaderNotEqual asserts no error and that the named header does not matche the value.
+func (tc *DirectoryServerTestCase) HeaderNotEqual(headerName string, value string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotEqual(tc.t, value, tc.res.Header.Get(headerName))
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *DirectoryServerTestCase) HeaderExists(headerName string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotEmpty(tc.t, tc.res.Header.Values(headerName), "Header %s does not exist", headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header does not exists.
+func (tc *DirectoryServerTestCase) HeaderNotExists(headerName string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Empty(tc.t, tc.res.Header.Values(headerName), "Header %s exists", headerName)
+	}
+	return tc
+}
+
+// ContentType asserts no error and that the Content-Type header matches the expected value.
+func (tc *DirectoryServerTestCase) ContentType(expected string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, expected, tc.res.Header.Get("Content-Type"))
+	}
+	return tc
+}
+
+/*
+TagExists asserts no error and that the at least one tag matches the CSS selector query.
+
+Examples:
+
+	TagExists(`TR > TD > A.expandable[href]`)
+	TagExists(`DIV#main_panel`)
+	TagExists(`TR TD INPUT[name="x"]`)
+*/
+func (tc *DirectoryServerTestCase) TagExists(cssSelectorQuery string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		assert.NotEmpty(tc.t, matches, "Found no tags matching %s", cssSelectorQuery)
+	}
+	return tc
+}
+
+/*
+TagNotExists asserts no error and that the no tag matches the CSS selector query.
+
+Example:
+
+	TagNotExists(`TR > TD > A.expandable[href]`)
+	TagNotExists(`DIV#main_panel`)
+	TagNotExists(`TR TD INPUT[name="x"]`)
+*/
+func (tc *DirectoryServerTestCase) TagNotExists(cssSelectorQuery string) *DirectoryServerTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		assert.Empty(tc.t, matches, "Found %d tag(s) matching %s", len(matches), cssSelectorQuery)
+	}
+	return tc
+}
+
+/*
+TagEqual asserts no error and that the at least one of the tags matching the CSS selector query
+either contains the exact text itself or has a descendant that does.
+
+Example:
+
+	TagEqual("TR > TD > A.expandable[href]", "Expand")
+	TagEqual("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *DirectoryServerTestCase) TagEqual(cssSelectorQuery string, value string) *DirectoryServerTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if x.Data == value || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if !assert.NotEmpty(tc.t, matches, "Selector %s does not match any tags", cssSelectorQuery) {
+			return tc
+		}
+		if value == "" {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagContains asserts no error and that the at least one of the tags matching the CSS selector query
+either contains the text itself or has a descendant that does.
+
+Example:
+
+	TagContains("TR > TD > A.expandable[href]", "Expand")
+	TagContains("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *DirectoryServerTestCase) TagContains(cssSelectorQuery string, value string) *DirectoryServerTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if strings.Contains(x.Data, value) || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if !assert.NotEmpty(tc.t, matches, "Selector %s does not match any tags", cssSelectorQuery) {
+			return tc
+		}
+		if value == "" {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagNotEqual asserts no error and that there is no tag matching the CSS selector that
+either contains the exact text itself or has a descendant that does.
+
+Example:
+
+	TagNotEqual("TR > TD > A[href]", "Harry Potter")
+	TagNotEqual("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *DirectoryServerTestCase) TagNotEqual(cssSelectorQuery string, value string) *DirectoryServerTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if x.Data == value || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if len(matches) == 0 {
+			return tc
+		}
+		if !assert.NotEmpty(tc.t, value, "Found tag matching %s", cssSelectorQuery) {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagNotContains asserts no error and that there is no tag matching the CSS selector that
+either contains the text itself or has a descendant that does.
+
+Example:
+
+	TagNotContains("TR > TD > A[href]", "Harry Potter")
+	TagNotContains("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *DirectoryServerTestCase) TagNotContains(cssSelectorQuery string, value string) *DirectoryServerTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if strings.Contains(x.Data, value) || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if len(matches) == 0 {
+			return tc
+		}
+		if !assert.NotEmpty(tc.t, value, "Found tag matching %s", cssSelectorQuery) {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *DirectoryServerTestCase) Error(errContains string) *DirectoryServerTestCase {
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *DirectoryServerTestCase) ErrorCode(statusCode int) *DirectoryServerTestCase {
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *DirectoryServerTestCase) NoError() *DirectoryServerTestCase {
+	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *DirectoryServerTestCase) CompletedIn(threshold time.Duration) *DirectoryServerTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *DirectoryServerTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *DirectoryServerTestCase {
+	asserter(tc.t, tc.res, tc.err)
+	return tc
+}
+
+// Get returns the result of executing DirectoryServer.
+func (tc *DirectoryServerTestCase) Get() (res *http.Response, err error) {
+	return tc.res, tc.err
+}
+/*
+DirectoryServer tests service resources given a greedy path argument.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func DirectoryServer(t *testing.T, ctx context.Context, url string) *DirectoryServerTestCase {
+	tc := &DirectoryServerTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(testerapi.URLOfDirectoryServer, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := http.NewRequest(`GET`, url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	w := httpx.NewResponseRecorder()
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		return Svc.DirectoryServer(w, r)
+	})
+	tc.dur = time.Since(t0)
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+DirectoryServer_Do performs a customized request to the DirectoryServer endpoint.
+
+DirectoryServer tests service resources given a greedy path argument.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func DirectoryServer_Do(t *testing.T, r *http.Request) *DirectoryServerTestCase {
+	tc := &DirectoryServerTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	url, err := httpx.ResolveURL(testerapi.URLOfDirectoryServer, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	w := httpx.NewResponseRecorder()
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		return Svc.DirectoryServer(w, r)
+	})
+	tc.res = w.Result()
+	tc.dur = time.Since(t0)
+	return tc
+}

@@ -80,6 +80,7 @@ type ToDo interface {
 	Echo(w http.ResponseWriter, r *http.Request) (err error)
 	WebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 	UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
+	DirectoryServer(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -120,6 +121,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.impl.WebPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.impl.UnnamedWebPathArguments)
+	svc.Subscribe(`GET`, `:443/directory-server/{path+}`, svc.impl.DirectoryServer)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -335,6 +337,20 @@ An httpResponseBody argument prevents returning additional values, except for th
 			Path:        `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`,
 			Summary:     `UnnamedWebPathArguments()`,
 			Description: `UnnamedWebPathArguments tests path arguments that are not named.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `DirectoryServer`,
+			Method:      `GET`,
+			Path:        `:443/directory-server/{path+}`,
+			Summary:     `DirectoryServer()`,
+			Description: `DirectoryServer tests service resources given a greedy path argument.`,
 			InputArgs: struct {
 			}{},
 			OutputArgs: struct {
