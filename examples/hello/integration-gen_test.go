@@ -534,7 +534,7 @@ func Hello_Get(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -575,7 +575,7 @@ func Hello_Post(t *testing.T, ctx context.Context, url string, contentType strin
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -626,7 +626,7 @@ func Hello(t *testing.T, r *http.Request) *HelloTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1067,7 +1067,7 @@ func Echo_Get(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1108,7 +1108,7 @@ func Echo_Post(t *testing.T, ctx context.Context, url string, contentType string
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1159,7 +1159,7 @@ func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1600,7 +1600,7 @@ func Ping_Get(t *testing.T, ctx context.Context, url string) *PingTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1641,7 +1641,7 @@ func Ping_Post(t *testing.T, ctx context.Context, url string, contentType string
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1692,7 +1692,7 @@ func Ping(t *testing.T, r *http.Request) *PingTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2135,7 +2135,7 @@ func Calculator_Get(t *testing.T, ctx context.Context, url string) *CalculatorTe
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2178,7 +2178,7 @@ func Calculator_Post(t *testing.T, ctx context.Context, url string, contentType 
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2231,7 +2231,7 @@ func Calculator(t *testing.T, r *http.Request) *CalculatorTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2669,7 +2669,7 @@ func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2714,7 +2714,7 @@ func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3155,7 +3155,7 @@ func Localization_Get(t *testing.T, ctx context.Context, url string) *Localizati
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3196,7 +3196,7 @@ func Localization_Post(t *testing.T, ctx context.Context, url string, contentTyp
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3247,7 +3247,7 @@ func Localization(t *testing.T, r *http.Request) *LocalizationTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3688,7 +3688,7 @@ func Root_Get(t *testing.T, ctx context.Context, url string) *RootTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3729,7 +3729,7 @@ func Root_Post(t *testing.T, ctx context.Context, url string, contentType string
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3780,7 +3780,7 @@ func Root(t *testing.T, r *http.Request) *RootTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

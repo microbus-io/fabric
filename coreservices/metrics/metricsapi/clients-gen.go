@@ -115,7 +115,7 @@ func (_c *Client) Collect_Get(ctx context.Context, url string) (res *http.Respon
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -139,7 +139,7 @@ func (_c *MulticastClient) Collect_Get(ctx context.Context, url string) <-chan *
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -161,7 +161,7 @@ func (_c *Client) Collect_Post(ctx context.Context, url string, contentType stri
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -188,7 +188,7 @@ func (_c *MulticastClient) Collect_Post(ctx context.Context, url string, content
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -211,7 +211,7 @@ func (_c *Client) Collect(ctx context.Context, r *http.Request) (res *http.Respo
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -239,7 +239,7 @@ func (_c *MulticastClient) Collect(ctx context.Context, r *http.Request) <-chan 
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

@@ -36,7 +36,7 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	con := New("directory.subscription.connector")
 	con.Subscribe("GET", "directory/{appendix+}", func(w http.ResponseWriter, r *http.Request) error {
 		count++
-		appendix = r.URL.Query().Get("appendix")
+		_, appendix, _ = strings.Cut(r.URL.Path, "/directory/")
 		return nil
 	})
 
@@ -102,22 +102,25 @@ func TestConnector_PathArgumentsInSubscription(t *testing.T) {
 	con := New("path.arguments.in.subscription.connector")
 	con.Subscribe("GET", "/obj/{id}/alpha", func(w http.ResponseWriter, r *http.Request) error {
 		alphaCount++
-		detected[r.URL.Path] = r.URL.Query().Get("id")
+		parts := strings.Split(r.URL.Path, "/")
+		detected[r.URL.Path] = parts[2]
 		return nil
 	})
 	con.Subscribe("GET", "/obj/{id}/beta", func(w http.ResponseWriter, r *http.Request) error {
 		betaCount++
-		detected[r.URL.Path] = r.URL.Query().Get("id")
+		parts := strings.Split(r.URL.Path, "/")
+		detected[r.URL.Path] = parts[2]
 		return nil
 	})
 	con.Subscribe("GET", "/obj/{id}", func(w http.ResponseWriter, r *http.Request) error {
 		rootCount++
-		detected[r.URL.Path] = r.URL.Query().Get("id")
+		parts := strings.Split(r.URL.Path, "/")
+		detected[r.URL.Path] = parts[2]
 		return nil
 	})
 	con.Subscribe("GET", "/obj", func(w http.ResponseWriter, r *http.Request) error {
 		parentCount++
-		detected[r.URL.Path] = r.URL.Query().Get("id")
+		detected[r.URL.Path] = ""
 		return nil
 	})
 
@@ -674,8 +677,9 @@ func TestConnector_PathArguments(t *testing.T) {
 	var bar string
 	con := New("path.arguments.connector")
 	con.Subscribe("ANY", "/foo/{foo}/bar/{bar}", func(w http.ResponseWriter, r *http.Request) error {
-		foo = r.URL.Query().Get("foo")
-		bar = r.URL.Query().Get("bar")
+		parts := strings.Split(r.URL.Path, "/")
+		foo = parts[2]
+		bar = parts[4]
 		return nil
 	})
 
@@ -684,29 +688,22 @@ func TestConnector_PathArguments(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	// Values provided in path should win over those in the query
-	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO1/bar/BAR1?foo=x&bar=x"))
-	assert.NoError(t, err)
-	assert.Equal(t, "FOO1", foo)
-	assert.Equal(t, "BAR1", bar)
-
-	// If no values are given in the path, take from the query
-	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/{foo}/bar/{bar}?foo=FOO2&bar=BAR2"))
-	assert.NoError(t, err)
-	assert.Equal(t, "FOO2", foo)
-	assert.Equal(t, "BAR2", bar)
-
-	// If no values are given at all, assume empty
+	// Values provided in path should be delivered
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO1/bar/BAR1"))
+	if assert.NoError(t, err) {
+		assert.Equal(t, "FOO1", foo)
+		assert.Equal(t, "BAR1", bar)
+	}
 	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/{foo}/bar/{bar}"))
-	assert.NoError(t, err)
-	assert.Equal(t, "", foo)
-	assert.Equal(t, "", bar)
-
-	// To be considered empty, must match subscription path exactly
-	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/{FOO}/bar/{BAR}"))
-	assert.NoError(t, err)
-	assert.Equal(t, "{FOO}", foo)
-	assert.Equal(t, "{BAR}", bar)
+	if assert.NoError(t, err) {
+		assert.Equal(t, "{foo}", foo)
+		assert.Equal(t, "{bar}", bar)
+	}
+	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo//bar/BAR2"))
+	if assert.NoError(t, err) {
+		assert.Equal(t, "", foo)
+		assert.Equal(t, "BAR2", bar)
+	}
 }
 
 func TestConnector_InvalidPathArguments(t *testing.T) {

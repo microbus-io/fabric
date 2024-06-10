@@ -155,6 +155,16 @@ func (svc *Intermediate) doRegister(w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/register`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/register`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Allowed, err = svc.impl.Register(
 		r.Context(),
 		i.Email,

@@ -347,7 +347,7 @@ func TestTester_SubArrayRange(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Shutdown()
 
-	res, err := Svc.Request(ctx, pub.POST("https://sub-array-range.mock/sub-array-range/4?min=2"), pub.Body("[1,2,3,4,5]"), pub.ContentType("application/json"))
+	res, err := Svc.Request(ctx, pub.POST("https://"+mock.Hostname()+"/sub-array-range/4?min=2"), pub.Body("[1,2,3,4,5]"), pub.ContentType("application/json"))
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusAccepted, res.StatusCode)
 		var httpResponseBody []int

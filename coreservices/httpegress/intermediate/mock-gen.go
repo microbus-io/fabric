@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
@@ -27,6 +28,7 @@ var (
 	_ context.Context
 	_ *json.Decoder
 	_ *http.Request
+	_ strings.Builder
 	_ time.Duration
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder

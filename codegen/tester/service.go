@@ -127,10 +127,10 @@ func (svc *Service) UnnamedFunctionPathArguments(ctx context.Context, path1 stri
 UnnamedWebPathArguments tests path arguments that are not named.
 */
 func (svc *Service) UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error) {
-	q := r.URL.Query()
-	path1 := q.Get("path1")
-	path2 := q.Get("path2")
-	path3 := q.Get("path3")
+	parts := strings.Split(r.URL.Path, "/")
+	path1 := parts[2]
+	path2 := parts[4]
+	path3 := strings.Join(parts[6:], "/")
 	w.Write([]byte(fmt.Sprintf("%v %v %v", path1, path2, path3)))
 	return nil
 }

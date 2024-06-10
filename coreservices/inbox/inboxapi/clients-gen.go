@@ -161,7 +161,7 @@ OnInboxSaveMail is triggered when a new email message is received.
 */
 func (_c *MulticastTrigger) OnInboxSaveMail(ctx context.Context, mailMessage *Email) <-chan *OnInboxSaveMailResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:417/on-inbox-save-mail`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`mailMessage`: mailMessage,
 	})
 	_in := OnInboxSaveMailIn{

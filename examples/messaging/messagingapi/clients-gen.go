@@ -119,7 +119,7 @@ func (_c *Client) Home_Get(ctx context.Context, url string) (res *http.Response,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -143,7 +143,7 @@ func (_c *MulticastClient) Home_Get(ctx context.Context, url string) <-chan *pub
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -165,7 +165,7 @@ func (_c *Client) Home_Post(ctx context.Context, url string, contentType string,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -192,7 +192,7 @@ func (_c *MulticastClient) Home_Post(ctx context.Context, url string, contentTyp
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -215,7 +215,7 @@ func (_c *Client) Home(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -243,7 +243,7 @@ func (_c *MulticastClient) Home(ctx context.Context, r *http.Request) <-chan *pu
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -264,7 +264,7 @@ func (_c *Client) NoQueue_Get(ctx context.Context, url string) (res *http.Respon
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -290,7 +290,7 @@ func (_c *MulticastClient) NoQueue_Get(ctx context.Context, url string) <-chan *
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -314,7 +314,7 @@ func (_c *Client) NoQueue_Post(ctx context.Context, url string, contentType stri
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -343,7 +343,7 @@ func (_c *MulticastClient) NoQueue_Post(ctx context.Context, url string, content
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -368,7 +368,7 @@ func (_c *Client) NoQueue(ctx context.Context, r *http.Request) (res *http.Respo
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -398,7 +398,7 @@ func (_c *MulticastClient) NoQueue(ctx context.Context, r *http.Request) <-chan 
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -419,7 +419,7 @@ func (_c *Client) DefaultQueue_Get(ctx context.Context, url string) (res *http.R
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -445,7 +445,7 @@ func (_c *MulticastClient) DefaultQueue_Get(ctx context.Context, url string) <-c
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -469,7 +469,7 @@ func (_c *Client) DefaultQueue_Post(ctx context.Context, url string, contentType
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -498,7 +498,7 @@ func (_c *MulticastClient) DefaultQueue_Post(ctx context.Context, url string, co
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -523,7 +523,7 @@ func (_c *Client) DefaultQueue(ctx context.Context, r *http.Request) (res *http.
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -553,7 +553,7 @@ func (_c *MulticastClient) DefaultQueue(ctx context.Context, r *http.Request) <-
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -572,7 +572,7 @@ func (_c *Client) CacheLoad_Get(ctx context.Context, url string) (res *http.Resp
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -596,7 +596,7 @@ func (_c *MulticastClient) CacheLoad_Get(ctx context.Context, url string) <-chan
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -618,7 +618,7 @@ func (_c *Client) CacheLoad_Post(ctx context.Context, url string, contentType st
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -645,7 +645,7 @@ func (_c *MulticastClient) CacheLoad_Post(ctx context.Context, url string, conte
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -668,7 +668,7 @@ func (_c *Client) CacheLoad(ctx context.Context, r *http.Request) (res *http.Res
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -696,7 +696,7 @@ func (_c *MulticastClient) CacheLoad(ctx context.Context, r *http.Request) <-cha
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -715,7 +715,7 @@ func (_c *Client) CacheStore_Get(ctx context.Context, url string) (res *http.Res
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -739,7 +739,7 @@ func (_c *MulticastClient) CacheStore_Get(ctx context.Context, url string) <-cha
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -761,7 +761,7 @@ func (_c *Client) CacheStore_Post(ctx context.Context, url string, contentType s
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -788,7 +788,7 @@ func (_c *MulticastClient) CacheStore_Post(ctx context.Context, url string, cont
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -811,7 +811,7 @@ func (_c *Client) CacheStore(ctx context.Context, r *http.Request) (res *http.Re
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -839,7 +839,7 @@ func (_c *MulticastClient) CacheStore(ctx context.Context, r *http.Request) <-ch
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

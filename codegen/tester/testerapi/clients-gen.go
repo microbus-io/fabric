@@ -126,7 +126,7 @@ func (_c *Client) Echo_Get(ctx context.Context, url string) (res *http.Response,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -150,7 +150,7 @@ func (_c *MulticastClient) Echo_Get(ctx context.Context, url string) <-chan *pub
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -172,7 +172,7 @@ func (_c *Client) Echo_Post(ctx context.Context, url string, contentType string,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -199,7 +199,7 @@ func (_c *MulticastClient) Echo_Post(ctx context.Context, url string, contentTyp
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -222,7 +222,7 @@ func (_c *Client) Echo(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -250,7 +250,7 @@ func (_c *MulticastClient) Echo(ctx context.Context, r *http.Request) <-chan *pu
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -269,7 +269,7 @@ func (_c *Client) WebPathArguments_Get(ctx context.Context, url string) (res *ht
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -293,7 +293,7 @@ func (_c *MulticastClient) WebPathArguments_Get(ctx context.Context, url string)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -315,7 +315,7 @@ func (_c *Client) WebPathArguments_Post(ctx context.Context, url string, content
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -342,7 +342,7 @@ func (_c *MulticastClient) WebPathArguments_Post(ctx context.Context, url string
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -365,7 +365,7 @@ func (_c *Client) WebPathArguments(ctx context.Context, r *http.Request) (res *h
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -393,7 +393,7 @@ func (_c *MulticastClient) WebPathArguments(ctx context.Context, r *http.Request
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -410,7 +410,7 @@ func (_c *Client) UnnamedWebPathArguments(ctx context.Context, url string) (res 
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -432,7 +432,7 @@ func (_c *MulticastClient) UnnamedWebPathArguments(ctx context.Context, url stri
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -457,7 +457,7 @@ func (_c *Client) UnnamedWebPathArguments_Do(ctx context.Context, r *http.Reques
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -487,7 +487,7 @@ func (_c *MulticastClient) UnnamedWebPathArguments_Do(ctx context.Context, r *ht
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -528,7 +528,7 @@ StringCut tests a standard function that takes multiple input arguments and retu
 */
 func (_c *MulticastClient) StringCut(ctx context.Context, s string, sep string) <-chan *StringCutResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/string-cut`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`s`: s,
 		`sep`: sep,
 	})
@@ -571,7 +571,7 @@ StringCut tests a standard function that takes multiple input arguments and retu
 func (_c *Client) StringCut(ctx context.Context, s string, sep string) (before string, after string, found bool, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/string-cut`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`s`: s,
 		`sep`: sep,
 	})
@@ -634,7 +634,7 @@ PointDistance tests passing non-primitive types via query arguments.
 */
 func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord) <-chan *PointDistanceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/point-distance`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`p1`: p1,
 		`p2`: p2,
 	})
@@ -683,7 +683,7 @@ PointDistance tests passing non-primitive types via query arguments.
 func (_c *Client) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord) (d float64, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/point-distance`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`p1`: p1,
 		`p2`: p2,
 	})
@@ -749,7 +749,7 @@ ShiftPoint tests passing pointers to non-primitive types.
 */
 func (_c *MulticastClient) ShiftPoint(ctx context.Context, p *XYCoord, x float64, y float64) <-chan *ShiftPointResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/shift-point`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`p`: p,
 		`x`: x,
 		`y`: y,
@@ -794,7 +794,7 @@ ShiftPoint tests passing pointers to non-primitive types.
 func (_c *Client) ShiftPoint(ctx context.Context, p *XYCoord, x float64, y float64) (shifted *XYCoord, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/shift-point`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`p`: p,
 		`x`: x,
 		`y`: y,
@@ -862,7 +862,7 @@ An httpResponseBody argument prevents returning additional values, except for th
 */
 func (_c *MulticastClient) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) <-chan *SubArrayRangeResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sub-array-range/{max}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`min`: min,
 		`max`: max,
 	})
@@ -915,7 +915,7 @@ An httpResponseBody argument prevents returning additional values, except for th
 func (_c *Client) SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sub-array-range/{max}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`min`: min,
 		`max`: max,
 	})
@@ -985,7 +985,7 @@ SumTwoIntegers tests returning a status code from a function.
 */
 func (_c *MulticastClient) SumTwoIntegers(ctx context.Context, x int, y int) <-chan *SumTwoIntegersResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sum-two-integers`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`x`: x,
 		`y`: y,
 	})
@@ -1029,7 +1029,7 @@ SumTwoIntegers tests returning a status code from a function.
 func (_c *Client) SumTwoIntegers(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sum-two-integers`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`x`: x,
 		`y`: y,
 	})
@@ -1093,7 +1093,7 @@ FunctionPathArguments tests path arguments in functions.
 */
 func (_c *MulticastClient) FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) <-chan *FunctionPathArgumentsResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`named`: named,
 		`path2`: path2,
 		`suffix`: suffix,
@@ -1144,7 +1144,7 @@ FunctionPathArguments tests path arguments in functions.
 func (_c *Client) FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`named`: named,
 		`path2`: path2,
 		`suffix`: suffix,
@@ -1212,7 +1212,7 @@ NonStringPathArguments tests path arguments that are not strings.
 */
 func (_c *MulticastClient) NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) <-chan *NonStringPathArgumentsResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`named`: named,
 		`path2`: path2,
 		`suffix`: suffix,
@@ -1263,7 +1263,7 @@ NonStringPathArguments tests path arguments that are not strings.
 func (_c *Client) NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`named`: named,
 		`path2`: path2,
 		`suffix`: suffix,
@@ -1331,7 +1331,7 @@ UnnamedFunctionPathArguments tests path arguments that are not named.
 */
 func (_c *MulticastClient) UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) <-chan *UnnamedFunctionPathArgumentsResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`path1`: path1,
 		`path2`: path2,
 		`path3`: path3,
@@ -1382,7 +1382,7 @@ UnnamedFunctionPathArguments tests path arguments that are not named.
 func (_c *Client) UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`path1`: path1,
 		`path2`: path2,
 		`path3`: path3,
@@ -1448,7 +1448,7 @@ PathArgumentsPriority tests the priority of path arguments in functions.
 */
 func (_c *MulticastClient) PathArgumentsPriority(ctx context.Context, foo string) <-chan *PathArgumentsPriorityResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/path-arguments-priority/{foo}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`foo`: foo,
 	})
 	_in := PathArgumentsPriorityIn{
@@ -1489,7 +1489,7 @@ PathArgumentsPriority tests the priority of path arguments in functions.
 func (_c *Client) PathArgumentsPriority(ctx context.Context, foo string) (echo string, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/path-arguments-priority/{foo}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`foo`: foo,
 	})
 	_in := PathArgumentsPriorityIn{

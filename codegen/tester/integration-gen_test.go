@@ -1145,7 +1145,7 @@ func Echo_Get(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1186,7 +1186,7 @@ func Echo_Post(t *testing.T, ctx context.Context, url string, contentType string
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1237,7 +1237,7 @@ func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1678,7 +1678,7 @@ func WebPathArguments_Get(t *testing.T, ctx context.Context, url string) *WebPat
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1719,7 +1719,7 @@ func WebPathArguments_Post(t *testing.T, ctx context.Context, url string, conten
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1770,7 +1770,7 @@ func WebPathArguments(t *testing.T, r *http.Request) *WebPathArgumentsTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2208,7 +2208,7 @@ func UnnamedWebPathArguments(t *testing.T, ctx context.Context, url string) *Unn
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2253,7 +2253,7 @@ func UnnamedWebPathArguments_Do(t *testing.T, r *http.Request) *UnnamedWebPathAr
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

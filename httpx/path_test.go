@@ -63,7 +63,7 @@ func TestHttpx_ParseURLInvalid(t *testing.T) {
 	}
 }
 
-func TestHttpx_ResolvePathArguments(t *testing.T) {
+func TestHttpx_FillPathArguments(t *testing.T) {
 	testCases := []string{
 		"https://example.com/article/{user}/comment/{comment}?user=123&comment=456", "https://example.com/article/123/comment/456",
 		"https://example.com/article/{user}/comment/{comment}?user=123&comment=456&x=789", "https://example.com/article/123/comment/456?x=789",
@@ -73,7 +73,7 @@ func TestHttpx_ResolvePathArguments(t *testing.T) {
 		"https://example.com/fixed/{named}/{suffix+}?named=" + url.QueryEscape("[a&b/c]") + "&suffix=" + url.QueryEscape("[d&e/f]"), "https://example.com/fixed/" + url.PathEscape("[a&b/c]") + "/" + url.PathEscape("[d&e") + "/" + url.PathEscape("f]"),
 	}
 	for i := 0; i < len(testCases); i += 2 {
-		resolved, err := ResolvePathArguments(testCases[i])
+		resolved, err := FillPathArguments(testCases[i])
 		if assert.NoError(t, err) {
 			assert.Equal(t, testCases[i+1], resolved)
 		}

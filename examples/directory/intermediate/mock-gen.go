@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
@@ -27,6 +28,7 @@ var (
 	_ context.Context
 	_ *json.Decoder
 	_ *http.Request
+	_ strings.Builder
 	_ time.Duration
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
@@ -92,6 +94,20 @@ func (svc *Mock) doCreate(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/persons`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Key, err = svc.mockCreate(
 		r.Context(),
 		i.HTTPRequestBody,
@@ -125,6 +141,20 @@ func (svc *Mock) doLoad(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/persons/key/{key}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.HTTPResponseBody, err = svc.mockLoad(
 		r.Context(),
 		i.Key,
@@ -157,6 +187,20 @@ func (svc *Mock) doDelete(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/persons/key/{key}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	err = svc.mockDelete(
 		r.Context(),
@@ -195,6 +239,20 @@ func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/persons/key/{key}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	err = svc.mockUpdate(
 		r.Context(),
 		i.Key,
@@ -229,6 +287,20 @@ func (svc *Mock) doLoadByEmail(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons/email/{email}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/persons/email/{email}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.HTTPResponseBody, err = svc.mockLoadByEmail(
 		r.Context(),
 		i.Email,
@@ -261,6 +333,20 @@ func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/persons`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/persons`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.HTTPResponseBody, err = svc.mockList(
 		r.Context(),

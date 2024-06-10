@@ -36,7 +36,7 @@ func (_c *Multicast
 {{- if eq .Type "function" }}Client{{ else }}Trigger{{ end -}}
 ) {{ .Name }}({{ .In }}) <-chan *{{ .Name }}Response {
 	_url := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		{{- range .Signature.InputArgs }}{{- if ne .Name "httpRequestBody" }}
 		`{{ .Name }}`: {{ .Name }},
 		{{- end }}{{ end }}
@@ -106,7 +106,7 @@ func (_c *Multicast
 func (_c *Client) {{ .Name }}({{ .In }}) ({{ .Out }}) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `{{ .Path }}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		{{- range .Signature.InputArgs }}{{- if ne .Name "httpRequestBody" }}
 		`{{ .Name }}`: {{ .Name }},
 		{{- end }}{{ end }}

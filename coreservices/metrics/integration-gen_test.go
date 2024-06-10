@@ -534,7 +534,7 @@ func Collect_Get(t *testing.T, ctx context.Context, url string) *CollectTestCase
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -575,7 +575,7 @@ func Collect_Post(t *testing.T, ctx context.Context, url string, contentType str
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -626,7 +626,7 @@ func Collect(t *testing.T, r *http.Request) *CollectTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

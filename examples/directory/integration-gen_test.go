@@ -930,7 +930,7 @@ func WebUI_Get(t *testing.T, ctx context.Context, url string) *WebUITestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -971,7 +971,7 @@ func WebUI_Post(t *testing.T, ctx context.Context, url string, contentType strin
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1022,7 +1022,7 @@ func WebUI(t *testing.T, r *http.Request) *WebUITestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

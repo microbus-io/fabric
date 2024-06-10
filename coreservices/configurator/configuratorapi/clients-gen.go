@@ -126,7 +126,7 @@ Values returns the values associated with the specified config property names fo
 */
 func (_c *MulticastClient) Values(ctx context.Context, names []string) <-chan *ValuesResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/values`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`names`: names,
 	})
 	_in := ValuesIn{
@@ -167,7 +167,7 @@ Values returns the values associated with the specified config property names fo
 func (_c *Client) Values(ctx context.Context, names []string) (values map[string]string, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/values`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`names`: names,
 	})
 	_in := ValuesIn{
@@ -223,7 +223,7 @@ An error is returned if any of the values sent to the microservices fails valida
 */
 func (_c *MulticastClient) Refresh(ctx context.Context) <-chan *RefreshResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/refresh`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := RefreshIn{
 	}
@@ -263,7 +263,7 @@ An error is returned if any of the values sent to the microservices fails valida
 func (_c *Client) Refresh(ctx context.Context) (err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/refresh`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := RefreshIn{
 	}
@@ -317,7 +317,7 @@ Sync is used to synchronize values among replica peers of the configurator.
 */
 func (_c *MulticastClient) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) <-chan *SyncResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sync`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`timestamp`: timestamp,
 		`values`: values,
 	})
@@ -360,7 +360,7 @@ Sync is used to synchronize values among replica peers of the configurator.
 func (_c *Client) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/sync`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`timestamp`: timestamp,
 		`values`: values,
 	})

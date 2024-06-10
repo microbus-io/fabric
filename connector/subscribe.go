@@ -14,9 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -309,44 +307,6 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	if httpReq == nil {
 		// Not all fragments arrived yet
 		return nil
-	}
-
-	// Convert path arguments into query arguments so they are accessible by name
-	reqParts := strings.Split(httpReq.URL.Path, "/")
-	subParts := strings.Split(s.Path, "/")
-	var query url.Values
-	argIndex := 0
-	for i := range subParts {
-		if i >= len(reqParts) {
-			break
-		}
-		if !strings.HasPrefix(subParts[i], "{") || !strings.HasSuffix(subParts[i], "}") {
-			continue
-		}
-		argIndex++
-		if reqParts[i] == subParts[i] {
-			// No value provided in path
-			continue
-		}
-		if query == nil {
-			query = httpReq.URL.Query()
-		}
-		name := subParts[i]
-		name = strings.TrimPrefix(name, "{")
-		name = strings.TrimSuffix(name, "}")
-		name = strings.TrimSuffix(name, "+")
-		if name == "" {
-			name = fmt.Sprintf("path%d", argIndex)
-		}
-		// Capture path appendix, e.g. /directory/{filename+}
-		if i == len(subParts)-1 && strings.HasSuffix(subParts[i], "+}") {
-			query.Set(name, strings.Join(reqParts[i:], "/"))
-			break
-		}
-		query.Set(name, reqParts[i])
-	}
-	if query != nil {
-		httpReq.URL.RawQuery = query.Encode()
 	}
 
 	// OpenTelemetry: create a child span

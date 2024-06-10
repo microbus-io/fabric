@@ -164,7 +164,7 @@ Register attempts to register a new user.
 */
 func (_c *MulticastClient) Register(ctx context.Context, email string) <-chan *RegisterResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/register`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`email`: email,
 	})
 	_in := RegisterIn{
@@ -205,7 +205,7 @@ Register attempts to register a new user.
 func (_c *Client) Register(ctx context.Context, email string) (allowed bool, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/register`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`email`: email,
 	})
 	_in := RegisterIn{
@@ -264,7 +264,7 @@ Event sinks are given the opportunity to block the registration.
 */
 func (_c *MulticastTrigger) OnAllowRegister(ctx context.Context, email string) <-chan *OnAllowRegisterResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:417/on-allow-register`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`email`: email,
 	})
 	_in := OnAllowRegisterIn{
@@ -360,7 +360,7 @@ OnRegistered is called when a user is successfully registered.
 */
 func (_c *MulticastTrigger) OnRegistered(ctx context.Context, email string) <-chan *OnRegisteredResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:417/on-registered`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`email`: email,
 	})
 	_in := OnRegisteredIn{

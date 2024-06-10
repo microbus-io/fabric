@@ -148,6 +148,16 @@ func (svc *Intermediate) doValues(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/values`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/values`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Values, err = svc.impl.Values(
 		r.Context(),
 		i.Names,
@@ -175,6 +185,16 @@ func (svc *Intermediate) doRefresh(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/refresh`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/refresh`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	err = svc.impl.Refresh(
 		r.Context(),
 	)
@@ -200,6 +220,16 @@ func (svc *Intermediate) doSync(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/sync`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/sync`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	err = svc.impl.Sync(
 		r.Context(),

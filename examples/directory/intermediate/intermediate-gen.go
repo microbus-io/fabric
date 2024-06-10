@@ -289,6 +289,16 @@ func (svc *Intermediate) doCreate(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/persons`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Key, err = svc.impl.Create(
 		r.Context(),
 		i.HTTPRequestBody,
@@ -316,6 +326,16 @@ func (svc *Intermediate) doLoad(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/persons/key/{key}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.HTTPResponseBody, err = svc.impl.Load(
 		r.Context(),
 		i.Key,
@@ -342,6 +362,16 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/persons/key/{key}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	err = svc.impl.Delete(
 		r.Context(),
@@ -374,6 +404,16 @@ func (svc *Intermediate) doUpdate(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/persons/key/{key}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	err = svc.impl.Update(
 		r.Context(),
 		i.Key,
@@ -402,6 +442,16 @@ func (svc *Intermediate) doLoadByEmail(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/persons/email/{email}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/persons/email/{email}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.HTTPResponseBody, err = svc.impl.LoadByEmail(
 		r.Context(),
 		i.Email,
@@ -428,6 +478,16 @@ func (svc *Intermediate) doList(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/persons`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/persons`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.HTTPResponseBody, err = svc.impl.List(
 		r.Context(),

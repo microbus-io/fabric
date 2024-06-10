@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
@@ -27,6 +28,7 @@ var (
 	_ context.Context
 	_ *json.Decoder
 	_ *http.Request
+	_ strings.Builder
 	_ time.Duration
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
@@ -78,6 +80,20 @@ func (svc *Mock) doArithmetic(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/arithmetic`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/arithmetic`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.mockArithmetic(
 		r.Context(),
 		i.X,
@@ -113,6 +129,20 @@ func (svc *Mock) doSquare(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/square`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/square`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.XEcho, o.Result, err = svc.mockSquare(
 		r.Context(),
 		i.X,
@@ -145,6 +175,20 @@ func (svc *Mock) doDistance(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/distance`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/distance`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.D, err = svc.mockDistance(
 		r.Context(),

@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
@@ -27,6 +28,7 @@ var (
 	_ context.Context
 	_ *json.Decoder
 	_ *http.Request
+	_ strings.Builder
 	_ time.Duration
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
@@ -98,6 +100,20 @@ func (svc *Mock) doStringCut(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/string-cut`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/string-cut`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Before, o.After, o.Found, err = svc.mockStringCut(
 		r.Context(),
 		i.S,
@@ -132,6 +148,20 @@ func (svc *Mock) doPointDistance(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/point-distance`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/point-distance`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.D, err = svc.mockPointDistance(
 		r.Context(),
 		i.P1,
@@ -165,6 +195,20 @@ func (svc *Mock) doShiftPoint(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/shift-point`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/shift-point`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.Shifted, err = svc.mockShiftPoint(
 		r.Context(),
@@ -205,6 +249,20 @@ func (svc *Mock) doSubArrayRange(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/sub-array-range/{max}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/sub-array-range/{max}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.HTTPResponseBody, o.HTTPStatusCode, err = svc.mockSubArrayRange(
 		r.Context(),
 		i.HTTPRequestBody,
@@ -241,6 +299,20 @@ func (svc *Mock) doSumTwoIntegers(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/sum-two-integers`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/sum-two-integers`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Sum, o.HTTPStatusCode, err = svc.mockSumTwoIntegers(
 		r.Context(),
 		i.X,
@@ -275,6 +347,20 @@ func (svc *Mock) doFunctionPathArguments(w http.ResponseWriter, r *http.Request)
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.Joined, err = svc.mockFunctionPathArguments(
 		r.Context(),
@@ -311,6 +397,20 @@ func (svc *Mock) doNonStringPathArguments(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Joined, err = svc.mockNonStringPathArguments(
 		r.Context(),
 		i.Named,
@@ -346,6 +446,20 @@ func (svc *Mock) doUnnamedFunctionPathArguments(w http.ResponseWriter, r *http.R
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Joined, err = svc.mockUnnamedFunctionPathArguments(
 		r.Context(),
 		i.Path1,
@@ -380,6 +494,20 @@ func (svc *Mock) doPathArgumentsPriority(w http.ResponseWriter, r *http.Request)
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/path-arguments-priority/{foo}`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:443/path-arguments-priority/{foo}`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.Echo, err = svc.mockPathArgumentsPriority(
 		r.Context(),

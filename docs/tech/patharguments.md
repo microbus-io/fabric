@@ -2,7 +2,7 @@
 
 ## Fixed Path
 
-In the typical case, endpoints of a microservice have fixed URLs in which they are reachable. Consider the following `service.yaml` specification.
+In the typical case, endpoints of a microservice have fixed URLs at which they are reachable. Consider the following `service.yaml` specification.
 
 ```yaml
 general:
@@ -29,9 +29,9 @@ Host: calculator.example
 
 ## Variable Path
 
-A fixed path is consistent with the RPC over JSON style of API but is insufficient for implementing a RESTful style of API where it is common to expect input arguments in the path of the request. This is where path arguments come into play.
+A fixed path is consistent with the [RPC over JSON](./rpcvsrest.md) style of API but is insufficient for implementing a [RESTful](./rpcvsrest.md) style of API where it is common to expect input arguments in the path of the request. This is where path arguments come into play.
 
-Consider the following `service.yaml` specification that defines a path argument `{id}` and a corresponding function argument `id`:
+Consider the following `service.yaml` specification that defines a path argument `{id}` and a corresponding function argument `id int`:
 
 ```yaml
 general:
@@ -44,7 +44,7 @@ functions:
     method: GET
 ```
 
-The `Load` endpoint is reachable at the internal `Microbus` wildcard URL of `https://article/{id}` where `{id}` is expected to be an `int`. The argument `id` of the function is unmarshaled from the second part of the path because it shares the same name as the path argument.
+The `Load` endpoint is now reachable at the internal `Microbus` wildcard URL of `https://article/{id}` where `{id}` is expected to be an `int`. The argument `id` of the function is unmarshaled from the second part of the path because it shares the same name as the path argument.
 
 ```http
 GET /1 HTTP/1.1
@@ -75,7 +75,7 @@ functions:
 
 ## Unnamed Arguments
 
-Path arguments that are left unnamed are automatically given the names `path1`, `path2` etc. in order of their definition. In the following example, the three unnamed path arguments are named `path1`, `path2` and `path3`. It is recommended to name path arguments and avoid this ambiguity.
+Path arguments that are left unnamed are automatically given the names `path1`, `path2` etc. in order of their appearance. In the following example, the three unnamed path arguments are named `path1`, `path2` and `path3`. It is recommended to name path arguments and avoid this ambiguity.
 
 ```yaml
 functions:
@@ -103,26 +103,23 @@ functions:
 
 ## Web Handlers
 
-Path arguments work also for web handlers where they are captured as query arguments of the same name. Consider the following example of a web handler:
+Path arguments work also for web handlers but they must be parsed manually from the request's path. Consider the following example of a web handler:
 
 ```yaml
 web:
   - signature: AvatarImage()
     description: AvatarImage serves the avatar image of the user.
-    path: /avatar/{uid}/{size}
+    path: /avatar/{uid}/{size}/{name+}
     method: GET
 ```
 
 ```go
 func (svc *Service) AvatarImage(w http.ResponseWriter, r *http.Request) (err error) {
-    // Path arguments are captured as query arguments of the same name
-    query := r.URL.Query()
-    uid := query.Get("uid")
-    size := query.Get("size")
-    // They can also be manually extracted from the path
-    parts := strings.Split(r.URL.Path, "/")
-    uid = parts[1]
-    size = parts[2]
+    // Path arguments must be manually extracted from the path
+    parts := strings.Split(r.URL.Path, "/") // ["", "avatar", "{uid}", "{size}", "{name}", "..."]
+    uid = parts[2]
+    size = parts[3]
+    name = strings.Join(parts[4:], "/")
 
     return serveImage(uid, size)
 }

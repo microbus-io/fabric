@@ -145,6 +145,16 @@ func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:888/ping`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:888/ping`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Pong, err = svc.impl.Ping(
 		r.Context(),
 	)
@@ -171,6 +181,16 @@ func (svc *Intermediate) doConfigRefresh(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:888/config-refresh`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:888/config-refresh`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	err = svc.impl.ConfigRefresh(
 		r.Context(),
 	)
@@ -196,6 +216,16 @@ func (svc *Intermediate) doTrace(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:888/trace`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:888/trace`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	err = svc.impl.Trace(
 		r.Context(),

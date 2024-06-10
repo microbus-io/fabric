@@ -121,7 +121,7 @@ func (_c *Client) WebUI_Get(ctx context.Context, url string) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -145,7 +145,7 @@ func (_c *MulticastClient) WebUI_Get(ctx context.Context, url string) <-chan *pu
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -167,7 +167,7 @@ func (_c *Client) WebUI_Post(ctx context.Context, url string, contentType string
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -194,7 +194,7 @@ func (_c *MulticastClient) WebUI_Post(ctx context.Context, url string, contentTy
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -217,7 +217,7 @@ func (_c *Client) WebUI(ctx context.Context, r *http.Request) (res *http.Respons
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -245,7 +245,7 @@ func (_c *MulticastClient) WebUI(ctx context.Context, r *http.Request) <-chan *p
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -281,7 +281,7 @@ Create registers the person in the directory.
 */
 func (_c *MulticastClient) Create(ctx context.Context, httpRequestBody *Person) <-chan *CreateResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := CreateIn{
 		httpRequestBody,
@@ -327,7 +327,7 @@ Create registers the person in the directory.
 func (_c *Client) Create(ctx context.Context, httpRequestBody *Person) (key PersonKey, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := CreateIn{
 		httpRequestBody,
@@ -388,7 +388,7 @@ Load looks up a person in the directory.
 */
 func (_c *MulticastClient) Load(ctx context.Context, key PersonKey) <-chan *LoadResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`key`: key,
 	})
 	_in := LoadIn{
@@ -435,7 +435,7 @@ Load looks up a person in the directory.
 func (_c *Client) Load(ctx context.Context, key PersonKey) (httpResponseBody *Person, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`key`: key,
 	})
 	_in := LoadIn{
@@ -495,7 +495,7 @@ Delete removes a person from the directory.
 */
 func (_c *MulticastClient) Delete(ctx context.Context, key PersonKey) <-chan *DeleteResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`key`: key,
 	})
 	_in := DeleteIn{
@@ -542,7 +542,7 @@ Delete removes a person from the directory.
 func (_c *Client) Delete(ctx context.Context, key PersonKey) (err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`key`: key,
 	})
 	_in := DeleteIn{
@@ -602,7 +602,7 @@ Update updates the person's data in the directory.
 */
 func (_c *MulticastClient) Update(ctx context.Context, key PersonKey, httpRequestBody *Person) <-chan *UpdateResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`key`: key,
 	})
 	_in := UpdateIn{
@@ -650,7 +650,7 @@ Update updates the person's data in the directory.
 func (_c *Client) Update(ctx context.Context, key PersonKey, httpRequestBody *Person) (err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/key/{key}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`key`: key,
 	})
 	_in := UpdateIn{
@@ -712,7 +712,7 @@ LoadByEmail looks up a person in the directory by their email.
 */
 func (_c *MulticastClient) LoadByEmail(ctx context.Context, email string) <-chan *LoadByEmailResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`email`: email,
 	})
 	_in := LoadByEmailIn{
@@ -759,7 +759,7 @@ LoadByEmail looks up a person in the directory by their email.
 func (_c *Client) LoadByEmail(ctx context.Context, email string) (httpResponseBody *Person, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons/email/{email}`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`email`: email,
 	})
 	_in := LoadByEmailIn{
@@ -820,7 +820,7 @@ List returns the keys of all the persons in the directory.
 */
 func (_c *MulticastClient) List(ctx context.Context) <-chan *ListResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := ListIn{
 	}
@@ -865,7 +865,7 @@ List returns the keys of all the persons in the directory.
 func (_c *Client) List(ctx context.Context) (httpResponseBody []PersonKey, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/persons`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := ListIn{
 	}

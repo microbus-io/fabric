@@ -123,7 +123,7 @@ Registered returns the list of registered users.
 */
 func (_c *MulticastClient) Registered(ctx context.Context) <-chan *RegisteredResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/registered`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := RegisteredIn{
 	}
@@ -162,7 +162,7 @@ Registered returns the list of registered users.
 func (_c *Client) Registered(ctx context.Context) (emails []string, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/registered`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := RegisteredIn{
 	}

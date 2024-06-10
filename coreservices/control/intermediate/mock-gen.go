@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
@@ -27,6 +28,7 @@ var (
 	_ context.Context
 	_ *json.Decoder
 	_ *http.Request
+	_ strings.Builder
 	_ time.Duration
 	_ *errors.TracedError
 	_ *httpx.ResponseRecorder
@@ -79,6 +81,20 @@ func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:888/ping`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:888/ping`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Pong, err = svc.mockPing(
 		r.Context(),
 	)
@@ -111,6 +127,20 @@ func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:888/config-refresh`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:888/config-refresh`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	err = svc.mockConfigRefresh(
 		r.Context(),
 	)
@@ -142,6 +172,20 @@ func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:888/trace`, "{}") {
+		spec := httpx.JoinHostAndPath("host", `:888/trace`)
+		_, spec, _ = strings.Cut(spec, "://")
+		_, spec, _ = strings.Cut(spec, "/")
+		spec = "/" + spec
+		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	err = svc.mockTrace(
 		r.Context(),

@@ -134,7 +134,7 @@ Arithmetic perform an arithmetic operation between two integers x and y given an
 */
 func (_c *MulticastClient) Arithmetic(ctx context.Context, x int, op string, y int) <-chan *ArithmeticResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`x`: x,
 		`op`: op,
 		`y`: y,
@@ -185,7 +185,7 @@ Arithmetic perform an arithmetic operation between two integers x and y given an
 func (_c *Client) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/arithmetic`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`x`: x,
 		`op`: op,
 		`y`: y,
@@ -256,7 +256,7 @@ Square prints the square of the integer x.
 */
 func (_c *MulticastClient) Square(ctx context.Context, x int) <-chan *SquareResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/square`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`x`: x,
 	})
 	_in := SquareIn{
@@ -303,7 +303,7 @@ Square prints the square of the integer x.
 func (_c *Client) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/square`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`x`: x,
 	})
 	_in := SquareIn{
@@ -368,7 +368,7 @@ It demonstrates the use of the defined type Point.
 */
 func (_c *MulticastClient) Distance(ctx context.Context, p1 Point, p2 Point) <-chan *DistanceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/distance`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`p1`: p1,
 		`p2`: p2,
 	})
@@ -412,7 +412,7 @@ It demonstrates the use of the defined type Point.
 func (_c *Client) Distance(ctx context.Context, p1 Point, p2 Point) (d float64, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:443/distance`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`p1`: p1,
 		`p2`: p2,
 	})

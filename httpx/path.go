@@ -86,10 +86,10 @@ func ParseURL(rawURL string) (canonical *url.URL, err error) {
 	return parsed, nil
 }
 
-// InjectPathArguments fills URL path arguments such as {arg} from the named value.
+// InsertPathArguments fills URL path arguments such as {arg} from the named value.
 // If the argument is not named, e.g. {}, then a default name of path1, path2, etc. is assumed.
-func InjectPathArguments(u string, values map[string]any) string {
-	if !strings.Contains(u, "{") || !strings.Contains(u, "}") {
+func InsertPathArguments(u string, values QArgs) string {
+	if !strings.ContainsAny(u, "{}") {
 		return u
 	}
 	parts := strings.Split(u, "/")
@@ -119,8 +119,8 @@ func InjectPathArguments(u string, values map[string]any) string {
 	return strings.Join(parts, "/")
 }
 
-// ResolvePathArguments transfers query arguments into path arguments, if present.
-func ResolvePathArguments(u string) (resolved string, err error) {
+// FillPathArguments transfers query arguments into path arguments, if present.
+func FillPathArguments(u string) (resolved string, err error) {
 	if !strings.Contains(u, "{") || !strings.Contains(u, "}") {
 		return u, nil
 	}
@@ -163,4 +163,59 @@ func ResolvePathArguments(u string) (resolved string, err error) {
 		u += "?" + query.Encode()
 	}
 	return u, nil
+}
+
+// ExtractPathArguments extracts path arguments from a URL or path given a spec such as /obj/{id}/{} that identified them.
+// Unnamed args are assigned the names path1, path2, etc.
+func ExtractPathArguments(spec string, path string) (args url.Values, err error) {
+	if !strings.ContainsAny(spec, "{}") {
+		return nil, nil
+	}
+	if _, after, cut := strings.Cut(spec, "://"); cut {
+		spec = after
+		if _, after, cut = strings.Cut(spec, "/"); cut {
+			spec = after
+			spec = "/" + spec
+		}
+	}
+	if _, after, cut := strings.Cut(path, "://"); cut {
+		path = after
+		if _, after, cut = strings.Cut(path, "/"); cut {
+			path = after
+			path = "/" + path
+		}
+	}
+	pathParts := strings.Split(path, "/")
+	specParts := strings.Split(spec, "/")
+	argIndex := 0
+	for i := range specParts {
+		if i >= len(pathParts) {
+			break
+		}
+		if !strings.HasPrefix(specParts[i], "{") || !strings.HasSuffix(specParts[i], "}") {
+			continue
+		}
+		argIndex++
+		if pathParts[i] == specParts[i] {
+			// No value provided in path
+			continue
+		}
+		if args == nil {
+			args = make(url.Values)
+		}
+		name := specParts[i]
+		name = strings.TrimPrefix(name, "{")
+		name = strings.TrimSuffix(name, "}")
+		name = strings.TrimSuffix(name, "+")
+		if name == "" {
+			name = fmt.Sprintf("path%d", argIndex)
+		}
+		// Capture path appendix, e.g. /directory/{filename+}
+		if i == len(specParts)-1 && strings.HasSuffix(specParts[i], "+}") {
+			args.Set(name, strings.Join(pathParts[i:], "/"))
+			break
+		}
+		args.Set(name, pathParts[i])
+	}
+	return args, nil
 }

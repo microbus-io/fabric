@@ -534,7 +534,7 @@ func Home_Get(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -575,7 +575,7 @@ func Home_Post(t *testing.T, ctx context.Context, url string, contentType string
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -626,7 +626,7 @@ func Home(t *testing.T, r *http.Request) *HomeTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1069,7 +1069,7 @@ func NoQueue_Get(t *testing.T, ctx context.Context, url string) *NoQueueTestCase
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1112,7 +1112,7 @@ func NoQueue_Post(t *testing.T, ctx context.Context, url string, contentType str
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1165,7 +1165,7 @@ func NoQueue(t *testing.T, r *http.Request) *NoQueueTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1608,7 +1608,7 @@ func DefaultQueue_Get(t *testing.T, ctx context.Context, url string) *DefaultQue
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1651,7 +1651,7 @@ func DefaultQueue_Post(t *testing.T, ctx context.Context, url string, contentTyp
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -1704,7 +1704,7 @@ func DefaultQueue(t *testing.T, r *http.Request) *DefaultQueueTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2145,7 +2145,7 @@ func CacheLoad_Get(t *testing.T, ctx context.Context, url string) *CacheLoadTest
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2186,7 +2186,7 @@ func CacheLoad_Post(t *testing.T, ctx context.Context, url string, contentType s
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2237,7 +2237,7 @@ func CacheLoad(t *testing.T, r *http.Request) *CacheLoadTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2678,7 +2678,7 @@ func CacheStore_Get(t *testing.T, ctx context.Context, url string) *CacheStoreTe
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2719,7 +2719,7 @@ func CacheStore_Post(t *testing.T, ctx context.Context, url string, contentType 
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -2770,7 +2770,7 @@ func CacheStore(t *testing.T, r *http.Request) *CacheStoreTestCase {
 		tc.err = errors.Trace(err)
 		return tc
 	}
-	url, err = httpx.ResolvePathArguments(url)
+	url, err = httpx.FillPathArguments(url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc

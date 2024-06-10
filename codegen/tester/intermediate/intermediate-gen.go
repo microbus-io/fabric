@@ -368,6 +368,16 @@ func (svc *Intermediate) doStringCut(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/string-cut`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/string-cut`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Before, o.After, o.Found, err = svc.impl.StringCut(
 		r.Context(),
 		i.S,
@@ -396,6 +406,16 @@ func (svc *Intermediate) doPointDistance(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/point-distance`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/point-distance`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.D, err = svc.impl.PointDistance(
 		r.Context(),
 		i.P1,
@@ -423,6 +443,16 @@ func (svc *Intermediate) doShiftPoint(w http.ResponseWriter, r *http.Request) er
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/shift-point`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/shift-point`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.Shifted, err = svc.impl.ShiftPoint(
 		r.Context(),
@@ -457,6 +487,16 @@ func (svc *Intermediate) doSubArrayRange(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/sub-array-range/{max}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/sub-array-range/{max}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.HTTPResponseBody, o.HTTPStatusCode, err = svc.impl.SubArrayRange(
 		r.Context(),
 		i.HTTPRequestBody,
@@ -487,6 +527,16 @@ func (svc *Intermediate) doSumTwoIntegers(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/sum-two-integers`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/sum-two-integers`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Sum, o.HTTPStatusCode, err = svc.impl.SumTwoIntegers(
 		r.Context(),
 		i.X,
@@ -515,6 +565,16 @@ func (svc *Intermediate) doFunctionPathArguments(w http.ResponseWriter, r *http.
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.Joined, err = svc.impl.FunctionPathArguments(
 		r.Context(),
@@ -545,6 +605,16 @@ func (svc *Intermediate) doNonStringPathArguments(w http.ResponseWriter, r *http
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Joined, err = svc.impl.NonStringPathArguments(
 		r.Context(),
 		i.Named,
@@ -574,6 +644,16 @@ func (svc *Intermediate) doUnnamedFunctionPathArguments(w http.ResponseWriter, r
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if strings.ContainsAny(`:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	o.Joined, err = svc.impl.UnnamedFunctionPathArguments(
 		r.Context(),
 		i.Path1,
@@ -602,6 +682,16 @@ func (svc *Intermediate) doPathArgumentsPriority(w http.ResponseWriter, r *http.
 	err := httpx.ParseRequestData(r, &i)
 	if err != nil {
 		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/path-arguments-priority/{foo}`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/path-arguments-priority/{foo}`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	o.Echo, err = svc.impl.PathArgumentsPriority(
 		r.Context(),

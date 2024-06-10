@@ -126,7 +126,7 @@ Ping responds to the message with a pong.
 */
 func (_c *MulticastClient) Ping(ctx context.Context) <-chan *PingResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:888/ping`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := PingIn{
 	}
@@ -165,7 +165,7 @@ Ping responds to the message with a pong.
 func (_c *Client) Ping(ctx context.Context) (pong int, err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:888/ping`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := PingIn{
 	}
@@ -218,7 +218,7 @@ ConfigRefresh pulls the latest config values from the configurator service.
 */
 func (_c *MulticastClient) ConfigRefresh(ctx context.Context) <-chan *ConfigRefreshResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := ConfigRefreshIn{
 	}
@@ -257,7 +257,7 @@ ConfigRefresh pulls the latest config values from the configurator service.
 func (_c *Client) ConfigRefresh(ctx context.Context) (err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:888/config-refresh`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 	})
 	_in := ConfigRefreshIn{
 	}
@@ -310,7 +310,7 @@ Trace forces exporting the indicated tracing span.
 */
 func (_c *MulticastClient) Trace(ctx context.Context, id string) <-chan *TraceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:888/trace`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`id`: id,
 	})
 	_in := TraceIn{
@@ -351,7 +351,7 @@ Trace forces exporting the indicated tracing span.
 func (_c *Client) Trace(ctx context.Context, id string) (err error) {
 	var _err error
 	_url := httpx.JoinHostAndPath(_c.host, `:888/trace`)
-	_url = httpx.InjectPathArguments(_url, map[string]any{
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
 		`id`: id,
 	})
 	_in := TraceIn{
