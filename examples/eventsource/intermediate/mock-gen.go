@@ -11,28 +11,20 @@ package intermediate
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/sub"
 
 	"github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
 )
 
 var (
 	_ context.Context
-	_ *json.Decoder
 	_ *http.Request
-	_ strings.Builder
 	_ time.Duration
 	_ *errors.TracedError
-	_ *httpx.ResponseRecorder
-	_ sub.Option
 	_ eventsourceapi.Client
 )
 
