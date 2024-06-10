@@ -2248,6 +2248,10 @@ func UnnamedWebPathArguments_Do(t *testing.T, r *http.Request) *UnnamedWebPathAr
 			return tc
 		}
 	}
+	if r.Method != `GET` {
+		tc.err = errors.Newc(http.StatusNotFound, "")
+		return tc
+	}
 	url, err := httpx.ResolveURL(testerapi.URLOfUnnamedWebPathArguments, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
@@ -2730,6 +2734,10 @@ func DirectoryServer_Do(t *testing.T, r *http.Request) *DirectoryServerTestCase 
 			tc.err = errors.Trace(err)
 			return tc
 		}
+	}
+	if r.Method != `GET` {
+		tc.err = errors.Newc(http.StatusNotFound, "")
+		return tc
 	}
 	url, err := httpx.ResolveURL(testerapi.URLOfDirectoryServer, r.URL.String())
 	if err != nil {

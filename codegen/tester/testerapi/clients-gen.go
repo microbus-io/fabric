@@ -62,7 +62,7 @@ var (
 	URLOfEcho = httpx.JoinHostAndPath(Hostname, `:443/echo`)
 	URLOfWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfUnnamedWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`)
-	URLOfDirectoryServer = httpx.JoinHostAndPath(Hostname, `:443/directory-server/{path+}`)
+	URLOfDirectoryServer = httpx.JoinHostAndPath(Hostname, `:443/directory-server/{filename+}`)
 )
 
 // Client is an interface to calling the endpoints of the codegen.test microservice.
@@ -454,6 +454,9 @@ func (_c *Client) UnnamedWebPathArguments_Do(ctx context.Context, r *http.Reques
 			return nil, errors.Trace(err)
 		}
 	}
+	if r.Method != `GET` {
+		return nil, errors.Newc(http.StatusNotFound, "")
+	}
 	url, err := httpx.ResolveURL(URLOfUnnamedWebPathArguments, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -483,6 +486,9 @@ func (_c *MulticastClient) UnnamedWebPathArguments_Do(ctx context.Context, r *ht
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
+	}
+	if r.Method != `GET` {
+		return _c.errChan(errors.Newc(http.StatusNotFound, ""))
 	}
 	url, err := httpx.ResolveURL(URLOfUnnamedWebPathArguments, r.URL.String())
 	if err != nil {
@@ -548,6 +554,9 @@ func (_c *Client) DirectoryServer_Do(ctx context.Context, r *http.Request) (res 
 			return nil, errors.Trace(err)
 		}
 	}
+	if r.Method != `GET` {
+		return nil, errors.Newc(http.StatusNotFound, "")
+	}
 	url, err := httpx.ResolveURL(URLOfDirectoryServer, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -577,6 +586,9 @@ func (_c *MulticastClient) DirectoryServer_Do(ctx context.Context, r *http.Reque
 		if err != nil {
 			return _c.errChan(errors.Trace(err))
 		}
+	}
+	if r.Method != `GET` {
+		return _c.errChan(errors.Newc(http.StatusNotFound, ""))
 	}
 	url, err := httpx.ResolveURL(URLOfDirectoryServer, r.URL.String())
 	if err != nil {

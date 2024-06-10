@@ -9,12 +9,12 @@ Neither may be used, copied or distributed without the express written consent o
 
 package eventsource
 
-const Version = 190
+const Version = 191
 const SourceCodeSHA256 = "806ed51a839dd49c9455a6d184328799a40dac631e0182c267d53350520e47cf"
-const Timestamp = "2024-06-10T01:44:42.555268Z"
+const Timestamp = "2024-06-10T02:44:19.522655Z"
 
 /* {
-	"ver": 190,
+	"ver": 191,
 	"sha256": "806ed51a839dd49c9455a6d184328799a40dac631e0182c267d53350520e47cf",
-	"ts": "2024-06-10T01:44:42.555268Z"
+	"ts": "2024-06-10T02:44:19.522655Z"
 } */

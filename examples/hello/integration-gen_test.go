@@ -2709,6 +2709,10 @@ func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 			return tc
 		}
 	}
+	if r.Method != `GET` {
+		tc.err = errors.Newc(http.StatusNotFound, "")
+		return tc
+	}
 	url, err := httpx.ResolveURL(helloapi.URLOfBusJPEG, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)

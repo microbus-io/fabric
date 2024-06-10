@@ -176,7 +176,7 @@ webs:
     method: GET
   - signature: DirectoryServer()
     description: DirectoryServer tests service resources given a greedy path argument.
-    path: /.../{path+}
+    path: /.../{filename+}
     method: GET
 
 # Tickers

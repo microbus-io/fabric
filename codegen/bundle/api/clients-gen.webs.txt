@@ -207,6 +207,11 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx context.C
 			return nil, errors.Trace(err)
 		}
 	}
+	{{- if ne .Method "ANY" }}
+	if r.Method != `{{ .Method }}` {
+		return nil, errors.Newc(http.StatusNotFound, "")
+	}
+	{{- end }}
 	url, err := httpx.ResolveURL(URLOf{{ .Name }}, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -239,6 +244,11 @@ func (_c *MulticastClient) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx 
 			return _c.errChan(errors.Trace(err))
 		}
 	}
+	{{- if ne .Method "ANY" }}
+	if r.Method != `{{ .Method }}` {
+		return _c.errChan(errors.Newc(http.StatusNotFound, ""))
+	}
+	{{- end }}
 	url, err := httpx.ResolveURL(URLOf{{ .Name }}, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))

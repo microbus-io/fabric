@@ -121,7 +121,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.impl.WebPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.impl.UnnamedWebPathArguments)
-	svc.Subscribe(`GET`, `:443/directory-server/{path+}`, svc.impl.DirectoryServer)
+	svc.Subscribe(`GET`, `:443/directory-server/{filename+}`, svc.impl.DirectoryServer)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -348,7 +348,7 @@ An httpResponseBody argument prevents returning additional values, except for th
 			Type:        `web`,
 			Name:        `DirectoryServer`,
 			Method:      `GET`,
-			Path:        `:443/directory-server/{path+}`,
+			Path:        `:443/directory-server/{filename+}`,
 			Summary:     `DirectoryServer()`,
 			Description: `DirectoryServer tests service resources given a greedy path argument.`,
 			InputArgs: struct {

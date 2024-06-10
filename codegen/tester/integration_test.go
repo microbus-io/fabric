@@ -174,6 +174,8 @@ func TestTester_PointDistance(t *testing.T) {
 		json.NewDecoder(res.Body).Decode(&out)
 		assert.Equal(t, 5.0, out.D)
 	}
+	_, err = Svc.Request(ctx, pub.POST("https://"+Hostname+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
+	assert.Error(t, err)
 
 	// --- Mock ---
 	mock := NewMock()
@@ -194,6 +196,8 @@ func TestTester_PointDistance(t *testing.T) {
 		json.NewDecoder(res.Body).Decode(&out)
 		assert.Equal(t, 5.0, out.D)
 	}
+	_, err = Svc.Request(ctx, pub.POST("https://"+mock.Hostname()+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
+	assert.Error(t, err)
 
 	// --- OpenAPI ---
 	basePath := "paths|/" + Hostname + ":443/point-distance|get|"
@@ -662,6 +666,8 @@ func TestTester_DirectoryServer(t *testing.T) {
 	*/
 
 	ctx := Context()
+
+	// --- Test cases ---
 	DirectoryServer(t, ctx, "1.txt").BodyContains("111")
 	DirectoryServer(t, ctx, "/directory-server/1.txt").BodyContains("111")
 	DirectoryServer(t, ctx, "https://"+Hostname+"/directory-server/1.txt").BodyContains("111")
@@ -671,4 +677,67 @@ func TestTester_DirectoryServer(t *testing.T) {
 
 	DirectoryServer(t, ctx, "../3.txt").ErrorCode(http.StatusNotFound)
 	DirectoryServer(t, ctx, "sub/../../3.txt").ErrorCode(http.StatusNotFound)
+
+	httpReq, _ := http.NewRequestWithContext(ctx, "GET", "1.txt", nil)
+	DirectoryServer_Do(t, httpReq).BodyContains("111")
+	httpReq, _ = http.NewRequestWithContext(ctx, "POST", "1.txt", strings.NewReader("Payload"))
+	DirectoryServer_Do(t, httpReq).ErrorCode(http.StatusNotFound)
+
+	// --- Client ---
+	res, err := testerapi.NewClient(Svc).DirectoryServer(ctx, "1.txt")
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "111")
+	}
+	res, err = testerapi.NewClient(Svc).DirectoryServer(ctx, "sub/2.txt")
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "222")
+	}
+	_, err = testerapi.NewClient(Svc).DirectoryServer(ctx, "../3.txt")
+	assert.Error(t, err)
+	httpReq, _ = http.NewRequestWithContext(ctx, "POST", "1.txt", strings.NewReader("Payload"))
+	_, err = testerapi.NewClient(Svc).DirectoryServer_Do(ctx, httpReq)
+	assert.Error(t, err)
+
+	// --- Requests ---
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/directory-server/1.txt"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "111")
+	}
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/directory-server/sub/2.txt"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "222")
+	}
+	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/directory-server/../3.txt"))
+	assert.Error(t, err)
+	_, err = Svc.Request(ctx, pub.POST("https://"+Hostname+"/directory-server/1.txt"))
+	assert.Error(t, err)
+
+	// --- Mock ---
+	mock := NewMock()
+	mock.SetHostname("directory-server.mock")
+	mock.MockDirectoryServer(func(w http.ResponseWriter, r *http.Request) (err error) {
+		w.Write([]byte("111"))
+		return nil
+	})
+	App.Join(mock)
+	err = mock.Startup()
+	assert.NoError(t, err)
+	defer mock.Shutdown()
+
+	res, err = Svc.Request(ctx, pub.GET("https://"+mock.Hostname()+"/directory-server/1.txt"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Contains(t, string(b), "111")
+	}
+	_, err = Svc.Request(ctx, pub.POST("https://"+mock.Hostname()+"/directory-server/1.txt"))
+	assert.Error(t, err)
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/directory-server/{filename+}|get|"
+	assert.Equal(t, "filename+", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
 }
