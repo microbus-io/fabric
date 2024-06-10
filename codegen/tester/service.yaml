@@ -65,12 +65,12 @@ configs:
 functions:
   # Typical arguments
   - signature: StringCut(s string, sep string) (before string, after string, found bool)
-    description: StringCut tests a standard function that takes multiple input arguments and returns multiple values.
+    description: StringCut tests a function that takes primitive input arguments and returns primitive values.
   - signature: PointDistance(p1 XYCoord, p2 *XYCoord) (d float64)
-    description: PointDistance tests passing non-primitive types via query arguments.
+    description: PointDistance tests a function that takes non-primitive input arguments.
     method: GET
   - signature: ShiftPoint(p *XYCoord, x float64, y float64) (shifted *XYCoord)
-    description: ShiftPoint tests passing pointers to non-primitive types.
+    description: ShiftPoint tests passing pointers of non-primitive types.
   - signature: LinesIntersection(l1 XYLine, l2 *XYLine) (b bool)
     description: LinesIntersection tests nested non-primitive types.
   # HTTP arguments

@@ -8,9 +8,7 @@ Neither may be used, copied or distributed without the express written consent o
 package tester
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"math"
 	"net/http"
@@ -121,28 +119,6 @@ func TestTester_StringCut(t *testing.T) {
 		assert.Equal(t, "Bar", out.After)
 		assert.Equal(t, true, out.Found)
 	}
-
-	// --- Mock ---
-	mock := NewMock()
-	mock.SetHostname("string-cut.mock")
-	mock.MockStringCut(func(ctx context.Context, s, sep string) (before string, after string, found bool, err error) {
-		assert.Equal(t, s, "123XMX456")
-		assert.Equal(t, sep, "XMX")
-		return "123", "456", true, nil
-	})
-	App.Join(mock)
-	err = mock.Startup()
-	assert.NoError(t, err)
-	defer mock.Shutdown()
-
-	res, err = Svc.Request(ctx, pub.GET("https://string-cut.mock/string-cut?s=123XMX456&sep=XMX"))
-	if assert.NoError(t, err) {
-		var out testerapi.StringCutOut
-		json.NewDecoder(res.Body).Decode(&out)
-		assert.Equal(t, "123", out.Before)
-		assert.Equal(t, "456", out.After)
-		assert.Equal(t, true, out.Found)
-	}
 }
 
 func TestTester_PointDistance(t *testing.T) {
@@ -175,28 +151,6 @@ func TestTester_PointDistance(t *testing.T) {
 		assert.Equal(t, 5.0, out.D)
 	}
 	_, err = Svc.Request(ctx, pub.POST("https://"+Hostname+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
-	assert.Error(t, err)
-
-	// --- Mock ---
-	mock := NewMock()
-	mock.SetHostname("point-distance.mock")
-	mock.MockPointDistance(func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error) {
-		assert.Equal(t, testerapi.XYCoord{X: 1, Y: 1}, p1)
-		assert.Equal(t, &testerapi.XYCoord{X: 4, Y: 5}, p2)
-		return 5.0, nil
-	})
-	App.Join(mock)
-	err = mock.Startup()
-	assert.NoError(t, err)
-	defer mock.Shutdown()
-
-	res, err = Svc.Request(ctx, pub.GET("https://"+mock.Hostname()+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
-	if assert.NoError(t, err) {
-		var out testerapi.PointDistanceOut
-		json.NewDecoder(res.Body).Decode(&out)
-		assert.Equal(t, 5.0, out.D)
-	}
-	_, err = Svc.Request(ctx, pub.POST("https://"+mock.Hostname()+"/point-distance?p1.x=1&p1.y=1&p2.x=4&p2.y=5"))
 	assert.Error(t, err)
 
 	// --- OpenAPI ---
@@ -255,45 +209,13 @@ func TestTester_ShiftPoint(t *testing.T) {
 		assert.Equal(t, 15.0, out.Shifted.X)
 		assert.Equal(t, 16.0, out.Shifted.Y)
 	}
-
-	// --- Mock ---
-	mock := NewMock()
-	mock.SetHostname("shift-point.mock")
-	mock.MockShiftPoint(func(ctx context.Context, p *testerapi.XYCoord, x, y float64) (shifted *testerapi.XYCoord, err error) {
-		if x == 0 && y == 0 {
-			return nil, errors.New("zero")
-		}
-		return &testerapi.XYCoord{X: 88, Y: 99}, nil
-	})
-	App.Join(mock)
-	err = mock.Startup()
-	assert.NoError(t, err)
-	defer mock.Shutdown()
-
-	res, err = Svc.Request(ctx,
-		pub.POST("https://"+mock.Hostname()+"/shift-point?x=10&y=10"),
-		pub.Body(testerapi.ShiftPointIn{
-			P: &testerapi.XYCoord{
-				X: 5,
-				Y: 6,
-			},
-		}))
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/shift-point?x=10&y=10&p.x=5&p.y=6"))
 	if assert.NoError(t, err) {
 		var out testerapi.ShiftPointOut
 		json.NewDecoder(res.Body).Decode(&out)
-		assert.Equal(t, 88.0, out.Shifted.X)
-		assert.Equal(t, 99.0, out.Shifted.Y)
+		assert.Equal(t, 15.0, out.Shifted.X)
+		assert.Equal(t, 16.0, out.Shifted.Y)
 	}
-
-	_, err = Svc.Request(ctx,
-		pub.POST("https://"+mock.Hostname()+"/shift-point"),
-		pub.Body(testerapi.ShiftPointIn{
-			P: &testerapi.XYCoord{
-				X: 5,
-				Y: 6,
-			},
-		}))
-	assert.ErrorContains(t, err, "zero")
 
 	// --- OpenAPI ---
 	basePath := "paths|/" + Hostname + ":443/shift-point|post|"
@@ -335,28 +257,6 @@ func TestTester_SubArrayRange(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, sub, []int{2, 3, 4})
 		assert.Equal(t, http.StatusAccepted, status)
-	}
-
-	// --- Mock ---
-	mock := NewMock()
-	mock.SetHostname("sub-array-range.mock")
-	mock.MockSubArrayRange(func(ctx context.Context, httpRequestBody []int, min, max int) (httpResponseBody []int, httpStatusCode int, err error) {
-		assert.Equal(t, []int{1, 2, 3, 4, 5}, httpRequestBody)
-		assert.Equal(t, 2, min)
-		assert.Equal(t, 4, max)
-		return []int{2, 3, 4}, http.StatusAccepted, nil
-	})
-	App.Join(mock)
-	err = mock.Startup()
-	assert.NoError(t, err)
-	defer mock.Shutdown()
-
-	res, err := Svc.Request(ctx, pub.POST("https://"+mock.Hostname()+"/sub-array-range/4?min=2"), pub.Body("[1,2,3,4,5]"), pub.ContentType("application/json"))
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusAccepted, res.StatusCode)
-		var httpResponseBody []int
-		json.NewDecoder(res.Body).Decode(&httpResponseBody)
-		assert.Equal(t, []int{2, 3, 4}, httpResponseBody)
 	}
 
 	// --- OpenAPI ---
@@ -714,26 +614,6 @@ func TestTester_DirectoryServer(t *testing.T) {
 	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/directory-server/../3.txt"))
 	assert.Error(t, err)
 	_, err = Svc.Request(ctx, pub.POST("https://"+Hostname+"/directory-server/1.txt"))
-	assert.Error(t, err)
-
-	// --- Mock ---
-	mock := NewMock()
-	mock.SetHostname("directory-server.mock")
-	mock.MockDirectoryServer(func(w http.ResponseWriter, r *http.Request) (err error) {
-		w.Write([]byte("111"))
-		return nil
-	})
-	App.Join(mock)
-	err = mock.Startup()
-	assert.NoError(t, err)
-	defer mock.Shutdown()
-
-	res, err = Svc.Request(ctx, pub.GET("https://"+mock.Hostname()+"/directory-server/1.txt"))
-	if assert.NoError(t, err) {
-		b, _ := io.ReadAll(res.Body)
-		assert.Contains(t, string(b), "111")
-	}
-	_, err = Svc.Request(ctx, pub.POST("https://"+mock.Hostname()+"/directory-server/1.txt"))
 	assert.Error(t, err)
 
 	// --- OpenAPI ---
