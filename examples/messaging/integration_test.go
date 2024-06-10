@@ -21,7 +21,7 @@ func Initialize() error {
 	Svc2 = NewService()
 	App.Include(
 		Svc,
-		Svc2,
+		Svc2, // Replica
 	)
 
 	err := App.Startup()
@@ -70,8 +70,7 @@ func TestMessaging_NoQueue(t *testing.T) {
 	*/
 	ctx := Context()
 	NoQueue_Get(t, ctx, "").
-		BodyContains("NoQueue").
-		BodyContains(Svc.ID())
+		BodyContains("NoQueue")
 }
 
 func TestMessaging_DefaultQueue(t *testing.T) {
@@ -89,8 +88,7 @@ func TestMessaging_DefaultQueue(t *testing.T) {
 	*/
 	ctx := Context()
 	DefaultQueue_Get(t, ctx, "").
-		BodyContains("DefaultQueue").
-		BodyContains(Svc.ID())
+		BodyContains("DefaultQueue")
 }
 
 func TestMessaging_CacheLoad(t *testing.T) {
@@ -134,11 +132,9 @@ func TestMessaging_CacheStore(t *testing.T) {
 	*/
 	ctx := Context()
 	CacheStore_Get(t, ctx, "?key=s1&value=s1-val").
-		BodyContains("s1-val").
-		BodyContains(Svc.ID())
+		BodyContains("s1-val")
 	CacheStore_Get(t, ctx, "?key=s2&value=s2-val").
-		BodyContains("s2-val").
-		BodyContains(Svc.ID())
+		BodyContains("s2-val")
 	CacheLoad_Get(t, ctx, "?key=s1").
 		BodyContains("found: yes").
 		BodyContains("s1-val")

@@ -823,7 +823,17 @@ func (tc *EchoTestCase) StatusCode(statusCode int) *EchoTestCase {
 // BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *EchoTestCase) BodyContains(value any) *EchoTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
@@ -840,7 +850,17 @@ func (tc *EchoTestCase) BodyContains(value any) *EchoTestCase {
 // BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *EchoTestCase) BodyNotContains(value any) *EchoTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
@@ -925,7 +945,17 @@ func (tc *EchoTestCase) TagExists(cssSelectorQuery string) *EchoTestCase {
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -951,7 +981,17 @@ func (tc *EchoTestCase) TagNotExists(cssSelectorQuery string) *EchoTestCase {
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -987,7 +1027,17 @@ func (tc *EchoTestCase) TagEqual(cssSelectorQuery string, value string) *EchoTes
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1036,7 +1086,17 @@ func (tc *EchoTestCase) TagContains(cssSelectorQuery string, value string) *Echo
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1085,7 +1145,17 @@ func (tc *EchoTestCase) TagNotEqual(cssSelectorQuery string, value string) *Echo
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1134,7 +1204,17 @@ func (tc *EchoTestCase) TagNotContains(cssSelectorQuery string, value string) *E
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1356,7 +1436,17 @@ func (tc *MultiValueHeadersTestCase) StatusCode(statusCode int) *MultiValueHeade
 // BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *MultiValueHeadersTestCase) BodyContains(value any) *MultiValueHeadersTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
@@ -1373,7 +1463,17 @@ func (tc *MultiValueHeadersTestCase) BodyContains(value any) *MultiValueHeadersT
 // BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *MultiValueHeadersTestCase) BodyNotContains(value any) *MultiValueHeadersTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
@@ -1458,7 +1558,17 @@ func (tc *MultiValueHeadersTestCase) TagExists(cssSelectorQuery string) *MultiVa
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1484,7 +1594,17 @@ func (tc *MultiValueHeadersTestCase) TagNotExists(cssSelectorQuery string) *Mult
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1520,7 +1640,17 @@ func (tc *MultiValueHeadersTestCase) TagEqual(cssSelectorQuery string, value str
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1569,7 +1699,17 @@ func (tc *MultiValueHeadersTestCase) TagContains(cssSelectorQuery string, value 
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1618,7 +1758,17 @@ func (tc *MultiValueHeadersTestCase) TagNotEqual(cssSelectorQuery string, value 
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1667,7 +1817,17 @@ func (tc *MultiValueHeadersTestCase) TagNotContains(cssSelectorQuery string, val
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -1889,7 +2049,17 @@ func (tc *WebPathArgumentsTestCase) StatusCode(statusCode int) *WebPathArguments
 // BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *WebPathArgumentsTestCase) BodyContains(value any) *WebPathArgumentsTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
@@ -1906,7 +2076,17 @@ func (tc *WebPathArgumentsTestCase) BodyContains(value any) *WebPathArgumentsTes
 // BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *WebPathArgumentsTestCase) BodyNotContains(value any) *WebPathArgumentsTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
@@ -1991,7 +2171,17 @@ func (tc *WebPathArgumentsTestCase) TagExists(cssSelectorQuery string) *WebPathA
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2017,7 +2207,17 @@ func (tc *WebPathArgumentsTestCase) TagNotExists(cssSelectorQuery string) *WebPa
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2053,7 +2253,17 @@ func (tc *WebPathArgumentsTestCase) TagEqual(cssSelectorQuery string, value stri
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2102,7 +2312,17 @@ func (tc *WebPathArgumentsTestCase) TagContains(cssSelectorQuery string, value s
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2151,7 +2371,17 @@ func (tc *WebPathArgumentsTestCase) TagNotEqual(cssSelectorQuery string, value s
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2200,7 +2430,17 @@ func (tc *WebPathArgumentsTestCase) TagNotContains(cssSelectorQuery string, valu
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2422,7 +2662,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) StatusCode(statusCode int) *UnnamedWe
 // BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *UnnamedWebPathArgumentsTestCase) BodyContains(value any) *UnnamedWebPathArgumentsTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
@@ -2439,7 +2689,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) BodyContains(value any) *UnnamedWebPa
 // BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *UnnamedWebPathArgumentsTestCase) BodyNotContains(value any) *UnnamedWebPathArgumentsTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
@@ -2524,7 +2784,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) TagExists(cssSelectorQuery string) *U
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2550,7 +2820,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) TagNotExists(cssSelectorQuery string)
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2586,7 +2866,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) TagEqual(cssSelectorQuery string, val
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2635,7 +2925,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) TagContains(cssSelectorQuery string, 
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2684,7 +2984,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) TagNotEqual(cssSelectorQuery string, 
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2733,7 +3043,17 @@ func (tc *UnnamedWebPathArgumentsTestCase) TagNotContains(cssSelectorQuery strin
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -2909,7 +3229,17 @@ func (tc *DirectoryServerTestCase) StatusCode(statusCode int) *DirectoryServerTe
 // BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *DirectoryServerTestCase) BodyContains(value any) *DirectoryServerTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
@@ -2926,7 +3256,17 @@ func (tc *DirectoryServerTestCase) BodyContains(value any) *DirectoryServerTestC
 // BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *DirectoryServerTestCase) BodyNotContains(value any) *DirectoryServerTestCase {
 	if assert.NoError(tc.t, tc.err) {
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		switch v := value.(type) {
 		case []byte:
 			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
@@ -3011,7 +3351,17 @@ func (tc *DirectoryServerTestCase) TagExists(cssSelectorQuery string) *Directory
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -3037,7 +3387,17 @@ func (tc *DirectoryServerTestCase) TagNotExists(cssSelectorQuery string) *Direct
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -3073,7 +3433,17 @@ func (tc *DirectoryServerTestCase) TagEqual(cssSelectorQuery string, value strin
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -3122,7 +3492,17 @@ func (tc *DirectoryServerTestCase) TagContains(cssSelectorQuery string, value st
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -3171,7 +3551,17 @@ func (tc *DirectoryServerTestCase) TagNotEqual(cssSelectorQuery string, value st
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
@@ -3220,7 +3610,17 @@ func (tc *DirectoryServerTestCase) TagNotContains(cssSelectorQuery string, value
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
-		body := tc.res.Body.(*httpx.BodyReader).Bytes()
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		doc, err := html.Parse(bytes.NewReader(body))
 		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc

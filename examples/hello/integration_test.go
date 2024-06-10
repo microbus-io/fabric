@@ -238,7 +238,7 @@ func TestHello_EchoClient(t *testing.T) {
 	client := helloapi.NewClient(Svc)
 
 	// Nil request
-	res, err := client.Echo(ctx, nil)
+	res, err := client.Echo(nil)
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {
@@ -250,7 +250,7 @@ func TestHello_EchoClient(t *testing.T) {
 	req, err := http.NewRequest("PATCH", "", strings.NewReader("Sunshine"))
 	req.Header.Set("X-Location", "California")
 	assert.NoError(t, err)
-	res, err = client.Echo(ctx, req)
+	res, err = client.Echo(req)
 	if assert.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
 		if assert.NoError(t, err) {

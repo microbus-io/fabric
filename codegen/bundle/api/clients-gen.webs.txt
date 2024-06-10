@@ -200,7 +200,7 @@ func (_c *MulticastClient) {{ .Name }}(ctx context.Context, url string) <-chan *
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`{{ if eq .Method "ANY" }}GET{{ else }}{{ .Method }}{{ end }}`, "", nil)
 		if err != nil {
@@ -220,7 +220,7 @@ func (_c *Client) {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(ctx context.C
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}

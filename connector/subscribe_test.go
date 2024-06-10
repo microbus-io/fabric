@@ -55,12 +55,13 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/sub/3.html")
 	assert.NoError(t, err)
 	assert.Equal(t, "sub/3.html", appendix)
+	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/")
+	assert.NoError(t, err)
+	assert.Equal(t, "", appendix)
 
-	assert.Equal(t, 3, count)
+	assert.Equal(t, 4, count)
 
 	// The path of the directory should not be captured
-	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/")
-	assert.Error(t, err)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory")
 	assert.Error(t, err)
 }

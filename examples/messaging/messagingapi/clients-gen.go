@@ -204,7 +204,7 @@ Home demonstrates making requests using multicast and unicast request/response p
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Home(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Home(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -219,7 +219,7 @@ func (_c *Client) Home(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -357,7 +357,7 @@ All instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) NoQueue(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) NoQueue(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -372,7 +372,7 @@ func (_c *Client) NoQueue(ctx context.Context, r *http.Request) (res *http.Respo
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -512,7 +512,7 @@ Only one of the instances of this microservice will respond to each request.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) DefaultQueue(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) DefaultQueue(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -527,7 +527,7 @@ func (_c *Client) DefaultQueue(ctx context.Context, r *http.Request) (res *http.
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -657,7 +657,7 @@ CacheLoad looks up an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CacheLoad(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) CacheLoad(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -672,7 +672,7 @@ func (_c *Client) CacheLoad(ctx context.Context, r *http.Request) (res *http.Res
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -800,7 +800,7 @@ CacheStore stores an element in the distributed cache of the microservice.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) CacheStore(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) CacheStore(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -815,7 +815,7 @@ func (_c *Client) CacheStore(ctx context.Context, r *http.Request) (res *http.Re
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}

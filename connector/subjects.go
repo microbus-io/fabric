@@ -65,9 +65,8 @@ func subjectOf(wildcards bool, plane string, method string, hostname string, por
 	}
 	b.WriteRune('.')
 	path = strings.TrimPrefix(path, "/")
-	path = strings.TrimSuffix(path, "/")
 	if path == "" {
-		// Exactly the home path
+		// Exactly the root path, which could come with or without a slash
 		b.WriteRune('_')
 		return b.String()
 	}
@@ -89,7 +88,11 @@ func subjectOf(wildcards bool, plane string, method string, hostname string, por
 			b.WriteRune('*')
 			continue
 		}
-		escapePathPart(&b, parts[i])
+		if parts[i] == "" {
+			b.WriteRune('_')
+		} else {
+			escapePathPart(&b, parts[i])
+		}
 	}
 	return b.String()
 }

@@ -200,7 +200,7 @@ Collect returns the latest aggregated metrics.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Collect(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Collect(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -215,7 +215,7 @@ func (_c *Client) Collect(ctx context.Context, r *http.Request) (res *http.Respo
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}

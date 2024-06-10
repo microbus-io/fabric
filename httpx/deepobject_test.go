@@ -69,26 +69,75 @@ func TestHttpx_DeepObjectRequestPath(t *testing.T) {
 		X struct {
 			A int
 			B int
-		}
-		Y struct {
-			A int
-			B int
+			Y struct {
+				C int
+				D int
+			}
 		}
 		S string
-		A []int
 		B bool
 		E string
 	}
-	r, err := http.NewRequest("GET", `/path?x.a=5&x[b]=3&y={"a":1,"b":2}&s="str"&a=[1,2,3]&b=true&e=`, nil)
+	r, err := http.NewRequest("GET", `/path?x.a=5&x[b]=3&x.y.c=1&x[y][d]=2&s=str&b=true&e=`, nil)
 	assert.NoError(t, err)
 	err = DecodeDeepObject(r.URL.Query(), &data)
 	assert.NoError(t, err)
 	assert.Equal(t, 5, data.X.A)
 	assert.Equal(t, 3, data.X.B)
-	assert.Equal(t, 1, data.Y.A)
-	assert.Equal(t, 2, data.Y.B)
+	assert.Equal(t, 1, data.X.Y.C)
+	assert.Equal(t, 2, data.X.Y.D)
 	assert.Equal(t, "str", data.S)
-	assert.Equal(t, []int{1, 2, 3}, data.A)
 	assert.Equal(t, true, data.B)
 	assert.Equal(t, "", data.E)
+}
+
+func TestHttpx_DeepObjectDecodeOne(t *testing.T) {
+	t.Parallel()
+
+	data := struct {
+		S string  `json:"s"`
+		I int     `json:"i"`
+		F float64 `json:"f"`
+		B bool    `json:"b"`
+	}{}
+
+	// Into string
+	err := decodeOne("s", "hello", &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, "hello", data.S)
+	}
+	err = decodeOne("s", `"hello"`, &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, "hello", data.S)
+	}
+	err = decodeOne("s", "5", &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, "5", data.S)
+	}
+
+	// Into int
+	err = decodeOne("i", "5", &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, 5, data.I)
+	}
+
+	// Into float64
+	err = decodeOne("f", "5", &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, 5.0, data.F)
+	}
+	err = decodeOne("f", "5.6", &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, 5.6, data.F)
+	}
+
+	// Into bool
+	err = decodeOne("b", "true", &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, true, data.B)
+	}
+	err = decodeOne("b", `"true"`, &data)
+	if assert.NoError(t, err) {
+		assert.Equal(t, true, data.B)
+	}
 }

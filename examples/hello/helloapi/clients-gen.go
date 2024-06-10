@@ -206,7 +206,7 @@ Hello prints a greeting.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Hello(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Hello(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -221,7 +221,7 @@ func (_c *Client) Hello(ctx context.Context, r *http.Request) (res *http.Respons
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -349,7 +349,7 @@ Echo back the incoming request in wire format.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Echo(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Echo(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -364,7 +364,7 @@ func (_c *Client) Echo(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -492,7 +492,7 @@ Ping all microservices and list them.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Ping(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Ping(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -507,7 +507,7 @@ func (_c *Client) Ping(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -645,7 +645,7 @@ a call from one microservice to another.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Calculator(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Calculator(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -660,7 +660,7 @@ func (_c *Client) Calculator(ctx context.Context, r *http.Request) (res *http.Re
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -739,7 +739,7 @@ BusJPEG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) BusJPEG_Do(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) BusJPEG_Do(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -757,7 +757,7 @@ func (_c *Client) BusJPEG_Do(ctx context.Context, r *http.Request) (res *http.Re
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -890,7 +890,7 @@ Localization prints hello in the language best matching the request's Accept-Lan
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Localization(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Localization(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -905,7 +905,7 @@ func (_c *Client) Localization(ctx context.Context, r *http.Request) (res *http.
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -1033,7 +1033,7 @@ Root is the top-most root page.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Root(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Root(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -1048,7 +1048,7 @@ func (_c *Client) Root(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}

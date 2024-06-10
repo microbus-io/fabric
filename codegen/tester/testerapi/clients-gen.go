@@ -214,7 +214,7 @@ Echo tests a typical web handler.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) Echo(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) Echo(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -229,7 +229,7 @@ func (_c *Client) Echo(ctx context.Context, r *http.Request) (res *http.Response
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -357,7 +357,7 @@ MultiValueHeaders tests a passing in and returning headers with multiple values.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) MultiValueHeaders(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) MultiValueHeaders(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -372,7 +372,7 @@ func (_c *Client) MultiValueHeaders(ctx context.Context, r *http.Request) (res *
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -500,7 +500,7 @@ WebPathArguments tests path arguments in web handlers.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) WebPathArguments(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) WebPathArguments(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -515,7 +515,7 @@ func (_c *Client) WebPathArguments(ctx context.Context, r *http.Request) (res *h
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -592,7 +592,7 @@ UnnamedWebPathArguments tests path arguments that are not named.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) UnnamedWebPathArguments_Do(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) UnnamedWebPathArguments_Do(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -610,7 +610,7 @@ func (_c *Client) UnnamedWebPathArguments_Do(ctx context.Context, r *http.Reques
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}
@@ -692,7 +692,7 @@ DirectoryServer tests service resources given a greedy path argument.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) DirectoryServer_Do(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+func (_c *Client) DirectoryServer_Do(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -710,7 +710,7 @@ func (_c *Client) DirectoryServer_Do(ctx context.Context, r *http.Request) (res 
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
 	if err != nil {
 		return nil, err // No trace
 	}

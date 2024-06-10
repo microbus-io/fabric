@@ -53,7 +53,7 @@ Host: article
 
 ## Greediness
 
-A typical path argument only captures the data in one part of the path, i.e. between two slashes in the path or after the last slash. Multiple arguments may be defined in the path. 
+A typical path argument only captures the data in one part of the path, i.e. between two `/`s in the path or after the last `/`. The values of these  arguments therefore cannot contain a `/`. However, multiple such path arguments may be defined in the path. 
 
 ```yaml
 functions:
@@ -63,13 +63,13 @@ functions:
     method: GET
 ```
 
-A greedy path argument on the other hand captures the remainder of the path and can span multiple slashes. A greedy path argument must be the last element in the path specification. Greedy path arguments are denoted using a plus in their definition, e.g. `{greedy+}`.
+A greedy path argument on the other hand captures the remainder of the path and can span multiple parts of the path and include `/`s. A greedy path argument must be the last element in the path specification. Greedy path arguments are denoted using a `+` in their definition, e.g. `{greedy+}`.
 
 ```yaml
 functions:
-  - signature: LoadFile(filePath string) (data []byte)
+  - signature: LoadFile(category int, filePath string) (data []byte)
     description: LoadFile looks for a file by its path.
-    path: //file/{filePath+}
+    path: //file/{category}/{filePath+}
     method: GET
 ```
 
@@ -87,7 +87,7 @@ functions:
 
 ## Conflicts
 
-Path arguments are a form of wildcard subscription and if not crafted carefully, they may overlap. In the following case, requests to `/hello/world` will alternate between the two handlers and will result in unpredictable behavior.
+Path arguments are a form of wildcard subscription and might overlap if not crafted carefully. In the following case, requests to `/hello/world` will alternate between the two handlers and will result in unpredictable behavior.
 
 ```yaml
 functions:

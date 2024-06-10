@@ -70,6 +70,8 @@ func Terminate() (err error) {
 	return nil
 }
 
+// openAPIValue traverses the OpenAPI document and returns the value at the indicated path.
+// The path uses the pipe as the separator character.
 func openAPIValue(path string) any {
 	var at any
 	at = openAPI
@@ -331,8 +333,8 @@ func TestTester_FunctionPathArguments(t *testing.T) {
 		Expect("1 2 3/4")
 	FunctionPathArguments(t, ctx, "", "", "").
 		Expect("  ")
-	FunctionPathArguments(t, ctx, "[a&b/c]", "[d&e/f]", "[g&h/i]").
-		Expect("[a&b/c] [d&e/f] [g&h/i]")
+	FunctionPathArguments(t, ctx, "[a&b$c]", "[d&e$f]", "[g&h/i]").
+		Expect("[a&b$c] [d&e$f] [g&h/i]")
 }
 
 func TestTester_NonStringPathArguments(t *testing.T) {
@@ -353,9 +355,9 @@ func TestTester_NonStringPathArguments(t *testing.T) {
 	_, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1.5/true/0.75"))
 	assert.ErrorContains(t, err, "json")
 	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/x/0.75"))
-	assert.ErrorContains(t, err, "json")
+	assert.ErrorContains(t, err, "invalid character")
 	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/true/x"))
-	assert.ErrorContains(t, err, "json")
+	assert.ErrorContains(t, err, "invalid character")
 	_, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/non-string-path-arguments/fixed/1/true/0.75"))
 	assert.NoError(t, err)
 
@@ -625,7 +627,7 @@ func TestTester_DirectoryServer(t *testing.T) {
 	_, err = testerapi.NewClient(Svc).DirectoryServer(ctx, "../3.txt")
 	assert.Error(t, err)
 	httpReq, _ = http.NewRequestWithContext(ctx, "POST", "1.txt", strings.NewReader("Payload"))
-	_, err = testerapi.NewClient(Svc).DirectoryServer_Do(ctx, httpReq)
+	_, err = testerapi.NewClient(Svc).DirectoryServer_Do(httpReq)
 	assert.Error(t, err)
 
 	// --- Requests ---

@@ -98,7 +98,6 @@ func InsertPathArguments(u string, values QArgs) string {
 		if !strings.HasPrefix(parts[i], "{") || !strings.HasSuffix(parts[i], "}") {
 			continue
 		}
-		greedy := strings.HasSuffix(parts[i], "+}")
 		argIndex++
 		parts[i] = strings.TrimPrefix(parts[i], "{")
 		parts[i] = strings.TrimSuffix(parts[i], "}")
@@ -108,10 +107,6 @@ func InsertPathArguments(u string, values QArgs) string {
 		}
 		if v, ok := values[parts[i]]; ok {
 			parts[i] = url.PathEscape(fmt.Sprintf("%v", v))
-			if greedy {
-				// Allow slashes in greedy arguments
-				parts[i] = strings.ReplaceAll(parts[i], "%2F", "/")
-			}
 		} else {
 			parts[i] = ""
 		}

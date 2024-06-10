@@ -153,8 +153,8 @@ func TestDirectory_Update(t *testing.T) {
 		LastName:  "Weasley",
 		Email:     "ron.weasley@hogwarts.edu.wiz",
 	}
-	Create(t, ctx, person).
-		NoError()
+	person.Key, _ = Create(t, ctx, person).
+		NoError().Get()
 
 	person.FirstName = ""
 	Update(t, ctx, person.Key, person).

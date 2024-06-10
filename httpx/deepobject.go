@@ -105,20 +105,6 @@ func decodeOne(k, v string, data any) error {
 		j += v
 	case jsonNumberRegexp.MatchString(v):
 		j += v
-	case strings.HasPrefix(v, `[`) && strings.HasSuffix(v, `]`):
-		var jArray []any
-		err := json.Unmarshal([]byte(v), &jArray)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		j += v
-	case strings.HasPrefix(v, `{`) && strings.HasSuffix(v, `}`):
-		var jMap map[string]any
-		err := json.Unmarshal([]byte(v), &jMap)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		j += v
 	case strings.HasPrefix(v, `"`) && strings.HasSuffix(v, `"`):
 		v = strings.TrimPrefix(v, `"`)
 		v = strings.TrimSuffix(v, `"`)
@@ -136,10 +122,14 @@ func decodeOne(k, v string, data any) error {
 
 	// Override values in the data
 	err := json.Unmarshal([]byte(j), data)
-	if err != nil && strings.Contains(err.Error(), "cannot unmarshal number") {
-		// json: cannot unmarshal number into Go struct field ... of type string [500]
-		j = jPre + `"` + v + `"` + strings.Repeat("}", countDots+1)
-		err = json.Unmarshal([]byte(j), data)
+	if jErr, ok := err.(*json.UnmarshalTypeError); ok {
+		if strings.HasPrefix(jErr.Value, "string") {
+			j = jPre + v + strings.Repeat("}", countDots+1)
+			err = json.Unmarshal([]byte(j), data)
+		} else {
+			j = jPre + `"` + v + `"` + strings.Repeat("}", countDots+1)
+			err = json.Unmarshal([]byte(j), data)
+		}
 	}
 	if err != nil {
 		return errors.Trace(err)
