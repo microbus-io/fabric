@@ -71,6 +71,7 @@ type ToDo interface {
 	StringCut(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
 	PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
 	ShiftPoint(ctx context.Context, p *testerapi.XYCoord, x float64, y float64) (shifted *testerapi.XYCoord, err error)
+	LinesIntersection(ctx context.Context, l1 testerapi.XYLine, l2 *testerapi.XYLine) (b bool, err error)
 	SubArrayRange(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error)
 	SumTwoIntegers(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	FunctionPathArguments(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
@@ -110,6 +111,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`ANY`, `:443/string-cut`, svc.doStringCut)
 	svc.Subscribe(`GET`, `:443/point-distance`, svc.doPointDistance)
 	svc.Subscribe(`ANY`, `:443/shift-point`, svc.doShiftPoint)
+	svc.Subscribe(`ANY`, `:443/lines-intersection`, svc.doLinesIntersection)
 	svc.Subscribe(`ANY`, `:443/sub-array-range/{max}`, svc.doSubArrayRange)
 	svc.Subscribe(`ANY`, `:443/sum-two-integers`, svc.doSumTwoIntegers)
 	svc.Subscribe(`GET`, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doFunctionPathArguments)
@@ -189,6 +191,23 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			}{},
 			OutputArgs: struct {
 				Shifted *testerapi.XYCoord `json:"shifted"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `LinesIntersection`,
+			Method:      `ANY`,
+			Path:        `:443/lines-intersection`,
+			Summary:     `LinesIntersection(l1 XYLine, l2 *XYLine) (b bool)`,
+			Description: `LinesIntersection tests nested non-primitive types.`,
+			InputArgs: struct {
+				L1 testerapi.XYLine `json:"l1"`
+				L2 *testerapi.XYLine `json:"l2"`
+			}{},
+			OutputArgs: struct {
+				B bool `json:"b"`
 			}{},
 		})
 	}
@@ -475,6 +494,44 @@ func (svc *Intermediate) doShiftPoint(w http.ResponseWriter, r *http.Request) er
 		i.P,
 		i.X,
 		i.Y,
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "    ")
+	}
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doLinesIntersection handles marshaling for the LinesIntersection function.
+func (svc *Intermediate) doLinesIntersection(w http.ResponseWriter, r *http.Request) error {
+	var i testerapi.LinesIntersectionIn
+	var o testerapi.LinesIntersectionOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/lines-intersection`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/lines-intersection`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	o.B, err = svc.impl.LinesIntersection(
+		r.Context(),
+		i.L1,
+		i.L2,
 	)
 	if err != nil {
 		return err // No trace

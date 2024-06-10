@@ -71,6 +71,8 @@ functions:
     method: GET
   - signature: ShiftPoint(p *XYCoord, x float64, y float64) (shifted *XYCoord)
     description: ShiftPoint tests passing pointers to non-primitive types.
+  - signature: LinesIntersection(l1 XYLine, l2 *XYLine) (b bool)
+    description: LinesIntersection tests nested non-primitive types.
   # HTTP arguments
   - signature: SubArrayRange(httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int)
     description: |

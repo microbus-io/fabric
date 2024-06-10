@@ -191,3 +191,55 @@ func (svc *Service) DirectoryServer(w http.ResponseWriter, r *http.Request) (err
 	}
 	return nil
 }
+
+/*
+LinesIntersection tests nested non-primitive types.
+*/
+func (svc *Service) LinesIntersection(ctx context.Context, l1 testerapi.XYLine, l2 *testerapi.XYLine) (b bool, err error) {
+	onSegment := func(p testerapi.XYCoord, q testerapi.XYCoord, r testerapi.XYCoord) bool {
+		return q.X <= math.Max(p.X, r.X) && q.X >= math.Min(p.X, r.X) &&
+			q.Y <= math.Max(p.Y, r.Y) && q.Y >= math.Min(p.Y, r.Y)
+	}
+	orientation := func(p testerapi.XYCoord, q testerapi.XYCoord, r testerapi.XYCoord) int {
+		val := (q.Y-p.Y)*(r.X-q.X) -
+			(q.X-p.X)*(r.Y-q.Y)
+		switch {
+		case val == 0:
+			return 0 // collinear
+		case val > 0:
+			return 1 // Clockwise
+		default:
+			return 2 // Counterclockwise
+		}
+	}
+
+	// Find the four orientations needed for general and special cases
+	o1 := orientation(l1.Start, l1.End, l2.Start)
+	o2 := orientation(l1.Start, l1.End, l2.End)
+	o3 := orientation(l2.Start, l2.End, l1.Start)
+	o4 := orientation(l2.Start, l2.End, l1.End)
+
+	// General case
+	if o1 != o2 && o3 != o4 {
+		return true, nil
+	}
+
+	// Special Cases
+	// l1.Start, l1.End and l2.Start are collinear and l2.Start lies on segment l1
+	if o1 == 0 && onSegment(l1.Start, l2.Start, l1.End) {
+		return true, nil
+	}
+	// l1.Start, l1.End and l2.End are collinear and l2.End lies on segment l1
+	if o2 == 0 && onSegment(l1.Start, l2.End, l1.End) {
+		return true, nil
+	}
+	// l2.Start, l2.End and l1.Start are collinear and l1.Start lies on segment l2
+	if o3 == 0 && onSegment(l2.Start, l1.Start, l2.End) {
+		return true, nil
+	}
+	// l2.Start, l2.End and l1.End are collinear and l1.End lies on segment l2
+	if o4 == 0 && onSegment(l2.Start, l1.End, l2.End) {
+		return true, nil
+	}
+	return false, nil
+}

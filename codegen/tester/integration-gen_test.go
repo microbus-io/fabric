@@ -323,6 +323,73 @@ func ShiftPoint(t *testing.T, ctx context.Context, p *testerapi.XYCoord, x float
 	return tc
 }
 
+// LinesIntersectionTestCase assists in asserting against the results of executing LinesIntersection.
+type LinesIntersectionTestCase struct {
+	_t *testing.T
+	_dur time.Duration
+	b bool
+	err error
+}
+
+// Expect asserts no error and exact return values.
+func (_tc *LinesIntersectionTestCase) Expect(b bool) *LinesIntersectionTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, b, _tc.b)
+	}
+	return _tc
+}
+
+// Error asserts an error.
+func (tc *LinesIntersectionTestCase) Error(errContains string) *LinesIntersectionTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *LinesIntersectionTestCase) ErrorCode(statusCode int) *LinesIntersectionTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *LinesIntersectionTestCase) NoError() *LinesIntersectionTestCase {
+	assert.NoError(tc._t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *LinesIntersectionTestCase) CompletedIn(threshold time.Duration) *LinesIntersectionTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *LinesIntersectionTestCase) Assert(asserter func(t *testing.T, b bool, err error)) *LinesIntersectionTestCase {
+	asserter(tc._t, tc.b, tc.err)
+	return tc
+}
+
+// Get returns the result of executing LinesIntersection.
+func (tc *LinesIntersectionTestCase) Get() (b bool, err error) {
+	return tc.b, tc.err
+}
+
+// LinesIntersection executes the function and returns a corresponding test case.
+func LinesIntersection(t *testing.T, ctx context.Context, l1 testerapi.XYLine, l2 *testerapi.XYLine) *LinesIntersectionTestCase {
+	tc := &LinesIntersectionTestCase{_t: t}
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		tc.b, tc.err = Svc.LinesIntersection(ctx, l1, l2)
+		return tc.err
+	})
+	tc._dur = time.Since(t0)
+	return tc
+}
+
 // SubArrayRangeTestCase assists in asserting against the results of executing SubArrayRange.
 type SubArrayRangeTestCase struct {
 	_t *testing.T

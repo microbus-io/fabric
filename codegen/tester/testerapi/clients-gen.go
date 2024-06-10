@@ -53,6 +53,7 @@ var (
 	URLOfStringCut = httpx.JoinHostAndPath(Hostname, `:443/string-cut`)
 	URLOfPointDistance = httpx.JoinHostAndPath(Hostname, `:443/point-distance`)
 	URLOfShiftPoint = httpx.JoinHostAndPath(Hostname, `:443/shift-point`)
+	URLOfLinesIntersection = httpx.JoinHostAndPath(Hostname, `:443/lines-intersection`)
 	URLOfSubArrayRange = httpx.JoinHostAndPath(Hostname, `:443/sub-array-range/{max}`)
 	URLOfSumTwoIntegers = httpx.JoinHostAndPath(Hostname, `:443/sum-two-integers`)
 	URLOfFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/function-path-arguments/fixed/{named}/{}/{suffix+}`)
@@ -931,6 +932,110 @@ func (_c *Client) ShiftPoint(ctx context.Context, p *XYCoord, x float64, y float
 		return
 	}
 	shifted = _out.Shifted
+	return
+}
+
+// LinesIntersectionIn are the input arguments of LinesIntersection.
+type LinesIntersectionIn struct {
+	L1 XYLine `json:"l1"`
+	L2 *XYLine `json:"l2"`
+}
+
+// LinesIntersectionOut are the return values of LinesIntersection.
+type LinesIntersectionOut struct {
+	B bool `json:"b"`
+}
+
+// LinesIntersectionResponse is the response to LinesIntersection.
+type LinesIntersectionResponse struct {
+	data LinesIntersectionOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *LinesIntersectionResponse) Get() (b bool, err error) {
+	b = _out.data.B
+	err = _out.err
+	return
+}
+
+/*
+LinesIntersection tests nested non-primitive types.
+*/
+func (_c *MulticastClient) LinesIntersection(ctx context.Context, l1 XYLine, l2 *XYLine) <-chan *LinesIntersectionResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:443/lines-intersection`)
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
+		`l1`: l1,
+		`l2`: l2,
+	})
+	_in := LinesIntersectionIn{
+		l1,
+		l2,
+	}
+	var _query url.Values
+	_body := _in
+	_ch := _c.svc.Publish(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+
+	_res := make(chan *LinesIntersectionResponse, cap(_ch))
+	for _i := range _ch {
+		var _r LinesIntersectionResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+LinesIntersection tests nested non-primitive types.
+*/
+func (_c *Client) LinesIntersection(ctx context.Context, l1 XYLine, l2 *XYLine) (b bool, err error) {
+	var _err error
+	_url := httpx.JoinHostAndPath(_c.host, `:443/lines-intersection`)
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
+		`l1`: l1,
+		`l2`: l2,
+	})
+	_in := LinesIntersectionIn{
+		l1,
+		l2,
+	}
+	var _query url.Values
+	_body := _in
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out LinesIntersectionOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	b = _out.B
 	return
 }
 

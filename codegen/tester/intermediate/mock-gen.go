@@ -42,6 +42,7 @@ type Mock struct {
 	mockStringCut func(ctx context.Context, s string, sep string) (before string, after string, found bool, err error)
 	mockPointDistance func(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error)
 	mockShiftPoint func(ctx context.Context, p *testerapi.XYCoord, x float64, y float64) (shifted *testerapi.XYCoord, err error)
+	mockLinesIntersection func(ctx context.Context, l1 testerapi.XYLine, l2 *testerapi.XYLine) (b bool, err error)
 	mockSubArrayRange func(ctx context.Context, httpRequestBody []int, min int, max int) (httpResponseBody []int, httpStatusCode int, err error)
 	mockSumTwoIntegers func(ctx context.Context, x int, y int) (sum int, httpStatusCode int, err error)
 	mockFunctionPathArguments func(ctx context.Context, named string, path2 string, suffix string) (joined string, err error)
@@ -117,6 +118,21 @@ func (svc *Mock) ShiftPoint(ctx context.Context, p *testerapi.XYCoord, x float64
 		return
 	}
 	return svc.mockShiftPoint(ctx, p, x, y)
+}
+
+// MockLinesIntersection sets up a mock handler for the LinesIntersection endpoint.
+func (svc *Mock) MockLinesIntersection(handler func(ctx context.Context, l1 testerapi.XYLine, l2 *testerapi.XYLine) (b bool, err error)) *Mock {
+	svc.mockLinesIntersection = handler
+	return svc
+}
+
+// LinesIntersection runs the mock handler set by MockLinesIntersection.
+func (svc *Mock) LinesIntersection(ctx context.Context, l1 testerapi.XYLine, l2 *testerapi.XYLine) (b bool, err error) {
+	if svc.mockLinesIntersection == nil {
+		err = errors.New("mocked endpoint 'LinesIntersection' not implemented")
+		return
+	}
+	return svc.mockLinesIntersection(ctx, l1, l2)
 }
 
 // MockSubArrayRange sets up a mock handler for the SubArrayRange endpoint.

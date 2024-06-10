@@ -741,3 +741,118 @@ func TestTester_DirectoryServer(t *testing.T) {
 	assert.Equal(t, "filename+", openAPIValue(basePath+"parameters|0|name"))
 	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
 }
+
+func TestTester_LinesIntersection(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		LinesIntersection(t, ctx, l1, l2).
+			Expect(b)
+	*/
+
+	ctx := Context()
+
+	// --- Test cases ---
+	LinesIntersection(t, ctx,
+		testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 1, Y: 1},
+			End:   testerapi.XYCoord{X: 10, Y: 1},
+		}, &testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 1, Y: 2},
+			End:   testerapi.XYCoord{X: 10, Y: 2},
+		}).
+		Expect(false)
+	LinesIntersection(t, ctx,
+		testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 10, Y: 1},
+			End:   testerapi.XYCoord{X: 0, Y: 10},
+		}, &testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 0, Y: 0},
+			End:   testerapi.XYCoord{X: 10, Y: 10},
+		}).
+		Expect(true)
+	LinesIntersection(t, ctx,
+		testerapi.XYLine{
+			Start: testerapi.XYCoord{X: -5, Y: -5},
+			End:   testerapi.XYCoord{X: 0, Y: 0},
+		}, &testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 1, Y: 1},
+			End:   testerapi.XYCoord{X: 10, Y: 10},
+		}).
+		Expect(false)
+
+	// --- Client ---
+	b, err := testerapi.NewClient(Svc).LinesIntersection(ctx,
+		testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 10, Y: 1},
+			End:   testerapi.XYCoord{X: 0, Y: 10},
+		}, &testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 0, Y: 0},
+			End:   testerapi.XYCoord{X: 10, Y: 10},
+		})
+	if assert.NoError(t, err) {
+		assert.True(t, b)
+	}
+	b, err = testerapi.NewClient(Svc).LinesIntersection(ctx,
+		testerapi.XYLine{
+			Start: testerapi.XYCoord{X: -5, Y: -5},
+			End:   testerapi.XYCoord{X: 0, Y: 0},
+		}, &testerapi.XYLine{
+			Start: testerapi.XYCoord{X: 1, Y: 1},
+			End:   testerapi.XYCoord{X: 10, Y: 10},
+		})
+	if assert.NoError(t, err) {
+		assert.False(t, b)
+	}
+
+	// --- Requests ---
+	res, err := Svc.Request(ctx,
+		pub.POST("https://"+Hostname+"/lines-intersection"),
+		pub.Body(testerapi.LinesIntersectionIn{
+			L1: testerapi.XYLine{
+				Start: testerapi.XYCoord{X: 10, Y: 1},
+				End:   testerapi.XYCoord{X: 0, Y: 10},
+			},
+			L2: &testerapi.XYLine{
+				Start: testerapi.XYCoord{X: 0, Y: 0},
+				End:   testerapi.XYCoord{X: 10, Y: 10},
+			},
+		}))
+	if assert.NoError(t, err) {
+		var out testerapi.LinesIntersectionOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, out.B, true)
+	}
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/lines-intersection|post|"
+	// Input arguments l1 and l2 are lines
+	schemaRef := openAPIValue(basePath + "requestBody|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	l1SchemaRef := openAPIValue(schemaRef + "properties|l1|$ref").(string)
+	l1SchemaRef = strings.ReplaceAll(l1SchemaRef, "/", "|")[2:] + "|"
+	startSchemaRef := openAPIValue(l1SchemaRef + "properties|start|$ref").(string)
+	startSchemaRef = strings.ReplaceAll(startSchemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "number", openAPIValue(startSchemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(startSchemaRef+"properties|y|type"))
+	endSchemaRef := openAPIValue(l1SchemaRef + "properties|start|$ref").(string)
+	endSchemaRef = strings.ReplaceAll(endSchemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "number", openAPIValue(endSchemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(endSchemaRef+"properties|y|type"))
+
+	l2SchemaRef := openAPIValue(schemaRef + "properties|l1|$ref").(string)
+	l2SchemaRef = strings.ReplaceAll(l2SchemaRef, "/", "|")[2:] + "|"
+	startSchemaRef = openAPIValue(l2SchemaRef + "properties|start|$ref").(string)
+	startSchemaRef = strings.ReplaceAll(startSchemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "number", openAPIValue(startSchemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(startSchemaRef+"properties|y|type"))
+	endSchemaRef = openAPIValue(l2SchemaRef + "properties|start|$ref").(string)
+	endSchemaRef = strings.ReplaceAll(endSchemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "number", openAPIValue(endSchemaRef+"properties|x|type"))
+	assert.Equal(t, "number", openAPIValue(endSchemaRef+"properties|y|type"))
+
+	// Output argument is a boolean
+	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "boolean", openAPIValue(schemaRef+"properties|b|type"))
+}
