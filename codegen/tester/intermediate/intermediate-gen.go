@@ -79,6 +79,7 @@ type ToDo interface {
 	UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
 	PathArgumentsPriority(ctx context.Context, foo string) (echo string, err error)
 	Echo(w http.ResponseWriter, r *http.Request) (err error)
+	MultiValueHeaders(w http.ResponseWriter, r *http.Request) (err error)
 	WebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 	UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 	DirectoryServer(w http.ResponseWriter, r *http.Request) (err error)
@@ -121,6 +122,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 
 	// Webs
 	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
+	svc.Subscribe(`ANY`, `:443/multi-value-headers`, svc.impl.MultiValueHeaders)
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.impl.WebPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.impl.UnnamedWebPathArguments)
 	svc.Subscribe(`GET`, `:443/directory-server/{filename+}`, svc.impl.DirectoryServer)
@@ -147,7 +149,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Method:      `ANY`,
 			Path:        `:443/string-cut`,
 			Summary:     `StringCut(s string, sep string) (before string, after string, found bool)`,
-			Description: `StringCut tests a standard function that takes multiple input arguments and returns multiple values.`,
+			Description: `StringCut tests a function that takes primitive input arguments and returns primitive values.`,
 			InputArgs: struct {
 				S string `json:"s"`
 				Sep string `json:"sep"`
@@ -166,7 +168,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Method:      `GET`,
 			Path:        `:443/point-distance`,
 			Summary:     `PointDistance(p1 XYCoord, p2 *XYCoord) (d float64)`,
-			Description: `PointDistance tests passing non-primitive types via query arguments.`,
+			Description: `PointDistance tests a function that takes non-primitive input arguments.`,
 			InputArgs: struct {
 				P1 testerapi.XYCoord `json:"p1"`
 				P2 *testerapi.XYCoord `json:"p2"`
@@ -183,7 +185,7 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 			Method:      `ANY`,
 			Path:        `:443/shift-point`,
 			Summary:     `ShiftPoint(p *XYCoord, x float64, y float64) (shifted *XYCoord)`,
-			Description: `ShiftPoint tests passing pointers to non-primitive types.`,
+			Description: `ShiftPoint tests passing pointers of non-primitive types.`,
 			InputArgs: struct {
 				P *testerapi.XYCoord `json:"p"`
 				X float64 `json:"x"`
@@ -328,6 +330,20 @@ An httpResponseBody argument prevents returning additional values, except for th
 			Path:        `:443/echo`,
 			Summary:     `Echo()`,
 			Description: `Echo tests a typical web handler.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `MultiValueHeaders`,
+			Method:      `ANY`,
+			Path:        `:443/multi-value-headers`,
+			Summary:     `MultiValueHeaders()`,
+			Description: `MultiValueHeaders tests a passing in and returning headers with multiple values.`,
 			InputArgs: struct {
 			}{},
 			OutputArgs: struct {

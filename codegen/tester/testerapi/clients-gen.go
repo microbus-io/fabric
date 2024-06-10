@@ -61,6 +61,7 @@ var (
 	URLOfUnnamedFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
 	URLOfPathArgumentsPriority = httpx.JoinHostAndPath(Hostname, `:443/path-arguments-priority/{foo}`)
 	URLOfEcho = httpx.JoinHostAndPath(Hostname, `:443/echo`)
+	URLOfMultiValueHeaders = httpx.JoinHostAndPath(Hostname, `:443/multi-value-headers`)
 	URLOfWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfUnnamedWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`)
 	URLOfDirectoryServer = httpx.JoinHostAndPath(Hostname, `:443/directory-server/{filename+}`)
@@ -249,6 +250,149 @@ func (_c *MulticastClient) Echo(ctx context.Context, r *http.Request) <-chan *pu
 		}
 	}
 	url, err := httpx.ResolveURL(URLOfEcho, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+}
+
+/*
+MultiValueHeaders_Get performs a GET request to the MultiValueHeaders endpoint.
+
+MultiValueHeaders tests a passing in and returning headers with multiple values.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) MultiValueHeaders_Get(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfMultiValueHeaders, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+MultiValueHeaders_Get performs a GET request to the MultiValueHeaders endpoint.
+
+MultiValueHeaders tests a passing in and returning headers with multiple values.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) MultiValueHeaders_Get(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfMultiValueHeaders, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+MultiValueHeaders_Post performs a POST request to the MultiValueHeaders endpoint.
+
+MultiValueHeaders tests a passing in and returning headers with multiple values.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) MultiValueHeaders_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfMultiValueHeaders, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+MultiValueHeaders_Post performs a POST request to the MultiValueHeaders endpoint.
+
+MultiValueHeaders tests a passing in and returning headers with multiple values.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) MultiValueHeaders_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfMultiValueHeaders, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+}
+
+/*
+MultiValueHeaders tests a passing in and returning headers with multiple values.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) MultiValueHeaders(ctx context.Context, r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfMultiValueHeaders, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+MultiValueHeaders tests a passing in and returning headers with multiple values.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) MultiValueHeaders(ctx context.Context, r *http.Request) <-chan *pub.Response {
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfMultiValueHeaders, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -632,7 +776,7 @@ func (_out *StringCutResponse) Get() (before string, after string, found bool, e
 }
 
 /*
-StringCut tests a standard function that takes multiple input arguments and returns multiple values.
+StringCut tests a function that takes primitive input arguments and returns primitive values.
 */
 func (_c *MulticastClient) StringCut(ctx context.Context, s string, sep string) <-chan *StringCutResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/string-cut`)
@@ -674,7 +818,7 @@ func (_c *MulticastClient) StringCut(ctx context.Context, s string, sep string) 
 }
 
 /*
-StringCut tests a standard function that takes multiple input arguments and returns multiple values.
+StringCut tests a function that takes primitive input arguments and returns primitive values.
 */
 func (_c *Client) StringCut(ctx context.Context, s string, sep string) (before string, after string, found bool, err error) {
 	var _err error
@@ -738,7 +882,7 @@ func (_out *PointDistanceResponse) Get() (d float64, err error) {
 }
 
 /*
-PointDistance tests passing non-primitive types via query arguments.
+PointDistance tests a function that takes non-primitive input arguments.
 */
 func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord) <-chan *PointDistanceResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/point-distance`)
@@ -786,7 +930,7 @@ func (_c *MulticastClient) PointDistance(ctx context.Context, p1 XYCoord, p2 *XY
 }
 
 /*
-PointDistance tests passing non-primitive types via query arguments.
+PointDistance tests a function that takes non-primitive input arguments.
 */
 func (_c *Client) PointDistance(ctx context.Context, p1 XYCoord, p2 *XYCoord) (d float64, err error) {
 	var _err error
@@ -853,7 +997,7 @@ func (_out *ShiftPointResponse) Get() (shifted *XYCoord, err error) {
 }
 
 /*
-ShiftPoint tests passing pointers to non-primitive types.
+ShiftPoint tests passing pointers of non-primitive types.
 */
 func (_c *MulticastClient) ShiftPoint(ctx context.Context, p *XYCoord, x float64, y float64) <-chan *ShiftPointResponse {
 	_url := httpx.JoinHostAndPath(_c.host, `:443/shift-point`)
@@ -897,7 +1041,7 @@ func (_c *MulticastClient) ShiftPoint(ctx context.Context, p *XYCoord, x float64
 }
 
 /*
-ShiftPoint tests passing pointers to non-primitive types.
+ShiftPoint tests passing pointers of non-primitive types.
 */
 func (_c *Client) ShiftPoint(ctx context.Context, p *XYCoord, x float64, y float64) (shifted *XYCoord, err error) {
 	var _err error

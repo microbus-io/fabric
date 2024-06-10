@@ -168,6 +168,8 @@ webs:
   # Typical case
   - signature: Echo()
     description: Echo tests a typical web handler.
+  - signature: MultiValueHeaders()
+    description: MultiValueHeaders tests a passing in and returning headers with multiple values.
   # Path arguments
   - signature: WebPathArguments()
     description: WebPathArguments tests path arguments in web handlers.

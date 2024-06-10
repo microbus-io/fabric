@@ -42,6 +42,7 @@ type Mock struct {
 	mockUnnamedFunctionPathArguments func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
 	mockPathArgumentsPriority func(ctx context.Context, foo string) (echo string, err error)
 	mockEcho func(w http.ResponseWriter, r *http.Request) (err error)
+	mockMultiValueHeaders func(w http.ResponseWriter, r *http.Request) (err error)
 	mockWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 	mockUnnamedWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 	mockDirectoryServer func(w http.ResponseWriter, r *http.Request) (err error)
@@ -229,6 +230,21 @@ func (svc *Mock) Echo(w http.ResponseWriter, r *http.Request) (err error) {
 		return errors.New("mocked endpoint 'Echo' not implemented")
 	}
 	err = svc.mockEcho(w, r)
+	return errors.Trace(err)
+}
+
+// MockMultiValueHeaders sets up a mock handler for the MultiValueHeaders endpoint.
+func (svc *Mock) MockMultiValueHeaders(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockMultiValueHeaders = handler
+	return svc
+}
+
+// MultiValueHeaders runs the mock handler set by MockMultiValueHeaders.
+func (svc *Mock) MultiValueHeaders(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockMultiValueHeaders == nil {
+		return errors.New("mocked endpoint 'MultiValueHeaders' not implemented")
+	}
+	err = svc.mockMultiValueHeaders(w, r)
 	return errors.Trace(err)
 }
 

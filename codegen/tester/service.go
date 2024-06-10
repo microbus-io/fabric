@@ -55,7 +55,7 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 }
 
 /*
-StringCut tests a standard function that takes multiple input arguments and returns multiple values.
+StringCut tests a function that takes primitive input arguments and returns primitive values.
 */
 func (svc *Service) StringCut(ctx context.Context, s string, sep string) (before string, after string, found bool, err error) {
 	before, after, found = strings.Cut(s, sep)
@@ -63,7 +63,7 @@ func (svc *Service) StringCut(ctx context.Context, s string, sep string) (before
 }
 
 /*
-PointDistance tests passing non-primitive types via query arguments.
+PointDistance tests a function that takes non-primitive input arguments.
 */
 func (svc *Service) PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) (d float64, err error) {
 	dx := (p1.X - p2.X)
@@ -73,7 +73,7 @@ func (svc *Service) PointDistance(ctx context.Context, p1 testerapi.XYCoord, p2 
 }
 
 /*
-ShiftPoint tests passing pointers to non-primitive types.
+ShiftPoint tests passing pointers of non-primitive types.
 */
 func (svc *Service) ShiftPoint(ctx context.Context, p *testerapi.XYCoord, x float64, y float64) (shifted *testerapi.XYCoord, err error) {
 	return &testerapi.XYCoord{X: p.X + x, Y: p.Y + y}, nil
@@ -166,6 +166,18 @@ func (svc *Service) Echo(w http.ResponseWriter, r *http.Request) (err error) {
 		}
 	}
 	r.Write(w)
+	return nil
+}
+
+/*
+MultiValueHeaders tests a passing in and returning headers with multiple values.
+*/
+func (svc *Service) MultiValueHeaders(w http.ResponseWriter, r *http.Request) (err error) {
+	if len(r.Header["Multi-In"]) <= 1 {
+		return errors.New("multi value not received")
+	}
+	w.Header().Add("Multi-Out", "Out1")
+	w.Header().Add("Multi-Out", "Out2")
 	return nil
 }
 

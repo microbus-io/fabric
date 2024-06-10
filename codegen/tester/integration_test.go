@@ -479,25 +479,53 @@ func TestTester_Echo(t *testing.T) {
 		BodyContains("text/plain").
 		BodyContains("HEAVY PAYLOAD").
 		NoError()
-
-	// --- Requests ---
 	httpReq, _ := http.NewRequestWithContext(ctx, "PUT", "?alpha=111&beta=222", strings.NewReader("HEAVY PAYLOAD"))
 	httpReq.Header.Set("Content-Type", "text/plain")
 	Echo(t, httpReq).
 		BodyContains("PUT /").
 		BodyContains("alpha=111&beta=222").
-		BodyContains("text/plain").
+		BodyContains("Content-Type: text/plain").
 		BodyContains("HEAVY PAYLOAD").
 		NoError()
 
-	res, err := Svc.Request(ctx, pub.PATCH("https://"+Hostname+"/echo?alpha=111&beta=222"), pub.Body("HEAVY PAYLOAD"), pub.ContentType("text/plain"))
+	// --- Requests ---
+	res, err := Svc.Request(ctx,
+		pub.PATCH("https://"+Hostname+"/echo?alpha=111&beta=222"),
+		pub.Body("HEAVY PAYLOAD"),
+		pub.ContentType("text/plain"),
+	)
 	if assert.NoError(t, err) {
 		body, _ := io.ReadAll(res.Body)
 		assert.Contains(t, string(body), "PATCH /")
 		assert.Contains(t, string(body), "alpha=111&beta=222")
-		assert.Contains(t, string(body), "text/plain")
+		assert.Contains(t, string(body), "Content-Type: text/plain")
 		assert.Contains(t, string(body), "HEAVY PAYLOAD")
 	}
+}
+
+func TestTester_MultiValueHeaders(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		MultiValueHeaders_Get(t, ctx, "").BodyContains(value)
+		MultiValueHeaders_Post(t, ctx, "", "", body).BodyContains(value)
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		MultiValueHeaders(t, httpReq).BodyContains(value)
+	*/
+
+	ctx := Context()
+
+	// --- Test cases ---
+	httpReq, _ := http.NewRequestWithContext(ctx, "GET", "", nil)
+	httpReq.Header.Add("Multi-In", "In1")
+	httpReq.Header.Add("Multi-In", "In2")
+	res, _ := MultiValueHeaders(t, httpReq).NoError().Get()
+	assert.Len(t, res.Header["Multi-Out"], 2)
+	httpReq, _ = http.NewRequestWithContext(ctx, "POST", "", strings.NewReader("Payload"))
+	httpReq.Header.Add("Multi-In", "In1")
+	httpReq.Header.Add("Multi-In", "In2")
+	res, _ = MultiValueHeaders(t, httpReq).NoError().Get()
+	assert.Len(t, res.Header["Multi-Out"], 2)
 }
 
 func TestTester_PathArgumentsPriority(t *testing.T) {
