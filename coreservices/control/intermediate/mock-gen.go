@@ -38,7 +38,7 @@ var (
 
 // Mock is a mockable version of the control.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockPing func(ctx context.Context) (pong int, err error)
 	mockConfigRefresh func(ctx context.Context) (err error)
 	mockTrace func(ctx context.Context, id string) (err error)
@@ -46,165 +46,65 @@ type Mock struct {
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("control.sys"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`This microservice is created for the sake of generating the client API for the :888 control subscriptions.
-The microservice itself does nothing and should not be included in applications.`)
-	svc.SetOnStartup(svc.doOnStartup)
-	
-	// Functions
-	svc.Subscribe(`ANY`, `:888/ping`, svc.doPing, sub.NoQueue())
-	svc.Subscribe(`ANY`, `:888/config-refresh`, svc.doConfigRefresh, sub.NoQueue())
-	svc.Subscribe(`ANY`, `:888/trace`, svc.doTrace, sub.NoQueue())
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doPing handles marshaling for the Ping function.
-func (svc *Mock) doPing(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockPing == nil {
-		return errors.New("mocked endpoint 'Ping' not implemented")
-	}
-	var i controlapi.PingIn
-	var o controlapi.PingOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:888/ping`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:888/ping`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.Pong, err = svc.mockPing(
-		r.Context(),
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// MockPing sets up a mock handler for the Ping function.
+// MockPing sets up a mock handler for the Ping endpoint.
 func (svc *Mock) MockPing(handler func(ctx context.Context) (pong int, err error)) *Mock {
 	svc.mockPing = handler
 	return svc
 }
 
-// doConfigRefresh handles marshaling for the ConfigRefresh function.
-func (svc *Mock) doConfigRefresh(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockConfigRefresh == nil {
-		return errors.New("mocked endpoint 'ConfigRefresh' not implemented")
+// Ping runs the mock handler set by MockPing.
+func (svc *Mock) Ping(ctx context.Context) (pong int, err error) {
+	if svc.mockPing == nil {
+		err = errors.New("mocked endpoint 'Ping' not implemented")
+		return
 	}
-	var i controlapi.ConfigRefreshIn
-	var o controlapi.ConfigRefreshOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:888/config-refresh`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:888/config-refresh`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	err = svc.mockConfigRefresh(
-		r.Context(),
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockPing(ctx)
 }
 
-// MockConfigRefresh sets up a mock handler for the ConfigRefresh function.
+// MockConfigRefresh sets up a mock handler for the ConfigRefresh endpoint.
 func (svc *Mock) MockConfigRefresh(handler func(ctx context.Context) (err error)) *Mock {
 	svc.mockConfigRefresh = handler
 	return svc
 }
 
-// doTrace handles marshaling for the Trace function.
-func (svc *Mock) doTrace(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockTrace == nil {
-		return errors.New("mocked endpoint 'Trace' not implemented")
+// ConfigRefresh runs the mock handler set by MockConfigRefresh.
+func (svc *Mock) ConfigRefresh(ctx context.Context) (err error) {
+	if svc.mockConfigRefresh == nil {
+		err = errors.New("mocked endpoint 'ConfigRefresh' not implemented")
+		return
 	}
-	var i controlapi.TraceIn
-	var o controlapi.TraceOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:888/trace`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:888/trace`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	err = svc.mockTrace(
-		r.Context(),
-		i.ID,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockConfigRefresh(ctx)
 }
 
-// MockTrace sets up a mock handler for the Trace function.
+// MockTrace sets up a mock handler for the Trace endpoint.
 func (svc *Mock) MockTrace(handler func(ctx context.Context, id string) (err error)) *Mock {
 	svc.mockTrace = handler
 	return svc
+}
+
+// Trace runs the mock handler set by MockTrace.
+func (svc *Mock) Trace(ctx context.Context, id string) (err error) {
+	if svc.mockTrace == nil {
+		err = errors.New("mocked endpoint 'Trace' not implemented")
+		return
+	}
+	return svc.mockTrace(ctx, id)
 }

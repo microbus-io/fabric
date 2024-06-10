@@ -38,44 +38,41 @@ var (
 
 // Mock is a mockable version of the metrics.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockCollect func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("metrics.sys"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.`)
-	svc.SetOnStartup(svc.doOnStartup)
-
-	// Webs
-	svc.Subscribe(`ANY`, `:443/collect`, svc.doCollect)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doCollect handles the Collect web handler.
-func (svc *Mock) doCollect(w http.ResponseWriter, r *http.Request) (err error) {
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
+	return nil
+}
+
+// MockCollect sets up a mock handler for the Collect endpoint.
+func (svc *Mock) MockCollect(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockCollect = handler
+	return svc
+}
+
+// Collect runs the mock handler set by MockCollect.
+func (svc *Mock) Collect(w http.ResponseWriter, r *http.Request) (err error) {
 	if svc.mockCollect == nil {
 		return errors.New("mocked endpoint 'Collect' not implemented")
 	}
 	err = svc.mockCollect(w, r)
 	return errors.Trace(err)
-}
-
-// MockCollect sets up a mock handler for the Collect web handler.
-func (svc *Mock) MockCollect(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
-	svc.mockCollect = handler
-	return svc
 }

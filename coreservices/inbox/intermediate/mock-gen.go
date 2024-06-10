@@ -38,25 +38,50 @@ var (
 
 // Mock is a mockable version of the inbox.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 }
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("inbox.sys"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`Inbox listens for incoming emails and fires appropriate events.`)
-	svc.SetOnStartup(svc.doOnStartup)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
+	return nil
+}
+
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
+	return nil
+}
+
+// OnChangedPort is a no op.
+func (svc *Mock) OnChangedPort(ctx context.Context) (err error) {
+	return nil
+}
+
+// OnChangedEnabled is a no op.
+func (svc *Mock) OnChangedEnabled(ctx context.Context) (err error) {
+	return nil
+}
+
+// OnChangedMaxSize is a no op.
+func (svc *Mock) OnChangedMaxSize(ctx context.Context) (err error) {
+	return nil
+}
+
+// OnChangedMaxClients is a no op.
+func (svc *Mock) OnChangedMaxClients(ctx context.Context) (err error) {
+	return nil
+}
+
+// OnChangedWorkers is a no op.
+func (svc *Mock) OnChangedWorkers(ctx context.Context) (err error) {
 	return nil
 }

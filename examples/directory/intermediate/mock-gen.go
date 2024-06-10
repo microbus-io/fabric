@@ -38,7 +38,7 @@ var (
 
 // Mock is a mockable version of the directory.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockCreate func(ctx context.Context, httpRequestBody *directoryapi.Person) (key directoryapi.PersonKey, err error)
 	mockLoad func(ctx context.Context, key directoryapi.PersonKey) (httpResponseBody *directoryapi.Person, err error)
 	mockDelete func(ctx context.Context, key directoryapi.PersonKey) (err error)
@@ -50,336 +50,125 @@ type Mock struct {
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("directory.example"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The directory microservice exposes a RESTful API for persisting personal records in a SQL database.`)
-	svc.SetOnStartup(svc.doOnStartup)
-	
-	// Functions
-	svc.Subscribe(`POST`, `:443/persons`, svc.doCreate)
-	svc.Subscribe(`GET`, `:443/persons/key/{key}`, svc.doLoad)
-	svc.Subscribe(`DELETE`, `:443/persons/key/{key}`, svc.doDelete)
-	svc.Subscribe(`PUT`, `:443/persons/key/{key}`, svc.doUpdate)
-	svc.Subscribe(`GET`, `:443/persons/email/{email}`, svc.doLoadByEmail)
-	svc.Subscribe(`GET`, `:443/persons`, svc.doList)
-
-	// Webs
-	svc.Subscribe(`ANY`, `:443/web-ui`, svc.doWebUI)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doCreate handles marshaling for the Create function.
-func (svc *Mock) doCreate(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockCreate == nil {
-		return errors.New("mocked endpoint 'Create' not implemented")
-	}
-	var i directoryapi.CreateIn
-	var o directoryapi.CreateOut
-	err := httpx.ParseRequestBody(r, &i.HTTPRequestBody)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/persons`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/persons`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.Key, err = svc.mockCreate(
-		r.Context(),
-		i.HTTPRequestBody,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// MockCreate sets up a mock handler for the Create function.
+// MockCreate sets up a mock handler for the Create endpoint.
 func (svc *Mock) MockCreate(handler func(ctx context.Context, httpRequestBody *directoryapi.Person) (key directoryapi.PersonKey, err error)) *Mock {
 	svc.mockCreate = handler
 	return svc
 }
 
-// doLoad handles marshaling for the Load function.
-func (svc *Mock) doLoad(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockLoad == nil {
-		return errors.New("mocked endpoint 'Load' not implemented")
+// Create runs the mock handler set by MockCreate.
+func (svc *Mock) Create(ctx context.Context, httpRequestBody *directoryapi.Person) (key directoryapi.PersonKey, err error) {
+	if svc.mockCreate == nil {
+		err = errors.New("mocked endpoint 'Create' not implemented")
+		return
 	}
-	var i directoryapi.LoadIn
-	var o directoryapi.LoadOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/persons/key/{key}`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.HTTPResponseBody, err = svc.mockLoad(
-		r.Context(),
-		i.Key,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o.HTTPResponseBody)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockCreate(ctx, httpRequestBody)
 }
 
-// MockLoad sets up a mock handler for the Load function.
+// MockLoad sets up a mock handler for the Load endpoint.
 func (svc *Mock) MockLoad(handler func(ctx context.Context, key directoryapi.PersonKey) (httpResponseBody *directoryapi.Person, err error)) *Mock {
 	svc.mockLoad = handler
 	return svc
 }
 
-// doDelete handles marshaling for the Delete function.
-func (svc *Mock) doDelete(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockDelete == nil {
-		return errors.New("mocked endpoint 'Delete' not implemented")
+// Load runs the mock handler set by MockLoad.
+func (svc *Mock) Load(ctx context.Context, key directoryapi.PersonKey) (httpResponseBody *directoryapi.Person, err error) {
+	if svc.mockLoad == nil {
+		err = errors.New("mocked endpoint 'Load' not implemented")
+		return
 	}
-	var i directoryapi.DeleteIn
-	var o directoryapi.DeleteOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/persons/key/{key}`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	err = svc.mockDelete(
-		r.Context(),
-		i.Key,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockLoad(ctx, key)
 }
 
-// MockDelete sets up a mock handler for the Delete function.
+// MockDelete sets up a mock handler for the Delete endpoint.
 func (svc *Mock) MockDelete(handler func(ctx context.Context, key directoryapi.PersonKey) (err error)) *Mock {
 	svc.mockDelete = handler
 	return svc
 }
 
-// doUpdate handles marshaling for the Update function.
-func (svc *Mock) doUpdate(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockUpdate == nil {
-		return errors.New("mocked endpoint 'Update' not implemented")
+// Delete runs the mock handler set by MockDelete.
+func (svc *Mock) Delete(ctx context.Context, key directoryapi.PersonKey) (err error) {
+	if svc.mockDelete == nil {
+		err = errors.New("mocked endpoint 'Delete' not implemented")
+		return
 	}
-	var i directoryapi.UpdateIn
-	var o directoryapi.UpdateOut
-	err := httpx.ParseRequestBody(r, &i.HTTPRequestBody)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/persons/key/{key}`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/persons/key/{key}`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	err = svc.mockUpdate(
-		r.Context(),
-		i.Key,
-		i.HTTPRequestBody,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockDelete(ctx, key)
 }
 
-// MockUpdate sets up a mock handler for the Update function.
+// MockUpdate sets up a mock handler for the Update endpoint.
 func (svc *Mock) MockUpdate(handler func(ctx context.Context, key directoryapi.PersonKey, httpRequestBody *directoryapi.Person) (err error)) *Mock {
 	svc.mockUpdate = handler
 	return svc
 }
 
-// doLoadByEmail handles marshaling for the LoadByEmail function.
-func (svc *Mock) doLoadByEmail(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockLoadByEmail == nil {
-		return errors.New("mocked endpoint 'LoadByEmail' not implemented")
+// Update runs the mock handler set by MockUpdate.
+func (svc *Mock) Update(ctx context.Context, key directoryapi.PersonKey, httpRequestBody *directoryapi.Person) (err error) {
+	if svc.mockUpdate == nil {
+		err = errors.New("mocked endpoint 'Update' not implemented")
+		return
 	}
-	var i directoryapi.LoadByEmailIn
-	var o directoryapi.LoadByEmailOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/persons/email/{email}`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/persons/email/{email}`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.HTTPResponseBody, err = svc.mockLoadByEmail(
-		r.Context(),
-		i.Email,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o.HTTPResponseBody)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockUpdate(ctx, key, httpRequestBody)
 }
 
-// MockLoadByEmail sets up a mock handler for the LoadByEmail function.
+// MockLoadByEmail sets up a mock handler for the LoadByEmail endpoint.
 func (svc *Mock) MockLoadByEmail(handler func(ctx context.Context, email string) (httpResponseBody *directoryapi.Person, err error)) *Mock {
 	svc.mockLoadByEmail = handler
 	return svc
 }
 
-// doList handles marshaling for the List function.
-func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockList == nil {
-		return errors.New("mocked endpoint 'List' not implemented")
+// LoadByEmail runs the mock handler set by MockLoadByEmail.
+func (svc *Mock) LoadByEmail(ctx context.Context, email string) (httpResponseBody *directoryapi.Person, err error) {
+	if svc.mockLoadByEmail == nil {
+		err = errors.New("mocked endpoint 'LoadByEmail' not implemented")
+		return
 	}
-	var i directoryapi.ListIn
-	var o directoryapi.ListOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/persons`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/persons`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.HTTPResponseBody, err = svc.mockList(
-		r.Context(),
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o.HTTPResponseBody)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockLoadByEmail(ctx, email)
 }
 
-// MockList sets up a mock handler for the List function.
+// MockList sets up a mock handler for the List endpoint.
 func (svc *Mock) MockList(handler func(ctx context.Context) (httpResponseBody []directoryapi.PersonKey, err error)) *Mock {
 	svc.mockList = handler
 	return svc
 }
 
-// doWebUI handles the WebUI web handler.
-func (svc *Mock) doWebUI(w http.ResponseWriter, r *http.Request) (err error) {
+// List runs the mock handler set by MockList.
+func (svc *Mock) List(ctx context.Context) (httpResponseBody []directoryapi.PersonKey, err error) {
+	if svc.mockList == nil {
+		err = errors.New("mocked endpoint 'List' not implemented")
+		return
+	}
+	return svc.mockList(ctx)
+}
+
+// MockWebUI sets up a mock handler for the WebUI endpoint.
+func (svc *Mock) MockWebUI(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockWebUI = handler
+	return svc
+}
+
+// WebUI runs the mock handler set by MockWebUI.
+func (svc *Mock) WebUI(w http.ResponseWriter, r *http.Request) (err error) {
 	if svc.mockWebUI == nil {
 		return errors.New("mocked endpoint 'WebUI' not implemented")
 	}
 	err = svc.mockWebUI(w, r)
 	return errors.Trace(err)
-}
-
-// MockWebUI sets up a mock handler for the WebUI web handler.
-func (svc *Mock) MockWebUI(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
-	svc.mockWebUI = handler
-	return svc
 }

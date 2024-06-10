@@ -38,7 +38,7 @@ var (
 
 // Mock is a mockable version of the calculator.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockArithmetic func(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error)
 	mockSquare func(ctx context.Context, x int) (xEcho int, result int, err error)
 	mockDistance func(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error)
@@ -46,169 +46,65 @@ type Mock struct {
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("calculator.example"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The Calculator microservice performs simple mathematical operations.`)
-	svc.SetOnStartup(svc.doOnStartup)
-	
-	// Functions
-	svc.Subscribe(`GET`, `:443/arithmetic`, svc.doArithmetic)
-	svc.Subscribe(`GET`, `:443/square`, svc.doSquare)
-	svc.Subscribe(`ANY`, `:443/distance`, svc.doDistance)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doArithmetic handles marshaling for the Arithmetic function.
-func (svc *Mock) doArithmetic(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockArithmetic == nil {
-		return errors.New("mocked endpoint 'Arithmetic' not implemented")
-	}
-	var i calculatorapi.ArithmeticIn
-	var o calculatorapi.ArithmeticOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/arithmetic`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/arithmetic`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.XEcho, o.OpEcho, o.YEcho, o.Result, err = svc.mockArithmetic(
-		r.Context(),
-		i.X,
-		i.Op,
-		i.Y,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// MockArithmetic sets up a mock handler for the Arithmetic function.
+// MockArithmetic sets up a mock handler for the Arithmetic endpoint.
 func (svc *Mock) MockArithmetic(handler func(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error)) *Mock {
 	svc.mockArithmetic = handler
 	return svc
 }
 
-// doSquare handles marshaling for the Square function.
-func (svc *Mock) doSquare(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockSquare == nil {
-		return errors.New("mocked endpoint 'Square' not implemented")
+// Arithmetic runs the mock handler set by MockArithmetic.
+func (svc *Mock) Arithmetic(ctx context.Context, x int, op string, y int) (xEcho int, opEcho string, yEcho int, result int, err error) {
+	if svc.mockArithmetic == nil {
+		err = errors.New("mocked endpoint 'Arithmetic' not implemented")
+		return
 	}
-	var i calculatorapi.SquareIn
-	var o calculatorapi.SquareOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/square`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/square`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.XEcho, o.Result, err = svc.mockSquare(
-		r.Context(),
-		i.X,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockArithmetic(ctx, x, op, y)
 }
 
-// MockSquare sets up a mock handler for the Square function.
+// MockSquare sets up a mock handler for the Square endpoint.
 func (svc *Mock) MockSquare(handler func(ctx context.Context, x int) (xEcho int, result int, err error)) *Mock {
 	svc.mockSquare = handler
 	return svc
 }
 
-// doDistance handles marshaling for the Distance function.
-func (svc *Mock) doDistance(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockDistance == nil {
-		return errors.New("mocked endpoint 'Distance' not implemented")
+// Square runs the mock handler set by MockSquare.
+func (svc *Mock) Square(ctx context.Context, x int) (xEcho int, result int, err error) {
+	if svc.mockSquare == nil {
+		err = errors.New("mocked endpoint 'Square' not implemented")
+		return
 	}
-	var i calculatorapi.DistanceIn
-	var o calculatorapi.DistanceOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/distance`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/distance`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.D, err = svc.mockDistance(
-		r.Context(),
-		i.P1,
-		i.P2,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockSquare(ctx, x)
 }
 
-// MockDistance sets up a mock handler for the Distance function.
+// MockDistance sets up a mock handler for the Distance endpoint.
 func (svc *Mock) MockDistance(handler func(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error)) *Mock {
 	svc.mockDistance = handler
 	return svc
+}
+
+// Distance runs the mock handler set by MockDistance.
+func (svc *Mock) Distance(ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) (d float64, err error) {
+	if svc.mockDistance == nil {
+		err = errors.New("mocked endpoint 'Distance' not implemented")
+		return
+	}
+	return svc.mockDistance(ctx, p1, p2)
 }

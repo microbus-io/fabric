@@ -38,45 +38,41 @@ var (
 
 // Mock is a mockable version of the openapiportal.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockList func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("openapiportal.sys"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The OpenAPI microservice lists links to the OpenAPI endpoint of all microservices that provide one
-on the requested port.`)
-	svc.SetOnStartup(svc.doOnStartup)
-
-	// Webs
-	svc.Subscribe(`ANY`, `//openapi:0`, svc.doList)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doList handles the List web handler.
-func (svc *Mock) doList(w http.ResponseWriter, r *http.Request) (err error) {
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
+	return nil
+}
+
+// MockList sets up a mock handler for the List endpoint.
+func (svc *Mock) MockList(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockList = handler
+	return svc
+}
+
+// List runs the mock handler set by MockList.
+func (svc *Mock) List(w http.ResponseWriter, r *http.Request) (err error) {
 	if svc.mockList == nil {
 		return errors.New("mocked endpoint 'List' not implemented")
 	}
 	err = svc.mockList(w, r)
 	return errors.Trace(err)
-}
-
-// MockList sets up a mock handler for the List web handler.
-func (svc *Mock) MockList(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
-	svc.mockList = handler
-	return svc
 }

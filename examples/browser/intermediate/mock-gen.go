@@ -38,44 +38,41 @@ var (
 
 // Mock is a mockable version of the browser.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockBrowse func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("browser.example"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The browser microservice implements a simple web browser that utilizes the egress proxy.`)
-	svc.SetOnStartup(svc.doOnStartup)
-
-	// Webs
-	svc.Subscribe(`ANY`, `:443/browse`, svc.doBrowse)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doBrowse handles the Browse web handler.
-func (svc *Mock) doBrowse(w http.ResponseWriter, r *http.Request) (err error) {
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
+	return nil
+}
+
+// MockBrowse sets up a mock handler for the Browse endpoint.
+func (svc *Mock) MockBrowse(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockBrowse = handler
+	return svc
+}
+
+// Browse runs the mock handler set by MockBrowse.
+func (svc *Mock) Browse(w http.ResponseWriter, r *http.Request) (err error) {
 	if svc.mockBrowse == nil {
 		return errors.New("mocked endpoint 'Browse' not implemented")
 	}
 	err = svc.mockBrowse(w, r)
 	return errors.Trace(err)
-}
-
-// MockBrowse sets up a mock handler for the Browse web handler.
-func (svc *Mock) MockBrowse(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
-	svc.mockBrowse = handler
-	return svc
 }

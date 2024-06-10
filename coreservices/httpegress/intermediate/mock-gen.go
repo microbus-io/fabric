@@ -38,44 +38,41 @@ var (
 
 // Mock is a mockable version of the http.egress.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockMakeRequest func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("http.egress.sys"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The HTTP egress microservice relays HTTP requests to the internet.`)
-	svc.SetOnStartup(svc.doOnStartup)
-
-	// Webs
-	svc.Subscribe(`POST`, `:444/make-request`, svc.doMakeRequest)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doMakeRequest handles the MakeRequest web handler.
-func (svc *Mock) doMakeRequest(w http.ResponseWriter, r *http.Request) (err error) {
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
+	return nil
+}
+
+// MockMakeRequest sets up a mock handler for the MakeRequest endpoint.
+func (svc *Mock) MockMakeRequest(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockMakeRequest = handler
+	return svc
+}
+
+// MakeRequest runs the mock handler set by MockMakeRequest.
+func (svc *Mock) MakeRequest(w http.ResponseWriter, r *http.Request) (err error) {
 	if svc.mockMakeRequest == nil {
 		return errors.New("mocked endpoint 'MakeRequest' not implemented")
 	}
 	err = svc.mockMakeRequest(w, r)
 	return errors.Trace(err)
-}
-
-// MockMakeRequest sets up a mock handler for the MakeRequest web handler.
-func (svc *Mock) MockMakeRequest(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
-	svc.mockMakeRequest = handler
-	return svc
 }

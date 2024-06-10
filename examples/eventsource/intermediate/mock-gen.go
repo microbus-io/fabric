@@ -38,76 +38,41 @@ var (
 
 // Mock is a mockable version of the eventsource.example microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockRegister func(ctx context.Context, email string) (allowed bool, err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("eventsource.example"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The event source microservice fires events that are caught by the event sink microservice.`)
-	svc.SetOnStartup(svc.doOnStartup)
-	
-	// Functions
-	svc.Subscribe(`ANY`, `:443/register`, svc.doRegister)
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doRegister handles marshaling for the Register function.
-func (svc *Mock) doRegister(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockRegister == nil {
-		return errors.New("mocked endpoint 'Register' not implemented")
-	}
-	var i eventsourceapi.RegisterIn
-	var o eventsourceapi.RegisterOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/register`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/register`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.Allowed, err = svc.mockRegister(
-		r.Context(),
-		i.Email,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// MockRegister sets up a mock handler for the Register function.
+// MockRegister sets up a mock handler for the Register endpoint.
 func (svc *Mock) MockRegister(handler func(ctx context.Context, email string) (allowed bool, err error)) *Mock {
 	svc.mockRegister = handler
 	return svc
+}
+
+// Register runs the mock handler set by MockRegister.
+func (svc *Mock) Register(ctx context.Context, email string) (allowed bool, err error) {
+	if svc.mockRegister == nil {
+		err = errors.New("mocked endpoint 'Register' not implemented")
+		return
+	}
+	return svc.mockRegister(ctx, email)
 }

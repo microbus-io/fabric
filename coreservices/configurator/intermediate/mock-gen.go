@@ -38,7 +38,7 @@ var (
 
 // Mock is a mockable version of the configurator.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
+	*Intermediate
 	mockValues func(ctx context.Context, names []string) (values map[string]string, err error)
 	mockRefresh func(ctx context.Context) (err error)
 	mockSync func(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error)
@@ -46,166 +46,70 @@ type Mock struct {
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("configurator.sys"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`The Configurator is a core microservice that centralizes the dissemination of configuration values to other microservices.`)
-	svc.SetOnStartup(svc.doOnStartup)
-	
-	// Functions
-	svc.Subscribe(`ANY`, `:443/values`, svc.doValues)
-	svc.Subscribe(`ANY`, `:443/refresh`, svc.doRefresh)
-	svc.Subscribe(`ANY`, `:443/sync`, svc.doSync, sub.NoQueue())
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
 
-// doValues handles marshaling for the Values function.
-func (svc *Mock) doValues(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockValues == nil {
-		return errors.New("mocked endpoint 'Values' not implemented")
-	}
-	var i configuratorapi.ValuesIn
-	var o configuratorapi.ValuesOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/values`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/values`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	o.Values, err = svc.mockValues(
-		r.Context(),
-		i.Names,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// MockValues sets up a mock handler for the Values function.
+// MockValues sets up a mock handler for the Values endpoint.
 func (svc *Mock) MockValues(handler func(ctx context.Context, names []string) (values map[string]string, err error)) *Mock {
 	svc.mockValues = handler
 	return svc
 }
 
-// doRefresh handles marshaling for the Refresh function.
-func (svc *Mock) doRefresh(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockRefresh == nil {
-		return errors.New("mocked endpoint 'Refresh' not implemented")
+// Values runs the mock handler set by MockValues.
+func (svc *Mock) Values(ctx context.Context, names []string) (values map[string]string, err error) {
+	if svc.mockValues == nil {
+		err = errors.New("mocked endpoint 'Values' not implemented")
+		return
 	}
-	var i configuratorapi.RefreshIn
-	var o configuratorapi.RefreshOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/refresh`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/refresh`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	err = svc.mockRefresh(
-		r.Context(),
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockValues(ctx, names)
 }
 
-// MockRefresh sets up a mock handler for the Refresh function.
+// MockRefresh sets up a mock handler for the Refresh endpoint.
 func (svc *Mock) MockRefresh(handler func(ctx context.Context) (err error)) *Mock {
 	svc.mockRefresh = handler
 	return svc
 }
 
-// doSync handles marshaling for the Sync function.
-func (svc *Mock) doSync(w http.ResponseWriter, r *http.Request) error {
-	if svc.mockSync == nil {
-		return errors.New("mocked endpoint 'Sync' not implemented")
+// Refresh runs the mock handler set by MockRefresh.
+func (svc *Mock) Refresh(ctx context.Context) (err error) {
+	if svc.mockRefresh == nil {
+		err = errors.New("mocked endpoint 'Refresh' not implemented")
+		return
 	}
-	var i configuratorapi.SyncIn
-	var o configuratorapi.SyncOut
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if strings.ContainsAny(`:443/sync`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `:443/sync`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	err = svc.mockSync(
-		r.Context(),
-		i.Timestamp,
-		i.Values,
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(o)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return svc.mockRefresh(ctx)
 }
 
-// MockSync sets up a mock handler for the Sync function.
+// MockSync sets up a mock handler for the Sync endpoint.
 func (svc *Mock) MockSync(handler func(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error)) *Mock {
 	svc.mockSync = handler
 	return svc
+}
+
+// Sync runs the mock handler set by MockSync.
+func (svc *Mock) Sync(ctx context.Context, timestamp time.Time, values map[string]map[string]string) (err error) {
+	if svc.mockSync == nil {
+		err = errors.New("mocked endpoint 'Sync' not implemented")
+		return
+	}
+	return svc.mockSync(ctx, timestamp, values)
+}
+
+// PeriodicRefresh is a no op.
+func (svc *Mock) PeriodicRefresh(ctx context.Context) (err error) {
+	return nil
 }

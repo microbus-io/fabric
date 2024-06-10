@@ -15,11 +15,6 @@ import (
 	"github.com/microbus-io/fabric/sub"
 
 	"{{ .Package }}/{{ .PackageSuffix }}api"
-
-	{{- if .Sinks }}
-	{{ range $i, $s := .Sinks }}
-	{{ .SourceSuffix }}api{{ Add $i 1 }} "{{ .Source }}/{{ .SourceSuffix }}api"
-	{{- end}}{{end}}
 )
 
 var (
@@ -36,12 +31,10 @@ var (
 
 // Mock is a mockable version of the {{ .General.Host }} microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
-	*connector.Connector
-
+	*Intermediate
 	{{- range (JoinHandlers .Functions .Sinks)}}
 	mock{{ .Name }} func({{ .In }}) ({{ .Out }})
 	{{- end}}
-
 	{{- range .Webs}}
 	mock{{ .Name }} func(w http.ResponseWriter, r *http.Request) (err error)
 	{{- end}}
@@ -49,152 +42,72 @@ type Mock struct {
 
 // NewMock creates a new mockable version of the microservice.
 func NewMock() *Mock {
-	svc := &Mock{
-		Connector: connector.New("{{ .General.Host }}"),
-	}
-	svc.SetVersion(7357) // Stands for TEST
-	svc.SetDescription(`{{ .General.Description }}`)
-	svc.SetOnStartup(svc.doOnStartup)
-
-	{{- if .Functions }}
-	
-	// Functions
-	{{- range .Functions }}
-	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none"}}, sub.NoQueue(){{end -}} )
-	{{- end }}{{ end }}
-
-	{{- if .Webs }}
-
-	// Webs
-	{{- range .Webs }}
-	svc.Subscribe(`{{ .Method }}`, `{{ .Path }}`, svc.do{{ .Name }} {{- if eq .Queue "none" }}, sub.NoQueue(){{ end -}} )
-	{{- end }}{{ end }}
-
-	{{- if .Sinks }}
-
-	// Sinks
-	{{- range $i, $s := .Sinks }}
-	{{ .SourceSuffix }}api{{ Add $i 1 }}.NewHook(svc).
-	{{- if .ForHost }}ForHost(`{{ .ForHost }}`).{{ end }}
-	{{- .Event }}(svc.do{{ .Name }}
-	{{- if eq .Queue "none"}}, sub.NoQueue(){{ end -}}
-	)
-	{{- end }}{{ end }}
-
-	return svc
+	m := &Mock{}
+	m.Intermediate = NewService(m, 7357) // Stands for TEST
+	return m
 }
 
-// doOnStartup makes sure that the mock is not executed in a non-dev environment.
-func (svc *Mock) doOnStartup(ctx context.Context) (err error) {
+// OnStartup makes sure that the mock is not executed in a non-dev environment.
+func (svc *Mock) OnStartup(ctx context.Context) (err error) {
 	if svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.Newf("mocking disallowed in '%s' deployment", svc.Deployment())
 	}
 	return nil
 }
-{{/**/}}
 
-{{- $shortPackage := .PackageSuffix }}
-{{- range .Functions }}
-// do{{ .Name }} handles marshaling for the {{ .Name }} function.
-func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) error {
-	if svc.mock{{ .Name }} == nil {
-		return errors.New("mocked endpoint '{{ .Name }}' not implemented")
-	}
-	var i {{ $shortPackage }}api.{{ .Name }}In
-	var o {{ $shortPackage }}api.{{ .Name }}Out
-	{{- if .Signature.InputArg "httpRequestBody" }}
-	err := httpx.ParseRequestBody(r, &i.{{ CapitalizeIdentifier "httpRequestBody" }})
-	if err != nil {
-		return errors.Trace(err)
-	}
-	err = httpx.DecodeDeepObject(r.URL.Query(), &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	{{- else }}
-	err := httpx.ParseRequestData(r, &i)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	{{- end }}
-	if strings.ContainsAny(`{{ .Path }}`, "{}") {
-		spec := httpx.JoinHostAndPath("host", `{{ .Path }}`)
-		_, spec, _ = strings.Cut(spec, "://")
-		_, spec, _ = strings.Cut(spec, "/")
-		spec = "/" + spec
-		pathArgs, err := httpx.ExtractPathArguments(spec, r.URL.Path)
-		if err != nil {
-			return errors.Trace(err)
-		}
-		err = httpx.DecodeDeepObject(pathArgs, &i)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	{{ range .Signature.OutputArgs }}o.{{ CapitalizeIdentifier .Name }}, {{ end }}err = svc.mock{{ .Name }}(
-		r.Context(),
-		{{- range .Signature.InputArgs }}
-		i.{{ CapitalizeIdentifier .Name }},
-		{{- end}}
-	)
-	if err != nil {
-		return err // No trace
-	}
-	w.Header().Set("Content-Type", "application/json")
-	{{- if .Signature.OutputArg "httpStatusCode" }}
-	w.WriteHeader(o.{{ CapitalizeIdentifier "httpStatusCode" }})
-	{{- end}}
-	encoder := json.NewEncoder(w)
-	{{- if .Signature.OutputArg "httpResponseBody" }}
-	err = encoder.Encode(o.{{ CapitalizeIdentifier "httpResponseBody" }})
-	{{- else }}
-	err = encoder.Encode(o)
-	{{- end }}
-	if err != nil {
-		return errors.Trace(err)
-	}
+// OnShutdown is a no op.
+func (svc *Mock) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} function.
+{{- range (JoinHandlers .Functions .Sinks) }}
+
+// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} endpoint.
 func (svc *Mock) Mock{{ .Name }}(handler func({{ .In }}) ({{ .Out }})) *Mock {
 	svc.mock{{ .Name }} = handler
 	return svc
 }
-{{ end}}
 
-{{- range .Webs}}
-// do{{ .Name }} handles the {{ .Name }} web handler.
-func (svc *Mock) do{{ .Name }}(w http.ResponseWriter, r *http.Request) (err error) {
+// {{ .Name }} runs the mock handler set by Mock{{ .Name }}.
+func (svc *Mock) {{ .Name }}({{ .In }}) ({{ .Out }}) {
+	if svc.mock{{ .Name }} == nil {
+		err = errors.New("mocked endpoint '{{ .Name }}' not implemented")
+		return
+	}
+	return svc.mock{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
+}
+{{- end}}
+
+{{- range .Webs }}
+
+// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} endpoint.
+func (svc *Mock) Mock{{ .Name }}(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mock{{ .Name }} = handler
+	return svc
+}
+
+// {{ .Name }} runs the mock handler set by Mock{{ .Name }}.
+func (svc *Mock) {{ .Name }}(w http.ResponseWriter, r *http.Request) (err error) {
 	if svc.mock{{ .Name }} == nil {
 		return errors.New("mocked endpoint '{{ .Name }}' not implemented")
 	}
 	err = svc.mock{{ .Name }}(w, r)
 	return errors.Trace(err)
 }
+{{- end }}
 
-// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} web handler.
-func (svc *Mock) Mock{{ .Name }}(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
-	svc.mock{{ .Name }} = handler
-	return svc
-}
-{{ end }}
+{{- range .Configs}}{{ if .Callback}}
 
-{{- range .Sinks }}
-// do{{ .Name }} handles marshaling for the {{ .Name }} event sink.
-func (svc *Mock) do{{ .Name }}({{ .In }}) ({{ .Out }}) {
-	if svc.mock{{ .Name }} == nil {
-		err = errors.New("mocked endpoint '{{ .Name }}' not implemented")
-		return
-	}
-	{{ range .Signature.OutputArgs }}{{ .Name }}, {{ end }}err = svc.mock{{ .Name }}(ctx{{ range .Signature.InputArgs }}, {{ .Name }}{{ end }})
-	err = errors.Trace(err)
-	return
+// OnChanged{{ .Name }} is a no op.
+func (svc *Mock) OnChanged{{ .Name }}(ctx context.Context) (err error) {
+	return nil
 }
+{{- end}}{{- end}}
 
-// Mock{{ .Name }} sets up a mock handler for the {{ .Name }} event sink.
-func (svc *Mock) Mock{{ .Name }}(handler func({{ .In }}) ({{ .Out }})) *Mock {
-	svc.mock{{ .Name }} = handler
-	return svc
+{{- range .Tickers}}
+
+// {{ .Name }} is a no op.
+func (svc *Mock) {{ .Name }}(ctx context.Context) (err error) {
+	return nil
 }
-{{ end }}
+{{- end}}
