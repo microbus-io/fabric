@@ -247,11 +247,9 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	b, err := json.MarshalIndent(&oapiSvc, "", "    ")
-	if err != nil {
-		return errors.Trace(err)
-	}
-	_, err = w.Write(b)
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	err := encoder.Encode(&oapiSvc)
 	return errors.Trace(err)
 }
 
@@ -309,7 +307,7 @@ func (svc *Intermediate) doCreate(w http.ResponseWriter, r *http.Request) error 
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -346,7 +344,7 @@ func (svc *Intermediate) doLoad(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
@@ -383,7 +381,7 @@ func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) error 
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -425,7 +423,7 @@ func (svc *Intermediate) doUpdate(w http.ResponseWriter, r *http.Request) error 
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -462,7 +460,7 @@ func (svc *Intermediate) doLoadByEmail(w http.ResponseWriter, r *http.Request) e
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
@@ -498,7 +496,7 @@ func (svc *Intermediate) doList(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {

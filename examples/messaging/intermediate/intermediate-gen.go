@@ -200,11 +200,9 @@ Only one of the instances of this microservice will respond to each request.`,
 		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	b, err := json.MarshalIndent(&oapiSvc, "", "    ")
-	if err != nil {
-		return errors.Trace(err)
-	}
-	_, err = w.Write(b)
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	err := encoder.Encode(&oapiSvc)
 	return errors.Trace(err)
 }
 

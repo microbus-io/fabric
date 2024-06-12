@@ -60,11 +60,13 @@ var (
 	URLOfNonStringPathArguments = httpx.JoinHostAndPath(Hostname, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfUnnamedFunctionPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`)
 	URLOfPathArgumentsPriority = httpx.JoinHostAndPath(Hostname, `:443/path-arguments-priority/{foo}`)
+	URLOfWhatTimeIsIt = httpx.JoinHostAndPath(Hostname, `:443/what-time-is-it`)
 	URLOfEcho = httpx.JoinHostAndPath(Hostname, `:443/echo`)
 	URLOfMultiValueHeaders = httpx.JoinHostAndPath(Hostname, `:443/multi-value-headers`)
 	URLOfWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`)
 	URLOfUnnamedWebPathArguments = httpx.JoinHostAndPath(Hostname, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`)
 	URLOfDirectoryServer = httpx.JoinHostAndPath(Hostname, `:443/directory-server/{filename+}`)
+	URLOfHello = httpx.JoinHostAndPath(Hostname, `:443/hello`)
 )
 
 // Client is an interface to calling the endpoints of the codegen.test microservice.
@@ -105,6 +107,46 @@ func NewMulticastClient(caller service.Publisher) *MulticastClient {
 
 // ForHost replaces the default hostname of this client.
 func (_c *MulticastClient) ForHost(host string) *MulticastClient {
+	_c.host = host
+	return _c
+}
+
+// MulticastTrigger is an interface to trigger the events of the codegen.test microservice.
+type MulticastTrigger struct {
+	svc  service.Publisher
+	host string
+}
+
+// NewMulticastTrigger creates a new multicast trigger of the codegen.test microservice.
+func NewMulticastTrigger(caller service.Publisher) *MulticastTrigger {
+	return &MulticastTrigger{
+		svc:  caller,
+		host: "codegen.test",
+	}
+}
+
+// ForHost replaces the default hostname of this trigger.
+func (_c *MulticastTrigger) ForHost(host string) *MulticastTrigger {
+	_c.host = host
+	return _c
+}
+
+// Hook assists in the subscription to the events of the codegen.test microservice.
+type Hook struct {
+	svc  service.Subscriber
+	host string
+}
+
+// NewHook creates a new hook to the events of the codegen.test microservice.
+func NewHook(listener service.Subscriber) *Hook {
+	return &Hook{
+		svc:  listener,
+		host: "codegen.test",
+	}
+}
+
+// ForHost replaces the default hostname of this hook.
+func (_c *Hook) ForHost(host string) *Hook {
 	_c.host = host
 	return _c
 }
@@ -736,6 +778,149 @@ func (_c *MulticastClient) DirectoryServer_Do(ctx context.Context, r *http.Reque
 		return _c.errChan(errors.Newc(http.StatusNotFound, ""))
 	}
 	url, err := httpx.ResolveURL(URLOfDirectoryServer, r.URL.String())
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+}
+
+/*
+Hello_Get performs a GET request to the Hello endpoint.
+
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) Hello_Get(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfHello, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("GET"), pub.URL(url))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+Hello_Get performs a GET request to the Hello endpoint.
+
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) Hello_Get(ctx context.Context, url string) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfHello, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("GET"), pub.URL(url))
+}
+
+/*
+Hello_Post performs a POST request to the Hello endpoint.
+
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *Client) Hello_Post(ctx context.Context, url string, contentType string, body any) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfHello, url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+Hello_Post performs a POST request to the Hello endpoint.
+
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func (_c *MulticastClient) Hello_Post(ctx context.Context, url string, contentType string, body any) <-chan *pub.Response {
+	var err error
+	url, err = httpx.ResolveURL(URLOfHello, url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return _c.errChan(errors.Trace(err))
+	}
+	return _c.svc.Publish(ctx, pub.Method("POST"), pub.URL(url), pub.ContentType(contentType), pub.Body(body))
+}
+
+/*
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *Client) Hello(r *http.Request) (res *http.Response, err error) {
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfHello, r.URL.String())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	res, err = _c.svc.Request(r.Context(), pub.Method(r.Method), pub.URL(url), pub.CopyHeaders(r.Header), pub.Body(r.Body))
+	if err != nil {
+		return nil, err // No trace
+	}
+	return res, err
+}
+
+/*
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func (_c *MulticastClient) Hello(ctx context.Context, r *http.Request) <-chan *pub.Response {
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			return _c.errChan(errors.Trace(err))
+		}
+	}
+	url, err := httpx.ResolveURL(URLOfHello, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -1872,4 +2057,201 @@ func (_c *Client) PathArgumentsPriority(ctx context.Context, foo string) (echo s
 	}
 	echo = _out.Echo
 	return
+}
+
+// WhatTimeIsItIn are the input arguments of WhatTimeIsIt.
+type WhatTimeIsItIn struct {
+}
+
+// WhatTimeIsItOut are the return values of WhatTimeIsIt.
+type WhatTimeIsItOut struct {
+	T time.Time `json:"t"`
+}
+
+// WhatTimeIsItResponse is the response to WhatTimeIsIt.
+type WhatTimeIsItResponse struct {
+	data WhatTimeIsItOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *WhatTimeIsItResponse) Get() (t time.Time, err error) {
+	t = _out.data.T
+	err = _out.err
+	return
+}
+
+/*
+WhatTimeIsIt tests shifting the clock.
+*/
+func (_c *MulticastClient) WhatTimeIsIt(ctx context.Context) <-chan *WhatTimeIsItResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:443/what-time-is-it`)
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
+	})
+	_in := WhatTimeIsItIn{
+	}
+	var _query url.Values
+	_body := _in
+	_ch := _c.svc.Publish(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+
+	_res := make(chan *WhatTimeIsItResponse, cap(_ch))
+	for _i := range _ch {
+		var _r WhatTimeIsItResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+WhatTimeIsIt tests shifting the clock.
+*/
+func (_c *Client) WhatTimeIsIt(ctx context.Context) (t time.Time, err error) {
+	var _err error
+	_url := httpx.JoinHostAndPath(_c.host, `:443/what-time-is-it`)
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
+	})
+	_in := WhatTimeIsItIn{
+	}
+	var _query url.Values
+	_body := _in
+	_httpRes, _err := _c.svc.Request(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+	if _err != nil {
+		err = _err // No trace
+		return
+	}
+	var _out WhatTimeIsItOut
+	_err = json.NewDecoder(_httpRes.Body).Decode(&_out)
+	if _err != nil {
+		err = errors.Trace(_err)
+		return
+	}
+	t = _out.T
+	return
+}
+
+// OnDiscoveredIn are the input arguments of OnDiscovered.
+type OnDiscoveredIn struct {
+	P XYCoord `json:"p"`
+	N int `json:"n"`
+}
+
+// OnDiscoveredOut are the return values of OnDiscovered.
+type OnDiscoveredOut struct {
+	Q XYCoord `json:"q"`
+	M int `json:"m"`
+}
+
+// OnDiscoveredResponse is the response to OnDiscovered.
+type OnDiscoveredResponse struct {
+	data OnDiscoveredOut
+	HTTPResponse *http.Response
+	err error
+}
+
+// Get retrieves the return values.
+func (_out *OnDiscoveredResponse) Get() (q XYCoord, m int, err error) {
+	q = _out.data.Q
+	m = _out.data.M
+	err = _out.err
+	return
+}
+
+/*
+OnDiscovered tests firing events.
+*/
+func (_c *MulticastTrigger) OnDiscovered(ctx context.Context, p XYCoord, n int) <-chan *OnDiscoveredResponse {
+	_url := httpx.JoinHostAndPath(_c.host, `:417/on-discovered`)
+	_url = httpx.InsertPathArguments(_url, httpx.QArgs{
+		`p`: p,
+		`n`: n,
+	})
+	_in := OnDiscoveredIn{
+		p,
+		n,
+	}
+	var _query url.Values
+	_body := _in
+	_ch := _c.svc.Publish(
+		ctx,
+		pub.Method(`POST`),
+		pub.URL(_url),
+		pub.Query(_query),
+		pub.Body(_body),
+	)
+
+	_res := make(chan *OnDiscoveredResponse, cap(_ch))
+	for _i := range _ch {
+		var _r OnDiscoveredResponse
+		_httpRes, _err := _i.Get()
+		_r.HTTPResponse = _httpRes
+		if _err != nil {
+			_r.err = _err // No trace
+		} else {
+			_err = json.NewDecoder(_httpRes.Body).Decode(&(_r.data))
+			if _err != nil {
+				_r.err = errors.Trace(_err)
+			}
+		}
+		_res <- &_r
+	}
+	close(_res)
+	return _res
+}
+
+/*
+OnDiscovered tests firing events.
+*/
+func (_c *Hook) OnDiscovered(handler func(ctx context.Context, p XYCoord, n int) (q XYCoord, m int, err error)) error {
+	doOnDiscovered := func(w http.ResponseWriter, r *http.Request) error {
+		var i OnDiscoveredIn
+		var o OnDiscoveredOut
+		err := httpx.ParseRequestData(r, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		o.Q, o.M, err = handler(
+			r.Context(),
+			i.P,
+			i.N,
+		)
+		if err != nil {
+			return err // No trace
+		}
+		w.Header().Set("Content-Type", "application/json")
+		encoder := json.NewEncoder(w)
+		err = encoder.Encode(o)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	path := httpx.JoinHostAndPath(_c.host, `:417/on-discovered`)
+	if handler == nil {
+		return _c.svc.Unsubscribe(`POST`, path)
+	}
+	return _c.svc.Subscribe(`POST`, path, doOnDiscovered)
 }

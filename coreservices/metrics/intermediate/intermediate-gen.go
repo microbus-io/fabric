@@ -127,11 +127,9 @@ func (svc *Intermediate) doOpenAPI(w http.ResponseWriter, r *http.Request) error
 		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	b, err := json.MarshalIndent(&oapiSvc, "", "    ")
-	if err != nil {
-		return errors.Trace(err)
-	}
-	_, err = w.Write(b)
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	err := encoder.Encode(&oapiSvc)
 	return errors.Trace(err)
 }
 

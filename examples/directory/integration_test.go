@@ -60,6 +60,7 @@ func TestDirectory_CRUD(t *testing.T) {
 		Birthday:  timex.MustParse("", "1980-07-31").UTC(),
 	}
 	person.Key, _ = Create(t, ctx, person).
+		NoError().
 		Assert(func(t *testing.T, key directoryapi.PersonKey, err error) {
 			assert.NotZero(t, key)
 		}).
@@ -70,6 +71,7 @@ func TestDirectory_CRUD(t *testing.T) {
 	LoadByEmail(t, ctx, person.Email).
 		Expect(person)
 	List(t, ctx).
+		NoError().
 		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
 			assert.Contains(t, keys, person.Key)
 		})
@@ -130,8 +132,11 @@ func TestDirectory_Create(t *testing.T) {
 		Error("birthday")
 	person.Birthday = timex.Timex{}
 
-	person.Key, _ = Create(t, ctx, person).Get()
+	person.Key, _ = Create(t, ctx, person).
+		NoError().
+		Get()
 	List(t, ctx).
+		NoError().
 		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
 			assert.Contains(t, keys, person.Key)
 		})
@@ -154,7 +159,8 @@ func TestDirectory_Update(t *testing.T) {
 		Email:     "ron.weasley@hogwarts.edu.wiz",
 	}
 	person.Key, _ = Create(t, ctx, person).
-		NoError().Get()
+		NoError().
+		Get()
 
 	person.FirstName = ""
 	Update(t, ctx, person.Key, person).
@@ -197,7 +203,7 @@ func TestDirectory_List(t *testing.T) {
 }
 
 func TestDirectory_WebUI(t *testing.T) {
-	t.Skip()
+	t.Skip() // Not tested
 
 	/*
 		ctx := Context()

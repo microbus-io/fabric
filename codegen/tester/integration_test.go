@@ -16,9 +16,11 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/service"
 
@@ -121,6 +123,21 @@ func TestTester_StringCut(t *testing.T) {
 		assert.Equal(t, "Bar", out.After)
 		assert.Equal(t, true, out.Found)
 	}
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/string-cut|post|"
+	// Input arguments
+	schemaRef := openAPIValue(basePath + "requestBody|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "string", openAPIValue(schemaRef+"properties|s|type"))
+	assert.Equal(t, "string", openAPIValue(schemaRef+"properties|sep|type"))
+	// Output argument
+	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "string", openAPIValue(schemaRef+"properties|before|type"))
+	assert.Equal(t, "string", openAPIValue(schemaRef+"properties|after|type"))
+	assert.Equal(t, "boolean", openAPIValue(schemaRef+"properties|found|type"))
 }
 
 func TestTester_PointDistance(t *testing.T) {
@@ -316,6 +333,21 @@ func TestTester_WebPathArguments(t *testing.T) {
 		BodyContains("/fixed/" + url.PathEscape("[a&b/c]") + "/" + url.PathEscape("[d&e/f]") + "/" + url.PathEscape("[g&h") + "/" + url.PathEscape("i]") + "?q=" + url.QueryEscape("[j&k/l]")).
 		BodyNotContains("{").
 		BodyNotContains("}")
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/web-path-arguments/fixed/{named}/{path2}/{suffix+}|get|"
+	// named
+	assert.Equal(t, "named", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
+	assert.Equal(t, "string", openAPIValue(basePath+"parameters|0|schema|type"))
+	// path2
+	assert.Equal(t, "path2", openAPIValue(basePath+"parameters|1|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|1|in"))
+	assert.Equal(t, "string", openAPIValue(basePath+"parameters|1|schema|type"))
+	// suffix
+	assert.Equal(t, "suffix+", openAPIValue(basePath+"parameters|2|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|2|in"))
+	assert.Equal(t, "string", openAPIValue(basePath+"parameters|2|schema|type"))
 }
 
 func TestTester_FunctionPathArguments(t *testing.T) {
@@ -335,6 +367,59 @@ func TestTester_FunctionPathArguments(t *testing.T) {
 		Expect("  ")
 	FunctionPathArguments(t, ctx, "[a&b$c]", "[d&e$f]", "[g&h/i]").
 		Expect("[a&b$c] [d&e$f] [g&h/i]")
+
+	// --- Client ---
+	joined, err := testerapi.NewClient(Svc).FunctionPathArguments(ctx, "1", "2", "3/4")
+	if assert.NoError(t, err) {
+		assert.Equal(t, joined, "1 2 3/4")
+	}
+	joined, err = testerapi.NewClient(Svc).FunctionPathArguments(ctx, "", "", "")
+	if assert.NoError(t, err) {
+		assert.Equal(t, joined, "  ")
+	}
+	joined, err = testerapi.NewClient(Svc).FunctionPathArguments(ctx, "[a&b$c]", "[d&e$f]", "[g&h/i]")
+	if assert.NoError(t, err) {
+		assert.Equal(t, joined, "[a&b$c] [d&e$f] [g&h/i]")
+	}
+
+	// --- Requests ---
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/function-path-arguments/fixed/1/2/3/4"))
+	if assert.NoError(t, err) {
+		var out testerapi.FunctionPathArgumentsOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, `1 2 3/4`, out.Joined)
+	}
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/function-path-arguments/fixed///"))
+	if assert.NoError(t, err) {
+		var out testerapi.FunctionPathArgumentsOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, `  `, out.Joined)
+	}
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/function-path-arguments/fixed/[a&b$c]/[d&e$f]/[g&h/i]"))
+	if assert.NoError(t, err) {
+		var out testerapi.FunctionPathArgumentsOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.Equal(t, `[a&b$c] [d&e$f] [g&h/i]`, out.Joined)
+	}
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/function-path-arguments/fixed/{named}/{path2}/{suffix+}|get|"
+	// named
+	assert.Equal(t, "named", openAPIValue(basePath+"parameters|0|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|0|in"))
+	assert.Equal(t, "string", openAPIValue(basePath+"parameters|0|schema|type"))
+	// path2
+	assert.Equal(t, "path2", openAPIValue(basePath+"parameters|1|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|1|in"))
+	assert.Equal(t, "string", openAPIValue(basePath+"parameters|1|schema|type"))
+	// suffix
+	assert.Equal(t, "suffix+", openAPIValue(basePath+"parameters|2|name"))
+	assert.Equal(t, "path", openAPIValue(basePath+"parameters|2|in"))
+	assert.Equal(t, "string", openAPIValue(basePath+"parameters|2|schema|type"))
+	// Response
+	schemaRef := openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "string", openAPIValue(schemaRef+"properties|joined|type"))
 }
 
 func TestTester_NonStringPathArguments(t *testing.T) {
@@ -375,6 +460,10 @@ func TestTester_NonStringPathArguments(t *testing.T) {
 	assert.Equal(t, "suffix+", openAPIValue(basePath+"parameters|2|name"))
 	assert.Equal(t, "path", openAPIValue(basePath+"parameters|2|in"))
 	assert.Equal(t, "number", openAPIValue(basePath+"parameters|2|schema|type"))
+	// Response
+	schemaRef := openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "string", openAPIValue(schemaRef+"properties|joined|type"))
 }
 
 func TestTester_UnnamedFunctionPathArguments(t *testing.T) {
@@ -765,4 +854,199 @@ func TestTester_LinesIntersection(t *testing.T) {
 	schemaRef = openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
 	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
 	assert.Equal(t, "boolean", openAPIValue(schemaRef+"properties|b|type"))
+}
+
+func TestTester_OnDiscoveredSink(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		OnDiscoveredSink(t, ctx, p, n).
+			Expect(q, m)
+	*/
+
+	ctx := Context()
+	OnDiscoveredSink(t, ctx, testerapi.XYCoord{X: 5, Y: -6}, -2).
+		Expect(testerapi.XYCoord{X: -5, Y: 6}, -1)
+	OnDiscoveredSink(t, ctx, testerapi.XYCoord{X: 5, Y: -6}, 3).
+		Expect(testerapi.XYCoord{X: 5, Y: -6}, 4)
+	OnDiscoveredSink(t, ctx, testerapi.XYCoord{X: 5, Y: -6}, 0).
+		Error("zero")
+}
+
+func TestTester_OnDiscovered(t *testing.T) {
+	// No parallel: event sinks might clash across tests
+	/*
+		ctx := Context()
+		tc := OnDiscovered(t).
+			Expect(p, n).
+			Return(q, m, err)
+		...
+		tc.Wait()
+	*/
+
+	ctx := Context()
+
+	tc := OnDiscovered(t).
+		Expect(testerapi.XYCoord{X: 5, Y: -6}, 3).
+		Return(testerapi.XYCoord{X: 5, Y: -6}, 4, nil)
+	q, m, err := (<-testerapi.NewMulticastTrigger(Svc).OnDiscovered(ctx, testerapi.XYCoord{X: 5, Y: -6}, 3)).Get()
+	if assert.NoError(t, err) {
+		assert.Equal(t, testerapi.XYCoord{X: 5, Y: -6}, q)
+		assert.Equal(t, 4, m)
+	}
+	tc.Wait()
+
+	tc = OnDiscovered(t).
+		Expect(testerapi.XYCoord{X: 5, Y: -6}, -3).
+		Return(testerapi.XYCoord{X: -5, Y: 6}, -2, nil)
+	go func() { // Async
+		q, m, err := (<-testerapi.NewMulticastTrigger(Svc).OnDiscovered(ctx, testerapi.XYCoord{X: 5, Y: -6}, -3)).Get()
+		if assert.NoError(t, err) {
+			assert.Equal(t, testerapi.XYCoord{X: -5, Y: 6}, q)
+			assert.Equal(t, -2, m)
+		}
+	}()
+	tc.Wait()
+
+	tc = OnDiscovered(t).
+		Expect(testerapi.XYCoord{X: 5, Y: -6}, -3).
+		Return(testerapi.XYCoord{X: -5, Y: 6}, -2, nil)
+	res := <-Svc.Publish(ctx, pub.PATCH("https://"+Hostname+":417/on-discovered"), pub.Body(&testerapi.OnDiscoveredIn{
+		P: testerapi.XYCoord{X: 5, Y: -6},
+		N: -3,
+	}))
+	assert.Nil(t, res) // Wrong HTTP method
+	res = <-Svc.Publish(ctx, pub.POST("https://"+Hostname+":417/on-discovered"), pub.Body(&testerapi.OnDiscoveredIn{
+		P: testerapi.XYCoord{X: 5, Y: -6},
+		N: -3,
+	}))
+	httpRes, err := res.Get()
+	if assert.NoError(t, err) {
+		var out testerapi.OnDiscoveredOut
+		json.NewDecoder(httpRes.Body).Decode(&out)
+		assert.Equal(t, testerapi.XYCoord{X: -5, Y: 6}, out.Q)
+		assert.Equal(t, -2, out.M)
+	}
+	tc.Wait()
+}
+
+func TestTester_Hello(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		Hello_Get(t, ctx, "").BodyContains(value)
+		Hello_Post(t, ctx, "", "", body).BodyContains(value)
+		httpReq, _ := http.NewRequestWithContext(ctx, method, "?arg=val", body)
+		Hello(t, httpReq).BodyContains(value)
+	*/
+
+	// --- Request header ---
+	r, _ := http.NewRequest("GET", "", nil)
+
+	Hello(t, r).
+		StatusOK().
+		BodyContains("Hello")
+	frame.Of(r).SetLanguages("en")
+	Hello(t, r).
+		StatusOK().
+		BodyContains("Hello")
+	frame.Of(r).SetLanguages("en-NZ")
+	Hello(t, r).
+		StatusOK().
+		BodyContains("Hello")
+	frame.Of(r).SetLanguages("it")
+	Hello(t, r).
+		StatusOK().
+		BodyContains("Salve")
+
+	// --- Context ---
+	ctx := Context()
+	r, _ = http.NewRequestWithContext(ctx, "GET", "", nil)
+	Hello(t, r).
+		StatusOK().
+		BodyContains("Hello")
+	frame.Of(ctx).SetLanguages("it")
+	Hello(t, r).
+		StatusOK().
+		BodyContains("Salve")
+
+	// --- Request ---
+	ctx = Context()
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/hello"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Equal(t, "Hello", string(b))
+	}
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/hello"), pub.Header("Accept-Language", "it"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Equal(t, "Salve", string(b))
+	}
+	frame.Of(ctx).SetLanguages("it")
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/hello"))
+	if assert.NoError(t, err) {
+		b, _ := io.ReadAll(res.Body)
+		assert.Equal(t, "Salve", string(b))
+	}
+}
+
+func TestTester_WhatTimeIsIt(t *testing.T) {
+	t.Parallel()
+	/*
+		ctx := Context()
+		WhatTimeIsIt(t, ctx).
+			Expect(t)
+	*/
+
+	ctx := Context()
+	realNow := time.Now()
+
+	// --- Test cases ---
+	tm, _ := WhatTimeIsIt(t, ctx).NoError().Get()
+	assert.WithinRange(t, tm, realNow.Add(-time.Second), realNow.Add(time.Second))
+
+	frame.Of(ctx).SetClockShift(time.Hour)
+	tm, _ = WhatTimeIsIt(t, ctx).NoError().Get()
+	assert.WithinRange(t, tm, realNow.Add(time.Hour-time.Second), realNow.Add(time.Hour+time.Second))
+
+	frame.Of(ctx).SetClockShift(0)
+	tm, _ = WhatTimeIsIt(t, ctx).NoError().Get()
+	assert.WithinRange(t, tm, realNow.Add(-time.Second), realNow.Add(time.Second))
+
+	// --- Client ---
+	ctx = Context()
+	tm, err := testerapi.NewClient(Svc).WhatTimeIsIt(ctx)
+	if assert.NoError(t, err) {
+		assert.WithinRange(t, tm, realNow.Add(-time.Second), realNow.Add(time.Second))
+	}
+	frame.Of(ctx).SetClockShift(time.Hour)
+	tm, err = testerapi.NewClient(Svc).WhatTimeIsIt(ctx)
+	if assert.NoError(t, err) {
+		assert.WithinRange(t, tm, realNow.Add(time.Hour-time.Second), realNow.Add(time.Hour+time.Second))
+	}
+
+	// --- Request ---
+	ctx = Context()
+	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/what-time-is-it"))
+	if assert.NoError(t, err) {
+		var out testerapi.WhatTimeIsItOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.WithinRange(t, out.T, realNow.Add(-time.Second), realNow.Add(time.Second))
+	}
+	frame.Of(ctx).SetClockShift(time.Hour)
+	res, err = Svc.Request(ctx, pub.GET("https://"+Hostname+"/what-time-is-it"))
+	if assert.NoError(t, err) {
+		var out testerapi.WhatTimeIsItOut
+		json.NewDecoder(res.Body).Decode(&out)
+		assert.WithinRange(t, tm, realNow.Add(time.Hour-time.Second), realNow.Add(time.Hour+time.Second))
+	}
+
+	// --- OpenAPI ---
+	basePath := "paths|/" + Hostname + ":443/what-time-is-it|post|"
+	// Output argument
+	schemaRef := openAPIValue(basePath + "responses|2XX|content|application/json|schema|$ref").(string)
+	schemaRef = strings.ReplaceAll(schemaRef, "/", "|")[2:] + "|"
+	assert.Equal(t, "object", openAPIValue(schemaRef+"type"))
+	assert.Equal(t, "string", openAPIValue(schemaRef+"properties|t|type"))
+	assert.Equal(t, "date-time", openAPIValue(schemaRef+"properties|t|format"))
 }

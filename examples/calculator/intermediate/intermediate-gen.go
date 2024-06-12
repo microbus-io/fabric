@@ -185,11 +185,9 @@ It demonstrates the use of the defined type Point.`,
 		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	b, err := json.MarshalIndent(&oapiSvc, "", "    ")
-	if err != nil {
-		return errors.Trace(err)
-	}
-	_, err = w.Write(b)
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	err := encoder.Encode(&oapiSvc)
 	return errors.Trace(err)
 }
 
@@ -228,7 +226,7 @@ func (svc *Intermediate) doArithmetic(w http.ResponseWriter, r *http.Request) er
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -265,7 +263,7 @@ func (svc *Intermediate) doSquare(w http.ResponseWriter, r *http.Request) error 
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -303,7 +301,7 @@ func (svc *Intermediate) doDistance(w http.ResponseWriter, r *http.Request) erro
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {

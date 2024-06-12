@@ -98,6 +98,9 @@ functions:
   - signature: PathArgumentsPriority(foo string) (echo string)
     description: PathArgumentsPriority tests the priority of path arguments in functions.
     path: /.../{foo}
+  # Manipulate context
+  - signature: WhatTimeIsIt() (t time.Time)
+    description: WhatTimeIsIt tests shifting the clock.
 
 # Event sources
 #
@@ -120,8 +123,9 @@ functions:
 #   https://example.com:417/path
 #   //root - Root path of the web server
 events:
-  # - signature:
-  #   description:
+  - signature: OnDiscovered(p XYCoord, n int) (q XYCoord, m int)
+    description: OnDiscovered tests firing events.
+    method: POST
 
 # Event sinks
 #
@@ -138,9 +142,10 @@ events:
 #   default - Load balanced (default)
 #   none - Pervasive
 sinks:
-  # - signature:
-  #   description:
-  #   source: package/path/of/another/microservice
+  - signature: OnDiscoveredSink(p XYCoord, n int) (q XYCoord, m int)
+    event: OnDiscovered
+    description: OnDiscovered tests listening to events.
+    source: github.com/microbus-io/fabric/codegen/tester
 
 # Web handlers
 #
@@ -182,6 +187,9 @@ webs:
     description: DirectoryServer tests service resources given a greedy path argument.
     path: /.../{filename+}
     method: GET
+  # Manipulate context
+  - signature: Hello()
+    description: Hello prints hello in the language best matching the request's Accept-Language header.
 
 # Tickers
 #

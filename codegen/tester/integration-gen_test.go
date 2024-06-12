@@ -796,6 +796,232 @@ func PathArgumentsPriority(t *testing.T, ctx context.Context, foo string) *PathA
 	return tc
 }
 
+// WhatTimeIsItTestCase assists in asserting against the results of executing WhatTimeIsIt.
+type WhatTimeIsItTestCase struct {
+	_t *testing.T
+	_dur time.Duration
+	t time.Time
+	err error
+}
+
+// Expect asserts no error and exact return values.
+func (_tc *WhatTimeIsItTestCase) Expect(t time.Time) *WhatTimeIsItTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.True(_tc._t, t.Equal(_tc.t), "Expected %v, actual %v", t, _tc.t)
+	}
+	return _tc
+}
+
+// Error asserts an error.
+func (tc *WhatTimeIsItTestCase) Error(errContains string) *WhatTimeIsItTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *WhatTimeIsItTestCase) ErrorCode(statusCode int) *WhatTimeIsItTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *WhatTimeIsItTestCase) NoError() *WhatTimeIsItTestCase {
+	assert.NoError(tc._t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *WhatTimeIsItTestCase) CompletedIn(threshold time.Duration) *WhatTimeIsItTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *WhatTimeIsItTestCase) Assert(asserter func(testingT *testing.T, t time.Time, err error)) *WhatTimeIsItTestCase {
+	asserter(tc._t, tc.t, tc.err)
+	return tc
+}
+
+// Get returns the result of executing WhatTimeIsIt.
+func (tc *WhatTimeIsItTestCase) Get() (t time.Time, err error) {
+	return tc.t, tc.err
+}
+
+// WhatTimeIsIt executes the function and returns a corresponding test case.
+func WhatTimeIsIt(testingT *testing.T, ctx context.Context) *WhatTimeIsItTestCase {
+	tc := &WhatTimeIsItTestCase{_t: testingT}
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		tc.t, tc.err = Svc.WhatTimeIsIt(ctx)
+		return tc.err
+	})
+	tc._dur = time.Since(t0)
+	return tc
+}
+
+// OnDiscoveredSinkTestCase assists in asserting against the results of executing OnDiscoveredSink.
+type OnDiscoveredSinkTestCase struct {
+	_t *testing.T
+	_dur time.Duration
+	q testerapi.XYCoord
+	m int
+	err error
+}
+
+// Expect asserts no error and exact return values.
+func (_tc *OnDiscoveredSinkTestCase) Expect(q testerapi.XYCoord, m int) *OnDiscoveredSinkTestCase {
+	if assert.NoError(_tc._t, _tc.err) {
+		assert.Equal(_tc._t, q, _tc.q)
+		assert.Equal(_tc._t, m, _tc.m)
+	}
+	return _tc
+}
+
+// Error asserts an error.
+func (tc *OnDiscoveredSinkTestCase) Error(errContains string) *OnDiscoveredSinkTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Contains(tc._t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *OnDiscoveredSinkTestCase) ErrorCode(statusCode int) *OnDiscoveredSinkTestCase {
+	if assert.Error(tc._t, tc.err) {
+		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *OnDiscoveredSinkTestCase) NoError() *OnDiscoveredSinkTestCase {
+	assert.NoError(tc._t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *OnDiscoveredSinkTestCase) CompletedIn(threshold time.Duration) *OnDiscoveredSinkTestCase {
+	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *OnDiscoveredSinkTestCase) Assert(asserter func(t *testing.T, q testerapi.XYCoord, m int, err error)) *OnDiscoveredSinkTestCase {
+	asserter(tc._t, tc.q, tc.m, tc.err)
+	return tc
+}
+
+// Get returns the result of executing OnDiscoveredSink.
+func (tc *OnDiscoveredSinkTestCase) Get() (q testerapi.XYCoord, m int, err error) {
+	return tc.q, tc.m, tc.err
+}
+
+// OnDiscoveredSink executes the function and returns a corresponding test case.
+func OnDiscoveredSink(t *testing.T, ctx context.Context, p testerapi.XYCoord, n int) *OnDiscoveredSinkTestCase {
+	tc := &OnDiscoveredSinkTestCase{_t: t}
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		tc.q, tc.m, tc.err = Svc.OnDiscoveredSink(ctx, p, n)
+		return tc.err
+	})
+	tc._dur = time.Since(t0)
+	return tc
+}
+
+// OnDiscoveredTestCase assists in asserting the sink of OnDiscovered.
+type OnDiscoveredTestCase struct {
+	_t *testing.T
+    _asserters []func()
+	_done chan bool
+	_triggered bool
+	ctx context.Context
+	p testerapi.XYCoord
+	n int
+	q testerapi.XYCoord
+	m int
+	err error
+}
+
+// Expect asserts that the event sink was triggered with an exact match of its input arguments.
+func (_tc *OnDiscoveredTestCase) Expect(p testerapi.XYCoord, n int) *OnDiscoveredTestCase {
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			assert.Equal(_tc._t, p, _tc.p)
+			assert.Equal(_tc._t, n, _tc.n)
+		}
+	})
+	return _tc
+}
+
+// Assert asserts that the event sink was triggered with a custom function to assert its input arguments.
+func (_tc *OnDiscoveredTestCase) Assert(asserter func(t *testing.T, ctx context.Context, p testerapi.XYCoord, n int)) *OnDiscoveredTestCase {
+	_tc._asserters = append(_tc._asserters, func() {
+		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			asserter(_tc._t, _tc.ctx, _tc.p, _tc.n)
+		}
+	})
+	return _tc
+}
+
+// Return sets the values to return from the event sink to the event source.
+func (_tc *OnDiscoveredTestCase) Return(q testerapi.XYCoord, m int, err error) *OnDiscoveredTestCase {
+	_tc.q = q
+	_tc.m = m
+	_tc.err = err
+	return _tc
+}
+
+// Wait waits for the event sink to be triggered. It is necessary to wait for events that are triggered asynchronously.
+func (_tc *OnDiscoveredTestCase) Wait() *OnDiscoveredTestCase {
+	timeout := 20 * time.Second
+	if deadline, ok := _tc._t.Deadline(); ok {
+		timeout = time.Until(deadline)
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-_tc._done:
+	case <-timer.C:
+		assert.Fail(_tc._t, "Timed out", "Event sink was not triggered")
+	}
+	return _tc
+}
+
+// OnDiscovered creates a run-once event sink and returns the corresponding test case.
+func OnDiscovered(t *testing.T) *OnDiscoveredTestCase {
+	_tc := &OnDiscoveredTestCase{
+		_t: t,
+		_done: make(chan bool),
+	}
+	con := connector.New("OnDiscovered." + rand.AlphaNum64(12))
+	testerapi.NewHook(con).OnDiscovered(func(ctx context.Context, p testerapi.XYCoord, n int) (q testerapi.XYCoord, m int, err error) {
+		testerapi.NewHook(con).OnDiscovered(nil)
+		_tc.ctx = ctx
+		_tc.p = p
+		_tc.n = n
+		_tc._triggered = true
+		close(_tc._done)
+		for _, asserter := range _tc._asserters {
+			asserter()
+		}
+		_tc._asserters = nil
+		return _tc.q, _tc.m, _tc.err
+	})
+	App.Include(con)
+	con.Startup()
+	_tc._t.Cleanup(func() {
+		con.Shutdown()
+		for _, asserter := range _tc._asserters {
+			asserter()
+		}
+	})
+	return _tc
+}
+
 // EchoTestCase assists in asserting against the results of executing Echo.
 type EchoTestCase struct {
 	t *testing.T
@@ -3763,6 +3989,619 @@ func DirectoryServer_Do(t *testing.T, r *http.Request) *DirectoryServerTestCase 
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
 		return Svc.DirectoryServer(w, r)
+	})
+	tc.res = w.Result()
+	tc.dur = time.Since(t0)
+	return tc
+}
+
+// HelloTestCase assists in asserting against the results of executing Hello.
+type HelloTestCase struct {
+	t *testing.T
+	dur time.Duration
+	res *http.Response
+	err error
+}
+
+// StatusOK asserts no error and a status code 200.
+func (tc *HelloTestCase) StatusOK() *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	}
+	return tc
+}
+
+// StatusCode asserts no error and a status code.
+func (tc *HelloTestCase) StatusCode(statusCode int) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	}
+	return tc
+}
+
+// BodyContains asserts no error and that the response body contains the string or byte array value.
+func (tc *HelloTestCase) BodyContains(value any) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		switch v := value.(type) {
+		case []byte:
+			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
+		case string:
+			assert.Contains(tc.t, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.Contains(tc.t, string(body), vv)
+		}
+	}
+	return tc
+}
+
+// BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
+func (tc *HelloTestCase) BodyNotContains(value any) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		switch v := value.(type) {
+		case []byte:
+			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
+		case string:
+			assert.NotContains(tc.t, string(body), v)
+		default:
+			vv := fmt.Sprintf("%v", v)
+			assert.NotContains(tc.t, string(body), vv)
+		}
+	}
+	return tc
+}
+
+// HeaderContains asserts no error and that the named header contains the value.
+func (tc *HelloTestCase) HeaderContains(headerName string, value string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderNotContains asserts no error and that the named header does not contain a string.
+func (tc *HelloTestCase) HeaderNotContains(headerName string, value string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotContains(tc.t, tc.res.Header.Get(headerName), value)
+	}
+	return tc
+}
+
+// HeaderEqual asserts no error and that the named header matches the value.
+func (tc *HelloTestCase) HeaderEqual(headerName string, value string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, value, tc.res.Header.Get(headerName))
+	}
+	return tc
+}
+
+// HeaderNotEqual asserts no error and that the named header does not matche the value.
+func (tc *HelloTestCase) HeaderNotEqual(headerName string, value string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotEqual(tc.t, value, tc.res.Header.Get(headerName))
+	}
+	return tc
+}
+
+// HeaderExists asserts no error and that the named header exists.
+func (tc *HelloTestCase) HeaderExists(headerName string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.NotEmpty(tc.t, tc.res.Header.Values(headerName), "Header %s does not exist", headerName)
+	}
+	return tc
+}
+
+// HeaderNotExists asserts no error and that the named header does not exists.
+func (tc *HelloTestCase) HeaderNotExists(headerName string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Empty(tc.t, tc.res.Header.Values(headerName), "Header %s exists", headerName)
+	}
+	return tc
+}
+
+// ContentType asserts no error and that the Content-Type header matches the expected value.
+func (tc *HelloTestCase) ContentType(expected string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		assert.Equal(tc.t, expected, tc.res.Header.Get("Content-Type"))
+	}
+	return tc
+}
+
+/*
+TagExists asserts no error and that the at least one tag matches the CSS selector query.
+
+Examples:
+
+	TagExists(`TR > TD > A.expandable[href]`)
+	TagExists(`DIV#main_panel`)
+	TagExists(`TR TD INPUT[name="x"]`)
+*/
+func (tc *HelloTestCase) TagExists(cssSelectorQuery string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		assert.NotEmpty(tc.t, matches, "Found no tags matching %s", cssSelectorQuery)
+	}
+	return tc
+}
+
+/*
+TagNotExists asserts no error and that the no tag matches the CSS selector query.
+
+Example:
+
+	TagNotExists(`TR > TD > A.expandable[href]`)
+	TagNotExists(`DIV#main_panel`)
+	TagNotExists(`TR TD INPUT[name="x"]`)
+*/
+func (tc *HelloTestCase) TagNotExists(cssSelectorQuery string) *HelloTestCase {
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		assert.Empty(tc.t, matches, "Found %d tag(s) matching %s", len(matches), cssSelectorQuery)
+	}
+	return tc
+}
+
+/*
+TagEqual asserts no error and that the at least one of the tags matching the CSS selector query
+either contains the exact text itself or has a descendant that does.
+
+Example:
+
+	TagEqual("TR > TD > A.expandable[href]", "Expand")
+	TagEqual("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *HelloTestCase) TagEqual(cssSelectorQuery string, value string) *HelloTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if x.Data == value || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if !assert.NotEmpty(tc.t, matches, "Selector %s does not match any tags", cssSelectorQuery) {
+			return tc
+		}
+		if value == "" {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagContains asserts no error and that the at least one of the tags matching the CSS selector query
+either contains the text itself or has a descendant that does.
+
+Example:
+
+	TagContains("TR > TD > A.expandable[href]", "Expand")
+	TagContains("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *HelloTestCase) TagContains(cssSelectorQuery string, value string) *HelloTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if strings.Contains(x.Data, value) || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if !assert.NotEmpty(tc.t, matches, "Selector %s does not match any tags", cssSelectorQuery) {
+			return tc
+		}
+		if value == "" {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagNotEqual asserts no error and that there is no tag matching the CSS selector that
+either contains the exact text itself or has a descendant that does.
+
+Example:
+
+	TagNotEqual("TR > TD > A[href]", "Harry Potter")
+	TagNotEqual("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *HelloTestCase) TagNotEqual(cssSelectorQuery string, value string) *HelloTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if x.Data == value || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if len(matches) == 0 {
+			return tc
+		}
+		if !assert.NotEmpty(tc.t, value, "Found tag matching %s", cssSelectorQuery) {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+/*
+TagNotContains asserts no error and that there is no tag matching the CSS selector that
+either contains the text itself or has a descendant that does.
+
+Example:
+
+	TagNotContains("TR > TD > A[href]", "Harry Potter")
+	TagNotContains("DIV#main_panel > SELECT > OPTION", "Red")
+*/
+func (tc *HelloTestCase) TagNotContains(cssSelectorQuery string, value string) *HelloTestCase {
+	var textMatches func(n *html.Node) bool
+	textMatches = func(n *html.Node) bool {
+		for x := n.FirstChild; x != nil; x = x.NextSibling {
+			if strings.Contains(x.Data, value) || textMatches(x) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if assert.NoError(tc.t, tc.err) {
+		selector, err := cascadia.Compile(cssSelectorQuery)
+		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+			return tc
+		}
+		var body []byte
+		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
+			body = br.Bytes()
+		} else {
+			var err error
+			body, err = io.ReadAll(tc.res.Body)
+			if !assert.NoError(tc.t, err, "Failed to read body") {
+				return tc
+			}
+			tc.res.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		doc, err := html.Parse(bytes.NewReader(body))
+		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+			return tc
+		}
+		matches := selector.MatchAll(doc)
+		if len(matches) == 0 {
+			return tc
+		}
+		if !assert.NotEmpty(tc.t, value, "Found tag matching %s", cssSelectorQuery) {
+			return tc
+		}
+		found := false
+		for _, match := range matches {
+			if textMatches(match) {
+				found = true
+				break
+			}
+		}
+		assert.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
+	}
+	return tc
+}
+
+// Error asserts an error.
+func (tc *HelloTestCase) Error(errContains string) *HelloTestCase {
+	if assert.Error(tc.t, tc.err) {
+		assert.Contains(tc.t, tc.err.Error(), errContains)
+	}
+	return tc
+}
+
+// ErrorCode asserts an error by its status code.
+func (tc *HelloTestCase) ErrorCode(statusCode int) *HelloTestCase {
+	if assert.Error(tc.t, tc.err) {
+		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	}
+	return tc
+}
+
+// NoError asserts no error.
+func (tc *HelloTestCase) NoError() *HelloTestCase {
+	assert.NoError(tc.t, tc.err)
+	return tc
+}
+
+// CompletedIn checks that the duration of the operation is less than or equal the threshold.
+func (tc *HelloTestCase) CompletedIn(threshold time.Duration) *HelloTestCase {
+	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	return tc
+}
+
+// Assert asserts using a provided function.
+func (tc *HelloTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *HelloTestCase {
+	asserter(tc.t, tc.res, tc.err)
+	return tc
+}
+
+// Get returns the result of executing Hello.
+func (tc *HelloTestCase) Get() (res *http.Response, err error) {
+	return tc.res, tc.err
+}
+
+/*
+Hello_Get performs a GET request to the Hello endpoint.
+
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Hello_Get(t *testing.T, ctx context.Context, url string) *HelloTestCase {
+	tc := &HelloTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(testerapi.URLOfHello, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	w := httpx.NewResponseRecorder()
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		return Svc.Hello(w, r)
+	})
+	tc.dur = time.Since(t0)
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Hello_Post performs a POST request to the Hello endpoint.
+
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+If the body if of type io.Reader, []byte or string, it is serialized in binary form.
+If it is of type url.Values, it is serialized as form data. All other types are serialized as JSON.
+If a content type is not explicitly provided, an attempt will be made to derive it from the body.
+*/
+func Hello_Post(t *testing.T, ctx context.Context, url string, contentType string, body any) *HelloTestCase {
+	tc := &HelloTestCase{t: t}
+	var err error
+	url, err = httpx.ResolveURL(testerapi.URLOfHello, url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r, err := httpx.NewRequest("POST", url, nil)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	ctx = frame.CloneContext(ctx)
+	r = r.WithContext(ctx)
+	r.Header = frame.Of(ctx).Header()
+	err = httpx.SetRequestBody(r, body)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	if contentType != "" {
+		r.Header.Set("Content-Type", contentType)
+	}
+	w := httpx.NewResponseRecorder()
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		return Svc.Hello(w, r)
+	})
+	tc.dur = time.Since(t0)
+	tc.res = w.Result()
+	return tc
+}
+
+/*
+Hello prints hello in the language best matching the request's Accept-Language header.
+
+If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
+*/
+func Hello(t *testing.T, r *http.Request) *HelloTestCase {
+	tc := &HelloTestCase{t: t}
+	var err error
+	if r == nil {
+		r, err = http.NewRequest(`GET`, "", nil)
+		if err != nil {
+			tc.err = errors.Trace(err)
+			return tc
+		}
+	}
+	url, err := httpx.ResolveURL(testerapi.URLOfHello, r.URL.String())
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	url, err = httpx.FillPathArguments(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	r.URL, err = httpx.ParseURL(url)
+	if err != nil {
+		tc.err = errors.Trace(err)
+		return tc
+	}
+	for k, vv := range frame.Of(r.Context()).Header() {
+		r.Header[k] = vv
+	}
+	ctx := frame.ContextWithFrameOf(r.Context(), r.Header)
+	r = r.WithContext(ctx)
+	w := httpx.NewResponseRecorder()
+	t0 := time.Now()
+	tc.err = utils.CatchPanic(func() error {
+		return Svc.Hello(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)

@@ -39,6 +39,8 @@ import (
 
 	"github.com/microbus-io/fabric/codegen/tester/resources"
 	"github.com/microbus-io/fabric/codegen/tester/testerapi"
+	
+	testerapi1 "github.com/microbus-io/fabric/codegen/tester/testerapi"
 )
 
 var (
@@ -78,11 +80,14 @@ type ToDo interface {
 	NonStringPathArguments(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
 	UnnamedFunctionPathArguments(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
 	PathArgumentsPriority(ctx context.Context, foo string) (echo string, err error)
+	WhatTimeIsIt(ctx context.Context) (t time.Time, err error)
+	OnDiscoveredSink(ctx context.Context, p testerapi.XYCoord, n int) (q testerapi.XYCoord, m int, err error)
 	Echo(w http.ResponseWriter, r *http.Request) (err error)
 	MultiValueHeaders(w http.ResponseWriter, r *http.Request) (err error)
 	WebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 	UnnamedWebPathArguments(w http.ResponseWriter, r *http.Request) (err error)
 	DirectoryServer(w http.ResponseWriter, r *http.Request) (err error)
+	Hello(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // Intermediate extends and customizes the generic base connector.
@@ -119,6 +124,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`GET`, `:443/non-string-path-arguments/fixed/{named}/{}/{suffix+}`, svc.doNonStringPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-function-path-arguments/{}/foo/{}/bar/{+}`, svc.doUnnamedFunctionPathArguments)
 	svc.Subscribe(`ANY`, `:443/path-arguments-priority/{foo}`, svc.doPathArgumentsPriority)
+	svc.Subscribe(`ANY`, `:443/what-time-is-it`, svc.doWhatTimeIsIt)
 
 	// Webs
 	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
@@ -126,6 +132,10 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`ANY`, `:443/web-path-arguments/fixed/{named}/{}/{suffix+}`, svc.impl.WebPathArguments)
 	svc.Subscribe(`GET`, `:443/unnamed-web-path-arguments/{}/foo/{}/bar/{+}`, svc.impl.UnnamedWebPathArguments)
 	svc.Subscribe(`GET`, `:443/directory-server/{filename+}`, svc.impl.DirectoryServer)
+	svc.Subscribe(`ANY`, `:443/hello`, svc.impl.Hello)
+
+	// Sinks
+	testerapi1.NewHook(svc).OnDiscovered(svc.impl.OnDiscoveredSink)
 
 	// Resources file system
 	svc.SetResFS(resources.FS)
@@ -324,6 +334,21 @@ An httpResponseBody argument prevents returning additional values, except for th
 	}
 	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `function`,
+			Name:        `WhatTimeIsIt`,
+			Method:      `ANY`,
+			Path:        `:443/what-time-is-it`,
+			Summary:     `WhatTimeIsIt() (t time.Time)`,
+			Description: `WhatTimeIsIt tests shifting the clock.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+				T time.Time `json:"t"`
+			}{},
+		})
+	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
 			Name:        `Echo`,
 			Method:      `ANY`,
@@ -392,17 +417,29 @@ An httpResponseBody argument prevents returning additional values, except for th
 			}{},
 		})
 	}
+	if r.URL.Port() == "443" || "443" == "0" {
+		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
+			Type:        `web`,
+			Name:        `Hello`,
+			Method:      `ANY`,
+			Path:        `:443/hello`,
+			Summary:     `Hello()`,
+			Description: `Hello prints hello in the language best matching the request's Accept-Language header.`,
+			InputArgs: struct {
+			}{},
+			OutputArgs: struct {
+			}{},
+		})
+	}
 
 	if len(oapiSvc.Endpoints) == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	b, err := json.MarshalIndent(&oapiSvc, "", "    ")
-	if err != nil {
-		return errors.Trace(err)
-	}
-	_, err = w.Write(b)
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	err := encoder.Encode(&oapiSvc)
 	return errors.Trace(err)
 }
 
@@ -440,7 +477,7 @@ func (svc *Intermediate) doStringCut(w http.ResponseWriter, r *http.Request) err
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -478,7 +515,7 @@ func (svc *Intermediate) doPointDistance(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -517,7 +554,7 @@ func (svc *Intermediate) doShiftPoint(w http.ResponseWriter, r *http.Request) er
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -555,7 +592,7 @@ func (svc *Intermediate) doLinesIntersection(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -599,7 +636,7 @@ func (svc *Intermediate) doSubArrayRange(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(o.HTTPStatusCode)
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o.HTTPResponseBody)
 	if err != nil {
@@ -638,7 +675,7 @@ func (svc *Intermediate) doSumTwoIntegers(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(o.HTTPStatusCode)
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -677,7 +714,7 @@ func (svc *Intermediate) doFunctionPathArguments(w http.ResponseWriter, r *http.
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -716,7 +753,7 @@ func (svc *Intermediate) doNonStringPathArguments(w http.ResponseWriter, r *http
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -755,7 +792,7 @@ func (svc *Intermediate) doUnnamedFunctionPathArguments(w http.ResponseWriter, r
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {
@@ -792,7 +829,43 @@ func (svc *Intermediate) doPathArgumentsPriority(w http.ResponseWriter, r *http.
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	if svc.Deployment() == connector.LOCAL {
-		encoder.SetIndent("", "    ")
+		encoder.SetIndent("", "  ")
+	}
+	err = encoder.Encode(o)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// doWhatTimeIsIt handles marshaling for the WhatTimeIsIt function.
+func (svc *Intermediate) doWhatTimeIsIt(w http.ResponseWriter, r *http.Request) error {
+	var i testerapi.WhatTimeIsItIn
+	var o testerapi.WhatTimeIsItOut
+	err := httpx.ParseRequestData(r, &i)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if strings.ContainsAny(`:443/what-time-is-it`, "{}") {
+		pathArgs, err := httpx.ExtractPathArguments(httpx.JoinHostAndPath("host", `:443/what-time-is-it`), r.URL.Path)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = httpx.DecodeDeepObject(pathArgs, &i)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	o.T, err = svc.impl.WhatTimeIsIt(
+		r.Context(),
+	)
+	if err != nil {
+		return err // No trace
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	if svc.Deployment() == connector.LOCAL {
+		encoder.SetIndent("", "  ")
 	}
 	err = encoder.Encode(o)
 	if err != nil {

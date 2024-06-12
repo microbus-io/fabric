@@ -41,11 +41,14 @@ type Mock struct {
 	mockNonStringPathArguments func(ctx context.Context, named int, path2 bool, suffix float64) (joined string, err error)
 	mockUnnamedFunctionPathArguments func(ctx context.Context, path1 string, path2 string, path3 string) (joined string, err error)
 	mockPathArgumentsPriority func(ctx context.Context, foo string) (echo string, err error)
+	mockWhatTimeIsIt func(ctx context.Context) (t time.Time, err error)
+	mockOnDiscoveredSink func(ctx context.Context, p testerapi.XYCoord, n int) (q testerapi.XYCoord, m int, err error)
 	mockEcho func(w http.ResponseWriter, r *http.Request) (err error)
 	mockMultiValueHeaders func(w http.ResponseWriter, r *http.Request) (err error)
 	mockWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 	mockUnnamedWebPathArguments func(w http.ResponseWriter, r *http.Request) (err error)
 	mockDirectoryServer func(w http.ResponseWriter, r *http.Request) (err error)
+	mockHello func(w http.ResponseWriter, r *http.Request) (err error)
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -218,6 +221,36 @@ func (svc *Mock) PathArgumentsPriority(ctx context.Context, foo string) (echo st
 	return svc.mockPathArgumentsPriority(ctx, foo)
 }
 
+// MockWhatTimeIsIt sets up a mock handler for the WhatTimeIsIt endpoint.
+func (svc *Mock) MockWhatTimeIsIt(handler func(ctx context.Context) (t time.Time, err error)) *Mock {
+	svc.mockWhatTimeIsIt = handler
+	return svc
+}
+
+// WhatTimeIsIt runs the mock handler set by MockWhatTimeIsIt.
+func (svc *Mock) WhatTimeIsIt(ctx context.Context) (t time.Time, err error) {
+	if svc.mockWhatTimeIsIt == nil {
+		err = errors.New("mocked endpoint 'WhatTimeIsIt' not implemented")
+		return
+	}
+	return svc.mockWhatTimeIsIt(ctx)
+}
+
+// MockOnDiscoveredSink sets up a mock handler for the OnDiscoveredSink endpoint.
+func (svc *Mock) MockOnDiscoveredSink(handler func(ctx context.Context, p testerapi.XYCoord, n int) (q testerapi.XYCoord, m int, err error)) *Mock {
+	svc.mockOnDiscoveredSink = handler
+	return svc
+}
+
+// OnDiscoveredSink runs the mock handler set by MockOnDiscoveredSink.
+func (svc *Mock) OnDiscoveredSink(ctx context.Context, p testerapi.XYCoord, n int) (q testerapi.XYCoord, m int, err error) {
+	if svc.mockOnDiscoveredSink == nil {
+		err = errors.New("mocked endpoint 'OnDiscoveredSink' not implemented")
+		return
+	}
+	return svc.mockOnDiscoveredSink(ctx, p, n)
+}
+
 // MockEcho sets up a mock handler for the Echo endpoint.
 func (svc *Mock) MockEcho(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
 	svc.mockEcho = handler
@@ -290,5 +323,20 @@ func (svc *Mock) DirectoryServer(w http.ResponseWriter, r *http.Request) (err er
 		return errors.New("mocked endpoint 'DirectoryServer' not implemented")
 	}
 	err = svc.mockDirectoryServer(w, r)
+	return errors.Trace(err)
+}
+
+// MockHello sets up a mock handler for the Hello endpoint.
+func (svc *Mock) MockHello(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockHello = handler
+	return svc
+}
+
+// Hello runs the mock handler set by MockHello.
+func (svc *Mock) Hello(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockHello == nil {
+		return errors.New("mocked endpoint 'Hello' not implemented")
+	}
+	err = svc.mockHello(w, r)
 	return errors.Trace(err)
 }

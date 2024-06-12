@@ -255,3 +255,33 @@ func (svc *Service) LinesIntersection(ctx context.Context, l1 testerapi.XYLine, 
 	}
 	return false, nil
 }
+
+/*
+OnDiscovered tests listening to events.
+*/
+func (svc *Service) OnDiscoveredSink(ctx context.Context, p testerapi.XYCoord, n int) (q testerapi.XYCoord, m int, err error) {
+	if n > 0 {
+		return p, n + 1, nil
+	}
+	if n < 0 {
+		return testerapi.XYCoord{X: -p.X, Y: -p.Y}, n + 1, nil
+	}
+	return testerapi.XYCoord{}, 0, errors.New("n can't be zero")
+}
+
+/*
+Hello prints hello in the language best matching the request's Accept-Language header.
+*/
+func (svc *Service) Hello(w http.ResponseWriter, r *http.Request) (err error) {
+	ctx := r.Context()
+	hello, _ := svc.LoadResString(ctx, "hello")
+	w.Write([]byte(hello))
+	return nil
+}
+
+/*
+WhatTimeIsIt tests shifting the clock.
+*/
+func (svc *Service) WhatTimeIsIt(ctx context.Context) (t time.Time, err error) {
+	return svc.Now(ctx), nil
+}
