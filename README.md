@@ -30,6 +30,13 @@ The framework's philosophy can be categorized into three conceptual areas:
 
 👉 Venture out and [explore more on your own](./docs/self-explore.md).
 
+## 🧅 Layers
+
+Onions have layers, ogres have layers, and so does any good piece of software.
+
+<img src="./docs/readme-1.drawio.svg" width="741">
+<p>
+
 ## 🗺 Code Structure
 
 Review each of the major project packages to get oriented in the code structure:
