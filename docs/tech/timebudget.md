@@ -8,29 +8,29 @@ The common practice is to set a timeout on a point-to-point basis, between each 
 
 In this first example, microservice `X` is setting a shorter timeout than microservice `Y`, resulting in microservice `Z` performing work that is no longer needed.
 
-<img src="timebudget-1.svg" width="980">
+<img src="timebudget-1.drawio.svg" width="540">
 
 In the second example, all microservices set a 1 minute timeout. Nevertheless, microservice `W` times out while microservice `Z` is still working. There is no way to tell microservice `Z` to stop.
 
-<img src="timebudget-2.svg" width="980">
+<img src="timebudget-2.drawio.svg" width="540">
 
-In both cases the issue stems from the fact that upstream services do not have visibility into what's happening down stream.
+In both cases the issue stems from the fact that upstream services do not have visibility into what's happening downstream.
 
 ## Time Budgets
 
 Time budgets introduce a deadline for the entire transaction tree to complete. The deadline is set at the root and propagated downstream. Every microservice therefore knows when the transaction will timeout and so all microservices can abort at the same time.
 
-The naive way to implement a time budget is to pass along a timestamp by which the transaction must end. However, one must consider that microservices may run on different hardware whose clocks are not fully in-sync. To deal with potential clock skew, the deadline is passed as a duration that gets depleted, hence the terminology "budget".
+The typical way to implement a time budget is to pass along a timestamp by which the transaction must end. However, one must consider that microservices may run on different hardware whose clocks are not fully in-sync. To deal with potential clock skew, the deadline is passed as a duration that gets depleted, hence the terminology "budget".
 
 In the following example, microservices `Y` will have completed its work at the 45 sec mark while microservices `Z`, `X` and `W` will have all timed out at the 60 sec mark.
 
-<img src="timebudget-3.svg" width="980">
+<img src="timebudget-3.drawio.svg" width="540">
 
 If you look closely at the code you'll notice that the budget is decreased somewhat with each hop. This compensates for the network latency.
 
 The time budget is set at the root of the transaction. For incoming HTTP requests, the root is the [HTTP ingress proxy](httpingress.md) which by default sets the time budget to 20 secs. This may seem quite short but the philosophy is that most users expect a response within 2 secs or less and they will hit the refresh button long before 20 secs pass. If something takes long to process, it should probably be handled asynchronously.
 
-It is possible to [configure the time budget](../structure/coreservices-httpingress.md) set by the ingress proxy and it is possible to have multiple proxies with different budgets, e.g. one for user-facing requests and one for internal requests.
+It is possible to [configure the time budget](../structure/coreservices-httpingress.md) set by the ingress proxy and it is possible to have multiple proxies with different budgets, e.g. one for user-facing requests and one for internal requests. In addition, the HTTP ingress proxy respects the `Request-Timeout` header and will set the time budget to match.
 
 ## Call Stack Depth
 

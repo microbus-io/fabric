@@ -6,7 +6,7 @@ Think of NATS as a closed garden that requires a special key to access. In order
 
 Practically all applications require interaction from a source that is outside the NATS bus. The most common scenario is perhaps a request generated from a web browser to a public API endpoint. In this case, something needs to bridge the gap between the incoming real HTTP request and the HTTP messages that travel over the bus. This is exactly the role of the HTTP ingress proxy.
 
-<img src="httpingress-1.svg" width="840">
+<img src="httpingress-1.drawio.svg" width="540">
 
 On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP requests; on the other end it is connected to NATS. The ingress proxy converts real requests into requests on the bus; and on the flip side, converts responses from the bus to real responses. Because the bus messages in `Microbus` are formatted themselves as HTTP messages, this conversion is trivial, with minor adjustments:
 
@@ -35,7 +35,7 @@ port `y` without change. More specific rules take precedence over `*` rules.
 
 Ports can be used to differentiate between traffic that is coming from trusted and untrusted sources. For example, the default setting `8080:*->*, 443:*->443, 80:*->443` grants port `:8080` access to all internal ports, while ports `:443` and `:80` are restricted to internal port `:443`. The idea is to expose ports `:443` and `:80` to the internet and restrict `:8080` to trusted clients only.
 
-<img src="httpingress-3.svg" width="960">
+<img src="httpingress-3.drawio.svg" width="720">
 
 Four config properties are used to safeguard against long requests:
 
@@ -44,7 +44,7 @@ Four config properties are used to safeguard against long requests:
 * `TimeBudget` is the time budget allocated to the downstream microservice to process the request
 * `WriteTimeout` is the timeout to write the response back to the client
 
-<img src="httpingress-2.svg" width="846">
+<img src="httpingress-2.drawio.svg" width="577">
 
 `RequestMemoryLimit` is the memory capacity used to hold pending requests, in megabytes.
 
