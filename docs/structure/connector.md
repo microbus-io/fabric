@@ -9,9 +9,9 @@ The `Connector` is the most fundamental construct of the framework, providing ke
 * JSON logger
 * [Configuration](../tech/configuration.md)
 * Tickers to execute jobs on a fixed schedule
-* Distributed cache
+* [Distributed cache](../structure/dlru.md)
 * Bundled resource files and strings
-* [Distributed tracing](../tech/distribtracing.md)
+* [Distributed tracing](../blocks/distrib-tracing.md)
 
 The `connector` package includes a separate source file for each functional area of the microservice. All these source files implement the same `Connector` class.
 

@@ -3,7 +3,7 @@
 The HTTP egress proxy is a core microservice that relays HTTP requests to external non-`Microbus` URLs. It is a thin wrapper over the standard `net/http` client but provides the following benefits:
 
 * Requests are easily mockable in tests
-* The [time budget](../tech/timebudget.md) is correctly taken into account
+* The [time budget](../blocks/time-budget.md) is correctly taken into account
 * Requests are traced in Jaeger
 * Requests are metered in Prometheus and Grafana
 
