@@ -331,7 +331,7 @@ For microservices that fire events (i.e. event sources), the API package impleme
 
 ## Integration Testing
 
-Placeholder [integration tests](./integrationtesting.md) are generated for each of the microservice's handlers to encourage developers to test each of them and achieve high code coverage.
+Placeholder [integration tests](../blocks/integrationtesting.md) are generated for each of the microservice's handlers to encourage developers to test each of them and achieve high code coverage.
 
 ## Embedded Resources
 
@@ -341,7 +341,7 @@ A `resources` directory is automatically created with a `//go:embed` directive t
 
 The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to identify different builds of the microservice.
 
-## Generated Code Structure
+## Uniform Code Structure
 
 The code generator creates quite a few files and sub-directories in the directory of the microservice.
 
@@ -373,7 +373,7 @@ The `app` directory hosts `package main` of an `Application` that runs the micro
 
 The `{service}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. `MulticastTrigger` and `Hook` are defined if the microservice is a source of events. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
-The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices that can be used in [integration testing](./integrationtesting.md) when a live version of the microservice cannot.
+The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices that can be used in [integration testing](../blocks/integrationtesting.md) when a live version of the microservice cannot.
 
 `integration-gen_test.go` is a testing harness that facilitates the implementation of integration tests, which are expected to be implemented in `integration_test.go`
 

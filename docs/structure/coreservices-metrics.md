@@ -24,7 +24,7 @@ By default, all microservices produce a standard set of metrics:
 
 ## Application Metrics
 
-In addition, application developers are able to define and collect arbitrary metrics that are pertinent to their specific application, using the `DefineMetric`, `ObserveMetric` and `IncrementMetric` methods of the `Connector`. [Code generation](../tech/codegen.md) can be used to assist in the definition of metrics.
+In addition, application developers are able to define and collect arbitrary metrics that are pertinent to their specific application, using the `DefineMetric`, `ObserveMetric` and `IncrementMetric` methods of the `Connector`. [Code generation](../blocks/codegen.md) can be used to assist in the definition of metrics.
 
 ```yaml
 # Metrics

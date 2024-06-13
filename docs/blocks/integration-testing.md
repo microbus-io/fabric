@@ -8,11 +8,11 @@ Thorough testing is an important cornerstone of good software. Testing a microse
 
 Mocks can be added to the application when it's impractical to run the actual downstream microservice, for example if that microservice is calling a third-party web service such as a payment processor. The preference however should be to include the actual microservice whenever possible and not rely on mocks. Note that in `Microbus` microservices are mocked rather than clients. The upstream microservice still sends messages over NATS which are responded to by the mock of the downstream microservice.
 
-<img src="integrationtesting-1.svg" width="350">
+<img src="./integration-testing-1.svg" width="350">
 
 ## Code Generated Test Harness
 
-This is all rather complicated to set up which is where the [code generator](./codegen.md) comes into the picture and automatically creates a test harness (`integration-gen_test.go`) and placeholder tests (`integration_test.go`) for each of the microservice's endpoints out of the specification of the microservice (`service.yaml`). It is then left for the developer to initialize the testing app and implement the tests.
+This is all rather complicated to set up which is where the [code generator](../blocks/codegen.md) comes into the picture and automatically creates a test harness (`integration-gen_test.go`) and placeholder tests (`integration_test.go`) for each of the microservice's endpoints out of the specification of the microservice (`service.yaml`). It is then left for the developer to initialize the testing app and implement the tests.
 
 ### Initializing the Testing App
 

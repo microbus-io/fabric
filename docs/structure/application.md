@@ -1,6 +1,6 @@
 # Package `application`
 
-An `Application` is a collection of microservices that run in a single process and share the same lifecycle. The ability to run multiple microservices in a single executable is one of the big benefits of the `Microbus` approach. It is much easier to develop, debug and [test](../tech/integrationtesting.md) a system when all its microservices can be run in a single debuggable process with minimal memory requirements.
+An `Application` is a collection of microservices that run in a single process and share the same lifecycle. The ability to run multiple microservices in a single executable is one of the big benefits of the `Microbus` approach. It is much easier to develop, debug and [test](../blocks/integrationtesting.md) a system when all its microservices can be run in a single debuggable process with minimal memory requirements.
  
 Here's a simple example of an `Application` hosting two microservices: a "Hello, World!" microservice and the HTTP ingress microservice.
 
