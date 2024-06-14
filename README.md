@@ -1,12 +1,13 @@
-# Microbus.io fabric : Milestone 24
+<p align="center">
+<img src="docs/logo.svg" height="100" alt="Microbus.io logo">
+</p>
 
-![Bus](docs/logo100.svg)
+`Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages a messaging bus for the transport layer. Microservices over a bus = microbus.
 
+[![License][License-Image]][License-Url]
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
 ## Introduction
-
-`Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages NATS, a messaging bus, for communications among microservices. Microservices over a bus = microbus.
 
 The framework's philosophy can be categorized into three conceptual areas:
 
