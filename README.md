@@ -1,13 +1,8 @@
 # Microbus.io fabric : Milestone 24
 
+![Bus](docs/logo100.svg)
+
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
-
-<div style="text-align:center">
-
-![Bus](docs/logo.svg)
-![Microbus.io](docs/wordmark.svg)
-
-</div>
 
 ## Introduction
 
