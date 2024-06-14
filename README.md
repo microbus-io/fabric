@@ -2,7 +2,12 @@
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
-<img src="docs/gopher-on-bus.png" width="256">
+<div style="text-align:center">
+
+![Bus](docs/logo.svg)
+![Microbus.io](docs/wordmark.svg)
+
+</div>
 
 ## Introduction
 
