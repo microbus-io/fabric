@@ -27,7 +27,7 @@ In `service.yaml`, developers are able to define the various pieces of the micro
 
 ### General
 
-The `general` section of `service.yaml` defines the `host` name of the microservice and its human-friendly `description`. The hostname is required. It will be how the microservice is addressed by other microservices. A hierarchical naming scheme for hostnames such as `myservice.mydomain.myproduct` can help avoid conflicts.
+The `general` section of `service.yaml` defines the `host` name of the microservice and a human-friendly `description`. The hostname is required. It is how the microservice will be addressed by other microservices. A hierarchical naming scheme for hostnames such as `myservice.mydomain.myproduct` can help avoid conflicts.
 
 ```yaml
 # General
@@ -37,8 +37,8 @@ The `general` section of `service.yaml` defines the `host` name of the microserv
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: email.communication.xyz
-  description: The email service delivers emails to recipients.
+  host:
+  description:
 ```
 
 ### Configs
@@ -64,12 +64,10 @@ The `configs` section is used to define the [configuration](./configuration.md) 
 # callback - "true" to handle the change event (defaults to "false")
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
-  - signature:
-    description:
-    default:
-    validation:
-    callback:
-    secret:
+  # - signature:
+  #   description:
+  #   default:
+  #   validation:
 ```
 
 The `signature` is required. It defines the name and type of the property. The name must start with an uppercase letter. Types are limited to `string`, `bool`, `int`, `float` or `Duration`.
@@ -145,7 +143,7 @@ Along with the hostname of the microservice, the `path` defines the URL to this 
 
 ### Event Sources
 
-`events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. [Events](../tech/events.md) are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `OnUserDeleted(id string)` could be an event fired by a user management microservice.
+`events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. [Events](../blocks/events.md) are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `OnUserDeleted(id string)` could be an event fired by a user management microservice.
 
 ```yaml
 # Event sources

@@ -51,7 +51,7 @@ Go deeper into the philosophy and technology of `Microbus`:
 * [Control subscriptions](./docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Environment variables](./docs/tech/envars.md) - Environment variables used to initialize microservices
 * [Code generation](./docs/blocks/codegen.md) - Discover the power of `Microbus`'s most powerful RAD tool
-* [Events](./docs/tech/events.md) - Using event-driven architecture to decouple microservices
+* [Events](./docs/blocks/events.md) - Using event-driven architecture to decouple microservices
 * [Integration testing](./docs/blocks/integrationtesting.md) - Testing multiple microservices together
 * [Distributed tracing](./docs/blocks/distrib-tracing.md) - Distributed tracing using OpenTelemetry and Jaeger
 * [OpenAPI](./docs/blocks/openapi.md) - OpenAPI document generation for microservices

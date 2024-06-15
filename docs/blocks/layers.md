@@ -14,14 +14,22 @@ Each of the building blocks is described below the diagram.
 <img src="./layers-1.drawio.svg">
 <p>
 
-## Core Services
+## Application Microervices
+
+TODO
+
+## Core Microervices
 
 TODO
 
 HTTP ingress
+
 HTTP egress
+
 Configurator
+
 Metrics
+
 SMTP ingress
 
 ## Code Generator
@@ -30,10 +38,15 @@ TODO
 TODO: break codegen document?
 
 RAD
+
 JSON over HTTP (marshaling and unmarshaling)
+
 RPC client stubs
+
 [Integration test harness](../blocks/integration-testing.md)
+
 [OpenAPI document](../blocks/openapi.md)
+
 Uniform code structure
 
 ## Connector Construct
@@ -41,25 +54,46 @@ Uniform code structure
 TODO
 TODO: a lot of the desc is in the structure doc. move?
 
+### General
+
 Configuration
+
 [Error capture and propagation](../blocks/error-capture.md)
+
 [Distributed cache](../blocks/distrib-cache.md)
+
 Tickers
+
 Linked static resources
+
 Internationalization (i18n)
 
+### Observability
+
 Logging
+
 [Distributed tracing](../blocks/distrib-tracing.md)
+
 Metrics
 
+### Transport
+
 Request/response
+
 Publish/subscribe
-Eventing
+
+[Events](../blocks/events.md)
+
 [Time budget](../blocks/time-budget.md)
+
 Ack or fail fast
+
 Discovery
+
 Load balancing
+
 Geo-affinity failover routing
+
 Connectivity health checks
 
 ## OSS
