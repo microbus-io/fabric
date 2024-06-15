@@ -7,7 +7,7 @@ The `Connector` is the most fundamental construct of the framework, providing ke
 * [Connectivity to NATS](../tech/natsconnection.md)
 * HTTP-like communication over NATS, unicast (request/response) and multicast (pub/sub)
 * JSON logger
-* [Configuration](../tech/configuration.md)
+* [Configuration](../blocks/configuration.md)
 * Tickers to execute jobs on a fixed schedule
 * [Distributed cache](../blocks/distrib-cache.md)
 * Bundled resource files and strings

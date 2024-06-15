@@ -1,4 +1,4 @@
-# Package `services/httpegress`
+# Package `coreservices/httpegress`
 
 The HTTP egress proxy is a core microservice that relays HTTP requests to external non-`Microbus` URLs. It is a thin wrapper over the standard `net/http` client but provides the following benefits:
 

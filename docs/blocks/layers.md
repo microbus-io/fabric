@@ -22,7 +22,7 @@ TODO
 
 TODO
 
-HTTP ingress
+[HTTP ingress proxy](../blocks/http-ingress.md)
 
 HTTP egress
 
@@ -56,7 +56,7 @@ TODO: a lot of the desc is in the structure doc. move?
 
 ### General
 
-Configuration
+[Configuration](../blocks/configuration.md)
 
 [Error capture and propagation](../blocks/error-capture.md)
 

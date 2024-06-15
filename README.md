@@ -10,7 +10,7 @@
 
 The framework's philosophy can be categorized into three conceptual areas:
 
-* Common runtime - The framework specifies rules that all microservices need to comply with during runtime. This includes things like how microservices [communicate](./docs/tech/unicast.md), how they report [metrics](./docs/structure/coreservices-metrics.md), where they [pull config values](./docs/tech/configuration.md) from, how they output logs, how they get deployed, etc. A common set of rules is important for interoperability, maintainability and stability of the system
+* Common runtime - The framework specifies rules that all microservices need to comply with during runtime. This includes things like how microservices [communicate](./docs/tech/unicast.md), how they report [metrics](./docs/structure/coreservices-metrics.md), where they [pull config values](./docs/blocks/configuration.md) from, how they output logs, how they get deployed, etc. A common set of rules is important for interoperability, maintainability and stability of the system
 * RAD tools - The framework leverages [code generation](./docs/blocks/codegen.md) for the rapid development of microservices with the intent that application developers focus on the business logic rather than on boilerplate code. Developer productivity is directly correlated to customer value
 * Standard building blocks - Capabilities that are deemed to be the building blocks of microservices are implemented by the framework in a standard way, serving to facilitate both of the above
 
@@ -32,7 +32,7 @@ The framework's philosophy can be categorized into three conceptual areas:
 
 ## Digging Deeper
 
-👉 The [layerd architectural diagram](./docs/blocks/layers.md) is good introduction to the many building blocks of `Microbus` and how they relate to one another
+👉 The [layerd architectural diagram](./docs/blocks/layers.md) is map of the many building blocks of `Microbus` and how they relate to one another
 
 👉 If you like reading code, the [list of packages](./docs/structure/packages.md) will help you find your way
 
@@ -41,11 +41,11 @@ The framework's philosophy can be categorized into three conceptual areas:
 Go deeper into the philosophy and technology of `Microbus`:
 
 * [Unicast messaging](./docs/tech/unicast.md) - Unicast enables bi-directional (request and response) HTTP-like messaging between a client and a single server over NATS
-* [HTTP ingress](./docs/tech/httpingress.md) - The reason for and role of the HTTP ingress proxy service
+* [HTTP ingress](./docs/blocks/http-ingress.md) - The reason for and role of the HTTP ingress proxy service
 * [Encapsulation pattern](./docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
 * [Error capture](./docs/blocks/error-capture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](./docs/blocks/time-budget.md) - The proper way to manage request timeouts
-* [Configuration](./docs/tech/configuration.md) - How to configure microservices
+* [Configuration](./docs/blocks/configuration.md) - How to configure microservices
 * [NATS connection settings](./docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
 * [Multicast messaging](./docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional (request and response) HTTP-like messaging between a client and multiple servers over NATS
 * [Control subscriptions](./docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`

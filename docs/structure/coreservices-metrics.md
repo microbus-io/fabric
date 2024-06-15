@@ -1,4 +1,4 @@
-# Package `services/metrics`
+# Package `coreservices/metrics`
 
 The `Microbus` framework relies on Prometheus for the collection of metrics. Prometheus pulls metrics from the metrics core microservice, which in turn pulls and aggregates metrics from all microservices it can reach on the NATS bus.
 
@@ -62,7 +62,7 @@ The [collector types](https://prometheus.io/docs/concepts/metric_types/) support
 
 ```go
 func (svc *Intermediate) IncrementLikes(num int, postId string) error {
-	...
+	// ...
 }
 
 func (svc *Intermediate) MyFunc() error {
