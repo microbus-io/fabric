@@ -14,7 +14,7 @@ Learn about each of the project's packages to get familiar with the `Microbus` c
     * [inbox](../structure/coreservices-inbox.md) - The inbox microservice listens for incoming emails and fires appropriate events
     * [metrics](../structure/coreservices-metrics.md) - The metrics microservice collects metrics from microservices and delivers them to Prometheus and Grafana
     * [openapiportal](../structure/coreservices-openapiportal.md) - The OpenAPI portal microservice produces a portal page that lists all microservices with open endpoints
-* [dlru](../structure/dlru.md) - An LRU cache that is distributed among all peers of a microservice
+* [dlru](../structure/dlru.md) - A distributed LRU cache that is shared among all peers of a microservice
 * [env](../structure/env.md) - Manages the loading of environment variables, with the option of overriding values for testing
 * [errors](../structure/errors.md) - An enhancement of Go's standard `errors` package that adds stack tracing and status codes
 * [examples](../structure/examples.md) - Demo microservices

@@ -9,7 +9,7 @@ The `Connector` is the most fundamental construct of the framework, providing ke
 * JSON logger
 * [Configuration](../tech/configuration.md)
 * Tickers to execute jobs on a fixed schedule
-* [Distributed cache](../structure/dlru.md)
+* [Distributed cache](../blocks/distrib-cache.md)
 * Bundled resource files and strings
 * [Distributed tracing](../blocks/distrib-tracing.md)
 

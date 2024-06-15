@@ -9,22 +9,25 @@ The common practice is to set a timeout on a point-to-point basis, between each 
 In this first example, microservice `X` is setting a shorter timeout than microservice `Y`, resulting in microservice `Z` performing work that is no longer needed.
 
 <img src="./time-budget-1.drawio.svg">
+<p>
 
-In the second example, all microservices set a 1 minute timeout. Nevertheless, microservice `W` times out while microservice `Z` is still working. There is no way to tell microservice `Z` to stop.
+In the second example, all microservices set a 1 minute timeout. Nevertheless, microservices `W` and `X` time out while microservice `Z` is still working. There is no way to tell microservice `Z` to stop.
 
 <img src="./time-budget-2.drawio.svg">
+<p>
 
 In both cases the issue stems from the fact that upstream services do not have visibility into what's happening downstream.
 
-## Time Budgets
+## Time Budget
 
-Time budgets introduce a deadline for the entire transaction tree to complete. The deadline is set at the root and propagated downstream. Every microservice therefore knows when the transaction will timeout and so all microservices can abort at the same time.
+A time budget introduces a deadline for the entire transaction DAG to complete. The deadline is set at the root and propagated downstream. Every microservice therefore knows when the transaction will time out and so all microservices can abort at the same time.
 
 The typical way to implement a time budget is to pass along a timestamp by which the transaction must end. However, one must consider that microservices may run on different hardware whose clocks are not fully in-sync. To deal with potential clock skew, the deadline is passed as a duration that gets depleted, hence the terminology "budget".
 
 In the following example, microservices `Y` will have completed its work at the 45 sec mark while microservices `Z`, `X` and `W` will have all timed out at the 60 sec mark.
 
 <img src="./time-budget-3.drawio.svg">
+<p>
 
 If you look closely at the code you'll notice that the budget is decreased somewhat with each hop. This compensates for the network latency.
 

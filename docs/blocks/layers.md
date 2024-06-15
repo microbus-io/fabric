@@ -43,7 +43,7 @@ TODO: a lot of the desc is in the structure doc. move?
 
 Configuration
 [Error capture and propagation](../blocks/error-capture.md)
-Distributed cache
+[Distributed cache](../blocks/distrib-cache.md)
 Tickers
 Linked static resources
 Internationalization (i18n)
