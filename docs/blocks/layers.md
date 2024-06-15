@@ -11,7 +11,7 @@ Onions have layers, ogres have layers, and so does any decent software architect
 
 Each of the building blocks is described below the diagram.
 
-<img src="./layers-1.drawio.svg" width="741">
+<img src="./layers-1.drawio.svg">
 <p>
 
 ## Core Services

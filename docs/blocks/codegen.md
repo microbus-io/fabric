@@ -21,9 +21,9 @@ The next step is to create a `service.yaml` file which will be used to specify t
 
 In `service.yaml`, developers are able to define the various pieces of the microservice in a declarative fashion. Code generation picks up these definitions to generate boilerplate code, leaving it up to the developer to implement the business logic. As noted earlier, declarations can be added over time and applied incrementally.
 
-`service.yaml` include several sections: general, configs, functions, events, types, webs and tickers. Combined, these define the characteristics of the microservice.
+`service.yaml` include several sections, that combined define the characteristics of the microservice: general, configs, functions, events, sinks, webs, tickers.
 
-<img src="codegen-1.svg" width="285">
+<img src="codegen-1.drawio.svg">
 
 ### General
 

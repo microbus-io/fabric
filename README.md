@@ -4,7 +4,6 @@
 
 `Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages a messaging bus for the transport layer. Microservices over a bus = microbus.
 
-[![License][License-Image]][License-Url]
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
 ## Introduction

@@ -8,7 +8,7 @@ Thorough testing is an important cornerstone of good software. Testing a microse
 
 Mocks can be added to the application when it's impractical to run the actual downstream microservice, for example if that microservice is calling a third-party web service such as a payment processor. The preference however should be to include the actual microservice whenever possible and not rely on mocks. Note that in `Microbus` microservices are mocked rather than clients. The upstream microservice still sends messages over NATS which are responded to by the mock of the downstream microservice.
 
-<img src="./integration-testing-1.svg" width="350">
+<img src="./integration-testing-1.drawio.svg">
 
 ## Code Generated Test Harness
 

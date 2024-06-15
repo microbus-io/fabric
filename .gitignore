@@ -22,3 +22,4 @@ nats-server
 .DS_Store
 examples/main/main
 examples/main/__debug_bin*
+*.drawio.svg.bkp
