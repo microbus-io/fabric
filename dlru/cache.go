@@ -67,7 +67,7 @@ type Service interface {
 }
 
 // NewCache starts a new cache for the service at a given path.
-// For security reasons, it is advised to use a non-public port in the path.
+// For security reasons, it is advised to use a non-public port for the path, such as :444/token-cache .
 func NewCache(ctx context.Context, svc Service, path string) (*Cache, error) {
 	basePath := httpx.JoinHostAndPath(svc.Hostname(), path)
 	basePath = strings.TrimSuffix(basePath, "/")
