@@ -348,7 +348,7 @@ func (svc *Service) DoSomething(ctx context.Context, n int) (err error) {
 
 The clock shift is propagated down the call chain to downstream microservices. The success of this pattern depends on each of the microservices involved in the transaction using `connector.Now(ctx)` instead of the standard `time.Now()` to obtain the current time.
 
-Shifting the clock outside the `TESTING` deployment should be done with extreme caution. Unlike the `TESTING` deployment, tickers are enabled in the `LOCAL`, `LAB` and `PROD` deployments and always executed at the real time.
+Shifting the clock outside the `TESTING` deployment should be done with extreme caution. Unlike the `TESTING` deployment, tickers are enabled in the `LOCAL`, `LAB` and `PROD` [deployments](../tech/deployments.md) and always executed at the real time.
 
 Note that shifting the clock will not cause any timeouts or deadlines to be triggered. It is simply a mechanism of transferring an offset down the call chain.
 

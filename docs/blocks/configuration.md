@@ -30,6 +30,6 @@ con.SetOnConfigChanged(func (ctx context.Context, changed func(string) bool) err
 })
 ```
 
-Note that the fetching config values from the configurator is disabled in the `TESTING` deployment environment.
+Note that the fetching config values from the configurator is disabled in the `TESTING` [deployment environment](../tech/deployments.md).
 
 Config values can be set programmatically using `SetConfig`, however such values will be overridden on the next fetch of config from the configurator. It is advisable to limit use of this action to testing scenarios when fetching values from the configurator is disabled.

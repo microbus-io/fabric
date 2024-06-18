@@ -41,17 +41,7 @@ func (c *Connector) initTracer(ctx context.Context) (err error) {
 
 	var sp sdktrace.SpanProcessor
 	switch c.deployment {
-	case LOCAL:
-		if endpoint == "" {
-			// Default to the non-secure HTTP protocol
-			endpoint = "http://127.0.0.1:4318"
-		}
-		exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
-		if err != nil {
-			return errors.Trace(err)
-		}
-		sp = sdktrace.NewBatchSpanProcessor(exp)
-	case TESTING:
+	case LOCAL, TESTING:
 		var exp *otlptrace.Exporter
 		if endpoint == "" {
 			// Use a nil client rather than return nil to allow for testing of span creation

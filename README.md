@@ -58,6 +58,8 @@ Go deeper into the philosophy and technology of `Microbus`:
 * [Path arguments](./docs/tech/patharguments.md) - Defining wildcard path arguments in subscriptions
 * [HTTP magic arguments](./docs/tech/httparguments.md) - How to use HTTP magic arguments in functional endpoints to gain finer control over the HTTP request and response
 * [RPC over JSON vs REST](./docs/tech/rpcvsrest.md) - Implementing these common web API styles
+* [JSON vs Protobuf](./docs/tech/jsonvsprotobuf.md) - Why JSON over HTTP was chosen as the protocol
+* [Deployment environments](./docs/tech/deployments.md) - The 4 deployment environments: `PROD`, `LAB`, `LOCAL`, `TESTING`
 
 ## Legal
 

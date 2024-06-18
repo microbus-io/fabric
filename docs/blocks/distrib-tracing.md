@@ -5,11 +5,9 @@ Distributed tracing enables the visualization of the flow of function calls amon
 
 <img src="./distrib-tracing-1.png" width="1011">
 
-`Microbus` exports tracing spans via the OTLP HTTP collector. The `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variables may be used to configure the collector's endpoint.
-By default, the endpoint is set to `http://127.0.0.1:4318` on a `LOCAL` deployment.
-On all other deployments (`TESTING`, `LAB` and `PROD`), the endpoint must be explicitly specified by one of the aforementioned environment variables.
+`Microbus` exports tracing spans via the OTLP HTTP collector. The `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or the `OTEL_EXPORTER_OTLP_ENDPOINT` [environment variables](../tech/envars.md) may be used to configure the collector's endpoint.
 
-Whether or not a trace is exported to the collector depends on the deployment environment of the microservice:
+Whether or not a trace is exported to the collector depends on the [deployment environment](../tech/deployments.md) of the microservice:
 
 - In `LOCAL`, `TESTING` and `LAB` deployments, all traces are exported to the collector
 - In `PROD` deployments, only traces that contain at least one error span, or those that are otherwise explicitly selected using `svc.ForceTrace`, are exported to the collector

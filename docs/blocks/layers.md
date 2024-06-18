@@ -14,11 +14,11 @@ Each of the building blocks is described below the diagram.
 <img src="./layers-1.drawio.svg">
 <p>
 
-## Application Microervices
+## Application Microservices
 
 TODO
 
-## Core Microervices
+## Core Microservices
 
 TODO
 
@@ -92,13 +92,13 @@ Discovery
 
 Load balancing
 
-Geo-affinity failover routing
+Geo-aware failover routing
 
 Connectivity health checks
 
 ## OSS
 
-[NATS](https://www.nats.io) sits at the core of `Microbus` and makes much of its magic possible. NATS is a full-mesh, highly-available, lighting-fast, real-time, at-most-once, messaging bus. It enables request/response, publish/subscribe, load-balancing, discovery and geo affinity routing.
+[NATS](https://www.nats.io) sits at the core of `Microbus` and makes much of its magic possible. NATS is a full-mesh, highly-available, lighting-fast, real-time, at-most-once, messaging bus. It enables request/response, publish/subscribe, load-balancing, discovery and geo-aware failover routing.
 
 [OpenTelemetry](https://opentelemetry.io) is a standard for the collection of metrics, distributed tracing and logs.
 
