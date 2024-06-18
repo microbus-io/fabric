@@ -6,7 +6,7 @@ Learn about each of the project's packages to get familiar with the `Microbus` c
 * [cfg](../structure/cfg.md) - Options for defining config properties
 * [codegen](../structure/codegen.md) - The code generator
 * [connector](../structure/connector.md) - The primary construct of the framework and the basis for all microservices
-* coreservices - Microservices that are common for most if not all apps
+* [coreservices](../structure/coreservices.md) - Microservices that are required for most if not all apps
     * [configurator](../structure/coreservices-configurator.md) - The configurator core microservice
     * [control](../structure/coreservices-control.md) - Client API for the `:888` control subscriptions
     * [httpegress](../structure/coreservices-httpegress.md) - The HTTP egress proxy core microservice

@@ -1,6 +1,6 @@
 # Package `examples`
 
-The `examples` package holds several examples that demonstrate how the framework can be used to create microservices. When studying an example, start by looking at the `service.yaml` to get a quick overview of the functionality of the microservice. Then go deep into the code in `service.go`. All files with `-gen` in their name are code generated and can be ignored until you're ready to go deep into the internals of `Microbus`.
+The `examples` package holds several examples that demonstrate how the `Microbus` framework is used to create microservices. When studying an example, start by looking at the `service.yaml` to get a quick overview of the functionality of the microservice. Then go deep into the code in `service.go`. All files with `-gen` in their name are code generated and can be ignored until you're ready to go deep into the internals of `Microbus`.
 
 * [Hello](../structure/examples-hello.md) demonstrates the key capabilities of the framework
 * [Calculator](../structure/examples-calculator.md) demonstrates functional handlers
