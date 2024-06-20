@@ -2,48 +2,72 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is an opinionated framework for the development, deployment and operation of microservices. Its most notable characteristic is that it leverages a messaging bus as the transport layer. Microservices over a bus = microbus.
-
-Build, test, deploy, run and operate microservices, simpler, faster, smarter and at scale.
+### `Microbus` is an opinionated framework for the development, testing, deployment and operation of microservices at scale. Build complex web applications comprising dozens of microservices. Deploy as a modular monolith or on Kubernetes.
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
 
-## Introduction
+## 🚌 Introduction
 
-Building and operating microservices at scale is very difficult. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at this point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens will eventually come home to roost.
+Building and operating microservices at scale is very difficult. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at this point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
 `Microbus` thinks differently. By taking a novel approach to the development, testing, deployment and troubleshooting of microservices, it eliminates much of the complexity of the current state of the art. `Microbus` is a holistic framework that packages together various OSS technologies, tooling, best practices, patterns and guides into a cohesive engineering experience that elevates developer productivity 4x.
 
-`Microbus` is the culmination of a decade of research and has been successfully battle-tested in a production setting.
+`Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS applications comprising dozens if not hundreds of microservices.
 
 
-## Dogma
+## 🐶 Dogma
 
 These core tenets were top of mind in the design of `Microbus`.
 
 ### Elevated Engineering Experience
 
-`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and precision troubleshooting.
+`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting.
 
-### Simplified Omakase OSS Tech Stack
-
-`Microbus` is powered by a small curated set of OSS technologies integrated to work together in unison and exposed through a simplified API that keeps the learning curve short and operational complexity low.
-
-### Scalability, Reliability and Performance
-
-Components at all levels of `Microbus`, from the application microservices down to the messaging bus, can be scaled horizontally. No single points of failure or bottlenecks.
-
-### Common Runtime Rulebook
-
-All microservices running on `Microbus` comply with the same set of rules, guaranteeing smooth interoperability, straightforward maintainability and verifiable stability.
+* Use code generation to automate the boilerplate code and speeds up development
+* Add new microservices and endpoints in minutes
+* Observe your system with pinpoint accuracy to troubleshoot and optimize your code
+* Start an entire application on a development machine in seconds
+* Run and debug multiple microservices in your IDE
+* Perform thorough integration tests that include a multitude of microservices in a single test
+* Easily integrate external clients such as React applications using automated OpenAPI documents
+* Avoid common pitfalls with best-practices that are transparently baked-in
 
 ### Adaptive Deployment Topology
 
 From a local development machine to a multi-region cloud deployment with geo-aware failover, `Microbus` grows with your needs. No code changes required.
 
+* Develop with the simplicity and velocity of a modular monolith
+* Deploy as a resilient modular monolith, or a multi-region cloud deployment with geo-aware failover
+* Run as an independent executable or on Kubernetes
+* Include one or many microservices in a single executable or Kubernetes pod
 
-## Get Started
+### Simplified Omakase OSS Tech Stack
+
+`Microbus` is powered by a small curated set of OSS technologies integrated to work together in unison and exposed through a simplified API that keeps the learning curve short and operational complexity low.
+
+* Get up to speed quickly by virtue of a short learning curve
+* Get started instantly with reasonable defaults
+* Keep the number of moving parts small and control operational complexity
+
+### Scalable, Resilient and Performant
+
+Components at all levels of `Microbus`, from the application microservices down to the messaging bus, can be scaled horizontally. No single points of failure or bottlenecks.
+
+* Scale your system horizontally as your requirements grow
+* Serve thousands or requests per second on a single machine
+* Rest assured your code is running on top of a robust thoroughly-tested runtime
+
+### Common Runtime
+
+All microservices running on `Microbus` comply with the same set of rules, guaranteeing smooth interoperability, straightforward maintainability and verifiable stability.
+
+* Observe every detail of interaction between microservices
+* Uniformly configure your microservices
+* Benefit from advanced patterns such as distributed caching, time budgets and acks
+* Use the inherent publish/subscribe communication pattern for an event-driven architecture
+
+## 🚦 Get Started
 
 👉 Follow the [quick start guide](./docs/howto/quick-start.md) to set up your system and run the example app
 
@@ -58,7 +82,7 @@ From a local development machine to a multi-region cloud deployment with geo-awa
 👉 Venture out and [explore more on your own](./docs/howto/self-explore.md)
 
 
-## Learn More
+## 📚 Learn More
 
 Dig deeper into the technology of `Microbus` and its philosophy.
 
@@ -100,33 +124,34 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 
 * [Milestones](./docs/general/milestones.md) - Each milestone of `Microbus` is maintained in a separate branch for archival purposes and to demonstrate the development process and evolution of the code.
 
-## Get Involved
+## ✋ Get Involved
 
-We want to get your feedback. Clone the repo, try things out and let us know what worked for you, what didn't and what you'd like to see improved.
+We want your feedback. Clone the repo, try things out and let us know what worked for you, what didn't and what you'd like to see improved.
 
-Help us spread the word. Post about `Microbus` in among your peers and the Go community.
+Help us spread the word. Let your peers and the Go community know about `Microbus`.
 
-Consider contributing code.
+Give us a Github ⭐. Ask all your friends to give us one too. Please?
 
-## Contact Us
+Reach out if you'd like to contribute code.
+
+## ☎️ Contact Us
 
 Find us at any of the following channels. We're looking forward to hearing from you so don't hesitate to reach out.
 
-| Channel  | Address |
-|----------|---|
-| Website  | [microbus.io](https://www.microbus.io) TODO |
-| Github   | [github.com/microbus-io](https://www.github.com/microbus-io) |
-| Email    | in<span>fo</span>@microbus<span>.io</span> |
-| LinkedIn | [linkedin.com/company/microbus-io](https://www.linkedin.com/company/microbus-io) |
-| Slack    | [microbus-io.slack.com](https://microbus-io.slack.com) |
-| Discord  | [discord.gg/FAJHnGkNqJ](https://discord.gg/FAJHnGkNqJ) |
-| YouTube  | TODO |
-| Reddit   | TODO |
-|          | |
+| Find us at | ... |
+|------------|-----|
+| Website    | [www.microbus.io](https://www.microbus.io) TODO |
+| Github     | [github.com/microbus-io](https://www.github.com/microbus-io) |
+| Email      | in<span>fo</span>@microbus<span>.io</span> |
+| LinkedIn   | [linkedin.com/company/microbus-io](https://www.linkedin.com/company/microbus-io) |
+| Slack      | [microbus-io.slack.com](https://microbus-io.slack.com) |
+| Discord    | [discord.gg/FAJHnGkNqJ](https://discord.gg/FAJHnGkNqJ) |
+| YouTube    | TODO |
+| Reddit     | [reddit.com/r/microbus-io](https://reddit.com/r/microbus-io) TODO |
 
 TODO ^ x3
 
-## Legal
+## 📃 Legal
 
 An explicit license from `Microbus LLC` is required to use the `Microbus` framework.
 Refer to the list of [third-party open source software](./docs/general/third-party-oss.md) for licensing information of components used by the `Microbus` framework.

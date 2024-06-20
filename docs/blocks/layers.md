@@ -52,8 +52,7 @@ TODO ^
 JSON marshaling and unmarshaling
 TODO ^
 
-[Integration test harness](../blocks/integration-testing.md)
-TODO ^
+The [integration test harness](../blocks/integration-testing.md) spins up the microservice under test along with the actual downstream microservices it depends on into a single testable application, allowing full-blown integration tests to run inside `go test`.
 
 An [OpenAPI document](../blocks/openapi.md) is automatically created for each of the microservice's endpoints.
 
@@ -61,28 +60,21 @@ A __uniform code structure__ is a byproduct of using code generation for the cre
 
 ## Connector Construct
 
-TODO
 TODO: a lot of the desc is in the structure doc. move?
 
 ### General
 
-TODO
-
 [Configuration](../blocks/configuration.md) properties are common means to initialize and customize microservices without the need for code changes. In `Microbus`, microservices define their configuration properties but obtain the runtime values of those properties from the [configurator](../structure/coreservices-configurator.md).
 
-[Error capture and propagation](../blocks/error-capture.md)
-TODO ^
+[Errors](../blocks/error-capture.md) are unavoidable. When they occur, they are captured, augmented with a full stack trace, logged, metered (Grafana), [traced](../blocks/distrib-tracing.md) (Jaeger) and propagated up the stack to the upstream microservice.
 
 The [distributed cache](../blocks/distrib-cache.md) is an in-memory cache that is shared among the replica peers of microservice.
 
-Tickers are means to run jobs on a scheduled interval.
-TODO ^
+Similar to cron jobs, __tickers__ run jobs on a scheduled interval. 
 
-Linked static resources
-TODO ^
+Images, scripts, templates and any other __static resources__ are made available to each microservice by association of a file system (FS).
 
-Internationalization (i18n)
-TODO ^
+A specially named resource `strings.yaml` enables __internationalization (i18n)__ of user-facing display strings.
 
 ### Observability
 
@@ -102,13 +94,13 @@ Metrics such as latency, duration, byte size and count are collected automatical
 
 __Ack or fail fast__ is a pattern by which the server responds with an ack to the client before processing the request. This way, the client knows to wait for the response only if an ack is received, and fail if it's not.
 
-A microservices transparently makes itself __discoverable__ by subscribing to the messaging bus. Once subscribed to a subject it starts receiving message from the corresponding queue.
+A microservices transparently makes itself __discoverable__ by subscribing to the messaging bus. Once subscribed to a subject it immediately starts receiving message from the corresponding queue. An external discovery service is not required.
 
-__Load balancing__ is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. 
+__Load balancing__ is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. An external load balancer is not required.
 
 __Geo-aware failover__ can be setup using [NATS super-clusters](https://docs.nats.io/running-a-nats-service/configuration/gateways).
 
-Explicit __liveness checks__ are unnecessary. A microservice is assumed to be alive when it is connected to the messaging bus. The bus validates the connection using regular pings.
+A microservice is __alive__ when it is connected to the messaging bus and can send and receive messages. The bus validates the connection using regular pings. Explicit liveness checks are unnecessary. 
 
 ## OSS
 

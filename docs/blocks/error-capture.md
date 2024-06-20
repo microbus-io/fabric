@@ -178,7 +178,7 @@ Microbus-Op-Code: Err
 }
 ```
 
-The web handler wrapper function now looks similar to the folowing:
+The web handler wrapper function now looks similar to the following:
 
 ```go
 func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {

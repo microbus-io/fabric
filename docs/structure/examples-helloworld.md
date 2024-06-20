@@ -1,4 +1,4 @@
-# Package `examples/hello`
+# Package `examples/helloworld`
 
 The `helloworld.example` microservice demonstrates the minimalist classic example.
 
@@ -34,4 +34,4 @@ ctx := Context()
 HelloWorld_Get(t, ctx, "").BodyContains("Hello, World!")
 ```
 
-And finally, the service was added to the app in `examples/main/main.go`.
+And finally, the microservice was added to the app in `examples/main/main.go`.
