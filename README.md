@@ -2,7 +2,7 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-### `Microbus` is an opinionated framework for the development, testing, deployment and operation of microservices at scale. Build complex web applications comprising dozens of microservices. Deploy as a modular monolith or on Kubernetes.
+`Microbus` is an opinionated framework for the development, testing, deployment and operation of microservices at scale. Build complex web applications comprising dozens of microservices. Deploy as a modular monolith or on Kubernetes.
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
