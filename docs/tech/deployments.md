@@ -9,7 +9,7 @@
 
 The deployment environment impacts certain aspects of the framework such as logging and distributed tracing.
 
-||`PROD`|`LAB`|`LOCAL`|`TESTING`|
+| |`PROD`|`LAB`|`LOCAL`|`TESTING`|
 |--------|----|---|-----|----------|
 |Logging level|INFO|DEBUG|DEBUG|DEBUG|
 |Logging format|JSON|JSON|Human-friendly|Human-friendly|

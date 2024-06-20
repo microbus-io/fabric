@@ -1,6 +1,6 @@
 # Distributed Tracing
 
-Distributed tracing enables the visualization of the flow of function calls among microservices and across processes. Without distributed tracing, it's extremely difficult to understand the flow of calls across microservices and to troubleshoot a distributed system.
+Distributed tracing enables the visualization of the flow of function calls across microservices and processes. Without distributed tracing, it's extremely difficult to understand the flow of calls across microservices and to troubleshoot a distributed system.
 `Microbus` leverages [Jaeger](https://www.jaegertracing.io) and [OpenTelemetry](https://opentelemetry.io) to automatically create and collect tracing spans for executions of endpoints, tickers and callbacks of all microservices and visualize them as a single stack trace.
 
 <img src="./distrib-tracing-1.png" width="1011">

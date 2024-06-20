@@ -51,7 +51,7 @@ Content-Type: application/json
 
 ## RESTful
 
-The REST API style comes from a frontend web-centric perspective. Its philosophy is that everything on the web is a resource that can be identified with a URI and so a web API should reflect that. In REST, the request's path represents the resource and the HTTP method (`GET`, `POST`, `DELETE`, `PUT`) the operation done on that resource. This style works best for CRUD APIs but may not translate well when the API has no root object that is being worked on. For example, the `Add` example from earlier doesn't translate well to REST.
+The REST API style comes from a web-centric perspective. Its philosophy is that everything on the web is a resource that can be identified with a URI and so a web API should reflect that. In REST, the request's path represents the resource and the HTTP method (`GET`, `POST`, `DELETE`, `PUT`) represents the operation done on that resource. This style works best for CRUD APIs but may not translate well when the API has no object that is being worked on. For example, the `Add` example from earlier doesn't translate well to REST.
 
 The following example defines a typical RESTful API for CRUD operations on an `Object`. Notice how it utilizes the [HTTP magic arguments](./httparguments.md) `httpRequestBody`, `httpResponseBody` and `httpStatusCode`.
 
@@ -173,17 +173,18 @@ functions:
 The implementation of the RPC-styled endpoint may then look something like this:
 
 ```go
-func (svc *Service) Read(ctx context.Context, id int) (obj Object, err error) {
+func (svc *Service) Read(ctx context.Context, id int) (obj *Object, err error) {
     row, err := svc.sqlDatabase.QueryRowContext(ctx, "SELECT foo, count, etc FROM objects WHERE id=?", id)
     if err != nil {
-        return Object{}, errors.Trace(err)
+        return nil, errors.Trace(err)
     }
+    obj := &Object{}
     err = row.Scan(&obj.Foo, &obj.Count, &obj.Etc)
     if err != nil {
         if errors.Is(sql.ErrNoRows) {
             return Object{}, errors.Newcf(http.StatusNotFound, "object %v not found", id)
         }
-        return Object{}, errors.Trace(err)
+        return nil, errors.Trace(err)
     }
     return obj, nil
 }
@@ -192,7 +193,7 @@ func (svc *Service) Read(ctx context.Context, id int) (obj Object, err error) {
 The RESTful endpoint can then simply delegate the call to the above:
 
 ```go
-func (svc *Service) ReadREST(ctx context.Context, id int) (httpResponseBody Object, err error) {
+func (svc *Service) ReadREST(ctx context.Context, id int) (httpResponseBody *Object, err error) {
     return svc.Read(ctx, id)
 }
 ```

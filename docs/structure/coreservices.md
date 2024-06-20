@@ -1,6 +1,6 @@
 # Package `coreservices`
 
-The `coreservices` package is a grouping of microservices that are required by most if not all applications running on top of `Microbus`.
+The `coreservices` package is a collection of microservices that implement common functionality required by most if not all `Microbus` applications.
 
 * The [configurator](../structure/coreservices-configurator.md) is responsible for delivering configuration values to microservices that define configuration properties. Such microservices will not start if they cannot reach the configurator
 * [Control](../structure/coreservices-control.md) is not actually a microservice but rather a stub microservice used to generate a client for the `:888` [control subscriptions](../tech/controlsubs.md)
