@@ -94,10 +94,10 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	assert.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
-	// N=10202
-	// 107286 ns/op (9320 ops/sec)
-	// 43195 B/op
-	// 360 allocs/op
+	// N=9654
+	// 111071 ns/op (9003 ops/sec)
+	// 37764 B/op
+	// 257 allocs/op
 }
 
 func BenchmarkConnector_SerialChain(b *testing.B) {
@@ -190,10 +190,10 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	assert.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
-	// N=67580 concurrent
-	// 16503 ns/op (60595 ops/sec) = approx 6x that of serial
-	// 42269 B/op
-	// 337 allocs/op
+	// N=65035 concurrent
+	// 16342 ns/op (61192 ops/sec) = approx 6x that of serial
+	// 36294 B/op
+	// 261 allocs/op
 }
 
 func TestConnector_EchoParallelCapacity(t *testing.T) {
