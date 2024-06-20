@@ -55,7 +55,7 @@ Try the following URLs in your browser:
 * http://localhost:8080/hello.example/ping
 * http://localhost:8080/hello.example/hello?name=Bella
 * http://localhost:8080/hello.example/calculator
-* http://localhost:8080/hello.example/bus.jpeg
+* http://localhost:8080/hello.example/bus.png
 * http://localhost:8080/messaging.example/home
 * http://localhost:8080/messaging.example/cache-store?key=foo&value=bar
 * http://localhost:8080/messaging.example/cache-load?key=foo

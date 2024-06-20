@@ -1,8 +1,3 @@
-# Copyright (c) 2023-2024 Microbus LLC and various contributors
-# 
-# This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
-# Neither may be used, copied or distributed without the express written consent of Microbus LLC.
-
 ---
 # General
 #
@@ -11,8 +6,8 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: hello.example
-  description: The Hello microservice demonstrates the various capabilities of a microservice.
+  host: helloworld.example
+  description: The HelloWorld microservice demonstrates the minimalist classic example.
 
 # Config properties
 #
@@ -32,13 +27,10 @@ general:
 # callback - "true" to handle the change event (defaults to "false")
 # secret - "true" to indicate a secret (defaults to "false")
 configs:
-  - signature: Greeting() (greeting string)
-    description: Greeting to use.
-    default: Hello
-  - signature: Repeat() (count int)
-    description: Repeat indicates how many times to display the greeting.
-    default: 1
-    validation: int [0,100]
+  # - signature:
+  #   description:
+  #   default:
+  #   validation:
 
 # Functions
 #
@@ -135,26 +127,8 @@ sinks:
 #   none - Pervasive
 # openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
 webs:
-  - signature: Hello()
-    description: Hello prints a greeting.
-  - signature: Echo()
-    description: Echo back the incoming request in wire format.
-  - signature: Ping()
-    description: Ping all microservices and list them.
-  - signature: Calculator()
-    description: |-
-      Calculator renders a UI for a calculator.
-      The calculation operation is delegated to another microservice in order to demonstrate
-      a call from one microservice to another.
-  - signature: BusPNG()
-    method: GET
-    path: /bus.png
-    description: BusPNG serves an image from the embedded resources.
-  - signature: Localization()
-    description: Localization prints hello in the language best matching the request's Accept-Language header.
-  - signature: Root()
-    description: Root is the top-most root page.
-    path: //root
+  - signature: HelloWorld()
+    description: HelloWorld prints the classic greeting.
 
 # Tickers
 #
@@ -163,9 +137,9 @@ webs:
 # description - Documentation
 # interval - Duration between iterations (e.g. 15m)
 tickers:
-  - signature: TickTock()
-    description: TickTock is executed every 10 seconds.
-    interval: 10s
+  # - signature:
+  #   description:
+  #   interval:
 
 # Metrics
 #

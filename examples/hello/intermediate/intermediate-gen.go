@@ -72,7 +72,7 @@ type ToDo interface {
 	Echo(w http.ResponseWriter, r *http.Request) (err error)
 	Ping(w http.ResponseWriter, r *http.Request) (err error)
 	Calculator(w http.ResponseWriter, r *http.Request) (err error)
-	BusJPEG(w http.ResponseWriter, r *http.Request) (err error)
+	BusPNG(w http.ResponseWriter, r *http.Request) (err error)
 	Localization(w http.ResponseWriter, r *http.Request) (err error)
 	Root(w http.ResponseWriter, r *http.Request) (err error)
 	TickTock(ctx context.Context) (err error)
@@ -120,7 +120,7 @@ func NewService(impl ToDo, version int) *Intermediate {
 	svc.Subscribe(`ANY`, `:443/echo`, svc.impl.Echo)
 	svc.Subscribe(`ANY`, `:443/ping`, svc.impl.Ping)
 	svc.Subscribe(`ANY`, `:443/calculator`, svc.impl.Calculator)
-	svc.Subscribe(`GET`, `:443/bus.jpeg`, svc.impl.BusJPEG)
+	svc.Subscribe(`GET`, `:443/bus.png`, svc.impl.BusPNG)
 	svc.Subscribe(`ANY`, `:443/localization`, svc.impl.Localization)
 	svc.Subscribe(`ANY`, `//root`, svc.impl.Root)
 
@@ -204,11 +204,11 @@ a call from one microservice to another.`,
 	if r.URL.Port() == "443" || "443" == "0" {
 		oapiSvc.Endpoints = append(oapiSvc.Endpoints, &openapi.Endpoint{
 			Type:        `web`,
-			Name:        `BusJPEG`,
+			Name:        `BusPNG`,
 			Method:      `GET`,
-			Path:        `:443/bus.jpeg`,
-			Summary:     `BusJPEG()`,
-			Description: `BusJPEG serves an image from the embedded resources.`,
+			Path:        `:443/bus.png`,
+			Summary:     `BusPNG()`,
+			Description: `BusPNG serves an image from the embedded resources.`,
 			InputArgs: struct {
 			}{},
 			OutputArgs: struct {

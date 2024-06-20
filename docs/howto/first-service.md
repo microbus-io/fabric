@@ -233,6 +233,7 @@ func main() {
 		metrics.NewService(),
 		// inbox.NewService(),
 
+		helloworld.NewService(),
 		hello.NewService(),
 		messaging.NewService(),
 		messaging.NewService(),

@@ -20,6 +20,7 @@ import (
 	"github.com/microbus-io/fabric/examples/eventsink"
 	"github.com/microbus-io/fabric/examples/eventsource"
 	"github.com/microbus-io/fabric/examples/hello"
+	"github.com/microbus-io/fabric/examples/helloworld"
 	"github.com/microbus-io/fabric/examples/messaging"
 )
 
@@ -38,6 +39,7 @@ func main() {
 		metrics.NewService(),
 		// inbox.NewService(),
 
+		helloworld.NewService(),
 		hello.NewService(),
 		messaging.NewService(),
 		messaging.NewService(),

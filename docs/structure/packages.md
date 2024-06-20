@@ -18,12 +18,13 @@ Learn about each of the project's packages to get familiar with the `Microbus` c
 * [env](../structure/env.md) - Manages the loading of environment variables, with the option of overriding values for testing
 * [errors](../structure/errors.md) - An enhancement of Go's standard `errors` package that adds stack tracing and status codes
 * [examples](../structure/examples.md) - Demo microservices
-    * [Hello](../structure/examples-hello.md) demonstrates the key capabilities of the framework
-    * [Calculator](../structure/examples-calculator.md) demonstrates functional handlers
-    * [Messaging](../structure/examples-messaging.md) demonstrates load-balanced unicast, multicast and direct addressing messaging
-    * [Event source and sink](../structure/examples-events.md) shows how events can be used to reverse the dependency between two microservices
-    * [Directory](../structure/examples-directory.md) is an example of a microservice that provides a RESTful CRUD API backed by a database
-    * [Browser](../structure/examples-browser.md) is an example of a microservice that uses the [HTTP egress core microservice](../structure/coreservices-httpegress.md)
+    * [browser](../structure/examples-browser.md) is an example of a microservice that uses the [HTTP egress core microservice](../structure/coreservices-httpegress.md)
+    * [calculator](../structure/examples-calculator.md) demonstrates functional handlers
+    * [directory](../structure/examples-directory.md) is an example of a microservice that provides a RESTful CRUD API backed by a database
+    * [eventsink and eventsource](../structure/examples-events.md) shows how events can be used to reverse the dependency between two microservices
+    * [hello](../structure/examples-hello.md) demonstrates the key capabilities of the framework
+    * [helloworld](../structure/examples-helloworld.md) demonstrates the minimalist classic example
+    * [messaging](../structure/examples-messaging.md) demonstrates load-balanced unicast, multicast and direct addressing messaging
 * [frame](../structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](../structure/httpx.md) - Various HTTP utilities
 * [log](../structure/log.md) - Fields for attaching data to log messages

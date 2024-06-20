@@ -2576,8 +2576,8 @@ func Calculator(t *testing.T, r *http.Request) *CalculatorTestCase {
 	return tc
 }
 
-// BusJPEGTestCase assists in asserting against the results of executing BusJPEG.
-type BusJPEGTestCase struct {
+// BusPNGTestCase assists in asserting against the results of executing BusPNG.
+type BusPNGTestCase struct {
 	t *testing.T
 	dur time.Duration
 	res *http.Response
@@ -2585,7 +2585,7 @@ type BusJPEGTestCase struct {
 }
 
 // StatusOK asserts no error and a status code 200.
-func (tc *BusJPEGTestCase) StatusOK() *BusJPEGTestCase {
+func (tc *BusPNGTestCase) StatusOK() *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
 	}
@@ -2593,7 +2593,7 @@ func (tc *BusJPEGTestCase) StatusOK() *BusJPEGTestCase {
 }
 
 // StatusCode asserts no error and a status code.
-func (tc *BusJPEGTestCase) StatusCode(statusCode int) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) StatusCode(statusCode int) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
 	}
@@ -2601,7 +2601,7 @@ func (tc *BusJPEGTestCase) StatusCode(statusCode int) *BusJPEGTestCase {
 }
 
 // BodyContains asserts no error and that the response body contains the string or byte array value.
-func (tc *BusJPEGTestCase) BodyContains(value any) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) BodyContains(value any) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		var body []byte
 		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
@@ -2628,7 +2628,7 @@ func (tc *BusJPEGTestCase) BodyContains(value any) *BusJPEGTestCase {
 }
 
 // BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
-func (tc *BusJPEGTestCase) BodyNotContains(value any) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) BodyNotContains(value any) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		var body []byte
 		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
@@ -2655,7 +2655,7 @@ func (tc *BusJPEGTestCase) BodyNotContains(value any) *BusJPEGTestCase {
 }
 
 // HeaderContains asserts no error and that the named header contains the value.
-func (tc *BusJPEGTestCase) HeaderContains(headerName string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) HeaderContains(headerName string, value string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.Contains(tc.t, tc.res.Header.Get(headerName), value)
 	}
@@ -2663,7 +2663,7 @@ func (tc *BusJPEGTestCase) HeaderContains(headerName string, value string) *BusJ
 }
 
 // HeaderNotContains asserts no error and that the named header does not contain a string.
-func (tc *BusJPEGTestCase) HeaderNotContains(headerName string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) HeaderNotContains(headerName string, value string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.NotContains(tc.t, tc.res.Header.Get(headerName), value)
 	}
@@ -2671,7 +2671,7 @@ func (tc *BusJPEGTestCase) HeaderNotContains(headerName string, value string) *B
 }
 
 // HeaderEqual asserts no error and that the named header matches the value.
-func (tc *BusJPEGTestCase) HeaderEqual(headerName string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) HeaderEqual(headerName string, value string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.Equal(tc.t, value, tc.res.Header.Get(headerName))
 	}
@@ -2679,7 +2679,7 @@ func (tc *BusJPEGTestCase) HeaderEqual(headerName string, value string) *BusJPEG
 }
 
 // HeaderNotEqual asserts no error and that the named header does not matche the value.
-func (tc *BusJPEGTestCase) HeaderNotEqual(headerName string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) HeaderNotEqual(headerName string, value string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.NotEqual(tc.t, value, tc.res.Header.Get(headerName))
 	}
@@ -2687,7 +2687,7 @@ func (tc *BusJPEGTestCase) HeaderNotEqual(headerName string, value string) *BusJ
 }
 
 // HeaderExists asserts no error and that the named header exists.
-func (tc *BusJPEGTestCase) HeaderExists(headerName string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) HeaderExists(headerName string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.NotEmpty(tc.t, tc.res.Header.Values(headerName), "Header %s does not exist", headerName)
 	}
@@ -2695,7 +2695,7 @@ func (tc *BusJPEGTestCase) HeaderExists(headerName string) *BusJPEGTestCase {
 }
 
 // HeaderNotExists asserts no error and that the named header does not exists.
-func (tc *BusJPEGTestCase) HeaderNotExists(headerName string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) HeaderNotExists(headerName string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.Empty(tc.t, tc.res.Header.Values(headerName), "Header %s exists", headerName)
 	}
@@ -2703,7 +2703,7 @@ func (tc *BusJPEGTestCase) HeaderNotExists(headerName string) *BusJPEGTestCase {
 }
 
 // ContentType asserts no error and that the Content-Type header matches the expected value.
-func (tc *BusJPEGTestCase) ContentType(expected string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) ContentType(expected string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		assert.Equal(tc.t, expected, tc.res.Header.Get("Content-Type"))
 	}
@@ -2719,7 +2719,7 @@ Examples:
 	TagExists(`DIV#main_panel`)
 	TagExists(`TR TD INPUT[name="x"]`)
 */
-func (tc *BusJPEGTestCase) TagExists(cssSelectorQuery string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) TagExists(cssSelectorQuery string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
@@ -2755,7 +2755,7 @@ Example:
 	TagNotExists(`DIV#main_panel`)
 	TagNotExists(`TR TD INPUT[name="x"]`)
 */
-func (tc *BusJPEGTestCase) TagNotExists(cssSelectorQuery string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) TagNotExists(cssSelectorQuery string) *BusPNGTestCase {
 	if assert.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
 		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
@@ -2791,7 +2791,7 @@ Example:
 	TagEqual("TR > TD > A.expandable[href]", "Expand")
 	TagEqual("DIV#main_panel > SELECT > OPTION", "Red")
 */
-func (tc *BusJPEGTestCase) TagEqual(cssSelectorQuery string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) TagEqual(cssSelectorQuery string, value string) *BusPNGTestCase {
 	var textMatches func(n *html.Node) bool
 	textMatches = func(n *html.Node) bool {
 		for x := n.FirstChild; x != nil; x = x.NextSibling {
@@ -2850,7 +2850,7 @@ Example:
 	TagContains("TR > TD > A.expandable[href]", "Expand")
 	TagContains("DIV#main_panel > SELECT > OPTION", "Red")
 */
-func (tc *BusJPEGTestCase) TagContains(cssSelectorQuery string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) TagContains(cssSelectorQuery string, value string) *BusPNGTestCase {
 	var textMatches func(n *html.Node) bool
 	textMatches = func(n *html.Node) bool {
 		for x := n.FirstChild; x != nil; x = x.NextSibling {
@@ -2909,7 +2909,7 @@ Example:
 	TagNotEqual("TR > TD > A[href]", "Harry Potter")
 	TagNotEqual("DIV#main_panel > SELECT > OPTION", "Red")
 */
-func (tc *BusJPEGTestCase) TagNotEqual(cssSelectorQuery string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) TagNotEqual(cssSelectorQuery string, value string) *BusPNGTestCase {
 	var textMatches func(n *html.Node) bool
 	textMatches = func(n *html.Node) bool {
 		for x := n.FirstChild; x != nil; x = x.NextSibling {
@@ -2968,7 +2968,7 @@ Example:
 	TagNotContains("TR > TD > A[href]", "Harry Potter")
 	TagNotContains("DIV#main_panel > SELECT > OPTION", "Red")
 */
-func (tc *BusJPEGTestCase) TagNotContains(cssSelectorQuery string, value string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) TagNotContains(cssSelectorQuery string, value string) *BusPNGTestCase {
 	var textMatches func(n *html.Node) bool
 	textMatches = func(n *html.Node) bool {
 		for x := n.FirstChild; x != nil; x = x.NextSibling {
@@ -3019,7 +3019,7 @@ func (tc *BusJPEGTestCase) TagNotContains(cssSelectorQuery string, value string)
 }
 
 // Error asserts an error.
-func (tc *BusJPEGTestCase) Error(errContains string) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) Error(errContains string) *BusPNGTestCase {
 	if assert.Error(tc.t, tc.err) {
 		assert.Contains(tc.t, tc.err.Error(), errContains)
 	}
@@ -3027,7 +3027,7 @@ func (tc *BusJPEGTestCase) Error(errContains string) *BusJPEGTestCase {
 }
 
 // ErrorCode asserts an error by its status code.
-func (tc *BusJPEGTestCase) ErrorCode(statusCode int) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) ErrorCode(statusCode int) *BusPNGTestCase {
 	if assert.Error(tc.t, tc.err) {
 		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
@@ -3035,36 +3035,36 @@ func (tc *BusJPEGTestCase) ErrorCode(statusCode int) *BusJPEGTestCase {
 }
 
 // NoError asserts no error.
-func (tc *BusJPEGTestCase) NoError() *BusJPEGTestCase {
+func (tc *BusPNGTestCase) NoError() *BusPNGTestCase {
 	assert.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
-func (tc *BusJPEGTestCase) CompletedIn(threshold time.Duration) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) CompletedIn(threshold time.Duration) *BusPNGTestCase {
 	assert.LessOrEqual(tc.t, tc.dur, threshold)
 	return tc
 }
 
 // Assert asserts using a provided function.
-func (tc *BusJPEGTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *BusJPEGTestCase {
+func (tc *BusPNGTestCase) Assert(asserter func(t *testing.T, res *http.Response, err error)) *BusPNGTestCase {
 	asserter(tc.t, tc.res, tc.err)
 	return tc
 }
 
-// Get returns the result of executing BusJPEG.
-func (tc *BusJPEGTestCase) Get() (res *http.Response, err error) {
+// Get returns the result of executing BusPNG.
+func (tc *BusPNGTestCase) Get() (res *http.Response, err error) {
 	return tc.res, tc.err
 }
 /*
-BusJPEG serves an image from the embedded resources.
+BusPNG serves an image from the embedded resources.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
-	tc := &BusJPEGTestCase{t: t}
+func BusPNG(t *testing.T, ctx context.Context, url string) *BusPNGTestCase {
+	tc := &BusPNGTestCase{t: t}
 	var err error
-	url, err = httpx.ResolveURL(helloapi.URLOfBusJPEG, url)
+	url, err = httpx.ResolveURL(helloapi.URLOfBusPNG, url)
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3085,7 +3085,7 @@ func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.BusJPEG(w, r)
+		return Svc.BusPNG(w, r)
 	})
 	tc.dur = time.Since(t0)
 	tc.res = w.Result()
@@ -3093,14 +3093,14 @@ func BusJPEG(t *testing.T, ctx context.Context, url string) *BusJPEGTestCase {
 }
 
 /*
-BusJPEG_Do performs a customized request to the BusJPEG endpoint.
+BusPNG_Do performs a customized request to the BusPNG endpoint.
 
-BusJPEG serves an image from the embedded resources.
+BusPNG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
-	tc := &BusJPEGTestCase{t: t}
+func BusPNG_Do(t *testing.T, r *http.Request) *BusPNGTestCase {
+	tc := &BusPNGTestCase{t: t}
 	var err error
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
@@ -3113,7 +3113,7 @@ func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 		tc.err = errors.Newc(http.StatusNotFound, "")
 		return tc
 	}
-	url, err := httpx.ResolveURL(helloapi.URLOfBusJPEG, r.URL.String())
+	url, err := httpx.ResolveURL(helloapi.URLOfBusPNG, r.URL.String())
 	if err != nil {
 		tc.err = errors.Trace(err)
 		return tc
@@ -3136,7 +3136,7 @@ func BusJPEG_Do(t *testing.T, r *http.Request) *BusJPEGTestCase {
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
 	tc.err = utils.CatchPanic(func() error {
-		return Svc.BusJPEG(w, r)
+		return Svc.BusPNG(w, r)
 	})
 	tc.res = w.Result()
 	tc.dur = time.Since(t0)
