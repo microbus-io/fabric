@@ -10,13 +10,13 @@ __HOW?__ A holistic framework that combines tooling, guides, patterns and best p
 
 Table of content:
 
-[🚌 Introduction](#-introduction)\
-[🐶 Dogma](#-dogma)\
-[🚦 Get Started](#-get-started)\
-[📚 Learn More](#-learn-more)\
-[✋ Get involved](#-get-involved)\
-[☎️ Contact us](#-contact-us)\
-[📃 Legal](#-legal)
+🚌 [Introduction](#-introduction)\
+🐶 [Dogma](#-dogma)\
+🚦 [Get Started](#-get-started)\
+📚 [Learn More](#-learn-more)\
+✋ [Get involved](#-get-involved)\
+☎️ [Contact us](#-contact-us)\
+📃 [Legal](#-legal)
 
 [![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
 
