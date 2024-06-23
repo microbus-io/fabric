@@ -6,7 +6,7 @@
 
 __WHAT?__ Build and operate applications comprising a multitude of microservices rapidly and at scale\
 __WHY?__ Without a microservice architecture your software won't scale to meet the growing needs of your business\
-__HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience\
+__HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
 
 Table of content:
 
@@ -37,11 +37,11 @@ These core tenets were top of mind in the design of `Microbus`.
 
 ### Elevated Engineering Experience
 
-`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. Increase engineering velocity and deliver more value to your customers faster.
+`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. A higher engineering velocity is directly correlated to more value delivered to the customer faster.
 
 * Run, test and debug an entire application comprising a multitude of microservices in your IDE
 * Speed up development with code generation of boilerplate code
-* Observe your system with pinpoint accuracy to troubleshoot and optimize your code, while building or in production
+* Observe your system with pinpoint accuracy to troubleshoot and optimize your code
 
 [Learn more](./docs/dogma/eee.md) about elevating the engineering experience
 
@@ -59,7 +59,7 @@ From a local development machine to a multi-region cloud deployment with geo-awa
 
 `Microbus` is powered by a small curated set of OSS technologies integrated to work together in unison and exposed through a simplified API that keeps the learning curve short and operational complexity low.
 
-* Get up to speed quickly by virtue of a short learning curve and resonable defaults
+* Get up to speed quickly by virtue of a short learning curve and reasonable defaults
 * Keep the number of moving parts small and control operational complexity
 * Rely on a chef's choice of best in class OSS
 
@@ -159,7 +159,7 @@ Corporation? Contact us for sponsorship opportunities.
 
 Find us at any of the following channels. We're looking forward to hearing from you so don't hesitate to drop us a line.
 
-| Find us at | ... |
+| Find us at... | |
 |------------|-----|
 | Website    | [www.microbus.io](https://www.microbus.io) |
 | Github     | [github.com/microbus-io](https://www.github.com/microbus-io) |
