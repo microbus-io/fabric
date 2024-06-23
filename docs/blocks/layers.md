@@ -56,7 +56,7 @@ The [integration test harness](../blocks/integration-testing.md) spins up the mi
 
 An [OpenAPI document](../blocks/openapi.md) is automatically created for each of the microservice's endpoints.
 
-A __uniform code structure__ is a byproduct of using code generation for the creation of microservices. A familiar code structure helps engineers get oriented quickly even if they are not the original authors of the microservice.
+A [uniform code structure](../blocks/uniform-code.md) is a byproduct of using code generation. A familiar code structure helps engineers get oriented quickly also when they are not the original authors of the code.
 
 ## Connector Construct
 
