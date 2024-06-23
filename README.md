@@ -5,7 +5,7 @@
 `Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex applications comprising a multitude of microservices. Deploy as a standalone executable or on Kubernetes.
 
 __WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable applications\
-__WHAT?__ Build and operate large applications comprising a multitude of microservices\
+__WHAT?__ Build and operate complex applications comprising a multitude of microservices\
 __WHY?__ Without a microservice architecture your software won't scale to meet the growing needs of your business\
 __HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
 
@@ -40,8 +40,8 @@ These core tenets were top of mind in the design of `Microbus`.
 
 `Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. A higher engineering velocity is directly correlated to more value delivered to the customer faster.
 
+* Speed up development with code generation
 * Run, test and debug an entire application comprising a multitude of microservices in your IDE
-* Speed up development with code generation of boilerplate code
 * Observe your system with pinpoint accuracy to troubleshoot and optimize your code
 
 [Learn more](./docs/dogma/eee.md) about elevating the engineering experience
@@ -54,7 +54,7 @@ From a local development machine to a multi-region cloud deployment with geo-awa
 * Run as a standalone executable or on Kubernetes
 * Include one or many microservices in each executable or pod
 
-[Learn more](./docs/dogma/topology.md) about adaptive topologies
+[Learn more](./docs/dogma/topology.md) about adaptive deployment topologies
 
 ### Simplified OSS Tech Stack
 
@@ -64,7 +64,7 @@ From a local development machine to a multi-region cloud deployment with geo-awa
 * Keep the number of moving parts small and control operational complexity
 * Rely on a chef's choice of best in class OSS
 
-[Learn more](./docs/dogma/oss.md) about the tech stack
+[Learn more](./docs/dogma/oss.md) about the underlying OSS tech stack
 
 ### Scalable, Resilient and Performant
 
@@ -81,7 +81,7 @@ Components at all levels of `Microbus`, from the application microservices down 
 All microservices running on `Microbus` comply with the same set of rules, guaranteeing smooth interoperability, straightforward maintainability and verifiable stability.
 
 * Observe every detail of interaction between microservices
-* Benefit from advanced patterns such as distributed caching, time budgets and acks
+* Benefit from improved reliability with graceful shutdown, time budgets and acks
 * Use the inherent publish/subscribe communication pattern for an event-driven architecture
 
 [Learn more](./docs/dogma/runtime.md) about the common runtime
