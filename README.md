@@ -4,7 +4,8 @@
 
 `Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex applications comprising a multitude of microservices. Deploy as a standalone executable or on Kubernetes.
 
-__WHAT?__ Build and operate applications comprising a multitude of microservices\
+__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable applications\
+__WHAT?__ Build and operate large applications comprising a multitude of microservices\
 __WHY?__ Without a microservice architecture your software won't scale to meet the growing needs of your business\
 __HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
 
