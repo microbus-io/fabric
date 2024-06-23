@@ -28,3 +28,5 @@ TODO
   Full integration testings in unit tests
   Engineering velocity: development, testing and operation
   Develop as a modular monolith. Codegen guides that.
+
+  Microservices are not large memory-gobbling processes, but compact worker goroutines that process messages. They don’t listen on ports so they don’t clash with one another.

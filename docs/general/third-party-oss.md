@@ -4,7 +4,7 @@ The following open source software (OSS) is used or referenced by the `Microbus`
 
 ## NATS
 https://nats.io
-### Apache License 2.0
+#### Apache License 2.0
 
 Copyright 2012-2022 The NATS Authors
 
@@ -22,7 +22,7 @@ limitations under the License.
 
 ## Go MySQL Driver
 https://github.com/go-sql-driver/mysql
-### MPL License 2.0
+#### MPL License 2.0
 
 Go MySQL Driver - A MySQL-Driver for Go's database/sql package
 
@@ -34,7 +34,7 @@ You can obtain one at http://mozilla.org/MPL/2.0/.
 
 ## Prometheus
 https://prometheus.io
-### Apache License 2.0
+#### Apache License 2.0
 
 Copyright 2022 The Prometheus Authors
 
@@ -52,7 +52,7 @@ limitations under the License.
 
 ## OpenTelemetry
 https://github.com/open-telemetry/opentelemetry-go
-### Apache License 2.0
+#### Apache License 2.0
 
 Copyright The OpenTelemetry Authors
 
@@ -71,7 +71,7 @@ limitations under the License.
 ## Testify
 https://github.com/stretchr/testify
 
-### MIT License
+#### MIT License
 
 Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
 
@@ -95,7 +95,7 @@ SOFTWARE.
 
 ## Zap
 https://github.com/uber-go/zap
-### MIT License
+#### MIT License
 
 Copyright (c) 2016 Uber Technologies, Inc.
 
@@ -120,7 +120,7 @@ THE SOFTWARE.
 ## Logrus
 https://github.com/sirupsen/logrus
 
-### MIT License
+#### MIT License
 
 Copyright (c) 2014 Simon Eskildsen
 
@@ -147,7 +147,7 @@ https://github.com/go-yaml/yaml
 
 This project is covered by two different licenses: MIT and Apache.
 
-### MIT License
+#### MIT License
 
 The following files were ported to Go from C files of libyaml, and thus
 are still covered by their original MIT license, with the additional
@@ -176,7 +176,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Apache License
+#### Apache License 2.0
 
 All the remaining project files are covered by the Apache license:
 
@@ -196,7 +196,7 @@ limitations under the License.
 
 ## MariaDB
 https://mariadb.com
-### GNU General Public License
+#### GNU General Public License
 
 Copyright (c) 2018, 2022, MariaDB Corporation.
 
@@ -215,7 +215,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 ## JSON Schema
 https://github.com/invopop/jsonschema
-### MIT License
+#### MIT License
 
 Copyright (C) 2014 Alec Thomas
 
@@ -239,7 +239,7 @@ SOFTWARE.
 
 ## Cascadia
 https://github.com/andybalholm/cascadia
-### BSD 2-Clause "Simplified" License
+#### BSD 2-Clause "Simplified" License
 
 Copyright (c) 2011 Andy Balholm. All rights reserved.
 
@@ -268,7 +268,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Letters
 https://github.com/mnako/letters
-### MIT License
+#### MIT License
 
 Copyright (c) 2019 Michal Nakoneczny
 
