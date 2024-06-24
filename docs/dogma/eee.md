@@ -1,6 +1,6 @@
 # Elevated Engineering Experience
 
-The ultimate goal of building an application is delivering value to the customer. The faster the engineering team can move, the greater than value. As such, `Microbus` aims first and foremost to elevate the engineering experience. It introduces RAD tools that take care of much of the mundane boilerplate work, freeing engineers to focus on the higher-level concepts and the business value. 
+The ultimate goal of building an application is delivering value to the customer. The faster the engineering team can move, the greater that value. As such, `Microbus` aims first and foremost to elevate the engineering experience.
 
 `(Customer Value) = (Engineering Quality) x (Engineering Velocity)`
 
@@ -11,12 +11,12 @@ In `Microbus`, everything starts with a `service.yaml` file that semantically de
 <img src="./eee-1.drawio.svg">
 <p>
 
-For applications that have a front-end built for example as a single-page application, the OpenAPI document streamlines communications with the front-end engineering team. It serves as the source of truth of the backend API and is always up to date with the latest back-end code.
+For applications that have a front-end such as a single-page application, the OpenAPI document streamlines communications with the front-end engineering team. It serves as the source of truth of the backend API that is always kept up to date with the latest code.
 
 <img src="./eee-2.drawio.svg">
 <p>
 
-Because of code generation all microservices share a [uniform code structure](../blocks/uniform-code.md). This helps engineers to get oriented quickly in the code even if they are not its original authors. Often a quick glace at `service.yaml` is worth reading a thousand lines of code. Engineers spend a majority of their time reading code so this is of huge value. It also means that engineers more portable anc cane move between teams with little training.
+As a byproduct of code generation, all microservices share a [uniform code structure](../blocks/uniform-code.md). A familiar code structure helps engineers to get oriented quickly in the code even if they are not its original authors. Often a quick glace at `service.yaml` is worth reading a thousand lines of code. Engineers spend a majority of their time reading code so this is of huge value. It makes engineers more portable and versatile.
 
 ## Fully Local Development
 
@@ -24,7 +24,7 @@ In `Microbus`, microservices are not large memory-gobbling processes but rather 
 
 Those same qualities also allow `Microbus` to spin a microservice along with all its downstream dependencies inside a single application for testing purposes. Full-blown integration tests can then be run by `go test`, achieving a high-degree of code coverage.
 
-The compact footprint of a `Microbus` application also enables a front-end team to run it locally rather than depend on a remote integration environment.
+In addition, the compact footprint of a `Microbus` application also enables the front-end team to run it locally rather than depend on a remote integration environment.
 
 ## Observability
 
@@ -72,7 +72,7 @@ func (svc *Service) Calculate(ctx context.Context) (sigma float64, err error) {
 
 ## Best Practices
 
-`Microbus`'s code generator drives a code structure that is aligned with the concepts of a modular monolith. Microservices are isolated behind a clear interface.
+`Microbus`'s code generator drives a code structure that isolates microservices behind a clear interface that does not allow passing input by reference, thus protecting the entire system from unpredictable side-effects that are often the malaise of a monolith.
 
 Guardrails and handholds guide engineers to avoid common pitfalls. These measures often work behind the scene and are not immediately obvious. For example, the API of a microservice is created in a distinct package from its implementation in order to avoid circular dependencies.
 

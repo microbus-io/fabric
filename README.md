@@ -118,7 +118,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [HTTP magic arguments](./docs/tech/http-arguments.md) - Use HTTP magic arguments in functional endpoints to gain finer control over the HTTP request and response
 * [Integration testing](./docs/blocks/integrationtesting.md) - Test a multitude of microservices together
 * [Environment variables](./docs/tech/envars.md) - Environment variables used to initialize microservices
-* [NATS connection settings](./docs/tech/natsconnection.md) - How to configure microservices to connect and authenticate to NATS
+* [NATS connection settings](./docs/tech/nats-connection.md) - How to configure microservices to connect and authenticate to NATS
 * [RPC over JSON vs REST](./docs/tech/rpcvsrest.md) - Implement these common web API styles
 
 ### Under the Hood
