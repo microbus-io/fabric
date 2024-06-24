@@ -72,7 +72,7 @@ func (svc *Service) Calculate(ctx context.Context) (sigma float64, err error) {
 
 ## Best Practices
 
-`Microbus`'s code generator drives a code structure that isolates microservices behind a clear interface that does not allow passing input by reference, thus protecting the entire system from unpredictable side-effects that are often the malaise of a monolith.
+`Microbus`'s code generator compels a code structure that isolates microservices behind a interface that does not allow passing input by reference. This boundary between microservices protects the entire system from many of the unpredictable side-effects that are often the malaise of a monolith.
 
 Guardrails and handholds guide engineers to avoid common pitfalls. These measures often work behind the scene and are not immediately obvious. For example, the API of a microservice is created in a distinct package from its implementation in order to avoid circular dependencies.
 
@@ -80,5 +80,5 @@ Various complex patterns are pre-built to make the engineer's life easier. For i
 
 * A [distributed cache](../blocks/distrib-cache.md) that is scoped to each microservice individually 
 * An inherent publish/subscribe communication pattern for an [event](../blocks/events.md)-driven architecture
-* `connector.Go` runs code in a goroutine with a graceful shutdown attached to the lifespan of the microservice
-* A simple to use `connector.Parallel` encourages running code in parallel
+* The [connector](../structure/connector.md)'s `Go` runs code in a goroutine with a graceful shutdown attached to the lifespan of the microservice
+* The simple to use `Parallel` of the [connector](../structure/connector.md) encourages parallelization
