@@ -6,7 +6,7 @@ In `Microbus`, microservices are not large memory-gobbling processes but rather 
 
 Typically, all microservices are bundled into a single [`Application`](../structure/application.md) for purpose of local development. This way, the entire application is spun up through the IDE and development is as simple as working with a monolith. Breakpoints can be placed in any of the microservices.
 
-In this diagram 9 microservices are hosted inside a single executable that is spun up by the IDE. The microservices communicate via a single NATS cluster with one node.
+In the following diagram, 9 microservices are hosted inside a single executable that is spun up by the IDE. The microservices communicate via a single NATS node.
 
 <img src="./topology-1.drawio.svg">
 <p>
@@ -15,7 +15,7 @@ In this diagram 9 microservices are hosted inside a single executable that is sp
 
 [Integration tests](../blocks/integration-testing.md) typically include only the subset of the microservices that are a dependency of the microservice under test. 
 
-In this diagram microservice under test H is bundled along with 4 other microservices it depends on. All 5 microservices communicate via a single NATS cluster with one node.
+In this diagram, microservice under test `H` is bundled along with only the 4 other downstream microservices that it depends on. All 5 microservices communicate via a single NATS node.
 
 <img src="./topology-2.drawio.svg">
 <p>
@@ -28,18 +28,28 @@ In this replication strategy, the all-inclusive executable is replicated N times
 <p>
 
 Pros:
-* It's simple
-* This topology can sustain the loss of any given hardware, NATS node or executable, including during a rolling deployment
-* It can also scale to handle more traffic correlated to the replication factor N
+* Simple enough to be manageable without Kubernetes
+* Can sustain the loss of any given hardware, NATS node or executable, including during a rolling deployment
+* Scales horizontally to handle more traffic correlated to the replication factor N
 
 Cons:
-* This topology is not geo-aware and it will incur higher latency if the hardware is deployed across AZs
+* Not geo-aware and will incur higher latency if the hardware is deployed across AZs
 * A change to even a single microservice requires redeployment of all microservices
+* All microservices share the same hardware configuration
 
-## Weighted Replication
+## Exceptional Outliers 
 
-Service A requires more executables.
+Service A requires more executables because it handles more traffic. The bottleneck of a microservice is its connection to NATS.
+Service B requires more memory and is isolated into bigger hardware.
 
+## Individual Replication
+
+Each microservice in its own executable.
+Likely requires k8s.
+
+## Geo-Aware Failover
+
+NATS super cluster
 
 
 TODO
