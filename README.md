@@ -6,7 +6,7 @@
 
 __WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable applications\
 __WHAT?__ Build and operate complex applications comprising a multitude of microservices\
-__WHY?__ Without a microservice architecture your software won't scale to meet the growing needs of your business\
+__WHY?__ Without a microservice architecture your software won't be able to meet the scalability and organizational challenges of a growing business\
 __HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
 
 Table of content:
@@ -48,9 +48,9 @@ These core tenets were top of mind in the design of `Microbus`.
 
 ### Adaptive Deployment Topology
 
-From a local development machine to a multi-region cloud deployment with geo-aware failover, `Microbus` grows with your needs. No code changes required.
+From a local development machine to a multi-region cloud deployment, `Microbus` grows with your needs. No code changes required.
 
-* Deploy as a resilient modular monolith, or a multi-region cloud deployment with geo-aware failover
+* Deploy as a resilient modular monolith, or a multi-region cloud deployment
 * Run as a standalone executable or on Kubernetes
 * Include one or many microservices in each executable or pod
 

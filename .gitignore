@@ -23,3 +23,4 @@ nats-server
 examples/main/main
 examples/main/__debug_bin*
 *.drawio.svg.bkp
+*.drawio.svg.dtmp

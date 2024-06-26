@@ -98,13 +98,11 @@ A microservices transparently makes itself __discoverable__ by subscribing to th
 
 __Load balancing__ is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. An external load balancer is not required.
 
-__Geo-aware failover__ can be setup using [NATS super-clusters](https://docs.nats.io/running-a-nats-service/configuration/gateways).
-
 A microservice is __alive__ when it is connected to the messaging bus and can send and receive messages. The bus validates the connection using regular pings. Explicit liveness checks are unnecessary. 
 
 ## OSS
 
-[NATS](https://www.nats.io) sits at the core of `Microbus` and makes much of its magic possible. NATS is a full-mesh, highly-available, lighting-fast, real-time, at-most-once, messaging bus that supports dynamic subscriptions. It enables request/response, publish/subscribe, load-balancing, discovery and geo-aware failover routing.
+[NATS](https://www.nats.io) sits at the core of `Microbus` and makes much of its magic possible. NATS is a full-mesh, highly-available, lighting-fast, real-time, at-most-once, messaging bus that supports dynamic subscriptions. It enables request/response, publish/subscribe, load-balancing and dynamic discovery.
 
 [OpenTelemetry](https://opentelemetry.io) is a standard for the collection of metrics, distributed tracing and logs.
 
