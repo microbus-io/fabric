@@ -4,7 +4,7 @@ In `Microbus`, microservices are not large memory-gobbling processes but rather 
 
 ## Local Development
 
-Typically, all microservices are bundled into a single [`Application`](../structure/application.md) for purpose of local development. This way, the entire application is spun up through the IDE and development is as simple as working with a monolith and breakpoints can be placed in any of the microservices.
+Typically, all microservices are bundled into a single [`Application`](../structure/application.md) for purpose of local development. This way, the entire application is spun up through the IDE and development is as simple as working with a monolith. Breakpoints can be placed in any of the microservices.
 
 In the following diagram, 9 microservices are hosted inside a single executable that is spun up by the IDE. The microservices communicate via a single NATS node.
 
@@ -20,7 +20,7 @@ In the following diagram, 9 microservices are hosted inside a single executable 
 
 ## Simple Bundled Replication
 
-In this replication strategy, the all-inclusive application is replicated N times, and additional NATS nodes are added to form a full-mesh cluster. It is a good choice for applications with low to medium load.
+In this deployment topology, the all-inclusive application is replicated on a multitude of hardware, and additional NATS nodes are added to form a full-mesh cluster. This strategy is a good choice for applications with low to medium load.
 
 <img src="./topology-3.drawio.svg">
 <p>
