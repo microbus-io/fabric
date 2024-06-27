@@ -1,10 +1,10 @@
-# Adaptive Deployment Topology
+# Adaptable Topology
 
 In `Microbus`, microservices are not large memory-gobbling processes but rather compact worker goroutines that ultimately consume messages from a queue. Microservices also don’t listen on ports so there is no potential of a port conflict with other microservices. These two qualities allow `Microbus` to spin up any number of microservices in a single application, which provides for a wide range of deployment topologies. Each application can take the form of a standalone executable or of a pod on Kubernetes. 
 
 ## Local Development
 
-Typically, all microservices are bundled into a single [`Application`](../structure/application.md) for purpose of local development. This way, the entire application is spun up through the IDE and development is as simple as working with a monolith. Breakpoints can be placed in any of the microservices.
+All microservices are typically bundled into a single [`Application`](../structure/application.md) for purpose of [local development](../tech/local-dev.md). This way, the entire application is spun up through the IDE and development is as simple as working with a monolith. Breakpoints can be placed in any of the microservices.
 
 In the following diagram, 9 microservices are hosted inside a single executable that is spun up by the IDE. The microservices communicate via a single NATS node.
 
@@ -20,7 +20,7 @@ In the following diagram, 9 microservices are hosted inside a single executable 
 
 ## Simple Bundled Replication
 
-In this deployment topology, the all-inclusive application is replicated on a multitude of hardware, and additional NATS nodes are added to form a full-mesh cluster. This strategy is a good choice for applications with low to medium load.
+In this deployment topology, the all-inclusive application is replicated on a multitude of hardware, and additional NATS nodes are added to form a full-mesh cluster. This strategy is a good choice for solutions with low to medium load.
 
 <img src="./topology-3.drawio.svg">
 <p>

@@ -379,4 +379,4 @@ Include in the testing app all the downstream microservices that the microservic
 
 ### Scenarios
 
-Don't be satisfied with the automatically created tests. High code coverage is not enough. Write tests that perform complex scenarios based on the business logic of the application. For example, if the microservice under test is a CRUD microservice, perform a test that goes through a sequence of steps such as `Create`, `Load`, `List`, `Update`, `Load`, `List`, `Delete`, `Load`, `List` and check for integrity after each step. Involve as many of the downstream microservices as possible, if applicable.
+Don't be satisfied with the automatically created tests. High code coverage is not enough. Write tests that perform complex scenarios based on the business logic of the solution. For example, if the microservice under test is a CRUD microservice, perform a test that goes through a sequence of steps such as `Create`, `Load`, `List`, `Update`, `Load`, `List`, `Delete`, `Load`, `List` and check for integrity after each step. Involve as many of the downstream microservices as possible, if applicable.

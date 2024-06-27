@@ -2,10 +2,10 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex applications comprising a multitude of microservices. Deploy as a standalone executable or on Kubernetes.
+`Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex solutions comprising a multitude of microservices. Deploy as a standalone executable or on Kubernetes.
 
-__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable applications\
-__WHAT?__ Build and operate complex applications comprising a multitude of microservices\
+__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions\
+__WHAT?__ Build and operate complex solutions comprising a multitude of microservices\
 __WHY?__ Without a microservice architecture your software won't be able to meet the scalability and organizational challenges of a growing business\
 __HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
 
@@ -24,13 +24,13 @@ Table of content:
 
 ## 🚌 Introduction
 
-A microservice architecture is essential for unleashing the full potential of a business as it scales. Without such architecture, the complexity of the codebase will grow to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire application will have to be rewritten at a critical point of the business - when it is growing rapidly - and at a prohibitive cost. Investing in microservices from the get-go (no pun intended) is a wise investment that mitigates this upside risk.
+A microservice architecture is essential for unleashing the full potential of a business as it scales. Without such architecture, the complexity of the codebase will grow to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at a prohibitive cost. Investing in microservices from the get-go (no pun intended) is a wise investment that mitigates this upside risk.
 
 Building and operating microservices at scale, however, is very difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
 `Microbus` thinks differently. By taking a novel approach to the development, testing, deployment and troubleshooting of microservices, it eliminates much of the complexity of the current state of the art. `Microbus` is a holistic framework that packages together various OSS technologies, tooling, best practices, patterns and guides into a cohesive engineering experience that elevates developer productivity 4x.
 
-`Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS applications comprising many dozens of microservices.
+`Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
 
 ## 🐶 Dogma
 
@@ -40,51 +40,41 @@ These core tenets were top of mind in the design of `Microbus`.
 
 `Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. A higher engineering velocity is directly correlated to more value delivered to the customer faster.
 
-* Speed up development with code generation
-* Run, test and debug an entire application comprising a multitude of microservices in your IDE
-* Observe your system with pinpoint accuracy to troubleshoot and optimize your code
+* Speed up development with [code generation](./docs/blocks/codegen.md)
+* Run, test and debug an entire solution comprising a multitude of microservices in your [local development](./docs/tech/local-dev.md) environment
+* Observe your system with the help of [distributed tracing](./docs/blocks/distrib-tracing.md), metrics dashboards and logging
 
-[Learn more](./docs/dogma/eee.md) about elevating the engineering experience
+### Adaptable Deployment Topology
 
-### Adaptive Deployment Topology
-
-From a local development machine to a multi-region cloud deployment, `Microbus` grows with your needs. No code changes required.
+From a local development machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](./docs/blocks/topology.md) grows with your needs. No code changes required.
 
 * Deploy as a resilient modular monolith, or a multi-region cloud deployment
 * Run as a standalone executable or on Kubernetes
 * Include one or many microservices in each executable or pod
 
-[Learn more](./docs/dogma/topology.md) about adaptive deployment topologies
-
 ### Simplified OSS Tech Stack
 
-`Microbus` is powered by a small curated set of OSS technologies integrated to work together in unison and exposed through a simplified API that keeps the learning curve short and operational complexity low.
+`Microbus` is powered by a small curated set of [OSS](./docs/blocks/layers.md#oss) technologies integrated to work together in unison and exposed through a [simplified API](./docs/tech/encapsulation.md) that keeps the learning curve short and operational complexity low.
 
-* Get up to speed quickly by virtue of a short learning curve and reasonable defaults
-* Keep the number of moving parts small and control operational complexity
+* Get up to speed quickly by virtue of a small tech stack and reasonable defaults
+* Keep the number of moving parts small and control operational complexity and cost
 * Rely on a chef's choice of best in class OSS
-
-[Learn more](./docs/dogma/oss.md) about the underlying OSS tech stack
 
 ### Scalable, Resilient and Performant
 
-Components at all levels of `Microbus`, from the application microservices down to the messaging bus, can be scaled horizontally. No single points of failure or bottlenecks.
+Components at all levels of `Microbus`, from individual microservices down to the messaging bus, can be scaled horizontally. No single points of failure or bottlenecks.
 
+* Serve 1000's of RPS (requests per second) per machine right out of the box
 * Scale your system horizontally as your requirements grow
-* Serve thousands of requests per second on a single machine
-* Rest assured knowing that your code is running on top of a robust thoroughly-tested runtime
+* Rest assured knowing that your code is running on top of a thoroughly-tested substrate
 
-[Learn more](./docs/dogma/scalable.md) about horizontal scalability
+### Common Runtime
 
-### Robust Runtime
-
-All microservices running on `Microbus` comply with the same set of rules, guaranteeing smooth interoperability, straightforward maintainability and verifiable stability.
+All microservices running on `Microbus` comply with the same set of rules for [unicast](./docs/blocks/unicast.md) or [multicast](./docs/blocks/multicast.md) communications, [configuration](./docs/blocks/configuration.md), observability, and more. This consistent behavior makes it easier to reason about the accuracy of the system, guaranteeing smooth interoperability, straightforward maintainability and verifiable stability. 
 
 * Observe every detail of interaction between microservices
-* Benefit from improved reliability with graceful shutdown, time budgets and acks
-* Use the inherent publish/subscribe communication pattern for an event-driven architecture
-
-[Learn more](./docs/dogma/runtime.md) about the common runtime
+* Benefit from improved reliability with multiplexed connections, graceful shutdown, [time budgets](./docs/blocks/time-budget.md) and [acks](./docs/blocks/unicast.md)
+* Centralize the configuration of all microservices
 
 ## 🚦 Get Started
 
@@ -94,7 +84,7 @@ All microservices running on `Microbus` comply with the same set of rules, guara
 
 👉 Follow the step-by-step guide and [build your first microservice](./docs/howto/first-service.md)
 
-👉 Discover the full power of [code generation](./docs/blocks/codegen.md). It's totally RAD, dude
+👉 Discover the power of [code generation](./docs/blocks/codegen.md). It's totally RAD, dude
 
 👉 Learn how to write thorough [integration tests](./docs/blocks/integrationtesting.md) and achieve high code coverage
 
@@ -120,6 +110,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Environment variables](./docs/tech/envars.md) - Environment variables used to initialize microservices
 * [NATS connection settings](./docs/tech/nats-connection.md) - How to configure microservices to connect and authenticate to NATS
 * [RPC over JSON vs REST](./docs/tech/rpcvsrest.md) - Implement these common web API styles
+* [Adaptable topology](./docs/blocks/topology.md) - Grow the topology of your system to match your requirements
 
 ### Under the Hood
 
@@ -133,6 +124,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Events](./docs/blocks/events.md) - How event-driven architecture can be used to decouple microservices
 * [Distributed tracing](./docs/blocks/distrib-tracing.md) - Visualizing stack traces across microservices using OpenTelemetry and Jaeger
 * [OpenAPI](./docs/blocks/openapi.md) - OpenAPI document generation for microservices
+* [Local development](./docs/tech/local-dev.md) - Run an entire solution comprising a multitude of microservices in your local IDE
 
 ### Design Choices
 

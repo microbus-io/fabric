@@ -1,22 +1,32 @@
 # Layered Architecture
 
-Onions have layers, ogres have layers, and so does any decent software architecture.
+Onions have layers, ogres have layers, and so does a good software architecture.
 
-`Microbus` applications are constructed in 4 layers:
+`Microbus` solutions are constructed in 5 layers:
 
 * At the bottom of the stack is a curated selection of OSS technologies that are utilized and abstracted away by the next layer, the connector
 * The [connector](./docs/structure/connector.md) construct is the base class from which all microservices are derived. It provides a consistent API to most of the building blocks that are required for a microservice to operate and mesh with other microservices. Quite often they rely on OSS under the hood
 * A [code generator](./docs/blocks/codegen.md) brings type-safe RAD that is specific to the semantics of each individual microservice
-* The core microservices and the application microservices are built using the code generator
+* The core microservices and the solution microservices are built using the code generator
+* Microservices are bundled together into [applications](../structure/application.md) according to the desired [topology](../blocks/topology.md)
 
-Each of the building blocks is described below the diagram.
-
+\
 <img src="./layers-1.drawio.svg">
 <p>
 
-## Application Microservices
+## Applications
 
-A `Microbus` application is a collection of microservices that implement the business logic of the solution.
+Microservices in `Microbus` are not by themselves runnable, rather they are bundled in applications that manage their lifecycle.
+
+Typically, all microservices are bundled into a single application for [local development](../tech/local-dev.md).
+
+Similarly, [integration tests](../blocks/integration-testing.md) are executed against an application that contains the microservice under test and its downstream dependencies.
+
+Applications can contain any number of microservices, making them a flexible vehicle in the construction of the production [topology](../blocks/topology.md).
+
+## Solution Microservices
+
+These are the microservices that implement the business logic of the solution.
 
 ## Core Microservices
 
@@ -36,21 +46,15 @@ The [OpenAPI portal](../structure/coreservices-openapiportal.md) microservice re
 
 ## Code Generator
 
-TODO: break codegen document?
+__Rapid application development (RAD)__ is achieved by using code generation to produce the skeleton and boilerplate code out of the declaration of the [characteristics of the microservice](../tech/service-yaml.md) in `service.yaml`. The developer needs only fill in the gaps and implement the business logic.
 
-RAD
-TODO ^
+__Skeletons__ are create for each of the microservice's endpoints with `TODO` markers for the developer to fill in the gaps. For functional endpoints (RPCs), a wrapper takes care of unmarshaling the request's JSON payload into type-safe arguments.
 
-RPC client stubs
-TODO ^
-
-RPC server stubs
-TODO ^
+__Client stubs__ are created for the microservice's public endpoints. These stubs are used by upstream clients to call the microservice in a type-safe fashion. For functional endpoints (RPCs), the stubs take care of marshaling the request arguments into a JSON payload.
 
 [Events](../blocks/events.md) are a type-safe abstraction of publish/subscribe.
 
-JSON marshaling and unmarshaling
-TODO ^
+__JSON marshaling and unmarshaling__ code is created based on the type information provided in `service.yaml`.
 
 The [integration test harness](../blocks/integration-testing.md) spins up the microservice under test along with the actual downstream microservices it depends on into a single testable application, allowing full-blown integration tests to run inside `go test`.
 
@@ -60,7 +64,7 @@ A [uniform code structure](../blocks/uniform-code.md) is a byproduct of using co
 
 ## Connector Construct
 
-TODO: a lot of the desc is in the structure doc. move?
+The [`Connector`](../structure/connector.md) is the base class of all microservices and provides most of their core capabilities.
 
 ### General
 
@@ -82,7 +86,7 @@ Structured (JSON), leveled __logs__ are sent to `stderr`.
 
 [Distributed tracing](../blocks/distrib-tracing.md) enables the visualization of the flow of function calls across microservices and processes. Tracing spans are automatically captured for each endpoint call.
 
-Metrics such as latency, duration, byte size and count are collected automatically for all endpoint calls. Application-specific metrics may be defined by the app. Metrics are shipped to Prometheus via the [metrics core microservice](../structure/coreservices-metrics.md) and visualized in Grafana.
+Metrics such as latency, duration, byte size and count are collected automatically for all endpoint calls. Solution-specific metrics may be defined by the developer. Metrics are shipped to Prometheus via the [metrics core microservice](../structure/coreservices-metrics.md) and visualized in Grafana.
 
 ### Transport
 
@@ -108,7 +112,7 @@ A microservice is __alive__ when it is connected to the messaging bus and can se
 
 [Jaeger](https://www.jaegertracing.io) is a distributed tracing observability platform that maps the flow of requests as they traverse a distributed system such as `Microbus`. It is an implementation of the OpenTelemetry standards.
 
-[Prometheus](https://prometheus.io) is a database for storing highly-dimensional time-series data, specifically system and application-level metrics.
+[Prometheus](https://prometheus.io) is a database for storing highly-dimensional time-series data, specifically system and solution-specific metrics.
 
 [Grafana](https://grafana.com) is a dashboard that provides visibility into the metrics collected by Prometheus.
 

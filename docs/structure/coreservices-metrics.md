@@ -23,9 +23,9 @@ By default, all microservices produce a standard set of metrics:
 * Count of distributed cache hits and misses
 * Total weight of the distributed cache
 
-## Application Metrics
+## Solution Metrics
 
-In addition, application developers are able to define and collect arbitrary metrics that are pertinent to their specific application, using the `DefineMetric`, `ObserveMetric` and `IncrementMetric` methods of the `Connector`. [Code generation](../blocks/codegen.md) can be used to assist in the definition of metrics.
+In addition, solution developers are able to define and collect arbitrary metrics that are pertinent to their specific solution, using the `DefineMetric`, `ObserveMetric` and `IncrementMetric` methods of the `Connector`. [Code generation](../blocks/codegen.md) can be used to assist in the definition of metrics.
 
 ```yaml
 # Metrics
@@ -54,7 +54,7 @@ The [collector types](https://prometheus.io/docs/concepts/metric_types/) support
 
 * Counter
 * Histogram
-* Guage
+* Gauge
 
 ## Code Examples
 

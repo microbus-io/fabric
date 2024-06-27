@@ -112,7 +112,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Support in `Connector` for collecting system metrics
 * Metrics core microservice that collects and delivers metrics to Prometheus and Grafana
-* Code generation for application custom metrics
+* Code generation for solution-specific metrics
 * Quick start with Docker Compose
 
 [Milestone 16](https://github.com/microbus-io/fabric/tree/milestone/16):

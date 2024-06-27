@@ -1,6 +1,11 @@
 # Code Generation
 
-Automatic code generation is `Microbus`'s most powerful tool. It facilitates rapid development (RAD) of microservices and significantly increases developer productivity. Although it's possible to create a microservice by working directly with the `Connector`, the abstraction added by the code generator makes things simpler by taking care of much of the repetitive boilerplate code.
+Code generation is one of `Microbus`'s most powerful tools. It facilitates rapid development (RAD) of microservices and significantly increases developer productivity. Although it's possible to create a microservice by working directly with the `Connector`, the abstraction added by the code generator makes things simpler by taking care of much of the repetitive boilerplate code.
+
+In `Microbus`, everything starts with a `service.yaml` file that semantically defines the microservice. The code generator then takes this definition and produces a code skeleton for the implementation of microservice itself, a client stub that is used by upstream microservices to call it, an integration test harness that helps to thoroughly test it along with its downstream dependencies, and an OpenAPI document that describes its API.
+
+<img src="./codegen-1.drawio.svg">
+<p>
 
 Code generation in `Microbus` is additive and idempotent. When new functionality is added,
 code changes are generated incrementally without impacting the existing code.
@@ -17,307 +22,17 @@ package myservice
 
 The next step is to create a `service.yaml` file which will be used to specify the functionality of the microservice. If the directory contains only a `doc.go` or an empty `service.yaml`, running `go generate` inside the directory will automatically populate `service.yaml`.
 
-## Service.yaml
-
-In `service.yaml`, developers are able to define the various pieces of the microservice in a declarative fashion. Code generation picks up these definitions to generate boilerplate code, leaving it up to the developer to implement the business logic. As noted earlier, declarations can be added over time and applied incrementally.
-
-`service.yaml` include several sections, that combined define the characteristics of the microservice: general, configs, functions, events, sinks, webs, tickers.
-
-<img src="codegen-1.drawio.svg">
-
-### General
-
-The `general` section of `service.yaml` defines the `host` name of the microservice and a human-friendly `description`. The hostname is required. It is how the microservice will be addressed by other microservices. A hierarchical naming scheme for hostnames such as `myservice.mydomain.myproduct` can help avoid conflicts.
-
-```yaml
-# General
-#
-# host - The hostname of the microservice
-# description - A human-friendly description of the microservice
-# integrationTests - Whether or not to generate integration tests (defaults to true)
-# openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
-general:
-  host:
-  description:
+```cmd
+go generate
 ```
 
-### Configs
+## `service.yaml`
 
-The `configs` section is used to define the [configuration](../blocks/configuration.md) properties of the microservices. Config properties get their values in runtime from the [configurator](../structure/coreservices-configurator.md) core microservice. 
+`service.yaml` include several sections that [define the characteristics of the microservice](../tech/service-yaml.md) in a declarative fashion. These definitions serve as the input to the code generator to produces the skeleton and boilerplate code. It is then up to the developer to fill in the gaps.
 
-```yaml
-# Config properties
-#
-# signature - Func() (val Type)
-# description - Documentation
-# default - A default value (defaults to empty)
-# validation - A validation pattern
-#   str ^[a-zA-Z0-9]+$
-#   bool
-#   int [0,60]
-#   float [0.0,1.0)
-#   dur (0s,24h]
-#   set Red|Green|Blue
-#   url
-#   email
-#   json
-# callback - "true" to handle the change event (defaults to "false")
-# secret - "true" to indicate a secret (defaults to "false")
-configs:
-  # - signature:
-  #   description:
-  #   default:
-  #   validation:
-```
+## Client Stubs
 
-The `signature` is required. It defines the name and type of the property. The name must start with an uppercase letter. Types are limited to `string`, `bool`, `int`, `float` or `Duration`.
-
-`validation` is enforced before accepting a new value for the config property. A validation comprises of a type and an optional regexp (for strings) or range (for numeric types).
-
-If `callback` is set to `true`, a callback function will be generated and called when the value changes in runtime.
-
-```go
-// OnChangedFoo is triggered when the value of the Foo config property changes.
-func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
-    return
-}
-```
-
-### Functions
-
-`functions` define a web endpoint that is made to appear like a function (RPC). Input arguments are pulled from either the JSON body of the request or from the query arguments. Output arguments are written as JSON to the body of the response.
-
-```yaml
-# Functions
-#
-# signature - Go-style method signature
-#   Func(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
-#   Func(val Complex, ptr *Complex)
-#   Func(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
-#   Func(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
-# description - Documentation
-# method - "GET", "POST", etc. or "ANY" (default)
-# path - The URL path of the subscription, relative to the hostname of the microservice
-#   (empty) - The function name in kebab-case
-#   /path - Default port :443
-#   /directory/{filename+} - Greedy path argument
-#   /article/{aid}/comment/{cid} - Path arguments
-#   :443/path
-#   :443/... - Ellipsis denotes the function name in kebab-case
-#   :443 - Root path of the microservice
-#   :0/path - Any port
-#   //example.com:443/path
-#   https://example.com:443/path
-#   //root - Root path of the web server
-# queue - The subscription queue
-#   default - Load balanced (default)
-#   none - Pervasive
-# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
-functions:
-  # - signature:
-  #   description:
-```
-
-The `signature` defines the function name (which must start with an uppercase letter) and the input and output arguments. For any unknown type, the code generator automatically defines an empty struct in a file of the same name in the API package of the microservice. 
-
-`Microbus` takes care of marhsaling and unmarshaling of arguments and return values behind the scenes. Input arguments are unmarshaled from either the HTTP request path (if [path arguments](./patharguments.md) of the same name are defined), HTTP query arguments of the same name, or the JSON or URL form encoded body of the HTTP request. Output arguments are marshaled as JSON to the HTTP response body. Specially named [HTTP magic arguments](./httparguments.md) allow finer control over the marhsaling and unmarshaling of arguments.
-
-A typical generated functional request handler will look similar to the following:
-
-```go
-/*
-FuncHandler is an example of a functional handler.
-*/
-func (svc *Service) FuncHandler(ctx context.Context, id string) (ok bool, err error) {
-    return ok, nil
-}
-```
-
-`method` can be used to restrict the function to accept only certain HTTP methods. By default, the function is agnostic to the HTTP method.
-
-Along with the hostname of the microservice, the `path` defines the URL to this endpoint. It defaults to the function name in `kebab-case`. It may include [path arguments](./patharguments.md).
-
-`queue` defines whether a request is routed to one of the replicas of the microservice (load-balanced) or to all (pervasive).
-
-`openApi` controls whether or not to expose the function in the `/openapi.json` endpoint.
-
-### Event Sources
-
-`events` are very similar to functions except they are outgoing rather than incoming function calls. An event is fired without knowing in advance who is (or will be) subscribed to handle it. [Events](../blocks/events.md) are useful to push notifications of events that occur in the microservice that may interest upstream microservices. For example, `OnUserDeleted(id string)` could be an event fired by a user management microservice.
-
-```yaml
-# Event sources
-#
-# signature - Go-style method signature
-#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
-#   OnEvent(val Complex, ptr *Complex)
-#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
-#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
-# description - Documentation
-# method - "GET", "POST", etc. (defaults to "POST")
-# path - The URL path of the subscription, relative to the hostname of the microservice
-#   (empty) - The function name in kebab-case
-#   /path - Default port :417
-#   /directory/{filename+} - Greedy path argument
-#   /article/{aid}/comment/{cid} - Path arguments
-#   :417/path
-#   :417/... - Ellipsis denotes the function name in kebab-case
-#   :417 - Root path of the microservice
-#   //example.com:417/path
-#   https://example.com:417/path
-#   //root - Root path of the web server
-events:
-  # - signature:
-  #   description:
-```
-
-The `signature` defines the event name (which must start with the word `On` followed by an uppercase letter) and the input and output arguments. In `Microbus`, events are bi-directional and event sinks may return values back to the event source.
-
-### Event Sinks
-
-`sinks` are the flip side of event sources. A sink subscribes to consume events that are generated by other microservices.
-
-```yaml
-# Event sinks
-#
-# signature - Go-style method signature
-#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
-#   OnEvent(val Complex, ptr *Complex)
-#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
-#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
-# description - Documentation
-# event - The name of the event at the source (defaults to the function name)
-# source - The package path of the microservice that is the source of the event
-# forHost - For an event source with an overridden hostname
-# queue - The subscription queue
-#   default - Load balanced (default)
-#   none - Pervasive
-sinks:
-  # - signature:
-  #   description:
-  #   source: package/path/of/another/microservice
-```
-
-The `signature` of an event sink must match that of the event source. The one exception to this rule is the option to use an alternative name for the handler function while providing the original event name in the `event` field. This allows an event sink to resolve conflicts if different event sources use the same name for their events. That becomes necessary because handler function names must be unique in the scope of the sink microservice.
-
-```yaml
-sinks:
-  - signature: OnDeleteUser(userID string)
-    event: OnDelete
-    source: package/path/to/user/store
-  - signature: OnDeleteGroup(groupID string)
-    event: OnDelete
-    source: package/path/to/group/store
-```
-
-The `source` must point to the microservice that is the source of the event. This is the fully-qualified package path.
-
-The optional field `forHost` adjusts the subscription to listen to microservices whose hostname was changed with `SetHostname`.
-
-### Web Handlers
-
-The `webs` section defines raw web handlers which allow the microservice to handle incoming web requests with full access to the `r *http.Request` and full control over the `w http.ResponseWriter`.
-
-```yaml
-# Web handlers
-#
-# signature - Go-style method signature (no arguments)
-#   Handler()
-# description - Documentation
-# method - "GET", "POST", etc. or "ANY" (default)
-# path - The URL path of the subscription, relative to the hostname of the microservice
-#   (empty) - The function name in kebab-case
-#   /path - Default port :443
-#   /directory/{filename+} - Greedy path argument
-#   /article/{aid}/comment/{cid} - Path arguments
-#   :443/path
-#   :443/... - Ellipsis denotes the function name in kebab-case
-#   :443 - Root path of the microservice
-#   :0/path - Any port
-#   //example.com:443/path
-#   https://example.com:443/path
-#   //root - Root path of the web server
-# queue - The subscription queue
-#   default - Load balanced (default)
-#   none - Pervasive
-# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
-webs:
-  # - signature:
-  #   description:
-```
-
-The `signature` must not include any arguments. The handler receives the `*http.Request` from where it is expected to extract the input, and the `http.ResponseWriter` where it can write the response.
-
-The code generated web handler will look similar to this:
-
-```go
-/*
-WebHandler is an example of a web handler.
-*/
-func (svc *Service) WebHandler(w http.ResponseWriter, r *http.Request) (err error) {
-    return nil
-}
-```
-
-### Tickers
-
-Tickers are means to invoke a function on a periodic basis. The `signature` and `interval` fields are required.
-
-```yaml
-# Tickers
-#
-# signature - Go-style method signature (no arguments)
-#   Ticker()
-# description - Documentation
-# interval - Duration between iterations (e.g. 15m)
-tickers:
-  # - signature:
-  #   description:
-  #   interval:
-```
-
-The code generated ticker handler will look similar to this:
-
-```go
-/*
-TickerHandler is an example of a ticker handler.
-*/
-func (svc *Service) TickerHandler(ctx context.Context) (err error) {
-    return nil
-}
-```
-
-### Metrics
-
-The `metrics` section is used to define arbitrary metrics that are pertinent to a specific application. The metrics could be operational in nature (e.g. performance) or have a business purpose (e.g. usage tracking).
-
-```yaml
-# Metrics
-#
-# signature - Go-style method signature (numeric measure, ...labels)
-#   RequestDurationSeconds(dur time.Duration, method string, success bool)
-#   MemoryUsageBytes(b int64)
-#   DistanceMiles(miles float64, countryCode int)
-#   RequestsCount(count int, domain string) - unit-less accumulating count
-#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
-#   See https://prometheus.io/docs/practices/naming/ for naming best practices
-# description - Documentation
-# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
-# buckets - Bucket boundaries for histograms [x,y,z,...]
-# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
-metrics:
-  # - signature:
-  #   description:
-  #   kind:
-```
-
-Metrics support three [collector types](https://prometheus.io/docs/concepts/metric_types/): counter, histogram and gauge.
-
-The name of the metric is derived from the function signature. It should adhere to the [naming best practices](https://prometheus.io/docs/practices/naming/) if at all possible. A Prometheus alias is automatically generated but may be overridden if necessary.
-
-## Clients
-
-In addition to the server side of things, the code generator also creates clients to facilitate calling the microservice. A unicast `Client` and a multicast `MulticastClient` are placed in a separate API package to avoid cyclical dependencies between upstream and downstream microservices.
+In addition to the server side of things, the code generator also creates client stubs to facilitate calling the microservice. A unicast `Client` and a `MulticastClient` are placed in a separate API package to avoid cyclical dependencies between upstream and downstream microservices.
 
 Using clients, an upstream microservice remotely calling a downstream microservice looks very much like a standard local function call.
 
@@ -331,14 +46,21 @@ For microservices that fire events (i.e. event sources), the API package impleme
 
 Placeholder [integration tests](../blocks/integrationtesting.md) are generated for each of the microservice's handlers to encourage developers to test each of them and achieve high code coverage.
 
+## OpenAPI Document
+
+For applications that have a front-end such as a single-page application, the OpenAPI document streamlines communications with the front-end engineering team. It serves as the source of truth of the backend API that is always kept up to date with the latest code.
+
+<img src="./codegen-2.drawio.svg">
+<p>
+
 ## Embedded Resources
 
 A `resources` directory is automatically created with a `//go:embed` directive to allow microservices to bundle resource files along with the executable. The `embed.FS` is made available to the service via `svc.SetResFS()`.
 
 ## Versioning
 
-The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. The version number is used to identify different builds of the microservice.
+The code generator tool calculates a hash of the source code of the microservice. Upon detecting a change in the code, the tool increments the version number of the microservice, storing it in `version-gen.go`. This version number is used to identify different builds of the microservice.
 
 ## Uniform Code Structure
 
-A [uniform code structure](../blocks/uniform-code.md) is a byproduct of using code generation. A familiar code structure helps engineers get oriented quickly also when they are not the original authors of the code.
+As a byproduct of code generation, all microservices share a [uniform code structure](../blocks/uniform-code.md). A familiar code structure helps engineers to get oriented quickly in the code even if they are not its original authors. Often a quick glace at `service.yaml` is worth reading a thousand lines of code. Engineers spend a majority of their time reading code so this is of huge value. It makes engineers more portable and versatile.

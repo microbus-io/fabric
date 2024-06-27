@@ -4,7 +4,7 @@
 
 Think of `Microbus` as a closed garden that requires a special key to access. In order to send and receive messages on `Microbus`, it's necessary to communicate over NATS using a specific protocol. This is basically what the `Connector` facilitates for service-to-service calls.
 
-Practically all applications require interaction from a source that is outside `Microbus`. The most common scenario is perhaps a request generated from a web browser to a public API endpoint. In this case, something needs to bridge the gap between the incoming real HTTP request and the HTTP messages that travel over `Microbus`. This is where the HTTP ingress proxy comes into play.
+Practically all solutions require interaction with a source that is outside `Microbus`. The most common scenario is perhaps a request generated from a web browser to a public API endpoint. In this case, something needs to bridge the gap between the incoming real HTTP request and the HTTP messages that travel over `Microbus`. This is where the HTTP ingress proxy comes into play.
 
 <img src="./coreservices-httpingress-1.drawio.svg">
 <p>
