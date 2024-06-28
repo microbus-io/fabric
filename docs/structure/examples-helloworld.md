@@ -34,4 +34,4 @@ ctx := Context()
 HelloWorld_Get(t, ctx, "").BodyContains("Hello, World!")
 ```
 
-And finally, the microservice was added to the app in `examples/main/main.go`.
+And finally, the microservice was added to the app in `main/main.go`.

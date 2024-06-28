@@ -28,7 +28,7 @@ go generate
 
 ## `service.yaml`
 
-`service.yaml` include several sections that [define the characteristics of the microservice](../tech/service-yaml.md) in a declarative fashion. These definitions serve as the input to the code generator to produces the skeleton and boilerplate code. It is then up to the developer to fill in the gaps.
+`service.yaml` contains sections that [define the characteristics of the microservice](../tech/service-yaml.md) in a declarative fashion. These definitions serve as the input to the code generator to produces the skeleton and boilerplate code. It is then up to the developer to fill in the gaps.
 
 ## Client Stubs
 

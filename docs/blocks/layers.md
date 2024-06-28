@@ -90,6 +90,8 @@ Metrics such as latency, duration, byte size and count are collected automatical
 
 ### Transport
 
+`Microbus` uses a messaging bus for the transport layer of service-to-service communications.
+
 [Unicast request/response](../blocks/unicast.md) is an emulation of the familiar synchronous 1:1 request/response pattern of HTTP over the asynchronous messaging pattern of the underlying transport bus.
 
 [Multicast publish/subscribe](../blocks/multicast.md) enhances the publish/subscribe pattern of the bus by introducing a familiar HTTP interface and a bi-directional 1:N request/response pattern.

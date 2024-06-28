@@ -6,7 +6,7 @@ For example, if the secret word is `APPLE` and a guess is `OPERA`, the system wi
 
 <img src="first-service-1.png" width="213">
 
-### Step 1: Bootstrap
+#### Step 1: Bootstrap
 
 To get started, create a directory under `examples` to house the microservice files. We'll call our game `Wordly` so name the directory `examples/wordly`.
 
@@ -27,7 +27,7 @@ go generate
 
 A `service.yaml` template is generated. We'll fill it in next.
 
-### Step 2: Service Definition
+#### Step 2: Service Definition
 
 Open `service.yaml`. This is your starting point and where you declare the structure of the microservice. First, name the service in the `general:` section:
 
@@ -79,7 +79,7 @@ wordly
 └── version-gen.go
 ```
 
-### Step 3: Keeping Track of Games
+#### Step 3: Keeping Track of Games
 
 Open `service.go`. You'll see a type definition for the `Service` struct and 3 empty functions: the standard lifecycle callbacks `OnStartup` and `OnShutdown`, and the endpoint `Play` that you defined in `service.yaml`.
 
@@ -111,7 +111,7 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 }
 ```
 
-### Step 4: Implementation
+#### Step 4: Implementation
 
 We'll implement the game logic in the `Play` method which handles the `GET /play` request. This endpoint accepts two optional query arguments. The first, `game`, identifies the game. If it is not present, a new game is created. Add the following code to `Play`.
 
@@ -210,7 +210,7 @@ w.Write(page.Bytes())
 return nil  
 ```
 
-### Step 4: Randomized Secret Word
+#### Step 5: Randomized Secret Word
 
 In the prior step we hard-coded the word `APPLE` as the secret word. We need to randomize it but we can't just generate it from random letters because that will result in unguessable gibberish. Instead, we'll choose a word randomly from a list of real dictionary words.
 
@@ -238,9 +238,9 @@ game = &Game{
 }
 ```
 
-### Step 5: Time to Play!
+#### Step 6: Time to Play!
 
-Include the new microservice in the app in `examples/main/main.go` and run it using `go run` or your IDE.
+Include the new microservice in the app in `main/main.go` and run it using `go run` or your IDE.
 
 ```go
 func main() {
@@ -261,14 +261,14 @@ func main() {
 
 Go to http://localhost:8080/wordly.example/play and enjoy!
 
-Want to make the game harder by decreasing the number of guesses? Change the value of the config property `MaxGuesses` by editing `examples/main/config.yaml`.
+Want to make the game harder by decreasing the number of guesses? Change the value of the config property `MaxGuesses` by editing `main/config.yaml`.
 
 ```yaml
 wordly.example:
   MaxGuesses: 5
 ```
 
-### Step 6: Extra Credit
+#### Step 7: Extra Credit
 
 This microservice is far from being polished. Try the following on your own:
 

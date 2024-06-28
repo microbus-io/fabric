@@ -4,7 +4,7 @@ Thorough testing is an important cornerstone of good software. Testing a microse
 
 ## Testing App
 
-`Microbus` takes a different approach and spins up the actual downstream microservices along with the microservice being tested into a single process. The microservices are collected into an isolated [`Application`](../structure/application.md) that is started up for the duration of running the test suite and shutdown immediately thereafter. The microservices communicate over the messaging bus on a random [plane of communications](../blocks/unicast.md), which keeps them isolated from other test suites that may run in parallel.
+`Microbus` takes a different approach and spins up the actual downstream microservices along with the microservice being tested into a single process. The microservices are collected into an isolated [`Application`](../structure/application.md) that is started up for the duration of running the test suite and shutdown immediately thereafter. The microservices communicate over NATS on a random [plane of communications](../blocks/unicast.md), which keeps them isolated from other test suites that may run in parallel.
 
 Mocks can be added to the application when it's impractical to run the actual downstream microservice, for example if that microservice is calling a third-party web service such as a payment processor. The preference however should be to include the actual microservice whenever possible and not rely on mocks. Note that in `Microbus` microservices are mocked rather than clients. The upstream microservice still sends messages over the bus, which are responded to by the mock of the downstream microservice.
 

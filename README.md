@@ -4,10 +4,10 @@
 
 `Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex solutions comprising a multitude of microservices. Deploy as a standalone executable or on Kubernetes.
 
-__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions\
-__WHAT?__ Build and operate complex solutions comprising a multitude of microservices\
+__WHAT?__ Build and operate complex microservice architectures\
 __WHY?__ A microservice architecture is essential for addressing the technical and organizational scalability challenges of a growing business\
 __HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
+__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions\
 
 Table of content:
 
@@ -24,7 +24,7 @@ Table of content:
 
 ## 🚌 Introduction
 
-A microservice architecture is essential for unleashing the full potential of a business as it scales. Without such architecture, the complexity of the codebase will grow to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at a prohibitive cost. Investing in microservices from the get-go (no pun intended) is a wise investment that mitigates this upside risk.
+A microservice architecture is essential for addressing the technical and organizational scalability challenges of a business as it scales. Without such architecture, the complexity of the codebase will grow to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at a prohibitive cost. Investing in microservices from the get-go (no pun intended) is a wise investment that mitigates this upside risk.
 
 Building and operating microservices at scale, however, is very difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
@@ -38,7 +38,7 @@ These core tenets were top of mind in the design of `Microbus`.
 
 ### Elevated Engineering Experience
 
-`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. A higher engineering velocity is directly correlated to more value delivered to the customer faster.
+`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. The higher engineering velocity yields more value delivered to the customer faster.
 
 * Speed up development with [code generation](./docs/blocks/codegen.md)
 * Run, test and debug an entire solution comprising a multitude of microservices in your [local development](./docs/tech/local-dev.md) environment
@@ -62,7 +62,7 @@ From a local development machine to a multi-region cloud deployment, `Microbus`'
 
 ### Scalable, Resilient and Performant
 
-Components at all levels of `Microbus`, from individual microservices down to the messaging bus, can be scaled horizontally. No single points of failure or bottlenecks.
+Components at all levels of `Microbus`, from individual microservices down to NATS, can be scaled horizontally. No single points of failure or bottlenecks.
 
 * Serve 1000's of RPS (requests per second) per machine right out of the box
 * Scale your system horizontally as your requirements grow
@@ -111,6 +111,8 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [NATS connection settings](./docs/tech/nats-connection.md) - How to configure microservices to connect and authenticate to NATS
 * [RPC over JSON vs REST](./docs/tech/rpcvsrest.md) - Implement these common web API styles
 * [Adaptable topology](./docs/blocks/topology.md) - Grow the topology of your system to match your requirements
+* [Bootstrap a new project](./docs/howto/new-project.md) - Create a project for your solution
+* [Create a new microservice](./docs/howto/create-microservice.md) - Create a new microservice and add it to your solution
 
 ### Under the Hood
 

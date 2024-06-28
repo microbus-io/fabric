@@ -20,7 +20,7 @@ nats-server
 
 # Other
 .DS_Store
-examples/main/main
-examples/main/__debug_bin*
+main/main
+main/__debug_bin*
 *.drawio.svg.bkp
 *.drawio.svg.dtmp

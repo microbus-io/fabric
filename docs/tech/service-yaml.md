@@ -9,7 +9,7 @@
 
 ## General
 
-The `general` section of `service.yaml` defines the `host` name of the microservice and a human-friendly `description`. The hostname is required. It is how the microservice will be addressed by other microservices. A hierarchical naming scheme for hostnames such as `myservice.mydomain.myproduct` can help avoid conflicts.
+The `general` section of `service.yaml` defines the `host` name of the microservice and a human-friendly `description`. The hostname is required. It is how the microservice will be addressed by other microservices. A hierarchical naming scheme for hostnames such as `myservice.mydomain.mysolution` can help avoid conflicts. These names along with port numbers are the basis for enforcing [authorization of microservices](../blocks/unicast.md#notes-on-subscription-subjects) in low-trust environments.
 
 ```yaml
 # General

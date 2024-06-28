@@ -37,13 +37,13 @@ Docker Desktop should now show the `microbus` application:
 Run the example app:
 
 ```cmd
-cd examples/main
+cd main
 go run main.go
 ```
 
-It is necessary to set the working directory to `examples/main` so that the file `examples/main/config.yaml` can be located.
+It is necessary to set the working directory to `main` so that the file `main/config.yaml` can be located.
 
-If you're using Visual Studio Code, simply press `F5`. The `.vscode/launch.json` file includes a launch configuration for running `examples/main`.
+If you're using Visual Studio Code, simply press `F5`. The `.vscode/launch.json` file includes a launch configuration for running `main`.
 
 Try the following URLs in your browser:
 
