@@ -6,7 +6,7 @@
 
 __WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions\
 __WHAT?__ Build and operate complex solutions comprising a multitude of microservices\
-__WHY?__ Without a microservice architecture your software won't be able to meet the scalability and organizational challenges of a growing business\
+__WHY?__ A microservice architecture is essential for addressing the technical and organizational scalability challenges of a growing business\
 __HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
 
 Table of content:
