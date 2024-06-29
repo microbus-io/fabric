@@ -2,7 +2,7 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex solutions comprising a multitude of microservices. Deploy as a standalone executable or on Kubernetes.
+`Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex solutions comprising a multitude of microservices on your local development machine. Deploy as a standalone executable or on Kubernetes.
 
 __WHAT?__ Build and operate complex microservice architectures\
 __WHY?__ A microservice architecture is essential for addressing the technical and organizational scalability challenges of a growing business\
