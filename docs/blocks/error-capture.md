@@ -1,6 +1,8 @@
 # Error Capture and Propagation
 
-The philosophy of `Microbus` is that errors will happen, they will be unpredictable, they must never bring down the system, and they should be observable and easily debuggable. With this in mind, the framework is taking an opinionated "throw and log" approach to standardize the capturing and surfacing of errors. Note that "capturing" does not mean "handling". The latter is left up to the app developer (or user).
+`Microbus` considers `error`s returned from microservice endpoints as exceptions, and as such it emphasizes their detection and disclosure. In addition to being logged as errors, these cross-microservice errors are also counted in Grafana and recorded in [distributed traces](../blocks/distrib-tracing.md) in Jaeger. Consequently, it is ill-advised to use errors to return state that should not raise the alarm.
+
+The point of view of `Microbus` is that errors will happen, they will be unpredictable, they must never bring down the system and they should be observable and easily debuggable. With this in mind, the framework is taking an opinionated "throw and log" approach to standardize the capturing and surfacing of errors. Note that "capturing" does not mean "handling". The latter is left up to the app developer (or user).
 
 ## Web Handler Returns Error
 
@@ -10,14 +12,14 @@ The standard `http.HandlerFunc` signature in Go does not return an `error` but r
 func StandardHandler(w http.ResponseWriter, r *http.Request) {
 	err := doSomething()
 	if err != nil {
-		svc.Log(r.Context(), "doing something", log.Error(err))
+		log.LogError(r.Context(), "doing something", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = doSomethingElse()
 	if err != nil {
-		svc.Log(r.Context(), "doing something else", log.Error(err))
+		log.LogError(r.Context(), "doing something else", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -83,7 +85,7 @@ import "github.com/microbus-io/errors"
 func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 	err := doSomething()
 	if err != nil {
-		return errors.Trace(err) // Capture this line into the errors' stack trace
+		return errors.Trace(err) // Capture this line into the error's stack trace
 	}
 	return nil
 }
@@ -117,7 +119,7 @@ if err != nil {
 }
 ```
 
-The web handler wrapper function now looks like this:
+The web handler wrapper is extended to write the errors' status code to the HTTP response writer:
 
 ```go
 func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
