@@ -6,8 +6,8 @@
 
 __WHAT?__ Build and operate complex microservice architectures\
 __WHY?__ A microservice architecture is essential for addressing the technical and organizational scalability challenges of a growing business\
-__HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience
-__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions\
+__HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience\
+__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions
 
 Table of content:
 
