@@ -91,7 +91,7 @@ MICROBUS_NATS: nats://127.0.0.1:4222
 MICROBUS_DEPLOYMENT: LOCAL
 
 # The plane of communication isolates communication among a group of microservices over a NATS cluster
-MICROBUS_PLANE: anvil
+# MICROBUS_PLANE: microbus
 
 # Any non-empty value enables logging of debug-level messages
 # MICROBUS_LOG_DEBUG: 1
