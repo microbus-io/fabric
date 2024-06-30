@@ -101,7 +101,7 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://127.0.0.1:4318
 # OTEL_EXPORTER_OTLP_ENDPOINT:
 ```
 
-Create `main/config.yaml`:
+Create `main/config.yaml` where you'll store the [configuration](../blocks/configuration.md) of your microservices:
 
 ```yaml
 http.ingress.sys:
