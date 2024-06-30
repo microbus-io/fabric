@@ -17,7 +17,7 @@ A microservice architecture is essential for addressing the technical and organi
 #### Who?
 For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions.
 
-## ☰ Table of content
+## 🍴 Table of content
 
 🚌 [Introduction](#-introduction)\
 🐶 [Dogma](#-dogma)\
