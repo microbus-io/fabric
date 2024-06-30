@@ -2,14 +2,22 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. Build complex solutions comprising a multitude of microservices on your local development machine. Deploy as a standalone executable or on Kubernetes.
+#### What?
+`Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. It combines tooling, guides, patterns and best practices into an elevated engineering experience.
+* Build entire solutions comprising a multitude of microservices, all on your local development machine
+* Deploy as a standalone modular monolith or as individual containers on Kubernetes
 
-__WHAT?__ Build and operate complex microservice architectures\
-__WHY?__ A microservice architecture is essential for addressing the technical and organizational scalability challenges of a growing business\
-__HOW?__ A holistic framework that combines tooling, guides, patterns and best practices into an elevated engineering experience\
-__WHO?__ For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions
+#### Why?
+A microservice architecture is essential for addressing the technical and organizational scalability challenges of a growing business.
+* Deploy and scale microservices independently of one another
+* Isolate the blast radius of a failing microservices
+* Release incrementally and frequently, with no need of coordination between teams
+* Adapt to change and avoid a costly rewrite
 
-Table of content:
+#### Who?
+For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions.
+
+#### Table of content
 
 🚌 [Introduction](#-introduction)\
 🐶 [Dogma](#-dogma)\
@@ -28,7 +36,7 @@ A microservice architecture is essential for addressing the technical and organi
 
 Building and operating microservices at scale, however, is very difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
-`Microbus` thinks differently. By taking a novel approach to the development, testing, deployment and troubleshooting of microservices, it eliminates much of the complexity of the current state of the art. `Microbus` is a holistic framework that packages together various OSS technologies, tooling, best practices, patterns and guides into a cohesive engineering experience that elevates developer productivity 4x.
+`Microbus` thinks differently. By taking a novel approach to the development, testing, deployment and troubleshooting of microservices, it eliminates much of the complexity of the current state of the art. `Microbus` is a holistic framework that packages together various OSS technologies, tooling, best practices, patterns and guides into a cohesive engineering experience that elevates productivity up to 4x.
 
 `Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
 
@@ -38,7 +46,7 @@ These core tenets were top of mind in the design of `Microbus`.
 
 ### Elevated Engineering Experience
 
-`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. The higher engineering velocity yields more value delivered to the customer faster.
+`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. The greater engineering velocity yields more value delivered to the customer faster.
 
 * Speed up development with [code generation](./docs/blocks/codegen.md)
 * Run, test and debug an entire solution comprising a multitude of microservices in your [local development](./docs/tech/local-dev.md) environment
@@ -98,7 +106,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 ### Architecture
 
 * [Layered architectural diagram](./docs/blocks/layers.md) - A map of the building blocks of `Microbus` and how they relate to one another
-* [Catalog of packages](./docs/structure/packages.md) - If you like reading code, this will help you find your way around the codebase
+* [Catalog of packages](./docs/structure/packages.md) - Find your way around the codebase
 
 ### Guides
 
@@ -144,7 +152,7 @@ We want your feedback. Clone the repo, try things out and let us know what worke
 
 Help us spread the word. Let your peers and the Go community know about `Microbus`.
 
-Give us a Github ⭐. Ask all your friends to give us one too. Please?
+Give us a Github ⭐. And ask all your friends to give us one too!
 
 Reach out if you'd like to contribute code.
 
