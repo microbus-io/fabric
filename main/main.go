@@ -37,7 +37,6 @@ func main() {
 		httpegress.NewService(),
 		openapiportal.NewService(),
 		metrics.NewService(),
-		// inbox.NewService(),
 	)
 	app.Include(
 		// Add solution microservices here
@@ -55,6 +54,7 @@ func main() {
 	app.Include(
 		// When everything is ready, begin to accept external requests
 		httpingress.NewService(),
+		// inbox.NewService(),
 	)
 	app.Run()
 }
