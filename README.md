@@ -2,20 +2,9 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-#### What?
 `Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. It combines tooling, guides, patterns and best practices into an elevated engineering experience.
-* Build entire solutions comprising a multitude of microservices, all on your local development machine
-* Deploy as a standalone modular monolith or as individual containers on Kubernetes
-
-#### Why?
-A microservice architecture is essential for addressing the technical and organizational scalability challenges of a growing business.
-* Deploy and scale microservices independently of one another
-* Isolate the blast radius of a failing microservices
-* Release incrementally and frequently, with no need of coordination between teams
-* Adapt to change and avoid a costly rewrite
-
-#### Who?
-For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions.
+Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine.
+Deploy to suit your needs, as a standalone modular monolith or as individual containers on Kubernetes.
 
 ## 🍴 Table of Content
 
@@ -29,9 +18,9 @@ For engineering teams building cloud-enabled, enterprise-class or web-scalable s
 
 ## 🚌 Introduction
 
-A microservice architecture is essential for addressing the technical and organizational scalability challenges of a business as it scales. Without such architecture, the complexity of the codebase will grow to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at a prohibitive cost. Investing in microservices from the get-go (no pun intended) is a wise investment that mitigates this upside risk.
+A microservice architecture is essential for addressing the technical and organizational scalability challenges of a business as it scales. Without such architecture, the complexity of the codebase will grow to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at a prohibitive cost. Investing in microservices from the get-go is a wise investment that mitigates this upside risk.
 
-Building and operating microservices at scale, however, is very difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
+Building and operating microservices at scale, however, is quite difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
 `Microbus` thinks differently. By taking a novel approach to the development, testing, deployment and troubleshooting of microservices, it eliminates much of the complexity of the current state of the art. `Microbus` is a holistic framework that packages together various OSS technologies, tooling, best practices, patterns and guides into a cohesive engineering experience that elevates productivity up to 4x.
 
