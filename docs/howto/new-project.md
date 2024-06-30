@@ -1,4 +1,4 @@
-# New Project Bootstrapping
+# Bootstrapping a New Project
 
 Follow these steps to create a new project that takes advantage of `Microbus`.
 
@@ -19,6 +19,7 @@ mkdir github.com/mycompany/mysolution
 Init the Go project with the name of the package.
 
 ```cmd
+cd github.com/mycompany/mysolution
 go init github.com/mycompany/mysolution
 ```
 
@@ -108,7 +109,7 @@ http.ingress.sys:
 #  TimeBudget: 20s
 ```
 
-#### Step 6: VS Code Launcher
+#### Step 6: Visual Studio Code Launcher
 
 If you're using VS Code, update `.vscode/launch.json` and add a configuration to run `main.go`:
 

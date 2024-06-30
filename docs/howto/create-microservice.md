@@ -33,13 +33,13 @@ Fill in the [characteristics of the microservice](../tech/service-yaml.md) in `s
 
 #### Step 5: Implement the Business Logic
 
-Implement the functionality of the microservice in `service.go` and test it in `integration_test.go`.
+Implement the functionality of the microservice in `service.go` and [test](../blocks/integration-testing.md) it in `integration_test.go`.
 
 Run `go generate` a final time to update the version number of the microservice.
 
 #### Step 6: Add to the Application
 
-Add the new service to the application in `main.go`:
+Add the new microservice to the application in `main.go`:
 
 ```go
 app.Include(
