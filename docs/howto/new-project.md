@@ -63,11 +63,11 @@ func main() {
 		openapiportal.NewService(),
 		metrics.NewService(),
 		// inbox.NewService(),
-    )
-    app.Include(
-        // Add solution microservices here
-    )
-    app.Include(
+	)
+	app.Include(
+		// Add solution microservices here
+	)
+	app.Include(
 		httpingress.NewService(),
 	)
 	app.Run()
