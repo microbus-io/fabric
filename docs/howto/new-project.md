@@ -74,7 +74,7 @@ func main() {
 }
 ```
 
-Create `main/env.yaml`:
+Create `main/env.yaml` to be able to set the [environment variables](../tech/envars.md) in code:
 
 ```yaml
 # NATS connection settings
@@ -111,16 +111,21 @@ http.ingress.sys:
 
 #### Step 6: Visual Studio Code Launcher
 
-If you're using VS Code, update `.vscode/launch.json` and add a configuration to run `main.go`:
+If you're using Visual Studio Code, update `.vscode/launch.json` and add a configuration to run `main.go`:
 
 ```json
 {
-    "name": "MySolution Main",
-    "type": "go",
-    "request": "launch",
-    "mode": "auto",
-    "program": "${workspaceFolder}/main",
-    "cwd": "${workspaceFolder}/main"
+    "version": "0.2.0",
+    "configurations": [
+		{
+			"name": "MySolution Main",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/main",
+			"cwd": "${workspaceFolder}/main"
+		}
+	]
 }
 ```
 
