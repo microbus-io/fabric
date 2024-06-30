@@ -17,7 +17,7 @@ A microservice architecture is essential for addressing the technical and organi
 #### Who?
 For engineering teams building cloud-enabled, enterprise-class or web-scalable solutions.
 
-#### Table of content
+## ☰ Table of content
 
 🚌 [Introduction](#-introduction)\
 🐶 [Dogma](#-dogma)\
@@ -26,9 +26,6 @@ For engineering teams building cloud-enabled, enterprise-class or web-scalable s
 ✋ [Get involved](#-get-involved)\
 ☎️ [Contact us](#-contact-us)\
 📃 [Legal](#-legal)
-
-[![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
-
 
 ## 🚌 Introduction
 
@@ -178,3 +175,5 @@ Find us at any of the following channels. We're looking forward to hearing from 
 An explicit license from `Microbus LLC` is required to use the `Microbus` framework.
 
 Refer to the list of [third-party open source software](./docs/general/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
+
+[![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
