@@ -4,7 +4,7 @@ The `helloworld.example` microservice demonstrates the minimalist classic exampl
 
 http://localhost:8080/helloworld.example/hello-world simply prints `Hello, World!`.
 
-The code looks rather daunting but practically all of it was code-generated. The pieces that had to be manually coded were:
+The code looks rather daunting but practically all of it was code generated. The manually coded pieces were:
 
 In `service.yaml`:
 
@@ -18,20 +18,24 @@ webs:
     description: HelloWorld prints the classic greeting.
 ```
 
-In `service.go`:
+In `HelloWorld` in `service.go`:
 
 ```go
-func (svc *Service) HelloWorld(w http.ResponseWriter, r *http.Request) (err error) {
-	w.Write([]byte("Hello, World!"))
-	return nil
-}
+w.Write([]byte("Hello, World!"))
+return nil
 ```
 
-In `integration_test.go`:
+In `TestHelloworld_HelloWorld` in `integration_test.go`:
 
 ```go
 ctx := Context()
 HelloWorld_Get(t, ctx, "").BodyContains("Hello, World!")
 ```
 
-And finally, the microservice was added to the app in `main/main.go`.
+And finally, the microservice was added to the app in `main` in `main/main.go`.
+
+```go
+app.Include(
+	helloworld.NewService(),
+)
+```

@@ -2,9 +2,9 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is a holistic framework for the development, testing, deployment and operation of microservices at scale. It combines tooling, guides, patterns and best practices into an elevated engineering experience.
+`Microbus` is a holistic open source framework for the development, testing, deployment and operation of microservices at scale. It combines tooling, guides, patterns and best practices into an elevated engineering experience.
 Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine.
-Deploy to suit your needs, as a standalone modular monolith or as individual containers on Kubernetes.
+Deploy to suit your needs, as a standalone executable or as individual pods on Kubernetes.
 
 ## 🍴 Table of Content
 
@@ -35,7 +35,7 @@ These core tenets were top of mind in the design of `Microbus`.
 `Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. The greater engineering velocity yields more value delivered to the customer faster.
 
 * Speed up development with [code generation](./docs/blocks/codegen.md)
-* Run, test and debug an entire solution comprising a multitude of microservices in your [local development](./docs/tech/local-dev.md) environment
+* Run, test and debug an entire solution comprising a multitude of microservices in your [local development](./docs/tech/local-dev.md) machine
 * Observe your system with the help of [distributed tracing](./docs/blocks/distrib-tracing.md), metrics dashboards and logging
 
 ### Adaptable Deployment Topology
@@ -43,7 +43,7 @@ These core tenets were top of mind in the design of `Microbus`.
 From a local development machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](./docs/blocks/topology.md) grows with your needs. No code changes required.
 
 * Deploy as a resilient modular monolith, or a multi-region cloud deployment
-* Run as a standalone executable or on Kubernetes
+* Run as a standalone executable or as individual pods on Kubernetes
 * Include one or many microservices in each executable or pod
 
 ### Simplified OSS Tech Stack
