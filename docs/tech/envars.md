@@ -8,32 +8,15 @@ The `Microbus` framework uses environment variables for various purposes:
 * Enabling output of debug-level messages
 * Configuring the URL to the OpenTelemetry collector endpoint
 
+Environment variables may also be set by placing an `env.yaml` file in the working directory of the executable running the microservice. The bundled example application includes such a file at `main/env.yaml`.
+
 ## NATS Connection
 
-Before connecting to NATS, a microservice can't communicate with other microservices and therefore it can't reach the configurator microservice to fetch the values of its config properties. Connecting to NATS therefore must precede configuration which means that initializing the NATS connection itself can't be done using the standard configuration pattern. Instead, the [NATS connection is initialized using environment variables](./natsconnection.md): `MICROBUS_NATS`, `MICROBUS_NATS_USER`, `MICROBUS_NATS_PASSWORD` and `MICROBUS_NATS_TOKEN`.
+Before connecting to NATS, a microservice can't communicate with other microservices and therefore it can't reach the configurator microservice to fetch the values of its config properties. Connecting to NATS therefore must precede configuration which means that initializing the NATS connection itself can't be done using the standard configuration pattern. Instead, the [NATS connection is initialized using environment variables](../tech/nats-connection.md): `MICROBUS_NATS`, `MICROBUS_NATS_USER`, `MICROBUS_NATS_PASSWORD` and `MICROBUS_NATS_TOKEN`.
 
 ## Deployment
 
-`Microbus` recognizes four deployment environments:
-
-* `PROD` for production deployments
-* `LAB` for fully-functional non-production deployments such as dev integration, testing, staging, etc.
-* `LOCAL` when developing locally
-* `TESTING` when running inside a testing application
-
-The deployment environment impacts certain aspects of the framework such as logging and distributed tracing.
-
-||`PROD`|`LAB`|`LOCAL`|`TESTING`|
-|--------|----|---|-----|----------|
-|Logging level|INFO|DEBUG|DEBUG|DEBUG|
-|Logging format|JSON|JSON|Human-friendly|Human-friendly|
-|Logging errors|Standard|Standard|Emphasized|Emphasized|
-|Distributed tracing|Selective|Everything|Everything|Everything|
-|Configurator|Enabled|Enabled|Enabled|Disabled|
-|Tickers|Enabled|Enabled|Enabled|Disabled|
-|Error output|Redacted|Stack trace|Stack trace|Stack trace|
-
-The deployment environment is set according to the value of the `MICROBUS_DEPLOYMENT` environment variable. If not specified, `PROD` is assumed, unless connecting to NATS on `localhost` in which case `LOCAL` is assumed.
+The `MICROBUS_DEPLOYMENT` environment variable determines the [deployment environment](../tech/deployments.md) of the microservice: `PROD`, `LAB`, `LOCAL` or `TESTING`. If not specified, `PROD` is assumed, unless connecting to `nats://localhost:4222` or `nats://127.0.0.1:4222` in which case `LOCAL` is assumed.
 
 ## Plane of Communication
 

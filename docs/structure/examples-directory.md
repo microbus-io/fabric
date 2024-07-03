@@ -91,7 +91,7 @@ CREATE DATABASE microbus_examples;
 <img src="examples-directory-1.png" width="498">
 <p>
 
-The connection string to the database is pulled from `examples/main/config.yaml` by the [configurator](./coreservices-configurator.md) and served to the `directory.example` microservice. Adjust it as necessary to point to the location of your MariaDB database.
+The connection string to the database is pulled from `main/config.yaml` by the [configurator](./coreservices-configurator.md) and served to the `directory.example` microservice. Adjust it as necessary to point to the location of your MariaDB database.
 
 ```yaml
 directory.example:

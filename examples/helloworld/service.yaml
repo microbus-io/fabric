@@ -1,0 +1,165 @@
+# Copyright (c) 2023-2024 Microbus LLC and various contributors
+# 
+# This file and the project encapsulating it are the confidential intellectual property of Microbus LLC.
+# Neither may be used, copied or distributed without the express written consent of Microbus LLC.
+
+---
+# General
+#
+# host - The hostname of the microservice
+# description - A human-friendly description of the microservice
+# integrationTests - Whether or not to generate integration tests (defaults to true)
+# openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
+general:
+  host: helloworld.example
+  description: The HelloWorld microservice demonstrates the minimalist classic example.
+
+# Config properties
+#
+# signature - Func() (val Type)
+# description - Documentation
+# default - A default value (defaults to empty)
+# validation - A validation pattern
+#   str ^[a-zA-Z0-9]+$
+#   bool
+#   int [0,60]
+#   float [0.0,1.0)
+#   dur (0s,24h]
+#   set Red|Green|Blue
+#   url
+#   email
+#   json
+# callback - "true" to handle the change event (defaults to "false")
+# secret - "true" to indicate a secret (defaults to "false")
+configs:
+  # - signature:
+  #   description:
+  #   default:
+  #   validation:
+
+# Functions
+#
+# signature - Go-style method signature
+#   Func(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   Func(val Complex, ptr *Complex)
+#   Func(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   Func(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
+# description - Documentation
+# method - "GET", "POST", etc. or "ANY" (default)
+# path - The URL path of the subscription, relative to the hostname of the microservice
+#   (empty) - The function name in kebab-case
+#   /path - Default port :443
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path of the microservice
+#   :0/path - Any port
+#   //example.com:443/path
+#   https://example.com:443/path
+#   //root - Root path of the web server
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
+functions:
+  # - signature:
+  #   description:
+
+# Event sources
+#
+# signature - Go-style method signature
+#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   OnEvent(val Complex, ptr *Complex)
+#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
+# description - Documentation
+# method - "GET", "POST", etc. (defaults to "POST")
+# path - The URL path of the subscription, relative to the hostname of the microservice
+#   (empty) - The function name in kebab-case
+#   /path - Default port :417
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
+#   :417/path
+#   :417/... - Ellipsis denotes the function name in kebab-case
+#   :417 - Root path of the microservice
+#   //example.com:417/path
+#   https://example.com:417/path
+#   //root - Root path of the web server
+events:
+  # - signature:
+  #   description:
+
+# Event sinks
+#
+# signature - Go-style method signature
+#   OnEvent(s string, f float64, i int, b bool) (t time.Time, d time.Duration)
+#   OnEvent(val Complex, ptr *Complex)
+#   OnEvent(m1 map[string]int, m2 map[string]*Complex) (a1 []int, a2 []*Complex)
+#   OnEvent(httpRequestBody *Complex, queryArg int, pathArg string) (httpResponseBody []string, httpStatusCode int)
+# description - Documentation
+# event - The name of the event at the source (defaults to the function name)
+# source - The package path of the microservice that is the source of the event
+# forHost - For an event source with an overridden hostname
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+sinks:
+  # - signature:
+  #   description:
+  #   source: package/path/of/another/microservice
+
+# Web handlers
+#
+# signature - Go-style method signature (no arguments)
+#   Handler()
+# description - Documentation
+# method - "GET", "POST", etc. or "ANY" (default)
+# path - The URL path of the subscription, relative to the hostname of the microservice
+#   (empty) - The function name in kebab-case
+#   /path - Default port :443
+#   /directory/{filename+} - Greedy path argument
+#   /article/{aid}/comment/{cid} - Path arguments
+#   :443/path
+#   :443/... - Ellipsis denotes the function name in kebab-case
+#   :443 - Root path of the microservice
+#   :0/path - Any port
+#   //example.com:443/path
+#   https://example.com:443/path
+#   //root - Root path of the web server
+# queue - The subscription queue
+#   default - Load balanced (default)
+#   none - Pervasive
+# openApi - Whether or not to include this endpoint in the OpenAPI document (defaults to true)
+webs:
+  - signature: HelloWorld()
+    description: HelloWorld prints the classic greeting.
+
+# Tickers
+#
+# signature - Go-style method signature (no arguments)
+#   Ticker()
+# description - Documentation
+# interval - Duration between iterations (e.g. 15m)
+tickers:
+  # - signature:
+  #   description:
+  #   interval:
+
+# Metrics
+#
+# signature - Go-style method signature (numeric measure, ...labels)
+#   RequestDurationSeconds(dur time.Duration, method string, success bool)
+#   MemoryUsageBytes(b int64)
+#   DistanceMiles(miles float64, countryCode int)
+#   RequestsCount(count int, domain string) - unit-less accumulating count
+#   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
+#   See https://prometheus.io/docs/practices/naming/ for naming best practices
+# description - Documentation
+# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# buckets - Bucket boundaries for histograms [x,y,z,...]
+# alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
+metrics:
+  # - signature:
+  #   description:
+  #   kind:

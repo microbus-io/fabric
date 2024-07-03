@@ -1,17 +1,16 @@
-# Package `services/configurator`
+# Package `coreservices/configurator`
 
-The configurator is a core microservice of `Microbus` and it must be included with practically all applications. Microservices that define config properties will not start if they cannot reach the configurator. This is why you'll see the configurator included in most self-contained apps, such as in `examples/main/main.go`:
+The configurator is a core microservice of `Microbus` and it must be included with practically all applications. Microservices that define config properties will not start if they cannot reach the configurator. This is why you'll see the configurator included in most self-contained apps, such as in `main/main.go`:
 
 ```go
 func main() {
-	app := application.New(
-		configurator.NewService(), // First to start
-		httpingress.NewService(),
-		hello.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		calculator.NewService(),
+	app := application.New()
+	app.Include(
+		// Configurator should start first
+		configurator.NewService(),
+	)
+	app.Include(
+		// ...
 	)
 	app.Run()
 }

@@ -167,22 +167,22 @@ func TestHello_Calculator(t *testing.T) {
 		TagEqual(`TD#result`, "100")
 }
 
-func TestHello_BusJPEG(t *testing.T) {
+func TestHello_BusPNG(t *testing.T) {
 	t.Parallel()
 	/*
-		BusJPEGAny(t, ctx, httpRequest)
+		BusPNGAny(t, ctx, httpRequest)
 			BodyContains(value).
 			NoError()
-		BusJPEG(t, ctx, "").
+		BusPNG(t, ctx, "").
 			BodyContains(value).
 			NoError()
 	*/
 	ctx := Context()
-	img, err := Svc.ReadResFile("bus.jpeg")
+	img, err := Svc.ReadResFile("bus.png")
 	assert.NoError(t, err)
-	BusJPEG(t, ctx, "").
+	BusPNG(t, ctx, "").
 		StatusOK().
-		ContentType("image/jpeg").
+		ContentType("image/png").
 		BodyContains(img)
 }
 

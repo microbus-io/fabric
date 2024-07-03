@@ -35,7 +35,7 @@ type Mock struct {
 	mockEcho func(w http.ResponseWriter, r *http.Request) (err error)
 	mockPing func(w http.ResponseWriter, r *http.Request) (err error)
 	mockCalculator func(w http.ResponseWriter, r *http.Request) (err error)
-	mockBusJPEG func(w http.ResponseWriter, r *http.Request) (err error)
+	mockBusPNG func(w http.ResponseWriter, r *http.Request) (err error)
 	mockLocalization func(w http.ResponseWriter, r *http.Request) (err error)
 	mockRoot func(w http.ResponseWriter, r *http.Request) (err error)
 }
@@ -120,18 +120,18 @@ func (svc *Mock) Calculator(w http.ResponseWriter, r *http.Request) (err error) 
 	return errors.Trace(err)
 }
 
-// MockBusJPEG sets up a mock handler for the BusJPEG endpoint.
-func (svc *Mock) MockBusJPEG(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
-	svc.mockBusJPEG = handler
+// MockBusPNG sets up a mock handler for the BusPNG endpoint.
+func (svc *Mock) MockBusPNG(handler func(w http.ResponseWriter, r *http.Request) (err error)) *Mock {
+	svc.mockBusPNG = handler
 	return svc
 }
 
-// BusJPEG runs the mock handler set by MockBusJPEG.
-func (svc *Mock) BusJPEG(w http.ResponseWriter, r *http.Request) (err error) {
-	if svc.mockBusJPEG == nil {
-		return errors.New("mocked endpoint 'BusJPEG' not implemented")
+// BusPNG runs the mock handler set by MockBusPNG.
+func (svc *Mock) BusPNG(w http.ResponseWriter, r *http.Request) (err error) {
+	if svc.mockBusPNG == nil {
+		return errors.New("mocked endpoint 'BusPNG' not implemented")
 	}
-	err = svc.mockBusJPEG(w, r)
+	err = svc.mockBusPNG(w, r)
 	return errors.Trace(err)
 }
 

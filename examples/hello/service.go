@@ -199,10 +199,10 @@ func (svc *Service) TickTock(ctx context.Context) error {
 }
 
 /*
-BusJPEG serves an image from the embedded resources.
+BusPNG serves an image from the embedded resources.
 */
-func (svc *Service) BusJPEG(w http.ResponseWriter, r *http.Request) (err error) {
-	return svc.ServeResFile("bus.jpeg", w, r)
+func (svc *Service) BusPNG(w http.ResponseWriter, r *http.Request) (err error) {
+	return svc.ServeResFile("bus.png", w, r)
 }
 
 /*

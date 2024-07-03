@@ -40,7 +40,7 @@ pa6r5ohm5h.hello.example
 n89hmtb9iq.calculator.example
 ```
 
-The `/hello` endpoint renders a simple greeting. It demonstrates the use of configs as well as taking in arguments from the URL. The single endpoint `/hello` takes in a query argument `name` and prints the greeting specified in the `Greeting` config, repeated as many times as indicate by the `Repeat` config. The values of these configs are set in `examples/main/config.yaml`.
+The `/hello` endpoint renders a simple greeting. It demonstrates the use of configs as well as taking in arguments from the URL. The single endpoint `/hello` takes in a query argument `name` and prints the greeting specified in the `Greeting` config, repeated as many times as indicate by the `Repeat` config. The values of these configs are set in `main/config.yaml`.
 
 http://localhost:8080/hello.example/hello?name=Bella prints:
 
@@ -54,7 +54,7 @@ The `/calculator` endpoint renders a rudimentary UI of a calculator. Behind the 
 
 <img src="examples-hello-1.png" width="315">
 
-The `/bus.jpeg` endpoint serves an image from the embedded resources directory.
+The `/bus.png` endpoint serves an image from the embedded resources directory.
 
 The `/localized` endpoint demonstrates loading a localized string from the `strings.yaml` resource based on the request's `Accept-Language` header.
 

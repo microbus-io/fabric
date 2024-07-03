@@ -10,8 +10,8 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/examples/main",
-            "cwd": "${workspaceFolder}/examples/main"
+            "program": "${workspaceFolder}/main",
+            "cwd": "${workspaceFolder}/main"
         },
         {
             "name": "Codegen",

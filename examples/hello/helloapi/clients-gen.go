@@ -54,7 +54,7 @@ var (
 	URLOfEcho = httpx.JoinHostAndPath(Hostname, `:443/echo`)
 	URLOfPing = httpx.JoinHostAndPath(Hostname, `:443/ping`)
 	URLOfCalculator = httpx.JoinHostAndPath(Hostname, `:443/calculator`)
-	URLOfBusJPEG = httpx.JoinHostAndPath(Hostname, `:443/bus.jpeg`)
+	URLOfBusPNG = httpx.JoinHostAndPath(Hostname, `:443/bus.png`)
 	URLOfLocalization = httpx.JoinHostAndPath(Hostname, `:443/localization`)
 	URLOfRoot = httpx.JoinHostAndPath(Hostname, `//root`)
 )
@@ -694,12 +694,12 @@ func (_c *MulticastClient) Calculator(ctx context.Context, r *http.Request) <-ch
 }
 
 /*
-BusJPEG serves an image from the embedded resources.
+BusPNG serves an image from the embedded resources.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) BusJPEG(ctx context.Context, url string) (res *http.Response, err error) {
-	url, err = httpx.ResolveURL(URLOfBusJPEG, url)
+func (_c *Client) BusPNG(ctx context.Context, url string) (res *http.Response, err error) {
+	url, err = httpx.ResolveURL(URLOfBusPNG, url)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -715,13 +715,13 @@ func (_c *Client) BusJPEG(ctx context.Context, url string) (res *http.Response, 
 }
 
 /*
-BusJPEG serves an image from the embedded resources.
+BusPNG serves an image from the embedded resources.
 
 If a URL is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) BusJPEG(ctx context.Context, url string) <-chan *pub.Response {
+func (_c *MulticastClient) BusPNG(ctx context.Context, url string) <-chan *pub.Response {
 	var err error
-	url, err = httpx.ResolveURL(URLOfBusJPEG, url)
+	url, err = httpx.ResolveURL(URLOfBusPNG, url)
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}
@@ -733,13 +733,13 @@ func (_c *MulticastClient) BusJPEG(ctx context.Context, url string) <-chan *pub.
 }
 
 /*
-BusJPEG_Do performs a customized request to the BusJPEG endpoint.
+BusPNG_Do performs a customized request to the BusPNG endpoint.
 
-BusJPEG serves an image from the embedded resources.
+BusPNG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *Client) BusJPEG_Do(r *http.Request) (res *http.Response, err error) {
+func (_c *Client) BusPNG_Do(r *http.Request) (res *http.Response, err error) {
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
 		if err != nil {
@@ -749,7 +749,7 @@ func (_c *Client) BusJPEG_Do(r *http.Request) (res *http.Response, err error) {
 	if r.Method != `GET` {
 		return nil, errors.Newc(http.StatusNotFound, "")
 	}
-	url, err := httpx.ResolveURL(URLOfBusJPEG, r.URL.String())
+	url, err := httpx.ResolveURL(URLOfBusPNG, r.URL.String())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -765,13 +765,13 @@ func (_c *Client) BusJPEG_Do(r *http.Request) (res *http.Response, err error) {
 }
 
 /*
-BusJPEG_Do performs a customized request to the BusJPEG endpoint.
+BusPNG_Do performs a customized request to the BusPNG endpoint.
 
-BusJPEG serves an image from the embedded resources.
+BusPNG serves an image from the embedded resources.
 
 If a request is not provided, it defaults to the URL of the endpoint. Otherwise, it is resolved relative to the URL of the endpoint.
 */
-func (_c *MulticastClient) BusJPEG_Do(ctx context.Context, r *http.Request) <-chan *pub.Response {
+func (_c *MulticastClient) BusPNG_Do(ctx context.Context, r *http.Request) <-chan *pub.Response {
 	var err error
 	if r == nil {
 		r, err = http.NewRequest(`GET`, "", nil)
@@ -782,7 +782,7 @@ func (_c *MulticastClient) BusJPEG_Do(ctx context.Context, r *http.Request) <-ch
 	if r.Method != `GET` {
 		return _c.errChan(errors.Newc(http.StatusNotFound, ""))
 	}
-	url, err := httpx.ResolveURL(URLOfBusJPEG, r.URL.String())
+	url, err := httpx.ResolveURL(URLOfBusPNG, r.URL.String())
 	if err != nil {
 		return _c.errChan(errors.Trace(err))
 	}

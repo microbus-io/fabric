@@ -146,10 +146,10 @@ webs:
       Calculator renders a UI for a calculator.
       The calculation operation is delegated to another microservice in order to demonstrate
       a call from one microservice to another.
-  - signature: BusJPEG()
+  - signature: BusPNG()
     method: GET
-    path: /bus.jpeg
-    description: BusJPEG serves an image from the embedded resources.
+    path: /bus.png
+    description: BusPNG serves an image from the embedded resources.
   - signature: Localization()
     description: Localization prints hello in the language best matching the request's Accept-Language header.
   - signature: Root()

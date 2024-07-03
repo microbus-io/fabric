@@ -4,14 +4,14 @@ The `Connector` is the most fundamental construct of the framework, providing ke
 
 * Startup and shutdown with corresponding callbacks
 * Service hostname and a random instance ID, both used to address the microservice
-* [Connectivity to NATS](../tech/natsconnection.md)
+* [Connectivity to NATS](../tech/nats-connection.md)
 * HTTP-like communication over NATS, unicast (request/response) and multicast (pub/sub)
 * JSON logger
-* [Configuration](../tech/configuration.md)
+* [Configuration](../blocks/configuration.md)
 * Tickers to execute jobs on a fixed schedule
-* Distributed cache
+* [Distributed cache](../blocks/distrib-cache.md)
 * Bundled resource files and strings
-* [Distributed tracing](../tech/distribtracing.md)
+* [Distributed tracing](../blocks/distrib-tracing.md)
 
 The `connector` package includes a separate source file for each functional area of the microservice. All these source files implement the same `Connector` class.
 

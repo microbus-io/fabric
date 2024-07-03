@@ -1,8 +1,9 @@
-# Package `services/metrics`
+# Package `coreservices/metrics`
 
 The `Microbus` framework relies on Prometheus for the collection of metrics. Prometheus pulls metrics from the metrics core microservice, which in turn pulls and aggregates metrics from all microservices it can reach on the NATS bus.
 
-<img src="coreservices-metrics-1.svg" width="600">
+<img src="coreservices-metrics-1.drawio.svg">
+<p>
 
 The endpoint to obtain metrics from the metrics microservice is `https://localhost:8080/metrics.sys/collect`. An optional argument `service` can be used to obtain the metrics of an individual service. The `secretkey` argument is mandatory except in local development and testing. It must match the value set for the `SecretKey` configuration property or else the request will be refused.
 
@@ -22,9 +23,9 @@ By default, all microservices produce a standard set of metrics:
 * Count of distributed cache hits and misses
 * Total weight of the distributed cache
 
-## Application Metrics
+## Solution Metrics
 
-In addition, application developers are able to define and collect arbitrary metrics that are pertinent to their specific application, using the `DefineMetric`, `ObserveMetric` and `IncrementMetric` methods of the `Connector`. [Code generation](../tech/codegen.md) can be used to assist in the definition of metrics.
+In addition, solution developers are able to define and collect arbitrary metrics that are pertinent to their specific solution, using the `DefineMetric`, `ObserveMetric` and `IncrementMetric` methods of the `Connector`. [Code generation](../blocks/codegen.md) can be used to assist in the definition of metrics.
 
 ```yaml
 # Metrics
@@ -53,7 +54,7 @@ The [collector types](https://prometheus.io/docs/concepts/metric_types/) support
 
 * Counter
 * Histogram
-* Guage
+* Gauge
 
 ## Code Examples
 
@@ -61,7 +62,7 @@ The [collector types](https://prometheus.io/docs/concepts/metric_types/) support
 
 ```go
 func (svc *Intermediate) IncrementLikes(num int, postId string) error {
-	...
+	// ...
 }
 
 func (svc *Intermediate) MyFunc() error {

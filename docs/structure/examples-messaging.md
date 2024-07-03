@@ -33,37 +33,16 @@ GET https://4l284tgjfk.messaging.example/no-queue
 Refresh the page to try again
 ```
 
-The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because `examples/main.go` includes 3 instances of the `messaging.example`, this ID is likely to change on each request with load-balancing.
+The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because `main/main.go` includes 3 instances of the `messaging.example`, this ID is likely to change on each request with load-balancing.
 
 ```go
-func main() {
-	app := application.New()
-	app.Include(
-		// Configurator should start first
-		configurator.NewService(),
-	)
-	app.Include(
-		httpegress.NewService(),
-		openapiportal.NewService(),
-		metrics.NewService(),
-		// inbox.NewService(),
-
-		hello.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		messaging.NewService(),
-		calculator.NewService(),
-		eventsource.NewService(),
-		eventsink.NewService(),
-		directory.NewService(),
-		browser.NewService(),
-	)
-	app.Include(
-		// When everything is ready, begin to accept external requests
-		httpingress.NewService(),
-	)
-	app.Run()
-}
+app.Include(
+	// ...
+	messaging.NewService(),
+	messaging.NewService(),
+	messaging.NewService(),
+	// ...
+)
 ```
 
 The second paragraph is showing the result of making a standard unicast request to the `/default-queue` endpoint. Only one of the 3 instances responds. A random instance is chosen by NATS, effectively load-balancing between the instances.
