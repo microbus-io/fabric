@@ -151,17 +151,17 @@ Find us at any of the following channels. We're looking forward to hearing from 
 | Find us at... | |
 |------------|-----|
 | Website    | [www.microbus.io](https://www.microbus.io) |
-| Github     | [github.com/microbus-io](https://www.github.com/microbus-io) |
 | Email      | in<span>fo</span>@microbus<span>.io</span> |
+| Github     | [github.com/microbus-io](https://www.github.com/microbus-io) |
 | LinkedIn   | [linkedin.com/company/microbus-io](https://www.linkedin.com/company/microbus-io) |
 | Slack      | [microbus-io.slack.com](https://microbus-io.slack.com) |
 | Discord    | [discord.gg/FAJHnGkNqJ](https://discord.gg/FAJHnGkNqJ) |
-| YouTube    | [@microbus-io](https://www.youtube.com/@microbus-io) |
 | Reddit     | [r/microbus](https://reddit.com/r/microbus) |
+| YouTube    | [@microbus-io](https://www.youtube.com/@microbus-io) |
 
 ## 📃 Legal
 
-An explicit license from `Microbus LLC` is required to use the `Microbus` framework.
+The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware company formed to hold the combined intellectual property - under the [Apache License 2.0](./LICENSE).
 
 Refer to the list of [third-party open source software](./docs/general/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
 

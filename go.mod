@@ -8,7 +8,7 @@ require (
 	github.com/flashmob/go-guerrilla v1.6.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/invopop/jsonschema v0.12.0
-	github.com/microbus-io/copyrighter v1.0.0
+	github.com/microbus-io/copyrighter v1.0.1
 	github.com/mnako/letters v0.2.2
 	github.com/nats-io/nats.go v1.31.0
 	github.com/prometheus/client_golang v1.17.0
