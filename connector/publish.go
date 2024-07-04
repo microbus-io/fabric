@@ -131,8 +131,53 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 		outboundFrame.Set(k, v[0])
 	}
 
+	// Locality-aware routing
+	origURL := req.URL
+	localityCacheKey := ""
+	lastKnownLocality := ""
+	if !req.Multicast && c.locality != "" {
+		localityCacheKey, _, _ = strings.Cut(origURL, "?")
+		lastKnownLocality, _ = c.localResponder.Load(localityCacheKey, lru.Bump(true))
+		if lastKnownLocality != "" {
+			// Adjust the hostname to include the best known locality, e.g. example.com -> west.us.example.com
+			before, after, _ := strings.Cut(origURL, "://")
+			req.URL = before + "://" + lastKnownLocality + "." + after
+		}
+	}
+
 	// Make the request
 	output := c.makeRequest(ctx, req)
+
+	// Locality-aware routing
+	if !req.Multicast && c.locality != "" {
+		res, err := output[0].Get()
+		if lastKnownLocality != "" && errors.StatusCode(err) == http.StatusNotFound {
+			// No response from the localized URL so retry at the original URL
+			c.localResponder.Delete(localityCacheKey)
+			lastKnownLocality = ""
+			req.URL = origURL
+			output = c.makeRequest(ctx, req)
+			res, _ = output[0].Get()
+		}
+		responseLocality := frame.Of(res).Locality()
+		if responseLocality != "" && len(responseLocality) > len(lastKnownLocality) {
+			longestCommonSuffix := ""
+			parts := strings.Split(responseLocality, ".")
+			for i := len(parts) - 1; i >= 0; i-- {
+				l := strings.Join(parts[i:], ".")
+				if c.locality == l || strings.HasSuffix(c.locality, "."+l) {
+					longestCommonSuffix = l
+				} else {
+					break
+				}
+			}
+			if len(longestCommonSuffix) > len(lastKnownLocality) {
+				c.localResponder.Store(localityCacheKey, longestCommonSuffix)
+			}
+		}
+	}
+
+	// Return as channel
 	ch := make(chan *pub.Response, len(output))
 	for _, x := range output {
 		ch <- x

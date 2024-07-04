@@ -38,6 +38,7 @@ const (
 	HeaderQueue         = HeaderPrefix + "Queue"
 	HeaderFragment      = HeaderPrefix + "Fragment"
 	HeaderClockShift    = HeaderPrefix + "Clock-Shift"
+	HeaderLocality      = HeaderPrefix + "Locality"
 
 	OpCodeError    = "Err"
 	OpCodeAck      = "Ack"
@@ -400,5 +401,21 @@ func (f Frame) SetLanguages(language ...string) {
 		f.h.Del("Accept-Language")
 	} else {
 		f.h.Set("Accept-Language", strings.Join(language, ", "))
+	}
+}
+
+// Locality indicates the geographic locality of the microservice that handled the request.
+// It is used by the client to optimize routing of unicast requests.
+func (f Frame) Locality() string {
+	return f.h.Get(HeaderLocality)
+}
+
+// SetLocality sets the geographic locality of the microservice that handled the request.
+// It is used by the client to optimize routing of unicast requests.
+func (f Frame) SetLocality(locality string) {
+	if locality == "" {
+		f.h.Del(HeaderLocality)
+	} else {
+		f.h.Set(HeaderLocality, locality)
 	}
 }

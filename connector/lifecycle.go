@@ -86,6 +86,16 @@ func (c *Connector) Startup() (err error) {
 		}
 	}
 
+	// Determine the geographic locality
+	if c.locality == "" {
+		if locality := env.Get("MICROBUS_LOCALITY"); locality != "" {
+			err := c.SetLocality(locality)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+	}
+
 	// Identify the environment deployment
 	if c.deployment == "" {
 		if deployment := env.Get("MICROBUS_DEPLOYMENT"); deployment != "" {

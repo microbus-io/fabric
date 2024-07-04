@@ -33,7 +33,6 @@ var (
 // Hostnames must contain only alphanumeric characters, hyphens, underscores and dot separators.
 func ValidateHostname(hostname string) error {
 	if !hostnameValidator.MatchString(strings.ToLower(hostname)) {
-		// The hostname "all" is reserved to refer to all microservices
 		return errors.Newf("invalid hostname '%s'", hostname)
 	}
 	return nil

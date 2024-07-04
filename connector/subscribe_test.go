@@ -732,3 +732,84 @@ func TestConnector_InvalidPathArguments(t *testing.T) {
 		}
 	}
 }
+
+func TestConnector_SubscriptionLocality(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := New("alpha.subscription.locality.connector")
+	alpha.SetLocality("az1.dc2.west.us")
+
+	beta1 := New("beta.subscription.locality.connector")
+	beta1.SetLocality("az2.dc2.west.us")
+
+	beta2 := New("beta.subscription.locality.connector")
+	beta2.SetLocality("az1.dc3.west.us")
+
+	beta3 := New("beta.subscription.locality.connector")
+	beta3.SetLocality("az1.dc2.east.us")
+
+	beta4 := New("beta.subscription.locality.connector")
+	beta4.SetLocality("az4.dc5.north.eu")
+
+	beta5 := New("beta.subscription.locality.connector")
+	beta5.SetLocality("az1.dc1.southwest.ap")
+
+	beta6 := New("beta.subscription.locality.connector")
+	beta6.SetLocality("az4.dc2.south.ap")
+
+	// Startup the microservices
+	for _, con := range []*Connector{alpha, beta1, beta2, beta3, beta4, beta5, beta6} {
+		con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
+			return nil
+		})
+		err := con.Startup()
+		assert.NoError(t, err)
+		defer con.Shutdown()
+	}
+
+	// Requests should converge to beta1 that is in the same DC as alpha
+	for repeat := 0; repeat < 16; repeat++ {
+		beta1Found := false
+		for sticky := 0; sticky < 16; {
+			localityBefore, _ := alpha.localResponder.Load("https://beta.subscription.locality.connector/ok")
+			res, err := alpha.GET(ctx, "https://beta.subscription.locality.connector/ok")
+			if !assert.NoError(t, err) {
+				break
+			}
+			localityAfter, _ := alpha.localResponder.Load("https://beta.subscription.locality.connector/ok")
+			assert.GreaterOrEqual(t, len(localityAfter), len(localityBefore))
+
+			if beta1Found {
+				// Once beta1 was found, all future requests should go there
+				assert.Equal(t, beta1.id, frame.Of(res).FromID())
+				sticky++
+			}
+			beta1Found = frame.Of(res).FromID() == beta1.id
+		}
+		alpha.localResponder.Clear() // Reset
+	}
+
+	// Shutting down beta1, requests should converge to beta2 that is in the same region as alpha
+	beta1.Shutdown()
+
+	for repeat := 0; repeat < 16; repeat++ {
+		beta2Found := false
+		for sticky := 0; sticky < 16; {
+			res, err := alpha.GET(ctx, "https://beta.subscription.locality.connector/ok")
+			if !assert.NoError(t, err) {
+				break
+			}
+			assert.NotEqual(t, beta1.id, frame.Of(res).FromID()) // beta1 was shut down
+			if beta2Found {
+				// Once beta2 was found, all future requests should go there
+				assert.Equal(t, beta2.id, frame.Of(res).FromID())
+				sticky++
+			}
+			beta2Found = frame.Of(res).FromID() == beta2.id
+		}
+		alpha.localResponder.Clear() // Reset
+	}
+}

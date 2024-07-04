@@ -61,6 +61,7 @@ type Connector struct {
 	deployment  string
 	description string
 	version     int
+	locality    string
 
 	onStartup       []service.StartupHandler
 	onShutdown      []service.ShutdownHandler
@@ -99,6 +100,7 @@ type Connector struct {
 
 	knownResponders *lru.Cache[string, map[string]bool]
 	postRequestData *lru.Cache[string, string]
+	localResponder  *lru.Cache[string, string]
 
 	configs         map[string]*cfg.Config
 	configLock      sync.Mutex
@@ -128,6 +130,7 @@ func NewConnector() *Connector {
 		lifetimeCtx:      context.Background(),
 		knownResponders:  lru.NewCache[string, map[string]bool](),
 		postRequestData:  lru.NewCache[string, string](),
+		localResponder:   lru.NewCache[string, string](),
 		multicastChanCap: 32,
 		metricDefs:       map[string]mtr.Metric{},
 	}
@@ -137,6 +140,8 @@ func NewConnector() *Connector {
 	c.knownResponders.SetMaxAge(24 * time.Hour)
 	c.postRequestData.SetMaxWeight(256 * 1024)
 	c.postRequestData.SetMaxAge(time.Minute)
+	c.localResponder.SetMaxWeight(16 * 1024)
+	c.localResponder.SetMaxAge(24 * time.Hour)
 
 	c.newMetricsRegistry()
 
@@ -156,9 +161,9 @@ func (c *Connector) ID() string {
 }
 
 // SetHostname sets the hostname of the microservice.
-// Hostnames are case-insensitive. Each segment of the hostname may contain letters and numbers only.
+// Hostnames are case-insensitive. Each segment of the hostname may contain letters, numbers, hyphens or underscores only.
 // Segments are separated by dots.
-// For example, this.is.a.valid.hostname.123.local
+// For example, this.is.a.valid.host-name.123.local
 func (c *Connector) SetHostname(hostname string) error {
 	if c.started {
 		return c.captureInitErr(errors.New("already started"))
@@ -169,6 +174,7 @@ func (c *Connector) SetHostname(hostname string) error {
 	}
 	hn := strings.ToLower(hostname)
 	if hn == "all" || strings.HasSuffix(hn, ".all") {
+		// The hostname "all" is reserved to refer to all microservices
 		return c.captureInitErr(errors.Newf("disallowed hostname '%s'", hostname))
 	}
 	c.hostname = hostname
@@ -270,6 +276,27 @@ func (c *Connector) SetPlane(plane string) error {
 	}
 	c.plane = plane
 	return nil
+}
+
+// SetLocality sets the geographic locality of the microservice which is used to optimize routing.
+// Localities are hierarchical with the more specific identifiers first, separated by dots.
+// It can be set to correlate to AWS regions such as az1.dc2.west.us, or arbitrarily to rome.italy.europe for example.
+// Localities are case-insensitive. Each segment of the hostname may contain letters, numbers, hyphens or underscores only.
+func (c *Connector) SetLocality(locality string) error {
+	if c.started {
+		return c.captureInitErr(errors.New("already started"))
+	}
+	locality = strings.TrimSpace(locality)
+	if err := utils.ValidateHostname(locality); err != nil {
+		return c.captureInitErr(errors.Trace(err))
+	}
+	c.locality = locality
+	return nil
+}
+
+// Locality returns the geographic locality of the microservice.
+func (c *Connector) Locality() string {
+	return c.locality
 }
 
 // connectToNATS connects to the NATS cluster based on settings in environment variables

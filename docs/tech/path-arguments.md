@@ -1,5 +1,9 @@
 # Path Arguments
 
+Path arguments are request arguments that are extracted from a URL's path rather than its query string.
+
+[Warning!](#warning) Path arguments interfere with multicast as well as locality-aware routing. 
+
 ## Fixed Path
 
 In the typical case, endpoints of a microservice have fixed URLs at which they are reachable. Consider the following `service.yaml` specification.
@@ -29,7 +33,7 @@ Host: calculator.example
 
 ## Variable Path
 
-A fixed path is consistent with the [RPC over JSON](./rpcvsrest.md) style of API but is insufficient for implementing a [RESTful](./rpcvsrest.md) style of API where it is common to expect input arguments in the path of the request. This is where path arguments come into play.
+A fixed path is consistent with the [RPC over JSON](./rpc-vs-rest.md) style of API but is insufficient for implementing a [RESTful](./rpc-vs-rest.md) style of API where it is common to expect input arguments in the path of the request. This is where path arguments come into play.
 
 Consider the following `service.yaml` specification that defines a path argument `{id}` and a corresponding function argument `id int`:
 
@@ -125,9 +129,9 @@ func (svc *Service) AvatarImage(w http.ResponseWriter, r *http.Request) (err err
 }
 ```
 
-## Pervasive Routing
+## Warning
 
-Path arguments are not recommended for pervasive (non-load balanced) endpoints, events or sinks. Using path arguments in these cases will result in significantly slow response times because they interfere with an optimization that relies on a fixed URL pattern.
+Path arguments are not recommended for pervasive (non-load balanced) endpoints, events or sinks. Using path arguments in these cases will result in significantly slower response times because they interfere with an optimization that relies on a fixed URL pattern.
 
 ```yaml
 functions:
@@ -136,3 +140,7 @@ functions:
     path: /data/{id}
     queue: none
 ```
+
+In addition, the variable nature of the path also interferes with locality-aware routing and relevant requests will route randomly instead.
+
+Given these constraints, it is advised to use path arguments only for external-facing endpoints and use fixed paths for internal service-to-service communications.

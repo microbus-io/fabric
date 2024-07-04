@@ -103,7 +103,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Integration testing](./docs/blocks/integrationtesting.md) - Test a multitude of microservices together
 * [Environment variables](./docs/tech/envars.md) - Environment variables used to initialize microservices
 * [NATS connection settings](./docs/tech/nats-connection.md) - How to configure microservices to connect and authenticate to NATS
-* [RPC over JSON vs REST](./docs/tech/rpcvsrest.md) - Implement these common web API styles
+* [RPC over JSON vs REST](./docs/tech/rpc-vs-rest.md) - Implement these common web API styles
 * [Adaptable topology](./docs/blocks/topology.md) - Grow the topology of your system to match your requirements
 * [Bootstrap a new project](./docs/howto/new-project.md) - Create a project for your solution
 * [Create a new microservice](./docs/howto/create-microservice.md) - Create a new microservice and add it to your solution
@@ -161,7 +161,7 @@ Find us at any of the following channels. We're looking forward to hearing from 
 
 ## 📃 Legal
 
-The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware company formed to hold the combined intellectual property - under the [Apache License 2.0](./LICENSE).
+The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware limited liability company formed to hold the combined intellectual property - under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 Refer to the list of [third-party open source software](./docs/general/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
 

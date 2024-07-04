@@ -37,15 +37,14 @@ type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
 // Subscription handles incoming requests.
 // Although technically public, it is used internally and should not be constructed by microservices directly.
 type Subscription struct {
-	Host      string
-	Port      string
-	Method    string
-	Path      string
-	Queue     string
-	Handler   any
-	HostSub   *nats.Subscription
-	DirectSub *nats.Subscription
-	specPath  string
+	Host     string
+	Port     string
+	Method   string
+	Path     string
+	Queue    string
+	Handler  any
+	Subs     []*nats.Subscription
+	specPath string
 }
 
 /*

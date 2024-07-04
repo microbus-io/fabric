@@ -6,7 +6,7 @@ Functional endpoints support three specially named arguments to allow finer cont
 * An output argument `httpResponseBody` is marshaled as the response (JSON)
 * An output argument `httpStatusCode` of type `int` sets the response's status code
 
-These arguments are often required when implementing a [RESTful API](./rpcvsrest.md).
+These arguments are often required when implementing a [RESTful API](./rpc-vs-rest.md).
 
 ## `httpRequestBody`
 

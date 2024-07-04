@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -124,7 +125,7 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) {
 
 // activateSub will subscribe to NATS
 func (c *Connector) activateSub(s *sub.Subscription) (err error) {
-	if s.HostSub != nil && s.DirectSub != nil {
+	if len(s.Subs) > 0 {
 		return nil
 	}
 	// Recalculate the subscription path in case the hostname changed since it was created
@@ -136,28 +137,35 @@ func (c *Connector) activateSub(s *sub.Subscription) (err error) {
 	handler := func(msg *nats.Msg) {
 		c.onRequest(msg, s)
 	}
-	if s.HostSub == nil {
-		if s.Queue != "" {
-			s.HostSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Method, s.Host, s.Port, s.Path), s.Queue, handler)
-		} else {
-			s.HostSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Method, s.Host, s.Port, s.Path), handler)
-		}
-		if err != nil {
-			return errors.Trace(err)
+	prefixes := []string{
+		"",
+		c.id,
+	}
+	if c.locality != "" {
+		loc := strings.Split(c.locality, ".")
+		for i := len(loc) - 1; i >= 0; i-- {
+			prefixes = append(prefixes, strings.Join(loc[i:], "."))
 		}
 	}
-	if s.DirectSub == nil {
+	for _, prefix := range prefixes {
+		var natsSub *nats.Subscription
+		if prefix != "" {
+			prefix += "."
+		}
 		if s.Queue != "" {
-			s.DirectSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Method, c.id+"."+s.Host, s.Port, s.Path), s.Queue, handler)
+			natsSub, err = c.natsConn.QueueSubscribe(subjectOfSubscription(c.plane, s.Method, prefix+s.Host, s.Port, s.Path), s.Queue, handler)
 		} else {
-			s.DirectSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Method, c.id+"."+s.Host, s.Port, s.Path), handler)
+			natsSub, err = c.natsConn.Subscribe(subjectOfSubscription(c.plane, s.Method, prefix+s.Host, s.Port, s.Path), handler)
 		}
 		if err != nil {
-			if s.HostSub.Unsubscribe() == nil {
-				s.HostSub = nil
-			}
-			return errors.Trace(err)
+			break
 		}
+		s.Subs = append(s.Subs, natsSub)
+	}
+	if err != nil {
+		c.LogError(c.lifetimeCtx, "Activating sub", log.Error(err), log.String("url", s.Canonical()), log.String("method", s.Method))
+		c.deactivateSub(s)
+		return errors.Trace(err)
 	}
 	// c.LogDebug(c.lifetimeCtx, "Sub activated", log.String("url", s.Canonical()), log.String("method", req.Method))
 	return nil
@@ -180,24 +188,16 @@ func (c *Connector) deactivateSubs() error {
 // deactivateSub unsubscribes from NATS.
 func (c *Connector) deactivateSub(s *sub.Subscription) error {
 	var lastErr error
-	if s.HostSub != nil {
-		err := s.HostSub.Unsubscribe()
+	for _, natsSub := range s.Subs {
+		err := natsSub.Unsubscribe()
 		if err != nil {
 			lastErr = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Unsubscribing host sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
-		} else {
-			s.HostSub = nil
 		}
 	}
-	if s.DirectSub != nil {
-		err := s.DirectSub.Unsubscribe()
-		if err != nil {
-			lastErr = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Unsubscribing direct sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
-		} else {
-			s.DirectSub = nil
-		}
+	if lastErr != nil {
+		c.LogError(c.lifetimeCtx, "Deactivating sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
 	}
+	s.Subs = nil
 	// c.LogDebug(c.Lifetime(), "Sub deactivated", log.String("url", s.Canonical()), log.String("method", s.Method))
 	return lastErr
 }
@@ -256,12 +256,15 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 		frame.HeaderFromId:   c.id,
 		frame.HeaderMsgId:    msgID,
 		frame.HeaderQueue:    queue,
+		frame.HeaderLocality: c.locality,
 	}
 	for k, v := range header {
-		buf.WriteString("\r\n")
-		buf.WriteString(k)
-		buf.WriteString(": ")
-		buf.WriteString(v)
+		if v != "" {
+			buf.WriteString("\r\n")
+			buf.WriteString(k)
+			buf.WriteString(": ")
+			buf.WriteString(v)
+		}
 	}
 	buf.WriteString("\r\n\r\n")
 
@@ -423,6 +426,7 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	frame.Of(httpResponse).SetFromVersion(c.version)
 	frame.Of(httpResponse).SetQueue(queue)
 	frame.Of(httpResponse).SetOpCode(frame.OpCodeResponse)
+	frame.Of(httpResponse).SetLocality(c.locality)
 	if handlerErr != nil {
 		frame.Of(httpResponse).SetOpCode(frame.OpCodeError)
 	}

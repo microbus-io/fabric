@@ -7,6 +7,7 @@ The `Microbus` framework uses environment variables for various purposes:
 * Designating a plane of communication
 * Enabling output of debug-level messages
 * Configuring the URL to the OpenTelemetry collector endpoint
+* Designating a geographic locality
 
 Environment variables may also be set by placing an `env.yaml` file in the working directory of the executable running the microservice. The bundled example application includes such a file at `main/env.yaml`.
 
@@ -29,6 +30,12 @@ If not explicitly set via the `SetPlane` method of the `Connector`, the value is
 Applications created with `application.NewTesting` set a random plane to eliminate the chance of collision when tests are executed in parallel in the same NATS cluster, e.g. using `go test ./... -p=8`.
 
 This is an advanced feature and in most cases there is no need to customize the plane of communications.
+
+## Locality
+
+A geographic locality, when provided, is used by `Microbus` to optimize routing of unicast communications. A microservice making a unicast request will prioritize microservices that most resemble its own locality. For example, if the upstream microservice is located in `az1.dc2.west.us` and the downstream microservice is located in both `az2.dc2.west.us` and `az1.dc1.east.us`, the request will be directed to the former because they share the longer common suffix `dc2.west.us`.
+
+Locality-aware routing requires that both upstream and downstream microservices designate a locality by means of the `MICROBUS_LOCALITY` environment variable. The pattern is similar to that of a standard hostname, with the most specific location first.
 
 ## Logging
 
