@@ -59,7 +59,7 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 		return nil, nil
 	}
 
-	// Serialize the bodies of all fragments.
+	// Serialize the bodies of all fragments
 	bodies := []io.Reader{}
 	var contentLength int64
 	contentLengthOK := true
