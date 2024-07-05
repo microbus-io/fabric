@@ -215,5 +215,6 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 26](https://github.com/microbus-io/fabric/tree/milestone/26):
 
 * Locality-aware routing given a `MICROBUS_LOCALITY` environment variable
+* Determine locality automatically from availability zone name in AWS or GCP
 * Renamed the inbox core microservice to SMTP ingress
 * Change hostname suffix of core microservices to `.core`
