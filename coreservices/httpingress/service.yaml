@@ -20,7 +20,7 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: http.ingress.sys
+  host: http.ingress.core
   description: The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.
   openApi: false
 

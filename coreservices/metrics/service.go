@@ -44,7 +44,7 @@ var (
 )
 
 /*
-Service implements the metrics.sys microservice.
+Service implements the metrics.core microservice.
 
 The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.
 */

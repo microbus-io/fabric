@@ -64,7 +64,7 @@ var (
 )
 
 /*
-Service implements the http.ingress.sys microservice.
+Service implements the http.ingress.core microservice.
 
 The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.
 */

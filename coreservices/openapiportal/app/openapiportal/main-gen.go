@@ -27,7 +27,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/openapiportal"
 )
 
-// main runs an app containing only the openapiportal.sys service.
+// main runs an app containing only the openapiportal.core service.
 func main() {
 	app := application.New()
 	app.Include(openapiportal.NewService())

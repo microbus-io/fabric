@@ -27,7 +27,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/metrics"
 )
 
-// main runs an app containing only the metrics.sys service.
+// main runs an app containing only the metrics.core service.
 func main() {
 	app := application.New()
 	app.Include(metrics.NewService())

@@ -180,7 +180,7 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 		c.LogDebug(ctx, "Requesting config values", log.String("names", strings.Join(req.Names, " ")))
 		response, err := c.Request(
 			ctx,
-			pub.POST("https://configurator.sys/values"),
+			pub.POST("https://configurator.core/values"),
 			pub.Body(req),
 		)
 		if err != nil {

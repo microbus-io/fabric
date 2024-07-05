@@ -39,7 +39,7 @@ var (
 )
 
 /*
-Service implements the configurator.sys microservice.
+Service implements the configurator.core microservice.
 
 The Configurator is a core microservice that centralizes the dissemination of configuration values to other microservices.
 */

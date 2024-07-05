@@ -43,7 +43,7 @@ import (
 const processorName = "MessageProcessor"
 
 /*
-Service implements the smtp.ingress.sys microservice.
+Service implements the smtp.ingress.core microservice.
 
 The SMTP ingress microservice listens for incoming emails and fires corresponding events.
 */

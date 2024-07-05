@@ -69,7 +69,7 @@ var (
 var (
 	// App manages the lifecycle of the microservices used in the test
 	App *application.Application
-	// Svc is the metrics.sys microservice being tested
+	// Svc is the metrics.core microservice being tested
 	Svc *Service
 )
 

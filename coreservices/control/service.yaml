@@ -20,7 +20,7 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: control.sys
+  host: control.core
   description: |-
     This microservice is created for the sake of generating the client API for the :888 control subscriptions.
     The microservice itself does nothing and should not be included in applications.

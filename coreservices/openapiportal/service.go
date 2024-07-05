@@ -43,7 +43,7 @@ var (
 )
 
 /*
-Service implements the openapiportal.sys microservice.
+Service implements the openapiportal.core microservice.
 
 The OpenAPI microservice lists links to the OpenAPI endpoint of all microservices that provide one
 on the requested port.

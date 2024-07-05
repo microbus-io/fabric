@@ -14,7 +14,7 @@ Accept-Encoding: gzip, deflate, br
 Accept-Language: en-US,en;q=0.9
 Connection: keep-alive
 Microbus-Call-Depth: 1
-Microbus-From-Host: http.ingress.sys
+Microbus-From-Host: http.ingress.core
 Microbus-From-Id: tg190vjj3j
 Microbus-Msg-Id: UQnfaJf4
 Microbus-Time-Budget: 19749
@@ -35,8 +35,8 @@ bvtgii68r8.messaging.example
 mv2pcoockl.messaging.example
 r52l78kha4.messaging.example
 pa6r5ohm5h.hello.example
-0iij3m5fhf.http.ingress.sys
-7k9f82n45f.configurator.sys
+0iij3m5fhf.http.ingress.core
+7k9f82n45f.configurator.core
 n89hmtb9iq.calculator.example
 ```
 

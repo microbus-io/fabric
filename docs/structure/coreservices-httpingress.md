@@ -21,7 +21,7 @@ On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP request
 The HTTP ingress proxy supports several configuration properties that can be set in in `config.yaml`:
 
 ```yaml
-http.ingress.sys:
+http.ingress.core:
   Ports: 9090
 ```
 

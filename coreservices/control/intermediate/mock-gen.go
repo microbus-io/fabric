@@ -37,7 +37,7 @@ var (
 	_ controlapi.Client
 )
 
-// Mock is a mockable version of the control.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the control.core microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 	mockPing func(ctx context.Context) (pong int, err error)

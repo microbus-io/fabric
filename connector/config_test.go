@@ -33,7 +33,7 @@ func TestConnector_SetConfig(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Mock config service
-	mockCfg := New("configurator.sys")
+	mockCfg := New("configurator.core")
 	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTING
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
@@ -80,7 +80,7 @@ func TestConnector_FetchConfig(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Mock a config service
-	mockCfg := New("configurator.sys")
+	mockCfg := New("configurator.core")
 	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTING
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
@@ -142,7 +142,7 @@ func TestConnector_NoFetchInTestingApp(t *testing.T) {
 	plane := rand.AlphaNum64(12)
 
 	// Mock a config service
-	mockCfg := New("configurator.sys")
+	mockCfg := New("configurator.core")
 	mockCfg.SetPlane(plane)
 	mockCfg.Subscribe("POST", "/values", func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")

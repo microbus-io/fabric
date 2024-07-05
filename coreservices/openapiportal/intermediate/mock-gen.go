@@ -37,7 +37,7 @@ var (
 	_ openapiportalapi.Client
 )
 
-// Mock is a mockable version of the openapiportal.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the openapiportal.core microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 	mockList func(w http.ResponseWriter, r *http.Request) (err error)

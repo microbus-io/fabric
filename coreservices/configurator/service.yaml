@@ -20,7 +20,7 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: configurator.sys
+  host: configurator.core
   description: The Configurator is a core microservice that centralizes the dissemination of configuration values to other microservices.
   integrationTests: false
   openApi: false

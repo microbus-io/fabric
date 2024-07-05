@@ -20,7 +20,7 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: http.egress.sys
+  host: http.egress.core
   description: The HTTP egress microservice relays HTTP requests to the internet.
 
 # Config properties

@@ -213,7 +213,7 @@ func TestConnector_Restart(t *testing.T) {
 
 	// Set up a configurator
 	plane := rand.AlphaNum64(12)
-	configurator := New("configurator.sys")
+	configurator := New("configurator.core")
 	configurator.SetDeployment(LAB) // Tickers and configs are disabled in TESTING
 	configurator.SetPlane(plane)
 

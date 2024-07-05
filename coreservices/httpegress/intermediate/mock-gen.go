@@ -37,7 +37,7 @@ var (
 	_ httpegressapi.Client
 )
 
-// Mock is a mockable version of the http.egress.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the http.egress.core microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 	mockMakeRequest func(w http.ResponseWriter, r *http.Request) (err error)

@@ -216,3 +216,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 * Locality-aware routing given a `MICROBUS_LOCALITY` environment variable
 * Renamed the inbox core microservice to SMTP ingress
+* Change hostname suffix of core microservices to `.core`

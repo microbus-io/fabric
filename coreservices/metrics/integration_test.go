@@ -68,7 +68,7 @@ func TestMetrics_Collect(t *testing.T) {
 	ctx := Context()
 	Collect_Get(t, ctx, "").
 		// All three services should be detected
-		BodyContains("metrics.sys").
+		BodyContains("metrics.core").
 		BodyNotContains("one.collect").
 		BodyNotContains("two.collect")
 
@@ -109,7 +109,7 @@ func TestMetrics_Collect(t *testing.T) {
 		assert.NoError(t, err)
 		body, err := io.ReadAll(res.Body)
 		assert.NoError(t, err)
-		if bytes.Contains(body, []byte("metrics.sys")) &&
+		if bytes.Contains(body, []byte("metrics.core")) &&
 			bytes.Contains(body, []byte("one.collect")) &&
 			bytes.Contains(body, []byte("two.collect")) {
 			break
@@ -118,7 +118,7 @@ func TestMetrics_Collect(t *testing.T) {
 
 	Collect_Get(t, ctx, "").
 		// All three services should be detected
-		BodyContains("metrics.sys").
+		BodyContains("metrics.core").
 		BodyContains("one.collect").
 		BodyContains("two.collect").
 		// The startup callback should take between 100ms and 500ms

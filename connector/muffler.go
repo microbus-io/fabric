@@ -44,9 +44,9 @@ func (smp *muffler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.Samplin
 		sample = false
 	} else {
 		// Do not sample Prometheus requests to the metrics core microservice
-		// :8080/metrics.sys/collect or :8080/metrics.sys:443/collect
+		// :8080/metrics.core/collect or :8080/metrics.core:443/collect
 		if _, path, ok := strings.Cut(p.Name, "/"); ok {
-			if path == "metrics.sys/collect" || path == "metrics.sys:443/collect" {
+			if path == "metrics.core/collect" || path == "metrics.core:443/collect" {
 				sample = false
 			}
 		}

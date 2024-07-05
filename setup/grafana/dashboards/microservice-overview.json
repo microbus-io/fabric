@@ -1333,8 +1333,8 @@
       {
         "current": {
           "selected": false,
-          "text": "http.ingress.sys",
-          "value": "http.ingress.sys"
+          "text": "http.ingress.core",
+          "value": "http.ingress.core"
         },
         "datasource": {
           "type": "prometheus",

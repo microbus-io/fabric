@@ -27,7 +27,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/control"
 )
 
-// main runs an app containing only the control.sys service.
+// main runs an app containing only the control.core service.
 func main() {
 	app := application.New()
 	app.Include(control.NewService())

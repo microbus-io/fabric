@@ -20,7 +20,7 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: smtp.ingress.sys
+  host: smtp.ingress.core
   description: The SMTP ingress microservice listens for incoming emails and fires corresponding events. 
   integrationTests: false
   openApi: false

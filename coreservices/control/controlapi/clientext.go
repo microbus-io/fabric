@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
-Package controlapi implements the public API of the control.sys microservice,
+Package controlapi implements the public API of the control.core microservice,
 including clients and data structures.
 
 This microservice is created for the sake of generating the client API for the :888 control subscriptions.

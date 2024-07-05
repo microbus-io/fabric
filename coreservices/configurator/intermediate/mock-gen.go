@@ -37,7 +37,7 @@ var (
 	_ configuratorapi.Client
 )
 
-// Mock is a mockable version of the configurator.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the configurator.core microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 	mockValues func(ctx context.Context, names []string) (values map[string]string, err error)

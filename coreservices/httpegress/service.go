@@ -40,7 +40,7 @@ var (
 )
 
 /*
-Service implements the http.egress.sys microservice.
+Service implements the http.egress.core microservice.
 
 The HTTP egress microservice relays HTTP requests to the internet.
 */

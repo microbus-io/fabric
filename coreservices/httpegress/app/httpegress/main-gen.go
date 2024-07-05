@@ -27,7 +27,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/httpegress"
 )
 
-// main runs an app containing only the http.egress.sys service.
+// main runs an app containing only the http.egress.core service.
 func main() {
 	app := application.New()
 	app.Include(httpegress.NewService())

@@ -37,7 +37,7 @@ var (
 	_ metricsapi.Client
 )
 
-// Mock is a mockable version of the metrics.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the metrics.core microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 	mockCollect func(w http.ResponseWriter, r *http.Request) (err error)

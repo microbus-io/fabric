@@ -31,7 +31,7 @@ var (
 )
 
 /*
-Service implements the control.sys microservice.
+Service implements the control.core microservice.
 
 This microservice is created for the sake of generating the client API for the :888 control subscriptions.
 The microservice itself does nothing and should not be included in applications.

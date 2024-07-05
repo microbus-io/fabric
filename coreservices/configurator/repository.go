@@ -34,7 +34,7 @@ The expected format of the YAML is:
 	hello.example:
 	  greeting: Ciao
 	  repeat: 3
-	http.ingress.sys:
+	http.ingress.core:
 	  ports: 9090
 	all:
 	  sql: sql.host

@@ -16,7 +16,7 @@ hello.example:
   Repeat: 3
   Greeting: Ciao
 
-http.ingress.sys:
+http.ingress.core:
 #  Ports: 8080
 #  TimeBudget: 20s
 

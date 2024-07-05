@@ -37,7 +37,7 @@ var (
 	_ httpingressapi.Client
 )
 
-// Mock is a mockable version of the http.ingress.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the http.ingress.core microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 }

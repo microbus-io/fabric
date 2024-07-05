@@ -104,7 +104,7 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://127.0.0.1:4318
 Create `main/config.yaml` where you'll store the [configuration](../blocks/configuration.md) of your microservices:
 
 ```yaml
-http.ingress.sys:
+http.ingress.core:
 #  Ports: 8080
 #  TimeBudget: 20s
 ```

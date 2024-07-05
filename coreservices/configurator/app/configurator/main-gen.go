@@ -27,7 +27,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/configurator"
 )
 
-// main runs an app containing only the configurator.sys service.
+// main runs an app containing only the configurator.core service.
 func main() {
 	app := application.New()
 	app.Include(configurator.NewService())

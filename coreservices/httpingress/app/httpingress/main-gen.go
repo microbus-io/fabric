@@ -27,7 +27,7 @@ import (
 	"github.com/microbus-io/fabric/coreservices/httpingress"
 )
 
-// main runs an app containing only the http.ingress.sys service.
+// main runs an app containing only the http.ingress.core service.
 func main() {
 	app := application.New()
 	app.Include(httpingress.NewService())

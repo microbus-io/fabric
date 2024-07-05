@@ -37,7 +37,7 @@ var (
 	_ smtpingressapi.Client
 )
 
-// Mock is a mockable version of the smtp.ingress.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the smtp.ingress.core microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 }

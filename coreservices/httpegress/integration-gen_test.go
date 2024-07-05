@@ -69,7 +69,7 @@ var (
 var (
 	// App manages the lifecycle of the microservices used in the test
 	App *application.Application
-	// Svc is the http.egress.sys microservice being tested
+	// Svc is the http.egress.core microservice being tested
 	Svc *Service
 )
 
