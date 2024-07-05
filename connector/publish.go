@@ -194,10 +194,6 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 		output = make([]*pub.Response, 0, 2)
 	}
 
-	// Set a random message ID
-	msgID := rand.AlphaNum64(8)
-	frame.Of(req.Header).SetMessageID(msgID)
-
 	// Prepare the HTTP request (first fragment only)
 	httpReq, err := http.NewRequest(req.Method, req.URL, req.Body)
 	if err != nil {
@@ -216,8 +212,6 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 	if deadlineOK {
 		frame.Of(httpReq).SetTimeBudget(time.Until(deadline))
 	}
-
-	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()), log.String("method", req.Method))
 
 	// Fragment large requests
 	fragger, err := httpx.NewFragRequest(httpReq, c.maxFragmentSize)
@@ -238,11 +232,17 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 		C:    make(chan *http.Response, c.multicastChanCap),
 		Done: make(chan bool),
 	}
-	c.reqs.Store(msgID, awaitCh)
+	msgID := ""
+	for {
+		msgID = rand.AlphaNum64(8)                      // 2.8e+14
+		_, exists := c.reqs.LoadOrStore(msgID, awaitCh) // Avoid hash clash because it has severe repercussions
+		if !exists {
+			break
+		}
+	}
 	defer func() {
 		c.reqs.Delete(msgID)
 		close(awaitCh.Done)
-		// awaitCh.Close(0)
 	}()
 
 	// Send the message
@@ -256,12 +256,15 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 	subject := subjectOfRequest(c.plane, httpReq.Method, httpReq.URL.Hostname(), port, httpReq.URL.Path)
 
 	var buf bytes.Buffer
+	frame.Of(httpReq).SetMessageID(msgID)
 	err = httpReq.WriteProxy(&buf)
 	if err != nil {
 		err = errors.Trace(err)
 		output = append(output, pub.NewErrorResponse(err))
 		return output
 	}
+
+	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()), log.String("method", req.Method))
 
 	publishTime := time.Now()
 	err = c.natsConn.Publish(subject, buf.Bytes())
@@ -271,6 +274,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 		return output
 	}
 
+	// Await and return the responses
 	enumResponders := func(responders map[string]bool) string {
 		var b strings.Builder
 		for k := range responders {
@@ -282,7 +286,6 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 		return b.String()
 	}
 
-	// Await and return the responses
 	var expectedResponders map[string]bool
 	if req.Multicast {
 		expectedResponders, _ = c.knownResponders.Load(subject, lru.Bump(true))
@@ -358,6 +361,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 							subject := subjectOfRequest(c.plane, fragment.Method, fromID+"."+fragment.URL.Hostname(), port, fragment.URL.Path)
 
 							var buf bytes.Buffer
+							frame.Of(fragment).SetMessageID(msgID)
 							err = fragment.WriteProxy(&buf)
 							if err != nil {
 								err = errors.Trace(err)
