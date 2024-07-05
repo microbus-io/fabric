@@ -139,7 +139,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Simplified distributed stack trace
 * Ignore debug level log message unless `MICROBUS_LOG_DEBUG` is set
 * Blocking paths in the ingress proxy
-* Inbox microservice
+* Inbox microservice (renamed in milestone 26)
 * Introduced `Go` in `Connector` to run goroutines safely in the context of the microservice
 * HTTP ingress proxy adds `X-Forwarded-Path` header
 
@@ -211,3 +211,8 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 25](https://github.com/microbus-io/fabric/tree/milestone/25):
 
 * Documentation
+
+[Milestone 26](https://github.com/microbus-io/fabric/tree/milestone/26):
+
+* Locality-aware routing given a `MICROBUS_LOCALITY` environment variable
+* Renamed the inbox core microservice to SMTP ingress

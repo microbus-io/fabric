@@ -16,4 +16,4 @@ limitations under the License.
 
 //go:generate go run github.com/microbus-io/fabric/codegen
 
-package inbox
+package smtpingress

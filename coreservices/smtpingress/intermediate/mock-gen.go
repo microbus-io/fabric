@@ -26,7 +26,7 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 
-	"github.com/microbus-io/fabric/coreservices/inbox/inboxapi"
+	"github.com/microbus-io/fabric/coreservices/smtpingress/smtpingressapi"
 )
 
 var (
@@ -34,10 +34,10 @@ var (
 	_ *http.Request
 	_ time.Duration
 	_ *errors.TracedError
-	_ inboxapi.Client
+	_ smtpingressapi.Client
 )
 
-// Mock is a mockable version of the inbox.sys microservice, allowing functions, event sinks and web handlers to be mocked.
+// Mock is a mockable version of the smtp.ingress.sys microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
 }

@@ -63,7 +63,7 @@ func main() {
 	app.Include(
 		// When everything is ready, begin to accept external requests
 		httpingress.NewService(),
-		// inbox.NewService(),
+		// smtpingress.NewService(),
 	)
 	app.Run()
 }

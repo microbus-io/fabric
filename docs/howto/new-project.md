@@ -68,7 +68,7 @@ func main() {
 	)
 	app.Include(
 		httpingress.NewService(),
-		// inbox.NewService(),
+		// smtpingress.NewService(),
 	)
 	app.Run()
 }

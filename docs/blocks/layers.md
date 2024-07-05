@@ -36,7 +36,7 @@ The [HTTP ingress proxy](../structure/coreservices-httpingress.md) bridges the g
 
 The [HTTP egress proxy](../structure/coreservices-httpegress.md) relays HTTP requests to non-`Microbus` URLs.
 
-The [SMTP ingress](../structure/coreservices-inbox.md) microservice captures incoming emails and transforms them to actionable events.
+The [SMTP ingress](../structure/coreservices-smtpingress.md) microservice captures incoming emails and transforms them to actionable events.
 
 The [configurator](../structure/coreservices-configurator.md) is responsible for delivering configuration values to microservices that define configuration properties. It is a must-have in practically all applications.
 

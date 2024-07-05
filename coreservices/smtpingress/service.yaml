@@ -20,8 +20,8 @@
 # integrationTests - Whether or not to generate integration tests (defaults to true)
 # openApi - Whether or not to generate an OpenAPI document at openapi.json (defaults to true)
 general:
-  host: inbox.sys
-  description: Inbox listens for incoming emails and fires appropriate events. 
+  host: smtp.ingress.sys
+  description: The SMTP ingress microservice listens for incoming emails and fires corresponding events. 
   integrationTests: false
   openApi: false
 
@@ -125,8 +125,8 @@ functions:
 #   https://example.com:417/path
 #   //root - Root path of the web server
 events:
-  - signature: OnInboxSaveMail(mailMessage *Email)
-    description: OnInboxSaveMail is triggered when a new email message is received.
+  - signature: OnIncomingEmail(mailMessage *Email)
+    description: OnIncomingEmail is triggered when a new email message is received.
 
 # Event sinks
 #

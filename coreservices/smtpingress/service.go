@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package inbox
+package smtpingress
 
 import (
 	"context"
@@ -32,18 +32,20 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/microbus-io/fabric/connector"
-	"github.com/microbus-io/fabric/coreservices/inbox/inboxapi"
-	"github.com/microbus-io/fabric/coreservices/inbox/intermediate"
+	"github.com/microbus-io/fabric/coreservices/smtpingress/intermediate"
+	"github.com/microbus-io/fabric/coreservices/smtpingress/smtpingressapi"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 )
 
-/*
-Service implements the inbox.sys microservice.
+const processorName = "MessageProcessor"
 
-Inbox listens for incoming emails and fires appropriate events.
+/*
+Service implements the smtp.ingress.sys microservice.
+
+The SMTP ingress microservice listens for incoming emails and fires corresponding events.
 */
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
@@ -67,8 +69,8 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 // configDaemon builds the config of the email daemon.
 func (svc *Service) configDaemon(_ context.Context) (*guerrilla.AppConfig, error) {
 	port := strconv.Itoa(svc.Port())
-	certFile := "inbox-" + port + "-cert.pem"
-	keyFile := "inbox-" + port + "-key.pem"
+	certFile := "smtpingress-" + port + "-cert.pem"
+	keyFile := "smtpingress-" + port + "-key.pem"
 	secure := true
 	if _, err := os.Stat(certFile); os.IsNotExist(err) {
 		secure = false
@@ -98,7 +100,7 @@ func (svc *Service) configDaemon(_ context.Context) (*guerrilla.AppConfig, error
 		Servers:      []guerrilla.ServerConfig{serverCfg},
 		BackendConfig: backends.BackendConfig{
 			"save_workers_size": svc.Workers(),
-			"save_process":      "HeadersParser|Header|Inbox",
+			"save_process":      "HeadersParser|Header|" + processorName,
 		},
 	}
 	return cfg, nil
@@ -130,7 +132,7 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 		},
 	}
 
-	svc.daemon.AddProcessor("Inbox", func() backends.Decorator {
+	svc.daemon.AddProcessor(processorName, func() backends.Decorator {
 		return func(p backends.Processor) backends.Processor {
 			return backends.ProcessWith(
 				func(e *mail.Envelope, task backends.SelectTask) (res backends.Result, err error) {
@@ -203,7 +205,7 @@ func (svc *Service) processEnvelope(p backends.Processor, e *mail.Envelope, task
 			log.String("messageID", string(parsed.Headers.MessageID)),
 			log.Time("date", parsed.Headers.Date.UTC()),
 		)
-		for i := range inboxapi.NewMulticastTrigger(svc).OnInboxSaveMail(ctx, &parsed) {
+		for i := range smtpingressapi.NewMulticastTrigger(svc).OnIncomingEmail(ctx, &parsed) {
 			err := i.Get()
 			if err != nil {
 				svc.LogError(ctx, "Dispatching save mail event", log.Error(err))
