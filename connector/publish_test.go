@@ -462,15 +462,16 @@ func TestConnector_TimeoutContext(t *testing.T) {
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	_, err = con.Request(
 		ctx,
 		pub.GET("https://timeout.context.connector/ok"),
 	)
-	assert.NoError(t, err)
-	assert.False(t, deadline.IsZero())
-	assert.True(t, time.Until(deadline) > time.Second*58, time.Until(deadline))
+	if assert.NoError(t, err) {
+		assert.False(t, deadline.IsZero())
+		assert.True(t, time.Until(deadline) > time.Second*8, time.Until(deadline))
+	}
 }
 
 func TestConnector_TimeoutNotFound(t *testing.T) {

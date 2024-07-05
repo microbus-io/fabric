@@ -207,3 +207,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Change the directory example to RESTful API style
 * Introduced a microservice for testing of the code generator
 * Deprecated variadic options in code-generated clients
+
+[Milestone 25](https://github.com/microbus-io/fabric/tree/milestone/25):
+
+* Documentation
