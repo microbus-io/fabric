@@ -740,16 +740,16 @@ func TestConnector_SubscriptionLocality(t *testing.T) {
 
 	// Create the microservices
 	alpha := New("alpha.subscription.locality.connector")
-	alpha.SetLocality("az1.dc2.west.us")
+	alpha.SetLocality("az1.dC2.weSt.Us")
 
 	beta1 := New("beta.subscription.locality.connector")
-	beta1.SetLocality("az2.dc2.west.us")
+	beta1.SetLocality("az2.dc2.WEST.us")
 
 	beta2 := New("beta.subscription.locality.connector")
-	beta2.SetLocality("az1.dc3.west.us")
+	beta2.SetLocality("az1.DC3.west.us")
 
 	beta3 := New("beta.subscription.locality.connector")
-	beta3.SetLocality("az1.dc2.east.us")
+	beta3.SetLocality("az1.dc2.east.US")
 
 	beta4 := New("beta.subscription.locality.connector")
 	beta4.SetLocality("az4.dc5.north.eu")

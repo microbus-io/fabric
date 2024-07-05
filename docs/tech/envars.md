@@ -35,7 +35,13 @@ This is an advanced feature and in most cases there is no need to customize the 
 
 A geographic locality, when provided, is used by `Microbus` to optimize routing of unicast communications. A microservice making a unicast request will prioritize microservices that most resemble its own locality. For example, if the upstream microservice is located in `az1.dc2.west.us` and the downstream microservice is located in both `az2.dc2.west.us` and `az1.dc1.east.us`, the request will be directed to the former because they share the longer common suffix `dc2.west.us`.
 
-Locality-aware routing requires that both upstream and downstream microservices designate a locality by means of the `MICROBUS_LOCALITY` environment variable. The pattern is similar to that of a standard hostname, with the most specific location first.
+Locality-aware routing works when both upstream and downstream microservices designate a locality, typically by means of the `MICROBUS_LOCALITY` environment variable. The pattern is similar to that of a standard hostname, with the most specific location first.
+
+The special value `AWS` can be used when deployed on AWS to determine the availability zone automatically by making a request to the meta-data service at `http://169.254.169.254/latest/meta-data/placement/availability-zone`. The availability zone will then be used as the basis for the locality of the microservice. For example, availability zone `us-east-1b` is transformed to locality `b.1.east.us`.
+
+Similarly, the special value `GCP` can be used when deployed on GCP to determine the availability zone from `http://metadata.google.internal/computeMetadata/v1/instance/zone`. For example, availability zone `us-east1-b` is transformed to locality `b.1.east.us`
+
+Caution: the microservice will fail to start if the availability zone cannot be determined.
 
 ## Logging
 

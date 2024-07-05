@@ -290,7 +290,7 @@ func (c *Connector) SetLocality(locality string) error {
 	if err := utils.ValidateHostname(locality); err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
-	c.locality = locality
+	c.locality = strings.ToLower(locality)
 	return nil
 }
 

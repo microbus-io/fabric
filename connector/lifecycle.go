@@ -20,6 +20,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
+	"net/http"
 	"runtime"
 	"strings"
 	"sync"
@@ -94,6 +96,10 @@ func (c *Connector) Startup() (err error) {
 				return errors.Trace(err)
 			}
 		}
+	}
+	c.locality, err = determineCloudLocality(c.locality)
+	if err != nil {
+		return errors.Trace(err)
 	}
 
 	// Identify the environment deployment
@@ -458,4 +464,60 @@ func (c *Connector) Parallel(jobs ...func() (err error)) error {
 		}
 	}
 	return nil
+}
+
+// determineCloudLocality determines the locality from the instance meta-data when hosted on AWS or GCP.
+func determineCloudLocality(cloudProvider string) (locality string, err error) {
+	var httpReq *http.Request
+	switch strings.ToUpper(cloudProvider) {
+	case "AWS":
+		// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
+		// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-categories.html
+		httpReq, _ = http.NewRequest("GET", "http://169.254.169.254/latest/meta-data/placement/availability-zone", nil)
+	case "GCP":
+		// https://cloud.google.com/compute/docs/metadata/querying-metadata
+		// https://cloud.google.com/compute/docs/metadata/predefined-metadata-keys
+		httpReq, _ = http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/zone", nil)
+		httpReq.Header.Set("Metadata-Flavor", "Google")
+	default:
+		return cloudProvider, nil
+	}
+
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+	res, err := client.Do(httpReq)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", errors.Newf("determining %s AZ", strings.ToUpper(cloudProvider))
+	}
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	az := string(body)
+
+	if cloudProvider == "AWS" {
+		// az == us-east-1a
+		az = az[:len(az)-1] + "-" + az[len(az)-1:] // us-east-1-a
+	}
+
+	if cloudProvider == "GCP" {
+		// az == projects/415104041262/zones/us-east1-a
+		_, az, _ = strings.Cut(az, "/zones/") // us-east1-a
+		for i := 0; i < len(az); i++ {
+			if az[i] >= '0' && az[i] <= '9' {
+				az = az[:i] + "-" + az[i:] // us-east-1-a
+				break
+			}
+		}
+	}
+
+	parts := strings.Split(az, "-") // [us, east, 1, a]
+	for i := 0; i < len(parts)/2; i++ {
+		parts[i], parts[len(parts)-1-i] = parts[len(parts)-1-i], parts[i]
+	} // [a, 1, east, us]
+	return strings.Join(parts, "."), nil // a.1.east.us
 }
