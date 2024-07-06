@@ -2,14 +2,14 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is a holistic open source framework for the development, testing, deployment and operation of microservices at scale. It combines tooling, guides, patterns and best practices into an elevated engineering experience.
-Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine.
-Deploy to suit your needs, as a standalone executable or as individual pods on Kubernetes.
+`Microbus` is a holistic __open source framework__ for the development, testing, deployment and operation of microservices at scale. It combines tooling, guides, patterns and best practices into an __elevated engineering experience__.
+Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your __local development__ machine.
+Deploy to suit your needs, as a standalone executable or as pods on Kubernetes.
 
 ## 🍴 Table of Content
 
 🚌 [Introduction](#-introduction)\
-🐶 [Dogma](#-dogma)\
+🔧 [Design Principles](#-design-principles)\
 🚦 [Get Started](#-get-started)\
 📚 [Learn More](#-learn-more)\
 ✋ [Get involved](#-get-involved)\
@@ -26,7 +26,7 @@ Building and operating microservices at scale, however, is quite difficult and b
 
 `Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
 
-## 🐶 Dogma
+## 🔧 Design Principles
 
 These core tenets were top of mind in the design of `Microbus`.
 
@@ -38,36 +38,36 @@ These core tenets were top of mind in the design of `Microbus`.
 * Run, test and debug an entire solution comprising a multitude of microservices in your [local development](./docs/tech/local-dev.md) machine
 * Observe your system with the help of [distributed tracing](./docs/blocks/distrib-tracing.md), metrics dashboards and logging
 
-### Adaptable Deployment Topology
-
-From a local development machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](./docs/blocks/topology.md) grows with your needs. No code changes required.
-
-* Deploy as a resilient modular monolith, or a multi-region cloud deployment
-* Run as a standalone executable or as individual pods on Kubernetes
-* Include one or many microservices in each executable or pod
-
-### Simplified OSS Tech Stack
+### Evade the Microservices Tax
 
 `Microbus` is powered by a small curated set of [OSS](./docs/blocks/layers.md#oss) technologies integrated to work together in unison and exposed through a [simplified API](./docs/tech/encapsulation.md) that keeps the learning curve short and operational complexity low.
 
 * Get up to speed quickly by virtue of a small tech stack and reasonable defaults
 * Keep the number of moving parts small and control operational complexity and cost
-* Rely on a chef's choice of best in class OSS
+* Transition from a modular monolith to microservices as your business grows
+
+### Adaptable Deployment Topology
+
+From a local development machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](./docs/blocks/topology.md) grows with your needs. No code change required.
+
+* Deploy as a resilient modular monolith, or as microservices spread across multiple cloud regions
+* Run as a standalone executable or as pods on Kubernetes
+* Include any number of microservices in each executable or pod
 
 ### Scalable, Resilient and Performant
 
-Components at all levels of `Microbus`, from individual microservices down to NATS, can be scaled horizontally. No single points of failure or bottlenecks.
+From individual microservices down to the messaging bus, components at all levels of `Microbus` can be scaled horizontally. No single points of failure or bottlenecks.
 
-* Serve 1000's of RPS (requests per second) per machine right out of the box
+* Serve thousands of requests per second per machine right out of the box
 * Scale your system horizontally as your requirements grow
-* Rest assured knowing that your code is running on top of a thoroughly-tested substrate
+* Place your trust in a thoroughly-tested substrate
 
 ### Common Runtime
 
 All microservices running on `Microbus` comply with the same set of rules for [unicast](./docs/blocks/unicast.md) or [multicast](./docs/blocks/multicast.md) communications, [configuration](./docs/blocks/configuration.md), observability, and more. This consistent behavior makes it easier to reason about the accuracy of the system, guaranteeing smooth interoperability, straightforward maintainability and verifiable stability. 
 
-* Observe every detail of interaction between microservices
 * Benefit from improved reliability with multiplexed connections, graceful shutdown, [time budgets](./docs/blocks/time-budget.md) and [acks](./docs/blocks/unicast.md)
+* Observe every detail of interaction between microservices
 * Centralize the configuration of all microservices
 
 ## 🚦 Get Started
@@ -83,7 +83,6 @@ All microservices running on `Microbus` comply with the same set of rules for [u
 👉 Learn how to write thorough [integration tests](./docs/blocks/integrationtesting.md) and achieve high code coverage
 
 👉 Venture out and [explore more on your own](./docs/howto/self-explore.md)
-
 
 ## 📚 Learn More
 

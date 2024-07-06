@@ -92,6 +92,7 @@ type Identifier interface {
 	Version() int
 	Deployment() string
 	Plane() string
+	Locality() string
 }
 
 // StartupHandler handles the OnStartup callback.

@@ -96,6 +96,8 @@ Metrics such as latency, duration, byte size and count are collected automatical
 
 [Multicast publish/subscribe](../blocks/multicast.md) enhances the publish/subscribe pattern of the bus by introducing a familiar HTTP interface and a bi-directional 1:N request/response pattern.
 
+Microservice are connected to the messaging bus with a __multiplexed connection__ that enables holding multiple concurrent conversations on a single connection. Multiplexing results in lower resource requirements and a simplified network topology that is less prone to error.
+
 [Time budget](../blocks/time-budget.md) is a depleting timeout that is passed downstream along the call stack. It is the proper way to handle client-to-server timeouts.
 
 __Ack or fail fast__ is a pattern by which the server responds with an ack to the client before processing the request. This way, the client knows to wait for the response only if an ack is received, and fail if it's not.
