@@ -37,17 +37,14 @@ var (
 )
 
 // Initialize starts up the testing app.
-func Initialize() error {
-	// Include all downstream microservices in the testing app
-	App.Include(
+func Initialize() (err error) {
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
 		Svc,
 	)
-
-	err := App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
 
 	http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
 		r.Write(w)
@@ -66,14 +63,9 @@ func Initialize() error {
 	return nil
 }
 
-// Terminate shuts down the testing app.
-func Terminate() error {
-	err := httpServer.Shutdown(context.Background())
-	if err != nil {
-		return err
-	}
-
-	err = App.Shutdown()
+// Terminate gets called after the testing app shut down.
+func Terminate() (err error) {
+	err = httpServer.Shutdown(context.Background())
 	if err != nil {
 		return err
 	}
@@ -210,7 +202,7 @@ func TestHttpegress_Mock(t *testing.T) {
 	con := connector.New("mock.http.egress")
 
 	app := application.NewTesting()
-	app.Include(
+	app.Add(
 		mock,
 		con,
 	)

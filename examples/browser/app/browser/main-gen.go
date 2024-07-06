@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the browser.example service.
 func main() {
 	app := application.New()
-	app.Include(browser.NewService())
+	app.Add(browser.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

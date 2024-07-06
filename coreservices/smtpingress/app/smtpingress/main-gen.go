@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the smtp.ingress.core service.
 func main() {
 	app := application.New()
-	app.Include(smtpingress.NewService())
+	app.Add(smtpingress.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

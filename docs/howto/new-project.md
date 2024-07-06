@@ -55,18 +55,18 @@ import (
 
 func main() {
 	app := application.New()
-	app.Include(
+	app.Add(
 		configurator.NewService(),
 	)
-	app.Include(
+	app.Add(
 		httpegress.NewService(),
 		openapiportal.NewService(),
 		metrics.NewService(),
 	)
-	app.Include(
+	app.Add(
 		// Add solution microservices here
 	)
-	app.Include(
+	app.Add(
 		httpingress.NewService(),
 		// smtpingress.NewService(),
 	)

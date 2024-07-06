@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the helloworld.example service.
 func main() {
 	app := application.New()
-	app.Include(helloworld.NewService())
+	app.Add(helloworld.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

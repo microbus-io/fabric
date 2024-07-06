@@ -218,3 +218,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Determine locality automatically from availability zone name in AWS or GCP
 * Renamed the inbox core microservice to SMTP ingress
 * Change hostname suffix of core microservices to `.core`
+* New pattern for adding and removing microservices in an `Application`

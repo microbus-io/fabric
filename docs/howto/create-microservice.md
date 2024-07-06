@@ -42,7 +42,7 @@ Run `go generate` a final time to update the version number of the microservice.
 Add the new microservice to the application in `main.go`:
 
 ```go
-app.Include(
+app.Add(
     // Add solution microservices here
     myservice.NewService(),
 )

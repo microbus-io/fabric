@@ -36,7 +36,7 @@ Refresh the page to try again
 The first paragraph indicates the current instance ID of the microservice that is processing the `/home` request. Because `main/main.go` includes 3 instances of the `messaging.example`, this ID is likely to change on each request with load-balancing.
 
 ```go
-app.Include(
+app.Add(
 	// ...
 	messaging.NewService(),
 	messaging.NewService(),

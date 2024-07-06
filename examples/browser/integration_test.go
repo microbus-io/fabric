@@ -37,8 +37,8 @@ var (
 
 // Initialize starts up the testing app.
 func Initialize() (err error) {
-	// Include all downstream microservices in the testing app
-	App.Include(
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
 		Svc,
 		httpegress.NewMock().
 			MockMakeRequest(func(w http.ResponseWriter, r *http.Request) (err error) {
@@ -52,22 +52,14 @@ func Initialize() (err error) {
 				return nil
 			}),
 	)
-
-	err = App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
-
 	return nil
 }
 
-// Terminate shuts down the testing app.
+// Terminate gets called after the testing app shut down.
 func Terminate() (err error) {
-	err = App.Shutdown()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

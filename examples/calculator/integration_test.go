@@ -31,28 +31,19 @@ var (
 )
 
 // Initialize starts up the testing app.
-func Initialize() error {
-	// Include all downstream microservices in the testing app
-	// Use .With(options) to initialize with appropriate config values
-	App.Include(
+func Initialize() (err error) {
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
 		Svc,
 	)
-
-	err := App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
-
 	return nil
 }
 
-// Terminate shuts down the testing app.
-func Terminate() error {
-	err := App.Shutdown()
-	if err != nil {
-		return err
-	}
+// Terminate gets called after the testing app shut down.
+func Terminate() (err error) {
 	return nil
 }
 

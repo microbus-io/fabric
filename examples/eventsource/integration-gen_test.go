@@ -105,11 +105,11 @@ func TestMain(m *testing.M) {
 	err = func() error {
 		var err error
 		var lastErr error
-		err = Terminate()
+		err = App.Shutdown()
 		if err != nil {
 			lastErr = err
 		}
-		err = App.Shutdown()
+		err = Terminate()
 		if err != nil {
 			lastErr = err
 		}
@@ -268,10 +268,10 @@ func OnAllowRegister(t *testing.T) *OnAllowRegisterTestCase {
 		_tc._asserters = nil
 		return _tc.allow, _tc.err
 	})
-	App.Include(con)
-	con.Startup()
+	App.AddAndStartup(con)
 	_tc._t.Cleanup(func() {
 		con.Shutdown()
+		App.Remove(con)
 		for _, asserter := range _tc._asserters {
 			asserter()
 		}
@@ -351,10 +351,10 @@ func OnRegistered(t *testing.T) *OnRegisteredTestCase {
 		_tc._asserters = nil
 		return _tc.err
 	})
-	App.Include(con)
-	con.Startup()
+	App.AddAndStartup(con)
 	_tc._t.Cleanup(func() {
 		con.Shutdown()
+		App.Remove(con)
 		for _, asserter := range _tc._asserters {
 			asserter()
 		}

@@ -5,11 +5,11 @@ The configurator is a core microservice of `Microbus` and it must be included wi
 ```go
 func main() {
 	app := application.New()
-	app.Include(
+	app.Add(
 		// Configurator should start first
 		configurator.NewService(),
 	)
-	app.Include(
+	app.Add(
 		// ...
 	)
 	app.Run()

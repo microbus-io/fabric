@@ -36,7 +36,7 @@ func TestApplication_StartStop(t *testing.T) {
 	alpha := connector.New("alpha.start.stop.application")
 	beta := connector.New("beta.start.stop.application")
 	app := NewTesting()
-	app.Include(alpha, beta)
+	app.Add(alpha, beta)
 
 	assert.False(t, alpha.IsStarted())
 	assert.False(t, beta.IsStarted())
@@ -59,7 +59,7 @@ func TestApplication_Interrupt(t *testing.T) {
 
 	con := connector.New("interrupt.application")
 	app := NewTesting()
-	app.Include(con)
+	app.Add(con)
 
 	ch := make(chan bool)
 	go func() {
@@ -93,7 +93,7 @@ func TestApplication_NoConflict(t *testing.T) {
 		return nil
 	})
 	appAlpha := NewTesting()
-	appAlpha.Include(alpha)
+	appAlpha.Add(alpha)
 
 	// Create second testing app
 	beta := connector.New("no.conflict.application")
@@ -102,7 +102,7 @@ func TestApplication_NoConflict(t *testing.T) {
 		return nil
 	})
 	appBeta := NewTesting()
-	appBeta.Include(beta)
+	appBeta.Add(beta)
 
 	// Start the apps
 	err := appAlpha.Startup()
@@ -164,7 +164,7 @@ func TestApplication_DependencyStart(t *testing.T) {
 	})
 
 	app := NewTesting()
-	app.Include(alpha, beta)
+	app.Add(alpha, beta)
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -193,7 +193,7 @@ func TestApplication_FailStart(t *testing.T) {
 	beta := connector.New("beta.fail.start.application")
 
 	app := NewTesting()
-	app.Include(alpha, beta)
+	app.Add(alpha, beta)
 	app.startupTimeout = startupTimeout
 	t0 := time.Now()
 	err := app.Startup()
@@ -210,39 +210,31 @@ func TestApplication_FailStart(t *testing.T) {
 	assert.False(t, alpha.IsStarted())
 }
 
-func TestApplication_JoinInclude(t *testing.T) {
+func TestApplication_Remove(t *testing.T) {
 	t.Parallel()
 
-	alpha := connector.New("alpha.join.include.application")
-	beta := connector.New("beta.join.include.application")
-	gamma := connector.New("gamma.join.include.application")
+	alpha := connector.New("alpha.remove.application")
+	beta := connector.New("beta.remove.application")
 
 	app := NewTesting()
-	app.Include(alpha, beta)
-	app.Join(gamma)
-
-	assert.Equal(t, alpha.Plane(), beta.Plane())
-	assert.Equal(t, alpha.Plane(), gamma.Plane())
-
-	err := app.Startup()
-	assert.NoError(t, err)
+	app.AddAndStartup(alpha, beta)
 	assert.True(t, alpha.IsStarted())
 	assert.True(t, beta.IsStarted())
-	assert.False(t, gamma.IsStarted())
+	assert.Equal(t, alpha.Plane(), beta.Plane())
 
-	err = gamma.Startup()
-	assert.NoError(t, err)
-	assert.True(t, gamma.IsStarted())
+	app.Remove(beta)
+	assert.True(t, alpha.IsStarted())
+	assert.True(t, beta.IsStarted())
+	assert.Equal(t, alpha.Plane(), beta.Plane())
 
-	err = app.Shutdown()
+	err := app.Shutdown()
 	assert.NoError(t, err)
 	assert.False(t, alpha.IsStarted())
-	assert.False(t, beta.IsStarted())
-	assert.True(t, gamma.IsStarted())
+	assert.True(t, beta.IsStarted()) // Should remain up because no longer under management of the app
 
-	err = gamma.Shutdown()
+	err = beta.Shutdown()
 	assert.NoError(t, err)
-	assert.False(t, gamma.IsStarted())
+	assert.False(t, beta.IsStarted())
 }
 
 func TestApplication_Run(t *testing.T) {
@@ -251,8 +243,8 @@ func TestApplication_Run(t *testing.T) {
 	con := connector.New("run.application")
 	config := configurator.NewService()
 	app := NewTesting()
-	app.Include(config)
-	app.Include(con)
+	app.Add(config)
+	app.Add(con)
 
 	go func() {
 		err := app.Run()

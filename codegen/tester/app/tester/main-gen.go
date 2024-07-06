@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the codegen.test service.
 func main() {
 	app := application.New()
-	app.Include(tester.NewService())
+	app.Add(tester.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

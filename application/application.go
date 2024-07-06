@@ -70,19 +70,20 @@ func NewTesting() *Application {
 }
 
 /*
-Include adds a collection of microservices to the app.
+Add adds a collection of microservices to be managed by the app.
+Added microservices are not started up immediately. An explicit call to [Startup] is required.
 Microservices that are included together are started in parallel together.
 Otherwise, microservices are started sequentially in order of inclusion.
 
 In the following example, A is started first, then B1 and B2 in parallel, and finally C1 and C2 in parallel.
 
 	app := application.New()
-	app.Include(a)
-	app.Include(b1, b2)
-	app.Include(c1, c2)
+	app.Add(a)
+	app.Add(b1, b2)
+	app.Add(c1, c2)
 	app.Startup()
 */
-func (app *Application) Include(services ...service.Service) {
+func (app *Application) Add(services ...service.Service) {
 	app.mux.Lock()
 	g := group{}
 	for _, s := range services {
@@ -95,15 +96,46 @@ func (app *Application) Include(services ...service.Service) {
 	app.mux.Unlock()
 }
 
-// Join sets the plane and deployment of the microservices to that of the app.
-// This allows microservices to be temporarily joined to the app without being permanently included in its lifecycle management.
-// Joined microservices are not included in the app and do not get started up or shut down by the app.
-func (app *Application) Join(services ...service.Service) {
+// AddAndStartup adds a collection of microservices to the app, and starts them up immediately.
+func (app *Application) AddAndStartup(services ...service.Service) (err error) {
+	app.mux.Lock()
+	g := group{}
 	for _, s := range services {
 		s.SetPlane(app.plane)
 		s.SetDeployment(app.deployment)
 		app.initializer(s)
 	}
+	g = append(g, services...)
+	app.groups = append(app.groups, g)
+	app.mux.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), app.startupTimeout)
+	defer cancel()
+	err = g.Startup(ctx)
+	return errors.Trace(err)
+}
+
+// Remove removes the microservices from under management of the app.
+// Removed microservices are not shut down automatically and remain running on the same plane of communications.
+func (app *Application) Remove(services ...service.Service) {
+	toRemove := map[service.Service]bool{}
+	for _, s := range services {
+		toRemove[s] = true
+	}
+	app.mux.Lock()
+	for gi := range app.groups {
+		g := group{}
+		for si := range app.groups[gi] {
+			s := app.groups[gi][si]
+			if !toRemove[s] {
+				g = append(g, s)
+			}
+		}
+		if len(app.groups[gi]) != len(g) {
+			app.groups[gi] = g
+		}
+	}
+	app.mux.Unlock()
 }
 
 // Init sets up a method to call on each of the included microservices at the time they are included or joined.

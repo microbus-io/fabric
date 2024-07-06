@@ -20,29 +20,30 @@ The code generator prepares the testing app `App` and includes in it the microse
 
 ```go
 // Initialize starts up the testing app.
-func Initialize() error {
+func Initialize() (err error) {
 	App.Init(func(svc service.Service) {
 		// Initialize all microservices
 		svc.SetConfig("SQL", sqlConnectionString)
 	})
 
-	// Include all downstream microservices in the testing app
-	App.Include(
-		Svc.Init(func(svc *Service) {
-			// Initialize the microservice under test
-			svc.SetNumLines(10)
-		}),
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
 		downstream.NewService().Init(func(svc *downstream.Service) {
 			downstream.SetTimeout(2*time.Minute)
 		}),
 	)
-
-	err := App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
-
+	err = App.AddAndStartup(
+		Svc.Init(func(svc *Service) {
+			// Initialize the microservice under test
+			svc.SetNumLines(10)
+		}),
+	)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 ```
@@ -259,8 +260,8 @@ In order to more easily mock microservices, the code generator creates a `Mock` 
 ```go
 // Initialize starts up the testing app.
 func Initialize() error {
-	// Include all downstream microservices in the testing app
-	App.Include(
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
 		Svc.Init(func(svc *Service) {
 			// Initialize the microservice under test
 			svc.SetNumLines(10),
@@ -270,13 +271,9 @@ func Initialize() error {
 				return true, 100, nil
 			}),
 	)
-
-	err := App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
-
 	return nil
 }
 ```
@@ -302,9 +299,8 @@ func TestPayment_ChargeUser(t *testing.T) {
 			return true, 100, nil
 		})
 
-	// Temporarily join the mock to the app
-	App.Join(mockWebPaySvc)
-	mockWebPaySvc.Startup()
+	// Join the mock to the app
+	App.AddAndStartup(mockWebPaySvc)
 	defer mockWebPaySvc.Shutdown()
 
 	ctx := Context()

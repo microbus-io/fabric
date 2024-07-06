@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the metrics.core service.
 func main() {
 	app := application.New()
-	app.Include(metrics.NewService())
+	app.Add(metrics.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

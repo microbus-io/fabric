@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the configurator.core service.
 func main() {
 	app := application.New()
-	app.Include(configurator.NewService())
+	app.Add(configurator.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

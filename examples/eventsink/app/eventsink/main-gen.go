@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the eventsink.example service.
 func main() {
 	app := application.New()
-	app.Include(eventsink.NewService())
+	app.Add(eventsink.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

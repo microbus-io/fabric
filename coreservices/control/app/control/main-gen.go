@@ -30,7 +30,7 @@ import (
 // main runs an app containing only the control.core service.
 func main() {
 	app := application.New()
-	app.Include(control.NewService())
+	app.Add(control.NewService())
 	err := app.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v", err)

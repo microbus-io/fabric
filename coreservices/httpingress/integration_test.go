@@ -41,9 +41,9 @@ var (
 )
 
 // Initialize starts up the testing app.
-func Initialize() error {
-	// Include all downstream microservices in the testing app
-	App.Include(
+func Initialize() (err error) {
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
 		Svc.Init(func(svc *Service) {
 			svc.SetTimeBudget(time.Second * 2)
 			svc.SetPorts("4040,4443")
@@ -58,22 +58,14 @@ func Initialize() error {
 			})
 		}),
 	)
-
-	err := App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
-
 	return nil
 }
 
-// Terminate shuts down the testing app.
-func Terminate() error {
-	err := App.Shutdown()
-	if err != nil {
-		return err
-	}
+// Terminate gets called after the testing app shut down.
+func Terminate() (err error) {
 	return nil
 }
 
@@ -85,7 +77,7 @@ func TestHttpingress_Ports(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	App.Join(con)
+	App.Add(con)
 	err := con.Startup()
 	assert.NoError(t, err)
 	defer con.Shutdown()
@@ -127,8 +119,7 @@ func TestHttpingress_RequestMemoryLimit(t *testing.T) {
 		w.Write([]byte("done"))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -188,8 +179,7 @@ func TestHttpingress_Compression(t *testing.T) {
 		w.Write(bytes.Repeat([]byte("Hello123"), 1024)) // 8KB
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -220,8 +210,7 @@ func TestHttpingress_PortMapping(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -273,8 +262,7 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 		w.Write([]byte(sb.String()))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -331,8 +319,7 @@ func TestHttpingress_Root(t *testing.T) {
 		w.Write([]byte("Root"))
 		return nil
 	})
-	App.Join(con)
-	err = con.Startup()
+	err = App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -352,8 +339,7 @@ func TestHttpingress_CORS(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -425,8 +411,7 @@ func TestHttpingress_ParseForm(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -483,8 +468,7 @@ func TestHttpingress_InternalHeaders(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -515,8 +499,7 @@ func TestHttpingress_Middleware(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -548,8 +531,7 @@ func TestHttpingress_BlockedPaths(t *testing.T) {
 		w.Write([]byte("ok"))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -577,8 +559,7 @@ func TestHttpingress_MatchAcceptedLanguages(t *testing.T) {
 		w.Write([]byte(r.Header.Get("Accept-Language")))
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 
@@ -662,8 +643,7 @@ func TestHttpingress_MultiValueHeaders(t *testing.T) {
 		}
 		return nil
 	})
-	App.Join(con)
-	err := con.Startup()
+	err := App.AddAndStartup(con)
 	assert.NoError(t, err)
 	defer con.Shutdown()
 

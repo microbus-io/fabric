@@ -56,8 +56,8 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 	}
 
 	app := application.New()
-	app.Include(configSvc)
-	app.Include(services...)
+	app.Add(configSvc)
+	app.Add(services...)
 	err := app.Startup()
 	assert.NoError(t, err)
 	defer app.Shutdown()

@@ -38,16 +38,16 @@ main runs the example microservices.
 */
 func main() {
 	app := application.New()
-	app.Include(
+	app.Add(
 		// Configurator should start first
 		configurator.NewService(),
 	)
-	app.Include(
+	app.Add(
 		httpegress.NewService(),
 		openapiportal.NewService(),
 		metrics.NewService(),
 	)
-	app.Include(
+	app.Add(
 		// Add solution microservices here
 		helloworld.NewService(),
 		hello.NewService(),
@@ -60,7 +60,7 @@ func main() {
 		directory.NewService(),
 		browser.NewService(),
 	)
-	app.Include(
+	app.Add(
 		// When everything is ready, begin to accept external requests
 		httpingress.NewService(),
 		// smtpingress.NewService(),

@@ -23,31 +23,24 @@ func Initialize() (err error) {
 		// Initialize all microservices
 	})
 
-	// Include all downstream microservices in the testing app
-	App.Include(
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
+		// downstream.NewService().Init(func(svc *downstream.Service) {}),
+
 		Svc.Init(func(svc *Service) {
 			// Initialize the microservice under test
 			{{- range .Configs }}
 			// svc.Set{{ .Name }}({{ with index .Signature.OutputArgs 0 }}{{ .Name }}{{ end }})
 			{{- end}}
 		}),
-		// downstream.NewService().Init(func(svc *downstream.Service) {}),
 	)
-
-	err = App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
-
 	return nil
 }
 
-// Terminate shuts down the testing app.
+// Terminate gets called after the testing app shut down.
 func Terminate() (err error) {
-	err = App.Shutdown()
-	if err != nil {
-		return err
-	}
 	return nil
 }

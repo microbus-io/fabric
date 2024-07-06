@@ -31,7 +31,6 @@ import (
 
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/fabric/service"
 
 	"github.com/microbus-io/fabric/codegen/tester/testerapi"
 )
@@ -42,23 +41,13 @@ var (
 
 // Initialize starts up the testing app.
 func Initialize() (err error) {
-	App.Init(func(svc service.Service) {
-		// Initialize all microservices
-	})
-
-	// Include all downstream microservices in the testing app
-	App.Include(
-		Svc.Init(func(svc *Service) {
-			// Initialize the microservice under test
-		}),
-		// downstream.NewService().Init(func(svc *downstream.Service) {}),
+	// Add microservices to the testing app
+	err = App.AddAndStartup(
+		Svc,
 	)
-
-	err = App.Startup()
 	if err != nil {
 		return err
 	}
-	// All microservices are now running
 
 	ctx := Context()
 	res, err := Svc.Request(ctx, pub.GET("https://"+Hostname+"/openapi.json"))
@@ -72,12 +61,8 @@ func Initialize() (err error) {
 	return nil
 }
 
-// Terminate shuts down the testing app.
+// Terminate gets called after the testing app shut down.
 func Terminate() (err error) {
-	err = App.Shutdown()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

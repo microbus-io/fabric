@@ -88,10 +88,10 @@ func {{ .Name }}(t *testing.T) *{{ .Name }}TestCase {
 		_tc._asserters = nil
 		return {{ range .Signature.OutputArgs }}_tc.{{ .Name }}, {{ end }}_tc.err
 	})
-	App.Include(con)
-	con.Startup()
+	App.AddAndStartup(con)
 	_tc._t.Cleanup(func() {
 		con.Shutdown()
+		App.Remove(con)
 		for _, asserter := range _tc._asserters {
 			asserter()
 		}

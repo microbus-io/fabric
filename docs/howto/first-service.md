@@ -245,14 +245,14 @@ Include the new microservice in the app in `main/main.go` and run it using `go r
 ```go
 func main() {
 	app := application.New()
-	app.Include(
+	app.Add(
 		configurator.NewService(),
 	)
-	app.Include(
+	app.Add(
         // ...
     	wordly.NewService(), // <-- Add
 	)
-	app.Include(
+	app.Add(
 		httpingress.NewService(),
 	)
 	app.Run()

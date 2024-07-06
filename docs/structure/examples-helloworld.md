@@ -35,7 +35,7 @@ HelloWorld_Get(t, ctx, "").BodyContains("Hello, World!")
 And finally, the microservice was added to the app in `main` in `main/main.go`.
 
 ```go
-app.Include(
+app.Add(
 	helloworld.NewService(),
 )
 ```
