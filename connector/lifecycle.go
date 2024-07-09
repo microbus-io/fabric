@@ -296,9 +296,9 @@ func (c *Connector) Shutdown() (err error) {
 		lastErr = errors.Trace(err)
 	}
 
-	// Drain pending operations (incoming requests and running tickers)
+	// Drain pending operations (incoming requests, running tickers, goroutines)
 	totalDrainTime := time.Duration(0)
-	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 4*time.Second {
+	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 8*time.Second { // 8 seconds
 		time.Sleep(20 * time.Millisecond)
 		totalDrainTime += 20 * time.Millisecond
 	}
@@ -316,7 +316,7 @@ func (c *Connector) Shutdown() (err error) {
 
 	// Drain pending operations again after cancelling the context
 	totalDrainTime = time.Duration(0)
-	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 4*time.Second {
+	for atomic.LoadInt32(&c.pendingOps) > 0 && totalDrainTime < 4*time.Second { // 4 seconds
 		time.Sleep(20 * time.Millisecond)
 		totalDrainTime += 20 * time.Millisecond
 	}
