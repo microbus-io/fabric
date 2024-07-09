@@ -9,6 +9,7 @@ Deploy to suit your needs, as a standalone executable or as pods on Kubernetes.
 ## 🍴 Table of Content
 
 🚌 [Introduction](#-introduction)\
+⚙️ [How It Works](#️-how-it-works)\
 🔧 [Design Principles](#-design-principles)\
 🚦 [Get Started](#-get-started)\
 📚 [Learn More](#-learn-more)\
@@ -25,6 +26,26 @@ Building and operating microservices at scale, however, is quite difficult and b
 `Microbus` thinks differently. By taking a novel approach to the development, testing, deployment and troubleshooting of microservices, it eliminates much of the complexity of the current state of the art. `Microbus` is a holistic framework that packages together various OSS technologies, tooling, best practices, patterns and guides into a cohesive engineering experience that elevates productivity up to 4x.
 
 `Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
+
+## ⚙️ How It Works
+
+<img src="./docs/tech/nutshell-1.drawio.svg">
+</p>
+
+Build your microservices on top of a `Connector` construct and use its simple API to communicate with other microservices using the familiar HTTP protocol. Under the hood, communication happens over a real-time messaging bus. Powerful features are handled transparently for you:
+
+* Unicast 1:1 request/response
+* Multicast 1:N publish/subscribe
+* Multiplexed connections
+* Dynamic service discovery
+* Load balancing
+* Time budget
+* Ack or fail fast
+* Locality-aware routing
+* Connectivity liveness check
+* Instrumentation and observability
+
+Core microservices such as an HTTP ingress proxy and configurator are provided out of the box.
 
 ## 🔧 Design Principles
 
@@ -84,13 +105,15 @@ All microservices running on `Microbus` comply with the same set of rules for [u
 
 👉 Venture out and [explore more on your own](./docs/howto/self-explore.md)
 
+👉 Ready? [Build your own solution](./docs/howto/new-project.md) from scratch
+
 ## 📚 Learn More
 
 Dig deeper into the technology of `Microbus` and its philosophy.
 
 ### Architecture
 
-* [Layered architectural diagram](./docs/blocks/layers.md) - A map of the building blocks of `Microbus` and how they relate to one another
+* [Architectural diagram](./docs/blocks/layers.md) - A map of the building blocks of `Microbus` and how they stack up
 * [Catalog of packages](./docs/structure/packages.md) - Find your way around the codebase
 
 ### Guides

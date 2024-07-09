@@ -54,8 +54,6 @@ __Client stubs__ are created for the microservice's public endpoints. These stub
 
 [Events](../blocks/events.md) are a type-safe abstraction of publish/subscribe.
 
-__JSON marshaling and unmarshaling__ code is created based on the type information provided in `service.yaml`.
-
 The [integration test harness](../blocks/integration-testing.md) spins up the microservice under test along with the actual downstream microservices it depends on into a single testable application, allowing full-blown integration tests to run inside `go test`.
 
 An [OpenAPI document](../blocks/openapi.md) is automatically created for each of the microservice's endpoints.
@@ -70,11 +68,11 @@ The [`Connector`](../structure/connector.md) is the base class of all microservi
 
 [Configuration](../blocks/configuration.md) properties are common means to initialize and customize microservices without the need for code changes. In `Microbus`, microservices define their configuration properties but obtain the runtime values of those properties from the [configurator](../structure/coreservices-configurator.md).
 
-[Errors](../blocks/error-capture.md) are unavoidable. When they occur, they are captured, augmented with a full stack trace, logged, metered (Grafana), [traced](../blocks/distrib-tracing.md) (Jaeger) and propagated up the stack to the upstream microservice.
-
 The [distributed cache](../blocks/distrib-cache.md) is an in-memory cache that is shared among the replica peers of microservice.
 
 Similar to cron jobs, __tickers__ run jobs on a scheduled interval. 
+
+Microservices are __shutdown gracefully__. All pending requests, goroutines and jobs are drained before the microservice quits.
 
 Images, scripts, templates and any other __static resources__ are made available to each microservice by association of a file system (FS).
 
@@ -87,6 +85,8 @@ Structured (JSON), leveled __logs__ are sent to `stderr`.
 [Distributed tracing](../blocks/distrib-tracing.md) enables the visualization of the flow of function calls across microservices and processes. Tracing spans are automatically captured for each endpoint call.
 
 Metrics such as latency, duration, byte size and count are collected automatically for all endpoint calls. Solution-specific metrics may be defined by the developer. Metrics are shipped to Prometheus via the [metrics core microservice](../structure/coreservices-metrics.md) and visualized in Grafana.
+
+[Errors](../blocks/error-capture.md) are unavoidable. When they occur, they are captured, augmented with a full stack trace, logged, metered (Grafana), [traced](../blocks/distrib-tracing.md) (Jaeger) and propagated up the stack to the upstream microservice.
 
 ### Transport
 

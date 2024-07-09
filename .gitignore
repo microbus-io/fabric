@@ -24,3 +24,5 @@ main/main
 main/__debug_bin*
 *.drawio.svg.bkp
 *.drawio.svg.dtmp
+*.drawio.bkp
+*.drawio.dtmp
