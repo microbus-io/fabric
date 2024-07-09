@@ -28,16 +28,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/microbus-io/fabric/connector"
-	"github.com/microbus-io/fabric/coreservices/httpingress/httpingressapi"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/rand"
-)
-
-var (
-	_ *testing.T
-	_ assert.TestingT
-	_ *httpingressapi.Client
 )
 
 // Initialize starts up the testing app.
@@ -50,7 +43,7 @@ func Initialize() (err error) {
 			svc.SetAllowedOrigins("allowed.origin")
 			svc.SetPortMappings("4040:*->*, 4443:*->443")
 			svc.SetServerLanguages("en,fr,es-ar")
-			svc.AddMiddleware(func(w http.ResponseWriter, r *http.Request, next connector.HTTPHandler) (err error) {
+			svc.AddMiddlewareFunc(func(w http.ResponseWriter, r *http.Request, next connector.HTTPHandler) (err error) {
 				r.Header.Add("Middleware", "Hello")
 				err = next(w, r)
 				w.Header().Add("Middleware", "Goodbye")

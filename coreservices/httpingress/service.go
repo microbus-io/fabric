@@ -50,19 +50,6 @@ import (
 	"github.com/microbus-io/fabric/coreservices/metrics/metricsapi"
 )
 
-// Middleware is a function that can be added to pre- or post-process a request.
-// A middleware should call the next function in the chain.
-type Middleware func(
-	w http.ResponseWriter,
-	r *http.Request,
-	next connector.HTTPHandler,
-) (err error)
-
-var (
-	_ errors.TracedError
-	_ http.Request
-)
-
 /*
 Service implements the http.ingress.core microservice.
 
@@ -95,9 +82,9 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	// Setup the middleware chain
 	svc.handler = svc.serveHTTP
 	for h := len(svc.middleware) - 1; h >= 0; h-- {
-		f := svc.middleware[h]
+		mw := svc.middleware[h]
 		svc.handler = func(w http.ResponseWriter, r *http.Request) error {
-			return f(w, r, svc.serveHTTP) // No trace
+			return mw.Serve(w, r, svc.serveHTTP) // No trace
 		}
 	}
 
@@ -118,17 +105,28 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 }
 
 // AddMiddleware adds a [Middleware] to the chain of middleware.
-// Middleware is a function that can be added to pre- or post-process a request.
+// Middleware is a processor that can be added to pre- or post-process a request.
 // Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware,
 // passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware,
 // and passes it back to the preceding (upstream) middleware. The request and/or response may be modified in the process.
 // A middleware should call the next function in the chain.
-func (svc *Service) AddMiddleware(handler ...Middleware) error {
+func (svc *Service) AddMiddleware(middleware ...Middleware) error {
 	if svc.IsStarted() {
 		return errors.New("middleware can't be added after starting up")
 	}
-	svc.middleware = append(svc.middleware, handler...)
+	svc.middleware = append(svc.middleware, middleware...)
 	return nil
+}
+
+// AddMiddleware creates a middleware for each [MiddlewareFunc] and adds them to the chain of middleware.
+func (svc *Service) AddMiddlewareFunc(handler ...MiddlewareFunc) error {
+	var middleware []Middleware
+	for _, h := range handler {
+		middleware = append(middleware, &simpleMiddleware{
+			f: h,
+		})
+	}
+	return svc.AddMiddleware(middleware...)
 }
 
 // OnChangedPorts is triggered when the value of the Ports config property changes.
