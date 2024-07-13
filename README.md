@@ -2,15 +2,15 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is a holistic __open source framework__ for the development, testing, deployment and operation of microservices at scale. It combines tooling, guides, patterns and best practices into an __elevated engineering experience__.
-Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your __local development__ machine.
-Deploy to suit your needs, as a standalone executable or as pods on Kubernetes.
+`Microbus` is a holistic open source framework for the development, testing, deployment and operation of microservices at scale. It combines best-in-class OSS, tooling and best practices into an elevated engineering experience.
+
+Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine. Deploy to suit your needs, as a standalone executable or as pods on Kubernetes.
 
 ## 🍴 Table of Content
 
 🚌 [Introduction](#-introduction)\
 ⚙️ [How It Works](#️-how-it-works)\
-🔧 [Design Principles](#-design-principles)\
+🎯 [Mission Statement](#-mission-statement)\
 🚦 [Get Started](#-get-started)\
 📚 [Learn More](#-learn-more)\
 ✋ [Get involved](#-get-involved)\
@@ -23,7 +23,7 @@ A microservice architecture is essential for addressing the technical and organi
 
 Building and operating microservices at scale, however, is quite difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
-`Microbus` takes a novel approach to the development, testing, deployment and troubleshooting of microservices, and eliminates much of the complexity of the current state of the art. `Microbus` is a holistic framework that packages together various OSS technologies, tooling, best practices, patterns and guides into a cohesive engineering experience that elevates productivity up to 4x.
+`Microbus` takes a novel approach to the development, testing, deployment and troubleshooting of microservices, and eliminates much of the complexity of the conventional practice. `Microbus` is a holistic framework that packages together best-in-class OSS technologies, tooling and best practices into a cohesive engineering experience that elevates productivity up to 4x.
 
 `Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
 
@@ -32,7 +32,9 @@ Building and operating microservices at scale, however, is quite difficult and b
 <img src="./docs/tech/nutshell-1.drawio.svg">
 </p>
 
-Build your microservices on top of a `Connector` construct and use its simple API to communicate with other microservices using the familiar HTTP protocol. Under the hood, communication happens over a real-time messaging bus. Powerful features are handled transparently for you:
+Build your microservices on top of a `Connector` construct and use its simple API to communicate with other microservices using the familiar HTTP protocol. Under the hood, communication happens over a real-time messaging bus.
+
+Powerful features are provided out of the box:
 
 * Unicast 1:1 request/response
 * Multicast 1:N publish/subscribe
@@ -44,52 +46,17 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * Locality-aware routing
 * Connectivity liveness check
 * Instrumentation and observability
+* Core microservices such as an HTTP ingress proxy and configurator
 
-Core microservices such as an HTTP ingress proxy and configurator are provided out of the box.
+## 🎯 Mission Statement
 
-## 🔧 Design Principles
+[`Microbus`](./docs/general/mission-statement.md#microbus) is a [holistic](./docs/general/mission-statement.md#holistic) [open source framework](./docs/general/mission-statement.md#open-source-framework) for the [development, testing, deployment and operation](./docs/general/mission-statement.md#sdlc) of [microservices](./docs/general/mission-statement.md#why-microservices) [at scale](./docs/general/mission-statement.md#at-scale).
 
-These core tenets were top of mind in the design of `Microbus`.
+`Microbus` combines [best-in-class OSS](./docs/general/mission-statement.md#curated-oss), [tooling](./docs/general/mission-statement.md#tooling) and [best practices](./docs/general/mission-statement.md#best-practices) into an [elevated engineering experience](./docs/general/mission-statement.md#elevated-engineering-experience) that eliminates much of the complexity of the [conventional practice](./docs/general/mission-statement.md#conventional-practice).
 
-### Elevated Engineering Experience
+`Microbus`’s [runtime substrate](./docs/general/mission-statement.md#runtime-substrate) is highly [performant](./docs/general/mission-statement.md#performance), strongly [reliable](./docs/general/mission-statement.md#reliability) and [horizontally scalable](./docs/general/mission-statement.md#horizontal-scalability).
 
-`Microbus` includes tooling, guides, patterns and best practices that facilitate rapid application development (RAD), thorough testing and pinpoint troubleshooting. The greater engineering velocity yields more value delivered to the customer faster.
-
-* Speed up development with [code generation](./docs/blocks/codegen.md)
-* Run, test and debug an entire solution comprising a multitude of microservices in your [local development](./docs/tech/local-dev.md) machine
-* Observe your system with the help of [distributed tracing](./docs/blocks/distrib-tracing.md), metrics dashboards and logging
-
-### Evade the Microservices Tax
-
-`Microbus` is powered by a small curated set of [OSS](./docs/blocks/layers.md#oss) technologies integrated to work together in unison and exposed through a [simplified API](./docs/tech/encapsulation.md) that keeps the learning curve short and operational complexity low.
-
-* Get up to speed quickly by virtue of a small tech stack and reasonable defaults
-* Keep the number of moving parts small and control operational complexity and cost
-* Transition from a modular monolith to microservices as your business grows
-
-### Adaptable Deployment Topology
-
-From a local development machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](./docs/blocks/topology.md) grows with your needs. No code change required.
-
-* Deploy as a resilient modular monolith, or as microservices spread across multiple cloud regions
-* Run as a standalone executable or as pods on Kubernetes
-* Include any number of microservices in each executable or pod
-
-### Scalable, Resilient and Performant
-
-From individual microservices down to the messaging bus, components at all levels of `Microbus` can be scaled horizontally. No single points of failure or bottlenecks.
-
-* Serve thousands of requests per second per machine right out of the box
-* Scale your system horizontally as your requirements grow
-* Place your trust in a thoroughly-tested substrate
-
-### Common Runtime
-
-All microservices running on `Microbus` comply with the same set of rules for [unicast](./docs/blocks/unicast.md) or [multicast](./docs/blocks/multicast.md) communications, [configuration](./docs/blocks/configuration.md), observability, and more. This consistent behavior makes it easier to reason about the accuracy of the system, guaranteeing smooth interoperability, straightforward maintainability and verifiable stability. 
-
-* Benefit from improved reliability with multiplexed connections, graceful shutdown, [time budgets](./docs/blocks/time-budget.md) and [acks](./docs/blocks/unicast.md)
-* Observe every detail of interaction between microservices
-* Centralize the configuration of all microservices
+`Microbus` conforms to [industry standards](./docs/general/mission-statement.md#industry-standards) and [interoperates](./docs/general/mission-statement.md#interoperability) smoothly with existing systems.
 
 ## 🚦 Get Started
 
