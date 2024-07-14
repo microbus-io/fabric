@@ -19,7 +19,7 @@ package spec
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"gopkg.in/yaml.v3"
 )
 
@@ -32,22 +32,22 @@ func TestSpec_General(t *testing.T) {
 host: super.service
 description: foo
 `), &gen)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	err = yaml.Unmarshal([]byte(`
 host: $uper.$ervice
 description: foo
 `), &gen)
-	assert.ErrorContains(t, err, "invalid host")
+	testarossa.ErrorContains(t, err, "invalid host")
 
 	err = yaml.Unmarshal([]byte(`
 host:
 description: foo
 `), &gen)
-	assert.Error(t, err, "invalid host")
+	testarossa.Error(t, err, "invalid host")
 
 	err = yaml.Unmarshal([]byte(`
 description: foo
 `), &gen)
-	assert.Error(t, err, "invalid host")
+	testarossa.Error(t, err, "invalid host")
 }

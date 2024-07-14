@@ -49,6 +49,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.4 h1:mmDVorXM7PCGKw94cs5zk
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/microbus-io/copyrighter v1.0.1 h1:RjQM9dby7wLzb2VL04+xdVH273nKMbnI2CSXUUlFE0U=
 github.com/microbus-io/copyrighter v1.0.1/go.mod h1:gFMq4tn8eFrL9m4Ow9vF0BBKx5OIY89b5Q8zjkMUZq0=
+github.com/microbus-io/testarossa v0.3.1 h1:7x2gnGF4W7CVxKfoVPmd5897XyZGYD5Z/7zlHwZr7tE=
+github.com/microbus-io/testarossa v0.3.1/go.mod h1:HGjYR/6wvXHw9hjdnWOBJommQGnUsO706SblMBP/wAY=
 github.com/mnako/letters v0.2.2 h1:koVahnzazHIq3aQnjVZE5SBJ7ZG/mXK6uSM4Jh70Naw=
 github.com/mnako/letters v0.2.2/go.mod h1:8DKs/xAQ9A7TP8zrLiZPvlrX5synZnvRyTT5Ja+QUK4=
 github.com/nats-io/nats.go v1.31.0 h1:/WFBHEc/dOKBF6qf1TZhrdEfTmOZ5JzdJ+Y3m6Y/p7E=

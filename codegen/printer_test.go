@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestCodegen_PrinterWriters(t *testing.T) {
@@ -35,22 +35,22 @@ func TestCodegen_PrinterWriters(t *testing.T) {
 		errWriter: &errBuf,
 	}
 
-	assert.NotContains(t, outBuf.String(), "Hello")
+	testarossa.NotContains(t, outBuf.String(), "Hello")
 	p.Debug("Hello")
-	assert.Contains(t, outBuf.String(), "Hello")
-	assert.Len(t, errBuf.Bytes(), 0)
+	testarossa.Contains(t, outBuf.String(), "Hello")
+	testarossa.SliceLen(t, errBuf.Bytes(), 0)
 	outBuf.Reset()
 
-	assert.NotContains(t, outBuf.String(), "Hello")
+	testarossa.NotContains(t, outBuf.String(), "Hello")
 	p.Info("Hello")
-	assert.Contains(t, outBuf.String(), "Hello")
-	assert.Len(t, errBuf.Bytes(), 0)
+	testarossa.Contains(t, outBuf.String(), "Hello")
+	testarossa.SliceLen(t, errBuf.Bytes(), 0)
 	outBuf.Reset()
 
-	assert.NotContains(t, errBuf.String(), "Hello")
+	testarossa.NotContains(t, errBuf.String(), "Hello")
 	p.Error("Hello")
-	assert.Contains(t, errBuf.String(), "Hello")
-	assert.Len(t, outBuf.Bytes(), 0)
+	testarossa.Contains(t, errBuf.String(), "Hello")
+	testarossa.SliceLen(t, outBuf.Bytes(), 0)
 	errBuf.Reset()
 }
 
@@ -73,12 +73,12 @@ func TestCodegen_Verbose(t *testing.T) {
 	p.Info("[Info Succinct]")
 	p.Error("[Error Succinct]")
 
-	assert.Contains(t, outBuf.String(), "[Debug Verbose]")
-	assert.Contains(t, outBuf.String(), "[Info Verbose]")
-	assert.Contains(t, errBuf.String(), "[Error Verbose]")
-	assert.NotContains(t, outBuf.String(), "[Debug Succinct]")
-	assert.Contains(t, outBuf.String(), "[Info Succinct]")
-	assert.Contains(t, errBuf.String(), "[Error Succinct]")
+	testarossa.Contains(t, outBuf.String(), "[Debug Verbose]")
+	testarossa.Contains(t, outBuf.String(), "[Info Verbose]")
+	testarossa.Contains(t, errBuf.String(), "[Error Verbose]")
+	testarossa.NotContains(t, outBuf.String(), "[Debug Succinct]")
+	testarossa.Contains(t, outBuf.String(), "[Info Succinct]")
+	testarossa.Contains(t, errBuf.String(), "[Error Succinct]")
 }
 
 func TestCodegen_Indent(t *testing.T) {
@@ -103,8 +103,6 @@ func TestCodegen_Indent(t *testing.T) {
 	lines := strings.Split(outBuf.String(), "\n")
 	for i := 0; i < len(lines)-1; i++ {
 		line := lines[i]
-		if line != "0" && line != "  1" && line != "    2" {
-			assert.Fail(t, "Incorrect indentation", "%s", line)
-		}
+		testarossa.FailIf(t, line != "0" && line != "  1" && line != "    2", "Incorrect indentation", line)
 	}
 }

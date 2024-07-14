@@ -38,7 +38,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
@@ -61,7 +61,7 @@ var (
 	_ pub.Option
 	_ rand.Void
 	_ utils.SyncMap[string, string]
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *html.Node
 	_ *eventsourceapi.Client
 )
@@ -137,37 +137,37 @@ type RegisterTestCase struct {
 
 // Expect asserts no error and exact return values.
 func (_tc *RegisterTestCase) Expect(allowed bool) *RegisterTestCase {
-	if assert.NoError(_tc._t, _tc.err) {
-		assert.Equal(_tc._t, allowed, _tc.allowed)
+	if testarossa.NoError(_tc._t, _tc.err) {
+		testarossa.Equal(_tc._t, allowed, _tc.allowed)
 	}
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *RegisterTestCase) Error(errContains string) *RegisterTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *RegisterTestCase) ErrorCode(statusCode int) *RegisterTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *RegisterTestCase) NoError() *RegisterTestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *RegisterTestCase) CompletedIn(threshold time.Duration) *RegisterTestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 
@@ -209,8 +209,8 @@ type OnAllowRegisterTestCase struct {
 // Expect asserts that the event sink was triggered with an exact match of its input arguments.
 func (_tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCase {
 	_tc._asserters = append(_tc._asserters, func() {
-		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
-			assert.Equal(_tc._t, email, _tc.email)
+		if testarossa.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			testarossa.Equal(_tc._t, email, _tc.email)
 		}
 	})
 	return _tc
@@ -219,7 +219,7 @@ func (_tc *OnAllowRegisterTestCase) Expect(email string) *OnAllowRegisterTestCas
 // Assert asserts that the event sink was triggered with a custom function to assert its input arguments.
 func (_tc *OnAllowRegisterTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnAllowRegisterTestCase {
 	_tc._asserters = append(_tc._asserters, func() {
-		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+		if testarossa.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
 			asserter(_tc._t, _tc.ctx, _tc.email)
 		}
 	})
@@ -244,7 +244,7 @@ func (_tc *OnAllowRegisterTestCase) Wait() *OnAllowRegisterTestCase {
 	select {
 	case <-_tc._done:
 	case <-timer.C:
-		assert.Fail(_tc._t, "Timed out", "Event sink was not triggered")
+		testarossa.True(_tc._t, false, "Timed out", "Event sink was not triggered")
 	}
 	return _tc
 }
@@ -293,8 +293,8 @@ type OnRegisteredTestCase struct {
 // Expect asserts that the event sink was triggered with an exact match of its input arguments.
 func (_tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
 	_tc._asserters = append(_tc._asserters, func() {
-		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
-			assert.Equal(_tc._t, email, _tc.email)
+		if testarossa.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+			testarossa.Equal(_tc._t, email, _tc.email)
 		}
 	})
 	return _tc
@@ -303,7 +303,7 @@ func (_tc *OnRegisteredTestCase) Expect(email string) *OnRegisteredTestCase {
 // Assert asserts that the event sink was triggered with a custom function to assert its input arguments.
 func (_tc *OnRegisteredTestCase) Assert(asserter func(t *testing.T, ctx context.Context, email string)) *OnRegisteredTestCase {
 	_tc._asserters = append(_tc._asserters, func() {
-		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+		if testarossa.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
 			asserter(_tc._t, _tc.ctx, _tc.email)
 		}
 	})
@@ -327,7 +327,7 @@ func (_tc *OnRegisteredTestCase) Wait() *OnRegisteredTestCase {
 	select {
 	case <-_tc._done:
 	case <-timer.C:
-		assert.Fail(_tc._t, "Timed out", "Event sink was not triggered")
+		testarossa.True(_tc._t, false, "Timed out", "Event sink was not triggered")
 	}
 	return _tc
 }

@@ -20,7 +20,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestHttpingress_ResolveInternalURL(t *testing.T) {
@@ -60,11 +60,11 @@ func TestHttpingress_ResolveInternalURL(t *testing.T) {
 	}
 	for i := 0; i < len(testCases); i += 2 {
 		x, err := url.Parse(testCases[i])
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 		u, err := url.Parse(testCases[i+1])
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 		ru, err := resolveInternalURL(x, portMappings)
-		assert.NoError(t, err)
-		assert.Equal(t, u, ru)
+		testarossa.NoError(t, err)
+		testarossa.Equal(t, u, ru)
 	}
 }

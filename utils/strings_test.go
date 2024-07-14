@@ -19,7 +19,7 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestUtils_ToKebabCase(t *testing.T) {
@@ -39,6 +39,6 @@ func TestUtils_ToKebabCase(t *testing.T) {
 		"":           "",
 	}
 	for id, expected := range testCases {
-		assert.Equal(t, expected, ToKebabCase(id), "%s", id)
+		testarossa.Equal(t, expected, ToKebabCase(id), "%s", id)
 	}
 }

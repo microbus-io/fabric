@@ -38,7 +38,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/examples/browser/browserapi"
@@ -61,7 +61,7 @@ var (
 	_ pub.Option
 	_ rand.Void
 	_ utils.SyncMap[string, string]
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *html.Node
 	_ *browserapi.Client
 )
@@ -137,42 +137,42 @@ type BrowseTestCase struct {
 
 // StatusOK asserts no error and a status code 200.
 func (tc *BrowseTestCase) StatusOK() *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.Equal(tc.t, tc.res.StatusCode, http.StatusOK)
 	}
 	return tc
 }
 
 // StatusCode asserts no error and a status code.
 func (tc *BrowseTestCase) StatusCode(statusCode int) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.Equal(tc.t, tc.res.StatusCode, statusCode)
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.Equal(tc.t, tc.res.StatusCode, statusCode)
 	}
 	return tc
 }
 
 // BodyContains asserts no error and that the response body contains the string or byte array value.
 func (tc *BrowseTestCase) BodyContains(value any) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		var body []byte
 		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
 			body = br.Bytes()
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		switch v := value.(type) {
 		case []byte:
-			assert.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
+			testarossa.True(tc.t, bytes.Contains(body, v), "%v does not contain %v", body, v)
 		case string:
-			assert.Contains(tc.t, string(body), v)
+			testarossa.Contains(tc.t, string(body), v)
 		default:
 			vv := fmt.Sprintf("%v", v)
-			assert.Contains(tc.t, string(body), vv)
+			testarossa.Contains(tc.t, string(body), vv)
 		}
 	}
 	return tc
@@ -180,26 +180,26 @@ func (tc *BrowseTestCase) BodyContains(value any) *BrowseTestCase {
 
 // BodyNotContains asserts no error and that the response body does not contain the string or byte array value.
 func (tc *BrowseTestCase) BodyNotContains(value any) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		var body []byte
 		if br, ok := tc.res.Body.(*httpx.BodyReader); ok {
 			body = br.Bytes()
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		switch v := value.(type) {
 		case []byte:
-			assert.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
+			testarossa.False(tc.t, bytes.Contains(body, v), "%v contains %v", body, v)
 		case string:
-			assert.NotContains(tc.t, string(body), v)
+			testarossa.NotContains(tc.t, string(body), v)
 		default:
 			vv := fmt.Sprintf("%v", v)
-			assert.NotContains(tc.t, string(body), vv)
+			testarossa.NotContains(tc.t, string(body), vv)
 		}
 	}
 	return tc
@@ -207,56 +207,56 @@ func (tc *BrowseTestCase) BodyNotContains(value any) *BrowseTestCase {
 
 // HeaderContains asserts no error and that the named header contains the value.
 func (tc *BrowseTestCase) HeaderContains(headerName string, value string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.res.Header.Get(headerName), value)
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.res.Header.Get(headerName), value)
 	}
 	return tc
 }
 
 // HeaderNotContains asserts no error and that the named header does not contain a string.
 func (tc *BrowseTestCase) HeaderNotContains(headerName string, value string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.NotContains(tc.t, tc.res.Header.Get(headerName), value)
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.NotContains(tc.t, tc.res.Header.Get(headerName), value)
 	}
 	return tc
 }
 
 // HeaderEqual asserts no error and that the named header matches the value.
 func (tc *BrowseTestCase) HeaderEqual(headerName string, value string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.Equal(tc.t, value, tc.res.Header.Get(headerName))
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.Equal(tc.t, value, tc.res.Header.Get(headerName))
 	}
 	return tc
 }
 
 // HeaderNotEqual asserts no error and that the named header does not matche the value.
 func (tc *BrowseTestCase) HeaderNotEqual(headerName string, value string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.NotEqual(tc.t, value, tc.res.Header.Get(headerName))
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.NotEqual(tc.t, value, tc.res.Header.Get(headerName))
 	}
 	return tc
 }
 
 // HeaderExists asserts no error and that the named header exists.
 func (tc *BrowseTestCase) HeaderExists(headerName string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.NotEmpty(tc.t, tc.res.Header.Values(headerName), "Header %s does not exist", headerName)
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.NotEqual(tc.t, 0, len(tc.res.Header.Values(headerName)), "Header %s does not exist", headerName)
 	}
 	return tc
 }
 
 // HeaderNotExists asserts no error and that the named header does not exists.
 func (tc *BrowseTestCase) HeaderNotExists(headerName string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.Empty(tc.t, tc.res.Header.Values(headerName), "Header %s exists", headerName)
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.Equal(tc.t, 0, len(tc.res.Header.Values(headerName)), "Header %s exists", headerName)
 	}
 	return tc
 }
 
 // ContentType asserts no error and that the Content-Type header matches the expected value.
 func (tc *BrowseTestCase) ContentType(expected string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
-		assert.Equal(tc.t, expected, tc.res.Header.Get("Content-Type"))
+	if testarossa.NoError(tc.t, tc.err) {
+		testarossa.Equal(tc.t, expected, tc.res.Header.Get("Content-Type"))
 	}
 	return tc
 }
@@ -271,9 +271,9 @@ Examples:
 	TagExists(`TR TD INPUT[name="x"]`)
 */
 func (tc *BrowseTestCase) TagExists(cssSelectorQuery string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
-		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+		if !testarossa.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
 		var body []byte
@@ -282,17 +282,17 @@ func (tc *BrowseTestCase) TagExists(cssSelectorQuery string) *BrowseTestCase {
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		doc, err := html.Parse(bytes.NewReader(body))
-		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+		if !testarossa.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
 		}
 		matches := selector.MatchAll(doc)
-		assert.NotEmpty(tc.t, matches, "Found no tags matching %s", cssSelectorQuery)
+		testarossa.NotEqual(tc.t, 0, len(matches), "Found no tags matching %s", cssSelectorQuery)
 	}
 	return tc
 }
@@ -307,9 +307,9 @@ Example:
 	TagNotExists(`TR TD INPUT[name="x"]`)
 */
 func (tc *BrowseTestCase) TagNotExists(cssSelectorQuery string) *BrowseTestCase {
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
-		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+		if !testarossa.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
 		var body []byte
@@ -318,17 +318,17 @@ func (tc *BrowseTestCase) TagNotExists(cssSelectorQuery string) *BrowseTestCase 
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		doc, err := html.Parse(bytes.NewReader(body))
-		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+		if !testarossa.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
 		}
 		matches := selector.MatchAll(doc)
-		assert.Empty(tc.t, matches, "Found %d tag(s) matching %s", len(matches), cssSelectorQuery)
+		testarossa.Equal(tc.t, 0, len(matches), "Found %d tag(s) matching %s", len(matches), cssSelectorQuery)
 	}
 	return tc
 }
@@ -353,9 +353,9 @@ func (tc *BrowseTestCase) TagEqual(cssSelectorQuery string, value string) *Brows
 		return false
 	}
 
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
-		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+		if !testarossa.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
 		var body []byte
@@ -364,17 +364,17 @@ func (tc *BrowseTestCase) TagEqual(cssSelectorQuery string, value string) *Brows
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		doc, err := html.Parse(bytes.NewReader(body))
-		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+		if !testarossa.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
 		}
 		matches := selector.MatchAll(doc)
-		if !assert.NotEmpty(tc.t, matches, "Selector %s does not match any tags", cssSelectorQuery) {
+		if !testarossa.NotEqual(tc.t, 0, len(matches), "Selector %s does not match any tags", cssSelectorQuery) {
 			return tc
 		}
 		if value == "" {
@@ -387,7 +387,7 @@ func (tc *BrowseTestCase) TagEqual(cssSelectorQuery string, value string) *Brows
 				break
 			}
 		}
-		assert.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
+		testarossa.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
 	}
 	return tc
 }
@@ -412,9 +412,9 @@ func (tc *BrowseTestCase) TagContains(cssSelectorQuery string, value string) *Br
 		return false
 	}
 
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
-		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+		if !testarossa.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
 		var body []byte
@@ -423,17 +423,17 @@ func (tc *BrowseTestCase) TagContains(cssSelectorQuery string, value string) *Br
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		doc, err := html.Parse(bytes.NewReader(body))
-		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+		if !testarossa.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
 		}
 		matches := selector.MatchAll(doc)
-		if !assert.NotEmpty(tc.t, matches, "Selector %s does not match any tags", cssSelectorQuery) {
+		if !testarossa.NotEqual(tc.t, 0, len(matches), "Selector %s does not match any tags", cssSelectorQuery) {
 			return tc
 		}
 		if value == "" {
@@ -446,7 +446,7 @@ func (tc *BrowseTestCase) TagContains(cssSelectorQuery string, value string) *Br
 				break
 			}
 		}
-		assert.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
+		testarossa.True(tc.t, found, "No tag matching %s contains %s", cssSelectorQuery, value)
 	}
 	return tc
 }
@@ -471,9 +471,9 @@ func (tc *BrowseTestCase) TagNotEqual(cssSelectorQuery string, value string) *Br
 		return false
 	}
 
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
-		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+		if !testarossa.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
 		var body []byte
@@ -482,20 +482,20 @@ func (tc *BrowseTestCase) TagNotEqual(cssSelectorQuery string, value string) *Br
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		doc, err := html.Parse(bytes.NewReader(body))
-		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+		if !testarossa.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
 		}
 		matches := selector.MatchAll(doc)
 		if len(matches) == 0 {
 			return tc
 		}
-		if !assert.NotEmpty(tc.t, value, "Found tag matching %s", cssSelectorQuery) {
+		if !testarossa.NotEqual(tc.t, "", value, "Found tag matching %s", cssSelectorQuery) {
 			return tc
 		}
 		found := false
@@ -505,7 +505,7 @@ func (tc *BrowseTestCase) TagNotEqual(cssSelectorQuery string, value string) *Br
 				break
 			}
 		}
-		assert.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
+		testarossa.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
 	}
 	return tc
 }
@@ -530,9 +530,9 @@ func (tc *BrowseTestCase) TagNotContains(cssSelectorQuery string, value string) 
 		return false
 	}
 
-	if assert.NoError(tc.t, tc.err) {
+	if testarossa.NoError(tc.t, tc.err) {
 		selector, err := cascadia.Compile(cssSelectorQuery)
-		if !assert.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
+		if !testarossa.NoError(tc.t, err, "Invalid selector %s", cssSelectorQuery) {
 			return tc
 		}
 		var body []byte
@@ -541,20 +541,20 @@ func (tc *BrowseTestCase) TagNotContains(cssSelectorQuery string, value string) 
 		} else {
 			var err error
 			body, err = io.ReadAll(tc.res.Body)
-			if !assert.NoError(tc.t, err, "Failed to read body") {
+			if !testarossa.NoError(tc.t, err, "Failed to read body") {
 				return tc
 			}
 			tc.res.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		doc, err := html.Parse(bytes.NewReader(body))
-		if !assert.NoError(tc.t, err, "Failed to parse HTML") {
+		if !testarossa.NoError(tc.t, err, "Failed to parse HTML") {
 			return tc
 		}
 		matches := selector.MatchAll(doc)
 		if len(matches) == 0 {
 			return tc
 		}
-		if !assert.NotEmpty(tc.t, value, "Found tag matching %s", cssSelectorQuery) {
+		if !testarossa.NotEqual(tc.t, "", value, "Found tag matching %s", cssSelectorQuery) {
 			return tc
 		}
 		found := false
@@ -564,36 +564,36 @@ func (tc *BrowseTestCase) TagNotContains(cssSelectorQuery string, value string) 
 				break
 			}
 		}
-		assert.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
+		testarossa.False(tc.t, found, "Found tag matching %s that contains %s", cssSelectorQuery, value)
 	}
 	return tc
 }
 
 // Error asserts an error.
 func (tc *BrowseTestCase) Error(errContains string) *BrowseTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *BrowseTestCase) ErrorCode(statusCode int) *BrowseTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *BrowseTestCase) NoError() *BrowseTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *BrowseTestCase) CompletedIn(threshold time.Duration) *BrowseTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 

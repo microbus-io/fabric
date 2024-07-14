@@ -20,12 +20,12 @@ type {{ .Name }}TestCase struct {
 // Expect asserts that the event sink was triggered with an exact match of its input arguments.
 func (_tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.InputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
 	_tc._asserters = append(_tc._asserters, func() {
-		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+		if testarossa.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
 			{{- range .Signature.InputArgs }}
 			{{- if eq .Type "time.Time" }}
-			assert.True(_tc._t, {{ .Name }}.Equal(_tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, _tc.{{ .Name }})
+			testarossa.True(_tc._t, {{ .Name }}.Equal(_tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, _tc.{{ .Name }})
 			{{- else }}
-			assert.Equal(_tc._t, {{ .Name }}, _tc.{{ .Name }})
+			testarossa.Equal(_tc._t, {{ .Name }}, _tc.{{ .Name }})
 			{{- end }}{{ end }}
 		}
 	})
@@ -35,7 +35,7 @@ func (_tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.InputArgs }
 // Assert asserts that the event sink was triggered with a custom function to assert its input arguments.
 func (_tc *{{ .Name }}TestCase) Assert(asserter func({{ $t }} *testing.T, {{ .In }})) *{{ .Name }}TestCase {
 	_tc._asserters = append(_tc._asserters, func() {
-		if assert.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
+		if testarossa.True(_tc._t, _tc._triggered, "Event sink was not triggered") {
 			asserter(_tc._t, _tc.ctx {{- range .Signature.InputArgs }}, _tc.{{ .Name }}{{ end }})
 		}
 	})
@@ -62,7 +62,7 @@ func (_tc *{{ .Name }}TestCase) Wait() *{{ .Name }}TestCase {
 	select {
 	case <-_tc._done:
 	case <-timer.C:
-		assert.Fail(_tc._t, "Timed out", "Event sink was not triggered")
+		testarossa.True(_tc._t, false, "Timed out", "Event sink was not triggered")
 	}
 	return _tc
 }

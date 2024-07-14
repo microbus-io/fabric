@@ -27,7 +27,7 @@ import (
 	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/service"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestConfigurator_ManyMicroservices(t *testing.T) {
@@ -59,12 +59,12 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 	app.Add(configSvc)
 	app.Add(services...)
 	err := app.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer app.Shutdown()
 
 	for i := 1; i < len(services); i++ {
-		assert.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
-		assert.Equal(t, "", services[i].(*connector.Connector).Config("moo"))
+		testarossa.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
+		testarossa.Equal(t, "", services[i].(*connector.Connector).Config("moo"))
 	}
 
 	// Load new values
@@ -73,16 +73,16 @@ many.microservices.configurator:
   foo: baz
   moo: cow
 `)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	wg.Add(n)
 	err = configSvc.Refresh(configSvc.Lifetime())
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	wg.Wait()
 
 	for i := 0; i < len(services); i++ {
-		assert.Equal(t, "baz", services[i].(*connector.Connector).Config("foo"))
-		assert.Equal(t, "cow", services[i].(*connector.Connector).Config("moo"))
+		testarossa.Equal(t, "baz", services[i].(*connector.Connector).Config("foo"))
+		testarossa.Equal(t, "cow", services[i].(*connector.Connector).Config("moo"))
 	}
 
 	// Restore foo to use the default value
@@ -91,16 +91,16 @@ many.microservices.configurator:
   foo:
   moo: cow
 `)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	wg.Add(n)
 	err = configSvc.Refresh(configSvc.Lifetime())
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	wg.Wait()
 
 	for i := 0; i < len(services); i++ {
-		assert.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
-		assert.Equal(t, "cow", services[i].(*connector.Connector).Config("moo"))
+		testarossa.Equal(t, "bar", services[i].(*connector.Connector).Config("foo"))
+		testarossa.Equal(t, "cow", services[i].(*connector.Connector).Config("moo"))
 	}
 }
 
@@ -119,20 +119,20 @@ func TestConfigurator_Callback(t *testing.T) {
 	con.DefineConfig("foo", cfg.DefaultValue("bar"))
 	var wg sync.WaitGroup
 	err := con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
-		assert.True(t, changed("foo"))
+		testarossa.True(t, changed("foo"))
 		wg.Done()
 		return nil
 	})
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	err = configSvc.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer configSvc.Shutdown()
 	err = con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
-	assert.Equal(t, "bar", con.Config("foo"))
+	testarossa.Equal(t, "bar", con.Config("foo"))
 
 	configSvc.loadYAML(`
 callback.configurator:
@@ -142,10 +142,10 @@ callback.configurator:
 	// Force a refresh
 	wg.Add(1)
 	err = configSvc.Refresh(configSvc.Lifetime())
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	wg.Wait()
 
-	assert.Equal(t, "baz", con.Config("foo"))
+	testarossa.Equal(t, "baz", con.Config("foo"))
 }
 
 func TestConfigurator_PeerSync(t *testing.T) {
@@ -162,12 +162,12 @@ www.example.com:
   Foo: Bar
 `)
 	err := config1.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer config1.Shutdown()
 
 	val, ok := config1.repo.Value("www.example.com", "Foo")
-	assert.True(t, ok)
-	assert.Equal(t, "Bar", val)
+	testarossa.True(t, ok)
+	testarossa.Equal(t, "Bar", val)
 
 	// Start the microservice
 	con := connector.New("www.example.com")
@@ -176,10 +176,10 @@ www.example.com:
 	con.DefineConfig("Foo")
 
 	err = con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
-	assert.Equal(t, "Bar", con.Config("Foo"))
+	testarossa.Equal(t, "Bar", con.Config("Foo"))
 
 	// Start the second peer
 	config2 := NewService()
@@ -190,16 +190,16 @@ www.example.com:
   Foo: Baz
 `)
 	err = config2.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer config2.Shutdown()
 
 	val, ok = config2.repo.Value("www.example.com", "Foo")
-	assert.True(t, ok)
-	assert.Equal(t, "Baz", val)
+	testarossa.True(t, ok)
+	testarossa.Equal(t, "Baz", val)
 
 	val, ok = config1.repo.Value("www.example.com", "Foo")
-	assert.True(t, ok)
-	assert.Equal(t, "Baz", val, "First peer should have been updated")
+	testarossa.True(t, ok)
+	testarossa.Equal(t, "Baz", val, "First peer should have been updated")
 
-	assert.Equal(t, "Baz", con.Config("Foo"), "Microservice should have been updated")
+	testarossa.Equal(t, "Baz", con.Config("Foo"), "Microservice should have been updated")
 }

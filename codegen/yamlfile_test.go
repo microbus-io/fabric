@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/rand"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestCodegen_YAMLFile(t *testing.T) {
@@ -40,42 +40,42 @@ func TestCodegen_YAMLFile(t *testing.T) {
 
 	// Run on an empty directory should do nothing
 	err := gen.Run()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	_, err = os.Stat(filepath.Join(dir, "service.yaml"))
-	assert.True(t, errors.Is(err, os.ErrNotExist))
+	testarossa.True(t, errors.Is(err, os.ErrNotExist))
 
 	// Create doc.go
 	file, err := os.Create(filepath.Join(dir, "doc.go"))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	file.Close()
 
 	// Running now should create service.yaml
 	err = gen.Run()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	onDisk, err := os.ReadFile(filepath.Join(dir, "service.yaml"))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	template, err := bundle.ReadFile("bundle/service.yaml.txt")
-	assert.NoError(t, err)
-	assert.Equal(t, template, onDisk)
+	testarossa.NoError(t, err)
+	testarossa.SliceEqual(t, template, onDisk)
 
 	// Delete service.yaml
 	os.Remove(filepath.Join(dir, "service.yaml"))
 	_, err = os.Stat(filepath.Join(dir, "service.yaml"))
-	assert.True(t, errors.Is(err, os.ErrNotExist))
+	testarossa.True(t, errors.Is(err, os.ErrNotExist))
 
 	// Create empty service.yaml
 	file, err = os.Create(filepath.Join(dir, "service.yaml"))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	file.Close()
 
 	// Running now should create service.yaml
 	err = gen.Run()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	onDisk, err = os.ReadFile(filepath.Join(dir, "service.yaml"))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	template, err = bundle.ReadFile("bundle/service.yaml.txt")
-	assert.NoError(t, err)
-	assert.Equal(t, template, onDisk)
+	testarossa.NoError(t, err)
+	testarossa.SliceEqual(t, template, onDisk)
 
 	// Change/remove the comments on disk
 	newLines := [][]byte{}
@@ -90,21 +90,21 @@ func TestCodegen_YAMLFile(t *testing.T) {
 		}
 	}
 	err = os.WriteFile(filepath.Join(dir, "service.yaml"), bytes.Join(newLines, []byte("\n")), 0666)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Verify that the file changed
 	onDisk, err = os.ReadFile(filepath.Join(dir, "service.yaml"))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	template, err = bundle.ReadFile("bundle/service.yaml.txt")
-	assert.NoError(t, err)
-	assert.NotEqual(t, template, onDisk)
+	testarossa.NoError(t, err)
+	testarossa.SliceNotEqual(t, template, onDisk)
 
 	// Running now should fix the comments in service.yaml
 	err = gen.Run()
-	assert.Error(t, err) // Missing hostname
+	testarossa.Error(t, err) // Missing hostname
 	onDisk, err = os.ReadFile(filepath.Join(dir, "service.yaml"))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	template, err = bundle.ReadFile("bundle/service.yaml.txt")
-	assert.NoError(t, err)
-	assert.Equal(t, template, onDisk)
+	testarossa.NoError(t, err)
+	testarossa.SliceEqual(t, template, onDisk)
 }

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/codegen/spec"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"gopkg.in/yaml.v3"
 )
 
@@ -65,7 +65,7 @@ return errors.Trace(err)
 
 	for i := 0; i < len(testCases); i += 2 {
 		modified := findReplaceReturnedErrors(testCases[i])
-		assert.Equal(t, testCases[i+1], modified)
+		testarossa.Equal(t, testCases[i+1], modified)
 	}
 }
 
@@ -149,7 +149,7 @@ import "fmt"
 
 	for i := 0; i < len(testCases); i += 2 {
 		modified := findReplaceImportErrors(testCases[i])
-		assert.Equal(t, testCases[i+1], modified, "test case %d", (i/2)+1)
+		testarossa.Equal(t, testCases[i+1], modified, "test case %d", (i/2)+1)
 	}
 }
 
@@ -266,5 +266,5 @@ func (svc *Service) TickTock(ctx context.Context) (err error) {
 	return
 }
 `
-	assert.Equal(t, expected, modified)
+	testarossa.Equal(t, expected, modified)
 }

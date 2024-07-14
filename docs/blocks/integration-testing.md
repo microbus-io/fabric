@@ -93,11 +93,11 @@ It is not required to use the provided test cases and asserters. For example, `A
 
 ```go
 x, op, y, sum, err := Svc.Arithmetic(ctx, 3, "-", 8)
-if assert.NoError(t, err) {
-	assert.Equal(t, 3, x)
-	assert.Equal(t, "-", op)
-	assert.Equal(t, 8, y)
-	assert.Equal(t, -5, sum)
+if testarossa.NoError(t, err) {
+	testarossa.Equal(t, 3, x)
+	testarossa.Equal(t, "-", op)
+	testarossa.Equal(t, 8, y)
+	testarossa.Equal(t, -5, sum)
 }
 ```
 

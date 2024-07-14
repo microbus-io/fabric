@@ -30,8 +30,8 @@ import (
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/sub"
+	"github.com/microbus-io/testarossa"
 	"github.com/nats-io/nats.go"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestConnector_DirectorySubscription(t *testing.T) {
@@ -51,28 +51,28 @@ func TestConnector_DirectorySubscription(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages to various locations under the directory
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/1.html")
-	assert.NoError(t, err)
-	assert.Equal(t, "1.html", appendix)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, "1.html", appendix)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/2.html")
-	assert.NoError(t, err)
-	assert.Equal(t, "2.html", appendix)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, "2.html", appendix)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/sub/3.html")
-	assert.NoError(t, err)
-	assert.Equal(t, "sub/3.html", appendix)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, "sub/3.html", appendix)
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory/")
-	assert.NoError(t, err)
-	assert.Equal(t, "", appendix)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, "", appendix)
 
-	assert.Equal(t, 4, count)
+	testarossa.Equal(t, 4, count)
 
 	// The path of the directory should not be captured
 	_, err = con.GET(ctx, "https://directory.subscription.connector/directory")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 }
 
 func TestConnector_HyphenInHostname(t *testing.T) {
@@ -90,12 +90,12 @@ func TestConnector_HyphenInHostname(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	_, err = con.GET(ctx, "https://hyphen-in-host_name.connector/path")
-	assert.NoError(t, err)
-	assert.True(t, entered)
+	testarossa.NoError(t, err)
+	testarossa.True(t, entered)
 }
 
 func TestConnector_PathArgumentsInSubscription(t *testing.T) {
@@ -136,36 +136,36 @@ func TestConnector_PathArgumentsInSubscription(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages
 	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/1234/alpha")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, alphaCount)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, alphaCount)
 	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/2345/alpha")
-	assert.NoError(t, err)
-	assert.Equal(t, 2, alphaCount)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 2, alphaCount)
 	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/1111/beta")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, betaCount)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, betaCount)
 	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/2222/beta")
-	assert.NoError(t, err)
-	assert.Equal(t, 2, betaCount)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 2, betaCount)
 	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj/8000")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, rootCount)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, rootCount)
 	_, err = con.GET(ctx, "https://path.arguments.in.subscription.connector/obj")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, parentCount)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, parentCount)
 
-	assert.Len(t, detected, 6)
-	assert.Equal(t, "1234", detected["/obj/1234/alpha"])
-	assert.Equal(t, "2345", detected["/obj/2345/alpha"])
-	assert.Equal(t, "1111", detected["/obj/1111/beta"])
-	assert.Equal(t, "2222", detected["/obj/2222/beta"])
-	assert.Equal(t, "8000", detected["/obj/8000"])
-	assert.Equal(t, "", detected["/obj"])
+	testarossa.Equal(t, 6, len(detected))
+	testarossa.Equal(t, "1234", detected["/obj/1234/alpha"])
+	testarossa.Equal(t, "2345", detected["/obj/2345/alpha"])
+	testarossa.Equal(t, "1111", detected["/obj/1111/beta"])
+	testarossa.Equal(t, "2222", detected["/obj/2222/beta"])
+	testarossa.Equal(t, "8000", detected["/obj/8000"])
+	testarossa.Equal(t, "", detected["/obj"])
 }
 
 func TestConnector_MixedAsteriskSubscription(t *testing.T) {
@@ -183,15 +183,15 @@ func TestConnector_MixedAsteriskSubscription(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	_, err = con.GET(ctx, "https://mixed.asterisk.subscription.connector/obj/2222/gamma")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 	_, err = con.GET(ctx, "https://mixed.asterisk.subscription.connector/obj/x2x/gamma")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 	_, err = con.GET(ctx, "https://mixed.asterisk.subscription.connector/obj/x*x/gamma")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 }
 
 func TestConnector_ErrorAndPanic(t *testing.T) {
@@ -212,7 +212,7 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 	})
 	con.Subscribe("GET", "oserr", func(w http.ResponseWriter, r *http.Request) error {
 		err := errors.Trace(os.ErrNotExist)
-		assert.True(t, errors.Is(err, os.ErrNotExist))
+		testarossa.True(t, errors.Is(err, os.ErrNotExist))
 		return err
 	})
 	con.Subscribe("GET", "stillalive", func(w http.ResponseWriter, r *http.Request) error {
@@ -221,31 +221,31 @@ func TestConnector_ErrorAndPanic(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages
 	_, err = con.GET(ctx, "https://error.and.panic.connector/usererr")
-	assert.Error(t, err)
-	assert.Equal(t, "bad input", err.Error())
-	assert.Equal(t, http.StatusBadRequest, errors.Convert(err).StatusCode)
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "bad input", err.Error())
+	testarossa.Equal(t, http.StatusBadRequest, errors.Convert(err).StatusCode)
 
 	_, err = con.GET(ctx, "https://error.and.panic.connector/err")
-	assert.Error(t, err)
-	assert.Equal(t, "it's bad", err.Error())
-	assert.Equal(t, http.StatusInternalServerError, errors.Convert(err).StatusCode)
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "it's bad", err.Error())
+	testarossa.Equal(t, http.StatusInternalServerError, errors.Convert(err).StatusCode)
 
 	_, err = con.GET(ctx, "https://error.and.panic.connector/panic")
-	assert.Error(t, err)
-	assert.Equal(t, "it's really bad", err.Error())
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "it's really bad", err.Error())
 
 	_, err = con.GET(ctx, "https://error.and.panic.connector/oserr")
-	assert.Error(t, err)
-	assert.Equal(t, "file does not exist", err.Error())
-	assert.False(t, errors.Is(err, os.ErrNotExist)) // Cannot reconstitute error type
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "file does not exist", err.Error())
+	testarossa.False(t, errors.Is(err, os.ErrNotExist)) // Cannot reconstitute error type
 
 	_, err = con.GET(ctx, "https://error.and.panic.connector/stillalive")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 }
 
 func TestConnector_DifferentPlanes(t *testing.T) {
@@ -270,28 +270,28 @@ func TestConnector_DifferentPlanes(t *testing.T) {
 
 	// Startup the microservices
 	err := alpha.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer alpha.Shutdown()
 	err = beta.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer beta.Shutdown()
 
 	// Alpha should never see beta
 	for i := 0; i < 32; i++ {
 		response, err := alpha.GET(ctx, "https://different.planes.connector/id")
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 		body, err := io.ReadAll(response.Body)
-		assert.NoError(t, err)
-		assert.Equal(t, []byte("alpha"), body)
+		testarossa.NoError(t, err)
+		testarossa.Equal(t, "alpha", string(body))
 	}
 
 	// Beta should never see alpha
 	for i := 0; i < 32; i++ {
 		response, err := beta.GET(ctx, "https://different.planes.connector/id")
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 		body, err := io.ReadAll(response.Body)
-		assert.NoError(t, err)
-		assert.Equal(t, []byte("beta"), body)
+		testarossa.NoError(t, err)
+		testarossa.Equal(t, "beta", string(body))
 	}
 }
 
@@ -312,7 +312,7 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 
 	// Startup the microservice
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Subscribe after beta is started
@@ -323,12 +323,12 @@ func TestConnector_SubscribeBeforeAndAfterStartup(t *testing.T) {
 
 	// Send requests to both handlers
 	_, err = con.GET(ctx, "https://subscribe.before.and.after.startup.connector/before")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	_, err = con.GET(ctx, "https://subscribe.before.and.after.startup.connector/after")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
-	assert.True(t, beforeCalled)
-	assert.True(t, afterCalled)
+	testarossa.True(t, beforeCalled)
+	testarossa.True(t, afterCalled)
 }
 
 func TestConnector_Unsubscribe(t *testing.T) {
@@ -349,34 +349,34 @@ func TestConnector_Unsubscribe(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send requests
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub2")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Unsubscribe sub1
 	err = con.Unsubscribe("GET", ":443/sub1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Send requests
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub1")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub2")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Deactivate all
 	err = con.deactivateSubs()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Send requests
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub1")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 	_, err = con.GET(ctx, "https://unsubscribe.connector/sub2")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 }
 
 func TestConnector_AnotherHost(t *testing.T) {
@@ -402,13 +402,13 @@ func TestConnector_AnotherHost(t *testing.T) {
 
 	// Startup the microservices
 	err := alpha.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer alpha.Shutdown()
 	err = beta1.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer beta1.Shutdown()
 	err = beta2.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer beta2.Shutdown()
 
 	// Send message
@@ -416,11 +416,11 @@ func TestConnector_AnotherHost(t *testing.T) {
 	ch := alpha.Publish(ctx, pub.GET("https://alternative.host.connector/empty"), pub.Multicast())
 	for i := range ch {
 		_, err := i.Get()
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 		responded++
 	}
 	// Even though the microservices subscribe to the same alternative host, their queues should be different
-	assert.Equal(t, 2, responded)
+	testarossa.Equal(t, 2, responded)
 }
 
 func TestConnector_DirectAddressing(t *testing.T) {
@@ -437,23 +437,23 @@ func TestConnector_DirectAddressing(t *testing.T) {
 
 	// Startup the microservice
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages
 	_, err = con.GET(ctx, "https://direct.addressing.connector/hello")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	_, err = con.GET(ctx, "https://"+con.id+".direct.addressing.connector/hello")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	err = con.Unsubscribe("GET", "/hello")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Both subscriptions should be deactivated
 	_, err = con.GET(ctx, "https://direct.addressing.connector/hello")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 	_, err = con.GET(ctx, "https://"+con.id+".direct.addressing.connector/hello")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 }
 
 func TestConnector_SubPendingOps(t *testing.T) {
@@ -471,10 +471,10 @@ func TestConnector_SubPendingOps(t *testing.T) {
 	})
 
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
-	assert.Zero(t, con.pendingOps)
+	testarossa.Zero(t, con.pendingOps)
 
 	// First call
 	go func() {
@@ -482,7 +482,7 @@ func TestConnector_SubPendingOps(t *testing.T) {
 		end <- true
 	}()
 	<-start
-	assert.Equal(t, int32(1), con.pendingOps)
+	testarossa.Equal(t, int32(1), con.pendingOps)
 
 	// Second call
 	go func() {
@@ -490,14 +490,14 @@ func TestConnector_SubPendingOps(t *testing.T) {
 		end <- true
 	}()
 	<-start
-	assert.Equal(t, int32(2), con.pendingOps)
+	testarossa.Equal(t, int32(2), con.pendingOps)
 
 	<-hold
 	<-end
-	assert.Equal(t, int32(1), con.pendingOps)
+	testarossa.Equal(t, int32(1), con.pendingOps)
 	<-hold
 	<-end
-	assert.Zero(t, con.pendingOps)
+	testarossa.Zero(t, con.pendingOps)
 }
 
 func TestConnector_SubscriptionMethods(t *testing.T) {
@@ -525,37 +525,37 @@ func TestConnector_SubscriptionMethods(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages to various locations under the directory
 	_, err = con.Request(ctx, pub.GET("https://subscription.methods.connector/single"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, get)
-	assert.Equal(t, 0, post)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, get)
+	testarossa.Zero(t, post)
 
 	_, err = con.Request(ctx, pub.POST("https://subscription.methods.connector/single"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, get)
-	assert.Equal(t, 1, post)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, get)
+	testarossa.Equal(t, 1, post)
 
 	_, err = con.Request(ctx, pub.PATCH("https://subscription.methods.connector/single"))
-	assert.Error(t, err)
-	assert.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
-	assert.Equal(t, 1, get)
-	assert.Equal(t, 1, post)
+	testarossa.Error(t, err)
+	testarossa.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
+	testarossa.Equal(t, 1, get)
+	testarossa.Equal(t, 1, post)
 
 	_, err = con.Request(ctx, pub.PATCH("https://subscription.methods.connector/star"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, get)
-	assert.Equal(t, 1, post)
-	assert.Equal(t, 1, star)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, get)
+	testarossa.Equal(t, 1, post)
+	testarossa.Equal(t, 1, star)
 
 	_, err = con.Request(ctx, pub.GET("https://subscription.methods.connector/star"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, get)
-	assert.Equal(t, 1, post)
-	assert.Equal(t, 2, star)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, get)
+	testarossa.Equal(t, 1, post)
+	testarossa.Equal(t, 2, star)
 }
 
 func TestConnector_SubscriptionPorts(t *testing.T) {
@@ -583,37 +583,37 @@ func TestConnector_SubscriptionPorts(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages to various locations under the directory
 	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:123/single"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, p123)
-	assert.Equal(t, 0, p234)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, p123)
+	testarossa.Zero(t, p234)
 
 	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:234/single"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, p123)
-	assert.Equal(t, 1, p234)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, p123)
+	testarossa.Equal(t, 1, p234)
 
 	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:999/single"))
-	assert.Error(t, err)
-	assert.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
-	assert.Equal(t, 1, p123)
-	assert.Equal(t, 1, p234)
+	testarossa.Error(t, err)
+	testarossa.Equal(t, http.StatusNotFound, errors.Convert(err).StatusCode)
+	testarossa.Equal(t, 1, p123)
+	testarossa.Equal(t, 1, p234)
 
 	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:999/any"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, p123)
-	assert.Equal(t, 1, p234)
-	assert.Equal(t, 1, star)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, p123)
+	testarossa.Equal(t, 1, p234)
+	testarossa.Equal(t, 1, star)
 
 	_, err = con.Request(ctx, pub.GET("https://subscription.ports.connector:10000/any"))
-	assert.NoError(t, err)
-	assert.Equal(t, 1, p123)
-	assert.Equal(t, 1, p234)
-	assert.Equal(t, 2, star)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, p123)
+	testarossa.Equal(t, 1, p234)
+	testarossa.Equal(t, 2, star)
 }
 
 func TestConnector_FrameConsistency(t *testing.T) {
@@ -626,31 +626,31 @@ func TestConnector_FrameConsistency(t *testing.T) {
 	con.Subscribe("GET", "/frame", func(w http.ResponseWriter, r *http.Request) error {
 		f1 := frame.Of(r)
 		f2 := frame.Of(r.Context())
-		assert.Equal(t, f1, f2)
+		testarossa.Equal(t, &f1, &f2)
 		f1.Set("ABC", "abc")
-		assert.Equal(t, f1, f2)
-		assert.Equal(t, "abc", f2.Get("ABC"))
+		testarossa.Equal(t, &f1, &f2)
+		testarossa.Equal(t, "abc", f2.Get("ABC"))
 		f2.Set("ABC", "")
-		assert.Equal(t, f1, f2)
-		assert.Equal(t, "", f1.Get("ABC"))
+		testarossa.Equal(t, &f1, &f2)
+		testarossa.Equal(t, "", f1.Get("ABC"))
 		return nil
 	})
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages to various locations under the directory
 	_, err = con.Request(ctx, pub.GET("https://frame.consistency.connector/frame"))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 }
 
 func BenchmarkConnection_AckRequest(b *testing.B) {
 	// Startup the microservices
 	con := New("ack.request.connector")
 	err := con.Startup()
-	assert.NoError(b, err)
+	testarossa.NoError(b, err)
 	defer con.Shutdown()
 
 	req, _ := http.NewRequest("POST", "https://nowhere/", strings.NewReader(rand.AlphaNum64(16*1024)))
@@ -695,24 +695,24 @@ func TestConnector_PathArguments(t *testing.T) {
 
 	// Startup the microservices
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Values provided in path should be delivered
 	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/FOO1/bar/BAR1"))
-	if assert.NoError(t, err) {
-		assert.Equal(t, "FOO1", foo)
-		assert.Equal(t, "BAR1", bar)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, "FOO1", foo)
+		testarossa.Equal(t, "BAR1", bar)
 	}
 	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo/{foo}/bar/{bar}"))
-	if assert.NoError(t, err) {
-		assert.Equal(t, "{foo}", foo)
-		assert.Equal(t, "{bar}", bar)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, "{foo}", foo)
+		testarossa.Equal(t, "{bar}", bar)
 	}
 	_, err = con.Request(ctx, pub.GET("https://path.arguments.connector/foo//bar/BAR2"))
-	if assert.NoError(t, err) {
-		assert.Equal(t, "", foo)
-		assert.Equal(t, "BAR2", bar)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, "", foo)
+		testarossa.Equal(t, "BAR2", bar)
 	}
 }
 
@@ -727,7 +727,7 @@ func TestConnector_InvalidPathArguments(t *testing.T) {
 			return nil
 		})
 		err := con.Startup()
-		if !assert.Error(t, err, path) {
+		if !testarossa.Error(t, err, path) {
 			con.Shutdown()
 		}
 	}
@@ -766,7 +766,7 @@ func TestConnector_SubscriptionLocality(t *testing.T) {
 			return nil
 		})
 		err := con.Startup()
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 		defer con.Shutdown()
 	}
 
@@ -776,15 +776,15 @@ func TestConnector_SubscriptionLocality(t *testing.T) {
 		for sticky := 0; sticky < 16; {
 			localityBefore, _ := alpha.localResponder.Load("https://beta.subscription.locality.connector/ok")
 			res, err := alpha.GET(ctx, "https://beta.subscription.locality.connector/ok")
-			if !assert.NoError(t, err) {
+			if !testarossa.NoError(t, err) {
 				break
 			}
 			localityAfter, _ := alpha.localResponder.Load("https://beta.subscription.locality.connector/ok")
-			assert.GreaterOrEqual(t, len(localityAfter), len(localityBefore))
+			testarossa.True(t, len(localityAfter) >= len(localityBefore))
 
 			if beta1Found {
 				// Once beta1 was found, all future requests should go there
-				assert.Equal(t, beta1.id, frame.Of(res).FromID())
+				testarossa.Equal(t, beta1.id, frame.Of(res).FromID())
 				sticky++
 			}
 			beta1Found = frame.Of(res).FromID() == beta1.id
@@ -799,13 +799,13 @@ func TestConnector_SubscriptionLocality(t *testing.T) {
 		beta2Found := false
 		for sticky := 0; sticky < 16; {
 			res, err := alpha.GET(ctx, "https://beta.subscription.locality.connector/ok")
-			if !assert.NoError(t, err) {
+			if !testarossa.NoError(t, err) {
 				break
 			}
-			assert.NotEqual(t, beta1.id, frame.Of(res).FromID()) // beta1 was shut down
+			testarossa.NotEqual(t, beta1.id, frame.Of(res).FromID()) // beta1 was shut down
 			if beta2Found {
 				// Once beta2 was found, all future requests should go there
-				assert.Equal(t, beta2.id, frame.Of(res).FromID())
+				testarossa.Equal(t, beta2.id, frame.Of(res).FromID())
 				sticky++
 			}
 			beta2Found = frame.Of(res).FromID() == beta2.id

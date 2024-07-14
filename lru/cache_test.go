@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/rand"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestLRU_Load(t *testing.T) {
@@ -31,31 +31,31 @@ func TestLRU_Load(t *testing.T) {
 	cache.Store("a", "aaa")
 	cache.Store("b", "bbb")
 	cache.Store("c", "ccc")
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 
 	v, ok := cache.Load("a")
-	assert.True(t, ok)
-	assert.Equal(t, "aaa", v)
+	testarossa.True(t, ok)
+	testarossa.Equal(t, "aaa", v)
 
 	v, ok = cache.Load("b")
-	assert.True(t, ok)
-	assert.Equal(t, "bbb", v)
+	testarossa.True(t, ok)
+	testarossa.Equal(t, "bbb", v)
 
 	v, ok = cache.Load("c")
-	assert.True(t, ok)
-	assert.Equal(t, "ccc", v)
+	testarossa.True(t, ok)
+	testarossa.Equal(t, "ccc", v)
 
 	v, ok = cache.Load("d")
-	assert.False(t, ok)
-	assert.Equal(t, "", v)
+	testarossa.False(t, ok)
+	testarossa.Equal(t, "", v)
 
 	m := cache.ToMap()
-	assert.NotEmpty(t, m["a"])
-	assert.NotEmpty(t, m["b"])
-	assert.NotEmpty(t, m["c"])
-	assert.Empty(t, m["d"])
+	testarossa.NotEqual(t, 0, len(m["a"]))
+	testarossa.NotEqual(t, 0, len(m["b"]))
+	testarossa.NotEqual(t, 0, len(m["c"]))
+	testarossa.Zero(t, len(m["d"]))
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_LoadOrStore(t *testing.T) {
@@ -65,20 +65,20 @@ func TestLRU_LoadOrStore(t *testing.T) {
 	cache.Store("a", "aaa")
 
 	v, found := cache.LoadOrStore("a", "AAA")
-	assert.True(t, found)
-	assert.Equal(t, "aaa", v)
+	testarossa.True(t, found)
+	testarossa.Equal(t, "aaa", v)
 
 	cache.Delete("a")
 
 	v, found = cache.LoadOrStore("a", "AAA")
-	assert.False(t, found)
-	assert.Equal(t, "AAA", v)
+	testarossa.False(t, found)
+	testarossa.Equal(t, "AAA", v)
 
 	v, found = cache.Load("a")
-	assert.True(t, found)
-	assert.Equal(t, "AAA", v)
+	testarossa.True(t, found)
+	testarossa.Equal(t, "AAA", v)
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_MaxWeight(t *testing.T) {
@@ -90,8 +90,8 @@ func TestLRU_MaxWeight(t *testing.T) {
 
 	cache.Store(999, "Too Big", Weight(maxWt+1))
 	_, ok := cache.Load(999)
-	assert.False(t, ok)
-	assert.Equal(t, 0, cache.Weight())
+	testarossa.False(t, ok)
+	testarossa.Zero(t, cache.Weight())
 
 	// Fill in the cache
 	// head> 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 <tail
@@ -99,48 +99,48 @@ func TestLRU_MaxWeight(t *testing.T) {
 		cache.Store(i, "Light", Weight(1))
 	}
 	for i := 1; i <= maxWt; i++ {
-		assert.True(t, cache.Exists(i), "%d", i)
+		testarossa.True(t, cache.Exists(i), "%d", i)
 	}
-	assert.Equal(t, maxWt, cache.Weight())
+	testarossa.Equal(t, maxWt, cache.Weight())
 
 	// One more element causes an eviction
 	// head> 101 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 <tail
 	cache.Store(101, "Light", Weight(1))
-	assert.False(t, cache.Exists(1), "%d", 1)
+	testarossa.False(t, cache.Exists(1), "%d", 1)
 	for i := 2; i <= maxWt; i++ {
-		assert.True(t, cache.Exists(i), "%d", i)
+		testarossa.True(t, cache.Exists(i), "%d", i)
 	}
-	assert.True(t, cache.Exists(101), "%d", 101)
-	assert.Equal(t, maxWt, cache.Weight())
+	testarossa.True(t, cache.Exists(101), "%d", 101)
+	testarossa.Equal(t, maxWt, cache.Weight())
 
 	// Heavy element will cause eviction of 2 elements
 	// head> 103! 101 16 15 14 13 12 11 10 9 8 7 6 5 4 <tail
 	cache.Store(103, "Heavy", Weight(2))
 	for i := 1; i < 3; i++ {
-		assert.False(t, cache.Exists(i), "%d", i)
+		testarossa.False(t, cache.Exists(i), "%d", i)
 	}
 	for i := 4; i <= maxWt; i++ {
-		assert.True(t, cache.Exists(i), "%d", i)
+		testarossa.True(t, cache.Exists(i), "%d", i)
 	}
-	assert.True(t, cache.Exists(101), "%d", 101)
-	assert.True(t, cache.Exists(103), "%d", 103)
-	assert.Equal(t, maxWt, cache.Weight())
+	testarossa.True(t, cache.Exists(101), "%d", 101)
+	testarossa.True(t, cache.Exists(103), "%d", 103)
+	testarossa.Equal(t, maxWt, cache.Weight())
 
 	// Super heavy element will cause eviction of 5 elements
 	// head> 104!! 103! 101 16 15 14 13 12 11 10 9 <tail
 	cache.Store(104, "Super heavy", Weight(5))
 	for i := 1; i < 9; i++ {
-		assert.False(t, cache.Exists(i), "%d", i)
+		testarossa.False(t, cache.Exists(i), "%d", i)
 	}
 	for i := 9; i <= maxWt; i++ {
-		assert.True(t, cache.Exists(i), "%d", i)
+		testarossa.True(t, cache.Exists(i), "%d", i)
 	}
-	assert.True(t, cache.Exists(101), "%d", 101)
-	assert.True(t, cache.Exists(103), "%d", 103)
-	assert.True(t, cache.Exists(104), "%d", 104)
-	assert.Equal(t, maxWt, cache.Weight())
+	testarossa.True(t, cache.Exists(101), "%d", 101)
+	testarossa.True(t, cache.Exists(103), "%d", 103)
+	testarossa.True(t, cache.Exists(104), "%d", 104)
+	testarossa.Equal(t, maxWt, cache.Weight())
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_ChangeMaxWeight(t *testing.T) {
@@ -153,22 +153,22 @@ func TestLRU_ChangeMaxWeight(t *testing.T) {
 	for i := 1; i <= maxWt; i++ {
 		cache.Store(i, "1", Weight(1))
 	}
-	assert.Equal(t, maxWt, cache.Weight())
+	testarossa.Equal(t, maxWt, cache.Weight())
 
 	// Halve the weight limit
 	cache.SetMaxWeight(maxWt / 2)
 
-	assert.Equal(t, maxWt/2, cache.Weight())
+	testarossa.Equal(t, maxWt/2, cache.Weight())
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_Clear(t *testing.T) {
 	t.Parallel()
 
 	cache := NewCache[int, string]()
-	assert.Equal(t, 0, cache.Len())
-	assert.Equal(t, 0, cache.Weight())
+	testarossa.Zero(t, cache.Len())
+	testarossa.Zero(t, cache.Weight())
 
 	n := 6
 	sum := 0
@@ -178,22 +178,22 @@ func TestLRU_Clear(t *testing.T) {
 	}
 	for i := 1; i <= n; i++ {
 		v, ok := cache.Load(i)
-		assert.True(t, ok)
-		assert.Equal(t, "X", v)
+		testarossa.True(t, ok)
+		testarossa.Equal(t, "X", v)
 	}
-	assert.Equal(t, n, cache.Len())
-	assert.Equal(t, sum, cache.Weight())
+	testarossa.Equal(t, n, cache.Len())
+	testarossa.Equal(t, sum, cache.Weight())
 
 	cache.Clear()
 	for i := 1; i <= n; i++ {
 		v, ok := cache.Load(i)
-		assert.False(t, ok)
-		assert.Equal(t, "", v)
+		testarossa.False(t, ok)
+		testarossa.Equal(t, "", v)
 	}
-	assert.Equal(t, 0, cache.Len())
-	assert.Equal(t, 0, cache.Weight())
+	testarossa.Zero(t, cache.Len())
+	testarossa.Zero(t, cache.Weight())
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_Delete(t *testing.T) {
@@ -207,20 +207,20 @@ func TestLRU_Delete(t *testing.T) {
 		if n >= span {
 			delete(sim, n-span)
 			cache.Delete(n - span)
-			assert.False(t, cache.Exists(n-span))
+			testarossa.False(t, cache.Exists(n-span))
 		} else {
 			sim[n] = "X"
 			cache.Store(n, "X")
-			assert.True(t, cache.Exists(n))
+			testarossa.True(t, cache.Exists(n))
 		}
 	}
 
 	for i := 0; i < span; i++ {
 		v, _ := cache.Load(i)
-		assert.Equal(t, sim[i], v)
+		testarossa.Equal(t, sim[i], v)
 	}
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_DeletePredicate(t *testing.T) {
@@ -230,16 +230,16 @@ func TestLRU_DeletePredicate(t *testing.T) {
 	for i := 1; i <= 10; i++ {
 		cache.Store(i, "X")
 	}
-	assert.Equal(t, 10, cache.Len())
+	testarossa.Equal(t, 10, cache.Len())
 	cache.DeletePredicate(func(key int) bool {
 		return key <= 5
 	})
-	assert.Equal(t, 5, cache.Len())
+	testarossa.Equal(t, 5, cache.Len())
 	for i := 1; i <= 10; i++ {
-		assert.Equal(t, i > 5, cache.Exists(i))
+		testarossa.Equal(t, i > 5, cache.Exists(i))
 	}
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_MaxAge(t *testing.T) {
@@ -251,29 +251,29 @@ func TestLRU_MaxAge(t *testing.T) {
 	cache.Store(0, "X")
 	cache.timeOffset += time.Second * 30 // t=30
 	cache.Store(30, "X")
-	assert.True(t, cache.Exists(0))
-	assert.True(t, cache.Exists(30))
-	assert.Equal(t, 2, cache.Len())
+	testarossa.True(t, cache.Exists(0))
+	testarossa.True(t, cache.Exists(30))
+	testarossa.Equal(t, 2, cache.Len())
 
 	// Elements older than the max age of the cache should expire
 	cache.timeOffset += time.Second * 10 // t=40
 	cache.Store(40, "X")
-	assert.Equal(t, 3, cache.Len()) // 0 element is still cached
-	assert.False(t, cache.Exists(0))
-	assert.True(t, cache.Exists(30))
-	assert.True(t, cache.Exists(40))
-	assert.Equal(t, 2, cache.Len()) // 0 element was evicted on failed load
+	testarossa.Equal(t, 3, cache.Len()) // 0 element is still cached
+	testarossa.False(t, cache.Exists(0))
+	testarossa.True(t, cache.Exists(30))
+	testarossa.True(t, cache.Exists(40))
+	testarossa.Equal(t, 2, cache.Len()) // 0 element was evicted on failed load
 
 	cache.timeOffset += time.Second * 30 // t=70
-	assert.False(t, cache.Exists(30))
-	assert.True(t, cache.Exists(40))
-	assert.Equal(t, 1, cache.Len()) // 30 element was evicted on failed load
+	testarossa.False(t, cache.Exists(30))
+	testarossa.True(t, cache.Exists(40))
+	testarossa.Equal(t, 1, cache.Len()) // 30 element was evicted on failed load
 
 	// The load option overrides the cache's default max age
 	_, ok := cache.Load(40, MaxAge(29*time.Second))
-	assert.False(t, ok)
+	testarossa.False(t, ok)
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_BumpMaxAge(t *testing.T) {
@@ -285,10 +285,10 @@ func TestLRU_BumpMaxAge(t *testing.T) {
 	cache.Store(0, "X")
 	cache.timeOffset += time.Second * 20
 	_, ok := cache.Load(0, Bump(true))
-	assert.True(t, ok)
+	testarossa.True(t, ok)
 	cache.timeOffset += time.Second * 20
 	_, ok = cache.Load(0, Bump(true))
-	assert.True(t, ok)
+	testarossa.True(t, ok)
 }
 
 func TestLRU_ReduceMaxAge(t *testing.T) {
@@ -302,20 +302,20 @@ func TestLRU_ReduceMaxAge(t *testing.T) {
 	cache.Store(30, "X")
 	cache.timeOffset += time.Second * 20
 	cache.Store(60, "X")
-	assert.True(t, cache.Exists(0))
-	assert.True(t, cache.Exists(30))
-	assert.True(t, cache.Exists(60))
-	assert.Equal(t, 3, cache.Len())
+	testarossa.True(t, cache.Exists(0))
+	testarossa.True(t, cache.Exists(30))
+	testarossa.True(t, cache.Exists(60))
+	testarossa.Equal(t, 3, cache.Len())
 
 	// Halve the age limit
 	cache.SetMaxAge(30 * time.Second)
 
-	assert.False(t, cache.Exists(0))
-	assert.True(t, cache.Exists(30))
-	assert.True(t, cache.Exists(60))
-	assert.Equal(t, 2, cache.Len()) // 0 element was evicted on failed load
+	testarossa.False(t, cache.Exists(0))
+	testarossa.True(t, cache.Exists(30))
+	testarossa.True(t, cache.Exists(60))
+	testarossa.Equal(t, 2, cache.Len()) // 0 element was evicted on failed load
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_IncreaseMaxAge(t *testing.T) {
@@ -329,23 +329,23 @@ func TestLRU_IncreaseMaxAge(t *testing.T) {
 	cache.Store(30, "X")
 	cache.timeOffset += time.Second * 20
 	cache.Store(60, "X")
-	assert.True(t, cache.Exists(0))
-	assert.True(t, cache.Exists(30))
-	assert.True(t, cache.Exists(60))
-	assert.Equal(t, 3, cache.Len())
+	testarossa.True(t, cache.Exists(0))
+	testarossa.True(t, cache.Exists(30))
+	testarossa.True(t, cache.Exists(60))
+	testarossa.Equal(t, 3, cache.Len())
 
 	// Double the age limit
 	cache.SetMaxAge(time.Minute * 2)
 	cache.timeOffset += time.Second * 30
 	cache.Store(90, "X")
 
-	assert.True(t, cache.Exists(0))
-	assert.True(t, cache.Exists(30))
-	assert.True(t, cache.Exists(60))
-	assert.True(t, cache.Exists(90))
-	assert.Equal(t, 4, cache.Len())
+	testarossa.True(t, cache.Exists(0))
+	testarossa.True(t, cache.Exists(30))
+	testarossa.True(t, cache.Exists(60))
+	testarossa.True(t, cache.Exists(90))
+	testarossa.Equal(t, 4, cache.Len())
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_Bump(t *testing.T) {
@@ -359,39 +359,39 @@ func TestLRU_Bump(t *testing.T) {
 	for i := 1; i <= 8; i++ {
 		cache.Store(i, "X")
 	}
-	assert.Equal(t, 8, cache.Len())
+	testarossa.Equal(t, 8, cache.Len())
 
 	// Loading element 2 should bump it to the head of the cache
 	// head> 2 8 7 6 5 4 3 1 <tail
 	_, ok := cache.Load(2)
-	assert.True(t, ok)
-	assert.Equal(t, 8, cache.Len())
-	assert.True(t, cache.Exists(1))
+	testarossa.True(t, ok)
+	testarossa.Equal(t, 8, cache.Len())
+	testarossa.True(t, cache.Exists(1))
 
 	// Storing element 9 should evict 1
 	// head> 9 2 8 7 6 5 4 3 <tail
 	cache.Store(9, "X")
-	assert.Equal(t, 8, cache.Len())
-	assert.False(t, cache.Exists(1))
+	testarossa.Equal(t, 8, cache.Len())
+	testarossa.False(t, cache.Exists(1))
 
 	// Storing element 10 evicts 3
 	// head> 10 9 2 8 7 6 5 4 <tail
 	cache.Store(10, "X")
-	assert.Equal(t, 8, cache.Len())
-	assert.False(t, cache.Exists(1))
-	assert.False(t, cache.Exists(3))
-	assert.True(t, cache.Exists(4))
+	testarossa.Equal(t, 8, cache.Len())
+	testarossa.False(t, cache.Exists(1))
+	testarossa.False(t, cache.Exists(3))
+	testarossa.True(t, cache.Exists(4))
 
 	// Load element 4 without bumping it to the head of the queue
 	// Storing element 11 evicts 4
 	// head> 11 10 9 2 8 7 6 5 <tail
 	cache.Load(4, NoBump())
 	cache.Store(11, "X")
-	assert.Equal(t, 8, cache.Len())
-	assert.False(t, cache.Exists(4))
-	assert.True(t, cache.Exists(5))
+	testarossa.Equal(t, 8, cache.Len())
+	testarossa.False(t, cache.Exists(4))
+	testarossa.True(t, cache.Exists(5))
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func TestLRU_RandomCohesion(t *testing.T) {
@@ -417,7 +417,7 @@ func TestLRU_RandomCohesion(t *testing.T) {
 		}
 	}
 
-	assert.True(t, cache.cohesion())
+	testarossa.True(t, cache.cohesion())
 }
 
 func BenchmarkLRU_Store(b *testing.B) {

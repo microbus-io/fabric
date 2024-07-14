@@ -20,15 +20,15 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestUtils_SourceCodeHash(t *testing.T) {
 	t.Parallel()
 
 	h, err := SourceCodeSHA256(".")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	b, err := hex.DecodeString(h)
-	assert.NoError(t, err)
-	assert.Len(t, b, 256/8)
+	testarossa.NoError(t, err)
+	testarossa.SliceLen(t, b, 256/8)
 }

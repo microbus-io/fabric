@@ -219,3 +219,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Renamed the inbox core microservice to SMTP ingress
 * Change hostname suffix of core microservices to `.core`
 * New pattern for adding and removing microservices in an `Application`
+
+[Milestone 27](https://github.com/microbus-io/fabric/tree/milestone/27):
+
+* Remove dependency on Testify

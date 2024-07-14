@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/examples/calculator"
 	"github.com/microbus-io/fabric/examples/hello/helloapi"
@@ -34,7 +34,7 @@ import (
 
 var (
 	_ *testing.T
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *helloapi.Client
 )
 
@@ -80,10 +80,10 @@ func TestHello_Hello(t *testing.T) {
 		BodyNotContains("Maria").
 		CompletedIn(10 * time.Millisecond).
 		Assert(func(t *testing.T, res *http.Response, err error) {
-			assert.NoError(t, err)
+			testarossa.NoError(t, err)
 			body, err := io.ReadAll(res.Body)
-			assert.NoError(t, err)
-			assert.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
+			testarossa.NoError(t, err)
+			testarossa.Equal(t, Svc.Repeat(), bytes.Count(body, []byte(Svc.Greeting())))
 		})
 	Hello_Get(t, ctx, "?name=Maria").
 		ContentType("text/plain").
@@ -180,7 +180,7 @@ func TestHello_BusPNG(t *testing.T) {
 	*/
 	ctx := Context()
 	img, err := Svc.ReadResFile("bus.png")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	BusPNG(t, ctx, "").
 		StatusOK().
 		ContentType("image/png").
@@ -240,60 +240,60 @@ func TestHello_EchoClient(t *testing.T) {
 
 	// Nil request
 	res, err := client.Echo(nil)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "GET /echo "))
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "GET /echo "))
 		}
 	}
 
 	// PATCH request with headers and body
 	req, err := http.NewRequest("PATCH", "", strings.NewReader("Sunshine"))
 	req.Header.Set("X-Location", "California")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Echo(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "PATCH /echo "))
-			assert.Contains(t, string(body), "\r\nX-Location: California")
-			assert.Contains(t, string(body), "\r\nSunshine")
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "PATCH /echo "))
+			testarossa.Contains(t, string(body), "\r\nX-Location: California")
+			testarossa.Contains(t, string(body), "\r\nSunshine")
 		}
 	}
 
 	// GET with no URL
 	res, err = client.Echo_Get(ctx, "")
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "GET /echo "))
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "GET /echo "))
 		}
 	}
 
 	// GET with only query string
 	res, err = client.Echo_Get(ctx, "?arg=12345")
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
 		}
 	}
 
 	// GET with relative URL and query string
 	res, err = client.Echo_Get(ctx, "/echo?arg=12345")
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
 		}
 	}
 
 	// GET with absolute URL and query string
 	res, err = client.Echo_Get(ctx, "https://"+Hostname+"/echo?arg=12345")
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "GET /echo?arg=12345 "))
 		}
 	}
 
@@ -303,34 +303,34 @@ func TestHello_EchoClient(t *testing.T) {
 		"load": []string{"22222"},
 	}
 	res, err = client.Echo_Post(ctx, "", "", formDataPayload)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "POST /echo "))
-			assert.Contains(t, string(body), "\r\nload=22222&pay=11111")
-			assert.Contains(t, string(body), "\r\nContent-Type: application/x-www-form-urlencoded")
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "POST /echo "))
+			testarossa.Contains(t, string(body), "\r\nload=22222&pay=11111")
+			testarossa.Contains(t, string(body), "\r\nContent-Type: application/x-www-form-urlencoded")
 		}
 	}
 
 	// POST with query string
 	res, err = client.Echo_Post(ctx, "?arg=12345", "", formDataPayload)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "POST /echo?arg=12345 "))
-			assert.Contains(t, string(body), "\r\nload=22222&pay=11111")
-			assert.Contains(t, string(body), "\r\nContent-Type: application/x-www-form-urlencoded")
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "POST /echo?arg=12345 "))
+			testarossa.Contains(t, string(body), "\r\nload=22222&pay=11111")
+			testarossa.Contains(t, string(body), "\r\nContent-Type: application/x-www-form-urlencoded")
 		}
 	}
 
 	// POST with content type
 	res, err = client.Echo_Post(ctx, "", "text/plain", formDataPayload)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		body, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, strings.HasPrefix(string(body), "POST /echo "))
-			assert.Contains(t, string(body), "\r\nload=22222&pay=11111")
-			assert.Contains(t, string(body), "\r\nContent-Type: text/plain")
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, strings.HasPrefix(string(body), "POST /echo "))
+			testarossa.Contains(t, string(body), "\r\nload=22222&pay=11111")
+			testarossa.Contains(t, string(body), "\r\nContent-Type: text/plain")
 		}
 	}
 }

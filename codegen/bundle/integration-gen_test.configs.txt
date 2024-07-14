@@ -8,29 +8,29 @@ type OnChanged{{ .Name }}TestCase struct {
 
 // Error asserts an error.
 func (tc *OnChanged{{ .Name }}TestCase) Error(errContains string) *OnChanged{{ .Name }}TestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChanged{{ .Name }}TestCase) ErrorCode(statusCode int) *OnChanged{{ .Name }}TestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChanged{{ .Name }}TestCase) NoError() *OnChanged{{ .Name }}TestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChanged{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *OnChanged{{ .Name }}TestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 

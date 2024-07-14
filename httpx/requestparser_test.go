@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestHttpx_RequestParserOverrideJSON(t *testing.T) {
@@ -36,18 +36,18 @@ func TestHttpx_RequestParserOverrideJSON(t *testing.T) {
 
 	r, err := http.NewRequest("POST", `/path`, &buf)
 	r.Header.Set("Content-Type", "application/json")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = ParseRequestData(r, &data)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, data.X)
-	assert.Equal(t, 1, data.Y)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, data.X)
+	testarossa.Equal(t, 1, data.Y)
 
 	r, err = http.NewRequest("POST", `/path?x=2`, &buf)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = ParseRequestData(r, &data)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, data.X)
-	assert.Equal(t, 1, data.Y)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 2, data.X)
+	testarossa.Equal(t, 1, data.Y)
 }
 
 func TestHttpx_RequestParserOverrideFormData(t *testing.T) {
@@ -62,16 +62,16 @@ func TestHttpx_RequestParserOverrideFormData(t *testing.T) {
 
 	r, err := http.NewRequest("POST", `/path`, &buf)
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = ParseRequestData(r, &data)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, data.X)
-	assert.Equal(t, 1, data.Y)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, data.X)
+	testarossa.Equal(t, 1, data.Y)
 
 	r, err = http.NewRequest("POST", `/path?x=2`, &buf)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = ParseRequestData(r, &data)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, data.X)
-	assert.Equal(t, 1, data.Y)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 2, data.X)
+	testarossa.Equal(t, 1, data.Y)
 }

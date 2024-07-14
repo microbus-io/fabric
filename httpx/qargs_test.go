@@ -17,32 +17,29 @@ limitations under the License.
 package httpx
 
 import (
-	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestHttpx_QArgs(t *testing.T) {
-	assert.Equal(t, "b=true&i=123&s=String", QArgs{
+	testarossa.Equal(t, "b=true&i=123&s=String", QArgs{
 		"s": "String",
 		"i": 123,
 		"b": true,
 	}.Encode())
-	assert.Equal(t, "b=true&i=123&s=String", QArgs{
+	testarossa.Equal(t, "b=true&i=123&s=String", QArgs{
 		"s": "String",
 		"i": 123,
 		"b": true,
 	}.String())
-	assert.Equal(t,
-		url.Values{
-			"s": []string{"String"},
-			"i": []string{"123"},
-			"b": []string{"true"},
-		},
-		QArgs{
-			"s": "String",
-			"i": 123,
-			"b": true,
-		}.URLValues())
+
+	urlValues := QArgs{
+		"s": "String",
+		"i": 123,
+		"b": true,
+	}.URLValues()
+	testarossa.SliceEqual(t, []string{"String"}, urlValues["s"])
+	testarossa.SliceEqual(t, []string{"123"}, urlValues["i"])
+	testarossa.SliceEqual(t, []string{"true"}, urlValues["b"])
 }

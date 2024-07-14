@@ -19,14 +19,14 @@ package calculator
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
 )
 
 var (
 	_ *testing.T
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *calculatorapi.Client
 )
 

@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
 	"github.com/microbus-io/fabric/timex"
@@ -29,7 +29,7 @@ import (
 
 var (
 	_ *testing.T
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *directoryapi.Client
 )
 
@@ -63,7 +63,7 @@ func TestDirectory_CRUD(t *testing.T) {
 	person.Key, _ = Create(t, ctx, person).
 		NoError().
 		Assert(func(t *testing.T, key directoryapi.PersonKey, err error) {
-			assert.NotZero(t, key)
+			testarossa.NotZero(t, int(key))
 		}).
 		Get()
 
@@ -74,7 +74,7 @@ func TestDirectory_CRUD(t *testing.T) {
 	List(t, ctx).
 		NoError().
 		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
-			assert.Contains(t, keys, person.Key)
+			testarossa.SliceContains(t, keys, person.Key)
 		})
 
 	person.Email = "harry.potter@gryffindor.wiz"
@@ -139,7 +139,7 @@ func TestDirectory_Create(t *testing.T) {
 	List(t, ctx).
 		NoError().
 		Assert(func(t *testing.T, keys []directoryapi.PersonKey, err error) {
-			assert.Contains(t, keys, person.Key)
+			testarossa.SliceContains(t, keys, person.Key)
 		})
 
 	Create(t, ctx, person).

@@ -22,7 +22,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"golang.org/x/net/html"
 
 	"{{ .Package }}/{{ .PackageSuffix }}api"
@@ -45,7 +45,7 @@ var (
 	_ pub.Option
 	_ rand.Void
 	_ utils.SyncMap[string, string]
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *html.Node
 	_ *{{ .PackageSuffix }}api.Client
 )

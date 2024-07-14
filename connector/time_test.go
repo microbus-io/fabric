@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/frame"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestConnector_ClockOffset(t *testing.T) {
@@ -55,13 +55,13 @@ func TestConnector_ClockOffset(t *testing.T) {
 
 	// Startup the microservices
 	err := alpha.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer alpha.Shutdown()
 	err = beta.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer beta.Shutdown()
 	err = gamma.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer gamma.Shutdown()
 
 	// Shift the time in the context one minute in the past
@@ -72,13 +72,13 @@ func TestConnector_ClockOffset(t *testing.T) {
 	realTime := time.Now()
 	time.Sleep(10 * time.Millisecond)
 	alphaTime := alpha.Now(ctx) // Offset by -1m
-	assert.Less(t, alphaTime, realTime)
+	testarossa.True(t, alphaTime.Before(realTime))
 	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/shift")
-	assert.NoError(t, err)
-	assert.Less(t, betaTime, realTime)
-	assert.Less(t, gammaTime, realTime)
-	assert.Equal(t, -time.Minute, betaShift)
-	assert.Equal(t, -time.Minute, gammaShift)
+	testarossa.NoError(t, err)
+	testarossa.True(t, betaTime.Before(realTime))
+	testarossa.True(t, gammaTime.Before(realTime))
+	testarossa.Equal(t, -time.Minute, betaShift)
+	testarossa.Equal(t, -time.Minute, gammaShift)
 
 	// Shift the time in the context one hour in the future
 	ctx = frame.ContextWithFrame(context.Background())
@@ -87,13 +87,13 @@ func TestConnector_ClockOffset(t *testing.T) {
 	// Send message and validate that beta receives the offset time
 	realTime = time.Now()
 	alphaTime = alpha.Now(ctx) // Offset by +1h
-	assert.Greater(t, alphaTime, realTime.Add(time.Minute))
+	testarossa.True(t, alphaTime.After(realTime.Add(time.Minute)))
 	_, err = alpha.GET(ctx, "https://beta.clock.offset.connector/shift")
-	assert.NoError(t, err)
-	assert.Greater(t, betaTime, realTime.Add(time.Minute))
-	assert.Greater(t, gammaTime, realTime.Add(time.Minute))
-	assert.Equal(t, time.Hour, betaShift)
-	assert.Equal(t, time.Hour, gammaShift)
+	testarossa.NoError(t, err)
+	testarossa.True(t, betaTime.After(realTime.Add(time.Minute)))
+	testarossa.True(t, gammaTime.After(realTime.Add(time.Minute)))
+	testarossa.Equal(t, time.Hour, betaShift)
+	testarossa.Equal(t, time.Hour, gammaShift)
 }
 
 func TestConnector_Ticker(t *testing.T) {
@@ -111,20 +111,20 @@ func TestConnector_Ticker(t *testing.T) {
 		return nil
 	})
 
-	assert.Zero(t, count)
+	testarossa.Zero(t, count)
 
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	<-step // at 1 intervals
-	assert.Equal(t, 1, count)
+	testarossa.Equal(t, 1, count)
 	time.Sleep(interval / 2) // at 1.5 intervals
-	assert.Equal(t, 1, count)
+	testarossa.Equal(t, 1, count)
 	<-step // at 2 intervals
-	assert.Equal(t, 2, count)
+	testarossa.Equal(t, 2, count)
 	<-step // at 3 intervals
-	assert.Equal(t, 3, count)
+	testarossa.Equal(t, 3, count)
 }
 
 func TestConnector_TickerSkippingBeats(t *testing.T) {
@@ -143,21 +143,21 @@ func TestConnector_TickerSkippingBeats(t *testing.T) {
 		return nil
 	})
 
-	assert.Zero(t, count)
+	testarossa.Zero(t, count)
 
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	<-step // at 1 intervals
-	assert.Equal(t, 1, count)
+	testarossa.Equal(t, 1, count)
 	time.Sleep(interval + interval/2) // at 2.5 intervals
-	assert.Equal(t, 1, count)
+	testarossa.Equal(t, 1, count)
 	time.Sleep(interval) // at 3.5 intervals
-	assert.Equal(t, 1, count)
+	testarossa.Equal(t, 1, count)
 
 	<-step // at 4 intervals
-	assert.Equal(t, 2, count)
+	testarossa.Equal(t, 2, count)
 }
 
 func TestConnector_TickerPendingOps(t *testing.T) {
@@ -182,21 +182,21 @@ func TestConnector_TickerPendingOps(t *testing.T) {
 		return nil
 	})
 
-	assert.Zero(t, con.pendingOps)
+	testarossa.Zero(t, con.pendingOps)
 
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	<-step1 // at 1 intervals
 	<-step2 // at 1 intervals
-	assert.Equal(t, int32(2), con.pendingOps)
+	testarossa.Equal(t, int32(2), con.pendingOps)
 	<-hold1
 	time.Sleep(interval / 4) // at 1.25 intervals
-	assert.Equal(t, int32(1), con.pendingOps)
+	testarossa.Equal(t, int32(1), con.pendingOps)
 	<-hold2 // at 1.5 intervals
 	time.Sleep(interval / 4)
-	assert.Zero(t, con.pendingOps)
+	testarossa.Zero(t, con.pendingOps)
 }
 
 func TestConnector_TickerTimeout(t *testing.T) {
@@ -218,14 +218,14 @@ func TestConnector_TickerTimeout(t *testing.T) {
 	})
 
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	<-start
 	t0 := time.Now()
 	<-end
 	dur := time.Since(t0)
-	assert.True(t, dur > interval/4 && dur < interval/2, "%v", dur)
+	testarossa.True(t, dur > interval/4 && dur < interval/2, "%v", dur)
 }
 
 func TestConnector_TickerLifetimeCancellation(t *testing.T) {
@@ -247,7 +247,7 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 	})
 
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	<-start
@@ -255,7 +255,7 @@ func TestConnector_TickerLifetimeCancellation(t *testing.T) {
 	con.ctxCancel() // Cancel the lifetime context
 	<-end
 	dur := time.Since(t0)
-	assert.True(t, dur < interval)
+	testarossa.True(t, dur < interval)
 }
 
 func TestConnector_TickersDisabledInTestingApp(t *testing.T) {
@@ -270,12 +270,12 @@ func TestConnector_TickersDisabledInTestingApp(t *testing.T) {
 		return nil
 	})
 
-	assert.Zero(t, count)
+	testarossa.Zero(t, count)
 
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	time.Sleep(5 * interval)
-	assert.Zero(t, count)
+	testarossa.Zero(t, count)
 }

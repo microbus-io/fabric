@@ -19,14 +19,14 @@ package connector
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestConnector_DefineMetrics(t *testing.T) {
 	t.Parallel()
 
 	con := New("define.metrics.connector")
-	assert.False(t, con.IsStarted())
+	testarossa.False(t, con.IsStarted())
 
 	// Define all three collector types before starting up
 	err := con.DefineCounter(
@@ -34,20 +34,20 @@ func TestConnector_DefineMetrics(t *testing.T) {
 		"my counter",
 		[]string{"a", "b", "c"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.DefineHistogram(
 		"my_histogram",
 		"my historgram",
 		[]float64{1, 2, 3, 4, 5},
 		[]string{"a", "b", "c"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.DefineGauge(
 		"my_gauge",
 		"my gauge",
 		[]string{"a", "b", "c"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Duplicate key
 	err = con.DefineCounter(
@@ -55,12 +55,12 @@ func TestConnector_DefineMetrics(t *testing.T) {
 		"my counter",
 		[]string{"a", "b", "c"},
 	)
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 
 	// Startup
 	con.initErr = nil
 	err = con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Define all three collector types after starting up
@@ -69,20 +69,20 @@ func TestConnector_DefineMetrics(t *testing.T) {
 		"my counter 2",
 		[]string{"a", "b", "c"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.DefineHistogram(
 		"my_histogram_2",
 		"my historgram 2",
 		[]float64{1, 2, 3, 4, 5},
 		[]string{"a", "b", "c"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.DefineGauge(
 		"my_gauge_2",
 		"my gauge 2",
 		[]string{"a", "b", "c"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Duplicate key
 	err = con.DefineCounter(
@@ -90,14 +90,14 @@ func TestConnector_DefineMetrics(t *testing.T) {
 		"my counter 2",
 		[]string{"a", "b", "c"},
 	)
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 }
 
 func TestConnector_ObserveMetrics(t *testing.T) {
 	t.Parallel()
 
 	con := New("observe.metrics.connector")
-	assert.False(t, con.IsStarted())
+	testarossa.False(t, con.IsStarted())
 
 	// Define all three collector types before starting up
 	err := con.DefineCounter(
@@ -105,70 +105,70 @@ func TestConnector_ObserveMetrics(t *testing.T) {
 		"my counter",
 		[]string{"a"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.DefineHistogram(
 		"my_histogram",
 		"my historgram",
 		[]float64{1, 2, 3, 4, 5},
 		[]string{"a"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.DefineGauge(
 		"my_gauge",
 		"my gauge",
 		[]string{"a"},
 	)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Startup
 	con.initErr = nil
 	err = con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Histogram
 	err = con.ObserveMetric("my_histogram", 2.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.IncrementMetric("my_histogram", 1.5, "1")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 
 	// Gauge
 	err = con.ObserveMetric("my_gauge", 2.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.ObserveMetric("my_gauge", 2.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.ObserveMetric("my_gauge", -2.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.IncrementMetric("my_gauge", 1.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Counter
 	err = con.ObserveMetric("my_counter", 2.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.ObserveMetric("my_counter", 2.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.ObserveMetric("my_counter", 3.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	err = con.ObserveMetric("my_counter", 1.5, "1")
-	assert.Error(t, err)
+	testarossa.Error(t, err)
 	err = con.IncrementMetric("my_counter", 1.5, "1")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 }
 
 func TestConnector_StandardMetrics(t *testing.T) {
 	t.Parallel()
 
 	con := New("standard.metrics.connector")
-	assert.Equal(t, 11, len(con.metricDefs))
-	assert.NotNil(t, con.metricDefs["microbus_callback_duration_seconds"])
-	assert.NotNil(t, con.metricDefs["microbus_response_duration_seconds"])
-	assert.NotNil(t, con.metricDefs["microbus_response_size_bytes"])
-	assert.NotNil(t, con.metricDefs["microbus_request_count_total"])
-	assert.NotNil(t, con.metricDefs["microbus_ack_duration_seconds"])
-	assert.NotNil(t, con.metricDefs["microbus_log_messages_total"])
-	assert.NotNil(t, con.metricDefs["microbus_uptime_duration_seconds_total"])
-	assert.NotNil(t, con.metricDefs["microbus_cache_hits_total"])
-	assert.NotNil(t, con.metricDefs["microbus_cache_misses_total"])
-	assert.NotNil(t, con.metricDefs["microbus_cache_weight_total"])
-	assert.NotNil(t, con.metricDefs["microbus_cache_len_total"])
+	testarossa.Equal(t, 11, len(con.metricDefs))
+	testarossa.NotNil(t, con.metricDefs["microbus_callback_duration_seconds"])
+	testarossa.NotNil(t, con.metricDefs["microbus_response_duration_seconds"])
+	testarossa.NotNil(t, con.metricDefs["microbus_response_size_bytes"])
+	testarossa.NotNil(t, con.metricDefs["microbus_request_count_total"])
+	testarossa.NotNil(t, con.metricDefs["microbus_ack_duration_seconds"])
+	testarossa.NotNil(t, con.metricDefs["microbus_log_messages_total"])
+	testarossa.NotNil(t, con.metricDefs["microbus_uptime_duration_seconds_total"])
+	testarossa.NotNil(t, con.metricDefs["microbus_cache_hits_total"])
+	testarossa.NotNil(t, con.metricDefs["microbus_cache_misses_total"])
+	testarossa.NotNil(t, con.metricDefs["microbus_cache_weight_total"])
+	testarossa.NotNil(t, con.metricDefs["microbus_cache_len_total"])
 }

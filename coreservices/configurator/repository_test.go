@@ -19,7 +19,7 @@ package configurator
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestRepository_LoadYAML(t *testing.T) {
@@ -49,7 +49,7 @@ all:
 
 	var r repository
 	err := r.LoadYAML([]byte(y))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	cases := map[string]string{
 		"aaa":       "111",
@@ -61,8 +61,8 @@ all:
 	}
 	for name, expected := range cases {
 		value, ok := r.Value("www.example.com", name)
-		assert.True(t, ok)
-		assert.Equal(t, expected, value)
+		testarossa.True(t, ok)
+		testarossa.Equal(t, expected, value)
 	}
 
 	cases = map[string]string{
@@ -74,14 +74,14 @@ all:
 	}
 	for name, expected := range cases {
 		value, ok := r.Value("EXAMPLE.com", name)
-		assert.True(t, ok)
-		assert.Equal(t, expected, value)
+		testarossa.True(t, ok)
+		testarossa.Equal(t, expected, value)
 	}
 
 	_, ok := r.Value("www.EXAMPLE.com", "foo")
-	assert.False(t, ok)
+	testarossa.False(t, ok)
 	_, ok = r.Value("example.com", "multiLINE")
-	assert.False(t, ok)
+	testarossa.False(t, ok)
 }
 
 func TestRepository_Equals(t *testing.T) {
@@ -99,7 +99,7 @@ com:
 all:
   ddd: 444
 `))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	var rr repository
 	err = rr.LoadYAML([]byte(`
@@ -114,10 +114,10 @@ all:
 www.example.com:
   aaa: 111
 `))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
-	assert.True(t, r.Equals(&rr))
-	assert.True(t, rr.Equals(&r))
+	testarossa.True(t, r.Equals(&rr))
+	testarossa.True(t, rr.Equals(&r))
 
 	var rrr repository
 	err = rrr.LoadYAML([]byte(`
@@ -131,8 +131,8 @@ all:
 www.example.com:
   aaa: 111
 `))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
-	assert.False(t, r.Equals(&rrr))
-	assert.False(t, rrr.Equals(&r))
+	testarossa.False(t, r.Equals(&rrr))
+	testarossa.False(t, rrr.Equals(&r))
 }

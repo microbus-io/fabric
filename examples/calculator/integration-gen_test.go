@@ -38,7 +38,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/examples/calculator/calculatorapi"
@@ -61,7 +61,7 @@ var (
 	_ pub.Option
 	_ rand.Void
 	_ utils.SyncMap[string, string]
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *html.Node
 	_ *calculatorapi.Client
 )
@@ -140,40 +140,40 @@ type ArithmeticTestCase struct {
 
 // Expect asserts no error and exact return values.
 func (_tc *ArithmeticTestCase) Expect(xEcho int, opEcho string, yEcho int, result int) *ArithmeticTestCase {
-	if assert.NoError(_tc._t, _tc.err) {
-		assert.Equal(_tc._t, xEcho, _tc.xEcho)
-		assert.Equal(_tc._t, opEcho, _tc.opEcho)
-		assert.Equal(_tc._t, yEcho, _tc.yEcho)
-		assert.Equal(_tc._t, result, _tc.result)
+	if testarossa.NoError(_tc._t, _tc.err) {
+		testarossa.Equal(_tc._t, xEcho, _tc.xEcho)
+		testarossa.Equal(_tc._t, opEcho, _tc.opEcho)
+		testarossa.Equal(_tc._t, yEcho, _tc.yEcho)
+		testarossa.Equal(_tc._t, result, _tc.result)
 	}
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *ArithmeticTestCase) Error(errContains string) *ArithmeticTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *ArithmeticTestCase) ErrorCode(statusCode int) *ArithmeticTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *ArithmeticTestCase) NoError() *ArithmeticTestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *ArithmeticTestCase) CompletedIn(threshold time.Duration) *ArithmeticTestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 
@@ -211,38 +211,38 @@ type SquareTestCase struct {
 
 // Expect asserts no error and exact return values.
 func (_tc *SquareTestCase) Expect(xEcho int, result int) *SquareTestCase {
-	if assert.NoError(_tc._t, _tc.err) {
-		assert.Equal(_tc._t, xEcho, _tc.xEcho)
-		assert.Equal(_tc._t, result, _tc.result)
+	if testarossa.NoError(_tc._t, _tc.err) {
+		testarossa.Equal(_tc._t, xEcho, _tc.xEcho)
+		testarossa.Equal(_tc._t, result, _tc.result)
 	}
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *SquareTestCase) Error(errContains string) *SquareTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *SquareTestCase) ErrorCode(statusCode int) *SquareTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *SquareTestCase) NoError() *SquareTestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *SquareTestCase) CompletedIn(threshold time.Duration) *SquareTestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 
@@ -279,37 +279,37 @@ type DistanceTestCase struct {
 
 // Expect asserts no error and exact return values.
 func (_tc *DistanceTestCase) Expect(d float64) *DistanceTestCase {
-	if assert.NoError(_tc._t, _tc.err) {
-		assert.Equal(_tc._t, d, _tc.d)
+	if testarossa.NoError(_tc._t, _tc.err) {
+		testarossa.Equal(_tc._t, d, _tc.d)
 	}
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *DistanceTestCase) Error(errContains string) *DistanceTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *DistanceTestCase) ErrorCode(statusCode int) *DistanceTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *DistanceTestCase) NoError() *DistanceTestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *DistanceTestCase) CompletedIn(threshold time.Duration) *DistanceTestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 

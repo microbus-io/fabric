@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestPub_Response(t *testing.T) {
@@ -30,12 +30,12 @@ func TestPub_Response(t *testing.T) {
 	myErr := errors.New("my error")
 	r := NewErrorResponse(myErr)
 	res, err := r.Get()
-	assert.Nil(t, res)
-	assert.Same(t, myErr, err)
+	testarossa.Nil(t, res)
+	testarossa.Equal(t, &myErr, &err)
 
 	var myRes http.Response
 	r = NewHTTPResponse(&myRes)
 	res, err = r.Get()
-	assert.NoError(t, err)
-	assert.Same(t, &myRes, res)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, &myRes, res)
 }

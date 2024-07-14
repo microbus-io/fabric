@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
@@ -72,22 +72,22 @@ func TestHttpingress_Ports(t *testing.T) {
 	})
 	App.Add(con)
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 	res, err := client.Get("http://localhost:4040/ports/ok")
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "ok", string(b))
 		}
 	}
 	res, err = client.Get("http://localhost:4443/ports/ok")
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "ok", string(b))
 		}
 	}
 }
@@ -113,32 +113,32 @@ func TestHttpingress_RequestMemoryLimit(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 
 	// Small request at 25% of capacity
-	assert.Zero(t, Svc.reqMemoryUsed)
+	testarossa.Zero(t, Svc.reqMemoryUsed)
 	payload := rand.AlphaNum64(Svc.RequestMemoryLimit() * 1024 * 1024 / 4)
 	res, err := client.Post("http://localhost:4040/request.memory.limit/ok", "text/plain", strings.NewReader(payload))
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, payload, string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, payload, string(b))
 		}
 	}
 
 	// Big request at 55% of capacity
-	assert.Zero(t, Svc.reqMemoryUsed)
+	testarossa.Zero(t, Svc.reqMemoryUsed)
 	payload = rand.AlphaNum64(Svc.RequestMemoryLimit() * 1024 * 1024 * 55 / 100)
 	res, err = client.Post("http://localhost:4040/request.memory.limit/ok", "text/plain", strings.NewReader(payload))
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	}
 
 	// Two small requests that together are over 50% of capacity
-	assert.Zero(t, Svc.reqMemoryUsed)
+	testarossa.Zero(t, Svc.reqMemoryUsed)
 	payload = rand.AlphaNum64(Svc.RequestMemoryLimit() * 1024 * 1024 / 3)
 	returned := make(chan bool)
 	go func() {
@@ -146,21 +146,21 @@ func TestHttpingress_RequestMemoryLimit(t *testing.T) {
 		returned <- true
 	}()
 	<-entered
-	assert.NotZero(t, Svc.reqMemoryUsed)
+	testarossa.NotZero(t, Svc.reqMemoryUsed)
 	res, err = client.Post("http://localhost:4040/request.memory.limit/ok", "text/plain", strings.NewReader(payload))
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	}
 	done <- true
 	<-returned
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "done", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "done", string(b))
 		}
 	}
 
-	assert.Zero(t, Svc.reqMemoryUsed)
+	testarossa.Zero(t, Svc.reqMemoryUsed)
 }
 
 func TestHttpingress_Compression(t *testing.T) {
@@ -173,21 +173,21 @@ func TestHttpingress_Compression(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 	req, err := http.NewRequest("GET", "http://localhost:4040/compression/ok", nil)
 	req.Header.Set("Accept-Encoding", "gzip")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
-		assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.True(t, len(b) < 8*1024)
+		if testarossa.NoError(t, err) {
+			testarossa.True(t, len(b) < 8*1024)
 		}
-		assert.Equal(t, strconv.Itoa(len(b)), res.Header.Get("Content-Length"))
+		testarossa.Equal(t, strconv.Itoa(len(b)), res.Header.Get("Content-Length"))
 	}
 }
 
@@ -204,37 +204,37 @@ func TestHttpingress_PortMapping(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 
 	// External port 4040 grants access to all internal ports
 	res, err := client.Get("http://localhost:4040/port.mapping/ok443")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
 	}
 	res, err = client.Get("http://localhost:4040/port.mapping:555/ok555")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
 	}
 	res, err = client.Get("http://localhost:4040/port.mapping:555/ok443")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
 
 	// External port 4443 maps all requests to internal port 443
 	res, err = client.Get("http://localhost:4443/port.mapping/ok443")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
 	}
 	res, err = client.Get("http://localhost:4443/port.mapping:555/ok555")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
 	res, err = client.Get("http://localhost:4443/port.mapping:555/ok443")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
 	}
 }
 
@@ -256,24 +256,24 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 
 	// Make a standard request
 	req, err := http.NewRequest("GET", "http://localhost:4040/forwarded.headers/ok", nil)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
+		if testarossa.NoError(t, err) {
 			body := string(b)
-			assert.True(t, strings.Contains(body, "X-Forwarded-Host: localhost:4040\n"))
-			assert.False(t, strings.Contains(body, "X-Forwarded-Prefix:"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-Proto: http\n"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-For: "))
-			assert.True(t, strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-Host: localhost:4040\n"))
+			testarossa.False(t, strings.Contains(body, "X-Forwarded-Prefix:"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-Proto: http\n"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-For: "))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
 		}
 	}
 
@@ -283,17 +283,17 @@ func TestHttpingress_ForwardedHeaders(t *testing.T) {
 	req.Header.Set("X-Forwarded-Prefix", "/app")
 	req.Header.Set("X-Forwarded-For", "1.2.3.4")
 	req.Header.Set("X-Forwarded-Proto", "https")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Do(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
+		if testarossa.NoError(t, err) {
 			body := string(b)
-			assert.True(t, strings.Contains(body, "X-Forwarded-Host: www.example.com\n"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-Prefix: /app\n"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-Proto: https\n"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-For: 1.2.3.4"))
-			assert.True(t, strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-Host: www.example.com\n"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-Prefix: /app\n"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-Proto: https\n"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-For: 1.2.3.4"))
+			testarossa.True(t, strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
 		}
 	}
 }
@@ -303,8 +303,8 @@ func TestHttpingress_Root(t *testing.T) {
 
 	client := http.Client{Timeout: time.Second * 2}
 	res, err := client.Get("http://localhost:4040/")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
 
 	con := connector.New("root")
@@ -313,12 +313,12 @@ func TestHttpingress_Root(t *testing.T) {
 		return nil
 	})
 	err = App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	res, err = client.Get("http://localhost:4040/")
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
 	}
 }
 
@@ -333,7 +333,7 @@ func TestHttpingress_CORS(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
@@ -341,45 +341,45 @@ func TestHttpingress_CORS(t *testing.T) {
 	// Request with no origin header
 	count := callCount
 	req, err := http.NewRequest("GET", "http://localhost:4040/cors/ok", nil)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, count+1, callCount)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
+		testarossa.Equal(t, count+1, callCount)
 	}
 
 	// Request with disallowed origin header
 	count = callCount
 	req, err = http.NewRequest("GET", "http://localhost:4040/cors/ok", nil)
 	req.Header.Set("Origin", "disallowed.origin")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Do(req)
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusForbidden, res.StatusCode)
-		assert.Equal(t, count, callCount)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusForbidden, res.StatusCode)
+		testarossa.Equal(t, count, callCount)
 	}
 
 	// Request with allowed origin header
 	count = callCount
 	req, err = http.NewRequest("GET", "http://localhost:4040/cors/ok", nil)
 	req.Header.Set("Origin", "allowed.origin")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Do(req)
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, "allowed.origin", res.Header.Get("Access-Control-Allow-Origin"))
-		assert.Equal(t, count+1, callCount)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
+		testarossa.Equal(t, "allowed.origin", res.Header.Get("Access-Control-Allow-Origin"))
+		testarossa.Equal(t, count+1, callCount)
 	}
 
 	// Preflight request with allowed origin header
 	count = callCount
 	req, err = http.NewRequest("OPTIONS", "http://localhost:4040/cors/ok", nil)
 	req.Header.Set("Origin", "allowed.origin")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Do(req)
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusNoContent, res.StatusCode)
-		assert.Equal(t, count, callCount)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusNoContent, res.StatusCode)
+		testarossa.Equal(t, count, callCount)
 	}
 }
 
@@ -405,7 +405,7 @@ func TestHttpingress_ParseForm(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
@@ -415,10 +415,10 @@ func TestHttpingress_ParseForm(t *testing.T) {
 	buf.WriteString("x=")
 	buf.WriteString(rand.AlphaNum64(9 * 1024 * 1024))
 	res, err := client.Post("http://localhost:4040/parse.form/ok", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "ok", string(b))
 		}
 	}
 
@@ -426,24 +426,24 @@ func TestHttpingress_ParseForm(t *testing.T) {
 	// https://go.dev/src/net/http/request.go#L1258
 	buf.WriteString(rand.AlphaNum64(2 * 1024 * 1024)) // Now 11MB
 	res, err = client.Post("http://localhost:4040/parse.form/ok", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	}
 
 	// MaxBytesReader can be used to extend the limit
 	res, err = client.Post("http://localhost:4040/parse.form/more", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "ok", string(b))
 		}
 	}
 
 	// Going above the MaxBytesReader limit
 	buf.WriteString(rand.AlphaNum64(2 * 1024 * 1024)) // Now 13MB
 	res, err = client.Post("http://localhost:4040/parse.form/more", "application/x-www-form-urlencoded", bytes.NewReader(buf.Bytes()))
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	}
 }
 
@@ -453,29 +453,29 @@ func TestHttpingress_InternalHeaders(t *testing.T) {
 	con := connector.New("internal.headers")
 	con.Subscribe("GET", ":555/ok", func(w http.ResponseWriter, r *http.Request) error {
 		// No Microbus headers should be accepted from client
-		assert.Empty(t, r.Header.Get(frame.HeaderPrefix+"In-Request"))
+		testarossa.Equal(t, "", r.Header.Get(frame.HeaderPrefix+"In-Request"))
 		// Microbus headers generated internally should pass through the middleware chain
-		assert.Equal(t, Hostname, frame.Of(r).FromHost())
+		testarossa.Equal(t, Hostname, frame.Of(r).FromHost())
 
 		w.Header().Set(frame.HeaderPrefix+"In-Response", "STOP")
 		w.Write([]byte("ok"))
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 
 	req, err := http.NewRequest("GET", "http://localhost:4040/internal.headers:555/ok", nil)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	req.Header.Set(frame.HeaderPrefix+"In-Request", "STOP")
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		// No Microbus headers should leak outside
-		assert.Empty(t, res.Header.Get(frame.HeaderPrefix+"In-Response"))
+		testarossa.Equal(t, "", res.Header.Get(frame.HeaderPrefix+"In-Response"))
 		for h := range res.Header {
-			assert.False(t, strings.HasPrefix(h, frame.HeaderPrefix))
+			testarossa.False(t, strings.HasPrefix(h, frame.HeaderPrefix))
 		}
 	}
 }
@@ -486,29 +486,29 @@ func TestHttpingress_Middleware(t *testing.T) {
 	con := connector.New("final.destination")
 	con.Subscribe("GET", ":555/ok", func(w http.ResponseWriter, r *http.Request) error {
 		// Headers should pass through
-		assert.Equal(t, "Bearer 123456", r.Header.Get("Authorization"))
+		testarossa.Equal(t, "Bearer 123456", r.Header.Get("Authorization"))
 		// Middleware added a request header
-		assert.Equal(t, "Hello", r.Header.Get("Middleware"))
+		testarossa.Equal(t, "Hello", r.Header.Get("Middleware"))
 		w.Write([]byte("ok"))
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 
 	req, err := http.NewRequest("GET", "http://localhost:4040/final.destination:555/ok", nil)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer 123456")
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "ok", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "ok", string(b))
 		}
 		// Middleware added a response header
-		assert.Equal(t, "Goodbye", res.Header.Get("Middleware"))
+		testarossa.Equal(t, "Goodbye", res.Header.Get("Middleware"))
 	}
 }
 
@@ -525,22 +525,22 @@ func TestHttpingress_BlockedPaths(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 
 	req, err := http.NewRequest("GET", "http://localhost:4040/blocked.paths/admin.php", nil)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
 	req, err = http.NewRequest("GET", "http://localhost:4040/blocked.paths/admin.ppp", nil)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Do(req)
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
 	}
 }
 
@@ -553,37 +553,37 @@ func TestHttpingress_MatchAcceptedLanguages(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{Timeout: time.Second * 2}
 
 	req, err := http.NewRequest("GET", "http://localhost:4040/accepted.languages/echo", nil)
 	req.Header.Set("Accept-Language", "en-us,es;q=0.5")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "en", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "en", string(b))
 		}
 	}
 	req.Header.Set("Accept-Language", "es;q=0.5")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Do(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "es-AR", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "es-AR", string(b))
 		}
 	}
 	req.Header.Set("Accept-Language", "fr-ca;q=0.8,en;q=0.4")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	res, err = client.Do(req)
-	if assert.NoError(t, err) {
+	if testarossa.NoError(t, err) {
 		b, err := io.ReadAll(res.Body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, "fr", string(b))
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "fr", string(b))
 		}
 	}
 }
@@ -625,10 +625,10 @@ func TestHttpingress_MultiValueHeaders(t *testing.T) {
 
 	con := connector.New("multi.value.headers")
 	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
-		if assert.Len(t, r.Header["Multi-Value"], 3) {
-			assert.Equal(t, "Send 1", r.Header["Multi-Value"][0])
-			assert.Equal(t, "Send 2", r.Header["Multi-Value"][1])
-			assert.Equal(t, "Send 3", r.Header["Multi-Value"][2])
+		if testarossa.Equal(t, 3, len(r.Header["Multi-Value"])) {
+			testarossa.Equal(t, "Send 1", r.Header["Multi-Value"][0])
+			testarossa.Equal(t, "Send 2", r.Header["Multi-Value"][1])
+			testarossa.Equal(t, "Send 3", r.Header["Multi-Value"][2])
 		}
 		w.Header()["Multi-Value"] = []string{
 			"Return 1",
@@ -637,22 +637,22 @@ func TestHttpingress_MultiValueHeaders(t *testing.T) {
 		return nil
 	})
 	err := App.AddAndStartup(con)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	client := http.Client{} // Timeout: time.Second * 2}
 	req, err := http.NewRequest("GET", "http://localhost:4040/multi.value.headers/ok", nil)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	req.Header["Multi-Value"] = []string{
 		"Send 1",
 		"Send 2",
 		"Send 3",
 	}
 	res, err := client.Do(req)
-	if assert.NoError(t, err) {
-		if assert.Len(t, res.Header["Multi-Value"], 2) {
-			assert.Equal(t, "Return 1", res.Header["Multi-Value"][0])
-			assert.Equal(t, "Return 2", res.Header["Multi-Value"][1])
+	if testarossa.NoError(t, err) {
+		if testarossa.Equal(t, 2, len(res.Header["Multi-Value"])) {
+			testarossa.Equal(t, "Return 1", res.Header["Multi-Value"][0])
+			testarossa.Equal(t, "Return 2", res.Header["Multi-Value"][1])
 		}
 	}
 }

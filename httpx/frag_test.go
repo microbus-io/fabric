@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/rand"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestHttpx_FragRequest(t *testing.T) {
@@ -54,24 +54,24 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	req, err := http.NewRequest("GET", "https://www.example.com", bodyReader)
 	req.Header.Add("Foo", "Bar 1")
 	req.Header.Add("Foo", "Bar 2")
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Fragment
 	remaining := bodySize
 	fragReqs := []*http.Request{}
 	frag, err := NewFragRequest(req, fragmentSize)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	for i := 1; i <= frag.N(); i++ {
 		r, err := frag.Fragment(i)
-		assert.NoError(t, err)
-		assert.NotNil(t, r)
+		testarossa.NoError(t, err)
+		testarossa.NotNil(t, r)
 		fragReqs = append(fragReqs, r)
 
 		contentLen := r.Header.Get("Content-Length")
 		if remaining > fragmentSize {
-			assert.Equal(t, strconv.FormatInt(fragmentSize, 10), contentLen)
+			testarossa.Equal(t, strconv.FormatInt(fragmentSize, 10), contentLen)
 		} else {
-			assert.Equal(t, strconv.FormatInt(remaining, 10), contentLen)
+			testarossa.Equal(t, strconv.FormatInt(remaining, 10), contentLen)
 		}
 		remaining -= fragmentSize
 	}
@@ -80,22 +80,22 @@ func request(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) {
 	defrag := NewDefragRequest()
 	for _, r := range fragReqs {
 		err := defrag.Add(r)
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 	intReq, err := defrag.Integrated()
-	assert.NoError(t, err)
-	assert.NotNil(t, intReq)
+	testarossa.NoError(t, err)
+	testarossa.NotNil(t, intReq)
 
 	intBody, err := io.ReadAll(intReq.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, body, intBody)
+	testarossa.NoError(t, err)
+	testarossa.SliceEqual(t, body, intBody)
 
 	contentLen := intReq.Header.Get("Content-Length")
-	assert.True(t, contentLen == strconv.Itoa(len(body)))
+	testarossa.True(t, contentLen == strconv.Itoa(len(body)))
 
-	if assert.Len(t, intReq.Header["Foo"], 2) {
-		assert.Equal(t, "Bar 1", intReq.Header["Foo"][0])
-		assert.Equal(t, "Bar 2", intReq.Header["Foo"][1])
+	if testarossa.SliceLen(t, intReq.Header["Foo"], 2) {
+		testarossa.Equal(t, "Bar 1", intReq.Header["Foo"][0])
+		testarossa.Equal(t, "Bar 2", intReq.Header["Foo"][1])
 	}
 }
 
@@ -122,16 +122,16 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 		rec.Header().Add("Foo", "Bar 1")
 		rec.Header().Add("Foo", "Bar 2")
 		n, err := rec.Write(body)
-		assert.NoError(t, err)
-		assert.Equal(t, len(body), n)
+		testarossa.NoError(t, err)
+		testarossa.Equal(t, len(body), n)
 		res = rec.Result()
 	} else {
 		rec := httptest.NewRecorder()
 		rec.Header().Add("Foo", "Bar 1")
 		rec.Header().Add("Foo", "Bar 2")
 		n, err := rec.Write(body)
-		assert.NoError(t, err)
-		assert.Equal(t, len(body), n)
+		testarossa.NoError(t, err)
+		testarossa.Equal(t, len(body), n)
 		res = rec.Result()
 	}
 
@@ -139,18 +139,18 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 	remaining := bodySize
 	fragRess := []*http.Response{}
 	frag, err := NewFragResponse(res, fragmentSize)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	for i := 1; i <= frag.N(); i++ {
 		r, err := frag.Fragment(i)
-		assert.NoError(t, err)
-		assert.NotNil(t, r)
+		testarossa.NoError(t, err)
+		testarossa.NotNil(t, r)
 		fragRess = append(fragRess, r)
 
 		contentLen := r.Header.Get("Content-Length")
 		if remaining > fragmentSize {
-			assert.Equal(t, strconv.FormatInt(fragmentSize, 10), contentLen)
+			testarossa.Equal(t, strconv.FormatInt(fragmentSize, 10), contentLen)
 		} else {
-			assert.Equal(t, strconv.FormatInt(remaining, 10), contentLen)
+			testarossa.Equal(t, strconv.FormatInt(remaining, 10), contentLen)
 		}
 		remaining -= fragmentSize
 	}
@@ -159,22 +159,22 @@ func response(t *testing.T, bodySize int64, fragmentSize int64, optimized bool) 
 	defrag := NewDefragResponse()
 	for _, r := range fragRess {
 		err := defrag.Add(r)
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 	intRes, err := defrag.Integrated()
-	assert.NoError(t, err)
-	assert.NotNil(t, intRes)
+	testarossa.NoError(t, err)
+	testarossa.NotNil(t, intRes)
 
 	intBody, err := io.ReadAll(intRes.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, body, intBody)
+	testarossa.NoError(t, err)
+	testarossa.SliceEqual(t, body, intBody)
 
 	contentLen := intRes.Header.Get("Content-Length")
-	assert.True(t, contentLen == strconv.Itoa(len(body)))
+	testarossa.True(t, contentLen == strconv.Itoa(len(body)))
 
-	if assert.Len(t, intRes.Header["Foo"], 2) {
-		assert.Equal(t, "Bar 1", intRes.Header["Foo"][0])
-		assert.Equal(t, "Bar 2", intRes.Header["Foo"][1])
+	if testarossa.SliceLen(t, intRes.Header["Foo"], 2) {
+		testarossa.Equal(t, "Bar 1", intRes.Header["Foo"][0])
+		testarossa.Equal(t, "Bar 2", intRes.Header["Foo"][1])
 	}
 }
 
@@ -184,17 +184,17 @@ func TestHttpx_DefragRequestNoContentLen(t *testing.T) {
 	bodySize := 128*1024 + 16
 	body := []byte(rand.AlphaNum64(int(bodySize)))
 	req, err := http.NewRequest("GET", "https://www.example.com", bytes.NewReader(body))
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Fragment the request
 	frag, err := NewFragRequest(req, 1024)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	for i := 1; i <= frag.N(); i++ {
 		r, err := frag.Fragment(i)
-		assert.NoError(t, err)
-		assert.NotNil(t, r)
-		assert.Greater(t, int(r.ContentLength), 0)
-		assert.NotEmpty(t, r.Header.Get("Content-Length"))
+		testarossa.NoError(t, err)
+		testarossa.NotNil(t, r)
+		testarossa.True(t, r.ContentLength > 0)
+		testarossa.NotEqual(t, "", r.Header.Get("Content-Length"))
 	}
 
 	// Defrag should still work without knowing the content length
@@ -204,16 +204,16 @@ func TestHttpx_DefragRequestNoContentLen(t *testing.T) {
 		r.Header.Del("Content-Length")
 		r.ContentLength = -1
 		err := defrag.Add(r)
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 	intReq, err := defrag.Integrated()
-	assert.NoError(t, err)
-	assert.NotNil(t, intReq)
-	assert.Equal(t, -1, int(intReq.ContentLength))
-	assert.Empty(t, intReq.Header.Get("Content-Length"))
+	testarossa.NoError(t, err)
+	testarossa.NotNil(t, intReq)
+	testarossa.Equal(t, -1, int(intReq.ContentLength))
+	testarossa.Equal(t, "", intReq.Header.Get("Content-Length"))
 	intBody, err := io.ReadAll(intReq.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, body, intBody)
+	testarossa.NoError(t, err)
+	testarossa.SliceEqual(t, body, intBody)
 }
 
 func TestHttpx_DefragResponseNoContentLen(t *testing.T) {
@@ -224,19 +224,19 @@ func TestHttpx_DefragResponseNoContentLen(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	n, err := rec.Write(body)
-	assert.NoError(t, err)
-	assert.Equal(t, len(body), n)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, len(body), n)
 	res := rec.Result()
 
 	// Fragment the request
 	frag, err := NewFragResponse(res, 1024)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	for i := 1; i <= frag.N(); i++ {
 		r, err := frag.Fragment(i)
-		assert.NoError(t, err)
-		assert.NotNil(t, r)
-		assert.Greater(t, int(r.ContentLength), 0)
-		assert.NotEmpty(t, r.Header.Get("Content-Length"))
+		testarossa.NoError(t, err)
+		testarossa.NotNil(t, r)
+		testarossa.True(t, r.ContentLength > 0)
+		testarossa.NotEqual(t, "", r.Header.Get("Content-Length"))
 	}
 
 	// Defrag should still work without knowing the content length
@@ -246,14 +246,14 @@ func TestHttpx_DefragResponseNoContentLen(t *testing.T) {
 		r.Header.Del("Content-Length")
 		r.ContentLength = -1
 		err := defrag.Add(r)
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 	intRes, err := defrag.Integrated()
-	assert.NoError(t, err)
-	assert.NotNil(t, intRes)
-	assert.Equal(t, -1, int(intRes.ContentLength))
-	assert.Empty(t, intRes.Header.Get("Content-Length"))
+	testarossa.NoError(t, err)
+	testarossa.NotNil(t, intRes)
+	testarossa.Equal(t, -1, int(intRes.ContentLength))
+	testarossa.Equal(t, "", intRes.Header.Get("Content-Length"))
 	intBody, err := io.ReadAll(intRes.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, body, intBody)
+	testarossa.NoError(t, err)
+	testarossa.SliceEqual(t, body, intBody)
 }

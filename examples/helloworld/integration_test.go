@@ -19,7 +19,7 @@ package helloworld
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/service"
 
@@ -28,7 +28,7 @@ import (
 
 var (
 	_ *testing.T
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ service.Service
 	_ *helloworldapi.Client
 )

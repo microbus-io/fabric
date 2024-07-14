@@ -18,12 +18,12 @@ limitations under the License.
 
 package openapiportal
 
-const Version = 99
+const Version = 102
 const SourceCodeSHA256 = "30d90870f37f90fbf080b3d443dd3554d764ffefba2d0afdf2c651f70e08b5a5"
-const Timestamp = "2024-07-06T16:56:53.341615Z"
+const Timestamp = "2024-07-14T02:54:32.830488Z"
 
 /* {
-	"ver": 99,
+	"ver": 102,
 	"sha256": "30d90870f37f90fbf080b3d443dd3554d764ffefba2d0afdf2c651f70e08b5a5",
-	"ts": "2024-07-06T16:56:53.341615Z"
+	"ts": "2024-07-14T02:54:32.830488Z"
 } */

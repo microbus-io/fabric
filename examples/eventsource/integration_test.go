@@ -20,7 +20,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/examples/eventsink"
 	"github.com/microbus-io/fabric/examples/eventsource/eventsourceapi"
@@ -28,7 +28,7 @@ import (
 
 var (
 	_ *testing.T
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *eventsourceapi.Client
 )
 

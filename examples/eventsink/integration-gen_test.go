@@ -38,7 +38,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
@@ -61,7 +61,7 @@ var (
 	_ pub.Option
 	_ rand.Void
 	_ utils.SyncMap[string, string]
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *html.Node
 	_ *eventsinkapi.Client
 )
@@ -137,37 +137,37 @@ type RegisteredTestCase struct {
 
 // Expect asserts no error and exact return values.
 func (_tc *RegisteredTestCase) Expect(emails []string) *RegisteredTestCase {
-	if assert.NoError(_tc._t, _tc.err) {
-		assert.Equal(_tc._t, emails, _tc.emails)
+	if testarossa.NoError(_tc._t, _tc.err) {
+		testarossa.Equal(_tc._t, emails, _tc.emails)
 	}
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *RegisteredTestCase) Error(errContains string) *RegisteredTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *RegisteredTestCase) ErrorCode(statusCode int) *RegisteredTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *RegisteredTestCase) NoError() *RegisteredTestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *RegisteredTestCase) CompletedIn(threshold time.Duration) *RegisteredTestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 
@@ -204,37 +204,37 @@ type OnAllowRegisterTestCase struct {
 
 // Expect asserts no error and exact return values.
 func (_tc *OnAllowRegisterTestCase) Expect(allow bool) *OnAllowRegisterTestCase {
-	if assert.NoError(_tc._t, _tc.err) {
-		assert.Equal(_tc._t, allow, _tc.allow)
+	if testarossa.NoError(_tc._t, _tc.err) {
+		testarossa.Equal(_tc._t, allow, _tc.allow)
 	}
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *OnAllowRegisterTestCase) Error(errContains string) *OnAllowRegisterTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnAllowRegisterTestCase) ErrorCode(statusCode int) *OnAllowRegisterTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnAllowRegisterTestCase) NoError() *OnAllowRegisterTestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnAllowRegisterTestCase) CompletedIn(threshold time.Duration) *OnAllowRegisterTestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 
@@ -270,35 +270,35 @@ type OnRegisteredTestCase struct {
 
 // Expect asserts no error and exact return values.
 func (_tc *OnRegisteredTestCase) Expect() *OnRegisteredTestCase {
-	assert.NoError(_tc._t, _tc.err)
+	testarossa.NoError(_tc._t, _tc.err)
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *OnRegisteredTestCase) Error(errContains string) *OnRegisteredTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnRegisteredTestCase) ErrorCode(statusCode int) *OnRegisteredTestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnRegisteredTestCase) NoError() *OnRegisteredTestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnRegisteredTestCase) CompletedIn(threshold time.Duration) *OnRegisteredTestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 

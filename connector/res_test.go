@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/pub"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestConnector_ReadResFile(t *testing.T) {
@@ -34,19 +34,19 @@ func TestConnector_ReadResFile(t *testing.T) {
 	con := New("read.res.file.connector")
 	con.SetResFSDir("testdata")
 
-	assert.Equal(t, "<html>{{ . }}</html>\n", string(con.MustReadResFile("res.txt")))
-	assert.Equal(t, "<html>{{ . }}</html>\n", con.MustReadResTextFile("res.txt"))
+	testarossa.Equal(t, "<html>{{ . }}</html>\n", string(con.MustReadResFile("res.txt")))
+	testarossa.Equal(t, "<html>{{ . }}</html>\n", con.MustReadResTextFile("res.txt"))
 
-	assert.Nil(t, con.MustReadResFile("nothing.txt"))
-	assert.Equal(t, "", con.MustReadResTextFile("nothing.txt"))
+	testarossa.Nil(t, con.MustReadResFile("nothing.txt"))
+	testarossa.Equal(t, "", con.MustReadResTextFile("nothing.txt"))
 
 	v, err := con.ExecuteResTemplate("res.txt", "<body></body>")
-	assert.NoError(t, err)
-	assert.Equal(t, "<html><body></body></html>\n", v)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, "<html><body></body></html>\n", v)
 
 	v, err = con.ExecuteResTemplate("res.html", "<body></body>")
-	assert.NoError(t, err)
-	assert.Equal(t, "<html>"+html.EscapeString("<body></body>")+"</html>\n", v)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, "<html>"+html.EscapeString("<body></body>")+"</html>\n", v)
 }
 
 func TestConnector_LoadResString(t *testing.T) {
@@ -67,10 +67,10 @@ func TestConnector_LoadResString(t *testing.T) {
 
 	// Startup the microservices
 	err := alpha.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer alpha.Shutdown()
 	err = beta.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer beta.Shutdown()
 
 	// Send message and validate the correct language
@@ -84,10 +84,10 @@ func TestConnector_LoadResString(t *testing.T) {
 	}
 	for i := 0; i < len(testCases); i += 2 {
 		response, err := alpha.Request(ctx, pub.GET("https://beta.load.res.string.connector/localized"), pub.Header("Accept-Language", testCases[i]))
-		if assert.NoError(t, err) {
+		if testarossa.NoError(t, err) {
 			body, err := io.ReadAll(response.Body)
-			if assert.NoError(t, err) {
-				assert.Equal(t, []byte(testCases[i+1]), body)
+			if testarossa.NoError(t, err) {
+				testarossa.SliceEqual(t, []byte(testCases[i+1]), body)
 			}
 		}
 	}

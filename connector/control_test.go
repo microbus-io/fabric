@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/pub"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestConnector_Ping(t *testing.T) {
@@ -34,24 +34,24 @@ func TestConnector_Ping(t *testing.T) {
 
 	// Startup the microservice
 	err := con.Startup()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 	defer con.Shutdown()
 
 	// Send messages
 	for r := range con.Publish(ctx, pub.GET("https://ping.connector:888/ping")) {
 		_, err := r.Get()
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 	for r := range con.Publish(ctx, pub.GET("https://"+con.id+".ping.connector:888/ping")) {
 		_, err := r.Get()
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 	for r := range con.Publish(ctx, pub.GET("https://all:888/ping")) {
 		_, err := r.Get()
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 	for r := range con.Publish(ctx, pub.GET("https://"+con.id+".all:888/ping")) {
 		_, err := r.Get()
-		assert.NoError(t, err)
+		testarossa.NoError(t, err)
 	}
 }

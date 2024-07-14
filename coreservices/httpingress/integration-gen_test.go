@@ -38,7 +38,7 @@ import (
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/utils"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 	"golang.org/x/net/html"
 
 	"github.com/microbus-io/fabric/coreservices/httpingress/httpingressapi"
@@ -61,7 +61,7 @@ var (
 	_ pub.Option
 	_ rand.Void
 	_ utils.SyncMap[string, string]
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *html.Node
 	_ *httpingressapi.Client
 )
@@ -136,29 +136,29 @@ type OnChangedPortsTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedPortsTestCase) Error(errContains string) *OnChangedPortsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedPortsTestCase) ErrorCode(statusCode int) *OnChangedPortsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedPortsTestCase) NoError() *OnChangedPortsTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedPortsTestCase) CompletedIn(threshold time.Duration) *OnChangedPortsTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 
@@ -193,29 +193,29 @@ type OnChangedAllowedOriginsTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedAllowedOriginsTestCase) Error(errContains string) *OnChangedAllowedOriginsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedAllowedOriginsTestCase) ErrorCode(statusCode int) *OnChangedAllowedOriginsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedAllowedOriginsTestCase) NoError() *OnChangedAllowedOriginsTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedAllowedOriginsTestCase) CompletedIn(threshold time.Duration) *OnChangedAllowedOriginsTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 
@@ -250,29 +250,29 @@ type OnChangedPortMappingsTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedPortMappingsTestCase) Error(errContains string) *OnChangedPortMappingsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedPortMappingsTestCase) ErrorCode(statusCode int) *OnChangedPortMappingsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedPortMappingsTestCase) NoError() *OnChangedPortMappingsTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedPortMappingsTestCase) CompletedIn(threshold time.Duration) *OnChangedPortMappingsTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 
@@ -307,29 +307,29 @@ type OnChangedReadTimeoutTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedReadTimeoutTestCase) Error(errContains string) *OnChangedReadTimeoutTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedReadTimeoutTestCase) ErrorCode(statusCode int) *OnChangedReadTimeoutTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedReadTimeoutTestCase) NoError() *OnChangedReadTimeoutTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedReadTimeoutTestCase) CompletedIn(threshold time.Duration) *OnChangedReadTimeoutTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 
@@ -364,29 +364,29 @@ type OnChangedWriteTimeoutTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedWriteTimeoutTestCase) Error(errContains string) *OnChangedWriteTimeoutTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedWriteTimeoutTestCase) ErrorCode(statusCode int) *OnChangedWriteTimeoutTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedWriteTimeoutTestCase) NoError() *OnChangedWriteTimeoutTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedWriteTimeoutTestCase) CompletedIn(threshold time.Duration) *OnChangedWriteTimeoutTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 
@@ -421,29 +421,29 @@ type OnChangedReadHeaderTimeoutTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedReadHeaderTimeoutTestCase) Error(errContains string) *OnChangedReadHeaderTimeoutTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedReadHeaderTimeoutTestCase) ErrorCode(statusCode int) *OnChangedReadHeaderTimeoutTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedReadHeaderTimeoutTestCase) NoError() *OnChangedReadHeaderTimeoutTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedReadHeaderTimeoutTestCase) CompletedIn(threshold time.Duration) *OnChangedReadHeaderTimeoutTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 
@@ -478,29 +478,29 @@ type OnChangedServerLanguagesTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedServerLanguagesTestCase) Error(errContains string) *OnChangedServerLanguagesTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedServerLanguagesTestCase) ErrorCode(statusCode int) *OnChangedServerLanguagesTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedServerLanguagesTestCase) NoError() *OnChangedServerLanguagesTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedServerLanguagesTestCase) CompletedIn(threshold time.Duration) *OnChangedServerLanguagesTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 
@@ -535,29 +535,29 @@ type OnChangedBlockedPathsTestCase struct {
 
 // Error asserts an error.
 func (tc *OnChangedBlockedPathsTestCase) Error(errContains string) *OnChangedBlockedPathsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Contains(tc.t, tc.err.Error(), errContains)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Contains(tc.t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *OnChangedBlockedPathsTestCase) ErrorCode(statusCode int) *OnChangedBlockedPathsTestCase {
-	if assert.Error(tc.t, tc.err) {
-		assert.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
+	if testarossa.Error(tc.t, tc.err) {
+		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *OnChangedBlockedPathsTestCase) NoError() *OnChangedBlockedPathsTestCase {
-	assert.NoError(tc.t, tc.err)
+	testarossa.NoError(tc.t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *OnChangedBlockedPathsTestCase) CompletedIn(threshold time.Duration) *OnChangedBlockedPathsTestCase {
-	assert.LessOrEqual(tc.t, tc.dur, threshold)
+	testarossa.True(tc.t, tc.dur <= threshold)
 	return tc
 }
 

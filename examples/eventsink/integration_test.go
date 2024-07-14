@@ -19,14 +19,14 @@ package eventsink
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/examples/eventsink/eventsinkapi"
 )
 
 var (
 	_ *testing.T
-	_ assert.TestingT
+	_ testarossa.TestingT
 	_ *eventsinkapi.Client
 )
 
@@ -56,18 +56,18 @@ func TestEventsink_Registered(t *testing.T) {
 	*/
 	ctx := Context()
 	registered, err := Registered(t, ctx).Get()
-	assert.NoError(t, err)
-	assert.NotContains(t, registered, "jose@example.com")
-	assert.NotContains(t, registered, "maria@example.com")
-	assert.NotContains(t, registered, "lee@example.com")
+	testarossa.NoError(t, err)
+	testarossa.SliceNotContains(t, registered, "jose@example.com")
+	testarossa.SliceNotContains(t, registered, "maria@example.com")
+	testarossa.SliceNotContains(t, registered, "lee@example.com")
 	OnRegistered(t, ctx, "jose@example.com").NoError()
 	OnRegistered(t, ctx, "maria@example.com").NoError()
 	OnRegistered(t, ctx, "lee@example.com").NoError()
 	registered, err = Registered(t, ctx).Get()
-	assert.NoError(t, err)
-	assert.Contains(t, registered, "jose@example.com")
-	assert.Contains(t, registered, "maria@example.com")
-	assert.Contains(t, registered, "lee@example.com")
+	testarossa.NoError(t, err)
+	testarossa.SliceContains(t, registered, "jose@example.com")
+	testarossa.SliceContains(t, registered, "maria@example.com")
+	testarossa.SliceContains(t, registered, "lee@example.com")
 }
 
 func TestEventsink_OnAllowRegister(t *testing.T) {

@@ -20,18 +20,18 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestHttpx_JoinHostAndPath(t *testing.T) {
-	assert.Equal(t, "https://example.com:443", JoinHostAndPath("example.com", ""))
-	assert.Equal(t, "https://example.com:443/", JoinHostAndPath("example.com", "/"))
-	assert.Equal(t, "https://example.com:443/path", JoinHostAndPath("example.com", "/path"))
-	assert.Equal(t, "https://example.com:443/path", JoinHostAndPath("example.com", "path"))
-	assert.Equal(t, "https://example.com:123", JoinHostAndPath("example.com", ":123"))
-	assert.Equal(t, "https://example.com:123/path", JoinHostAndPath("example.com", ":123/path"))
-	assert.Equal(t, "https://example.org:123/path", JoinHostAndPath("example.com", "https://example.org:123/path"))
-	assert.Equal(t, "https://example.org:123/path", JoinHostAndPath("example.com", "//example.org:123/path"))
+	testarossa.Equal(t, "https://example.com:443", JoinHostAndPath("example.com", ""))
+	testarossa.Equal(t, "https://example.com:443/", JoinHostAndPath("example.com", "/"))
+	testarossa.Equal(t, "https://example.com:443/path", JoinHostAndPath("example.com", "/path"))
+	testarossa.Equal(t, "https://example.com:443/path", JoinHostAndPath("example.com", "path"))
+	testarossa.Equal(t, "https://example.com:123", JoinHostAndPath("example.com", ":123"))
+	testarossa.Equal(t, "https://example.com:123/path", JoinHostAndPath("example.com", ":123/path"))
+	testarossa.Equal(t, "https://example.org:123/path", JoinHostAndPath("example.com", "https://example.org:123/path"))
+	testarossa.Equal(t, "https://example.org:123/path", JoinHostAndPath("example.com", "//example.org:123/path"))
 }
 
 func TestHttpx_ParseURLValid(t *testing.T) {
@@ -49,8 +49,8 @@ func TestHttpx_ParseURLValid(t *testing.T) {
 
 	for k, v := range valid {
 		u, err := ParseURL(k)
-		assert.NoError(t, err, "%s", k)
-		assert.Equal(t, v, u.String())
+		testarossa.NoError(t, err, "%s", k)
+		testarossa.Equal(t, v, u.String())
 	}
 }
 
@@ -67,8 +67,8 @@ func TestHttpx_ParseURLInvalid(t *testing.T) {
 	}
 	for _, x := range invalid {
 		u, err := ParseURL(x)
-		assert.Error(t, err, "%s", x)
-		assert.Nil(t, u)
+		testarossa.Error(t, err, "%s", x)
+		testarossa.Nil(t, u)
 	}
 }
 
@@ -83,8 +83,8 @@ func TestHttpx_FillPathArguments(t *testing.T) {
 	}
 	for i := 0; i < len(testCases); i += 2 {
 		resolved, err := FillPathArguments(testCases[i])
-		if assert.NoError(t, err) {
-			assert.Equal(t, testCases[i+1], resolved)
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, testCases[i+1], resolved)
 		}
 	}
 }

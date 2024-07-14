@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func BenchmarkRand_AlphaNum(b *testing.B) {
@@ -67,9 +67,9 @@ func TestRand_AlphaNum64(t *testing.T) {
 	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 	for i := 0; i < 1024; i++ {
 		an64 := AlphaNum64(15)
-		assert.Len(t, an64, 15)
+		testarossa.StrLen(t, an64, 15)
 		match := re.MatchString(an64)
-		assert.True(t, match)
+		testarossa.True(t, match)
 	}
 }
 
@@ -79,9 +79,9 @@ func TestRand_AlphaNum32(t *testing.T) {
 	re := regexp.MustCompile(`^[A-Z0-9]+$`)
 	for i := 0; i < 1024; i++ {
 		an32 := AlphaNum32(15)
-		assert.Len(t, an32, 15)
+		testarossa.StrLen(t, an32, 15)
 		match := re.MatchString(an32)
-		assert.True(t, match)
+		testarossa.True(t, match)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestRand_Intn(t *testing.T) {
 
 	for i := 0; i < 4096; i++ {
 		n := Intn(100)
-		assert.True(t, n >= 0)
-		assert.True(t, n < 100)
+		testarossa.True(t, n >= 0)
+		testarossa.True(t, n < 100)
 	}
 }

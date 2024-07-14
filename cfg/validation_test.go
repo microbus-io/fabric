@@ -19,7 +19,7 @@ package cfg
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestCfg_ValidateValue(t *testing.T) {
@@ -111,10 +111,10 @@ func TestCfg_ValidateValue(t *testing.T) {
 	}
 
 	for i := 0; i < len(good); i += 2 {
-		assert.True(t, Validate(good[i], good[i+1]), "%v %v", good[i], good[i+1])
+		testarossa.True(t, Validate(good[i], good[i+1]), "%v %v", good[i], good[i+1])
 	}
 	for i := 0; i < len(bad); i += 2 {
-		assert.False(t, Validate(bad[i], bad[i+1]), "%v %v", bad[i], bad[i+1])
+		testarossa.False(t, Validate(bad[i], bad[i+1]), "%v %v", bad[i], bad[i+1])
 	}
 }
 
@@ -160,7 +160,7 @@ func TestCfg_CheckRule(t *testing.T) {
 		"json anything": false, // Spec not allowed
 	}
 	for r, ok := range checks {
-		assert.Equal(t, ok, checkRule(r), "%v", r)
+		testarossa.Equal(t, ok, checkRule(r), "%v", r)
 	}
 }
 
@@ -192,6 +192,6 @@ func TestCfg_NormalizedType(t *testing.T) {
 	}
 	for in, exp := range checks {
 		norm, _ := normalizedType(in)
-		assert.Equal(t, exp, norm)
+		testarossa.Equal(t, exp, norm)
 	}
 }

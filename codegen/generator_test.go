@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/microbus-io/fabric/rand"
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestCodeGen_FullGeneration(t *testing.T) {
@@ -85,21 +85,21 @@ tickers:
 	os.Mkdir(dir, os.ModePerm)
 	defer os.RemoveAll(dir)
 	err := os.WriteFile(filepath.Join(dir, "service.yaml"), []byte(serviceYaml), 0666)
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Generate
 	gen := NewGenerator()
 	gen.WorkDir = dir
 	err = gen.Run()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	// Validate
 	fileContains := func(fileName string, terms ...string) {
 		b, err := os.ReadFile(filepath.Join(dir, fileName))
-		assert.NoError(t, err, "%s", fileName)
+		testarossa.NoError(t, err, "%s", fileName)
 		body := string(b)
 		for _, term := range terms {
-			assert.Contains(t, body, term, "%s", fileName)
+			testarossa.Contains(t, body, term, "%s", fileName)
 		}
 	}
 
@@ -154,14 +154,14 @@ tickers:
 	)
 
 	ver, err := gen.currentVersion()
-	assert.NoError(t, err)
-	assert.Equal(t, 1, ver.Version)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, ver.Version)
 
 	// Second run should be a no op
 	err = gen.Run()
-	assert.NoError(t, err)
+	testarossa.NoError(t, err)
 
 	ver, err = gen.currentVersion()
-	assert.NoError(t, err)
-	assert.Equal(t, 1, ver.Version)
+	testarossa.NoError(t, err)
+	testarossa.Equal(t, 1, ver.Version)
 }

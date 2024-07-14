@@ -13,45 +13,45 @@ type {{ .Name }}TestCase struct {
 // Expect asserts no error and exact return values.
 func (_tc *{{ .Name }}TestCase) Expect({{ range $i, $e := .Signature.OutputArgs }}{{ if $i }}, {{ end }}{{ .Name }} {{ .Type }}{{ end }}) *{{ .Name }}TestCase {
 	{{- if .Signature.OutputArgs }}
-	if assert.NoError(_tc._t, _tc.err) {
+	if testarossa.NoError(_tc._t, _tc.err) {
 		{{- range .Signature.OutputArgs }}
 		{{- if eq .Type "time.Time" }}
-		assert.True(_tc._t, {{ .Name }}.Equal(_tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, _tc.{{ .Name }})
+		testarossa.True(_tc._t, {{ .Name }}.Equal(_tc.{{ .Name }}), "Expected %v, actual %v", {{ .Name }}, _tc.{{ .Name }})
 		{{- else }}
-		assert.Equal(_tc._t, {{ .Name }}, _tc.{{ .Name }})
+		testarossa.Equal(_tc._t, {{ .Name }}, _tc.{{ .Name }})
 		{{- end}}{{ end }}
 	}
 	{{- else }}
-	assert.NoError(_tc._t, _tc.err)
+	testarossa.NoError(_tc._t, _tc.err)
 	{{- end}}
 	return _tc
 }
 
 // Error asserts an error.
 func (tc *{{ .Name }}TestCase) Error(errContains string) *{{ .Name }}TestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Contains(tc._t, tc.err.Error(), errContains)
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Contains(tc._t, tc.err.Error(), errContains)
 	}
 	return tc
 }
 
 // ErrorCode asserts an error by its status code.
 func (tc *{{ .Name }}TestCase) ErrorCode(statusCode int) *{{ .Name }}TestCase {
-	if assert.Error(tc._t, tc.err) {
-		assert.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
+	if testarossa.Error(tc._t, tc.err) {
+		testarossa.Equal(tc._t, statusCode, errors.StatusCode(tc.err))
 	}
 	return tc
 }
 
 // NoError asserts no error.
 func (tc *{{ .Name }}TestCase) NoError() *{{ .Name }}TestCase {
-	assert.NoError(tc._t, tc.err)
+	testarossa.NoError(tc._t, tc.err)
 	return tc
 }
 
 // CompletedIn checks that the duration of the operation is less than or equal the threshold.
 func (tc *{{ .Name }}TestCase) CompletedIn(threshold time.Duration) *{{ .Name }}TestCase {
-	assert.LessOrEqual(tc._t, tc._dur, threshold)
+	testarossa.True(tc._t, tc._dur <= threshold)
 	return tc
 }
 

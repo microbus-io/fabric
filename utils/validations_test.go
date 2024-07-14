@@ -19,7 +19,7 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/microbus-io/testarossa"
 )
 
 func TestUtils_ValidateHostname(t *testing.T) {
@@ -42,10 +42,10 @@ func TestUtils_ValidateHostname(t *testing.T) {
 	}
 
 	for _, x := range valid {
-		assert.NoError(t, ValidateHostname(x), "%s", x)
+		testarossa.NoError(t, ValidateHostname(x), "%s", x)
 	}
 	for _, x := range invalid {
-		assert.Error(t, ValidateHostname(x), "%s", x)
+		testarossa.Error(t, ValidateHostname(x), "%s", x)
 	}
 }
 
@@ -66,10 +66,10 @@ func TestUtils_ValidateConfigName(t *testing.T) {
 	}
 
 	for _, x := range valid {
-		assert.NoError(t, ValidateConfigName(x), "%s", x)
+		testarossa.NoError(t, ValidateConfigName(x), "%s", x)
 	}
 	for _, x := range invalid {
-		assert.Error(t, ValidateConfigName(x), "%s", x)
+		testarossa.Error(t, ValidateConfigName(x), "%s", x)
 	}
 }
 
@@ -90,9 +90,9 @@ func TestUtils_ValidateTickerName(t *testing.T) {
 	}
 
 	for _, x := range valid {
-		assert.NoError(t, ValidateTickerName(x), "%s", x)
+		testarossa.NoError(t, ValidateTickerName(x), "%s", x)
 	}
 	for _, x := range invalid {
-		assert.Error(t, ValidateTickerName(x), "%s", x)
+		testarossa.Error(t, ValidateTickerName(x), "%s", x)
 	}
 }

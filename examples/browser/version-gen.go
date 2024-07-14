@@ -18,12 +18,12 @@ limitations under the License.
 
 package browser
 
-const Version = 72
+const Version = 75
 const SourceCodeSHA256 = "5b91bed89c2a788937ed72b2324952930d3a3297d6855379ef2ddf0e27697861"
-const Timestamp = "2024-07-06T16:56:54.009603Z"
+const Timestamp = "2024-07-14T02:54:33.484214Z"
 
 /* {
-	"ver": 72,
+	"ver": 75,
 	"sha256": "5b91bed89c2a788937ed72b2324952930d3a3297d6855379ef2ddf0e27697861",
-	"ts": "2024-07-06T16:56:54.009603Z"
+	"ts": "2024-07-14T02:54:33.484214Z"
 } */
