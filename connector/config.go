@@ -24,7 +24,6 @@ import (
 
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/utils"
@@ -135,11 +134,9 @@ func (c *Connector) logConfigs(ctx context.Context) {
 	c.configLock.Lock()
 	defer c.configLock.Unlock()
 	for _, config := range c.configs {
-		c.LogInfo(
-			ctx,
-			"Config",
-			log.String("name", config.Name),
-			log.String("value", printableConfigValue(config.Value, config.Secret)),
+		c.LogInfo(ctx, "Config",
+			"name", config.Name,
+			"value", printableConfigValue(config.Value, config.Secret),
 		)
 	}
 }
@@ -177,7 +174,9 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 		if count == 0 {
 			return nil
 		}
-		c.LogDebug(ctx, "Requesting config values", log.String("names", strings.Join(req.Names, " ")))
+		c.LogDebug(ctx, "Requesting config values",
+			"names", strings.Join(req.Names, " "),
+		)
 		response, err := c.Request(
 			ctx,
 			pub.POST("https://configurator.core/values"),
@@ -200,7 +199,11 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 			if cfg.Validate(config.Validation, fetchedValue) {
 				valueToSet = fetchedValue
 			} else {
-				c.LogWarn(ctx, "Invalid config value", log.String("name", config.Name), log.String("value", printableConfigValue(fetchedValue, config.Secret)), log.String("rule", config.Validation))
+				c.LogWarn(ctx, "Invalid config value",
+					"name", config.Name,
+					"value", printableConfigValue(fetchedValue, config.Secret),
+					"rule", config.Validation,
+				)
 			}
 		}
 		if !cfg.Validate(config.Validation, valueToSet) {
@@ -210,7 +213,10 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 		if valueToSet != config.Value {
 			changed[config.Name] = true
 			config.Value = valueToSet
-			c.LogInfo(ctx, "Config updated", log.String("name", config.Name), log.String("value", printableConfigValue(valueToSet, config.Secret)))
+			c.LogInfo(ctx, "Config updated",
+				"name", config.Name,
+				"value", printableConfigValue(valueToSet, config.Secret),
+			)
 		}
 	}
 	c.configLock.Unlock()

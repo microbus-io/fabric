@@ -18,18 +18,16 @@ package trc
 
 import (
 	"fmt"
-	"math"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/log"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap/zapcore"
 )
 
 var _ = Span(SpanImpl{}) // Ensure interface
@@ -44,7 +42,7 @@ type Span interface {
 	// SetOK sets the status of the span to OK, with the indicated response status code.
 	SetOK(statusCode int)
 	// Log records a log event on the span.
-	Log(severity string, message string, fields ...log.Field)
+	Log(severity string, message string, args ...any)
 	// SetString tags the span during its creation.
 	SetString(k string, v string)
 	// SetStrings tags the span during its creation.
@@ -110,8 +108,58 @@ func (s SpanImpl) SetOK(statusCode int) {
 	}
 }
 
+// slogToTracingAttrs converts a slog attribute to an OpenTracing set of attribute
+func slogToTracingAttrs(prefix string, f slog.Attr) []attribute.KeyValue {
+	switch f.Value.Kind() {
+	case slog.KindAny:
+		return []attribute.KeyValue{
+			attribute.String(prefix+f.Key, fmt.Sprintf("%+v", f.Value.Any())),
+		}
+	case slog.KindBool:
+		return []attribute.KeyValue{
+			attribute.Bool(prefix+f.Key, f.Value.Bool()),
+		}
+	case slog.KindDuration:
+		return []attribute.KeyValue{
+			attribute.String(prefix+f.Key, f.Value.Duration().String()),
+		}
+	case slog.KindFloat64:
+		return []attribute.KeyValue{
+			attribute.Float64(prefix+f.Key, f.Value.Float64()),
+		}
+	case slog.KindGroup:
+		var group []attribute.KeyValue
+		for _, a := range f.Value.Group() {
+			group = append(group, slogToTracingAttrs(f.Key+".", a)...)
+		}
+		return group
+	case slog.KindString:
+		return []attribute.KeyValue{
+			attribute.String(f.Key, f.Value.String()),
+		}
+	case slog.KindInt64:
+		return []attribute.KeyValue{
+			attribute.Int64(prefix+f.Key, f.Value.Int64()),
+		}
+	case slog.KindLogValuer:
+		return slogToTracingAttrs(prefix, slog.Attr{
+			Key:   f.Key,
+			Value: f.Value.LogValuer().LogValue(),
+		})
+	case slog.KindTime:
+		return []attribute.KeyValue{
+			attribute.String(prefix+f.Key, f.Value.Time().Format(time.RFC3339Nano)),
+		}
+	case slog.KindUint64:
+		return []attribute.KeyValue{
+			attribute.Int64(prefix+f.Key, int64(f.Value.Uint64())),
+		}
+	}
+	return nil
+}
+
 // Log records a log event on the span.
-func (s SpanImpl) Log(severity string, msg string, fields ...log.Field) {
+func (s SpanImpl) Log(severity string, msg string, args ...any) {
 	if s.Span == nil {
 		return
 	}
@@ -119,50 +167,12 @@ func (s SpanImpl) Log(severity string, msg string, fields ...log.Field) {
 		attribute.String("severity", severity),
 		attribute.String("message", msg),
 	}
-	for _, f := range fields {
-		var attr attribute.KeyValue
-		switch f.Type {
-
-		case zapcore.StringType:
-			attr = attribute.String(f.Key, f.String)
-		case zapcore.StringerType:
-			attr = attribute.Stringer(f.Key, f.Interface.(fmt.Stringer))
-
-		case zapcore.BoolType:
-			attr = attribute.Bool(f.Key, f.Integer != 0)
-
-		case zapcore.Int64Type, zapcore.Int32Type, zapcore.Int16Type, zapcore.Int8Type,
-			zapcore.Uint64Type, zapcore.Uint32Type, zapcore.Uint16Type, zapcore.Uint8Type:
-			attr = attribute.Int(f.Key, int(f.Integer))
-
-		case zapcore.DurationType:
-			attr = attribute.String(f.Key, time.Duration(f.Integer).String())
-		case zapcore.TimeType:
-			attr = attribute.String(f.Key, time.Unix(0, f.Integer).UTC().Format(time.RFC3339Nano))
-		case zapcore.TimeFullType:
-			attr = attribute.String(f.Key, f.Interface.(time.Time).Format(time.RFC3339Nano))
-
-		case zapcore.Float64Type:
-			attr = attribute.Float64(f.Key, math.Float64frombits(uint64(f.Integer)))
-		case zapcore.Float32Type:
-			attr = attribute.Float64(f.Key, float64(math.Float32frombits(uint32(f.Integer))))
-
-		case zapcore.ErrorType:
-			if f.Key == "error" {
-				attr = attribute.String("exception.message", f.Interface.(error).Error())
-				err, ok := f.Interface.(*errors.TracedError)
-				if ok {
-					attrs = append(attrs, attribute.Stringer("exception.stacktrace", err))
-				}
-			} else {
-				attr = attribute.String(f.Key, f.Interface.(error).Error())
-			}
-		}
-
-		if attr.Key != "" {
-			attrs = append(attrs, attr)
-		}
-	}
+	slogRec := slog.NewRecord(time.Time{}, slog.LevelInfo, msg, 0)
+	slogRec.Add(args...)
+	slogRec.Attrs(func(f slog.Attr) bool {
+		attrs = append(attrs, slogToTracingAttrs("", f)...)
+		return true
+	})
 	s.Span.AddEvent("log", trace.WithAttributes(attrs...))
 }
 

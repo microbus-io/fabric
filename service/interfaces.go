@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/cfg"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/trc"
@@ -50,10 +49,10 @@ type PublisherSubscriber interface {
 
 // Subscriber are the actions used to output log messages.
 type Logger interface {
-	LogDebug(ctx context.Context, msg string, fields ...log.Field)
-	LogInfo(ctx context.Context, msg string, fields ...log.Field)
-	LogWarn(ctx context.Context, msg string, fields ...log.Field)
-	LogError(ctx context.Context, msg string, fields ...log.Field)
+	LogDebug(ctx context.Context, msg string, args ...any)
+	LogInfo(ctx context.Context, msg string, args ...any)
+	LogWarn(ctx context.Context, msg string, args ...any)
+	LogError(ctx context.Context, msg string, args ...any)
 }
 
 // Tracer are the actions used to operate distributed tracing spans.

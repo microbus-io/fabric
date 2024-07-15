@@ -19,27 +19,25 @@ package connector
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
 	"github.com/microbus-io/fabric/env"
-	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/log"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 /*
 LogDebug logs a message at DEBUG level.
 DEBUG level messages are ignored in PROD environments or if the MICROBUS_LOG_DEBUG environment variable is not set.
-The message should be static and concise. Optional fields can be added for variable data.
+The message should be static and concise. Optional arguments can be added for variable data.
+Arguments conform to the standard slog pattern.
 
 Example:
 
-	c.LogDebug(ctx, "Tight loop", log.String("index", i))
+	c.LogDebug(ctx, "Tight loop", "index", i)
 */
-func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Field) {
-	logger := c.logger
+func (c *Connector) LogDebug(ctx context.Context, msg string, args ...any) {
+	logger := c.loggerx
 	if logger == nil || !c.logDebug {
 		return
 	}
@@ -47,24 +45,25 @@ func (c *Connector) LogDebug(ctx context.Context, msg string, fields ...log.Fiel
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
 		if c.deployment != PROD {
-			span.Log("debug", msg, fields...)
+			span.Log("debug", msg, args...)
 		}
-		fields = append(fields, log.String("trace", traceID))
+		args = append(args, "trace", traceID)
 	}
-	logger.Debug(msg, fields...)
+	logger.Debug(msg, args...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "DEBUG")
 }
 
 /*
 LogInfo logs a message at INFO level.
-The message should be static and concise. Optional fields can be added for variable data.
+The message should be static and concise. Optional arguments can be added for variable data.
+Arguments conform to the standard slog pattern.
 
 Example:
 
-	c.LogInfo(ctx, "File uploaded", log.String("gb", sizeGB))
+	c.LogInfo(ctx, "File uploaded", "gb", sizeGB)
 */
-func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field) {
-	logger := c.logger
+func (c *Connector) LogInfo(ctx context.Context, msg string, args ...any) {
+	logger := c.loggerx
 	if logger == nil {
 		return
 	}
@@ -72,24 +71,25 @@ func (c *Connector) LogInfo(ctx context.Context, msg string, fields ...log.Field
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
 		if c.deployment != PROD {
-			span.Log("info", msg, fields...)
+			span.Log("info", msg, args...)
 		}
-		fields = append(fields, log.String("trace", traceID))
+		args = append(args, "trace", traceID)
 	}
-	logger.Info(msg, fields...)
+	logger.Info(msg, args...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "INFO")
 }
 
 /*
 LogWarn logs a message at WARN level.
-The message should be static and concise. Optional fields can be added for variable data.
+The message should be static and concise. Optional arguments can be added for variable data.
+Arguments conform to the standard slog pattern.
 
 Example:
 
-	c.LogWarn(ctx, "Dropping job", log.String("job", jobID))
+	c.LogWarn(ctx, "Dropping job", "job", jobID)
 */
-func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field) {
-	logger := c.logger
+func (c *Connector) LogWarn(ctx context.Context, msg string, args ...any) {
+	logger := c.loggerx
 	if logger == nil {
 		return
 	}
@@ -97,21 +97,19 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
 		if c.deployment != PROD {
-			span.Log("warn", msg, fields...)
+			span.Log("warn", msg, args...)
 		}
-		fields = append(fields, log.String("trace", traceID))
+		args = append(args, "trace", traceID)
 	}
-	logger.Warn(msg, fields...)
+	logger.Warn(msg, args...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "WARN")
 
 	if c.deployment == LOCAL || c.deployment == TESTING {
-		for _, f := range fields {
-			if f.Key == "error" {
-				if err, ok := f.Interface.(error); ok {
-					sep := strings.Repeat("~", 120)
-					fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", err, "\u25b2"+sep+"\u25b2")
-					break
-				}
+		for _, f := range args {
+			if err, ok := f.(error); ok {
+				sep := strings.Repeat("~", 120)
+				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", err, "\u25b2"+sep+"\u25b2")
+				break
 			}
 		}
 	}
@@ -119,15 +117,16 @@ func (c *Connector) LogWarn(ctx context.Context, msg string, fields ...log.Field
 
 /*
 LogError logs a message at ERROR level.
-The message should be static and concise. Optional fields can be added for variable data.
-To log an error object use the log.Error field.
+The message should be static and concise. Optional arguments can be added for variable data.
+Arguments conform to the standard slog pattern.
+When logging an error object, name it "error".
 
 Example:
 
-	c.LogError(ctx, "Opening file", log.Error(err), log.String("file", fileName))
+	c.LogError(ctx, "Opening file", "error", err, "file", fileName)
 */
-func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Field) {
-	logger := c.logger
+func (c *Connector) LogError(ctx context.Context, msg string, args ...any) {
+	logger := c.loggerx
 	if logger == nil {
 		return
 	}
@@ -135,29 +134,27 @@ func (c *Connector) LogError(ctx context.Context, msg string, fields ...log.Fiel
 	if !span.IsEmpty() {
 		traceID := span.TraceID()
 		if c.deployment != PROD {
-			span.Log("error", msg, fields...)
+			span.Log("error", msg, args...)
 		}
-		fields = append(fields, log.String("trace", traceID))
+		args = append(args, "trace", traceID)
 	}
-	logger.Error(msg, fields...)
+	logger.Error(msg, args...)
 	_ = c.IncrementMetric("microbus_log_messages_total", 1, msg, "ERROR")
 
 	if c.deployment == LOCAL || c.deployment == TESTING {
-		for _, f := range fields {
-			if f.Key == "error" {
-				if err, ok := f.Interface.(error); ok {
-					sep := strings.Repeat("~", 120)
-					fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", err, "\u25b2"+sep+"\u25b2")
-					break
-				}
+		for _, f := range args {
+			if err, ok := f.(error); ok {
+				sep := strings.Repeat("~", 120)
+				fmt.Fprintf(os.Stderr, "%s\n%+v\n%s\n", "\u25bc"+sep+"\u25bc", err, "\u25b2"+sep+"\u25b2")
+				break
 			}
 		}
 	}
 }
 
-// initLogger initializes a logger to match the deployment environment
+// initLogger initializes a logger to match the deployment environment.
 func (c *Connector) initLogger() (err error) {
-	if c.logger != nil {
+	if c.loggerx != nil {
 		return nil
 	}
 
@@ -167,41 +164,29 @@ func (c *Connector) initLogger() (err error) {
 
 	env := c.Deployment()
 
-	var config zap.Config
+	var handler slog.Handler
 	if env == LOCAL || env == TESTING {
-		config = zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05.000")
-		config.DisableStacktrace = true
-		// config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			AddSource: false,
+			Level:     slog.LevelDebug,
+		})
 	} else if env == LAB {
-		config = zap.NewProductionConfig()
-		config.Level.SetLevel(zapcore.DebugLevel)
-		config.DisableStacktrace = true
+		handler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+			AddSource: false,
+			Level:     slog.LevelDebug,
+		})
 	} else {
 		// Default PROD config
-		config = zap.NewProductionConfig()
-		config.DisableStacktrace = true
+		handler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+			AddSource: false,
+			Level:     slog.LevelInfo,
+		})
 	}
 
-	c.logger, err = config.Build(zap.AddCallerSkip(1))
-	if err != nil {
-		return errors.Trace(err)
-	}
-	c.logger = c.logger.With(
-		log.String("host", c.Hostname()),
-		log.String("id", c.ID()),
-		log.Int("ver", c.Version()),
+	c.loggerx = slog.New(handler).With(
+		"host", c.Hostname(),
+		"id", c.ID(),
+		"ver", c.Version(),
 	)
 	return nil
-}
-
-// terminateLogger flushes and terminates the logger
-func (c *Connector) terminateLogger() error {
-	logger := c.logger
-	if logger == nil {
-		return nil
-	}
-	c.logger = nil
-	err := logger.Sync()
-	return errors.Trace(err)
 }

@@ -37,7 +37,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/trc"
@@ -153,9 +152,14 @@ func (svc *Service) stopHTTPServers(ctx context.Context) (err error) {
 		err = httpServer.Close() // Not a graceful shutdown
 		if err != nil {
 			lastErr = errors.Trace(err)
-			svc.LogError(ctx, "Stopping HTTP listener", log.Int("port", httpPort), log.Error(lastErr))
+			svc.LogError(ctx, "Stopping HTTP listener",
+				"port", httpPort,
+				"error", lastErr,
+			)
 		} else {
-			svc.LogInfo(ctx, "Stopped HTTP listener", log.Int("port", httpPort))
+			svc.LogInfo(ctx, "Stopped HTTP listener",
+				"port", httpPort,
+			)
 		}
 	}
 	svc.httpServers = map[int]*http.Server{}
@@ -176,7 +180,10 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 		portInt, err := strconv.Atoi(port)
 		if err != nil || (portInt < 1 || portInt > 65535) {
 			err = errors.Newf("invalid port '%s'", port)
-			svc.LogError(ctx, "Starting HTTP listener", log.Int("port", portInt), log.Error(err))
+			svc.LogError(ctx, "Starting HTTP listener",
+				"port", portInt,
+				"error", err,
+			)
 			return errors.Trace(err)
 		}
 
@@ -226,10 +233,17 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 		<-calledChan // Goroutine called
 		select {
 		case err = <-errChan:
-			svc.LogError(ctx, "Starting HTTP listener", log.Error(err), log.Int("port", portInt), log.Bool("secure", secure))
+			svc.LogError(ctx, "Starting HTTP listener",
+				"error", err,
+				"port", portInt,
+				"secure", secure,
+			)
 			return errors.Trace(err)
 		case <-time.After(time.Millisecond * 250):
-			svc.LogInfo(ctx, "Started HTTP listener", log.Int("port", portInt), log.Bool("secure", secure))
+			svc.LogInfo(ctx, "Started HTTP listener",
+				"port", portInt,
+				"secure", secure,
+			)
 		}
 	}
 	return nil
@@ -323,7 +337,11 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else if statusCode < 500 {
 			logFunc = svc.LogWarn
 		}
-		logFunc(ctx, "Serving", log.Error(err), log.String("url", urlStr), log.Int("status", statusCode))
+		logFunc(ctx, "Serving",
+			"error", err,
+			"url", urlStr,
+			"status", statusCode,
+		)
 
 		// OpenTelemetry: record the error, adding the request attributes
 		span.SetRequest(r)
@@ -432,7 +450,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	metrics := internalHost == metricsapi.Hostname || strings.HasPrefix(internalHost, metricsapi.Hostname+":")
 	if !metrics {
 		if internalHost != "favicon.ico" {
-			svc.LogInfo(ctx, "Request received", log.String("url", internalURL))
+			svc.LogInfo(ctx, "Request received",
+				"url", internalURL,
+			)
 		}
 		// Automatically redirect HTTP port 80 to HTTPS port 443
 		if svc.secure443 && r.TLS == nil && r.URL.Port() == "80" {
@@ -657,7 +677,9 @@ func (svc *Service) OnChangedPortMappings(ctx context.Context) (err error) {
 		}
 		external, internal, ok := strings.Cut(m, "->")
 		if !ok {
-			svc.LogWarn(ctx, "Invalid port mapping", log.String("mapping", m))
+			svc.LogWarn(ctx, "Invalid port mapping",
+				"mapping", m,
+			)
 			continue
 		}
 		newMappings[external] = internal

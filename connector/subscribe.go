@@ -31,7 +31,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
@@ -111,14 +110,14 @@ func (c *Connector) onRequest(msg *nats.Msg, s *sub.Subscription) {
 	err := c.ackRequest(msg, s)
 	if err != nil {
 		err = errors.Trace(err)
-		c.LogError(c.lifetimeCtx, "Acking request", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Acking request", "error", err)
 		return
 	}
 	go func() {
 		err := c.handleRequest(msg, s)
 		if err != nil {
 			err = errors.Trace(err)
-			c.LogError(c.lifetimeCtx, "Processing request", log.Error(err))
+			c.LogError(c.lifetimeCtx, "Processing request", "error", err)
 		}
 	}()
 }
@@ -163,11 +162,18 @@ func (c *Connector) activateSub(s *sub.Subscription) (err error) {
 		s.Subs = append(s.Subs, natsSub)
 	}
 	if err != nil {
-		c.LogError(c.lifetimeCtx, "Activating sub", log.Error(err), log.String("url", s.Canonical()), log.String("method", s.Method))
+		c.LogError(c.lifetimeCtx, "Activating sub",
+			"error", err,
+			"url", s.Canonical(),
+			"method", s.Method,
+		)
 		c.deactivateSub(s)
 		return errors.Trace(err)
 	}
-	// c.LogDebug(c.lifetimeCtx, "Sub activated", log.String("url", s.Canonical()), log.String("method", req.Method))
+	// c.LogDebug(c.lifetimeCtx, "Sub activated",
+	// 	"url", s.Canonical(),
+	// 	"method", req.Method,
+	// )
 	return nil
 }
 
@@ -195,10 +201,17 @@ func (c *Connector) deactivateSub(s *sub.Subscription) error {
 		}
 	}
 	if lastErr != nil {
-		c.LogError(c.lifetimeCtx, "Deactivating sub", log.Error(lastErr), log.String("url", s.Canonical()), log.String("method", s.Method))
+		c.LogError(c.lifetimeCtx, "Deactivating sub",
+			"error", lastErr,
+			"url", s.Canonical(),
+			"method", s.Method,
+		)
 	}
 	s.Subs = nil
-	// c.LogDebug(c.Lifetime(), "Sub deactivated", log.String("url", s.Canonical()), log.String("method", s.Method))
+	// c.LogDebug(c.Lifetime(), "Sub deactivated",
+	// 	"url", s.Canonical(),
+	// 	"method", s.Method,
+	// )
 	return lastErr
 }
 
@@ -303,7 +316,11 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 		queue = c.id + "." + c.hostname
 	}
 
-	c.LogDebug(c.lifetimeCtx, "Handling", log.String("msg", msgID), log.String("url", s.Canonical()), log.String("method", s.Method))
+	c.LogDebug(c.lifetimeCtx, "Handling",
+		"msg", msgID,
+		"url", s.Canonical(),
+		"method", s.Method,
+	)
 
 	// Time budget
 	budget := frame.Of(httpReq).TimeBudget()
@@ -365,10 +382,10 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 			statusCode = http.StatusInternalServerError
 		}
 		c.LogError(ctx, "Handling request",
-			log.Error(handlerErr),
-			log.String("path", s.Path),
-			log.Int("depth", frame.Of(httpReq).CallDepth()),
-			log.Int("code", statusCode),
+			"error", handlerErr,
+			"path", s.Path,
+			"depth", frame.Of(httpReq).CallDepth(),
+			"code", statusCode,
 		)
 
 		// OpenTelemetry: record the error, adding the request attributes

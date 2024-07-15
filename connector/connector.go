@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"os"
 	"regexp"
@@ -30,7 +31,6 @@ import (
 	"github.com/microbus-io/fabric/env"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/mtr"
 	"github.com/microbus-io/fabric/rand"
@@ -42,7 +42,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 // Ensure interfaces
@@ -106,7 +105,7 @@ type Connector struct {
 	configLock      sync.Mutex
 	onConfigChanged []service.ConfigChangedHandler
 
-	logger   *zap.Logger
+	loggerx  *slog.Logger
 	logDebug bool
 
 	tickers     map[string]*tickerCallback
@@ -344,14 +343,23 @@ func (c *Connector) connectToNATS(ctx context.Context) error {
 	// Log connection events
 	natsURL := cn.ConnectedUrl()
 	natsServerID := cn.ConnectedServerId()
-	c.LogInfo(ctx, "Connected to NATS", log.String("url", natsURL), log.String("server", natsServerID))
+	c.LogInfo(ctx, "Connected to NATS",
+		"url", natsURL,
+		"server", natsServerID,
+	)
 	cn.SetDisconnectErrHandler(func(cn *nats.Conn, err error) {
-		c.LogInfo(c.lifetimeCtx, "Disconnected from NATS", log.String("url", natsURL), log.String("server", natsServerID))
+		c.LogInfo(c.lifetimeCtx, "Disconnected from NATS",
+			"url", natsURL,
+			"server", natsServerID,
+		)
 	})
 	cn.SetReconnectHandler(func(cn *nats.Conn) {
 		natsURL = cn.ConnectedUrl()
 		natsServerID = cn.ConnectedServerId()
-		c.LogInfo(c.lifetimeCtx, "Reconnected to NATS", log.String("url", natsURL), log.String("server", natsServerID))
+		c.LogInfo(c.lifetimeCtx, "Reconnected to NATS",
+			"url", natsURL,
+			"server", natsServerID,
+		)
 	})
 
 	c.natsConn = cn

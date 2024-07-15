@@ -30,7 +30,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/rand"
@@ -264,7 +263,11 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 		return output
 	}
 
-	c.LogDebug(ctx, "Request", log.String("msg", msgID), log.String("url", req.Canonical()), log.String("method", req.Method))
+	c.LogDebug(ctx, "Request",
+		"msg", msgID,
+		"url", req.Canonical(),
+		"method", req.Method,
+	)
 
 	publishTime := time.Now()
 	err = c.natsConn.Publish(subject, buf.Bytes())
@@ -290,7 +293,11 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 	if req.Multicast {
 		expectedResponders, _ = c.knownResponders.Load(subject, lru.Bump(true))
 		if len(expectedResponders) > 0 {
-			c.LogDebug(ctx, "Expecting responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(expectedResponders)))
+			c.LogDebug(ctx, "Expecting responders",
+				"msg", msgID,
+				"subject", subject,
+				"responders", enumResponders(expectedResponders),
+			)
 		}
 		c.postRequestData.Store("multicast:"+msgID, subject)
 	}
@@ -353,7 +360,11 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 							fragment, err := fragger.Fragment(f)
 							if err != nil {
 								err = errors.Trace(err)
-								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()), log.String("method", req.Method))
+								c.LogError(ctx, "Sending fragments",
+									"error", err,
+									"url", req.Canonical(),
+									"method", req.Method,
+								)
 								break
 							}
 
@@ -365,13 +376,21 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 							err = fragment.WriteProxy(&buf)
 							if err != nil {
 								err = errors.Trace(err)
-								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()), log.String("method", req.Method))
+								c.LogError(ctx, "Sending fragments",
+									"error", err,
+									"url", req.Canonical(),
+									"method", req.Method,
+								)
 								break
 							}
 							err = c.natsConn.Publish(subject, buf.Bytes())
 							if err != nil {
 								err = errors.Trace(err)
-								c.LogError(ctx, "Sending fragments", log.Error(err), log.String("url", req.Canonical()), log.String("method", req.Method))
+								c.LogError(ctx, "Sending fragments",
+									"error", err,
+									"url", req.Canonical(),
+									"method", req.Method,
+								)
 								break
 							}
 						}
@@ -439,14 +458,21 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 					// All responses have been received
 					// Known responders optimization
 					c.knownResponders.Store(subject, seenQueues)
-					c.LogDebug(ctx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
+					c.LogDebug(ctx, "Caching responders",
+						"msg", msgID,
+						"subject", subject,
+						"responders", enumResponders(seenQueues),
+					)
 					return output
 				}
 			}
 
 		// Timeout timer
 		case <-timeoutTimer.C:
-			c.LogDebug(ctx, "Request timeout", log.String("msg", msgID), log.String("subject", subject))
+			c.LogDebug(ctx, "Request timeout",
+				"msg", msgID,
+				"subject", subject,
+			)
 			err = errors.Newc(http.StatusRequestTimeout, "timeout")
 			output = append(output, pub.NewErrorResponse(err))
 			c.postRequestData.Store("timeout:"+msgID, subject)
@@ -463,7 +489,10 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 			// Known responders optimization
 			if req.Multicast {
 				c.knownResponders.Delete(subject)
-				c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
+				c.LogDebug(ctx, "Clearing responders",
+					"msg", msgID,
+					"subject", subject,
+				)
 			}
 			return output
 
@@ -474,7 +503,10 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 				// Reset the ack timer to allow the ack to arrive.
 				ackTimer.Reset(c.ackTimeout)
 				ackTimerStart = time.Now()
-				c.LogDebug(ctx, "Resetting ack timeout", log.String("msg", msgID), log.String("subject", subject))
+				c.LogDebug(ctx, "Resetting ack timeout",
+					"msg", msgID,
+					"subject", subject,
+				)
 				continue
 			}
 			doneWaitingForAcks = true
@@ -482,7 +514,10 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 				if req.Multicast {
 					// Known responders optimization
 					c.knownResponders.Delete(subject)
-					c.LogDebug(ctx, "Clearing responders", log.String("msg", msgID), log.String("subject", subject))
+					c.LogDebug(ctx, "Clearing responders",
+						"msg", msgID,
+						"subject", subject,
+					)
 				} else {
 					err = errors.Newc(http.StatusNotFound, "ack timeout")
 					output = append(output, pub.NewErrorResponse(err))
@@ -503,7 +538,11 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 				// Known responders optimization
 				if req.Multicast {
 					c.knownResponders.Store(subject, seenQueues)
-					c.LogDebug(ctx, "Caching responders", log.String("msg", msgID), log.String("subject", subject), log.String("responders", enumResponders(seenQueues)))
+					c.LogDebug(ctx, "Caching responders",
+						"msg", msgID,
+						"subject", subject,
+						"responders", enumResponders(seenQueues),
+					)
 				}
 				return output
 			}
@@ -517,7 +556,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
 	if err != nil {
 		err = errors.Trace(err)
-		c.LogError(c.lifetimeCtx, "Parsing response", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Parsing response", "error", err)
 		return
 	}
 
@@ -525,7 +564,7 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 	response, err = c.defragResponse(response)
 	if err != nil {
 		err = errors.Trace(err)
-		c.LogError(c.lifetimeCtx, "Defragging response", log.Error(err))
+		c.LogError(c.lifetimeCtx, "Defragging response", "error", err)
 		return
 	}
 	if response == nil {
@@ -563,14 +602,12 @@ func (c *Connector) onResponse(msg *nats.Msg) {
 		}
 		subject, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
 		if ok {
-			c.LogInfo(
-				c.lifetimeCtx,
-				"Response received after timeout",
-				log.String("msg", msgID),
-				log.String("fromID", frame.Of(response).FromID()),
-				log.String("fromHost", frame.Of(response).FromHost()),
-				log.String("queue", frame.Of(response).Queue()),
-				log.String("subject", subject),
+			c.LogInfo(c.lifetimeCtx, "Response received after timeout",
+				"msg", msgID,
+				"fromID", frame.Of(response).FromID(),
+				"fromHost", frame.Of(response).FromHost(),
+				"queue", frame.Of(response).Queue(),
+				"subject", subject,
 			)
 		}
 	}

@@ -35,7 +35,6 @@ import (
 	"github.com/microbus-io/fabric/coreservices/smtpingress/intermediate"
 	"github.com/microbus-io/fabric/coreservices/smtpingress/smtpingressapi"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 )
@@ -202,13 +201,13 @@ func (svc *Service) processEnvelope(p backends.Processor, e *mail.Envelope, task
 		svc.LogInfo(
 			svc.Lifetime(),
 			"Received email",
-			log.String("messageID", string(parsed.Headers.MessageID)),
-			log.Time("date", parsed.Headers.Date.UTC()),
+			"messageID", string(parsed.Headers.MessageID),
+			"date", parsed.Headers.Date.UTC(),
 		)
 		for i := range smtpingressapi.NewMulticastTrigger(svc).OnIncomingEmail(ctx, &parsed) {
 			err := i.Get()
 			if err != nil {
-				svc.LogError(ctx, "Dispatching save mail event", log.Error(err))
+				svc.LogError(ctx, "Dispatching save mail event", "error", err)
 			}
 		}
 	}

@@ -39,7 +39,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/openapi"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
@@ -64,7 +63,6 @@ var (
 	_ *errors.TracedError
 	_ frame.Frame
 	_ *httpx.ResponseRecorder
-	_ *log.Field
 	_ *openapi.Service
 	_ service.Service
 	_ sub.Option

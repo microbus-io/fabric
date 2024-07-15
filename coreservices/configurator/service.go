@@ -26,7 +26,6 @@ import (
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 
 	"github.com/microbus-io/fabric/coreservices/configurator/configuratorapi"
@@ -178,7 +177,7 @@ func (svc *Service) PeriodicRefresh(ctx context.Context) (err error) {
 		_, err := i.Get()
 		if err != nil && errors.StatusCode(err) != http.StatusNotFound {
 			lastErr = errors.Trace(err)
-			svc.LogError(ctx, "Updating config", log.Error(lastErr))
+			svc.LogError(ctx, "Updating config", "error", lastErr)
 		}
 	}
 	return lastErr

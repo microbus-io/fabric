@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/utils"
 
@@ -128,7 +127,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 			for i := range ch {
 				res, err := i.Get()
 				if err != nil {
-					svc.LogWarn(ctx, "Fetching metrics", log.Error(err))
+					svc.LogWarn(ctx, "Fetching metrics", "error", err)
 					continue
 				}
 
@@ -139,7 +138,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				if res.Header.Get("Content-Encoding") == "gzip" {
 					unzipper, err := gzip.NewReader(res.Body)
 					if err != nil {
-						svc.LogWarn(ctx, "Unzippping metrics", log.Error(err))
+						svc.LogWarn(ctx, "Unzippping metrics", "error", err)
 						continue
 					}
 					reader = unzipper
@@ -150,7 +149,7 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 				_, err = io.Copy(writer, reader)
 				mux.Unlock()
 				if err != nil {
-					svc.LogWarn(ctx, "Copying metrics", log.Error(err))
+					svc.LogWarn(ctx, "Copying metrics", "error", err)
 				}
 				rCloser.Close()
 			}

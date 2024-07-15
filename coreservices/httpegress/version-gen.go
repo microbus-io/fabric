@@ -18,12 +18,12 @@ limitations under the License.
 
 package httpegress
 
-const Version = 90
-const SourceCodeSHA256 = "602b18e55588713b99c521ad581eeb0999686586cb3971fc2d34b269e56233cb"
-const Timestamp = "2024-07-14T02:54:31.832612Z"
+const Version = 92
+const SourceCodeSHA256 = "7fe361776a2c65c8c43f01ea572838c313be863dc1b1ce9b5e2989700dfea410"
+const Timestamp = "2024-07-15T19:41:27.074376Z"
 
 /* {
-	"ver": 90,
-	"sha256": "602b18e55588713b99c521ad581eeb0999686586cb3971fc2d34b269e56233cb",
-	"ts": "2024-07-14T02:54:31.832612Z"
+	"ver": 92,
+	"sha256": "7fe361776a2c65c8c43f01ea572838c313be863dc1b1ce9b5e2989700dfea410",
+	"ts": "2024-07-15T19:41:27.074376Z"
 } */

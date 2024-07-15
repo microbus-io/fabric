@@ -12,14 +12,14 @@ The standard `http.HandlerFunc` signature in Go does not return an `error` but r
 func StandardHandler(w http.ResponseWriter, r *http.Request) {
 	err := doSomething()
 	if err != nil {
-		log.LogError(r.Context(), "doing something", err)
+		logger.ErrorContext(r.Context(), "doing something", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = doSomethingElse()
 	if err != nil {
-		log.LogError(r.Context(), "doing something else", err)
+		logger.ErrorContext(r.Context(), "doing something else", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -47,7 +47,7 @@ func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 		// Standard error capture
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(fmt.Sprintf("%+v", err))
-		log.LogError(r.Context(), "Handling request", err)
+		logger.ErrorContext(r.Context(), "Handling request", "error", err)
 		metrics.IncrementErrorCount(1)
 		return
 	}
@@ -68,7 +68,7 @@ func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(fmt.Sprintf("%+v", err))
-		log.LogError(r.Context(), "Handling request", err)
+		logger.ErrorContext(r.Context(), "Handling request", "error", err)
 		metrics.IncrementErrorCount(1)
 		return
 	}
@@ -127,7 +127,7 @@ func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(errors.StatusCode(err)) // Return the error's status code
 		w.Write(fmt.Sprintf("%+v", err))
-		log.LogError(r.Context(), "Handling request", err)
+		logger.ErrorContext(r.Context(), "Handling request", "error", err)
 		metrics.IncrementErrorCount(1)
 		return
 	}
@@ -190,7 +190,7 @@ func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(errors.StatusCode(err))
 		json.NewEncoder(w).Encode(err) // Marhsal the error as JSON
-		log.LogError(r.Context(), "Handling request", err)
+		logger.ErrorContext(r.Context(), "Handling request", "error", err)
 		metrics.IncrementErrorCount(1)
 		return
 	}

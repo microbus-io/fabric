@@ -30,7 +30,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/pub"
 
 	"github.com/microbus-io/fabric/examples/directory/directoryapi"
@@ -76,7 +75,7 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 		}
 		if err != nil {
 			// The database may not have been created yet. Tolerate the error and use the emulated in-memory database.
-			svc.LogWarn(ctx, "Connecting to database", log.Error(errors.Trace(err)))
+			svc.LogWarn(ctx, "Connecting to database", "error", errors.Trace(err))
 			if svc.db != nil {
 				svc.db.Close()
 				svc.db = nil

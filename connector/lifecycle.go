@@ -32,7 +32,6 @@ import (
 	"github.com/microbus-io/fabric/env"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
@@ -154,7 +153,7 @@ func (c *Connector) Startup() (err error) {
 	startTime := time.Now()
 	defer func() {
 		if err != nil {
-			c.LogError(ctx, "Starting up", log.Error(err))
+			c.LogError(ctx, "Starting up", "error", err)
 			// OpenTelemetry: record the error
 			span.SetError(err)
 			c.ForceTrace(ctx)
@@ -304,7 +303,9 @@ func (c *Connector) Shutdown() (err error) {
 	}
 	undrained := atomic.LoadInt32(&c.pendingOps)
 	if undrained > 0 {
-		c.LogInfo(ctx, "Stubborn pending operations", log.Int("ops", int(undrained)))
+		c.LogInfo(ctx, "Stubborn pending operations",
+			"ops", int(undrained),
+		)
 	}
 
 	// Cancel the root context
@@ -322,7 +323,9 @@ func (c *Connector) Shutdown() (err error) {
 	}
 	undrained = atomic.LoadInt32(&c.pendingOps)
 	if undrained > 0 {
-		c.LogWarn(ctx, "Unable to drain pending operations", log.Int("ops", int(undrained)))
+		c.LogWarn(ctx, "Unable to drain pending operations",
+			"ops", int(undrained),
+		)
 	}
 
 	// Call the callback functions in reverse order
@@ -363,7 +366,7 @@ func (c *Connector) Shutdown() (err error) {
 
 	// Last chance to log an error
 	if lastErr != nil {
-		c.LogError(ctx, "Shutting down", log.Error(lastErr))
+		c.LogError(ctx, "Shutting down", "error", lastErr)
 		// OpenTelemetry: record the error
 		span.SetError(lastErr)
 		c.ForceTrace(ctx)
@@ -380,13 +383,11 @@ func (c *Connector) Shutdown() (err error) {
 		}(),
 	)
 
-	// Terminate logger
-	c.LogInfo(ctx, "Shutdown")
-	_ = c.terminateLogger() // No point trying to log errors after this point
-
 	// OpenTelemetry: terminate
 	span.End()
 	_ = c.termTracer(ctx)
+
+	c.LogInfo(ctx, "Shutdown")
 
 	return lastErr
 }
@@ -432,7 +433,7 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 			return errors.Trace(f(subCtx))
 		})
 		if err != nil {
-			c.LogError(subCtx, "Goroutine", log.Error(err))
+			c.LogError(subCtx, "Goroutine", "error", err)
 		}
 	}()
 	return nil

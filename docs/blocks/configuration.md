@@ -24,7 +24,9 @@ The microservice keeps listening for a command on the [control subscription](./c
 ```go
 con.SetOnConfigChanged(func (ctx context.Context, changed func(string) bool) error {
 	if changed("Foo") {
-		con.LogInfo(ctx, "Foo changed", log.String("to", con.Config("Foo")))
+		con.LogInfo(ctx, "Foo changed", 
+			"to", con.Config("Foo"),
+		)
 	}
 	return nil
 })

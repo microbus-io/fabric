@@ -24,7 +24,6 @@ import (
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/testarossa"
@@ -48,7 +47,9 @@ func TestConfigurator_ManyMicroservices(t *testing.T) {
 		con.DefineConfig("foo", cfg.DefaultValue("bar"))
 		con.DefineConfig("moo")
 		con.SetOnConfigChanged(func(ctx context.Context, changed func(string) bool) error {
-			con.LogDebug(ctx, "Config changed", log.String("foo", con.Config("foo")))
+			con.LogDebug(ctx, "Config changed",
+				"foo", con.Config("foo"),
+			)
 			wg.Done()
 			return nil
 		})

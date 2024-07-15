@@ -122,8 +122,6 @@ A microservice is __alive__ when it is connected to the messaging bus and can se
 
 [Grafana](https://grafana.com) is a dashboard that provides visibility into the metrics collected by Prometheus.
 
-[Zap](https://github.com/uber-go/zap) is a high-performance, structured (JSON), leveled logger.
-
 [OpenAPI](https://www.openapis.org) is a widely used API description standard. The endpoints of all microservices on `Microbus` are publicly described with OpenAPI.
 
 [Cascadia](https://github.com/andybalholm/cascadia) implements CSS selectors for use with parsed HTML trees produced by Go's `html` package. Used in unit and integration tests, it facilitates assertions against an HTML document. 

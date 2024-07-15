@@ -223,3 +223,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 27](https://github.com/microbus-io/fabric/tree/milestone/27):
 
 * Remove dependency on Testify
+
+[Milestone 28](https://github.com/microbus-io/fabric/tree/milestone/28):
+
+* Remove dependency on Zap logger and replaced with standard slog

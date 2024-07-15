@@ -18,9 +18,9 @@ package smtpingress
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
-	"github.com/microbus-io/fabric/log"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,50 +43,50 @@ func (h logHook) Levels() []logrus.Level {
 
 // Fire diverts the daemon's log entries to the service log.
 func (h logHook) Fire(e *logrus.Entry) error {
-	fields := []log.Field{}
+	fields := []any{}
 	for n, v := range e.Data {
 		switch vv := v.(type) {
 		case string:
-			fields = append(fields, log.String(n, vv))
+			fields = append(fields, slog.String(n, vv))
 
 		case int:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case int64:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case int32:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case int16:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case int8:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 
 		case uint:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case uint64:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case uint32:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case uint16:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 		case uint8:
-			fields = append(fields, log.Int(n, int(vv)))
+			fields = append(fields, slog.Int(n, int(vv)))
 
 		case float64:
-			fields = append(fields, log.Float(n, float64(vv)))
+			fields = append(fields, slog.Float64(n, float64(vv)))
 		case float32:
-			fields = append(fields, log.Float(n, float64(vv)))
+			fields = append(fields, slog.Float64(n, float64(vv)))
 
 		case bool:
-			fields = append(fields, log.Bool(n, vv))
+			fields = append(fields, slog.Bool(n, vv))
 
 		case time.Duration:
-			fields = append(fields, log.Duration(n, vv))
+			fields = append(fields, slog.Duration(n, vv))
 		case time.Time:
-			fields = append(fields, log.Time(n, vv))
+			fields = append(fields, slog.Time(n, vv))
 
 		default:
 			s := fmt.Sprintf("%v", v)
-			fields = append(fields, log.String(n, s))
+			fields = append(fields, slog.String(n, s))
 		}
 	}
 

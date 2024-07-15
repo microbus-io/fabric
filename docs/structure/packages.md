@@ -27,7 +27,6 @@ Learn about each of the project's packages to get familiar with the `Microbus` c
     * [messaging](../structure/examples-messaging.md) demonstrates load-balanced unicast, multicast and direct addressing messaging
 * [frame](../structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](../structure/httpx.md) - Various HTTP utilities
-* [log](../structure/log.md) - Fields for attaching data to log messages
 * [lru](../structure/lru.md) - An LRU cache with limits on age and weight
 * [mtr](../structure/mtr.md) - Metrics collectors
 * [openapi](../structure/openapi.md) - OpenAPI document generator

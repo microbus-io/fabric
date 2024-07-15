@@ -38,7 +38,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/service"
@@ -324,7 +323,9 @@ func (c *Cache) handleChecksum(w http.ResponseWriter, r *http.Request) error {
 	if !bytes.Equal(localSum, remoteSum) {
 		// Delete the inconsistent element
 		c.localCache.Delete(key)
-		c.svc.LogInfo(r.Context(), "Inconsistent cache elem deleted", log.String("key", key))
+		c.svc.LogInfo(r.Context(), "Inconsistent cache elem deleted",
+			"key", key,
+		)
 	}
 
 	// Return the sum to the remote
@@ -421,7 +422,10 @@ func (c *Cache) rescue(ctx context.Context) {
 	}
 	wg.Wait()
 	dur := time.Since(t0)
-	c.svc.LogDebug(ctx, "Rescued cache elements", log.Int("count", int(rescued)), log.Duration("in", dur))
+	c.svc.LogDebug(ctx, "Rescued cache elements",
+		"count", rescued,
+		"in", dur,
+	)
 }
 
 // Store an element in the cache.
@@ -521,7 +525,9 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 			if !bytes.Equal(localSum, remoteSum) {
 				// Inconsistency detected
 				c.localCache.Delete(key)
-				c.svc.LogInfo(ctx, "Cache inconsistency", log.String("key", key))
+				c.svc.LogInfo(ctx, "Cache inconsistency",
+					"key", key,
+				)
 				value = nil
 				ok = false
 			}
@@ -553,7 +559,9 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 		}
 		if opts.ConsistencyCheck && value != nil && !bytes.Equal(value, data) {
 			// Inconsistency detected
-			c.svc.LogInfo(ctx, "Cache inconsistency", log.String("key", key))
+			c.svc.LogInfo(ctx, "Cache inconsistency",
+				"key", key,
+			)
 			return nil, false, nil
 		}
 		value = data

@@ -24,7 +24,6 @@ import (
 
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
-	"github.com/microbus-io/fabric/log"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/timex"
 	"github.com/microbus-io/fabric/trc"
@@ -95,7 +94,9 @@ func (c *Connector) runTickers() {
 // runTicker starts a goroutine to run the ticker.
 func (c *Connector) runTicker(job *tickerCallback) {
 	if c.deployment == TESTING {
-		c.LogDebug(c.Lifetime(), "Ticker disabled while testing", log.String("name", job.Name))
+		c.LogDebug(c.Lifetime(), "Ticker disabled while testing",
+			"name", job.Name,
+		)
 		return
 	}
 	c.tickersLock.Lock()
@@ -109,8 +110,12 @@ func (c *Connector) runTicker(job *tickerCallback) {
 	job.Ticker = time.NewTicker(job.Interval)
 	ticker := job.Ticker
 	go func() {
-		c.LogDebug(c.Lifetime(), "Ticker started", log.String("name", job.Name))
-		defer c.LogDebug(c.Lifetime(), "Ticker stopped", log.String("name", job.Name))
+		c.LogDebug(c.Lifetime(), "Ticker started",
+			"name", job.Name,
+		)
+		defer c.LogDebug(c.Lifetime(), "Ticker stopped",
+			"name", job.Name,
+		)
 		for range ticker.C {
 			if !c.started {
 				continue
@@ -125,7 +130,10 @@ func (c *Connector) runTicker(job *tickerCallback) {
 				return job.Handler(ctx)
 			})
 			if err != nil {
-				c.LogError(ctx, "Running ticker", log.Error(err), log.String("name", job.Name))
+				c.LogError(ctx, "Running ticker",
+					"error", err,
+					"name", job.Name,
+				)
 				// OpenTelemetry: record the error
 				span.SetError(err)
 				c.ForceTrace(ctx)
@@ -157,7 +165,10 @@ func (c *Connector) runTicker(job *tickerCallback) {
 				}
 			}
 			if skipped > 0 {
-				c.LogWarn(c.Lifetime(), "Ticker skipped", log.Int("beats", skipped), log.Duration("runtime", dur))
+				c.LogWarn(c.Lifetime(), "Ticker skipped",
+					"beats", skipped,
+					"runtime", dur,
+				)
 			}
 		}
 	}()
