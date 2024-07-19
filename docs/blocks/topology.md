@@ -1,6 +1,6 @@
 # Adaptable Topology
 
-In `Microbus`, microservices are not large memory-gobbling processes but rather compact worker goroutines that ultimately consume messages from a queue. Microservices also don’t listen on ports so there is no potential of a port conflict with other microservices. These two qualities allow `Microbus` to spin up any number of microservices in a single application, which provides for a wide range of deployment topologies. Each application can take the form of a standalone executable or of a pod on Kubernetes. 
+In `Microbus`, microservices are not large memory-gobbling processes but rather compact worker goroutines that ultimately consume messages from a queue. Microservices also don’t listen on ports so there is no potential of a port conflict with other microservices. These two qualities allow `Microbus` to spin up any number of microservices in a single application, which provides for a wide range of deployment topologies. Each application can take the form of a standalone executable or a container. 
 
 ## Local Development
 

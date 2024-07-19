@@ -27,19 +27,19 @@ And because it is open sourced, you can feel confident betting your business on 
 
 `Microbus` delivers a dynamic range of tools designed to optimize the full SDLC of microservice solutions.
 
-##### Develop
+#### Develop
 
 Run and debug an entire solution comprising a multitude of microservices on your [local development](../tech/local-dev.md) machine, just as easily as if it were a monolith.
 
 Speed up development with [code generation](../blocks/codegen.md).
 
-##### Test
+#### Test
 Spin up the actual downstream microservices along with the microservice being tested into a single process and execute full live [integration tests](../blocks/integration-testing.md)
 
-##### Deploy
+#### Deploy
 From a [local development](../tech/local-dev.md) machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](../blocks/topology.md) grows with your needs. No code change required.
 
-##### Operate
+#### Operate
 Observe system internal with the help of [distributed tracing](../blocks/distrib-tracing.md), metrics dashboards, structured logging and [error capture](../blocks/error-capture.md).
 
 ### Why Microservices?
@@ -54,9 +54,7 @@ Microservices are the architecture best suited to deal with the technical and or
 
 ### At Scale
 
-`Microbus` helps you build and operate large solutions comprising dozens or even hundreds of microservices
-by addressing both the engineering and the operational challenges inherent in such complex systems.
-Unlike many other frameworks, it is not merely a helper library for coding of single microservices.
+`Microbus` helps you build and operate large solutions comprising dozens or even hundreds of microservices by addressing both the engineering and the operational challenges inherent in such complex systems. Unlike many other frameworks, it is not merely a helper library for coding of single microservices.
 
 ### Curated OSS
 
@@ -76,7 +74,7 @@ A powerful [code generator](../blocks/codegen.md) takes care of most of the repe
 * Time budget instead of point-to-point timeouts
 * Error capture and surfacing
 * Centralized configuration
-* Distributed cache that is isolated to each microservice, not a centralized global cache
+* Distributed cache siloed to each microservice, not globally centralized
 
 ### Elevated Engineering Experience
 
@@ -103,8 +101,8 @@ It also slows down day-to-day development because the solution cannot be easily 
 * Health and liveness checks
 * Client-side load balancing
 * gRPC
-* Cilium
 * Service mesh (e.g. Istio, Envoy, Consul)
+* eBPF networking (e.g. Cilium, Calico)
 * Separate system for pub/sub (e.g. Redis, RabbitMQ)
 * Separate system for caching (e.g. Redis, memcached)
 * K3s for local development
@@ -141,4 +139,4 @@ Components at all [layers](../blocks/layers.md) of `Microbus` are horizontally s
 
 Because `Microbus` conforms to the familiar HTTP protocol for service-to-service communications, it is a snap to process incoming HTTP requests from non-`Microbus` microservices or from JavaScript clients, or conversely make an outbound call to non-`Microbus` microservices or third-party web services.
 
-`Microbus` is easily deployable on a Kubernetes cluster.
+`Microbus` is easily deployable as containers running on a Kubernetes cluster.

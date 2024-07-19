@@ -2,9 +2,14 @@
 <img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
 </p>
 
-`Microbus` is a holistic open source framework for the development, testing, deployment and operation of microservices at scale. It combines best-in-class OSS, tooling and best practices into an elevated engineering experience.
+### Build, Test, Deploy & Operate Microservice Architectures Smarter at Scale
+* <strong>Dramatically-simplified engineering experience</strong>
+* <strong>10x reduction in hardware footprint</strong>
+* <strong>4x engineering productivity</strong>
 
-Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine. Deploy to suit your needs, as a standalone executable or as pods on Kubernetes.
+`Microbus` is a holistic open source framework for the development, testing, deployment and operation of microservices at scale. It combines best-in-class OSS, tooling and best practices into a dramatically-simplified engineering experience.
+
+Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine. Deploy to suit your needs, as a standalone executable or individual containers.
 
 ## 🍴 Table of Content
 
@@ -19,11 +24,11 @@ Build entire cloud-enabled, enterprise-class and web-scalable solutions comprisi
 
 ## 🚌 Introduction
 
-A microservice architecture is essential for addressing the technical and organizational scalability challenges of a business as it scales. Without such architecture, the complexity of the codebase will grow to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at a prohibitive cost. Investing in microservices from the get-go is a wise investment that mitigates this upside risk.
+A microservice architecture is essential for addressing the technical and organizational scalability challenges of a business as it scales. Without microservices, the complexity of a monolithic codebase often grows to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at prohibitive cost. Investing in microservices from the get-go is a wise investment that mitigates this upside risk.
 
 Building and operating microservices at scale, however, is quite difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
-`Microbus` takes a novel approach to the development, testing, deployment and troubleshooting of microservices, and eliminates much of the complexity of the conventional practice. `Microbus` is a holistic framework that packages together best-in-class OSS technologies, tooling and best practices into a cohesive engineering experience that elevates productivity up to 4x.
+`Microbus` takes a novel approach to the development, testing, deployment and troubleshooting of microservices, and eliminates much of the complexity of the conventional practice. `Microbus` is a holistic open source framework that combines best-in-class OSS, tooling and best practices into a dramatically-simplified engineering experience that boosts productivity 4x.
 
 `Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
 
@@ -32,10 +37,11 @@ Building and operating microservices at scale, however, is quite difficult and b
 <img src="./docs/tech/nutshell-1.drawio.svg">
 </p>
 
-Build your microservices on top of a `Connector` construct and use its simple API to communicate with other microservices using the familiar HTTP protocol. Under the hood, communication happens over a real-time messaging bus.
+Build your microservices on top of a `Connector` construct and use its simple API to communicate with other microservices using familiar HTTP semantics. Under the hood, communication happens over a real-time messaging bus.
 
-Powerful features are provided out of the box:
+`Microbus` brings together the patterns and best practices that get it right from the get-go, all in a developer-friendly holistic framework that throws complexity under the bus:
 
+#### Reliable Transport
 * Unicast 1:1 request/response
 * Multicast 1:N publish/subscribe
 * Multiplexed connections
@@ -45,8 +51,22 @@ Powerful features are provided out of the box:
 * Ack or fail fast
 * Locality-aware routing
 * Connectivity liveness check
-* Instrumentation and observability
-* Core microservices such as an HTTP ingress proxy and configurator
+
+#### Precision Observability
+* Structured leveled logging
+* Distributed tracing
+* Metrics
+* Error capture and propagation
+
+#### And more
+* Configuration
+* Client stubs
+* Live integration tests
+* OpenAPI
+* Graceful shutdown
+* Distributed caching
+* Linked static resources
+* Recurring jobs
 
 ## 🎯 Mission Statement
 
