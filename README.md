@@ -88,7 +88,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 
 👉 Discover the power of [code generation](./docs/blocks/codegen.md). It's totally RAD, dude
 
-👉 Learn how to write thorough [integration tests](./docs/blocks/integrationtesting.md) and achieve high code coverage
+👉 Learn how to write thorough [integration tests](./docs/blocks/integration-testing.md) and achieve high code coverage
 
 👉 Venture out and [explore more on your own](./docs/howto/self-explore.md)
 
@@ -109,7 +109,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Configuration](./docs/blocks/configuration.md) - How to configure microservices
 * [Path arguments](./docs/tech/path-arguments.md) - Define wildcard path arguments in subscriptions
 * [HTTP magic arguments](./docs/tech/http-arguments.md) - Use HTTP magic arguments in functional endpoints to gain finer control over the HTTP request and response
-* [Integration testing](./docs/blocks/integrationtesting.md) - Test a multitude of microservices together
+* [Integration testing](./docs/blocks/integration-testing.md) - Test a multitude of microservices together
 * [Environment variables](./docs/tech/envars.md) - Environment variables used to initialize microservices
 * [NATS connection settings](./docs/tech/nats-connection.md) - How to configure microservices to connect and authenticate to NATS
 * [RPC over JSON vs REST](./docs/tech/rpc-vs-rest.md) - Implement these common web API styles

@@ -44,7 +44,7 @@ For microservices that fire events (i.e. event sources), the API package impleme
 
 ## Integration Testing
 
-Placeholder [integration tests](../blocks/integrationtesting.md) are generated for each of the microservice's handlers to encourage developers to test each of them and achieve high code coverage.
+Placeholder [integration tests](../blocks/integration-testing.md) are generated for each of the microservice's handlers to encourage developers to test each of them and achieve high code coverage.
 
 ## OpenAPI Document
 

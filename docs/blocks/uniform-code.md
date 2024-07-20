@@ -31,7 +31,7 @@ The `app` directory hosts `package main` of an `Application` that runs the micro
 
 The `{name}api` directory (and package) defines the `Client` and `MulticastClient` of the microservice and the complex types (structs) that they use. `MulticastTrigger` and `Hook` are defined if the microservice is a source of events. Together these represent the public-facing API of the microservice to upstream microservices. The name of the directory `{name}api` is derived from that of the microservice in order to make it easily distinguishable in code completion tools.
 
-The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices that can be used in [integration testing](../blocks/integrationtesting.md) when a live version of the microservice cannot.
+The `intermediate` directory (and package) defines the `Intermediate` and the `Mock`. The `Intermediate` serves as the base of the microservice via anonymous inclusion and in turn extends the [`Connector`](../structure/connector.md). The `Mock` is a mockable stub of the microservices that can be used in [integration testing](../blocks/integration-testing.md) when a live version of the microservice cannot.
 
 `integration-gen_test.go` is a testing harness that facilitates the implementation of integration tests, which are expected to be implemented in `integration_test.go`
 
