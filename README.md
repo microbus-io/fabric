@@ -3,9 +3,9 @@
 </p>
 
 ### Build, Test, Deploy & Operate Microservice Architectures Smarter at Scale
-* <strong>Dramatically-simplified engineering experience</strong>
-* <strong>10x reduction in hardware footprint</strong>
-* <strong>4x engineering productivity</strong>
+* <strong>Dramatically-Simplified Engineering Experience</strong>
+* <strong>10x Reduction in Hardware Footprint</strong>
+* <strong>4x Engineering Velocity</strong>
 
 `Microbus` is a holistic open source framework for the development, testing, deployment and operation of microservices at scale. It combines best-in-class OSS, tooling and best practices into a dramatically-simplified engineering experience.
 
