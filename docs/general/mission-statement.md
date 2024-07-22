@@ -90,9 +90,9 @@ Observability tools such as [distributed tracing](../blocks/distrib-tracing.md),
 
 ### Conventional Practice
 
-The conventional practice relies on many sophisticated systems to work together reliably, increasing the failure risk profile.
-The added complexity requires a high level of expertise from the engineering and operations teams resulting slower ramp up time of new engineers.
-It also slows down day-to-day development because the solution cannot be easily contained on a single development machine.
+The conventional practice of developing microservices is a jumble on sophisticated systems that no one truly fully understands. The high level of complexity introduces friction to the software development lifecycle, significant operational costs, and failure points that cause unexplained outages. It takes a small army of engineers to keep the system afloat.
+
+Here's a list of some of the technologies commonly used today:
 
 * Web server for each microservice
 * DNS for discovery
@@ -101,6 +101,7 @@ It also slows down day-to-day development because the solution cannot be easily 
 * Health and liveness checks
 * Client-side load balancing
 * gRPC
+* Kubernetes
 * Service mesh (e.g. Istio, Envoy, Consul)
 * eBPF networking (e.g. Cilium, Calico)
 * Separate system for pub/sub (e.g. Redis, RabbitMQ)
