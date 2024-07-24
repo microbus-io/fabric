@@ -105,7 +105,7 @@ type Connector struct {
 	configLock      sync.Mutex
 	onConfigChanged []service.ConfigChangedHandler
 
-	loggerx  *slog.Logger
+	logger   *slog.Logger
 	logDebug bool
 
 	tickers     map[string]*tickerCallback

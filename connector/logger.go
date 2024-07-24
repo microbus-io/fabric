@@ -37,7 +37,7 @@ Example:
 	c.LogDebug(ctx, "Tight loop", "index", i)
 */
 func (c *Connector) LogDebug(ctx context.Context, msg string, args ...any) {
-	logger := c.loggerx
+	logger := c.logger
 	if logger == nil || !c.logDebug {
 		return
 	}
@@ -63,7 +63,7 @@ Example:
 	c.LogInfo(ctx, "File uploaded", "gb", sizeGB)
 */
 func (c *Connector) LogInfo(ctx context.Context, msg string, args ...any) {
-	logger := c.loggerx
+	logger := c.logger
 	if logger == nil {
 		return
 	}
@@ -89,7 +89,7 @@ Example:
 	c.LogWarn(ctx, "Dropping job", "job", jobID)
 */
 func (c *Connector) LogWarn(ctx context.Context, msg string, args ...any) {
-	logger := c.loggerx
+	logger := c.logger
 	if logger == nil {
 		return
 	}
@@ -126,7 +126,7 @@ Example:
 	c.LogError(ctx, "Opening file", "error", err, "file", fileName)
 */
 func (c *Connector) LogError(ctx context.Context, msg string, args ...any) {
-	logger := c.loggerx
+	logger := c.logger
 	if logger == nil {
 		return
 	}
@@ -154,7 +154,7 @@ func (c *Connector) LogError(ctx context.Context, msg string, args ...any) {
 
 // initLogger initializes a logger to match the deployment environment.
 func (c *Connector) initLogger() (err error) {
-	if c.loggerx != nil {
+	if c.logger != nil {
 		return nil
 	}
 
@@ -183,7 +183,7 @@ func (c *Connector) initLogger() (err error) {
 		})
 	}
 
-	c.loggerx = slog.New(handler).With(
+	c.logger = slog.New(handler).With(
 		"host", c.Hostname(),
 		"id", c.ID(),
 		"ver", c.Version(),

@@ -37,7 +37,7 @@ func TestConnector_Log(t *testing.T) {
 	testarossa.False(t, con.IsStarted())
 
 	// No-op when logger is nil, no logs to observe
-	testarossa.Nil(t, con.loggerx)
+	testarossa.Nil(t, con.logger)
 	con.LogDebug(ctx, "This is a log debug message", "someStr", "some string")
 	con.LogInfo(ctx, "This is a log info message", "someStr", "some string")
 	con.LogWarn(ctx, "This is a log warn message", "error", stderror, "someStr", "some string")
@@ -49,11 +49,11 @@ func TestConnector_Log(t *testing.T) {
 	defer con.Shutdown()
 
 	// Logger initialized, it can now be observed
-	testarossa.NotNil(t, con.loggerx)
+	testarossa.NotNil(t, con.logger)
 
 	// Observe the logs to assert expected values
 	var buf strings.Builder
-	con.loggerx = slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+	con.logger = slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
 
