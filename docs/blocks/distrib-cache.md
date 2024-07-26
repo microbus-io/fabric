@@ -7,27 +7,27 @@ Caching is a powerful and common technique that reduces load on downstream datab
 In `Microbus`, each microservice holds in-memory an [LRU cache](../structure/lru.md) that is shared with all peer replicas of the microservice, but not with other microservices. Each replica's local LRU cache is a segment of the entire cache. The cache uses pub/sub to communicate and synchronize with peers.
 
 <img src="./distrib-cache-1.drawio.svg">
-<p>
+<p></p>
 
 The capacity of the cache scales horizontally with the number of replicas of the microservice.
 
 <img src="./distrib-cache-2.drawio.svg">
-<p>
+<p></p>
 
 The cache is scoped to a single microservice, therefore isolating it from side-effects that can be caused by "noisy neighbor" microservices. Isolation also makes it possible to independently scale to the individual needs of each microservice.
 
 <img src="./distrib-cache-3.drawio.svg">
-<p>
+<p></p>
 
 Operations are synchronized over the network and the cache is not immune to race conditions. To help improve consistency, the `Load` operations checks with peers to ensure there are no multiple versions of the same element. This is still not a 100% guarantee of consistency (e.g. during a network partition) but rather a mechanism to recover from inconsistent state.
 
 <img src="./distrib-cache-4.drawio.svg">
-<p>
+<p></p>
 
 Data can survive a clean shutdown of a microservice if there is at least one other replica running at that time that has enough capacity to hold its data.
 
 <img src="./distrib-cache-5.drawio.svg">
-<p>
+<p></p>
 
 Cached elements can get evicted for various reason and without warning. Cache only that which you can afford to lose and reconstruct from the original data source. A distributed cache is not shared memory. Do not use a distributed cache to share state among peers.
 

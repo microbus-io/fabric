@@ -89,7 +89,7 @@ CREATE DATABASE microbus_examples;
 ```
 
 <img src="examples-directory-1.png" width="498">
-<p>
+<p></p>
 
 The connection string to the database is pulled from `main/config.yaml` by the [configurator](./coreservices-configurator.md) and served to the `directory.example` microservice. Adjust it as necessary to point to the location of your MariaDB database.
 
@@ -164,6 +164,6 @@ http://localhost:8080/codegen.test/openapi.json
 Copy the JSON and paste it at https://editor-next.swagger.io to parse it. You'll see all endpoints of the microservices listed to the right-hand side.
 
 <img src="examples-directory-2.png" width="903">
-<p>
+<p></p>
 
 Click on any of them to expand. Press the `Try it out` button, enter the appropriate data, and `Execute`.

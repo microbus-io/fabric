@@ -5,7 +5,7 @@ Code generation is one of `Microbus`'s most powerful tools. It facilitates rapid
 In `Microbus`, everything starts with a `service.yaml` file that semantically defines the microservice. The code generator then takes this definition and produces a code skeleton for the implementation of microservice itself, a client stub that is used by upstream microservices to call it, an integration test harness that helps to thoroughly test it along with its downstream dependencies, and an OpenAPI document that describes its API.
 
 <img src="./codegen-1.drawio.svg">
-<p>
+<p></p>
 
 Code generation in `Microbus` is additive and idempotent. When new functionality is added,
 code changes are generated incrementally without impacting the existing code.
@@ -51,7 +51,7 @@ Placeholder [integration tests](../blocks/integration-testing.md) are generated 
 For applications that have a front-end such as a single-page application, the OpenAPI document streamlines communications with the front-end engineering team. It serves as the source of truth of the backend API that is always kept up to date with the latest code.
 
 <img src="./codegen-2.drawio.svg">
-<p>
+<p></p>
 
 ## Embedded Resources
 

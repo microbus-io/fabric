@@ -29,7 +29,7 @@ func (svc *Service) Calculate(ctx context.Context) (sigma float64, err error) {
 ```
 
 <img src="./distrib-tracing-1.png" width="658">
-<p>
+<p></p>
 
 And here's the same function rewritten to perform the N operations in parallel. It completed in 33ms, almost a 4x improvement.
 
@@ -52,4 +52,4 @@ func (svc *Service) Calculate(ctx context.Context) (sigma float64, err error) {
 ```
 
 <img src="./distrib-tracing-2.png" width="658">
-<p>
+<p></p>

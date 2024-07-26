@@ -19,7 +19,7 @@ What's more, this list might keep growing when new microservices are added in th
 In addition, the user store microservice has become dependent on a large number of microservices which are almost certainly depending back on it. The microservices dependency graph is no longer a DAG making it is challenging to reason about and test the system.
 
 <img src="events-1.drawio.svg">
-<p>
+<p></p>
 
 Alternatively, events take advantage of the pub/sub pattern and allow the user store microservice to publish an event without knowing who will be there to respond. The code will look similar to the following:
 
@@ -34,7 +34,7 @@ func (svc *Service) DeleteUser(ctx context.Context, userID string) (err error) {
 Other microservices are able to dynamically subscribe to handle the `OnUserDeleted` event, which means that as new microservices are deployed, no change is required of the user store microservice. With this approach, the consumers (aka event sinks) depend on the producer (aka event source) and no cycles are introduced to the microservices dependency graph.
 
 <img src="events-2.drawio.svg">
-<p>
+<p></p>
 
 In `Microbus`, events are implemented as carefully crafted requests and subscriptions. Event sources publish a multicast request to a URL on their own hostname. Event sinks subscribe to handle requests on the hostname of the source rather than their own. Since they are fundamentally not any different than regular requests, events can also return values back to the source. The [events example](../structure/examples-events.md) uses this technique to ask for permission to perform an action. 
 

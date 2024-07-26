@@ -156,7 +156,7 @@ page.WriteString(`
         <input type="text" name="guess" maxlength="5">
         <input type="hidden" name="game" value="` + gameID + `">
         <input type="submit" value="Guess">
-    </form><p>
+    </form><p></p>
 `)
 ```
 

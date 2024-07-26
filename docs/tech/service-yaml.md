@@ -5,7 +5,7 @@
 `service.yaml` include several sections that define the characteristics of the microservice: general, configs, functions, events, sinks, webs, tickers.
 
 <img src="./service-yaml-1.drawio.svg">
-<p>
+<p></p>
 
 ## General
 
