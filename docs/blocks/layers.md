@@ -12,8 +12,7 @@ Onions have layers, ogres have layers, and so does a good software architecture.
 
 \
 <img src="./layers-1.drawio.svg">
-<p>
-
+<p></p>
 
 ## Applications
 
