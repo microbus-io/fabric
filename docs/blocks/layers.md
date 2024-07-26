@@ -14,6 +14,7 @@ Onions have layers, ogres have layers, and so does a good software architecture.
 <img src="./layers-1.drawio.svg">
 <p>
 
+
 ## Applications
 
 Microservices in `Microbus` are not by themselves runnable, rather they are bundled in applications that manage their lifecycle.
