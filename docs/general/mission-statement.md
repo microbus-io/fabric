@@ -90,7 +90,7 @@ Observability tools such as [distributed tracing](../blocks/distrib-tracing.md),
 
 ### Conventional Practice
 
-The conventional practice of developing microservices is a jumble on sophisticated systems that no one truly fully understands. The high level of complexity introduces friction to the software development lifecycle, significant operational costs, and failure points that cause unexplained outages. It takes a small army of engineers to keep the system afloat.
+The conventional practice of developing microservices is a jumble of sophisticated systems that no one truly fully understands. The high level of complexity introduces friction to the software development lifecycle, significant operational costs, and failure points that cause unexplained outages. It takes a small army of engineers to keep the system afloat.
 
 Here's a list of some of the technologies commonly used today:
 

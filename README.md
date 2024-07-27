@@ -11,6 +11,11 @@
 
 Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine. Deploy to suit your needs, as a standalone executable or individual containers.
 
+[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)&nbsp;
+[![Reference](https://pkg.go.dev/badge/github.com/minio/simdjson-go)](https://pkg.go.dev/github.com/microbus-io/fabric)&nbsp;
+[![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)&nbsp;
+[![Reference](https://goreportcard.com/badge/github.com/microbus-io/fabric)](https://goreportcard.com/report/github.com/microbus-io/fabric)&nbsp;
+
 ## 🍴 Table of Content
 
 🚌 [Introduction](#-introduction)\
@@ -173,5 +178,3 @@ Find us at any of the following channels. We're looking forward to hearing from 
 The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware limited liability company formed to hold the combined intellectual property - under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 Refer to the list of [third-party open source software](./docs/general/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
-
-[![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
