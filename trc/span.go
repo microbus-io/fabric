@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -30,81 +31,47 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var _ = Span(SpanImpl{}) // Ensure interface
-
-// Span represents an operation that is being traced.
-type Span interface {
-	// End completes the span.
-	// Updates to the span are not allowed after this method has been called.
-	End()
-	// SetError sets the status of the span to error.
-	SetError(err error)
-	// SetOK sets the status of the span to OK, with the indicated response status code.
-	SetOK(statusCode int)
-	// Log records a log event on the span.
-	Log(severity string, message string, args ...any)
-	// SetString tags the span during its creation.
-	SetString(k string, v string)
-	// SetStrings tags the span during its creation.
-	SetStrings(k string, v []string)
-	// SetBool tags the span during its creation.
-	SetBool(k string, v bool)
-	// SetInt tags the span during its creation.
-	SetInt(k string, v int)
-	// SetFloat tags the span during its creation.
-	SetFloat(k string, v float64)
-	// SetRequest tags the span with the request data.
-	// Warning: this has a large memory footprint.
-	SetRequest(r *http.Request)
-	// SetClientIP tags the span during its creation with the IP address and port number of the client.
-	SetClientIP(ip string)
-	// IsEmpty indicates if the span is not initialized.
-	IsEmpty() bool
-	// TraceID is an identifier that groups related spans together.
-	TraceID() string
-}
-
-// SpanImpl implements the span interface.
-type SpanImpl struct {
-	trace.Span
+// Span implements the span interface.
+type Span struct {
+	internal trace.Span
 }
 
 // NewSpan creates a new span.
 func NewSpan(ts trace.Span) Span {
-	return SpanImpl{Span: ts}
+	return Span{internal: ts}
 }
 
 // End completes the span.
 // Updates to the span are not allowed after this method has been called.
-func (s SpanImpl) End() {
-	if s.Span == nil {
+func (s Span) End() {
+	if s.internal == nil {
 		return
 	}
-	s.Span.End()
+	s.internal.End()
 }
 
 // SetError sets the status of the span to error.
-func (s SpanImpl) SetError(err error) {
-	if s.Span == nil {
+func (s Span) SetError(err error) {
+	if s.internal == nil {
 		return
 	}
 	v := fmt.Sprintf("%+v", err)
-	s.Span.RecordError(err, trace.WithAttributes(
+	s.internal.RecordError(err, trace.WithAttributes(
 		attribute.String("exception.stacktrace", v),
 	))
-	s.Span.SetStatus(codes.Error, err.Error())
+	s.internal.SetStatus(codes.Error, err.Error())
 	sc := errors.StatusCode(err)
-	s.Span.SetAttributes(attribute.Int("http.response.status_code", sc))
+	s.internal.SetAttributes(attribute.Int("http.response.status_code", sc))
 }
 
 // SetOK sets the status of the span to OK, with the indicated response status code.
-func (s SpanImpl) SetOK(statusCode int) {
-	if s.Span == nil {
+func (s Span) SetOK(statusCode int) {
+	if s.internal == nil {
 		return
 	}
-	s.Span.SetStatus(codes.Ok, "")
+	s.internal.SetStatus(codes.Ok, "")
 	if statusCode != http.StatusOK {
-		s.Span.SetAttributes(attribute.Int("http.response.status_code", statusCode))
+		s.internal.SetAttributes(attribute.Int("http.response.status_code", statusCode))
 	}
 }
 
@@ -159,8 +126,8 @@ func slogToTracingAttrs(prefix string, f slog.Attr) []attribute.KeyValue {
 }
 
 // Log records a log event on the span.
-func (s SpanImpl) Log(severity string, msg string, args ...any) {
-	if s.Span == nil {
+func (s Span) Log(severity string, msg string, args ...any) {
+	if s.internal == nil {
 		return
 	}
 	attrs := []attribute.KeyValue{
@@ -173,65 +140,65 @@ func (s SpanImpl) Log(severity string, msg string, args ...any) {
 		attrs = append(attrs, slogToTracingAttrs("", f)...)
 		return true
 	})
-	s.Span.AddEvent("log", trace.WithAttributes(attrs...))
+	s.internal.AddEvent("log", trace.WithAttributes(attrs...))
 }
 
 // SetString tags the span during its creation.
-func (s SpanImpl) SetString(k string, v string) {
-	if s.Span == nil {
+func (s Span) SetString(k string, v string) {
+	if s.internal == nil {
 		return
 	}
-	s.Span.SetAttributes(attribute.String(k, v))
+	s.internal.SetAttributes(attribute.String(k, v))
 }
 
 // SetStrings tags the span during its creation.
-func (s SpanImpl) SetStrings(k string, v []string) {
-	if s.Span == nil {
+func (s Span) SetStrings(k string, v []string) {
+	if s.internal == nil {
 		return
 	}
-	s.Span.SetAttributes(attribute.StringSlice(k, v))
+	s.internal.SetAttributes(attribute.StringSlice(k, v))
 }
 
 // SetBool tags the span during its creation.
-func (s SpanImpl) SetBool(k string, v bool) {
-	if s.Span == nil {
+func (s Span) SetBool(k string, v bool) {
+	if s.internal == nil {
 		return
 	}
-	s.Span.SetAttributes(attribute.Bool(k, v))
+	s.internal.SetAttributes(attribute.Bool(k, v))
 }
 
 // SetInt tags the span during its creation.
-func (s SpanImpl) SetInt(k string, v int) {
-	if s.Span == nil {
+func (s Span) SetInt(k string, v int) {
+	if s.internal == nil {
 		return
 	}
-	s.Span.SetAttributes(attribute.Int(k, v))
+	s.internal.SetAttributes(attribute.Int(k, v))
 }
 
 // SetFloat tags the span during its creation.
-func (s SpanImpl) SetFloat(k string, v float64) {
-	if s.Span == nil {
+func (s Span) SetFloat(k string, v float64) {
+	if s.internal == nil {
 		return
 	}
-	s.Span.SetAttributes(attribute.Float64(k, v))
+	s.internal.SetAttributes(attribute.Float64(k, v))
 }
 
 // SetRequest tags the span with the request data.
 // Warning: this has a large memory footprint.
-func (s SpanImpl) SetRequest(r *http.Request) {
-	if s.Span == nil {
+func (s Span) SetRequest(r *http.Request) {
+	if s.internal == nil {
 		return
 	}
-	s.Span.SetAttributes(attributesOfRequest(r)...)
+	s.internal.SetAttributes(attributesOfRequest(r)...)
 	s.SetClientIP(r.RemoteAddr)
 }
 
 // SetClientIP tags the span during its creation with the IP address and port number of the client.
-func (s SpanImpl) SetClientIP(ip string) {
+func (s Span) SetClientIP(ip string) {
 	p := strings.LastIndex(ip, ":")
 	if p > 0 {
 		portInt, _ := strconv.Atoi(ip[p+1:])
-		s.Span.SetAttributes(
+		s.internal.SetAttributes(
 			attribute.String("client.address", ip[:p]),
 			attribute.Int("client.port", portInt),
 		)
@@ -239,14 +206,44 @@ func (s SpanImpl) SetClientIP(ip string) {
 }
 
 // IsEmpty indicates if the span is not initialized.
-func (s SpanImpl) IsEmpty() bool {
-	return s.Span == nil
+func (s Span) IsEmpty() bool {
+	return s.internal == nil
 }
 
 // TraceID is an identifier that groups related spans together.
-func (s SpanImpl) TraceID() string {
-	if s.Span == nil {
+func (s Span) TraceID() string {
+	if s.internal == nil {
 		return ""
 	}
-	return s.Span.SpanContext().TraceID().String()
+	return s.internal.SpanContext().TraceID().String()
+}
+
+// Attributes returns the attributes set on the span.
+func (s Span) Attributes() map[string]string {
+	m := map[string]string{}
+	attributes := reflect.ValueOf(s.internal).Elem().FieldByName("attributes")
+	for i := 0; i < attributes.Len(); i++ {
+		k := attributes.Index(i).FieldByName("Key").String()
+		v := attributes.Index(i).FieldByName("Value").FieldByName("stringly").String()
+		if v == "" {
+			i := attributes.Index(i).FieldByName("Value").FieldByName("numeric").Uint()
+			if i != 0 {
+				v = strconv.Itoa(int(i))
+			}
+		}
+		if v == "" {
+			slice := attributes.Index(i).FieldByName("Value").FieldByName("slice").Elem()
+			if slice.Len() == 1 {
+				v = slice.Index(0).String()
+			}
+		}
+		m[k] = v
+	}
+	return m
+}
+
+// Status returns the status of the span: 0=unset; 1=error; 2=OK.
+func (s Span) Status() int {
+	status := reflect.ValueOf(s.internal).Elem().FieldByName("status")
+	return int(status.FieldByName("Code").Uint())
 }

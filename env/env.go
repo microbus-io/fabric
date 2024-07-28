@@ -66,8 +66,8 @@ func Get(key string) string {
 // Environment value keys are case-sensitive.
 func Push(key string, value string) {
 	mux.Lock()
-	defer mux.Unlock()
 	pushed[key] = append(pushed[key], value)
+	mux.Unlock()
 }
 
 // Pop pops the last value pushed to the in-memory stack.

@@ -190,8 +190,8 @@ func (c *Connector) ObserveMetric(name string, val float64, labels ...string) er
 	if c.metricsRegistry == nil {
 		return nil
 	}
-	c.metricLock.Lock()
-	defer c.metricLock.Unlock()
+	c.metricLock.RLock()
+	defer c.metricLock.RUnlock()
 	m, ok := c.metricDefs[name]
 	if !ok {
 		return errors.Newf("unknown metric '%s'", name)

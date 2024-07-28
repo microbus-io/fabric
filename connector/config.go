@@ -69,12 +69,12 @@ func (c *Connector) DefineConfig(name string, options ...cfg.Option) error {
 // Property names are case-insensitive.
 func (c *Connector) Config(name string) (value string) {
 	c.configLock.Lock()
-	defer c.configLock.Unlock()
 	config, ok := c.configs[strings.ToLower(name)]
 	if ok {
-		return config.Value
+		value = config.Value
 	}
-	return ""
+	c.configLock.Unlock()
+	return value
 }
 
 // SetConfig sets the value of a previously defined configuration property.

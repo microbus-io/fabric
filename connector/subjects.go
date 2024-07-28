@@ -24,12 +24,19 @@ import (
 // reverseHostname reverses the order of the segments in the hostname.
 // www.example.com becomes com.example.www
 func reverseHostname(hostname string) string {
-	segments := strings.Split(hostname, ".")
-	for i := 0; i < len(segments)/2; i++ {
-		j := len(segments) - i - 1
-		segments[i], segments[j] = segments[j], segments[i]
+	var sb strings.Builder
+	sb.Grow(len(hostname))
+	for {
+		p := strings.LastIndex(hostname, ".")
+		if p < 0 {
+			sb.WriteString(hostname)
+			break
+		}
+		sb.WriteString(hostname[p+1:])
+		sb.WriteRune('.')
+		hostname = hostname[:p]
 	}
-	return strings.Join(segments, ".")
+	return sb.String()
 }
 
 // subjectOfResponse is the NATS subject where a microservice subscribes to receive responses.
@@ -55,55 +62,56 @@ func subjectOfRequest(plane string, method string, hostname string, port string,
 
 // subjectOf composes the NATS subject of subscriptions and requests.
 func subjectOf(wildcards bool, plane string, method string, hostname string, port string, path string) string {
-	var b strings.Builder
-	b.WriteString(plane)
-	b.WriteRune('.')
+	var sb strings.Builder
+	sb.Grow(len(plane) + len(method) + len(hostname) + len(port) + len(path) + 16)
+	sb.WriteString(plane)
+	sb.WriteRune('.')
 	if wildcards && port == "0" {
-		b.WriteString("*")
+		sb.WriteString("*")
 	} else {
-		b.WriteString(port)
+		sb.WriteString(port)
 	}
-	b.WriteRune('.')
-	b.WriteString(strings.ToLower(reverseHostname(hostname)))
-	b.WriteString(".|.")
+	sb.WriteRune('.')
+	sb.WriteString(strings.ToLower(reverseHostname(hostname)))
+	sb.WriteString(".|.")
 	method = strings.ToUpper(method)
 	if wildcards && method == "ANY" {
-		b.WriteString("*")
+		sb.WriteString("*")
 	} else {
-		b.WriteString(method)
+		sb.WriteString(method)
 	}
-	b.WriteRune('.')
+	sb.WriteRune('.')
 	path = strings.TrimPrefix(path, "/")
 	if path == "" {
 		// Exactly the root path, which could come with or without a slash
-		b.WriteRune('_')
-		return b.String()
+		sb.WriteRune('_')
+		return sb.String()
 	}
 	parts := strings.Split(path, "/")
 	for i := range parts {
 		if i > 0 {
-			b.WriteRune('.')
+			sb.WriteRune('.')
 		}
 		if wildcards && strings.HasPrefix(parts[i], "{") && strings.HasSuffix(parts[i], "}") {
 			if i == len(parts)-1 && strings.HasSuffix(parts[i], "+}") {
 				// Greedy
-				b.WriteRune('>')
+				sb.WriteRune('>')
 			} else {
-				b.WriteRune('*')
+				sb.WriteRune('*')
 			}
 			continue
 		}
 		if wildcards && parts[i] == "*" {
-			b.WriteRune('*')
+			sb.WriteRune('*')
 			continue
 		}
 		if parts[i] == "" {
-			b.WriteRune('_')
+			sb.WriteRune('_')
 		} else {
-			escapePathPart(&b, parts[i])
+			escapePathPart(&sb, parts[i])
 		}
 	}
-	return b.String()
+	return sb.String()
 }
 
 // escapePathPart escapes special characters in the path to make it suitable for inclusion in the subscription subject.

@@ -103,10 +103,10 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	testarossa.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
-	// N=9654
-	// 111071 ns/op (9003 ops/sec)
-	// 37764 B/op
-	// 257 allocs/op
+	// N=12295
+	// 95594 ns/op (10460 ops/sec)
+	// 20024 B/op
+	// 282 allocs/op
 }
 
 func BenchmarkConnector_SerialChain(b *testing.B) {
@@ -151,10 +151,10 @@ func BenchmarkConnector_SerialChain(b *testing.B) {
 	testarossa.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
-	// N=703
-	// 1504267 ns/op (664 ops/sec)
-	// 522564 B/op
-	// 3732 allocs/op
+	// N=1174
+	// 988411 ns/op (1012 ops/sec)
+	// 247735 B/op
+	// 3013 allocs/op
 }
 
 func BenchmarkConnector_EchoParallel(b *testing.B) {
@@ -195,14 +195,14 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	}
 	wg.Wait()
 	b.StopTimer()
-	testarossa.Equal(b, 0, errCount.Load())
+	testarossa.Equal(b, int32(0), errCount.Load())
 	testarossa.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
-	// N=65035 concurrent
-	// 16342 ns/op (61192 ops/sec) = approx 6x that of serial
-	// 36294 B/op
-	// 261 allocs/op
+	// N=78519 concurrent
+	// 12934 ns/op (77315 ops/sec) = approx 6x that of serial
+	// 19799 B/op
+	// 285 allocs/op
 }
 
 func TestConnector_EchoParallelCapacity(t *testing.T) {

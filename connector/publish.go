@@ -553,7 +553,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) (output [
 // onResponse is called when a response to an outgoing request is received.
 func (c *Connector) onResponse(msg *nats.Msg) {
 	// Parse the response
-	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(msg.Data)), nil)
+	response, err := http.ReadResponse(bufio.NewReaderSize(bytes.NewReader(msg.Data), 64), nil)
 	if err != nil {
 		err = errors.Trace(err)
 		c.LogError(c.lifetimeCtx, "Parsing response", "error", err)

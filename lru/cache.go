@@ -51,7 +51,7 @@ type Cache[K comparable, V any] struct {
 // NewCache creates a new LRU cache with a weight capacity of 16384 and a maximum age of 1hr.
 func NewCache[K comparable, V any]() *Cache[K, V] {
 	return &Cache[K, V]{
-		lookup:    make(map[K]*node[K, V], 1024),
+		lookup:    make(map[K]*node[K, V]),
 		maxWeight: 16384,
 		maxAge:    time.Hour,
 	}
@@ -60,7 +60,7 @@ func NewCache[K comparable, V any]() *Cache[K, V] {
 // Clear empties the cache but does not reset the hit/miss statistics.
 func (c *Cache[K, V]) Clear() {
 	c.lock.Lock()
-	c.lookup = make(map[K]*node[K, V], 1024)
+	c.lookup = make(map[K]*node[K, V])
 	c.weight = 0
 	c.newest = nil
 	c.oldest = nil

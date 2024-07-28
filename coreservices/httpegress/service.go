@@ -64,7 +64,7 @@ The proxied request is expected to be posted in the body of the request in binar
 */
 func (svc *Service) MakeRequest(w http.ResponseWriter, r *http.Request) (err error) {
 	ctx := r.Context()
-	req, err := http.ReadRequest(bufio.NewReader(r.Body))
+	req, err := http.ReadRequest(bufio.NewReaderSize(r.Body, 64))
 	if err != nil {
 		return errors.Trace(err)
 	}

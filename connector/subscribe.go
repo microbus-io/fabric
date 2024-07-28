@@ -225,7 +225,7 @@ func (c *Connector) ackRequest(msg *nats.Msg, s *sub.Subscription) error {
 	if eoh >= 0 {
 		headerData = headerData[:eoh+4]
 	}
-	httpReq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(headerData)))
+	httpReq, err := http.ReadRequest(bufio.NewReaderSize(bytes.NewReader(headerData), 64))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -298,7 +298,7 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	defer atomic.AddInt32(&c.pendingOps, -1)
 
 	// Parse the request
-	httpReq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(msg.Data)))
+	httpReq, err := http.ReadRequest(bufio.NewReaderSize(bytes.NewReader(msg.Data), 64))
 	if err != nil {
 		return errors.Trace(err)
 	}
