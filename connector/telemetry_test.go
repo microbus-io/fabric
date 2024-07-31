@@ -28,7 +28,6 @@ import (
 )
 
 func TestConnector_TraceRequestAttributes(t *testing.T) {
-	t.Skip()
 	t.Parallel()
 
 	ctx := context.Background()

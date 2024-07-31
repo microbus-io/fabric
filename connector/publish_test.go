@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -203,6 +204,60 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	// 12934 ns/op (77315 ops/sec) = approx 6x that of serial
 	// 19799 B/op
 	// 285 allocs/op
+}
+
+func BenchmarkConnector_EchoParallelCores(b *testing.B) {
+	ctx := context.Background()
+
+	// Create the microservice
+	alpha := New("alpha.echo.parallel.cores.connector")
+	var echoCount atomic.Int32
+	alpha.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
+		echoCount.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		w.Write(body)
+		return nil
+	})
+
+	beta := New("beta.echo.parallel.cores.connector")
+
+	// Startup the microservice
+	alpha.Startup()
+	defer alpha.Shutdown()
+	beta.Startup()
+	defer beta.Shutdown()
+
+	concurrency := runtime.NumCPU()
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+	b.ResetTimer()
+	var errCount atomic.Int32
+	for i := range concurrency {
+		tot := b.N / concurrency
+		if i < b.N%concurrency {
+			tot++
+		} // do remainder
+		go func() {
+			for range tot {
+				_, err := beta.POST(ctx, "https://alpha.echo.parallel.cores.connector/echo", []byte("Hello"))
+				if err != nil {
+					errCount.Add(1)
+				}
+				wg.Done()
+			}
+		}()
+	}
+	wg.Wait()
+	b.StopTimer()
+	testarossa.Equal(b, int32(0), errCount.Load())
+	testarossa.Equal(b, int32(b.N), echoCount.Load())
+
+	// On 2021 MacBook Pro M1 16":
+	// Concurrency=10
+	// N=27536 concurrent
+	// 39491 ns/op (25322 ops/sec) = approx 2.5x that of serial
+	// 21798 B/op
+	// 280 allocs/op
 }
 
 func TestConnector_EchoParallelCapacity(t *testing.T) {
