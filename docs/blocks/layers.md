@@ -100,7 +100,7 @@ Microservice are connected to the messaging bus with a __multiplexed connection_
 
 [Time budget](../blocks/time-budget.md) is a depleting timeout that is passed downstream along the call stack. It is the proper way to handle client-to-server timeouts.
 
-__Ack or fail fast__ is a pattern by which the server responds with an ack to the client before processing the request. This way, the client knows to wait for the response only if an ack is received, and fail if it's not.
+[Ack or fail fast](../blocks/ack-or-fail.md) is a pattern by which the server responds with an ack to the client before processing the request. The client knows to wait for the response only if an ack is received, and fail quickly if it's not.
 
 A microservices transparently makes itself __discoverable__ by subscribing to the messaging bus. Once subscribed to a subject it immediately starts receiving message from the corresponding queue. An external discovery service is not required.
 

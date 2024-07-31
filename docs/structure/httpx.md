@@ -32,7 +32,7 @@ color[r]=100&color[g]=200&color[b]=150
 
 Here's an example of an HTTP request that was fragmented into 3 fragments of up to 128 bytes each. The client starts by sending the first fragment. Notice the header `Microbus-Fragment: 1/3` indicating this is the first of three fragments.
 
-```
+```http
 POST /too-big HTTP/1.1
 Host: server.example
 Content-Length: 128
@@ -49,7 +49,7 @@ Microbus-Time-Budget: 19999
 
 Upon receipt of the first fragment, the server responds with a `100 Continue` ack message.
 
-```
+```http
 HTTP/1.1 100 Continue
 Connection: close
 Microbus-Op-Code: Ack
@@ -61,7 +61,7 @@ Microbus-Queue: server.example
 
 The client then sends the remaining fragments.
 
-```
+```http
 POST /too-big HTTP/1.1
 Host: server.example
 Content-Length: 128
@@ -78,7 +78,7 @@ IBtVOBMQPjaBTEdwXTeCij9ZY61OOidkYTnwgUk98tC7mZzAgsDTH2pRxKTav0lD34MYJS0haYgWUr0b
 
 and
 
-```
+```http
 POST /too-big HTTP/1.1
 Host: server.example
 Content-Length: 16
