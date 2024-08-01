@@ -21,14 +21,20 @@ import (
 	"strconv"
 
 	"github.com/microbus-io/fabric/errors"
-	mtr "github.com/microbus-io/fabric/mtr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// metric holds the Prometheus collector of the metric.
+type metric struct {
+	Counter   *prometheus.CounterVec
+	Gauge     *prometheus.GaugeVec
+	Histogram *prometheus.HistogramVec
+}
+
 // newMetricsRegistry creates a new Prometheus registry, or overwrites the current registry if it already exists.
 // Standard metrics common across all microservices are also created and registered here.
-func (c *Connector) newMetricsRegistry() error {
+func (c *Connector) newMetricsRegistry() (err error) {
 	c.metricsRegistry = prometheus.NewRegistry()
 	c.metricsHandler = promhttp.HandlerFor(c.metricsRegistry, promhttp.HandlerOpts{})
 	c.DefineHistogram(
@@ -94,8 +100,8 @@ func (c *Connector) newMetricsRegistry() error {
 }
 
 // DefineHistogram defines a new histogram metric.
-// The metric can later be observed.
-func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels []string) error {
+// Histograms can only be observed.
+func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels []string) (err error) {
 	if len(buckets) < 1 {
 		return c.captureInitErr(errors.New("empty buckets"))
 	}
@@ -105,7 +111,6 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 			return c.captureInitErr(errors.New("buckets must be defined in ascending order"))
 		}
 	}
-
 	if c.metricsRegistry == nil {
 		return nil
 	}
@@ -114,9 +119,16 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 	if _, ok := c.metricDefs[name]; ok {
 		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
-	m := mtr.NewHistogram(name, help, buckets, append([]string{"service", "ver", "id"}, labels...))
-	c.metricDefs[name] = m
-	err := c.metricsRegistry.Register(m.(prometheus.Collector))
+	vec := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    name,
+			Help:    help,
+			Buckets: buckets,
+		},
+		append([]string{"service", "ver", "id"}, labels...),
+	)
+	c.metricDefs[name] = metric{Histogram: vec}
+	err = c.metricsRegistry.Register(vec)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
@@ -124,8 +136,8 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 }
 
 // DefineCounter defines a new counter metric.
-// The metric can later be incremented.
-func (c *Connector) DefineCounter(name, help string, labels []string) error {
+// Counters can only be incremented.
+func (c *Connector) DefineCounter(name, help string, labels []string) (err error) {
 	if c.metricsRegistry == nil {
 		return nil
 	}
@@ -134,9 +146,15 @@ func (c *Connector) DefineCounter(name, help string, labels []string) error {
 	if _, ok := c.metricDefs[name]; ok {
 		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
-	m := mtr.NewCounter(name, help, append([]string{"service", "ver", "id"}, labels...))
-	c.metricDefs[name] = m
-	err := c.metricsRegistry.Register(m.(prometheus.Collector))
+	vec := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: name,
+			Help: help,
+		},
+		append([]string{"service", "ver", "id"}, labels...),
+	)
+	c.metricDefs[name] = metric{Counter: vec}
+	err = c.metricsRegistry.Register(vec)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
@@ -144,8 +162,8 @@ func (c *Connector) DefineCounter(name, help string, labels []string) error {
 }
 
 // DefineGauge defines a new gauge metric.
-// The metric can later be observed or incremented.
-func (c *Connector) DefineGauge(name, help string, labels []string) error {
+// Gauges can be observed or incremented.
+func (c *Connector) DefineGauge(name, help string, labels []string) (err error) {
 	if c.metricsRegistry == nil {
 		return nil
 	}
@@ -154,9 +172,15 @@ func (c *Connector) DefineGauge(name, help string, labels []string) error {
 	if _, ok := c.metricDefs[name]; ok {
 		return c.captureInitErr(errors.Newf("metric '%s' already defined", name))
 	}
-	m := mtr.NewGauge(name, help, append([]string{"service", "ver", "id"}, labels...))
-	c.metricDefs[name] = m
-	err := c.metricsRegistry.Register(m.(prometheus.Collector))
+	vec := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: name,
+			Help: help,
+		},
+		append([]string{"service", "ver", "id"}, labels...),
+	)
+	c.metricDefs[name] = metric{Gauge: vec}
+	err = c.metricsRegistry.Register(vec)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
@@ -167,7 +191,7 @@ func (c *Connector) DefineGauge(name, help string, labels []string) error {
 // The name and labels must match a previously defined metric.
 // Gauge metrics support subtraction by use of a negative value.
 // Counter metrics only allow addition and a negative value will result in an error.
-func (c *Connector) IncrementMetric(name string, val float64, labels ...string) error {
+func (c *Connector) IncrementMetric(name string, val float64, labels ...string) (err error) {
 	if c.metricsRegistry == nil {
 		return nil
 	}
@@ -180,13 +204,30 @@ func (c *Connector) IncrementMetric(name string, val float64, labels ...string) 
 	if !ok {
 		return errors.Newf("unknown metric '%s'", name)
 	}
-	err := m.Add(val, append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
-	return errors.Trace(err)
+	if m.Counter != nil {
+		if val < 0 {
+			return errors.Newf("counter metric '%s' can only increase", name)
+		}
+		counter, err := m.Counter.GetMetricWithLabelValues(append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		counter.Add(val)
+	} else if m.Gauge != nil {
+		gauge, err := m.Gauge.GetMetricWithLabelValues(append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		gauge.Add(val)
+	} else {
+		return errors.Newf("metric '%s' cannot be incremented", name)
+	}
+	return nil
 }
 
 // ObserveMetric observes the given value using a histogram or summary, or sets it as a gauge's value.
 // The name and labels must match a previously defined metric.
-func (c *Connector) ObserveMetric(name string, val float64, labels ...string) error {
+func (c *Connector) ObserveMetric(name string, val float64, labels ...string) (err error) {
 	if c.metricsRegistry == nil {
 		return nil
 	}
@@ -196,6 +237,20 @@ func (c *Connector) ObserveMetric(name string, val float64, labels ...string) er
 	if !ok {
 		return errors.Newf("unknown metric '%s'", name)
 	}
-	err := m.Observe(val, append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
-	return errors.Trace(err)
+	if m.Gauge != nil {
+		gauge, err := m.Gauge.GetMetricWithLabelValues(append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		gauge.Set(val)
+	} else if m.Histogram != nil {
+		histogram, err := m.Histogram.GetMetricWithLabelValues(append([]string{c.Hostname(), strconv.Itoa(c.Version()), c.ID()}, labels...)...)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		histogram.Observe(val)
+	} else {
+		return errors.Newf("metric '%s' cannot be observed", name)
+	}
+	return nil
 }

@@ -84,7 +84,7 @@ Structured (JSON), leveled __logs__ are sent to `stderr`.
 
 [Distributed tracing](../blocks/distrib-tracing.md) enables the visualization of the flow of function calls across microservices and processes. Tracing spans are automatically captured for each endpoint call.
 
-Metrics such as latency, duration, byte size and count are collected automatically for all endpoint calls. Solution-specific metrics may be defined by the developer. Metrics are shipped to Prometheus via the [metrics core microservice](../structure/coreservices-metrics.md) and visualized in Grafana.
+[Metrics](../blocks/metrics.md) such as latency, duration, byte size and count are collected automatically for all microservice endpoint calls. Custom metrics may be defined by the developer. Metrics are stored in Prometheus and visualized with Grafana dashboards.
 
 [Errors](../blocks/error-capture.md) are unavoidable. When they occur, they are captured, augmented with a full stack trace, logged, metered (Grafana), [traced](../blocks/distrib-tracing.md) (Jaeger) and propagated up the stack to the upstream microservice.
 

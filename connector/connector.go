@@ -32,7 +32,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/lru"
-	"github.com/microbus-io/fabric/mtr"
 	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/sub"
@@ -73,7 +72,7 @@ type Connector struct {
 
 	metricsRegistry *prometheus.Registry
 	metricsHandler  http.Handler
-	metricDefs      map[string]mtr.Metric
+	metricDefs      map[string]metric
 	metricLock      sync.RWMutex
 
 	traceProvider  *sdktrace.TracerProvider
@@ -131,7 +130,7 @@ func NewConnector() *Connector {
 		postRequestData:  lru.NewCache[string, string](),
 		localResponder:   lru.NewCache[string, string](),
 		multicastChanCap: 32,
-		metricDefs:       map[string]mtr.Metric{},
+		metricDefs:       map[string]metric{},
 	}
 
 	c.SetResFSDir(".")

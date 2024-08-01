@@ -171,7 +171,7 @@ tickers:
 #   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
 #   See https://prometheus.io/docs/practices/naming/ for naming best practices
 # description - Documentation
-# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# kind - The kind of the metric, "counter" (default), "gauge" or "histogram"
 # buckets - Bucket boundaries for histograms [x,y,z,...]
 # alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
 metrics:

@@ -60,7 +60,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 #### Precision Observability
 * Structured leveled logging
 * [Distributed tracing](./docs/blocks/distrib-tracing.md)
-* Metrics
+* [Metrics](./docs/blocks/metrics.md)
 * [Error capture](./docs/blocks/error-capture.md) and propagation
 
 #### And more

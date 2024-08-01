@@ -1,6 +1,6 @@
 # Error Capture and Propagation
 
-`Microbus` considers `error`s returned from microservice endpoints as exceptions, and as such it emphasizes their detection and disclosure. In addition to being logged as errors, these cross-microservice errors are also counted in Grafana and recorded in [distributed traces](../blocks/distrib-tracing.md) in Jaeger. Consequently, it is ill-advised to use errors to return state that should not raise the alarm.
+`Microbus` considers `error`s returned from microservice endpoints as exceptions, and as such it emphasizes their detection and disclosure. In addition to being logged as errors, these cross-microservice errors are also counted as a metric and visualized with Grafana dashboards, and recorded in [distributed traces](../blocks/distrib-tracing.md) in Jaeger. Consequently, it is ill-advised to use errors to return state that should not raise the alarm.
 
 The point of view of `Microbus` is that errors will happen, they will be unpredictable, they must never bring down the system and they should be observable and easily debuggable. With this in mind, the framework is taking an opinionated "throw and log" approach to standardize the capturing and surfacing of errors. Note that "capturing" does not mean "handling". The latter is left up to the app developer (or user).
 

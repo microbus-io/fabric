@@ -28,7 +28,6 @@ Learn about each of the project's packages to get familiar with the `Microbus` c
 * [frame](../structure/frame.md) - A utility for type-safe manipulation of the HTTP control headers used by the framework
 * [httpx](../structure/httpx.md) - Various HTTP utilities
 * [lru](../structure/lru.md) - An LRU cache with limits on age and weight
-* [mtr](../structure/mtr.md) - Metrics collectors
 * [openapi](../structure/openapi.md) - OpenAPI document generator
 * [pub](../structure/pub.md) - Options for publishing requests over the bus
 * [rand](../structure/rand.md) - A utility for generating random numbers and identifiers

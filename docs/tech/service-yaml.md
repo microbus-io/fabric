@@ -271,7 +271,7 @@ func (svc *Service) TickerHandler(ctx context.Context) (err error) {
 
 ## Metrics
 
-The `metrics` section is used to define arbitrary metrics that are pertinent to the solution. The metrics could be operational in nature (e.g. performance) or have a business purpose (e.g. usage tracking).
+The `metrics` section is used to define custom metrics, whether operational in nature (e.g. performance) or having a business purpose (e.g. usage tracking).
 
 ```yaml
 # Metrics
@@ -284,7 +284,7 @@ The `metrics` section is used to define arbitrary metrics that are pertinent to 
 #   CPUSecondsTotal(dur time.Duration) - accumulating count with unit
 #   See https://prometheus.io/docs/practices/naming/ for naming best practices
 # description - Documentation
-# kind - The kind of the metric, "histogram", "gauge" or "counter" (default)
+# kind - The kind of the metric, "counter" (default), "gauge" or "histogram"
 # buckets - Bucket boundaries for histograms [x,y,z,...]
 # alias - The name of the metric in Prometheus (defaults to package+function in snake_case)
 metrics:
@@ -293,7 +293,7 @@ metrics:
   #   kind:
 ```
 
-Metrics support three [collector types](https://prometheus.io/docs/concepts/metric_types/): counter, histogram and gauge.
+Metrics support three [collector types](https://prometheus.io/docs/concepts/metric_types/): counter, gauge and histogram.
 
 The name of the metric is derived from the function signature. It should adhere to the [naming best practices](https://prometheus.io/docs/practices/naming/) if at all possible. A Prometheus alias is automatically generated but may be overridden if necessary.
 
