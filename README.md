@@ -11,10 +11,10 @@
 
 Build entire cloud-enabled, enterprise-class and web-scalable solutions comprising a multitude of microservices, all on your local development machine. Deploy to suit your needs, as a standalone executable or individual containers.
 
-[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)&nbsp;
-[![Reference](https://pkg.go.dev/badge/github.com/minio/simdjson-go)](https://pkg.go.dev/github.com/microbus-io/fabric)&nbsp;
-[![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)&nbsp;
-[![Reference](https://goreportcard.com/badge/github.com/microbus-io/fabric)](https://goreportcard.com/report/github.com/microbus-io/fabric)&nbsp;
+[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Reference](https://pkg.go.dev/badge/github.com/minio/simdjson-go)](https://pkg.go.dev/github.com/microbus-io/fabric)
+[![Test](https://github.com/microbus-io/fabric/actions/workflows/test.yaml/badge.svg?branch=main&event=push)](https://github.com/microbus-io/fabric/actions/workflows/test.yaml)
+[![Reference](https://goreportcard.com/badge/github.com/microbus-io/fabric)](https://goreportcard.com/report/github.com/microbus-io/fabric)
 
 ## 🍴 Table of Content
 
@@ -40,36 +40,36 @@ Building and operating microservices at scale, however, is quite difficult and b
 ## ⚙️ How It Works
 
 <img src="./docs/tech/nutshell-1.drawio.svg">
-</p>
+<p></p>
 
 Build your microservices on top of a `Connector` construct and use its simple API to communicate with other microservices using familiar HTTP semantics. Under the hood, communication happens over a real-time messaging bus.
 
 `Microbus` brings together the patterns and best practices that get it right from the get-go, all in a developer-friendly holistic framework that throws complexity under the bus:
 
 #### Reliable Transport
-* Unicast 1:1 request/response
-* Multicast 1:N publish/subscribe
+* [Unicast](./docs/blocks/unicast.md) 1:1 request/response
+* [Multicast](./docs/blocks/multicast.md) 1:N publish/subscribe
 * Multiplexed connections
 * Dynamic service discovery
 * Load balancing
-* Time budget
-* Ack or fail fast
+* [Time budget](./docs/blocks/time-budget.md)
+* [Ack or fail fast](./docs/blocks/ack-or-fail.md)
 * Locality-aware routing
 * Connectivity liveness check
 
 #### Precision Observability
 * Structured leveled logging
-* Distributed tracing
+* [Distributed tracing](./docs/blocks/distrib-tracing.md)
 * Metrics
-* Error capture and propagation
+* [Error capture](./docs/blocks/error-capture.md) and propagation
 
 #### And more
-* Configuration
+* [Configuration](./docs/blocks/configuration.md)
 * Client stubs
-* Live integration tests
-* OpenAPI
+* [Live integration tests](./docs/blocks/integration-testing.md)
+* [OpenAPI](./docs/blocks/openapi.md)
 * Graceful shutdown
-* Distributed caching
+* [Distributed caching](./docs/blocks/distrib-cache.md)
 * Linked static resources
 * Recurring jobs
 
