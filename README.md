@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./microbus-logo.svg" height="100" alt="Microbus.io logo">
+<a href="https://www.microbus.io"><img src="./microbus-logo.svg" height="100" alt="Microbus.io logo"></a>
 </p>
 
 ### Build, Test, Deploy & Operate Microservice Architectures Smarter at Scale

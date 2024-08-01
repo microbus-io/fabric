@@ -48,7 +48,7 @@ The [OpenAPI portal](../structure/coreservices-openapiportal.md) microservice re
 
 __Rapid application development (RAD)__ is achieved by using code generation to produce the skeleton and boilerplate code out of the declaration of the [characteristics of the microservice](../tech/service-yaml.md) in `service.yaml`. The developer needs only fill in the gaps and implement the business logic.
 
-__Skeletons__ are create for each of the microservice's endpoints with `TODO` markers for the developer to fill in the gaps. For functional endpoints (RPCs), a wrapper takes care of unmarshaling the request's JSON payload into type-safe arguments.
+__Skeletons__ are created for each of the microservice's endpoints with `TODO` markers for the developer to fill in the gaps. For functional endpoints (RPCs), a wrapper takes care of unmarshaling the request's JSON payload into type-safe arguments.
 
 __Client stubs__ are created for the microservice's public endpoints. These stubs are used by upstream clients to call the microservice in a type-safe fashion. For functional endpoints (RPCs), the stubs take care of marshaling the request arguments into a JSON payload.
 
