@@ -71,17 +71,17 @@ func (c *Connector) newMetricsRegistry() (err error) {
 		"Number of log messages recorded",
 		[]string{"message", "severity"},
 	)
-	c.DefineCounter(
+	c.DefineGauge(
 		"microbus_uptime_duration_seconds_total",
 		"Duration since connector was established, in seconds",
 		[]string{},
 	)
-	c.DefineCounter(
+	c.DefineGauge(
 		"microbus_cache_hits_total",
 		"Number of distributed cache hits to load operations on the local shard",
 		[]string{},
 	)
-	c.DefineCounter(
+	c.DefineGauge(
 		"microbus_cache_misses_total",
 		"Number of distributed cache misses to load operations on the local shard",
 		[]string{},
@@ -127,7 +127,7 @@ func (c *Connector) DefineHistogram(name, help string, buckets []float64, labels
 		},
 		append([]string{"service", "ver", "id"}, labels...),
 	)
-	c.metricDefs[name] = metric{Histogram: vec}
+	c.metricDefs[name] = &metric{Histogram: vec}
 	err = c.metricsRegistry.Register(vec)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
@@ -153,7 +153,7 @@ func (c *Connector) DefineCounter(name, help string, labels []string) (err error
 		},
 		append([]string{"service", "ver", "id"}, labels...),
 	)
-	c.metricDefs[name] = metric{Counter: vec}
+	c.metricDefs[name] = &metric{Counter: vec}
 	err = c.metricsRegistry.Register(vec)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))
@@ -179,7 +179,7 @@ func (c *Connector) DefineGauge(name, help string, labels []string) (err error) 
 		},
 		append([]string{"service", "ver", "id"}, labels...),
 	)
-	c.metricDefs[name] = metric{Gauge: vec}
+	c.metricDefs[name] = &metric{Gauge: vec}
 	err = c.metricsRegistry.Register(vec)
 	if err != nil {
 		return c.captureInitErr(errors.Trace(err))

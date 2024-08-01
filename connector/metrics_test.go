@@ -108,7 +108,7 @@ func TestConnector_ObserveMetrics(t *testing.T) {
 	testarossa.NoError(t, err)
 	err = con.DefineHistogram(
 		"my_histogram",
-		"my historgram",
+		"my histogram",
 		[]float64{1, 2, 3, 4, 5},
 		[]string{"a"},
 	)
@@ -141,18 +141,16 @@ func TestConnector_ObserveMetrics(t *testing.T) {
 	testarossa.NoError(t, err)
 	err = con.IncrementMetric("my_gauge", 1.5, "1")
 	testarossa.NoError(t, err)
+	err = con.IncrementMetric("my_gauge", -0.5, "1")
+	testarossa.NoError(t, err)
 
 	// Counter
-	err = con.ObserveMetric("my_counter", 2.5, "1")
-	testarossa.NoError(t, err)
-	err = con.ObserveMetric("my_counter", 2.5, "1")
-	testarossa.NoError(t, err)
-	err = con.ObserveMetric("my_counter", 3.5, "1")
-	testarossa.NoError(t, err)
-	err = con.ObserveMetric("my_counter", 1.5, "1")
-	testarossa.Error(t, err)
 	err = con.IncrementMetric("my_counter", 1.5, "1")
 	testarossa.NoError(t, err)
+	err = con.IncrementMetric("my_counter", -1.5, "1")
+	testarossa.Error(t, err)
+	err = con.ObserveMetric("my_counter", 1.5, "1")
+	testarossa.Error(t, err)
 }
 
 func TestConnector_StandardMetrics(t *testing.T) {

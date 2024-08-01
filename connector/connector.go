@@ -72,7 +72,7 @@ type Connector struct {
 
 	metricsRegistry *prometheus.Registry
 	metricsHandler  http.Handler
-	metricDefs      map[string]metric
+	metricDefs      map[string]*metric
 	metricLock      sync.RWMutex
 
 	traceProvider  *sdktrace.TracerProvider
@@ -130,7 +130,7 @@ func NewConnector() *Connector {
 		postRequestData:  lru.NewCache[string, string](),
 		localResponder:   lru.NewCache[string, string](),
 		multicastChanCap: 32,
-		metricDefs:       map[string]metric{},
+		metricDefs:       map[string]*metric{},
 	}
 
 	c.SetResFSDir(".")
