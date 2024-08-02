@@ -1,6 +1,6 @@
 # Package `coreservices/control`
 
-The `control.core` microservice provides no function and in fact will not start. It is the code generated clients in `controlapi` that are the essence of this package. These clients, and in particular the `controlapi.MulticastClient`, provide a programmatic interface to the [control subscriptions](../tech/controlsubs.md) that all microservices support.
+The `control.core` microservice provides no function and in fact will not start. It is the code generated clients in `controlapi` that are the essence of this package. These clients, and in particular the `controlapi.MulticastClient`, provide a programmatic interface to the [control subscriptions](../tech/control-subs.md) that all microservices support.
 
 For example, to ping and discover all microservices:
 

@@ -3,9 +3,6 @@
 </p>
 
 ### Build, Test, Deploy & Operate Microservice Architectures Smarter at Scale
-* <strong>Dramatically-Simplified Engineering Experience</strong>
-* <strong>10x Reduction in Hardware Footprint</strong>
-* <strong>4x Engineering Velocity</strong>
 
 `Microbus` is a holistic open source framework for the development, testing, deployment and operation of microservices at scale. It combines best-in-class OSS, tooling and best practices into a dramatically-simplified engineering experience.
 
@@ -129,12 +126,14 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Multicast messaging](./docs/tech/multicast.md) - Extending on the unicast pattern, multicast enables bi-directional 1:N publish/subscribe HTTP messaging between a client and a multitude of servers over the bus
 * [Error capture](./docs/blocks/error-capture.md) - How and why errors are captured and propagated across microservices boundaries
 * [Time budget](./docs/blocks/time-budget.md) - The right way to manage client-to-server request timeouts
-* [Control subscriptions](./docs/tech/controlsubs.md) - Subscriptions that all microservices implement out of the box on port `:888`
+* [Control subscriptions](./docs/tech/control-subs.md) - Subscriptions that all microservices implement out of the box on port `:888`
 * [Deployment environments](./docs/tech/deployments.md) - An application can run in one of 4 deployment environments: `PROD`, `LAB`, `LOCAL` and `TESTING`
 * [Events](./docs/blocks/events.md) - How event-driven architecture can be used to decouple microservices
 * [Distributed tracing](./docs/blocks/distrib-tracing.md) - Visualizing stack traces across microservices using OpenTelemetry and Jaeger
 * [OpenAPI](./docs/blocks/openapi.md) - OpenAPI document generation for microservices
 * [Local development](./docs/tech/local-dev.md) - Run an entire solution comprising a multitude of microservices in your local IDE
+* [Structured logging](./docs/blocks/logging.md) - JSON logging to `stderr`
+* [Ack or fail fast](./docs/blocks/ack-or-fail.md) - Acks signal the sender if its request was received
 
 ### Design Choices
 

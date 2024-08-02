@@ -19,7 +19,7 @@ Configs are accessed using the `Config` method of the `Connector`.
 foo := con.Config("Foo")
 ```
 
-The microservice keeps listening for a command on the [control subscription](./controlsubs.md) `:888/config-refresh` and will respond by refetching config values from the configurator. The configurator issues this command on startup and on a periodic basis (every 20 minutes) to ensure that all microservices always have the latest config. If new values are received by the microservice, they will be set appropriately and the `OnConfigChanged` callback will be invoked.
+The microservice keeps listening for a command on the [control subscription](./control-subs.md) `:888/config-refresh` and will respond by refetching config values from the configurator. The configurator issues this command on startup and on a periodic basis (every 20 minutes) to ensure that all microservices always have the latest config. If new values are received by the microservice, they will be set appropriately and the `OnConfigChanged` callback will be invoked.
 
 ```go
 con.SetOnConfigChanged(func (ctx context.Context, changed func(string) bool) error {
