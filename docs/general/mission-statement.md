@@ -40,7 +40,7 @@ Spin up the actual downstream microservices along with the microservice being te
 From a [local development](../tech/local-dev.md) machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](../blocks/topology.md) grows with your needs. No code change required.
 
 #### Operate
-Observe system internal with the help of [distributed tracing](../blocks/distrib-tracing.md), [metrics](./docs/blocks/metrics.md) dashboards, structured logging and [error capture](../blocks/error-capture.md).
+Observe system internal with the help of [distributed tracing](../blocks/distrib-tracing.md), [metrics](./docs/blocks/metrics.md) dashboards, [structured logging](../blocks/logging.md) and [error capture](../blocks/error-capture.md).
 
 ### Why Microservices?
 
@@ -84,7 +84,7 @@ In fact, it takes only a few seconds to build and restart an entire solution, so
 
 A powerful [code generator](../blocks/codegen.md) takes care of most of the repetitive mundane work, freeing engineers to do meaningful work and deliver business value faster.
 
-Observability tools such as [distributed tracing](../blocks/distrib-tracing.md), [metrics](./docs/blocks/metrics.md) dashboards, structured logging and [error capture](../blocks/error-capture.md) provide visibility into the internals of the system, allowing precision identification of bugs and performance issues.
+Observability tools such as [distributed tracing](../blocks/distrib-tracing.md), [metrics](./docs/blocks/metrics.md) dashboards, [structured logging](../blocks/logging.md) and [error capture](../blocks/error-capture.md) provide visibility into the internals of the system, allowing precision identification of bugs and performance issues.
 
 `Microbus`'s functionality is exposed through a [simple API](../tech/encapsulation.md) that is easy to learn. An engineer can get up to speed quickly without having to learn all the internals first. This principle of simplicity is also carried over to `Microbus`'s runtime where the small number of moving parts reduced operational complexity.
 

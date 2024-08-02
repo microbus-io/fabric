@@ -80,7 +80,7 @@ A specially named resource `strings.yaml` enables __internationalization (i18n)_
 
 ### Observability
 
-Structured (JSON), leveled __logs__ are sent to `stderr`.
+[Structured logs](../blocks/logging.md) are sent to `stderr`.
 
 [Distributed tracing](../blocks/distrib-tracing.md) enables the visualization of the flow of function calls across microservices and processes. Tracing spans are automatically captured for each endpoint call.
 

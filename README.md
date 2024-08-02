@@ -58,7 +58,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * Connectivity liveness check
 
 #### Precision Observability
-* Structured leveled logging
+* [Structured logging](./docs/blocks/logging.md)
 * [Distributed tracing](./docs/blocks/distrib-tracing.md)
 * [Metrics](./docs/blocks/metrics.md)
 * [Error capture](./docs/blocks/error-capture.md) and propagation

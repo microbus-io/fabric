@@ -45,7 +45,7 @@ Caution: the microservice will fail to start if the availability zone cannot be 
 
 ## Logging
 
-Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value is required for microservice to log debug-level messages.
+Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value is required for microservices to [log](../blocks/logging.md) debug-level messages.
  
 ## Distributed Tracing
 

@@ -1,6 +1,6 @@
 # Metrics
 
-Good observability is crucial when operating a SaaS system because it's not possible to debug it live. Alongside logging and distributed tracing, metrics are one of the pillars of observability.
+Good observability is crucial when operating a SaaS system because it's not possible to debug it live. Alongside [structured logging](../blocks/logging.md) and [distributed tracing](../blocks/distrib-tracing.md), metrics are one of the pillars of observability.
 
 In `Microbus`, metrics are collected by the [metrics core microservice](../structure/coreservices-metrics.md), shipped to [Prometheus](https://prometheus.io), then visualized with [Grafana](https://grafana.com) dashboards. 
 
