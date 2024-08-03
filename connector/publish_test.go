@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -158,7 +157,37 @@ func BenchmarkConnector_SerialChain(b *testing.B) {
 	// 3013 allocs/op
 }
 
-func BenchmarkConnector_EchoParallel(b *testing.B) {
+func BenchmarkConnector_EchoParallelMax(b *testing.B) {
+	echoParallel(b, b.N)
+
+	// On 2021 MacBook Pro M1 16":
+	// N=78519 concurrent
+	// 12934 ns/op (77315 ops/sec) = approx 6x that of serial
+	// 19799 B/op
+	// 285 allocs/op
+}
+
+func BenchmarkConnector_EchoParallel1K(b *testing.B) {
+	echoParallel(b, 1000)
+
+	// On 2021 MacBook Pro M1 16":
+	// N=94744
+	// 12102 ns/op (82630 ops/sec) = approx 8x that of serial
+	// 19451 B/op
+	// 278 allocs/op
+}
+
+func BenchmarkConnector_EchoParallel10K(b *testing.B) {
+	echoParallel(b, 10000)
+
+	// On 2021 MacBook Pro M1 16":
+	// N=107904
+	// 10575 ns/op (94562 ops/sec) = approx 9x that of serial
+	// 19412 B/op
+	// 278 allocs/op
+}
+
+func echoParallel(b *testing.B, concurrency int) {
 	ctx := context.Background()
 
 	// Create the microservice
@@ -171,7 +200,6 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 		return nil
 	})
 
-	// Goroutines can take as much as 500ms or more to start up during heavy load, which necessitates a high ack timeout
 	beta := New("beta.echo.parallel.connector")
 	beta.ackTimeout = time.Second
 
@@ -185,53 +213,6 @@ func BenchmarkConnector_EchoParallel(b *testing.B) {
 	wg.Add(b.N)
 	b.ResetTimer()
 	var errCount atomic.Int32
-	for i := 0; i < b.N; i++ {
-		go func() {
-			_, err := beta.POST(ctx, "https://alpha.echo.parallel.connector/echo", []byte("Hello"))
-			if err != nil {
-				errCount.Add(1)
-			}
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-	b.StopTimer()
-	testarossa.Equal(b, int32(0), errCount.Load())
-	testarossa.Equal(b, int32(b.N), echoCount.Load())
-
-	// On 2021 MacBook Pro M1 16":
-	// N=78519 concurrent
-	// 12934 ns/op (77315 ops/sec) = approx 6x that of serial
-	// 19799 B/op
-	// 285 allocs/op
-}
-
-func BenchmarkConnector_EchoParallelCores(b *testing.B) {
-	ctx := context.Background()
-
-	// Create the microservice
-	alpha := New("alpha.echo.parallel.cores.connector")
-	var echoCount atomic.Int32
-	alpha.Subscribe("POST", "echo", func(w http.ResponseWriter, r *http.Request) error {
-		echoCount.Add(1)
-		body, _ := io.ReadAll(r.Body)
-		w.Write(body)
-		return nil
-	})
-
-	beta := New("beta.echo.parallel.cores.connector")
-
-	// Startup the microservice
-	alpha.Startup()
-	defer alpha.Shutdown()
-	beta.Startup()
-	defer beta.Shutdown()
-
-	concurrency := runtime.NumCPU()
-	var wg sync.WaitGroup
-	wg.Add(b.N)
-	b.ResetTimer()
-	var errCount atomic.Int32
 	for i := range concurrency {
 		tot := b.N / concurrency
 		if i < b.N%concurrency {
@@ -239,7 +220,7 @@ func BenchmarkConnector_EchoParallelCores(b *testing.B) {
 		} // do remainder
 		go func() {
 			for range tot {
-				_, err := beta.POST(ctx, "https://alpha.echo.parallel.cores.connector/echo", []byte("Hello"))
+				_, err := beta.POST(ctx, "https://alpha.echo.parallel.connector/echo", []byte("Hello"))
 				if err != nil {
 					errCount.Add(1)
 				}
@@ -251,13 +232,6 @@ func BenchmarkConnector_EchoParallelCores(b *testing.B) {
 	b.StopTimer()
 	testarossa.Equal(b, int32(0), errCount.Load())
 	testarossa.Equal(b, int32(b.N), echoCount.Load())
-
-	// On 2021 MacBook Pro M1 16":
-	// Concurrency=10
-	// N=27536 concurrent
-	// 39491 ns/op (25322 ops/sec) = approx 2.5x that of serial
-	// 21798 B/op
-	// 280 allocs/op
 }
 
 func TestConnector_EchoParallelCapacity(t *testing.T) {

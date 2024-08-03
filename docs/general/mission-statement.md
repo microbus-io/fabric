@@ -114,7 +114,7 @@ All microservices running on `Microbus` comply with the same set of rules for [u
 
 ### Performance
 
-Benchmarks indicate `Microbus` is able to process upward of 60,000 req/sec on a single 10-core CPU.
+Benchmarks indicate `Microbus` is capable of processing upward of 94,500 req/sec on a 10-core MacBook Pro M1 CPU, connected to a messaging bus on localhost.
 
 ### Reliability
 

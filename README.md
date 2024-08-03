@@ -26,7 +26,7 @@ Build entire cloud-enabled, enterprise-class and web-scalable solutions comprisi
 
 ## 🚌 Introduction
 
-A microservice architecture is essential for addressing the technical and organizational scalability challenges of a business as it scales. Without microservices, the complexity of a monolithic codebase often grows to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at prohibitive cost. Investing in microservices from the get-go is a wise investment that mitigates this upside risk.
+A microservice architecture is best suited for addressing the technical and organizational scalability challenges of a business as it scales. Without microservices, the complexity of a monolithic codebase often grows to a point where the engineering team can no longer innovate and collaborate efficiently. In most likelihood the entire solution will have to be rewritten at a critical point of the business - when it is growing rapidly - and at prohibitive cost. Investing in microservices from the get-go is a wise investment that mitigates this upside risk.
 
 Building and operating microservices at scale, however, is quite difficult and beyond the skills of most engineering teams. It's easy to spin up one web server and call it a microservice but things get exponentially more complicated the more microservices are added to the mix. Many teams at some point either call it quits and stop adding microservices, or introduce complex tooling such as service meshes to help manage the complexity. Adding complexity to solve complexity is a self-defeating strategy: the chickens eventually come home to roost.
 
@@ -174,6 +174,6 @@ Find us at any of the following channels. We're looking forward to hearing from 
 
 ## 📃 Legal
 
-The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware limited liability company formed to hold the combined intellectual property - under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware limited liability company formed to hold the combined intellectual property of all contributors - under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 Refer to the list of [third-party open source software](./docs/general/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
