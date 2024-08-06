@@ -70,6 +70,32 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler ser
 	return nil
 }
 
+// StopTicker stops a running ticker.
+func (c *Connector) StopTicker(name string) error {
+	if err := utils.ValidateTickerName(name); err != nil {
+		return c.captureInitErr(errors.Trace(err))
+	}
+	if !c.started {
+		return nil
+	}
+
+	name = strings.ToLower(name)
+
+	c.tickersLock.Lock()
+	defer c.tickersLock.Unlock()
+
+	job, ok := c.tickers[name]
+	if !ok {
+		return errors.Newf("unknown ticker '%s'", name)
+	}
+	if job.Ticker != nil {
+		job.Ticker.Stop()
+		job.Ticker = nil
+	}
+	delete(c.tickers, name)
+	return nil
+}
+
 // stopTickers terminates all recurring jobs.
 func (c *Connector) stopTickers() error {
 	c.tickersLock.Lock()
@@ -86,6 +112,8 @@ func (c *Connector) stopTickers() error {
 
 // runTickers starts goroutines to run all tickers.
 func (c *Connector) runTickers() {
+	c.tickersLock.Lock()
+	defer c.tickersLock.Unlock()
 	for _, job := range c.tickers {
 		c.runTicker(job)
 	}
@@ -99,8 +127,6 @@ func (c *Connector) runTicker(job *tickerCallback) {
 		)
 		return
 	}
-	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
 	if job.Handler == nil {
 		return
 	}

@@ -279,3 +279,47 @@ func TestConnector_TickersDisabledInTestingApp(t *testing.T) {
 	time.Sleep(5 * interval)
 	testarossa.Zero(t, count)
 }
+
+func TestConnector_TickerStop(t *testing.T) {
+	t.Parallel()
+
+	con := New("ticker.stop.connector")
+	con.SetDeployment(LAB) // Tickers are disabled in TESTING
+
+	interval := 200 * time.Millisecond
+	count := 0
+	enter := make(chan bool)
+	exit := make(chan bool)
+	con.StartTicker("myticker", interval, func(ctx context.Context) error {
+		count++
+		enter <- true
+		exit <- true
+		return nil
+	})
+
+	testarossa.Zero(t, count)
+
+	err := con.Startup()
+	testarossa.NoError(t, err)
+	defer con.Shutdown()
+
+	<-enter
+	testarossa.Equal(t, 1, count)
+	con.StopTicker("myticker")
+	<-exit
+
+	time.Sleep(2 * interval)
+	testarossa.Equal(t, 1, count)
+
+	// Restart
+	con.StartTicker("myticker", interval, func(ctx context.Context) error {
+		count++
+		enter <- true
+		exit <- true
+		return nil
+	})
+
+	<-enter
+	testarossa.Equal(t, 2, count)
+	<-exit
+}
