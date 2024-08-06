@@ -227,3 +227,10 @@ Note: These milestones are maintained in separate branches in order to demonstra
 [Milestone 28](https://github.com/microbus-io/fabric/tree/milestone/28):
 
 * Remove dependency on Zap logger and replaced with standard slog
+
+[Milestone 29](https://github.com/microbus-io/fabric/tree/milestone/29):
+
+* Documentation
+* Fixed data race in metrics collection
+* Added `connector.StopTicker`
+* Fixed deadlock when running tickers

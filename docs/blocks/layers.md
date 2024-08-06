@@ -70,9 +70,9 @@ The [`Connector`](../structure/connector.md) is the base class of all microservi
 
 The [distributed cache](../blocks/distrib-cache.md) is an in-memory cache that is shared among the replica peers of microservice.
 
-Similar to cron jobs, __tickers__ run jobs on a scheduled interval. 
+[Tickers](../blocks/tickers.md) are jobs that run on a recurring basis.
 
-Microservices are __shutdown gracefully__. All pending requests, goroutines and jobs are drained before the microservice quits.
+Microservices are [shutdown gracefully](../blocks/graceful-shutdown.md). All pending requests, goroutines and jobs are drained before the microservice quits.
 
 Images, scripts, templates and any other __static resources__ are made available to each microservice by association of a file system (FS).
 

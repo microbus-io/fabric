@@ -8,7 +8,7 @@ The `Connector` is the most fundamental construct of the framework, providing ke
 * HTTP-like communication over NATS, [unicast](../blocks/unicast.md) (request/response) and [multicast](../blocks/multicast.md) (pub/sub)
 * JSON logger
 * [Configuration](../blocks/configuration.md)
-* Tickers to execute jobs on a recurring basis
+* [Tickers](../blocks/tickers.md) to execute jobs on a recurring basis
 * [Distributed cache](../blocks/distrib-cache.md)
 * Bundled resource files and strings
 * [Distributed tracing](../blocks/distrib-tracing.md)

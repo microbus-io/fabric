@@ -65,7 +65,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * Client stubs
 * [Live integration tests](./docs/blocks/integration-testing.md)
 * [OpenAPI](./docs/blocks/openapi.md)
-* Graceful shutdown
+* [Graceful shutdown](./docs/blocks/graceful-shutdown.md)
 * [Distributed caching](./docs/blocks/distrib-cache.md)
 * Linked static resources
 * Recurring jobs

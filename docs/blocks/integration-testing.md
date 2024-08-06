@@ -156,7 +156,7 @@ res, err := Hello_Get(t, ctx, "")
 
 ### Testing Tickers
 
-Tickers are disabled during testing in order to avoid the unpredictability of their running schedule. Instead, tickers can be tested manually like other endpoints. Tickers don't take arguments nor return values so the only testing possible is error validation.
+[Tickers](../blocks/tickers.md) are disabled during testing in order to avoid the unpredictability of their running schedule. Instead, tickers can be tested manually like other endpoints. Tickers don't take arguments nor return values so the only testing possible is error validation.
 
 ```go
 func TestHello_TickTock(t *testing.T) {

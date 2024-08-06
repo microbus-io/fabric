@@ -243,7 +243,7 @@ func (svc *Service) WebHandler(w http.ResponseWriter, r *http.Request) (err erro
 
 ## Tickers
 
-Tickers are means to invoke a function on a periodic basis. The `signature` and `interval` fields are required.
+Tickers are means to trigger a job on a periodic basis. The `signature` and `interval` fields are required.
 
 ```yaml
 # Tickers
@@ -268,6 +268,8 @@ func (svc *Service) TickerHandler(ctx context.Context) (err error) {
     return nil
 }
 ```
+
+`ctx` will be canceled if when the microservice shuts down.
 
 ## Metrics
 
