@@ -47,16 +47,16 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler ser
 	if handler == nil {
 		return nil
 	}
+	if interval <= 0 {
+		return c.captureInitErr(errors.Newf("non-positive interval '%v'", interval))
+	}
 	name = strings.ToLower(name)
 
 	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
-
-	if _, ok := c.tickers[name]; ok {
+	_, ok := c.tickers[name]
+	if ok {
+		c.tickersLock.Unlock()
 		return c.captureInitErr(errors.Newf("ticker '%s' is already started", name))
-	}
-	if interval <= 0 {
-		return c.captureInitErr(errors.Newf("non-positive interval '%v'", interval))
 	}
 	c.tickers[name] = &tickerCallback{
 		Name:     name,
@@ -66,6 +66,7 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler ser
 	if c.started {
 		c.runTicker(c.tickers[name])
 	}
+	c.tickersLock.Unlock()
 
 	return nil
 }
@@ -78,14 +79,12 @@ func (c *Connector) StopTicker(name string) error {
 	if !c.started {
 		return nil
 	}
-
 	name = strings.ToLower(name)
 
 	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
-
 	job, ok := c.tickers[name]
 	if !ok {
+		c.tickersLock.Unlock()
 		return errors.Newf("unknown ticker '%s'", name)
 	}
 	if job.Ticker != nil {
@@ -93,30 +92,30 @@ func (c *Connector) StopTicker(name string) error {
 		job.Ticker = nil
 	}
 	delete(c.tickers, name)
+	c.tickersLock.Unlock()
 	return nil
 }
 
 // stopTickers terminates all recurring jobs.
 func (c *Connector) stopTickers() error {
 	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
-
 	for _, job := range c.tickers {
 		if job.Ticker != nil {
 			job.Ticker.Stop()
 			job.Ticker = nil
 		}
 	}
+	c.tickersLock.Unlock()
 	return nil
 }
 
 // runTickers starts goroutines to run all tickers.
 func (c *Connector) runTickers() {
 	c.tickersLock.Lock()
-	defer c.tickersLock.Unlock()
 	for _, job := range c.tickers {
 		c.runTicker(job)
 	}
+	c.tickersLock.Unlock()
 }
 
 // runTicker starts a goroutine to run the ticker.
@@ -148,7 +147,7 @@ func (c *Connector) runTicker(job *tickerCallback) {
 			}
 
 			// OpenTelemetry: create a span for the callback
-			ctx, span := c.StartSpan(c.lifetimeCtx, job.Name, trc.Internal())
+			ctx, span := c.StartSpan(c.Lifetime(), job.Name, trc.Internal())
 
 			atomic.AddInt32(&c.pendingOps, 1)
 			startTime := time.Now()
