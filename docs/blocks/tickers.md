@@ -16,11 +16,11 @@ The more common case is to define tickers in `service.yaml` and use the [code ge
 # description - Documentation
 # interval - Duration between iterations (e.g. 15m)
 tickers:
-  # - signature:
-  #   description:
-  #   interval:
+  - signature: HourlyJob()
+    description: HourlyJob runs once an hour.
+    interval: 1h
 ```
 
 Tickers are disabled in the `TESTING` [deployment environment](../tech/deployments.md) in order to avoid the unpredictability of their running schedule.
 
-If a job is running at the time that the microservice shuts down, the `ctx` argument of the handler gets canceled and the job is given a grace period to end cleanly.
+If a job is running at the time that the microservice shuts down, the `ctx` argument of the handler gets canceled and the job is given a [grace period to end cleanly](../blocks/graceful-shutdown.md).
