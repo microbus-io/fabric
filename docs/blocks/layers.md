@@ -96,7 +96,7 @@ A specially named resource `strings.yaml` enables __internationalization (i18n)_
 
 [Multicast publish/subscribe](../blocks/multicast.md) enhances the publish/subscribe pattern of the bus by introducing a familiar HTTP interface and a bi-directional 1:N request/response pattern.
 
-Microservice are connected to the messaging bus with a __multiplexed connection__ that enables holding multiple concurrent conversations on a single connection. Multiplexing results in lower resource requirements and a simplified network topology that is less prone to error.
+Microservice are connected to the messaging bus with a [persistent multiplexed connection](../blocks/multiplexed.md) that enables holding multiple concurrent conversations on a single connection. Multiplexing results in lower resource requirements and a simplified network topology that is less prone to error.
 
 [Time budget](../blocks/time-budget.md) is a depleting timeout that is passed downstream along the call stack. It is the proper way to handle client-to-server timeouts.
 

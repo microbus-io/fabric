@@ -46,7 +46,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 #### Reliable Transport
 * [Unicast](./docs/blocks/unicast.md) 1:1 request/response
 * [Multicast](./docs/blocks/multicast.md) 1:N publish/subscribe
-* Multiplexed connections
+* [Persistent multiplexed connections](./docs/blocks/multiplexed.md)
 * Dynamic service discovery
 * Load balancing
 * [Time budget](./docs/blocks/time-budget.md)
@@ -68,7 +68,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * [Graceful shutdown](./docs/blocks/graceful-shutdown.md)
 * [Distributed caching](./docs/blocks/distrib-cache.md)
 * Linked static resources
-* Recurring jobs
+* [Recurring jobs](./docs/blocks/tickers.md)
 
 ## 🎯 Mission Statement
 
@@ -136,6 +136,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Ack or fail fast](./docs/blocks/ack-or-fail.md) - Acks signal the sender if its request was received
 * [Graceful shutdown](./docs/blocks/graceful-shutdown.md) - Graceful shutdown drains pending operations before termination
 * [Tickers](./docs/blocks/tickers.md) - Tickers are jobs that run on a schedule
+* [Multiplexed connections](./docs/blocks/multiplexed.md) - Multiplexed connections are more efficient than HTTP/1.1
 
 ### Design Choices
 

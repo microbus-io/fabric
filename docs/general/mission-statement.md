@@ -118,7 +118,7 @@ Benchmarks indicate `Microbus` is capable of processing upward of 94,500 req/sec
 
 ### Reliability
 
-Reliable communication is an imperative quality of any distributed system. In `Microbus`, microservices communicate with each other over a messaging bus. Each microservice connects to the bus over a persistent bi-directional multiplexed connection that is monitored constantly and kept alive with automatic reconnects if required. Locality-aware routing, [ack of fail fast](../blocks/ack-or-fail.md) and [graceful shutdowns](../blocks/graceful-shutdown.md) further enhance the reliability of communications.
+Reliable communication is an imperative quality of any distributed system. In `Microbus`, microservices communicate with each other over a messaging bus. Each microservice connects to the bus over a [persistent multiplexed connection](../blocks/multiplexed.md) that is monitored constantly and kept alive with automatic reconnects if required. Locality-aware routing, [ack of fail fast](../blocks/ack-or-fail.md) and [graceful shutdowns](../blocks/graceful-shutdown.md) further enhance the reliability of communications.
 
 It is also imperative that a distributed system remains online at all times. `Microbus` achieves that by capturing all errors and panics so that malfunctioning microservices do not crash.
 
