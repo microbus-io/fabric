@@ -80,13 +80,13 @@ A powerful [code generator](../blocks/codegen.md) takes care of most of the repe
 
 In `Microbus`, microservices are not large memory-gobbling processes but rather compact worker goroutines that ultimately consume messages from a queue.
 This quality allows running, testing and debugging an entire solution comprising a multitude of microservices on a [local development](../tech/local-dev.md) machine.
-In fact, it takes only a few seconds to build and restart an entire solution, so coding iteration can be done quickly.
+In fact, it takes only a few seconds to build and restart an entire solution, so code iterations can be made quickly.
 
 A powerful [code generator](../blocks/codegen.md) takes care of most of the repetitive mundane work, freeing engineers to do meaningful work and deliver business value faster.
 
 Observability tools such as [distributed tracing](../blocks/distrib-tracing.md), [metrics](./docs/blocks/metrics.md) dashboards, [structured logging](../blocks/logging.md) and [error capture](../blocks/error-capture.md) provide visibility into the internals of the system, allowing precision identification of bugs and performance issues.
 
-`Microbus`'s functionality is exposed through a [simple API](../tech/encapsulation.md) that is easy to learn. An engineer can get up to speed quickly without having to learn all the internals first. This principle of simplicity is also carried over to `Microbus`'s runtime where the small number of moving parts reduced operational complexity.
+`Microbus`'s functionality is exposed through a [simple API](../tech/encapsulation.md) that is easy to learn. Engineers are able get up to speed quickly and become productive without having to learn the internals of the system. This principle of simplicity is also carried over to `Microbus`'s runtime where the small number of moving parts dramatically reduce the operational complexity.
 
 ### Conventional Practice
 

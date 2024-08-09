@@ -177,6 +177,6 @@ Find us at any of the following channels. We're looking forward to hearing from 
 
 ## 📃 Legal
 
-The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware limited liability company formed to hold the combined intellectual property of all contributors - under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+The `Microbus` framework is the copyrighted work of various contributors. It is licensed by `Microbus LLC` - a Delaware limited liability company formed to hold rights to the combined intellectual property of all contributors - under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 Refer to the list of [third-party open source software](./docs/general/third-party-oss.md) for licensing information of components used by the `Microbus` framework.
