@@ -63,7 +63,7 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler ser
 		Handler:  handler,
 		Interval: interval,
 	}
-	if c.started {
+	if c.IsStarted() {
 		c.runTicker(c.tickers[name])
 	}
 	c.tickersLock.Unlock()
@@ -76,7 +76,7 @@ func (c *Connector) StopTicker(name string) error {
 	if err := utils.ValidateTickerName(name); err != nil {
 		return c.captureInitErr(errors.Trace(err))
 	}
-	if !c.started {
+	if !c.IsStarted() {
 		return nil
 	}
 	name = strings.ToLower(name)
@@ -142,7 +142,7 @@ func (c *Connector) runTicker(job *tickerCallback) {
 			"name", job.Name,
 		)
 		for range ticker.C {
-			if !c.started {
+			if !c.IsStarted() {
 				continue
 			}
 

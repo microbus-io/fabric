@@ -32,7 +32,7 @@ import (
 // SetOnConfigChanged adds a function to be called when a new config was received from the configurator.
 // Callbacks are called in the order they were added.
 func (c *Connector) SetOnConfigChanged(handler service.ConfigChangedHandler) error {
-	if c.started {
+	if c.IsStarted() {
 		return c.captureInitErr(errors.New("already started"))
 	}
 	c.onConfigChanged = append(c.onConfigChanged, handler)
@@ -43,7 +43,7 @@ func (c *Connector) SetOnConfigChanged(handler service.ConfigChangedHandler) err
 // Properties must be defined before the service starts.
 // Config property names are case-insensitive.
 func (c *Connector) DefineConfig(name string, options ...cfg.Option) error {
-	if c.started {
+	if c.IsStarted() {
 		return c.captureInitErr(errors.New("already started"))
 	}
 
@@ -96,7 +96,7 @@ func (c *Connector) SetConfig(name string, value any) error {
 	config.Value = v
 
 	// Call the callback function, if provided
-	if c.started && config.Value != origValue {
+	if c.IsStarted() && config.Value != origValue {
 		for i := 0; i < len(c.onConfigChanged); i++ {
 			err := utils.CatchPanic(func() error {
 				return c.onConfigChanged[i](
@@ -143,7 +143,7 @@ func (c *Connector) logConfigs(ctx context.Context) {
 
 // refreshConfig contacts the configurator microservices to fetch values for the config properties.
 func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
-	if !c.started {
+	if !c.IsStarted() {
 		return errors.New("not started")
 	}
 	var fetchedValues struct {

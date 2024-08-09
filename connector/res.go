@@ -37,7 +37,7 @@ import (
 
 // SetResFS initialized the connector to load resource files from an arbitrary FS.
 func (c *Connector) SetResFS(fs service.FS) error {
-	if c.started {
+	if c.IsStarted() {
 		return c.captureInitErr(errors.New("already started"))
 	}
 	c.resourcesFS = fs

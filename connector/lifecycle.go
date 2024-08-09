@@ -41,7 +41,7 @@ import (
 // SetOnStartup adds a function to be called during the starting up of the microservice.
 // Startup callbacks are called in the order they were added.
 func (c *Connector) SetOnStartup(handler service.StartupHandler) error {
-	if c.started {
+	if c.IsStarted() {
 		return c.captureInitErr(errors.New("already started"))
 	}
 	c.onStartup = append(c.onStartup, handler)
@@ -52,7 +52,7 @@ func (c *Connector) SetOnStartup(handler service.StartupHandler) error {
 // Shutdown callbacks are called in the reverse order they were added,
 // whether of the status of a corresponding startup callback.
 func (c *Connector) SetOnShutdown(handler service.ShutdownHandler) error {
-	if c.started {
+	if c.IsStarted() {
 		return c.captureInitErr(errors.New("already started"))
 	}
 	c.onShutdown = append(c.onShutdown, handler)
@@ -61,7 +61,7 @@ func (c *Connector) SetOnShutdown(handler service.ShutdownHandler) error {
 
 // Startup the microservice by connecting to the NATS bus and activating the subscriptions.
 func (c *Connector) Startup() (err error) {
-	if c.started {
+	if c.IsStarted() {
 		return errors.New("already started")
 	}
 	if c.hostname == "" {
@@ -200,7 +200,7 @@ func (c *Connector) Startup() (err error) {
 		err = errors.Trace(err)
 		return err
 	}
-	c.started = true
+	c.started.Store(true)
 
 	c.maxFragmentSize = c.natsConn.MaxPayload() - 64*1024 // Up to 64K for headers
 	if c.maxFragmentSize < 64*1024 {
@@ -272,10 +272,10 @@ func (c *Connector) Startup() (err error) {
 
 // Shutdown the microservice by deactivating subscriptions and disconnecting from the NATS bus.
 func (c *Connector) Shutdown() (err error) {
-	if !c.started {
+	if !c.IsStarted() {
 		return errors.New("not started")
 	}
-	c.started = false
+	c.started.Store(false)
 
 	// OpenTelemetry: create a span for the callback
 	ctx, span := c.StartSpan(context.Background(), "shutdown", trc.Internal())
@@ -394,7 +394,7 @@ func (c *Connector) Shutdown() (err error) {
 
 // IsStarted indicates if the microservice has been successfully started.
 func (c *Connector) IsStarted() bool {
-	return c.started
+	return c.started.Load()
 }
 
 // Lifetime returns a context that gets cancelled when the microservice is shutdown.
@@ -408,7 +408,7 @@ func (c *Connector) Lifetime() context.Context {
 // If such an error occurs, the connector fails to start.
 // This is useful since errors can be ignored during initialization.
 func (c *Connector) captureInitErr(err error) error {
-	if err != nil && c.initErr == nil && !c.started {
+	if err != nil && c.initErr == nil && !c.IsStarted() {
 		c.initErr = err
 	}
 	return err
@@ -418,7 +418,7 @@ func (c *Connector) captureInitErr(err error) error {
 // Errors and panics are automatically captured and logged.
 // On shutdown, the microservice will attempt to gracefully end a pending goroutine before termination.
 func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err error)) error {
-	if !c.started {
+	if !c.IsStarted() {
 		return errors.New("not started")
 	}
 	atomic.AddInt32(&c.pendingOps, 1)

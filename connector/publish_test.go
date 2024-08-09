@@ -161,10 +161,10 @@ func BenchmarkConnector_EchoParallelMax(b *testing.B) {
 	echoParallel(b, b.N)
 
 	// On 2021 MacBook Pro M1 16":
-	// N=78519 concurrent
-	// 12934 ns/op (77315 ops/sec) = approx 6x that of serial
-	// 19799 B/op
-	// 285 allocs/op
+	// N=91160 concurrent
+	// 12577 ns/op (79510 ops/sec) = approx 8x that of serial
+	// 19347 B/op
+	// 280 allocs/op
 }
 
 func BenchmarkConnector_EchoParallel1K(b *testing.B) {
