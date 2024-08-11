@@ -82,7 +82,7 @@ func TestCodegen_YAMLFile(t *testing.T) {
 	lines := bytes.Split(onDisk, []byte("\n"))
 	for i := range lines {
 		if bytes.HasPrefix(lines[i], []byte("#")) {
-			if rand.Intn(2) == 0 {
+			if rand.IntN(2) == 0 {
 				newLines = append(newLines, []byte("#"+rand.AlphaNum64(8)))
 			}
 		} else {

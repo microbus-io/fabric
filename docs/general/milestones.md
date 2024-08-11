@@ -234,3 +234,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Fixed data race in metrics collection
 * Added `connector.StopTicker`
 * Fixed deadlock when running tickers
+* Refactor custom `rand` package to use `math/rand/v2`

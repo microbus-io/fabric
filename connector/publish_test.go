@@ -103,10 +103,10 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	testarossa.Equal(b, int32(b.N), echoCount.Load())
 
 	// On 2021 MacBook Pro M1 16":
-	// N=12295
-	// 95594 ns/op (10460 ops/sec)
-	// 20024 B/op
-	// 282 allocs/op
+	// N=12117
+	// 94226 ns/op (10612 ops/sec)
+	// 19672 B/op
+	// 277 allocs/op
 }
 
 func BenchmarkConnector_SerialChain(b *testing.B) {

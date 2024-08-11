@@ -17,10 +17,10 @@ limitations under the License.
 package lru
 
 import (
+	"math/rand/v2"
 	"testing"
 	"time"
 
-	"github.com/microbus-io/fabric/rand"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -203,7 +203,7 @@ func TestLRU_Delete(t *testing.T) {
 	sim := map[int]string{}
 	cache := NewCache[int, string]()
 	for i := 0; i < 2048; i++ {
-		n := rand.Intn(span * 2)
+		n := rand.IntN(span * 2)
 		if n >= span {
 			delete(sim, n-span)
 			cache.Delete(n - span)
@@ -400,11 +400,11 @@ func TestLRU_RandomCohesion(t *testing.T) {
 	cache := NewCache[int, string]()
 
 	for step := 0; step < 100000; step++ {
-		key := rand.Intn(8)
-		wt := rand.Intn(4) + 1
-		maxAge := time.Duration(rand.Intn(30)) * time.Second
-		bump := rand.Intn(1) == 0
-		op := rand.Intn(7)
+		key := rand.IntN(8)
+		wt := rand.IntN(4) + 1
+		maxAge := time.Duration(rand.IntN(30)) * time.Second
+		bump := rand.IntN(1) == 0
+		op := rand.IntN(7)
 		switch op {
 		case 0, 1, 2:
 			cache.Store(key, "X", Weight(wt))

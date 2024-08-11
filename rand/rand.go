@@ -17,49 +17,26 @@ limitations under the License.
 package rand
 
 import (
-	cryptorand "crypto/rand"
-	"encoding/binary"
-	mathrand "math/rand"
-	"sync"
-	"sync/atomic"
+	"math/rand/v2"
 )
 
 // Void is an empty type.
 type Void any
 
-var (
-	pool sync.Pool
-	ops  int32
-)
-
-func init() {
-	// Prepopulate the pool
-	for i := 0; i < 16; i++ {
-		go pool.Put(New())
+// Read generates random bytes and writes them into the buffer.
+// It always returns the length of the buffer and a nil error.
+func Read(bytes []byte) (n int, err error) {
+	var x uint64
+	length := len(bytes)
+	for i := 0; i < length; i++ {
+		if i%8 == 0 {
+			x = rand.Uint64()
+		} else {
+			x = x >> 8
+		}
+		bytes[i] = byte(x & 0xFF)
 	}
-	pool.New = func() interface{} {
-		return New()
-	}
-}
-
-// New creates a new math random generator seeded by a crypto random number.
-func New() *mathrand.Rand {
-	// Generate crypto random 64-bit seed
-	b := make([]byte, 8)
-	cryptorand.Read(b)
-	n := binary.LittleEndian.Uint64(b)
-	// Create a math random generator seeded with the seed
-	s := mathrand.NewSource(int64(n))
-	return mathrand.New(s)
-}
-
-// Read generates len(p) random bytes and writes them into p. It
-// always returns len(p) and a nil error.
-func Read(p []byte) (n int, err error) {
-	r := poolGet()
-	n, err = r.Read(p)
-	poolReturn(r)
-	return n, err
+	return length, err
 }
 
 // AlphaNum64 generates a random string of the specified length.
@@ -67,9 +44,14 @@ func Read(p []byte) (n int, err error) {
 func AlphaNum64(length int) string {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01"
 	bytes := make([]byte, length)
-	Read(bytes)
-	for i, b := range bytes {
-		bytes[i] = letters[b&0x3F]
+	var x uint64
+	for i := 0; i < length; i++ {
+		if i%8 == 0 {
+			x = rand.Uint64()
+		} else {
+			x = x >> 8
+		}
+		bytes[i] = letters[x&0x3F]
 	}
 	return string(bytes)
 }
@@ -79,45 +61,21 @@ func AlphaNum64(length int) string {
 func AlphaNum32(length int) string {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 	bytes := make([]byte, length)
-	Read(bytes)
-	for i, b := range bytes {
-		bytes[i] = letters[b&0x1F]
+	var x uint64
+	for i := 0; i < length; i++ {
+		if i%8 == 0 {
+			x = rand.Uint64()
+		} else {
+			x = x >> 8
+		}
+		bytes[i] = letters[x&0x1F]
 	}
 	return string(bytes)
 }
 
-// Intn generates a random number in the range [0,n).
-func Intn(n int) int {
-	if n == 1 {
-		return 0
-	}
-	r := poolGet()
-	m := r.Intn(n)
-	poolReturn(r)
-	return m
-}
-
-// poolGet returns a crypto-seeded math random generator.
-func poolGet() *mathrand.Rand {
-	return pool.Get().(*mathrand.Rand)
-}
-
-// poolReturn returns the math random generator to the pool, reseeding it every so often.
-func poolReturn(r *mathrand.Rand) {
-	// Reseed only once every 4096 operations
-	o := atomic.AddInt32(&ops, 1)
-	if o&0xFFF != 0 {
-		pool.Put(r)
-		return
-	}
-	// Do not block while performing crypto operation
-	go func() {
-		// Generate crypto random 64-bit seed
-		b := make([]byte, 8)
-		cryptorand.Read(b)
-		n := binary.LittleEndian.Uint64(b)
-		// Reseed the math random generator
-		r.Seed(int64(n))
-		pool.Put(r)
-	}()
+// IntN returns, as an int, a pseudo-random number in the half-open interval [0,n)
+// from the default Source.
+// It panics if n <= 0.
+func IntN(n int) int {
+	return rand.IntN(n)
 }

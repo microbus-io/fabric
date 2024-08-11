@@ -667,11 +667,11 @@ func TestDLRU_RandomActions(t *testing.T) {
 
 	state := map[string][]byte{}
 	for i := 0; i < 10000; i++ {
-		cache := caches[rand.Intn(len(caches))]
-		key := strconv.Itoa(rand.Intn(20))
-		switch rand.Intn(4) {
+		cache := caches[rand.IntN(len(caches))]
+		key := strconv.Itoa(rand.IntN(20))
+		switch rand.IntN(4) {
 		case 1, 2: // Load
-			bump := rand.Intn(2) == 1
+			bump := rand.IntN(2) == 1
 			val1, ok1, err := cache.Load(ctx, key, dlru.Bump(bump))
 			testarossa.NoError(t, err)
 			val2, ok2 := state[key]
