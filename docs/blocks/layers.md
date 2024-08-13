@@ -74,7 +74,7 @@ The [distributed cache](../blocks/distrib-cache.md) is an in-memory cache that i
 
 Microservices are [shutdown gracefully](../blocks/graceful-shutdown.md). All pending requests, goroutines and jobs are drained before the microservice quits.
 
-Images, scripts, templates and any other __static resources__ are made available to each microservice by association of a file system (FS).
+Images, scripts, templates and any other [static resources](../blocks/embedded-res.md) are made available to each microservice by association of a file system (`FS`).
 
 A specially named resource `strings.yaml` enables __internationalization (i18n)__ of user-facing display strings.
 
@@ -102,7 +102,7 @@ Microservice are connected to the messaging bus with a [persistent multiplexed c
 
 [Ack or fail fast](../blocks/ack-or-fail.md) is a pattern by which the server responds with an ack to the client before processing the request. The client knows to wait for the response only if an ack is received, and fail quickly if it's not.
 
-A microservices transparently makes itself __discoverable__ by subscribing to the messaging bus. Once subscribed to a subject it immediately starts receiving message from the corresponding queue. An external discovery service is not required.
+A microservices transparently makes itself [discoverable](./docs/blocks/discovery.md) by subscribing to the messaging bus. Once subscribed to a subject it immediately starts receiving message from the corresponding queue. An external service discovery system is not required.
 
 __Load balancing__ is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. An external load balancer is not required.
 

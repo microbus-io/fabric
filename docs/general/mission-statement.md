@@ -12,7 +12,7 @@
 
 The name `Microbus` stems from the fact that `micro`services communicate with each other over a messaging `bus`.
 The bus enables both the [request/response](../blocks/unicast.md) and [publish/subscribe](../blocks/multicast.md) patterns of communications
-and is also responsible for load balancing and service discovery.
+and is also responsible for load balancing and [service discovery](../blocks/discovery.md).
 
 ### Holistic
 
@@ -126,7 +126,7 @@ As a framework, `Microbus` is expected to run business-critical solutions. It is
 
 ### Horizontal scalability
 
-Components at all [layers](../blocks/layers.md) of `Microbus` are horizontally scalable. There is no single points of failure or bottlenecks. At the transport layer, the messaging bus forms a full mesh so that any message traverses no more than two nodes regardless of the size of the cluster. At the application layer, dynamic discovery makes it trivial to add replicas of microservices and scale the solution.
+Components at all [layers](../blocks/layers.md) of `Microbus` are horizontally scalable. There is no single points of failure or bottlenecks. At the transport layer, the messaging bus forms a full mesh so that any message traverses no more than two nodes regardless of the size of the cluster. At the application layer, [dynamic service discovery](../blocks/discovery.md) makes it trivial to add replicas of microservices and scale the solution.
 
 ### Industry Standards
 

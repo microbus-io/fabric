@@ -4,7 +4,7 @@ All microservices on the `Microbus` subscribe to handle control messages on the 
 
 ## Ping
 
-The `:888/ping` endpoint enables the dynamic discovery of microservices. The ping handler is subscribed to both the hostname of the service and to the special host `all`, allowing the discovery of replicas of a specific microservice, or of all microservices.
+The `:888/ping` endpoint enables runtime discovery of microservices. The ping handler is subscribed to both the hostname of the service and to the special host `all`, allowing the discovery of replicas of a specific microservice, or of all microservices.
 
 To discover all instances of `www.example.com` using the `Publish` method of the connector:
 

@@ -15,6 +15,7 @@ For starters, while NATS supports a purely arbitrary binary message format, `Mic
 ## Emulating Request/Response
 
 <img src="unicast-1.drawio.svg" width="561">
+<p></p>
 
 Request/response is achieved by utilizing carefully crafted subjects (topics) as means of delivering messages to their destination. Each endpoint of a microservice is assigned a dedicated subject based on the method and path it handles. For example, handling any method at `https://server.host:443/path/func` is mapped to the NATS subject `microbus.443.host.server.|.*.path.func`. With that, when a microservice wants to handle calls to any given endpoint (identified by a URL and optionally a method) it will subscribe to the appropriate NATS subject. And when a microservice wants to make a call to another microservice's endpoint (method and URL), all it has to do is publish a message to the appropriate subject.
 

@@ -47,7 +47,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * [Unicast](./docs/blocks/unicast.md) 1:1 request/response
 * [Multicast](./docs/blocks/multicast.md) 1:N publish/subscribe
 * [Persistent multiplexed connections](./docs/blocks/multiplexed.md)
-* Dynamic service discovery
+* [Dynamic service discovery](./docs/blocks/discovery.md)
 * Load balancing
 * [Time budget](./docs/blocks/time-budget.md)
 * [Ack or fail fast](./docs/blocks/ack-or-fail.md)
@@ -67,7 +67,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * [OpenAPI](./docs/blocks/openapi.md)
 * [Graceful shutdown](./docs/blocks/graceful-shutdown.md)
 * [Distributed caching](./docs/blocks/distrib-cache.md)
-* Linked static resources
+* [Embedded static resources](./docs/blocks/embedded-res.md)
 * [Recurring jobs](./docs/blocks/tickers.md)
 
 ## 🎯 Mission Statement
@@ -141,7 +141,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 ### Design Choices
 
 * [Encapsulation pattern](./docs/tech/encapsulation.md) - The reasons for encapsulating third-party technologies
-* [JSON vs Protobuf](./docs/tech/jsonvsprotobuf.md) - Why JSON over HTTP was chosen as the protocol
+* [JSON vs Protobuf](./docs/tech/json-vs-protobuf.md) - Why JSON over HTTP was chosen as the protocol
 * [Out of scope](./docs/tech/out-of-scope.md) - Areas that `Microbus` stays out of
 
 ### Miscellaneous

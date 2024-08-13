@@ -1,6 +1,6 @@
 # Uniform Code Structure
 
-The code generator creates numerous files and sub-directories in the directory of the microservice.
+The code generator creates numerous files and subdirectories in the directory of the microservice.
 
 ```
 {name}
@@ -35,7 +35,7 @@ The `intermediate` directory (and package) defines the `Intermediate` and the `M
 
 `integration-gen_test.go` is a testing harness that facilitates the implementation of integration tests, which are expected to be implemented in `integration_test.go`
 
-The `resources` directory is a place to put static files to be embedded (linked) into the executable of the microservice. Templates, images, scripts, etc. are some examples of what can potentially be embedded.
+The `resources` directory is a place to put [static files to be embedded](../blocks/embedded-res.md) into the executable of the microservice. Templates, images and scripts are some examples of what can potentially be embedded.
 
 `service-gen.go` primarily includes the function to create a `NewService`.
 
