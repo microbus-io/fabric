@@ -76,7 +76,7 @@ Microservices are [shutdown gracefully](../blocks/graceful-shutdown.md). All pen
 
 Images, scripts, templates and any other [static resources](../blocks/embedded-res.md) are made available to each microservice by association of a file system (`FS`).
 
-A specially named resource `strings.yaml` enables __internationalization (i18n)__ of user-facing display strings.
+A specially-named resource `strings.yaml` enables [internationalization (i18n)](../blocks/i18n.md) of user-facing display strings.
 
 ### Observability
 

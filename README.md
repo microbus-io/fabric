@@ -137,6 +137,8 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Graceful shutdown](./docs/blocks/graceful-shutdown.md) - Graceful shutdown drains pending operations before termination
 * [Tickers](./docs/blocks/tickers.md) - Tickers are jobs that run on a schedule
 * [Multiplexed connections](./docs/blocks/multiplexed.md) - Multiplexed connections are more efficient than HTTP/1.1
+* [Load balancing](./docs/blocks/lb.md) - Load balancing requests among all replicas of a microservice
+* [Internationalization](./docs/blocks/i18n.md) - Loading and localizing strings from `strings.yaml`
 
 ### Design Choices
 
