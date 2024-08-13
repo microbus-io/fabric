@@ -104,7 +104,7 @@ Microservice are connected to the messaging bus with a [persistent multiplexed c
 
 A microservices transparently makes itself [discoverable](./docs/blocks/discovery.md) by subscribing to the messaging bus. Once subscribed to a subject it immediately starts receiving message from the corresponding queue. An external service discovery system is not required.
 
-__Load balancing__ is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. An external load balancer is not required.
+[Load balancing](../blocks/lb.md) is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. An external load balancer is not required.
 
 With __locality-aware routing__ unicast requests are routed to the replica of the destination whose locality is nearest to the caller's locality. Locality is typically configured by means of an [environment variable](../tech/envars.md).
 

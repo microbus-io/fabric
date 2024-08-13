@@ -48,7 +48,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * [Multicast](./docs/blocks/multicast.md) 1:N publish/subscribe
 * [Persistent multiplexed connections](./docs/blocks/multiplexed.md)
 * [Dynamic service discovery](./docs/blocks/discovery.md)
-* Load balancing
+* [Load balancing](./docs/blocks/lb.md)
 * [Time budget](./docs/blocks/time-budget.md)
 * [Ack or fail fast](./docs/blocks/ack-or-fail.md)
 * Locality-aware routing

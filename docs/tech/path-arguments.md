@@ -131,7 +131,7 @@ func (svc *Service) AvatarImage(w http.ResponseWriter, r *http.Request) (err err
 
 ## Warning
 
-Path arguments are not recommended for pervasive (non-load balanced) endpoints, events or sinks. Using path arguments in these cases will result in significantly slower response times because they interfere with an optimization that relies on a fixed URL pattern.
+Path arguments are not recommended for pervasive (multicast) endpoints, events or sinks. Using path arguments in these cases will result in significantly slower response times because they interfere with an optimization that relies on a fixed URL pattern.
 
 ```yaml
 functions:

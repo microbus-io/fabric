@@ -12,7 +12,7 @@
 
 The name `Microbus` stems from the fact that `micro`services communicate with each other over a messaging `bus`.
 The bus enables both the [request/response](../blocks/unicast.md) and [publish/subscribe](../blocks/multicast.md) patterns of communications
-and is also responsible for load balancing and [service discovery](../blocks/discovery.md).
+and is also responsible for [load balancing](../blocks/lb.md) and [service discovery](../blocks/discovery.md).
 
 ### Holistic
 
