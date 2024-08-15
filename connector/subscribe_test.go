@@ -813,3 +813,52 @@ func TestConnector_SubscriptionLocality(t *testing.T) {
 		alpha.localResponder.Clear() // Reset
 	}
 }
+
+func TestConnector_SubscriptionNoLocalityWithID(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Create the microservices
+	alpha := New("alpha.subscription.no.locality.with.id.connector")
+	alpha.SetLocality("az1.dc2.west.us")
+
+	beta := New("beta.subscription.no.locality.with.id.connector")
+	beta.SetLocality("az1.dc2.west.us")
+	beta.Subscribe("GET", "byid", func(w http.ResponseWriter, r *http.Request) error {
+		// When targeting a microservice by its ID, locality-aware optimization should not kick in
+		testarossa.Equal(t, beta.id+".beta.subscription.no.locality.with.id.connector:443", r.Host)
+		return nil
+	})
+	first := true
+	beta.Subscribe("GET", "byhost", func(w http.ResponseWriter, r *http.Request) error {
+		// When targeting by host, locality-aware optimization should kick in after the first request
+		if first {
+			testarossa.Equal(t, "beta.subscription.no.locality.with.id.connector:443", r.Host)
+			first = false
+		} else {
+			testarossa.Equal(t, "az1.dc2.west.us.beta.subscription.no.locality.with.id.connector:443", r.Host)
+		}
+		return nil
+	})
+
+	err := alpha.Startup()
+	testarossa.NoError(t, err)
+	defer alpha.Shutdown()
+	err = beta.Startup()
+	testarossa.NoError(t, err)
+	defer beta.Shutdown()
+
+	for repeat := 0; repeat < 16; repeat++ {
+		_, err := alpha.GET(ctx, "https://"+beta.ID()+".beta.subscription.no.locality.with.id.connector/byid")
+		if !testarossa.NoError(t, err) {
+			break
+		}
+	}
+	for repeat := 0; repeat < 16; repeat++ {
+		_, err := alpha.GET(ctx, "https://beta.subscription.no.locality.with.id.connector/byhost")
+		if !testarossa.NoError(t, err) {
+			break
+		}
+	}
+}

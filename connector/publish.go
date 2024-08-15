@@ -131,10 +131,11 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	}
 
 	// Locality-aware routing
+	optimizeLocality := !req.Multicast && c.locality != ""
 	origURL := req.URL
 	localityCacheKey := ""
 	lastKnownLocality := ""
-	if !req.Multicast && c.locality != "" {
+	if optimizeLocality {
 		localityCacheKey, _, _ = strings.Cut(origURL, "?")
 		lastKnownLocality, _ = c.localResponder.Load(localityCacheKey, lru.Bump(true))
 		if lastKnownLocality != "" {
@@ -148,7 +149,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 	output := c.makeRequest(ctx, req)
 
 	// Locality-aware routing
-	if !req.Multicast && c.locality != "" {
+	if optimizeLocality {
 		res, err := output[0].Get()
 		if lastKnownLocality != "" && errors.StatusCode(err) == http.StatusNotFound {
 			// No response from the localized URL so retry at the original URL
@@ -159,19 +160,22 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) <-chan *
 			res, _ = output[0].Get()
 		}
 		responseLocality := frame.Of(res).Locality()
-		if responseLocality != "" && len(responseLocality) > len(lastKnownLocality) {
-			longestCommonSuffix := ""
-			parts := strings.Split(responseLocality, ".")
-			for i := len(parts) - 1; i >= 0; i-- {
-				l := strings.Join(parts[i:], ".")
-				if c.locality == l || strings.HasSuffix(c.locality, "."+l) {
-					longestCommonSuffix = l
-				} else {
-					break
+		if len(responseLocality) > len(lastKnownLocality) {
+			_, after, _ := strings.Cut(origURL, "://")
+			if !strings.HasPrefix(after, frame.Of(res).FromID()+".") { // Do not optimize when addressing a service by its ID
+				longestCommonSuffix := ""
+				parts := strings.Split(responseLocality, ".")
+				for i := len(parts) - 1; i >= 0; i-- {
+					l := strings.Join(parts[i:], ".")
+					if c.locality == l || strings.HasSuffix(c.locality, "."+l) {
+						longestCommonSuffix = l
+					} else {
+						break
+					}
 				}
-			}
-			if len(longestCommonSuffix) > len(lastKnownLocality) {
-				c.localResponder.Store(localityCacheKey, longestCommonSuffix)
+				if len(longestCommonSuffix) > len(lastKnownLocality) {
+					c.localResponder.Store(localityCacheKey, longestCommonSuffix)
+				}
 			}
 		}
 	}
