@@ -59,19 +59,27 @@ type Frame struct {
 // Of creates a new frame wrapping the headers of the HTTP request, response, response writer, header, or context.
 func Of(x any) Frame {
 	var h http.Header
-	if x != nil {
-		switch v := x.(type) {
-		case Frame:
-			h = v.h
-		case *http.Request:
+	switch v := x.(type) {
+	case Frame:
+		h = v.h
+	case *http.Request:
+		if v != nil {
 			h = v.Header
-		case *http.Response:
+		}
+	case *http.Response:
+		if v != nil {
 			h = v.Header
-		case http.ResponseWriter:
+		}
+	case http.ResponseWriter:
+		if v != nil {
 			h = v.Header()
-		case http.Header:
+		}
+	case http.Header:
+		if v != nil {
 			h = v
-		case context.Context:
+		}
+	case context.Context:
+		if v != nil {
 			h, _ = v.Value(contextKey).(http.Header)
 		}
 	}
