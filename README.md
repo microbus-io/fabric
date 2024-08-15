@@ -51,7 +51,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * [Load balancing](./docs/blocks/lb.md)
 * [Time budget](./docs/blocks/time-budget.md)
 * [Ack or fail fast](./docs/blocks/ack-or-fail.md)
-* Locality-aware routing
+* [Locality-aware routing](./docs/blocks/locality-aware-routing.md)
 * Connectivity liveness check
 
 #### Precision Observability
@@ -139,6 +139,7 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Multiplexed connections](./docs/blocks/multiplexed.md) - Multiplexed connections are more efficient than HTTP/1.1
 * [Load balancing](./docs/blocks/lb.md) - Load balancing requests among all replicas of a microservice
 * [Internationalization](./docs/blocks/i18n.md) - Loading and localizing strings from `strings.yaml`
+* [Locality-aware routing](./docs/blocks/locality-aware-routing.md) - Optimizing service-to-service communication
 
 ### Design Choices
 

@@ -279,8 +279,9 @@ func (c *Connector) SetPlane(plane string) error {
 
 // SetLocality sets the geographic locality of the microservice which is used to optimize routing.
 // Localities are hierarchical with the more specific identifiers first, separated by dots.
-// It can be set to correlate to AWS regions such as az1.dc2.west.us, or arbitrarily to rome.italy.europe for example.
+// It can be set to correlate to AWS regions such as "1.b.west.us", or arbitrarily to "rome.italy.europe" for example.
 // Localities are case-insensitive. Each segment of the hostname may contain letters, numbers, hyphens or underscores only.
+// The special values "AWS" or "GCP" can be set to determine the locality automatically from the cloud provider's meta-data servers.
 func (c *Connector) SetLocality(locality string) error {
 	if c.IsStarted() {
 		return c.captureInitErr(errors.New("already started"))

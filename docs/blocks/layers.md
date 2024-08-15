@@ -106,7 +106,7 @@ A microservices transparently makes itself [discoverable](./docs/blocks/discover
 
 [Load balancing](../blocks/lb.md) is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. An external load balancer is not required.
 
-With __locality-aware routing__ unicast requests are routed to the replica of the destination whose locality is nearest to the caller's locality. Locality is typically configured by means of an [environment variable](../tech/envars.md).
+With [locality-aware routing](../blocks/locality-aware-routing.md) unicast requests are routed to the replica of the downstream microservice whose locality is nearest to the upstream's locality.
 
 A microservice is __alive__ when it is connected to the messaging bus and can send and receive messages. The bus validates the connection using regular pings. Explicit liveness checks are unnecessary. 
 

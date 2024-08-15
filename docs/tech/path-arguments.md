@@ -2,7 +2,7 @@
 
 Path arguments are request arguments that are extracted from a URL's path rather than its query string.
 
-[Warning!](#warning) Path arguments interfere with multicast as well as locality-aware routing. 
+[Warning!](#warning) Path arguments interfere with [multicast](../blocks/multicast.md) as well as [locality-aware routing](../blocks/locality-aware-routing.md).
 
 ## Fixed Path
 
