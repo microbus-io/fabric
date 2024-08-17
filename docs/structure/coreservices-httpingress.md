@@ -1,7 +1,5 @@
 # Package `coreservices/httpingress`
 
-## Purpose
-
 Think of `Microbus` as a closed garden that requires a special key to access. In order to send and receive messages on `Microbus`, it's necessary to communicate over NATS using a specific protocol. This is basically what the `Connector` facilitates for service-to-service calls.
 
 Practically all solutions require interaction with a source that is outside `Microbus`. The most common scenario is perhaps a request generated from a web browser to a public API endpoint. In this case, something needs to bridge the gap between the incoming real HTTP request and the HTTP messages that travel over `Microbus`. This is where the HTTP ingress proxy comes into play.
@@ -16,7 +14,7 @@ On one end, the HTTP ingress proxy listens on port `:8080` for real HTTP request
 * Port `:443` is assumed by default when a port is not explicitly specified. Internal ports can be designated in the first segment of the path. For example, `http://localhost:8080/echo.example:1234/echo` is mapped to the bus address `https://echo.example:1234/echo`.
 * The empty root path is transformed to `/root`, therefore `http://localhost:8080/` is mapped to `https://root`.
 
-## Configuration
+### Configuration
 
 The HTTP ingress proxy supports several configuration properties that can be set in in `config.yaml`:
 
@@ -53,7 +51,7 @@ Four config properties are used to safeguard against long requests:
 
 `AllowedOrigins` is a comma-separated list of CORS origins to allow requests from. The `*` origin can be used to allow CORS request from all origins.
 
-## Respected Headers
+### Respected Headers
 
 The HTTP ingress proxy respects the following incoming headers:
 
@@ -62,7 +60,7 @@ The HTTP ingress proxy respects the following incoming headers:
 * `X-Forwarded-Host`, `X-Forwarded-Port`, `X-Forwarded-Proto` and `X-Forwarded-Prefix` are augmented with the ingress proxy's information 
 * `Origin` may cause a request to be blocked
 
-## Middleware
+### Middleware
 
 Middleware is a function that can be added to pre- or post-process a request. Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware, passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware, and passes it back to the preceding (upstream) middleware. Both request and response may be modified by the middleware.
 

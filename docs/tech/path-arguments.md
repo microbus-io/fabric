@@ -4,7 +4,7 @@ Path arguments are request arguments that are extracted from a URL's path rather
 
 [Warning!](#warning) Path arguments interfere with [multicast](../blocks/multicast.md) as well as [locality-aware routing](../blocks/locality-aware-routing.md).
 
-## Fixed Path
+### Fixed Path
 
 In the typical case, endpoints of a microservice have fixed URLs at which they are reachable. Consider the following `service.yaml` specification.
 
@@ -31,7 +31,7 @@ Host: calculator.example
 {"x":5,"y":5}
 ```
 
-## Variable Path
+### Variable Path
 
 A fixed path is consistent with the [RPC over JSON](./rpc-vs-rest.md) style of API but is insufficient for implementing a [RESTful](./rpc-vs-rest.md) style of API where it is common to expect input arguments in the path of the request. This is where path arguments come into play.
 
@@ -55,7 +55,7 @@ GET /1 HTTP/1.1
 Host: article
 ```
 
-## Greediness
+### Greediness
 
 A typical path argument only captures the data in one part of the path, i.e. between two `/`s in the path or after the last `/`. The values of these  arguments therefore cannot contain a `/`. However, multiple such path arguments may be defined in the path. 
 
@@ -77,7 +77,7 @@ functions:
     method: GET
 ```
 
-## Unnamed Arguments
+### Unnamed Arguments
 
 Path arguments that are left unnamed are automatically given the names `path1`, `path2` etc. in order of their appearance. In the following example, the three unnamed path arguments are named `path1`, `path2` and `path3`. It is recommended to name path arguments and avoid this ambiguity.
 
@@ -89,7 +89,7 @@ functions:
     method: GET
 ```
 
-## Conflicts
+### Conflicts
 
 Path arguments are a form of wildcard subscription and might overlap if not crafted carefully. In the following case, requests to `/hello/world` will alternate between the two handlers and will result in unpredictable behavior.
 
@@ -105,7 +105,7 @@ functions:
     method: GET
 ```
 
-## Web Handlers
+### Web Handlers
 
 Path arguments work also for web handlers but they must be parsed manually from the request's path. Consider the following example of a web handler:
 
@@ -129,7 +129,7 @@ func (svc *Service) AvatarImage(w http.ResponseWriter, r *http.Request) (err err
 }
 ```
 
-## Warning
+### Warning
 
 Path arguments are not recommended for pervasive (multicast) endpoints, events or sinks. Using path arguments in these cases will result in significantly slower response times because they interfere with an optimization that relies on a fixed URL pattern.
 

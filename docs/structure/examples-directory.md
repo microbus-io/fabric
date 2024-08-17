@@ -3,7 +3,7 @@
 The `directory.example` microservice is an example of a microservice that provides a RESTful CRUD API backed by a SQL database.
 For the sake of this example, if a connection to the SQL database cannot be established, the microservice emulates a database in-memory.
 
-## Adding SQL Support
+### Adding SQL Support
 
 It takes a couple of steps to add SQL support to a microservice.
 
@@ -65,7 +65,7 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 }
 ```
 
-## Connecting to the Database
+### Connecting to the Database
 
 This example requires a MariaDB database instance. If you don't already have one installed, you can add it to Docker using:
 
@@ -98,7 +98,7 @@ directory.example:
   SQL: "root:secret1234@tcp(127.0.0.1:3306)/microbus_examples"
 ```
 
-## Web UI
+### Web UI
 
 The directory microservice uses a RESTful API style rather than RPC over JSON. A RESTful API leverage HTTP methods other than just `GET`, which are impossible to call directly from the browser's address bar. To circumvent this restriction, the microservice includes a web endpoint called `WebUI` that provides a simple browser-like form that supports `GET`, `POST`, `PUT` and `DELETE`.
 
@@ -155,7 +155,7 @@ To load a record, `GET` from `/persons/key/1` (by key) or `/persons/email/harry.
 
 To delete a record, `DELETE` at `/persons/key/1`. Voldemort would be pleased.
 
-## OpenAPI
+### OpenAPI
 
 Alternatively, use the OpenAPI document of the microservice to interact with the directory microservice. Fetch the OpenAPI document at:
 

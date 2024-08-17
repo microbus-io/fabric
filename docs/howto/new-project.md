@@ -2,19 +2,19 @@
 
 Follow these steps to create a new project that takes advantage of `Microbus`.
 
-#### Step 1: Choose Package Name
+### Step 1: Choose Package Name
 
 Choose a name for the package to hold your project, for example `github.com/mycompany/mysolution`.
 
-#### Step 2: Create a Matching Directory
+### Step 2: Create a Matching Directory
 
-Make a directory to hold your projects files. It's recommended to follow the package structure.
+Make a directory to hold your projects files. It's recommended to mirror the package structure.
 
 ```cmd
 mkdir github.com/mycompany/mysolution
 ```
 
-#### Step 3: Init the Go Project
+### Step 3: Init the Go Project
 
 Init the Go project with the name of the package.
 
@@ -23,7 +23,7 @@ cd github.com/mycompany/mysolution
 go init github.com/mycompany/mysolution
 ```
 
-#### Step 4: Get `Microbus`
+### Step 4: Get `Microbus`
 
 Add `Microbus` to `go.mod` using:
 
@@ -31,7 +31,7 @@ Add `Microbus` to `go.mod` using:
 go get github.com/microbus-io/fabric
 ```
 
-#### Step 5: Create `main` Package
+### Step 5: Create `main` Package
 
 Make a `main` subdirectory under your project's root directory.
 
@@ -109,7 +109,7 @@ http.ingress.core:
 #  TimeBudget: 20s
 ```
 
-#### Step 6: Visual Studio Code Launcher
+### Step 6: Visual Studio Code Launcher
 
 If you're using Visual Studio Code, update `.vscode/launch.json` and add a configuration to run `main.go`:
 
@@ -129,6 +129,6 @@ If you're using Visual Studio Code, update `.vscode/launch.json` and add a confi
 }
 ```
 
-#### Step 7: Create Microservices
+### Step 7: Create Microservices
 
 [Create one microservice](../howto/create-microservice.md) at a time.

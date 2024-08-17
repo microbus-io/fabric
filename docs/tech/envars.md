@@ -11,15 +11,15 @@ The `Microbus` framework uses environment variables for various purposes:
 
 Environment variables may also be set by placing an `env.yaml` file in the working directory of the executable running the microservice. The bundled example application includes such a file at `main/env.yaml`.
 
-## NATS Connection
+### NATS Connection
 
 Before connecting to NATS, a microservice can't communicate with other microservices and therefore it can't reach the configurator microservice to fetch the values of its config properties. Connecting to NATS therefore must precede configuration which means that initializing the NATS connection itself can't be done using the standard configuration pattern. Instead, the [NATS connection is initialized using environment variables](../tech/nats-connection.md): `MICROBUS_NATS`, `MICROBUS_NATS_USER`, `MICROBUS_NATS_PASSWORD` and `MICROBUS_NATS_TOKEN`.
 
-## Deployment
+### Deployment
 
 The `MICROBUS_DEPLOYMENT` environment variable determines the [deployment environment](../tech/deployments.md) of the microservice: `PROD`, `LAB`, `LOCAL` or `TESTING`. If not specified, `PROD` is assumed, unless connecting to `nats://localhost:4222` or `nats://127.0.0.1:4222` in which case `LOCAL` is assumed.
 
-## Plane of Communication
+### Plane of Communication
 
 The plane of communication is a unique prefix set for all communications sent or received over NATS.
 It is used to isolate communication among a group of microservices over a NATS cluster
@@ -31,14 +31,14 @@ Applications created with `application.NewTesting` set a random plane to elimina
 
 This is an advanced feature and in most cases there is no need to customize the plane of communications.
 
-## Locality
+### Locality
 
 The `MICROBUS_LOCALITY` environment variable sets the locality of the microservice, which is used as the basis for [locality-aware routing](../blocks/locality-aware-routing.md).
 
-## Logging
+### Logging
 
 Setting the `MICROBUS_LOG_DEBUG` environment variable to any non-empty value is required for microservices to [log](../blocks/logging.md) debug-level messages.
  
-## Distributed Tracing
+### Distributed Tracing
 
 `Microbus` is using OpenTelemetry to send tracing spans to Jaeger via the OTLP HTTP collector. In order to enable tracing, the endpoint of the collector must be set in the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` environment variables.

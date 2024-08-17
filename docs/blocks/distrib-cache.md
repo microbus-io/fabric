@@ -2,7 +2,7 @@
 
 Caching is a powerful and common technique that reduces load on downstream databases as well as latency. In a microservices environment, where there are many replicas of the same microservices, it is often needed to share the cache among replicas. One replica might store an item in the cache, while another replica might load it. An invalidation of a cached element by one replica needs to be visible to all others.
 
-## Localized Cache
+### Localized Cache
 
 In `Microbus`, each microservice holds in-memory an [LRU cache](../structure/lru.md) that is shared with all peer replicas of the microservice, but not with other microservices. Each replica's local LRU cache is a segment of the entire cache. The cache uses pub/sub to communicate and synchronize with peers.
 
@@ -31,7 +31,7 @@ Data can survive a clean shutdown of a microservice if there is at least one oth
 
 Cached elements can get evicted for various reason and without warning. Cache only that which you can afford to lose and reconstruct from the original data source. A distributed cache is not shared memory. Do not use a distributed cache to share state among peers.
 
-## The Trouble With a Centralized Cache
+### The Trouble With a Centralized Cache
 
 Using a centralized cache is a common anti-pattern that may result in system instability or even an outage.
 

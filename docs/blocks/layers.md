@@ -5,12 +5,12 @@ Onions have layers, ogres have layers, and so does a good software architecture.
 `Microbus` solutions are constructed in 5 layers:
 
 * At the bottom of the stack is a curated selection of OSS technologies that are utilized and abstracted away by the next layer, the connector
-* The [connector](./docs/structure/connector.md) construct is the base class from which all microservices are derived. It provides a consistent API to most of the building blocks that are required for a microservice to operate and mesh with other microservices. Quite often they rely on OSS under the hood
-* A [code generator](./docs/blocks/codegen.md) brings type-safe RAD that is specific to the semantics of each individual microservice
+* The [connector](../blocks/structure/connector.md) construct is the base class from which all microservices are derived. It provides a consistent API to most of the building blocks that are required for a microservice to operate and mesh with other microservices. Quite often they rely on OSS under the hood
+* A [code generator](../blocks/codegen.md) brings type-safe RAD that is specific to the semantics of each individual microservice
 * The core microservices and the solution microservices are built using the code generator
 * Microservices are bundled together into [applications](../structure/application.md) according to the desired [topology](../blocks/topology.md)
 
-\
+<p></p>
 <img src="./layers-1.drawio.svg">
 <p></p>
 
@@ -46,17 +46,17 @@ The [OpenAPI portal](../structure/coreservices-openapiportal.md) microservice re
 
 ## Code Generator
 
-__Rapid application development (RAD)__ is achieved by using code generation to produce the skeleton and boilerplate code out of the declaration of the [characteristics of the microservice](../tech/service-yaml.md) in `service.yaml`. The developer needs only fill in the gaps and implement the business logic.
+[Code generation](../blocks/codegen.md) facilitates rapid application development (RAD) by generating boilerplate and skeleton code from declarations in a [`service.yaml`](../tech/service-yaml.md) file. The developer needs only fill in the gaps and implement the business logic.
 
-__Skeletons__ are created for each of the microservice's endpoints with `TODO` markers for the developer to fill in the gaps. For functional endpoints (RPCs), a wrapper takes care of unmarshaling the request's JSON payload into type-safe arguments.
+[Skeletons](../blocks/skeleton-code.md) are created for each of the microservice's endpoints with `TODO` markers for the developer to fill in the gaps. For functional endpoints (RPCs), a wrapper takes care of unmarshaling the request's JSON payload into type-safe arguments.
 
-__Client stubs__ are created for the microservice's public endpoints. These stubs are used by upstream clients to call the microservice in a type-safe fashion. For functional endpoints (RPCs), the stubs take care of marshaling the request arguments into a JSON payload.
+[Client stubs](../blocks/client-stubs.md) are created for the microservice's public endpoints. These stubs are used by upstream clients to call the microservice in a type-safe fashion. For functional endpoints (RPCs), the stubs take care of marshaling the request arguments into a JSON payload.
 
 [Events](../blocks/events.md) are a type-safe abstraction of publish/subscribe.
 
 The [integration test harness](../blocks/integration-testing.md) spins up the microservice under test along with the actual downstream microservices it depends on into a single testable application, allowing full-blown integration tests to run inside `go test`.
 
-An [OpenAPI document](../blocks/openapi.md) is automatically created for each of the microservice's endpoints.
+An [OpenAPI document](../blocks/openapi.md) is automatically created with descriptors for each of the microservice's endpoints.
 
 A [uniform code structure](../blocks/uniform-code.md) is a byproduct of using code generation. A familiar code structure helps engineers get oriented quickly also when they are not the original authors of the code.
 
@@ -102,13 +102,13 @@ Microservice are connected to the messaging bus with a [persistent multiplexed c
 
 [Ack or fail fast](../blocks/ack-or-fail.md) is a pattern by which the server responds with an ack to the client before processing the request. The client knows to wait for the response only if an ack is received, and fail quickly if it's not.
 
-A microservices transparently makes itself [discoverable](./docs/blocks/discovery.md) by subscribing to the messaging bus. Once subscribed to a subject it immediately starts receiving message from the corresponding queue. An external service discovery system is not required.
+A microservices transparently makes itself [discoverable](../blocks/discovery.md) by subscribing to the messaging bus. Once subscribed to a subject it immediately starts receiving message from the corresponding queue. An external service discovery system is not required.
 
 [Load balancing](../blocks/lb.md) is handled transparently by the messaging bus. Multiple microservices that subscribe to the same queue are delivered messages randomly. An external load balancer is not required.
 
 With [locality-aware routing](../blocks/locality-aware-routing.md) unicast requests are routed to the replica of the downstream microservice whose locality is nearest to the upstream's locality.
 
-A microservice is __alive__ when it is connected to the messaging bus and can send and receive messages. The bus validates the connection using regular pings. Explicit liveness checks are unnecessary. 
+A microservice is [alive](../blocks/connectivity-liveness-test.md) when it is connected to the messaging bus and can send and receive messages. The bus validates the connection using regular pings. Explicit liveness checks are unnecessary. 
 
 ## OSS
 

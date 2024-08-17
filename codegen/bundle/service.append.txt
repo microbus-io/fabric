@@ -2,6 +2,7 @@
 // OnChanged{{ .Name }} is triggered when the value of the {{ .Name }} config property changes.
 func (svc *Service) OnChanged{{ .Name }}(ctx context.Context) (err error) {
 	// TO{{/**/}}DO: Implement OnChanged{{ .Name }}
+	// val := svc.{{ .Name }}()
 	return nil
 }
 {{ end }}{{ end }}{{ end }}

@@ -1,6 +1,6 @@
 # Package `examples/messaging`
 
-## Messaging
+### Messaging
 
 The `/home` endpoint of the `messaging.example` microservice demonstrates three messaging patterns:
 * Load-balanced unicast
@@ -59,7 +59,7 @@ Refresh the page to see the IDs change:
 * The responder to the unicast request may change
 * The order of the responses to the multicast may change
 
-## Distributed Cache
+### Distributed Cache
 
 The `messaging.example` microservice also demonstrates how multiple replicas of the same microservice can share a single cache by communicating over NATS.
 

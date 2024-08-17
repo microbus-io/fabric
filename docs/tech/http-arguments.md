@@ -8,7 +8,7 @@ Functional endpoints support three specially named arguments to allow finer cont
 
 These arguments are often required when implementing a [RESTful API](./rpc-vs-rest.md).
 
-## `httpRequestBody`
+### `httpRequestBody`
 
 By default, the body of a request to a functional endpoint is a JSON object that contains a named field for each of the function's arguments. Consider the following RESTful functional endpoint `Create`:
 
@@ -60,7 +60,7 @@ Content-Type: application/json
 
 Because the argument `httpRequestBody` takes over the entire request body, no additional arguments may be posted in the request body. Any other input arguments are unmarshaled from either the path or the query of the request. This limits their size and is best saved for simple types.
 
-## `httpResponseBody`
+### `httpResponseBody`
 
 `httpResponseBody` operates the same way but for output arguments.
 
@@ -87,7 +87,7 @@ Content-Type: application/json
 
 Because the argument `httpResponseBody` takes over the entire response body, no additional arguments may be returned, except for `httpStatusCode`.
 
-## `httpStatusCode`
+### `httpStatusCode`
 
 `httpStatusCode` controls the HTTP status code returned by the function. For example, we might want the `Create` method discussed earlier to return HTTP status `201` instead of the default `200`.
 

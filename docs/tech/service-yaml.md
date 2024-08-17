@@ -1,6 +1,6 @@
 # `service.yaml`
 
-`service.yaml` defines the various characteristics of the microservice in a declarative fashion. The code generator then picks up these definitions to generate skeleton and boilerplate code, leaving it up to the developer to fill in the gaps and implement the business logic. Declarations can be added over time and applied incrementally.
+`service.yaml` defines the various characteristics of the microservice in a declarative fashion. The code generator then picks up these definitions to generate boilerplate and skeleton code, leaving it up to the developer to fill in the gaps and implement the business logic. Code generation is additive and idempotent. Declarations can be added over time and applied incrementally.
 
 `service.yaml` include several sections that define the characteristics of the microservice: general, configs, functions, events, sinks, webs, tickers.
 
@@ -61,7 +61,7 @@ If `callback` is set to `true`, a callback function will be generated and called
 ```go
 // OnChangedFoo is triggered when the value of the Foo config property changes.
 func (svc *Service) OnChangedFoo(ctx context.Context) (err error) {
-    return
+    return nil
 }
 ```
 

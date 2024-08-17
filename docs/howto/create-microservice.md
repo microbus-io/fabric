@@ -29,7 +29,7 @@ go generate
 
 #### Step 4: Declare the Functionality
 
-Fill in the [characteristics of the microservice](../tech/service-yaml.md) in `service.yaml`, and `go generate` to generate the skeleton code for the new microservice and its client stubs.
+Fill in the [characteristics of the microservice](../tech/service-yaml.md) in `service.yaml`, and `go generate` to generate the [skeleton code](../blocks/skeleton-code.md) for the new microservice and its [client stubs](../blocks/client-stubs.md).
 
 #### Step 5: Implement the Business Logic
 

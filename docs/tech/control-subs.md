@@ -2,7 +2,7 @@
 
 All microservices on the `Microbus` subscribe to handle control messages on the reserved port `:888` in addition to any subscriptions they create for their own use case.
 
-## Ping
+### Ping
 
 The `:888/ping` endpoint enables runtime discovery of microservices. The ping handler is subscribed to both the hostname of the service and to the special host `all`, allowing the discovery of replicas of a specific microservice, or of all microservices.
 
@@ -42,10 +42,10 @@ Or with `controlapi`:
 ch := controlapi.NewMulticastClient(svc).ForHost("all").Ping(ctx)
 ```
 
-## Config Refresh
+### Config Refresh
 
 The `:888/config-refresh` endpoint indicates to the microservice to contact the configurator to refetch the values of its config properties.
 
-## Trace
+### Trace
 
 The `:888/trace` endpoint indicates to the microservice to export all tracing spans belonging to the requested trace ID (as indicated by the `id` argument) to the OLTP collector.

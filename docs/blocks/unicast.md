@@ -1,7 +1,5 @@
 # Unicast Messaging
 
-## Overview
-
 One of the challenges with messaging buses is that they have an unfamiliar pattern that doesn't map well to modern web standards. When it comes to microservices, most developers are accustomed to thinking in terms of synchronous HTTP, not asynchronous messaging over a bus.
 `Microbus` overcomes this gap by emulating the familiar synchronous request/response pattern of HTTP over the asynchronous messaging pattern of NATS.
 
@@ -12,7 +10,7 @@ For starters, while NATS supports a purely arbitrary binary message format, `Mic
 * There are plenty of tools and libraries to work with the HTTP format
 * Conversion to and from "real" HTTP by the [ingress proxy service](httpingress.md) is trivial
 
-## Emulating Request/Response
+### Emulating Request/Response
 
 <img src="unicast-1.drawio.svg">
 <p></p>
@@ -25,7 +23,7 @@ It is necessary for the client to provide its return address in order for the se
 
 Another important header included by the client in each request is `Microbus-Msg-Id` which the server is required to echo back in the response. The client can be making thousands of requests in parallel whose responses can return in no particular order and the message ID in needed to map each response to the corresponding request. In the code, a `chan *http.Response` is created for each outgoing request and indexed by the message ID in a `map[string]chan *http.Response`. Requests await on the channel until a response comes back or a timeout occurs.
 
-## Example Walk-Through
+### Example Walk-Through
 
 To look at an example that puts this all together, start NATS in debug mode in another window using `./nats-server -D -V` (debug and verbose) and then run the `TestConnector_Echo` unit test located in `connector/publish_test.go`. The output below was edited for brevity.
 
@@ -105,7 +103,7 @@ Hello]
 [TRC] cid:1 - <<- [MSG microbus.r.connector.echo.alpha.dvm0oofeb5 1 242]
 ```
 
-## Notes on Subscription Subjects
+### Notes on Subscription Subjects
 
 The pattern of the subscription subject of an endpoint is `<plane>.<port>.<reversed hostname>.|.<method>.<path>`.
 A second subscription `<plane>.<port>.<reversed hostname>.<id>.|.<method>.<path>` is created to allow targeting the individual microservice by its ID.

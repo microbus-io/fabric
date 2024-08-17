@@ -2,7 +2,7 @@
 
 It's quite common for microservices to need to define properties whose values can be configured without code changes, often by non-engineers. Connection strings to a database, number of rows to display in a table, a timeout value, are all examples of configuration properties.
 
-In `Microbus`, the microservice owns the definition of its config properties, while [the configurator core microservice owns their values](../structure/coreservices-configurator.md). The former means that microservices are self-descriptive and independent, which is important in a distributed development environment. The latter means that managing configuration values and pushing them to a live system are centrally controlled, which is important because configs can contain secrets and because pushing the wrong config values can destabilize a deployment.
+In `Microbus`, the microservice owns the definition of its config properties, while [the configurator core microservice](../structure/coreservices-configurator.md) owns their values. The former means that microservices are self-descriptive and independent, which is important in a distributed development environment. The latter means that managing configuration values and pushing them to a live system are centrally controlled, which is important because configs can contain secrets and because pushing the wrong config values can destabilize a deployment.
 
 Configuration properties must first be defined by the microservice using `DefineConfig`. In the following example, the property is named `Foo` and given the default value `Bar` and a regexp requirement that the value is comprised of at least one letter and only letters. The case-insensitive property name is required. Various [options](../structure/cfg.md) allow setting a default value, enforcing validation, and more.
 
@@ -32,6 +32,10 @@ con.SetOnConfigChanged(func (ctx context.Context, changed func(string) bool) err
 })
 ```
 
-Note that the fetching config values from the configurator is disabled in the `TESTING` [deployment environment](../tech/deployments.md).
+More commonly, the configuration property is defined in [`service.yaml`](../tech/service-yaml.md#configs) rather than directly with the `Connector`. In this case, the [code generator](../blocks/codegen.md) takes care of generating the boilerplate code and creating an accessor method named after the configuration property, e.g. `svc.Foo()` and a [skeleton](../blocks/skeleton-code.md#config-change-callbacks) for the `OnChangedFoo` callback.
+
+### Notes
+
+Fetching config values from the configurator is disabled in the `TESTING` [deployment environment](../tech/deployments.md).
 
 Config values can be set programmatically using `SetConfig`, however such values will be overridden on the next fetch of config from the configurator. It is advisable to limit use of this action to testing scenarios when fetching values from the configurator is disabled.

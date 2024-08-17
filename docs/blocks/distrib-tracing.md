@@ -3,7 +3,7 @@
 Distributed tracing enables the visualization of the flow of function calls across microservices and processes. Without distributed tracing, it's extremely challenging to troubleshoot a distributed system.
 `Microbus` leverages [Jaeger](https://www.jaegertracing.io) and [OpenTelemetry](https://opentelemetry.io) to automatically create and collect tracing spans for executions of endpoints, [tickers](../blocks/tickers.md) and callbacks of all microservices and visualize them as a single stack trace.
 
-## Configuration
+### Configuration
 
 `Microbus` exports tracing spans via the OTLP HTTP collector. The `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or the `OTEL_EXPORTER_OTLP_ENDPOINT` [environment variables](../tech/envars.md) may be used to configure the collector's endpoint.
 
@@ -12,7 +12,7 @@ Whether or not a trace is exported to the collector depends on the [deployment e
 - In `LOCAL`, `TESTING` and `LAB` deployments, all traces are exported to the collector
 - In `PROD` deployments, only traces that contain at least one error span, or those that are otherwise explicitly selected using `svc.ForceTrace`, are exported to the collector
 
-## Example
+### Example
 
 Here's a Jaeger visualization of a fictitious microservice `alpha` using the notorious N+1 anti-pattern. One can easily spot the serialized nature of the code. It took 115ms to complete.
 

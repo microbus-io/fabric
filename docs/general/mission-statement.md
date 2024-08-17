@@ -40,7 +40,7 @@ Spin up the actual downstream microservices along with the microservice being te
 From a [local development](../tech/local-dev.md) machine to a multi-region cloud deployment, `Microbus`'s [adaptable topology](../blocks/topology.md) grows with your needs. No code change required.
 
 #### Operate
-Observe system internal with the help of [distributed tracing](../blocks/distrib-tracing.md), [metrics](./docs/blocks/metrics.md) dashboards, [structured logging](../blocks/logging.md) and [error capture](../blocks/error-capture.md).
+Observe system internal with the help of [distributed tracing](../blocks/distrib-tracing.md), [metrics](../blocks/metrics.md) dashboards, [structured logging](../blocks/logging.md) and [error capture](../blocks/error-capture.md).
 
 ### Why Microservices?
 
@@ -69,12 +69,12 @@ A powerful [code generator](../blocks/codegen.md) takes care of most of the repe
 
 `Microbus` implements best practices that pave the road and steer engineers away from common pitfalls.
 
-* Client stubs for calling remote microservices
-* Full live Integration testing
-* Time budget instead of point-to-point timeouts
-* Error capture and surfacing
-* Centralized configuration
-* Distributed cache siloed to each microservice, not globally centralized
+* [Client stubs](../blocks/client-stubs.md) for calling remote microservices
+* Full live [integration testing](../blocks/integration-testing.md)
+* [Time budget](../blocks/time-budget.md) instead of point-to-point timeouts
+* [Error capture](../blocks/error-capture.md) and surfacing
+* Centralized [configuration](../blocks/configuration.md)
+* [Distributed cache](../blocks/distrib-cache.md) siloed to each microservice, not globally centralized
 
 ### Elevated Engineering Experience
 
@@ -84,7 +84,7 @@ In fact, it takes only a few seconds to build and restart an entire solution, so
 
 A powerful [code generator](../blocks/codegen.md) takes care of most of the repetitive mundane work, freeing engineers to do meaningful work and deliver business value faster.
 
-Observability tools such as [distributed tracing](../blocks/distrib-tracing.md), [metrics](./docs/blocks/metrics.md) dashboards, [structured logging](../blocks/logging.md) and [error capture](../blocks/error-capture.md) provide visibility into the internals of the system, allowing precision identification of bugs and performance issues.
+Observability tools such as [distributed tracing](../blocks/distrib-tracing.md), [metrics](../blocks/metrics.md) dashboards, [structured logging](../blocks/logging.md) and [error capture](../blocks/error-capture.md) provide visibility into the internals of the system, allowing precision identification of bugs and performance issues.
 
 `Microbus`'s functionality is exposed through a [simple API](../tech/encapsulation.md) that is easy to learn. Engineers are able get up to speed quickly and become productive without having to learn the internals of the system. This principle of simplicity is also carried over to `Microbus`'s runtime where the small number of moving parts dramatically reduce the operational complexity.
 

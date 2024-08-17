@@ -1,6 +1,6 @@
 # Quick Start
 
-## Clone the Project
+### Clone the Project
 
 Fetch the code:
 
@@ -10,9 +10,9 @@ cd github.com/microbus-io
 git clone https://github.com/microbus-io/fabric
 ```
 
-Note: it is recommended to clone the code into a directory structure that mirrors the package structure.
+It is recommended to clone the code into a directory structure that mirrors the package structure.
 
-## Setup and Run the Development Environment
+### Setup and Run the Development Environment
 
 The `Microbus` framework depends on a few third-party services:
 
@@ -32,7 +32,7 @@ Docker Desktop should now show the `microbus` application:
 
 <img src="quick-start-1.png" width="875">
 
-## Run the Examples
+### Run the Examples
 
 Run the example app:
 
@@ -73,6 +73,6 @@ To view the same metrics in [Grafana](https://grafana.com/) dashboards, go to ht
 
 To view the distributed traces in [Jaeger](https://www.jaegertracing.io), go to http://localhost:16686.
 
-## Configure IDE
+### Configure IDE
 
 The [Todo Tree extension](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree) is recommended for VS Code users.

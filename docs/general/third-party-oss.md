@@ -2,7 +2,7 @@
 
 The following open source software (OSS) is used or referenced by the `Microbus` framework.
 
-## NATS
+### NATS
 https://nats.io
 #### Apache License 2.0
 
@@ -20,7 +20,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-## Go MySQL Driver
+### Go MySQL Driver
 https://github.com/go-sql-driver/mysql
 #### MPL License 2.0
 
@@ -32,7 +32,7 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this file,
 You can obtain one at http://mozilla.org/MPL/2.0/.
 
-## Prometheus
+### Prometheus
 https://prometheus.io
 #### Apache License 2.0
 
@@ -50,7 +50,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-## OpenTelemetry
+### OpenTelemetry
 https://github.com/open-telemetry/opentelemetry-go
 #### Apache License 2.0
 
@@ -68,7 +68,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-## Logrus
+### Logrus
 https://github.com/sirupsen/logrus
 
 #### MIT License
@@ -93,7 +93,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-## Go YAML
+### Go YAML
 https://github.com/go-yaml/yaml
 
 This project is covered by two different licenses: MIT and Apache.
@@ -145,7 +145,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-## MariaDB
+### MariaDB
 https://mariadb.com
 #### GNU General Public License
 
@@ -164,7 +164,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-## JSON Schema
+### JSON Schema
 https://github.com/invopop/jsonschema
 #### MIT License
 
@@ -188,7 +188,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## Cascadia
+### Cascadia
 https://github.com/andybalholm/cascadia
 #### BSD 2-Clause "Simplified" License
 
@@ -217,7 +217,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## Letters
+### Letters
 https://github.com/mnako/letters
 #### MIT License
 

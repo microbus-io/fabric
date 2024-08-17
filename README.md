@@ -52,7 +52,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 * [Time budget](./docs/blocks/time-budget.md)
 * [Ack or fail fast](./docs/blocks/ack-or-fail.md)
 * [Locality-aware routing](./docs/blocks/locality-aware-routing.md)
-* Connectivity liveness check
+* [Connectivity liveness check](./docs/blocks/connectivity-liveness-test.md)
 
 #### Precision Observability
 * [Structured logging](./docs/blocks/logging.md)
@@ -62,7 +62,7 @@ Build your microservices on top of a `Connector` construct and use its simple AP
 
 #### And more
 * [Configuration](./docs/blocks/configuration.md)
-* Client stubs
+* [Client stubs](./docs/blocks/client-stubs.md)
 * [Live integration tests](./docs/blocks/integration-testing.md)
 * [OpenAPI](./docs/blocks/openapi.md)
 * [Graceful shutdown](./docs/blocks/graceful-shutdown.md)
@@ -140,6 +140,9 @@ Dig deeper into the technology of `Microbus` and its philosophy.
 * [Load balancing](./docs/blocks/lb.md) - Load balancing requests among all replicas of a microservice
 * [Internationalization](./docs/blocks/i18n.md) - Loading and localizing strings from `strings.yaml`
 * [Locality-aware routing](./docs/blocks/locality-aware-routing.md) - Optimizing service-to-service communication
+* [Connectivity liveness tests](./docs/blocks/connectivity-liveness-test.md) - A microservice's connection to the messaging bus represents its liveness
+* [Skeleton code](./docs/blocks/skeleton-code.md) - Skeleton code is a placeholder for filling in meaningful code
+* [Client stubs](./docs/blocks/client-stubs.md) - Client stubs facilitate calling downstream microservices
 
 ### Design Choices
 

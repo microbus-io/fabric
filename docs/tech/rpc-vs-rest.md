@@ -2,7 +2,7 @@
 
 Two of the most common styles of web API design are RPC over JSON and REST. The choice between them is a matter of preference rather than functional and is akin to the choice between [tabs and spaces](https://www.youtube.com/watch?v=SsoOG6ZeyUI). Luckily, with `Microbus` you don't have to choose: you can have both.
 
-## RPC over JSON
+### RPC over JSON
 
 RPC is an abbreviation of remote procedure call and indeed this API style comes from a backend-centric perspective where each operation on the backend is a procedure. Endpoints on the backend are mapped to a URL path that reflects their name. Input arguments are passed as JSON in the body of the HTTP request or as query arguments. Output arguments are returned in the body of the HTTP response. In `Microbus`, RPC is the default API style exactly because it is a consistent and unambiguous way to map the HTTP request to the underlying Go implementation of the endpoint.
 
@@ -49,7 +49,7 @@ Content-Type: application/json
 {"sum":11}
 ```
 
-## RESTful
+### RESTful
 
 The REST API style comes from a web-centric perspective. Its philosophy is that everything on the web is a resource that can be identified with a URI and so a web API should reflect that. In REST, the request's path represents the resource and the HTTP method (`GET`, `POST`, `DELETE`, `PUT`) represents the operation done on that resource. This style works best for CRUD APIs but may not translate well when the API has no object that is being worked on. For example, the `Add` example from earlier doesn't translate well to REST.
 
@@ -154,7 +154,7 @@ Content-Type: application/json
 ]
 ```
 
-## Best of Both Worlds
+### Best of Both Worlds
 
 Even if you have a preference as to one of these API styles, users of your API are likely to have a different preference. Luckily, implementing both styles is rather simple: create the RPC-styled endpoint first, then create the RESTful endpoint and call the RPC-styled endpoint under the hood.
 

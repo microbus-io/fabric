@@ -2,7 +2,7 @@
 
 For any network call it is best practice to set a timeout and error out if a response is not received in time. Timeouts prevents the client from infinitely waiting for a remote that may never respond, for example when a network failure prevents the client from reaching the remote, or when the remote is offline.
 
-## Point-to-Point Timeouts
+### Point-to-Point Timeouts
 
 The common practice is to set a timeout on a point-to-point basis, between each client microservice and the remote microservice that it calls. Although easy to implement, this is an anti-pattern that results in improper system behavior.
 
@@ -18,7 +18,7 @@ In the second example, all microservices set a 1 minute timeout. Nevertheless, m
 
 In both cases the issue stems from the fact that upstream services do not have visibility into what's happening downstream.
 
-## Time Budget
+### Time Budget
 
 A time budget introduces a deadline for the entire transaction DAG to complete. The deadline is set at the root and propagated downstream. Every microservice therefore knows when the transaction will time out and so all microservices can abort at the same time.
 
@@ -35,6 +35,6 @@ The time budget is set at the root of the transaction. For incoming HTTP request
 
 It is possible to [configure the time budget](../structure/coreservices-httpingress.md) set by the ingress proxy and it is possible to have multiple proxies with different budgets, e.g. one for user-facing requests and one for internal requests. In addition, the HTTP ingress proxy respects the `Request-Timeout` header and will set the time budget to match.
 
-## Call Stack Depth
+### Call Stack Depth
 
 In addition to the time budget, the depth of the call stack is also propagated downstream, incremented by 1 on each network hop. The framework will error out if the call stack depth reached a level of 64 nested calls, which most likely indicates an infinite loop.

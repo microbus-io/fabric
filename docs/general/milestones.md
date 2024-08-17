@@ -226,7 +226,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 
 [Milestone 28](https://github.com/microbus-io/fabric/tree/milestone/28):
 
-* Remove dependency on Zap logger and replaced with standard slog
+* Remove dependency on Zap logger and replace with standard `slog`
 
 [Milestone 29](https://github.com/microbus-io/fabric/tree/milestone/29):
 
@@ -235,3 +235,4 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Added `connector.StopTicker`
 * Fixed deadlock when running tickers
 * Refactor custom `rand` package to use `math/rand/v2`
+* No locality-aware routing when directly targeting a microservice by ID
