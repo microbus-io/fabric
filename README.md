@@ -122,7 +122,9 @@ Distributed tracing, metrics and structured logging provide precision observabil
 
 ### Watch the Video
 
-[![Watch the video](https://img.youtube.com/vi/_FXnIb4WKKw/maxresdefault.jpg)](https://youtu.be/_FXnIb4WKKw)
+<p>
+<a href="https://youtu.be/_FXnIb4WKKw"><img src="https://img.youtube.com/vi/_FXnIb4WKKw/mqdefault.jpg" height="180"></a>
+</p>
 
 ## 🚦 Get Started
 
@@ -243,8 +245,6 @@ Building and operating microservices at scale, however, is quite difficult and b
 `Microbus` takes a novel approach to the development, testing, deployment and troubleshooting of microservices, and eliminates much of the complexity of the conventional practice. `Microbus` is a holistic open source framework that combines best-in-class OSS, tooling and best practices into a dramatically-simplified engineering experience that boosts productivity 4x.
 
 `Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
-
-[![Watch the video](https://img.youtube.com/vi/4aFe3a3hS5M/maxresdefault.jpg)](https://youtu.be/4aFe3a3hS5M)
 
 ## 🎯 Mission Statement
 
