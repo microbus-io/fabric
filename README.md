@@ -126,8 +126,6 @@ Distributed tracing, metrics and structured logging provide precision observabil
 <a href="https://youtu.be/_FXnIb4WKKw"><img src="https://img.youtube.com/vi/_FXnIb4WKKw/mqdefault.jpg" height="180"></a>
 </p>
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/_FXnIb4WKKw?si=3y8sWc6z2HnjJ-0S" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
 ## 🚦 Get Started
 
 👉 Follow the [quick start guide](./docs/howto/quick-start.md) to set up your system and run the example app
