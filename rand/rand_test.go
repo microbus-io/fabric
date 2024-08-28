@@ -27,7 +27,7 @@ func BenchmarkRand_AlphaNum64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		AlphaNum64(16)
 	}
-	// On 2021 MacBook Pro M1 16": 42 ns/op
+	// On 2021 MacBook M1 Pro 16": 42 ns/op
 }
 
 func TestRand_AlphaNum64(t *testing.T) {

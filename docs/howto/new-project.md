@@ -20,7 +20,7 @@ Init the Go project with the name of the package.
 
 ```cmd
 cd github.com/mycompany/mysolution
-go init github.com/mycompany/mysolution
+go mod init github.com/mycompany/mysolution
 ```
 
 ### Step 4: Get `Microbus`
@@ -72,6 +72,12 @@ func main() {
 	)
 	app.Run()
 }
+```
+
+Fetch the dependencies.
+
+```cmd
+go mod tidy
 ```
 
 Create `main/env.yaml` to be able to set the [environment variables](../tech/envars.md) in code:

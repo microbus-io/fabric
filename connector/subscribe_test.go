@@ -670,7 +670,7 @@ func BenchmarkConnection_AckRequest(b *testing.B) {
 		}, &sub.Subscription{})
 	}
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// N=271141
 	// 4412 ns/op (226654 ops/sec)
 	// 5917 B/op

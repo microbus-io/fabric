@@ -95,9 +95,10 @@ The conventional practice of developing microservices is a jumble of sophisticat
 Here's a list of some of the technologies commonly used today:
 
 * Web server for each microservice
-* DNS for discovery
+* Service discovery (e.g. DNS, Eureka, Consul, ZooKeeper)
 * Load balancer
 * Port mapping
+* Connection pooling
 * Health and liveness checks
 * Client-side load balancing
 * gRPC

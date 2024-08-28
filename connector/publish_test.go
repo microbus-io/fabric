@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -102,11 +103,48 @@ func BenchmarkConnector_EchoSerial(b *testing.B) {
 	testarossa.Equal(b, 0, errCount)
 	testarossa.Equal(b, int32(b.N), echoCount.Load())
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// N=12117
 	// 94226 ns/op (10612 ops/sec)
 	// 19672 B/op
 	// 277 allocs/op
+}
+
+func BenchmarkConnector_EchoSerialHTTP(b *testing.B) {
+	// Create the web server
+	var echoCount atomic.Int32
+	httpServer := &http.Server{
+		Addr: ":5555",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			echoCount.Add(1)
+			body, _ := io.ReadAll(r.Body)
+			w.Write(body)
+		}),
+	}
+	go httpServer.ListenAndServe()
+	defer httpServer.Close()
+
+	// The bottleneck is waiting on the network i/o
+	var errCount int
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		res, err := http.Post("http://localhost:5555/", "", strings.NewReader("Hello"))
+		if err != nil {
+			errCount++
+		}
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+	}
+	b.StopTimer()
+	testarossa.Equal(b, 0, errCount)
+	testarossa.Equal(b, int32(b.N), echoCount.Load())
+
+	// On 2021 MacBook M1 Pro 16":
+	// N=5540
+	// 261968 ns/op (3817 ops/sec) = approx 1/3 vs via messaging bus
+	// 26667 B/op
+	// 173 allocs/op
 }
 
 func BenchmarkConnector_SerialChain(b *testing.B) {
@@ -150,7 +188,7 @@ func BenchmarkConnector_SerialChain(b *testing.B) {
 	testarossa.Equal(b, 0, errCount)
 	testarossa.Equal(b, int32(b.N), echoCount.Load())
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// N=1174
 	// 988411 ns/op (1012 ops/sec)
 	// 247735 B/op
@@ -160,17 +198,27 @@ func BenchmarkConnector_SerialChain(b *testing.B) {
 func BenchmarkConnector_EchoParallelMax(b *testing.B) {
 	echoParallel(b, b.N)
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// N=91160 concurrent
 	// 12577 ns/op (79510 ops/sec) = approx 8x that of serial
 	// 19347 B/op
 	// 280 allocs/op
 }
 
+func BenchmarkConnector_EchoParallel100(b *testing.B) {
+	echoParallel(b, 100)
+
+	// On 2021 MacBook M1 Pro 16":
+	// N=58006
+	// 19499 ns/op (51284 ops/sec) = approx 5x that of serial
+	// 19314 B/op
+	// 277 allocs/op
+}
+
 func BenchmarkConnector_EchoParallel1K(b *testing.B) {
 	echoParallel(b, 1000)
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// N=94744
 	// 12102 ns/op (82630 ops/sec) = approx 8x that of serial
 	// 19451 B/op
@@ -180,7 +228,7 @@ func BenchmarkConnector_EchoParallel1K(b *testing.B) {
 func BenchmarkConnector_EchoParallel10K(b *testing.B) {
 	echoParallel(b, 10000)
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// N=107904
 	// 10575 ns/op (94562 ops/sec) = approx 9x that of serial
 	// 19412 B/op
@@ -223,6 +271,58 @@ func echoParallel(b *testing.B, concurrency int) {
 				_, err := beta.POST(ctx, "https://alpha.echo.parallel.connector/echo", []byte("Hello"))
 				if err != nil {
 					errCount.Add(1)
+				}
+				wg.Done()
+			}
+		}()
+	}
+	wg.Wait()
+	b.StopTimer()
+	testarossa.Equal(b, int32(0), errCount.Load())
+	testarossa.Equal(b, int32(b.N), echoCount.Load())
+}
+
+func BenchmarkConnector_EchoParallelHTTP100(b *testing.B) {
+	echoParallelHTTP(b, 100)
+
+	// On 2021 MacBook M1 Pro 16":
+	// N=18675
+	// 183849 ns/op (5439 ops/sec) = approx 1/10 vs via messaging bus
+	// 20136 B/op
+	// 156 allocs/op
+}
+
+func echoParallelHTTP(b *testing.B, concurrency int) {
+	// Create the web server
+	var echoCount atomic.Int32
+	httpServer := &http.Server{
+		Addr: ":5555",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			echoCount.Add(1)
+			body, _ := io.ReadAll(r.Body)
+			w.Write(body)
+		}),
+	}
+	go httpServer.ListenAndServe()
+	defer httpServer.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+	b.ResetTimer()
+	var errCount atomic.Int32
+	for i := range concurrency {
+		tot := b.N / concurrency
+		if i < b.N%concurrency {
+			tot++
+		} // do remainder
+		go func() {
+			for range tot {
+				res, err := http.Post("http://localhost:5555/", "", strings.NewReader("Hello"))
+				if err != nil {
+					errCount.Add(1)
+				}
+				if res != nil && res.Body != nil {
+					res.Body.Close()
 				}
 				wg.Done()
 			}
@@ -289,7 +389,7 @@ func TestConnector_EchoParallelCapacity(t *testing.T) {
 	fmt.Printf("avg time to start %d\n", totalTime.Load()/int64(n))
 	fmt.Printf("max time to start %d\n", maxTime.Load())
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// n=10000 avg=56 max=133
 	// n=20000 avg=148 max=308 ackTimeout=1s
 	// n=40000 avg=318 max=569 ackTimeout=1s
@@ -910,7 +1010,7 @@ func BenchmarkConnector_NATSDirectPublishing(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 16":
+	// On 2021 MacBook M1 Pro 16":
 	// 128B: 82 ns/op
 	// 256B: 104 ns/op
 	// 512B: 153 ns/op

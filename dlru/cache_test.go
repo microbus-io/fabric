@@ -713,7 +713,7 @@ func BenchmarkDLRU_Store(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 16": 193309 ns/op
+	// On 2021 MacBook M1 Pro 16": 193309 ns/op
 }
 
 func BenchmarkDLRU_Load(b *testing.B) {
@@ -741,7 +741,7 @@ func BenchmarkDLRU_Load(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 16": 165499 ns/op
+	// On 2021 MacBook M1 Pro 16": 165499 ns/op
 }
 
 func BenchmarkDLRU_LoadNoConsistencyCheck(b *testing.B) {
@@ -769,7 +769,7 @@ func BenchmarkDLRU_LoadNoConsistencyCheck(b *testing.B) {
 	}
 	b.StopTimer()
 
-	// On 2021 MacBook Pro M1 16": 78 ns/op
+	// On 2021 MacBook M1 Pro 16": 78 ns/op
 }
 
 func TestDLRU_Interface(t *testing.T) {
