@@ -37,13 +37,13 @@ Use the powerful code generator to create boilerplate and skeleton code
 
 ```go
 func (svc *Service) Add(ctx context.Context, x int, y int) (sum int, err error) {
-  // TO DO: Implement Add
-  return nil
+	// TO DO: Implement Add
+	return nil
 }
 
 func (svc *Service) Hello(w http.ResponseWriter, r *http.Request) (err error) {
-  // TO DO: Implement Hello
-  return nil
+	// TO DO: Implement Hello
+	return nil
 }
 ```
 
@@ -53,28 +53,28 @@ Fill in the gaps with the business logic of the particular microservice
 
 ```go
 func (svc *Service) Add(ctx context.Context, x int, y int) (sum int, err error) {
-  if x == y {
-    // Publish an event
-    helloworldapi.NewTrigger(svc).OnDouble(ctx, x)
-  }
-  // Marshaling to JSON is done automatically
-  return x+y, nil
+	if x == y {
+		// Publish an event
+		helloworldapi.NewTrigger(svc).OnDouble(ctx, x)
+	}
+	// Marshaling to JSON is done automatically
+	return x+y, nil
 }
 
 func (svc *Service) Hello(w http.ResponseWriter, r *http.Request) (err error) {
-  // Access the config
-  greeting := svc.Greeting()
+	// Access the config
+	greeting := svc.Greeting()
 
-  // Call another microservice via its client stub
-  user, err := userstoreapi.NewClient(svc).Me(r.Context())
-  if err != nil {
-    // Just return the error
-    return errors.Trace(err)
-  }
+	// Call another microservice via its client stub
+	user, err := userstoreapi.NewClient(svc).Me(r.Context())
+	if err != nil {
+		// Just return the error
+		return errors.Trace(err)
+	}
 
-  message := fmt.Sprintf("%s, %s!", greeting, user.FullName())
-  w.Write([]byte(message))
-  return nil
+	message := fmt.Sprintf("%s, %s!", greeting, user.FullName())
+	w.Write([]byte(message))
+	return nil
 }
 ```
 
@@ -84,23 +84,23 @@ Add the microservice to the application that manages its lifecycle
 
 ```go
 func main() {
-  app := application.New()
-  app.Add(
-    configurator.NewService(),
-  )
-  app.Add(
-    httpegress.NewService(),
-    openapiportal.NewService(),
-    metrics.NewService(),
-  )
-  app.Add(
-    // Add solution microservices here
-    helloworld.NewService(),
-  )
-  app.Add(
-    httpingress.NewService(),
-  )
-  app.Run()
+	app := application.New()
+	app.Add(
+		configurator.NewService(),
+	)
+	app.Add(
+		httpegress.NewService(),
+		openapiportal.NewService(),
+		metrics.NewService(),
+	)
+	app.Add(
+		// Add solution microservices here
+		helloworld.NewService(),
+	)
+	app.Add(
+		httpingress.NewService(),
+	)
+	app.Run()
 }
 ```
 
@@ -119,6 +119,10 @@ Distributed tracing, metrics and structured logging provide precision observabil
 
 <img src="./docs/blocks/metrics-1.png" width="679">
 <p></p>
+
+### Watch the Video
+
+[![Watch the video](https://img.youtube.com/vi/_FXnIb4WKKw/maxresdefault.jpg)](https://youtu.be/_FXnIb4WKKw)
 
 ## 🚦 Get Started
 
@@ -239,6 +243,8 @@ Building and operating microservices at scale, however, is quite difficult and b
 `Microbus` takes a novel approach to the development, testing, deployment and troubleshooting of microservices, and eliminates much of the complexity of the conventional practice. `Microbus` is a holistic open source framework that combines best-in-class OSS, tooling and best practices into a dramatically-simplified engineering experience that boosts productivity 4x.
 
 `Microbus` is the culmination of a decade of research and has been successfully battle-tested in production settings running SaaS solutions comprising many dozens of microservices.
+
+[![Watch the video](https://img.youtube.com/vi/4aFe3a3hS5M/maxresdefault.jpg)](https://youtu.be/4aFe3a3hS5M)
 
 ## 🎯 Mission Statement
 
