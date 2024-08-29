@@ -21,7 +21,7 @@ The `Microbus` framework depends on a few third-party services:
 * Grafana is an optional service that can visualize metrics collected by Prometheus
 * Jaeger is an optional service that can visualize distributed tracing spans
 
-Use `docker compose` from within the `setup` directory to install the above and set up the development environment.
+Use `docker compose` from within the `setup` directory to quickly install the above and set up the development environment.
 
 ```cmd
 cd setup
@@ -31,6 +31,8 @@ docker compose -f microbus.yaml -p microbus up
 Docker Desktop should now show the `microbus` application:
 
 <img src="quick-start-1.png" width="875">
+
+Note that using Docker is not mandatory. You can also install the dependencies manually.
 
 ### Run the Examples
 

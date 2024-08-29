@@ -122,6 +122,7 @@ Distributed tracing, metrics and structured logging provide precision observabil
 
 ### Watch the Video
 
+<a href="https://youtu.be/_FXnIb4WKKw">https://youtu.be/_FXnIb4WKKw</a>
 <p>
 <a href="https://youtu.be/_FXnIb4WKKw"><img src="https://img.youtube.com/vi/_FXnIb4WKKw/mqdefault.jpg" height="180"></a>
 </p>
