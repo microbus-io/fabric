@@ -135,11 +135,11 @@ func NewConnector() *Connector {
 	}
 
 	c.SetResFSDir(".")
-	c.knownResponders.SetMaxWeight(16 * 1024)
+	c.knownResponders.SetMaxWeight(16 << 10) // 16KB
 	c.knownResponders.SetMaxAge(24 * time.Hour)
-	c.postRequestData.SetMaxWeight(256 * 1024)
+	c.postRequestData.SetMaxWeight(256 << 10) // 256KB
 	c.postRequestData.SetMaxAge(time.Minute)
-	c.localResponder.SetMaxWeight(16 * 1024)
+	c.localResponder.SetMaxWeight(16 << 10) // 16KB
 	c.localResponder.SetMaxAge(24 * time.Hour)
 
 	c.newMetricsRegistry()

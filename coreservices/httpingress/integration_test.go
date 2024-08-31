@@ -42,7 +42,6 @@ func Initialize() (err error) {
 			svc.SetPorts("4040,4443")
 			svc.SetAllowedOrigins("allowed.origin")
 			svc.SetPortMappings("4040:*->*, 4443:*->443")
-			svc.SetServerLanguages("en,fr,es-ar")
 			svc.AddMiddlewareFunc(func(w http.ResponseWriter, r *http.Request, next connector.HTTPHandler) (err error) {
 				r.Header.Add("Middleware", "Hello")
 				err = next(w, r)
@@ -541,50 +540,6 @@ func TestHttpingress_BlockedPaths(t *testing.T) {
 	res, err = client.Do(req)
 	if testarossa.NoError(t, err) {
 		testarossa.Equal(t, http.StatusOK, res.StatusCode)
-	}
-}
-
-func TestHttpingress_MatchAcceptedLanguages(t *testing.T) {
-	t.Parallel()
-
-	con := connector.New("accepted.languages")
-	con.Subscribe("GET", "echo", func(w http.ResponseWriter, r *http.Request) error {
-		w.Write([]byte(r.Header.Get("Accept-Language")))
-		return nil
-	})
-	err := App.AddAndStartup(con)
-	testarossa.NoError(t, err)
-	defer con.Shutdown()
-
-	client := http.Client{Timeout: time.Second * 2}
-
-	req, err := http.NewRequest("GET", "http://localhost:4040/accepted.languages/echo", nil)
-	req.Header.Set("Accept-Language", "en-us,es;q=0.5")
-	testarossa.NoError(t, err)
-	res, err := client.Do(req)
-	if testarossa.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if testarossa.NoError(t, err) {
-			testarossa.Equal(t, "en", string(b))
-		}
-	}
-	req.Header.Set("Accept-Language", "es;q=0.5")
-	testarossa.NoError(t, err)
-	res, err = client.Do(req)
-	if testarossa.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if testarossa.NoError(t, err) {
-			testarossa.Equal(t, "es-AR", string(b))
-		}
-	}
-	req.Header.Set("Accept-Language", "fr-ca;q=0.8,en;q=0.4")
-	testarossa.NoError(t, err)
-	res, err = client.Do(req)
-	if testarossa.NoError(t, err) {
-		b, err := io.ReadAll(res.Body)
-		if testarossa.NoError(t, err) {
-			testarossa.Equal(t, "fr", string(b))
-		}
 	}
 }
 

@@ -81,7 +81,6 @@ type ToDo interface {
 	OnChangedReadTimeout(ctx context.Context) (err error)
 	OnChangedWriteTimeout(ctx context.Context) (err error)
 	OnChangedReadHeaderTimeout(ctx context.Context) (err error)
-	OnChangedServerLanguages(ctx context.Context) (err error)
 	OnChangedBlockedPaths(ctx context.Context) (err error)
 }
 
@@ -160,11 +159,6 @@ HTTP ports 443 and 80 to only internal port 443.`),
 		cfg.Description(`ReadHeaderTimeout specifies the timeout for fully reading the header of a request.`),
 		cfg.Validation(`dur [1s,]`),
 		cfg.DefaultValue(`20s`),
-	)
-	svc.DefineConfig(
-		"ServerLanguages",
-		cfg.Description(`ServerLanguages is a comma-separated list of languages that the server supports.
-This list is matched against the Accept-Language header of the request.`),
 	)
 	svc.DefineConfig(
 		"BlockedPaths",
@@ -296,12 +290,6 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	}
 	if changed("ReadHeaderTimeout") {
 		err := svc.impl.OnChangedReadHeaderTimeout(ctx)
-		if err != nil {
-			return err // No trace
-		}
-	}
-	if changed("ServerLanguages") {
-		err := svc.impl.OnChangedServerLanguages(ctx)
 		if err != nil {
 			return err // No trace
 		}
@@ -472,25 +460,6 @@ ReadHeaderTimeout specifies the timeout for fully reading the header of a reques
 */
 func (svc *Intermediate) SetReadHeaderTimeout(timeout time.Duration) error {
 	return svc.SetConfig("ReadHeaderTimeout", fmt.Sprintf("%v", timeout))
-}
-
-/*
-ServerLanguages is a comma-separated list of languages that the server supports.
-This list is matched against the Accept-Language header of the request.
-*/
-func (svc *Intermediate) ServerLanguages() (languages string) {
-	_val := svc.Config("ServerLanguages")
-	return _val
-}
-
-/*
-SetServerLanguages sets the value of the configuration property.
-
-ServerLanguages is a comma-separated list of languages that the server supports.
-This list is matched against the Accept-Language header of the request.
-*/
-func (svc *Intermediate) SetServerLanguages(languages string) error {
-	return svc.SetConfig("ServerLanguages", fmt.Sprintf("%v", languages))
 }
 
 /*

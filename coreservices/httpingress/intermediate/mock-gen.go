@@ -92,11 +92,6 @@ func (svc *Mock) OnChangedReadHeaderTimeout(ctx context.Context) (err error) {
 	return nil
 }
 
-// OnChangedServerLanguages is a no op.
-func (svc *Mock) OnChangedServerLanguages(ctx context.Context) (err error) {
-	return nil
-}
-
 // OnChangedBlockedPaths is a no op.
 func (svc *Mock) OnChangedBlockedPaths(ctx context.Context) (err error) {
 	return nil

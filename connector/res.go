@@ -59,25 +59,6 @@ func (c *Connector) ResFS() service.FS {
 	return c.resourcesFS
 }
 
-// initStringBundle reads strings.yaml from the FS into an in-memory map.
-func (c *Connector) initStringBundle() error {
-	c.stringBundle = nil
-	b, err := c.ReadResFile("strings.yaml")
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if len(b) > 0 {
-		err = yaml.NewDecoder(bytes.NewReader(b)).Decode(&c.stringBundle)
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	return nil
-}
-
 // ReadResFile returns the content of a resource file.
 func (c *Connector) ReadResFile(name string) ([]byte, error) {
 	b, err := c.resourcesFS.ReadFile(name)
@@ -183,6 +164,39 @@ func (c *Connector) ExecuteResTemplate(name string, data any) (string, error) {
 	return buf.String(), nil
 }
 
+// initStringBundle reads strings.yaml from the FS into an in-memory map.
+func (c *Connector) initStringBundle() error {
+	c.stringBundle = nil
+	b, err := c.ReadResFile("strings.yaml")
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if len(b) == 0 {
+		return nil
+	}
+	var raw map[string]map[string]string
+	err = yaml.NewDecoder(bytes.NewReader(b)).Decode(&raw)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if len(raw) == 0 {
+		return nil
+	}
+	// Lowercase the string keys and the language codes
+	c.stringBundle = make(map[string]map[string]string, len(raw))
+	for k, v := range raw {
+		lcKey := strings.ToLower(k)
+		c.stringBundle[lcKey] = make(map[string]string, len(v))
+		for kk, vv := range v {
+			c.stringBundle[lcKey][strings.ToLower(kk)] = vv
+		}
+	}
+	return nil
+}
+
 /*
 LoadResString returns a string from the string bundle in the language best matched to the locale in the context.
 The string bundle is a YAML file that must be loadable from the service's resource FS with the name strings.yaml.
@@ -195,38 +209,59 @@ The YAML is expected to be in the following format:
 	  fr: Localisée
 
 If a default is not provided, English (en) is used as the fallback language.
-String keys and locale names are case-sensitive.
+String keys and locale names are case insensitive.
 */
 func (c *Connector) LoadResString(ctx context.Context, stringKey string) (string, error) {
 	if c.stringBundle == nil {
 		return "", errors.New("string bundle strings.yaml is not found in resource FS")
 	}
-	str := c.stringBundle[stringKey]
-	if str == nil {
+	txl := c.stringBundle[strings.ToLower(stringKey)]
+	if txl == nil {
 		return "", errors.Newf("no string matches the key '%s'", stringKey)
 	}
-	languages := frame.Of(ctx).Languages()
-	for _, language := range languages {
+	// da, en-gb;q=0.8, en;q=0.7
+	full := frame.Of(ctx).Header().Get("Accept-Language")
+	var qMax float64
+	segments := strings.Split(full, ",")
+	var result string
+	for _, seg := range segments {
+		seg = strings.TrimSpace(seg)
+		if seg == "" {
+			continue
+		}
+		var q float64
+		lang, after, found := strings.Cut(seg, ";")
+		if !found {
+			// da
+			q = 1.0
+		} else {
+			// en-gb;q=0.8
+			qStr := strings.TrimLeft(after, " q=")
+			q, _ = strconv.ParseFloat(qStr, 64)
+		}
+		lang = strings.ToLower(lang)
+		if q <= qMax {
+			continue
+		}
 		for {
-			val := str[language]
-			if val != "" {
-				return val, nil
-			}
-			p := strings.LastIndex(language, "-")
-			if p < 0 {
+			v, ok := txl[lang]
+			if ok {
+				result = v
+				qMax = q
 				break
 			}
-			language = language[:p]
+			lang, _, found = strings.Cut(lang, "-")
+			if !found {
+				break
+			}
 		}
 	}
-	// Fallback to English
-	fallback := str["default"]
-	if fallback != "" {
-		return fallback, nil
+	if qMax == 0 && result == "" {
+		var ok bool
+		result, ok = txl["default"]
+		if !ok {
+			result = txl["en"]
+		}
 	}
-	fallback = str["en"]
-	if fallback != "" {
-		return fallback, nil
-	}
-	return "", errors.Newf("string '%s' is not available in language '%s'", stringKey, strings.Join(languages, ", "))
+	return result, nil
 }

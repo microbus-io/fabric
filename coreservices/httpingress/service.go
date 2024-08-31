@@ -37,11 +37,9 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
-	"github.com/microbus-io/fabric/lru"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
-	"golang.org/x/text/language"
 
 	"go.opentelemetry.io/otel/propagation"
 
@@ -57,26 +55,22 @@ The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.
 type Service struct {
 	*intermediate.Intermediate // DO NOT REMOVE
 
-	httpServers     map[int]*http.Server
-	mux             sync.Mutex
-	allowedOrigins  map[string]bool
-	portMappings    map[string]string
-	reqMemoryUsed   int64
-	secure443       bool
-	blockedPaths    map[string]bool
-	languageMatcher language.Matcher
-	langMatchCache  *lru.Cache[string, string]
-	middleware      []Middleware
-	handler         connector.HTTPHandler
+	httpServers    map[int]*http.Server
+	mux            sync.Mutex
+	allowedOrigins map[string]bool
+	portMappings   map[string]string
+	reqMemoryUsed  int64
+	secure443      bool
+	blockedPaths   map[string]bool
+	middleware     []Middleware
+	handler        connector.HTTPHandler
 }
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	svc.langMatchCache = lru.NewCache[string, string]()
 	svc.OnChangedAllowedOrigins(ctx)
 	svc.OnChangedPortMappings(ctx)
 	svc.OnChangedBlockedPaths(ctx)
-	svc.OnChangedServerLanguages(ctx)
 
 	// Setup the middleware chain
 	svc.handler = svc.serveHTTP
@@ -512,12 +506,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 	options = append(options, pub.Header("X-Forwarded-Path", origPath))
 
-	// Match request against server languages and override the header to the best match
-	bestLang := svc.matchBestLanguage(r)
-	if bestLang != "" {
-		options = append(options, pub.Header("Accept-Language", bestLang))
-	}
-
 	// OpenTelemetry: pass the span in the headers
 	carrier := make(propagation.HeaderCarrier)
 	propagation.TraceContext{}.Inject(ctx, carrier)
@@ -723,30 +711,6 @@ func resolveInternalURL(externalURL *url.URL, portMappings map[string]string) (n
 	return u, nil
 }
 
-// matchBestLanguage returns the server language best matching the Accept-Language header of the request.
-func (svc *Service) matchBestLanguage(r *http.Request) string {
-	if svc.languageMatcher == nil {
-		return ""
-	}
-	hdrVal := r.Header.Get("Accept-Language")
-	if cached, ok := svc.langMatchCache.Load(hdrVal); ok {
-		return cached
-	}
-	langs := frame.Of(r).Languages()
-	langTags := make([]language.Tag, 0, len(langs))
-	for _, l := range langs {
-		langTags = append(langTags, language.Make(l))
-	}
-	bestLang, _, _ := svc.languageMatcher.Match(langTags...)
-	bestLangStr := bestLang.String()
-	p := strings.Index(bestLangStr, "-u")
-	if p > 0 {
-		bestLangStr = bestLangStr[:p]
-	}
-	svc.langMatchCache.Store(hdrVal, bestLangStr)
-	return bestLangStr
-}
-
 // OnChangedReadTimeout is triggered when the value of the ReadTimeout config property changes.
 func (svc *Service) OnChangedReadTimeout(ctx context.Context) (err error) {
 	return svc.restartHTTPServers(ctx)
@@ -773,26 +737,5 @@ func (svc *Service) OnChangedBlockedPaths(ctx context.Context) (err error) {
 		}
 	}
 	svc.blockedPaths = newPaths
-	return nil
-}
-
-// OnChangedServerLanguages is triggered when the value of the ServerLanguages config property changes.
-func (svc *Service) OnChangedServerLanguages(ctx context.Context) (err error) {
-	value := svc.ServerLanguages()
-	if value == "" {
-		svc.languageMatcher = nil
-		svc.langMatchCache.Clear()
-		return nil
-	}
-	tags := []language.Tag{}
-	for _, lang := range strings.Split(value, ",") {
-		lang = strings.TrimSpace(lang)
-		if lang == "" {
-			continue
-		}
-		tags = append(tags, language.Make(lang))
-	}
-	svc.languageMatcher = language.NewMatcher(tags)
-	svc.langMatchCache.Clear()
 	return nil
 }

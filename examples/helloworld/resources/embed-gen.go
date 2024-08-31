@@ -37,5 +37,5 @@ stringKey:
   fr: Localisée
 
 If a default is not provided, English (en) is used as the fallback language.
-String keys and locale names are case-sensitive.
+String keys and locale names are case insensitive.
 */

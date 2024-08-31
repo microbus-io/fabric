@@ -18,12 +18,12 @@ limitations under the License.
 
 package httpingress
 
-const Version = 253
-const SourceCodeSHA256 = "4bed259286710e280f9d8e5337ad797f13f786148759d502f951e9a657fd0d9c"
-const Timestamp = "2024-08-01T15:49:24.691176Z"
+const Version = 255
+const SourceCodeSHA256 = "2cc966fe47380ecd5eb85afb6bd7df929322cf1c4d4fda67261e54dacb07f203"
+const Timestamp = "2024-08-31T21:14:18.305037Z"
 
 /* {
-	"ver": 253,
-	"sha256": "4bed259286710e280f9d8e5337ad797f13f786148759d502f951e9a657fd0d9c",
-	"ts": "2024-08-01T15:49:24.691176Z"
+	"ver": 255,
+	"sha256": "2cc966fe47380ecd5eb85afb6bd7df929322cf1c4d4fda67261e54dacb07f203",
+	"ts": "2024-08-31T21:14:18.305037Z"
 } */

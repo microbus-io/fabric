@@ -79,15 +79,17 @@ func TestConnector_LoadResString(t *testing.T) {
 		"en", "Hello",
 		"en-CA", "Hello",
 		"en-AU", "G'day",
-		"fr", "Hello",
+		"fr;q=0.9", "Hello",
 		"it", "Ciao",
+		"en;q=0.8, it", "Ciao",
+		"en;q=0.8, en-AU;q=0.85", "G'day",
 	}
 	for i := 0; i < len(testCases); i += 2 {
 		response, err := alpha.Request(ctx, pub.GET("https://beta.load.res.string.connector/localized"), pub.Header("Accept-Language", testCases[i]))
 		if testarossa.NoError(t, err) {
 			body, err := io.ReadAll(response.Body)
 			if testarossa.NoError(t, err) {
-				testarossa.SliceEqual(t, []byte(testCases[i+1]), body)
+				testarossa.Equal(t, testCases[i+1], string(body))
 			}
 		}
 	}

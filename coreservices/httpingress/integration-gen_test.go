@@ -469,63 +469,6 @@ func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedRea
 	return tc
 }
 
-// OnChangedServerLanguagesTestCase assists in asserting against the results of executing OnChangedServerLanguages.
-type OnChangedServerLanguagesTestCase struct {
-	t *testing.T
-	dur time.Duration
-	err error
-}
-
-// Error asserts an error.
-func (tc *OnChangedServerLanguagesTestCase) Error(errContains string) *OnChangedServerLanguagesTestCase {
-	if testarossa.Error(tc.t, tc.err) {
-		testarossa.Contains(tc.t, tc.err.Error(), errContains)
-	}
-	return tc
-}
-
-// ErrorCode asserts an error by its status code.
-func (tc *OnChangedServerLanguagesTestCase) ErrorCode(statusCode int) *OnChangedServerLanguagesTestCase {
-	if testarossa.Error(tc.t, tc.err) {
-		testarossa.Equal(tc.t, statusCode, errors.Convert(tc.err).StatusCode)
-	}
-	return tc
-}
-
-// NoError asserts no error.
-func (tc *OnChangedServerLanguagesTestCase) NoError() *OnChangedServerLanguagesTestCase {
-	testarossa.NoError(tc.t, tc.err)
-	return tc
-}
-
-// CompletedIn checks that the duration of the operation is less than or equal the threshold.
-func (tc *OnChangedServerLanguagesTestCase) CompletedIn(threshold time.Duration) *OnChangedServerLanguagesTestCase {
-	testarossa.True(tc.t, tc.dur <= threshold)
-	return tc
-}
-
-// Assert asserts using a provided function.
-func (tc *OnChangedServerLanguagesTestCase) Assert(asserter func(t *testing.T, err error)) *OnChangedServerLanguagesTestCase {
-	asserter(tc.t, tc.err)
-	return tc
-}
-
-// Get returns the result of executing ServerLanguages.
-func (tc *OnChangedServerLanguagesTestCase) Get() (err error) {
-	return tc.err
-}
-
-// OnChangedServerLanguages executes the on changed callback and returns a corresponding test case.
-func OnChangedServerLanguages(t *testing.T, ctx context.Context) *OnChangedServerLanguagesTestCase {
-	tc := &OnChangedServerLanguagesTestCase{t: t}
-	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
-		return Svc.OnChangedServerLanguages(ctx)
-	})
-	tc.dur = time.Since(t0)
-	return tc
-}
-
 // OnChangedBlockedPathsTestCase assists in asserting against the results of executing OnChangedBlockedPaths.
 type OnChangedBlockedPathsTestCase struct {
 	t *testing.T
