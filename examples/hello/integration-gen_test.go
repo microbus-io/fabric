@@ -638,7 +638,7 @@ func Hello_Get(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Hello(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -687,7 +687,7 @@ func Hello_Post(t *testing.T, ctx context.Context, url string, contentType strin
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Hello(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -732,7 +732,7 @@ func Hello(t *testing.T, r *http.Request) *HelloTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Hello(w, r)
 	})
 	tc.res = w.Result()
@@ -1251,7 +1251,7 @@ func Echo_Get(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Echo(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1300,7 +1300,7 @@ func Echo_Post(t *testing.T, ctx context.Context, url string, contentType string
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Echo(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1345,7 +1345,7 @@ func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Echo(w, r)
 	})
 	tc.res = w.Result()
@@ -1864,7 +1864,7 @@ func Ping_Get(t *testing.T, ctx context.Context, url string) *PingTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Ping(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1913,7 +1913,7 @@ func Ping_Post(t *testing.T, ctx context.Context, url string, contentType string
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Ping(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1958,7 +1958,7 @@ func Ping(t *testing.T, r *http.Request) *PingTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Ping(w, r)
 	})
 	tc.res = w.Result()
@@ -2479,7 +2479,7 @@ func Calculator_Get(t *testing.T, ctx context.Context, url string) *CalculatorTe
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Calculator(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2530,7 +2530,7 @@ func Calculator_Post(t *testing.T, ctx context.Context, url string, contentType 
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Calculator(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2577,7 +2577,7 @@ func Calculator(t *testing.T, r *http.Request) *CalculatorTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Calculator(w, r)
 	})
 	tc.res = w.Result()
@@ -3093,7 +3093,7 @@ func BusPNG(t *testing.T, ctx context.Context, url string) *BusPNGTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.BusPNG(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -3144,7 +3144,7 @@ func BusPNG_Do(t *testing.T, r *http.Request) *BusPNGTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.BusPNG(w, r)
 	})
 	tc.res = w.Result()
@@ -3663,7 +3663,7 @@ func Localization_Get(t *testing.T, ctx context.Context, url string) *Localizati
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Localization(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -3712,7 +3712,7 @@ func Localization_Post(t *testing.T, ctx context.Context, url string, contentTyp
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Localization(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -3757,7 +3757,7 @@ func Localization(t *testing.T, r *http.Request) *LocalizationTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Localization(w, r)
 	})
 	tc.res = w.Result()
@@ -4276,7 +4276,7 @@ func Root_Get(t *testing.T, ctx context.Context, url string) *RootTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Root(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -4325,7 +4325,7 @@ func Root_Post(t *testing.T, ctx context.Context, url string, contentType string
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Root(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -4370,7 +4370,7 @@ func Root(t *testing.T, r *http.Request) *RootTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Root(w, r)
 	})
 	tc.res = w.Result()
@@ -4428,7 +4428,7 @@ func (tc *TickTockTestCase) Get() (err error) {
 func TickTock(t *testing.T, ctx context.Context) *TickTockTestCase {
 	tc := &TickTockTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.TickTock(ctx)
 	})
 	tc.dur = time.Since(t0)

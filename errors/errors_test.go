@@ -237,3 +237,58 @@ func TestErrors_TraceFull(t *testing.T) {
 	testarossa.Equal(t, errUp0.(*TracedError).stack[0].Function, errFull.(*TracedError).stack[0].Function)
 	testarossa.Equal(t, errUp1.(*TracedError).stack[0].Function, errFull.(*TracedError).stack[1].Function)
 }
+
+func TestErrors_CatchPanic(t *testing.T) {
+	t.Parallel()
+
+	// String
+	err := CatchPanic(func() error {
+		panic("message")
+	})
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "message", err.Error())
+
+	// Error
+	err = CatchPanic(func() error {
+		panic(New("panic"))
+	})
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "panic", err.Error())
+
+	// Number
+	err = CatchPanic(func() error {
+		panic(5)
+	})
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "5", err.Error())
+
+	// Division by zero
+	err = CatchPanic(func() error {
+		j := 1
+		j--
+		i := 5 / j
+		i++
+		return nil
+	})
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "runtime error: integer divide by zero", err.Error())
+
+	// Nil map
+	err = CatchPanic(func() error {
+		x := map[int]int{}
+		if true {
+			x = nil
+		}
+		x[5] = 6
+		return nil
+	})
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "assignment to entry in nil map", err.Error())
+
+	// Standard error
+	err = CatchPanic(func() error {
+		return New("standard")
+	})
+	testarossa.Error(t, err)
+	testarossa.Equal(t, "standard", err.Error())
+}

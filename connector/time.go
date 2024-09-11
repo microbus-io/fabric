@@ -151,7 +151,7 @@ func (c *Connector) runTicker(job *tickerCallback) {
 
 			atomic.AddInt32(&c.pendingOps, 1)
 			startTime := time.Now()
-			err := utils.CatchPanic(func() error {
+			err := errors.CatchPanic(func() error {
 				return job.Handler(ctx)
 			})
 			if err != nil {

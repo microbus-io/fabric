@@ -48,3 +48,5 @@ strconv.ParseInt: parsing "nan": invalid syntax
 - httpingress.(*Service).ServeHTTP
   /src/github.com/microbus-io/fabric/coreservices/httpingress/service.go:124
 ```
+
+`CatchPanic` is a utility function that [converts panics into standard errors](../blocks/error-capture.md). It is used to wrap callbacks to user code.

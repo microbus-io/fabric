@@ -638,7 +638,7 @@ func Collect_Get(t *testing.T, ctx context.Context, url string) *CollectTestCase
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Collect(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -687,7 +687,7 @@ func Collect_Post(t *testing.T, ctx context.Context, url string, contentType str
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Collect(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -732,7 +732,7 @@ func Collect(t *testing.T, r *http.Request) *CollectTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Collect(w, r)
 	})
 	tc.res = w.Result()

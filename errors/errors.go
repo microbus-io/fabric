@@ -170,7 +170,7 @@ func TraceFull(err error, level int) error {
 		if strings.HasPrefix(function, "runtime.") {
 			continue
 		}
-		if function == "utils.CatchPanic" {
+		if function == "errors.CatchPanic" {
 			break
 		}
 		tracedErr.stack = append(tracedErr.stack, &trace{
@@ -225,4 +225,20 @@ func StatusCode(err error) int {
 		return 0
 	}
 	return Convert(err).StatusCode
+}
+
+// CatchPanic calls the given function and returns any panic as a standard error.
+func CatchPanic(f func() error) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				err = fmt.Errorf("%v", r)
+			}
+			err = TraceFull(err, 1)
+		}
+	}()
+	err = f()
+	return
 }

@@ -18,12 +18,12 @@ limitations under the License.
 
 package smtpingress
 
-const Version = 125
-const SourceCodeSHA256 = "3427c11ee5e3c4df4e2698324d94416756328f610375152366693dd973401dd7"
-const Timestamp = "2024-08-31T21:14:19.33478Z"
+const Version = 126
+const SourceCodeSHA256 = "a9f4809c316f7f53b6727e0ff982d1c9c03a135518e024c185d2f71102890fbb"
+const Timestamp = "2024-09-05T05:11:10.58323Z"
 
 /* {
-	"ver": 125,
-	"sha256": "3427c11ee5e3c4df4e2698324d94416756328f610375152366693dd973401dd7",
-	"ts": "2024-08-31T21:14:19.33478Z"
+	"ver": 126,
+	"sha256": "a9f4809c316f7f53b6727e0ff982d1c9c03a135518e024c185d2f71102890fbb",
+	"ts": "2024-09-05T05:11:10.58323Z"
 } */

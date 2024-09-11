@@ -14,14 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package middleware
 
 import (
-	"github.com/microbus-io/fabric/errors"
+	"github.com/microbus-io/fabric/connector"
 )
 
-// CatchPanic calls the given function and returns any panic as a standard error.
-// Deprecated: Use [errors.CatchPanic] instead.
-func CatchPanic(f func() error) (err error) {
-	return errors.CatchPanic(f)
+// NoOp returns a middleware that delegates to the next middleware in the chain without taking any action.
+// It can be used to mark a position in the chain.
+func NoOp() Middleware {
+	return func(next connector.HTTPHandler) connector.HTTPHandler {
+		return next
+	}
 }

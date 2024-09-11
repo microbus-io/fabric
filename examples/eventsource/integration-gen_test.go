@@ -186,7 +186,7 @@ func (tc *RegisterTestCase) Get() (allowed bool, err error) {
 func Register(t *testing.T, ctx context.Context, email string) *RegisterTestCase {
 	tc := &RegisterTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.allowed, tc.err = Svc.Register(ctx, email)
 		return tc.err
 	})

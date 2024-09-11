@@ -638,7 +638,7 @@ func Home_Get(t *testing.T, ctx context.Context, url string) *HomeTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Home(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -687,7 +687,7 @@ func Home_Post(t *testing.T, ctx context.Context, url string, contentType string
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Home(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -732,7 +732,7 @@ func Home(t *testing.T, r *http.Request) *HomeTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Home(w, r)
 	})
 	tc.res = w.Result()
@@ -1253,7 +1253,7 @@ func NoQueue_Get(t *testing.T, ctx context.Context, url string) *NoQueueTestCase
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.NoQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1304,7 +1304,7 @@ func NoQueue_Post(t *testing.T, ctx context.Context, url string, contentType str
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.NoQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1351,7 +1351,7 @@ func NoQueue(t *testing.T, r *http.Request) *NoQueueTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.NoQueue(w, r)
 	})
 	tc.res = w.Result()
@@ -1872,7 +1872,7 @@ func DefaultQueue_Get(t *testing.T, ctx context.Context, url string) *DefaultQue
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.DefaultQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1923,7 +1923,7 @@ func DefaultQueue_Post(t *testing.T, ctx context.Context, url string, contentTyp
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.DefaultQueue(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1970,7 +1970,7 @@ func DefaultQueue(t *testing.T, r *http.Request) *DefaultQueueTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.DefaultQueue(w, r)
 	})
 	tc.res = w.Result()
@@ -2489,7 +2489,7 @@ func CacheLoad_Get(t *testing.T, ctx context.Context, url string) *CacheLoadTest
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.CacheLoad(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2538,7 +2538,7 @@ func CacheLoad_Post(t *testing.T, ctx context.Context, url string, contentType s
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.CacheLoad(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2583,7 +2583,7 @@ func CacheLoad(t *testing.T, r *http.Request) *CacheLoadTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.CacheLoad(w, r)
 	})
 	tc.res = w.Result()
@@ -3102,7 +3102,7 @@ func CacheStore_Get(t *testing.T, ctx context.Context, url string) *CacheStoreTe
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.CacheStore(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -3151,7 +3151,7 @@ func CacheStore_Post(t *testing.T, ctx context.Context, url string, contentType 
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.CacheStore(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -3196,7 +3196,7 @@ func CacheStore(t *testing.T, r *http.Request) *CacheStoreTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.CacheStore(w, r)
 	})
 	tc.res = w.Result()

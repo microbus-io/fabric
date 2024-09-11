@@ -177,7 +177,7 @@ func (tc *OnChangedPortsTestCase) Get() (err error) {
 func OnChangedPorts(t *testing.T, ctx context.Context) *OnChangedPortsTestCase {
 	tc := &OnChangedPortsTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.OnChangedPorts(ctx)
 	})
 	tc.dur = time.Since(t0)
@@ -234,7 +234,7 @@ func (tc *OnChangedAllowedOriginsTestCase) Get() (err error) {
 func OnChangedAllowedOrigins(t *testing.T, ctx context.Context) *OnChangedAllowedOriginsTestCase {
 	tc := &OnChangedAllowedOriginsTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.OnChangedAllowedOrigins(ctx)
 	})
 	tc.dur = time.Since(t0)
@@ -291,7 +291,7 @@ func (tc *OnChangedPortMappingsTestCase) Get() (err error) {
 func OnChangedPortMappings(t *testing.T, ctx context.Context) *OnChangedPortMappingsTestCase {
 	tc := &OnChangedPortMappingsTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.OnChangedPortMappings(ctx)
 	})
 	tc.dur = time.Since(t0)
@@ -348,7 +348,7 @@ func (tc *OnChangedReadTimeoutTestCase) Get() (err error) {
 func OnChangedReadTimeout(t *testing.T, ctx context.Context) *OnChangedReadTimeoutTestCase {
 	tc := &OnChangedReadTimeoutTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.OnChangedReadTimeout(ctx)
 	})
 	tc.dur = time.Since(t0)
@@ -405,7 +405,7 @@ func (tc *OnChangedWriteTimeoutTestCase) Get() (err error) {
 func OnChangedWriteTimeout(t *testing.T, ctx context.Context) *OnChangedWriteTimeoutTestCase {
 	tc := &OnChangedWriteTimeoutTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.OnChangedWriteTimeout(ctx)
 	})
 	tc.dur = time.Since(t0)
@@ -462,7 +462,7 @@ func (tc *OnChangedReadHeaderTimeoutTestCase) Get() (err error) {
 func OnChangedReadHeaderTimeout(t *testing.T, ctx context.Context) *OnChangedReadHeaderTimeoutTestCase {
 	tc := &OnChangedReadHeaderTimeoutTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.OnChangedReadHeaderTimeout(ctx)
 	})
 	tc.dur = time.Since(t0)
@@ -519,7 +519,7 @@ func (tc *OnChangedBlockedPathsTestCase) Get() (err error) {
 func OnChangedBlockedPaths(t *testing.T, ctx context.Context) *OnChangedBlockedPathsTestCase {
 	tc := &OnChangedBlockedPathsTestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.OnChangedBlockedPaths(ctx)
 	})
 	tc.dur = time.Since(t0)

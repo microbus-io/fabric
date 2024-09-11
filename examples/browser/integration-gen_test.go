@@ -638,7 +638,7 @@ func Browse_Get(t *testing.T, ctx context.Context, url string) *BrowseTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Browse(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -687,7 +687,7 @@ func Browse_Post(t *testing.T, ctx context.Context, url string, contentType stri
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Browse(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -732,7 +732,7 @@ func Browse(t *testing.T, r *http.Request) *BrowseTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Browse(w, r)
 	})
 	tc.res = w.Result()

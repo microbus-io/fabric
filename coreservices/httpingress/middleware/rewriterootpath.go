@@ -14,14 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package middleware
 
 import (
-	"github.com/microbus-io/fabric/errors"
+	"net/http"
+	"strings"
+
+	"github.com/microbus-io/fabric/connector"
 )
 
-// CatchPanic calls the given function and returns any panic as a standard error.
-// Deprecated: Use [errors.CatchPanic] instead.
-func CatchPanic(f func() error) (err error) {
-	return errors.CatchPanic(f)
+// RewriteRootPath returns a middleware that rewrites the root path "/" with one that can be routed to such as "/root".
+func RewriteRootPath(rootPath string) Middleware {
+	if !strings.HasPrefix(rootPath, "/") {
+		rootPath = "/" + rootPath
+	}
+	return func(next connector.HTTPHandler) connector.HTTPHandler {
+		return func(w http.ResponseWriter, r *http.Request) (err error) {
+			if r.URL.Path == "/" {
+				r.URL.Path = rootPath
+			}
+			return next(w, r) // No trace
+		}
+	}
 }

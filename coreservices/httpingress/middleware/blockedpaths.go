@@ -14,14 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package middleware
 
 import (
+	"net/http"
+
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 )
 
-// CatchPanic calls the given function and returns any panic as a standard error.
-// Deprecated: Use [errors.CatchPanic] instead.
-func CatchPanic(f func() error) (err error) {
-	return errors.CatchPanic(f)
+// BlockedPaths returns a middleware that returns a 404 error for paths matching the predicate
+// The path passed to the matcher is the full path of the URL, without query arguments.
+func BlockedPaths(isBlocked func(path string) bool) Middleware {
+	return func(next connector.HTTPHandler) connector.HTTPHandler {
+		notFound := errors.Newc(http.StatusNotFound, "")
+		return func(w http.ResponseWriter, r *http.Request) error {
+			if isBlocked(r.URL.Path) {
+				w.WriteHeader(http.StatusNotFound)
+				return notFound
+			}
+			return next(w, r) // No trace
+		}
+	}
 }

@@ -192,7 +192,7 @@ func (tc *ArithmeticTestCase) Get() (xEcho int, opEcho string, yEcho int, result
 func Arithmetic(t *testing.T, ctx context.Context, x int, op string, y int) *ArithmeticTestCase {
 	tc := &ArithmeticTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.xEcho, tc.opEcho, tc.yEcho, tc.result, tc.err = Svc.Arithmetic(ctx, x, op, y)
 		return tc.err
 	})
@@ -261,7 +261,7 @@ func (tc *SquareTestCase) Get() (xEcho int, result int, err error) {
 func Square(t *testing.T, ctx context.Context, x int) *SquareTestCase {
 	tc := &SquareTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.xEcho, tc.result, tc.err = Svc.Square(ctx, x)
 		return tc.err
 	})
@@ -328,7 +328,7 @@ func (tc *DistanceTestCase) Get() (d float64, err error) {
 func Distance(t *testing.T, ctx context.Context, p1 calculatorapi.Point, p2 calculatorapi.Point) *DistanceTestCase {
 	tc := &DistanceTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.d, tc.err = Svc.Distance(ctx, p1, p2)
 		return tc.err
 	})

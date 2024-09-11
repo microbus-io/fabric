@@ -20,7 +20,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/microbus-io/fabric/utils"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -45,7 +45,7 @@ func TestEnv_FileOverridesOS(t *testing.T) {
 	testarossa.Equal(t, "Pushed", Get("X5981245X"))
 	Pop("X5981245X")
 	testarossa.Equal(t, "InFile", Get("X5981245X"))
-	err := utils.CatchPanic(func() error {
+	err := errors.CatchPanic(func() error {
 		Pop("X5981245X")
 		return nil
 	})

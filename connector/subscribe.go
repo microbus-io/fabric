@@ -33,7 +33,6 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/trc"
-	"github.com/microbus-io/fabric/utils"
 
 	"github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel/propagation"
@@ -366,7 +365,7 @@ func (c *Connector) handleRequest(msg *nats.Msg, s *sub.Subscription) error {
 	httpReq = httpReq.WithContext(ctx)
 
 	// Call the handler
-	handlerErr = utils.CatchPanic(func() error {
+	handlerErr = errors.CatchPanic(func() error {
 		return s.Handler.(HTTPHandler)(httpRecorder, httpReq)
 	})
 	cancel()

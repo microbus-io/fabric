@@ -64,7 +64,7 @@ func UserCodeHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)}) // Convert panics to errors
+	err := errors.CatchPanic(func() error {return UserCodeHandler(w, r)}) // Convert panics to errors
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(fmt.Sprintf("%+v", err))
@@ -123,7 +123,7 @@ The web handler wrapper is extended to write the errors' status code to the HTTP
 
 ```go
 func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
+	err := errors.CatchPanic(func() error {return UserCodeHandler(w, r)})
 	if err != nil {
 		w.WriteHeader(errors.StatusCode(err)) // Return the error's status code
 		w.Write(fmt.Sprintf("%+v", err))
@@ -184,7 +184,7 @@ The web handler wrapper function now looks similar to the following:
 
 ```go
 func FrameworkWrapperOfHandler(w http.ResponseWriter, r *http.Request) {
-	err := utils.CatchPanic(func() error {return UserCodeHandler(w, r)})
+	err := errors.CatchPanic(func() error {return UserCodeHandler(w, r)})
 	if err != nil {
 		w.Header().Set("Microbus-Op-Code", "Err") // Mark the response as an error
 		w.Header().Set("Content-Type", "application/json")

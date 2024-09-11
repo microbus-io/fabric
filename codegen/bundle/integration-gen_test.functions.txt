@@ -70,7 +70,7 @@ func (tc *{{ .Name }}TestCase) Get() ({{ .Out }}) {
 func {{ .Name }}({{ $t }} *testing.T, {{ .In }}) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{_t: {{ $t }}}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		{{ range .Signature.OutputArgs }}tc.{{ .Name }}, {{ end }}tc.err = Svc.{{ .Name }}(ctx {{- range .Signature.InputArgs }}, {{ .Name }}{{ end }})
 		return tc.err
 	})

@@ -42,11 +42,21 @@ func NewResponseRecorder() *ResponseRecorder {
 	}
 }
 
-// Clear deletes all the content recorded to date.
+// Clear resets all headers, body and status code.
 func (rr *ResponseRecorder) Clear() {
 	rr.header = make(http.Header)
 	rr.statusCode = http.StatusOK
 	rr.body = nil
+}
+
+// ClearBody resets the body's content.
+func (rr *ResponseRecorder) ClearBody() {
+	rr.body = nil
+}
+
+// ClearHeader resets the headers.
+func (rr *ResponseRecorder) ClearHeader() {
+	rr.header = make(http.Header)
 }
 
 // Header enables setting headers.
@@ -59,7 +69,7 @@ func (rr *ResponseRecorder) Header() http.Header {
 // It implements the http.ResponseWriter interface.
 func (rr *ResponseRecorder) Write(b []byte) (int, error) {
 	if rr.body == nil {
-		rr.body = &bytes.Buffer{}
+		rr.body = bytes.NewBuffer(make([]byte, 0, len(b)+8))
 	}
 	return rr.body.Write(b)
 }

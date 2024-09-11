@@ -147,7 +147,7 @@ func AddHeader(name string, value string) Option {
 	}
 }
 
-// CopyHeaders copies all non-Microbus headers from an upstream request.
+// CopyHeaders copies all headers from an upstream request.
 func CopyHeaders(headers http.Header) Option {
 	return func(req *Request) error {
 		for h, vv := range headers {

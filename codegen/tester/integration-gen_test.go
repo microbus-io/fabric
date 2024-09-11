@@ -190,7 +190,7 @@ func (tc *StringCutTestCase) Get() (before string, after string, found bool, err
 func StringCut(t *testing.T, ctx context.Context, s string, sep string) *StringCutTestCase {
 	tc := &StringCutTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.before, tc.after, tc.found, tc.err = Svc.StringCut(ctx, s, sep)
 		return tc.err
 	})
@@ -257,7 +257,7 @@ func (tc *PointDistanceTestCase) Get() (d float64, err error) {
 func PointDistance(t *testing.T, ctx context.Context, p1 testerapi.XYCoord, p2 *testerapi.XYCoord) *PointDistanceTestCase {
 	tc := &PointDistanceTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.d, tc.err = Svc.PointDistance(ctx, p1, p2)
 		return tc.err
 	})
@@ -324,7 +324,7 @@ func (tc *ShiftPointTestCase) Get() (shifted *testerapi.XYCoord, err error) {
 func ShiftPoint(t *testing.T, ctx context.Context, p *testerapi.XYCoord, x float64, y float64) *ShiftPointTestCase {
 	tc := &ShiftPointTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.shifted, tc.err = Svc.ShiftPoint(ctx, p, x, y)
 		return tc.err
 	})
@@ -391,7 +391,7 @@ func (tc *LinesIntersectionTestCase) Get() (b bool, err error) {
 func LinesIntersection(t *testing.T, ctx context.Context, l1 testerapi.XYLine, l2 *testerapi.XYLine) *LinesIntersectionTestCase {
 	tc := &LinesIntersectionTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.b, tc.err = Svc.LinesIntersection(ctx, l1, l2)
 		return tc.err
 	})
@@ -460,7 +460,7 @@ func (tc *SubArrayRangeTestCase) Get() (httpResponseBody []int, httpStatusCode i
 func SubArrayRange(t *testing.T, ctx context.Context, httpRequestBody []int, min int, max int) *SubArrayRangeTestCase {
 	tc := &SubArrayRangeTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.httpResponseBody, tc.httpStatusCode, tc.err = Svc.SubArrayRange(ctx, httpRequestBody, min, max)
 		return tc.err
 	})
@@ -529,7 +529,7 @@ func (tc *SumTwoIntegersTestCase) Get() (sum int, httpStatusCode int, err error)
 func SumTwoIntegers(t *testing.T, ctx context.Context, x int, y int) *SumTwoIntegersTestCase {
 	tc := &SumTwoIntegersTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.sum, tc.httpStatusCode, tc.err = Svc.SumTwoIntegers(ctx, x, y)
 		return tc.err
 	})
@@ -596,7 +596,7 @@ func (tc *FunctionPathArgumentsTestCase) Get() (joined string, err error) {
 func FunctionPathArguments(t *testing.T, ctx context.Context, named string, path2 string, suffix string) *FunctionPathArgumentsTestCase {
 	tc := &FunctionPathArgumentsTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.joined, tc.err = Svc.FunctionPathArguments(ctx, named, path2, suffix)
 		return tc.err
 	})
@@ -663,7 +663,7 @@ func (tc *NonStringPathArgumentsTestCase) Get() (joined string, err error) {
 func NonStringPathArguments(t *testing.T, ctx context.Context, named int, path2 bool, suffix float64) *NonStringPathArgumentsTestCase {
 	tc := &NonStringPathArgumentsTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.joined, tc.err = Svc.NonStringPathArguments(ctx, named, path2, suffix)
 		return tc.err
 	})
@@ -730,7 +730,7 @@ func (tc *UnnamedFunctionPathArgumentsTestCase) Get() (joined string, err error)
 func UnnamedFunctionPathArguments(t *testing.T, ctx context.Context, path1 string, path2 string, path3 string) *UnnamedFunctionPathArgumentsTestCase {
 	tc := &UnnamedFunctionPathArgumentsTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.joined, tc.err = Svc.UnnamedFunctionPathArguments(ctx, path1, path2, path3)
 		return tc.err
 	})
@@ -797,7 +797,7 @@ func (tc *PathArgumentsPriorityTestCase) Get() (echo string, err error) {
 func PathArgumentsPriority(t *testing.T, ctx context.Context, foo string) *PathArgumentsPriorityTestCase {
 	tc := &PathArgumentsPriorityTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.echo, tc.err = Svc.PathArgumentsPriority(ctx, foo)
 		return tc.err
 	})
@@ -864,7 +864,7 @@ func (tc *WhatTimeIsItTestCase) Get() (t time.Time, err error) {
 func WhatTimeIsIt(testingT *testing.T, ctx context.Context) *WhatTimeIsItTestCase {
 	tc := &WhatTimeIsItTestCase{_t: testingT}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.t, tc.err = Svc.WhatTimeIsIt(ctx)
 		return tc.err
 	})
@@ -933,7 +933,7 @@ func (tc *OnDiscoveredSinkTestCase) Get() (q testerapi.XYCoord, m int, err error
 func OnDiscoveredSink(t *testing.T, ctx context.Context, p testerapi.XYCoord, n int) *OnDiscoveredSinkTestCase {
 	tc := &OnDiscoveredSinkTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.q, tc.m, tc.err = Svc.OnDiscoveredSink(ctx, p, n)
 		return tc.err
 	})
@@ -1542,7 +1542,7 @@ func Echo_Get(t *testing.T, ctx context.Context, url string) *EchoTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Echo(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1591,7 +1591,7 @@ func Echo_Post(t *testing.T, ctx context.Context, url string, contentType string
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Echo(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1636,7 +1636,7 @@ func Echo(t *testing.T, r *http.Request) *EchoTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Echo(w, r)
 	})
 	tc.res = w.Result()
@@ -2155,7 +2155,7 @@ func MultiValueHeaders_Get(t *testing.T, ctx context.Context, url string) *Multi
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.MultiValueHeaders(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2204,7 +2204,7 @@ func MultiValueHeaders_Post(t *testing.T, ctx context.Context, url string, conte
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.MultiValueHeaders(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2249,7 +2249,7 @@ func MultiValueHeaders(t *testing.T, r *http.Request) *MultiValueHeadersTestCase
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.MultiValueHeaders(w, r)
 	})
 	tc.res = w.Result()
@@ -2768,7 +2768,7 @@ func WebPathArguments_Get(t *testing.T, ctx context.Context, url string) *WebPat
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.WebPathArguments(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2817,7 +2817,7 @@ func WebPathArguments_Post(t *testing.T, ctx context.Context, url string, conten
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.WebPathArguments(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -2862,7 +2862,7 @@ func WebPathArguments(t *testing.T, r *http.Request) *WebPathArgumentsTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.WebPathArguments(w, r)
 	})
 	tc.res = w.Result()
@@ -3378,7 +3378,7 @@ func UnnamedWebPathArguments(t *testing.T, ctx context.Context, url string) *Unn
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.UnnamedWebPathArguments(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -3429,7 +3429,7 @@ func UnnamedWebPathArguments_Do(t *testing.T, r *http.Request) *UnnamedWebPathAr
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.UnnamedWebPathArguments(w, r)
 	})
 	tc.res = w.Result()
@@ -3945,7 +3945,7 @@ func DirectoryServer(t *testing.T, ctx context.Context, url string) *DirectorySe
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.DirectoryServer(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -3996,7 +3996,7 @@ func DirectoryServer_Do(t *testing.T, r *http.Request) *DirectoryServerTestCase 
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.DirectoryServer(w, r)
 	})
 	tc.res = w.Result()
@@ -4515,7 +4515,7 @@ func Hello_Get(t *testing.T, ctx context.Context, url string) *HelloTestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Hello(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -4564,7 +4564,7 @@ func Hello_Post(t *testing.T, ctx context.Context, url string, contentType strin
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Hello(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -4609,7 +4609,7 @@ func Hello(t *testing.T, r *http.Request) *HelloTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.Hello(w, r)
 	})
 	tc.res = w.Result()

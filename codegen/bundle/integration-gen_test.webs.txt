@@ -514,7 +514,7 @@ func {{ .Name }}_Get(t *testing.T, ctx context.Context, url string) *{{ .Name }}
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -563,7 +563,7 @@ func {{ .Name }}_Post(t *testing.T, ctx context.Context, url string, contentType
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -611,7 +611,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string, contentType stri
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -648,7 +648,7 @@ func {{ .Name }}(t *testing.T, ctx context.Context, url string) *{{ .Name }}Test
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -705,7 +705,7 @@ func {{ .Name }}{{ if ne .Method "ANY" }}_Do{{ end }}(t *testing.T, r *http.Requ
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.{{ .Name }}(w, r)
 	})
 	tc.res = w.Result()

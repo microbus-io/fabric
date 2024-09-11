@@ -186,7 +186,7 @@ func (tc *CreateTestCase) Get() (key directoryapi.PersonKey, err error) {
 func Create(t *testing.T, ctx context.Context, httpRequestBody *directoryapi.Person) *CreateTestCase {
 	tc := &CreateTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.key, tc.err = Svc.Create(ctx, httpRequestBody)
 		return tc.err
 	})
@@ -253,7 +253,7 @@ func (tc *LoadTestCase) Get() (httpResponseBody *directoryapi.Person, err error)
 func Load(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *LoadTestCase {
 	tc := &LoadTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.httpResponseBody, tc.err = Svc.Load(ctx, key)
 		return tc.err
 	})
@@ -317,7 +317,7 @@ func (tc *DeleteTestCase) Get() (err error) {
 func Delete(t *testing.T, ctx context.Context, key directoryapi.PersonKey) *DeleteTestCase {
 	tc := &DeleteTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.err = Svc.Delete(ctx, key)
 		return tc.err
 	})
@@ -381,7 +381,7 @@ func (tc *UpdateTestCase) Get() (err error) {
 func Update(t *testing.T, ctx context.Context, key directoryapi.PersonKey, httpRequestBody *directoryapi.Person) *UpdateTestCase {
 	tc := &UpdateTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.err = Svc.Update(ctx, key, httpRequestBody)
 		return tc.err
 	})
@@ -448,7 +448,7 @@ func (tc *LoadByEmailTestCase) Get() (httpResponseBody *directoryapi.Person, err
 func LoadByEmail(t *testing.T, ctx context.Context, email string) *LoadByEmailTestCase {
 	tc := &LoadByEmailTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.httpResponseBody, tc.err = Svc.LoadByEmail(ctx, email)
 		return tc.err
 	})
@@ -515,7 +515,7 @@ func (tc *ListTestCase) Get() (httpResponseBody []directoryapi.PersonKey, err er
 func List(t *testing.T, ctx context.Context) *ListTestCase {
 	tc := &ListTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.httpResponseBody, tc.err = Svc.List(ctx)
 		return tc.err
 	})
@@ -1034,7 +1034,7 @@ func WebUI_Get(t *testing.T, ctx context.Context, url string) *WebUITestCase {
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.WebUI(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1083,7 +1083,7 @@ func WebUI_Post(t *testing.T, ctx context.Context, url string, contentType strin
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.WebUI(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -1128,7 +1128,7 @@ func WebUI(t *testing.T, r *http.Request) *WebUITestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.WebUI(w, r)
 	})
 	tc.res = w.Result()

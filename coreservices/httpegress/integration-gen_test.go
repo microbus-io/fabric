@@ -647,7 +647,7 @@ func MakeRequest(t *testing.T, ctx context.Context, url string, contentType stri
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.MakeRequest(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -699,7 +699,7 @@ func MakeRequest_Do(t *testing.T, r *http.Request) *MakeRequestTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.MakeRequest(w, r)
 	})
 	tc.res = w.Result()

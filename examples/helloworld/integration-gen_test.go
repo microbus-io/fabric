@@ -638,7 +638,7 @@ func HelloWorld_Get(t *testing.T, ctx context.Context, url string) *HelloWorldTe
 	r.Header = frame.Of(ctx).Header()
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.HelloWorld(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -687,7 +687,7 @@ func HelloWorld_Post(t *testing.T, ctx context.Context, url string, contentType 
 	}
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.HelloWorld(w, r)
 	})
 	tc.dur = time.Since(t0)
@@ -732,7 +732,7 @@ func HelloWorld(t *testing.T, r *http.Request) *HelloWorldTestCase {
 	r = r.WithContext(ctx)
 	w := httpx.NewResponseRecorder()
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.HelloWorld(w, r)
 	})
 	tc.res = w.Result()

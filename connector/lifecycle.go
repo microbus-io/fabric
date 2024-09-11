@@ -34,7 +34,6 @@ import (
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/trc"
-	"github.com/microbus-io/fabric/utils"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -233,7 +232,7 @@ func (c *Connector) Startup() (err error) {
 	// Call the callback functions in order
 	c.onStartupCalled = true
 	for i := 0; i < len(c.onStartup); i++ {
-		err = utils.CatchPanic(func() error {
+		err = errors.CatchPanic(func() error {
 			return c.onStartup[i](ctx)
 		})
 		if err != nil {
@@ -331,7 +330,7 @@ func (c *Connector) Shutdown() (err error) {
 	// Call the callback functions in reverse order
 	if c.onStartupCalled {
 		for i := len(c.onShutdown) - 1; i >= 0; i-- {
-			err = utils.CatchPanic(func() error {
+			err = errors.CatchPanic(func() error {
 				return c.onShutdown[i](ctx)
 			})
 			if err != nil {
@@ -429,7 +428,7 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 	go func() {
 		defer span.End()
 		defer atomic.AddInt32(&c.pendingOps, -1)
-		err := utils.CatchPanic(func() error {
+		err := errors.CatchPanic(func() error {
 			return errors.Trace(f(subCtx))
 		})
 		if err != nil {
@@ -454,7 +453,7 @@ func (c *Connector) Parallel(jobs ...func() (err error)) error {
 		go func() {
 			defer atomic.AddInt32(&c.pendingOps, -1)
 			defer wg.Done()
-			errChan <- utils.CatchPanic(j)
+			errChan <- errors.CatchPanic(j)
 		}()
 	}
 	wg.Wait()

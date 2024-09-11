@@ -204,7 +204,7 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Use method `ANY` to subscribe to any method instead of `*`
 * Path arguments `{arg}` and `{greedy+}`
 * `httpRequestBody` and `httpResponseBody` magic arguments in functions
-* Change the directory example to RESTful API style
+* Changed the directory example to RESTful API style
 * Introduced a microservice for testing of the code generator
 * Deprecated variadic options in code-generated clients
 
@@ -217,16 +217,16 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Locality-aware routing given a `MICROBUS_LOCALITY` environment variable
 * Determine locality automatically from availability zone name in AWS or GCP
 * Renamed the inbox core microservice to SMTP ingress
-* Change hostname suffix of core microservices to `.core`
+* Changed hostname suffix of core microservices to `.core`
 * New pattern for adding and removing microservices in an `Application`
 
 [Milestone 27](https://github.com/microbus-io/fabric/tree/milestone/27):
 
-* Remove dependency on Testify
+* Removed dependency on Testify
 
 [Milestone 28](https://github.com/microbus-io/fabric/tree/milestone/28):
 
-* Remove dependency on Zap logger and replace with standard `slog`
+* Removed dependency on Zap logger and replace with standard `slog`
 
 [Milestone 29](https://github.com/microbus-io/fabric/tree/milestone/29):
 
@@ -234,5 +234,11 @@ Note: These milestones are maintained in separate branches in order to demonstra
 * Fixed data race in metrics collection
 * Added `connector.StopTicker`
 * Fixed deadlock when running tickers
-* Refactor custom `rand` package to use `math/rand/v2`
+* Refactored custom `rand` package to use `math/rand/v2`
 * No locality-aware routing when directly targeting a microservice by ID
+
+[Milestone 30](https://github.com/microbus-io/fabric/tree/milestone/30):
+
+* Adjusted interface of middleware
+* Refactored the HTTP ingress proxy as a customizable chain of middleware
+* Moved `utils.CatchPanic` to `errors.CatchPanic`

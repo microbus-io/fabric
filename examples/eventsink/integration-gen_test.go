@@ -186,7 +186,7 @@ func (tc *RegisteredTestCase) Get() (emails []string, err error) {
 func Registered(t *testing.T, ctx context.Context) *RegisteredTestCase {
 	tc := &RegisteredTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.emails, tc.err = Svc.Registered(ctx)
 		return tc.err
 	})
@@ -253,7 +253,7 @@ func (tc *OnAllowRegisterTestCase) Get() (allow bool, err error) {
 func OnAllowRegister(t *testing.T, ctx context.Context, email string) *OnAllowRegisterTestCase {
 	tc := &OnAllowRegisterTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.allow, tc.err = Svc.OnAllowRegister(ctx, email)
 		return tc.err
 	})
@@ -317,7 +317,7 @@ func (tc *OnRegisteredTestCase) Get() (err error) {
 func OnRegistered(t *testing.T, ctx context.Context, email string) *OnRegisteredTestCase {
 	tc := &OnRegisteredTestCase{_t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		tc.err = Svc.OnRegistered(ctx, email)
 		return tc.err
 	})

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/microbus-io/fabric/utils"
+	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -129,7 +129,7 @@ func TestHttpx_MustRequest(t *testing.T) {
 
 	req := MustNewRequest("POST", "https://example.com", nil)
 	testarossa.NotNil(t, req)
-	err := utils.CatchPanic(func() error {
+	err := errors.CatchPanic(func() error {
 		MustNewRequest("POST", "@$^%&", nil)
 		return nil
 	})
@@ -137,7 +137,7 @@ func TestHttpx_MustRequest(t *testing.T) {
 
 	req = MustNewRequestWithContext(ctx, "POST", "https://example.com", nil)
 	testarossa.NotNil(t, req)
-	err = utils.CatchPanic(func() error {
+	err = errors.CatchPanic(func() error {
 		MustNewRequestWithContext(ctx, "POST", "@$^%&", nil)
 		return nil
 	})

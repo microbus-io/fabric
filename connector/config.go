@@ -26,7 +26,6 @@ import (
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/service"
-	"github.com/microbus-io/fabric/utils"
 )
 
 // SetOnConfigChanged adds a function to be called when a new config was received from the configurator.
@@ -98,7 +97,7 @@ func (c *Connector) SetConfig(name string, value any) error {
 	// Call the callback function, if provided
 	if c.IsStarted() && config.Value != origValue {
 		for i := 0; i < len(c.onConfigChanged); i++ {
-			err := utils.CatchPanic(func() error {
+			err := errors.CatchPanic(func() error {
 				return c.onConfigChanged[i](
 					c.lifetimeCtx,
 					func(n string) bool {
@@ -224,7 +223,7 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) error {
 	// Call the callback function, if provided
 	if callback && len(changed) > 0 {
 		for i := 0; i < len(c.onConfigChanged); i++ {
-			err := utils.CatchPanic(func() error {
+			err := errors.CatchPanic(func() error {
 				return c.onConfigChanged[i](
 					ctx,
 					func(name string) bool {

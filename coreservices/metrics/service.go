@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/utils"
@@ -82,11 +83,11 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 		return errors.Trace(err)
 	}
 
-	// Zip
+	// Compress, except on local to avoid special characters when running NATS is debug mode
 	var writer io.Writer
 	var wCloser io.Closer
 	writer = w
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && svc.Deployment() != connector.LOCAL {
 		zipper, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if zipper != nil {
 			w.Header().Set("Content-Encoding", "gzip")

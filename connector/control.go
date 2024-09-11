@@ -93,6 +93,10 @@ func (c *Connector) handleMetrics(w http.ResponseWriter, r *http.Request) error 
 	_ = c.ObserveMetric("microbus_cache_hits_total", float64(c.distribCache.Hits()))
 	_ = c.ObserveMetric("microbus_cache_misses_total", float64(c.distribCache.Misses()))
 	if c.metricsHandler != nil {
+		if c.Deployment() == LOCAL {
+			// Do not compress the response on local to avoid special characters when running NATS is debug mode
+			r.Header.Del("Accept-Encoding")
+		}
 		c.metricsHandler.ServeHTTP(w, r)
 	} else {
 		w.WriteHeader(http.StatusNotImplemented)

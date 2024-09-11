@@ -48,6 +48,9 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 		go func() {
 			for {
 				time.Sleep(c.networkHop / 2)
+				if _, ok := c.requestDefrags.Load(fragKey); !ok {
+					break
+				}
 				if defragger.LastActivity() > c.networkHop {
 					c.requestDefrags.Delete(fragKey)
 					break
@@ -97,6 +100,9 @@ func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response,
 		go func() {
 			for {
 				time.Sleep(c.networkHop / 2)
+				if _, ok := c.responseDefrags.Load(fragKey); !ok {
+					break
+				}
 				if defragger.LastActivity() > c.networkHop {
 					c.responseDefrags.Delete(fragKey)
 					break

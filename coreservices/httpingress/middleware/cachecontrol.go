@@ -14,14 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package middleware
 
 import (
-	"github.com/microbus-io/fabric/errors"
+	"net/http"
+
+	"github.com/microbus-io/fabric/connector"
 )
 
-// CatchPanic calls the given function and returns any panic as a standard error.
-// Deprecated: Use [errors.CatchPanic] instead.
-func CatchPanic(f func() error) (err error) {
-	return errors.CatchPanic(f)
+// CacheControl returns a middleware that sets the Cache-Control header if not otherwise specified.
+func CacheControl(defaultValue string) Middleware {
+	return func(next connector.HTTPHandler) connector.HTTPHandler {
+		return func(w http.ResponseWriter, r *http.Request) (err error) {
+			err = next(w, r)
+			if w.Header().Get("Cache-Control") == "" {
+				w.Header().Set("Cache-Control", defaultValue)
+			}
+			return err // No trace
+		}
+	}
 }

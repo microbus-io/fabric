@@ -62,34 +62,50 @@ The HTTP ingress proxy respects the following incoming headers:
 
 ### Middleware
 
-Middleware is a function that can be added to pre- or post-process a request. Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware, passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware, and passes it back to the preceding (upstream) middleware. Both request and response may be modified by the middleware.
-
-A somewhat contrived example:
+Middleware is a function that returns a function that can be added to pre- or post-process a request.
 
 ```go
-ingressSrv := NewService()
-ingressSrv.AddMiddleware(func(w http.ResponseWriter, r *http.Request, next connector.HTTPHandler) (err error) {
-	r.Header.Del("Accept-Encoding") // Disable compression
-	err = next(w, r)
-	w.Header().Add("X-Server", "Microbus")
-	if err == nil {
-		return nil
-	}
-	if rec, ok := w.(*httpx.ResponseRecorder); ok {
-		rec.Clear()
-		rec.WriteHeader(500)
-		rec.Write([]byte(err.Error()))
-		return nil
-	}
-	return err // No trace
-})
+type Middleware func(next connector.HTTPHandler) connector.HTTPHandler
 ```
 
-Note that the `w` passed to the middleware is an `httpx.ResponseRecorder` whose headers and status code can be modified even after the body had been written. Appending to the body is also allowed. Modifying the body requires casting in order to clear it first:
+Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware, passing it along to the `next` (downstream) one. And conversely, each receives the response from the next (downstream) middleware, and passes it back to the preceding (upstream) middleware. Both request and response may be modified by the middleware.
+
+The HTTP ingress core microservice keeps the chain of middleware in a `middleware.Chain` construct that can be accessed via its `Middleware` method.
+Each middleware in the chain is addressable by name and can be replaced, removed or used as an insertion point.
+
+The chain is initialized with reasonable defaults that perform various functions:
+`ErrorPrinter -> BlockedPaths -> Logger -> Enter -> SecureRedirect -> CORS -> XForward -> InternalHeaders -> RootPath -> Timeout -> Ready -> CacheControl -> Compress -> DefaultFavIcon`
+
+The `Enter` middleware is a noop marker that indicates that the request was accepted. Middleware after this point typically manipulate the request headers.
+The `Ready` middleware is a noop marker that indicates that the request is ready to be processed. Middleware after this point typically manipulate the response headers or body.
+
+A somewhat contrived example that inserts a middleware named `Contrived` after the `Enter` marker to process requests whose path starts with `/images/`.
 
 ```go
-if rec, ok := w.(*httpx.ResponseRecorder); ok {
-	rec.Clear()
-	rec.Write([]byte("Brand new content"))
-}
+httpIngress := NewService()
+httpIngress.Middleware().InsertAfter("Enter", "Contrived", middleware.OnRoutePrefix("/images/", func(next connector.HTTPHandler) connector.HTTPHandler {
+	return func(w http.ResponseWriter, r *http.Request) (err error) {
+		// Modifying the request should be done before calling next
+		r.Header.Del("Accept-Encoding") // Disable compression
+		
+		// Call the next middleware in the chain
+		err = next(w, r)
+		if err == nil {
+			w.Header().Add("X-Check", "OK")
+			return nil
+		}
+
+		// Modifying the result typically makes sense after calling next
+		if ww, ok := w.(*httpx.ResponseRecorder); ok { // Always true
+			ww.ClearBody()
+			ww.Write([]byte("Oops!"))
+		}
+		w.Header().Add("X-Check", "Error")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return nil
+	}
+}))
 ```
+
+Note that the `w` passed to the middleware is an `httpx.ResponseRecorder` whose headers and status code can be modified even after the body had been written. Appending to the body is also allowed. Modifying the body requires casting in order to clear it first.

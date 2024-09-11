@@ -18,8 +18,6 @@ package httpingress
 
 import (
 	"bytes"
-	"compress/flate"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -32,19 +30,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/andybalholm/brotli"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/errors"
-	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/trc"
-	"github.com/microbus-io/fabric/utils"
 
 	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/microbus-io/fabric/coreservices/httpingress/intermediate"
-	"github.com/microbus-io/fabric/coreservices/metrics/metricsapi"
+	"github.com/microbus-io/fabric/coreservices/httpingress/middleware"
 )
 
 /*
@@ -62,7 +57,7 @@ type Service struct {
 	reqMemoryUsed  int64
 	secure443      bool
 	blockedPaths   map[string]bool
-	middleware     []Middleware
+	middleware     *middleware.Chain
 	handler        connector.HTTPHandler
 }
 
@@ -74,17 +69,30 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 
 	// Setup the middleware chain
 	svc.handler = svc.serveHTTP
-	for h := len(svc.middleware) - 1; h >= 0; h-- {
-		mw := svc.middleware[h]
-		svc.handler = func(w http.ResponseWriter, r *http.Request) error {
-			return mw.Serve(w, r, svc.serveHTTP) // No trace
-		}
+	mwHandlers := svc.Middleware().Handlers()
+	for h := len(mwHandlers) - 1; h >= 0; h-- {
+		svc.handler = mwHandlers[h](svc.handler)
 	}
+	svc.LogInfo(ctx, "Middleware", "chain", svc.Middleware().String())
 
 	err = svc.startHTTPServers(ctx)
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// ASCII art fun
+	if svc.Deployment() == connector.LOCAL {
+		fmt.Print(`
+8"""8"""8 8  8""""8 8"""8  8"""88 8""""8   8   8 8""""8 
+8   8   8 8  8    " 8   8  8    8 8    8   8   8 8      
+8e  8   8 8e 8e     8eee8e 8    8 8eeee8ee 8e  8 8eeeee 
+88  8   8 88 88     88   8 8    8 88     8 88  8     88 
+88  8   8 88 88   e 88   8 8    8 88     8 88  8 e   88 
+88  8   8 88 88eee8 88   8 8eeee8 88eeeee8 88ee8 8eee88 
+
+`)
+	}
+
 	return nil
 }
 
@@ -97,29 +105,48 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// AddMiddleware adds a [Middleware] to the chain of middleware.
-// Middleware is a processor that can be added to pre- or post-process a request.
-// Middlewares are chained together. Each receives the request after it was processed by the preceding (upstream) middleware,
-// passing it along to the next (downstream) one. And conversely, each receives the response from the next (downstream) middleware,
-// and passes it back to the preceding (upstream) middleware. The request and/or response may be modified in the process.
-// A middleware should call the next function in the chain.
-func (svc *Service) AddMiddleware(middleware ...Middleware) error {
-	if svc.IsStarted() {
-		return errors.New("middleware can't be added after starting up")
-	}
-	svc.middleware = append(svc.middleware, middleware...)
-	return nil
-}
+// Middleware returns the middleware chain set for the ingress proxy.
+// The chain is initialized to a default that can be customized.
+// Changing the middleware after the server starts has no effect.
+func (svc *Service) Middleware() *middleware.Chain {
+	// Default middleware
+	if svc.middleware == nil {
+		m := &middleware.Chain{}
 
-// AddMiddleware creates a middleware for each [MiddlewareFunc] and adds them to the chain of middleware.
-func (svc *Service) AddMiddlewareFunc(handler ...MiddlewareFunc) error {
-	var middleware []Middleware
-	for _, h := range handler {
-		middleware = append(middleware, &simpleMiddleware{
-			f: h,
-		})
+		// Warning: renaming or removing middleware is a breaking change because the names are used as location markers
+		m.Append("ErrorPrinter", middleware.ErrorPrinter())
+		m.Append("BlockedPaths", middleware.BlockedPaths(func(path string) bool {
+			if svc.blockedPaths[path] {
+				return true
+			}
+			dot := strings.LastIndex(path, ".")
+			if dot >= 0 && svc.blockedPaths["*"+path[dot:]] {
+				return true
+			}
+			return false
+		}))
+		m.Append("Logger", middleware.Logger(svc))
+		m.Append("Enter", middleware.NoOp()) // Marker
+		m.Append("SecureRedirect", middleware.SecureRedirect(func() bool {
+			return svc.secure443
+		}))
+		m.Append("CORS", middleware.Cors(func(origin string) bool {
+			return svc.allowedOrigins["*"] || svc.allowedOrigins[origin]
+		}))
+		m.Append("XForward", middleware.XForwarded())
+		m.Append("InternalHeaders", middleware.InternalHeaders())
+		m.Append("RootPath", middleware.RewriteRootPath("/root"))
+		m.Append("Timeout", middleware.RequestTimeout(func() time.Duration {
+			return svc.TimeBudget()
+		}))
+		m.Append("Ready", middleware.NoOp()) // Marker
+		m.Append("CacheControl", middleware.CacheControl("no-store"))
+		m.Append("Compress", middleware.Compress())
+		m.Append("DefaultFavIcon", middleware.DefaultFavIcon())
+
+		svc.middleware = m
 	}
-	return svc.AddMiddleware(middleware...)
+	return svc.middleware
 }
 
 // OnChangedPorts is triggered when the value of the Ports config property changes.
@@ -243,7 +270,7 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 	return nil
 }
 
-// ServeHTTP forwards incoming HTTP requests to the appropriate microservice on NATS.
+// ServeHTTP forwards incoming HTTP requests to the appropriate microservice.
 // An incoming request http://localhost:8080/echo.example/echo is forwarded to
 // the microservice at https://echo.example/echo .
 // ServeHTTP implements the http.Handler interface
@@ -268,6 +295,9 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		r.URL.Scheme = "http"
 	}
+	if !strings.HasPrefix(r.URL.Path, "/") {
+		r.URL.Path = "/" + r.URL.Path
+	}
 
 	// OpenTelemetry: create the root span
 	spanOptions := []trc.Option{
@@ -283,69 +313,20 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 	r = r.WithContext(ctx)
 
-	// Do not accept internal headers
-	for h := range r.Header {
-		if strings.HasPrefix(h, frame.HeaderPrefix) {
-			r.Header.Del(h)
-		}
-	}
-
 	ww := httpx.NewResponseRecorder() // This recorder allows modifying the response after it was written
-	err := utils.CatchPanic(func() error {
+	err := errors.CatchPanic(func() error {
 		_ = r.URL.Port() // Validates the port (may panic in malformed requests)
 		return svc.handler(ww, r)
 	})
-
-	// Do not leak internal headers
-	for h := range ww.Header() {
-		if strings.HasPrefix(h, frame.HeaderPrefix) {
-			ww.Header().Del(h)
-		}
-	}
-
 	if err != nil {
-		var urlStr string
-		utils.CatchPanic(func() error {
-			urlStr = r.URL.String()
-			if len(urlStr) > 2048 {
-				urlStr = urlStr[:2048] + "..."
-			}
-			return nil
-		})
-		statusCode := errors.StatusCode(err)
-		if statusCode <= 0 || statusCode >= 1000 {
-			statusCode = http.StatusInternalServerError
-		}
-		ww.Clear()
-		ww.Header().Set("Content-Type", "text/plain")
-		ww.WriteHeader(statusCode)
-		// Do not leak error details and stack trace
-		if svc.Deployment() == connector.LOCAL && httpx.IsLocalhostAddress(r) {
-			ww.Write([]byte(fmt.Sprintf("%+v\n\n{%s}", err, span.TraceID())))
-		} else {
-			ww.Write([]byte(http.StatusText(statusCode) + " {" + span.TraceID() + "}"))
-		}
-		logFunc := svc.LogError
-		if statusCode == http.StatusNotFound {
-			logFunc = svc.LogInfo
-		} else if statusCode < 500 {
-			logFunc = svc.LogWarn
-		}
-		logFunc(ctx, "Serving",
-			"error", err,
-			"url", urlStr,
-			"status", statusCode,
-		)
-
 		// OpenTelemetry: record the error, adding the request attributes
 		span.SetRequest(r)
 		span.SetError(err)
 		svc.ForceTrace(ctx)
 	} else {
-		// OpenTelemetry: record the status code and content length
+		// OpenTelemetry: record the status code
 		span.SetOK(ww.StatusCode())
 	}
-
 	_ = httpx.Copy(w, ww.Result())
 
 	// Meter
@@ -386,47 +367,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
-	// Blocked paths
-	if svc.blockedPaths[r.URL.Path] {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-	dot := strings.LastIndex(r.URL.Path, ".")
-	if dot >= 0 && svc.blockedPaths["*"+r.URL.Path[dot:]] {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-
-	// Detect root path
-	origPath := r.URL.Path
-	if !strings.HasPrefix(r.URL.Path, "/") {
-		r.URL.Path = "/" + r.URL.Path
-	}
-	if r.URL.Path == "/" {
-		r.URL.Path = "/root"
-	}
-
-	// CORS
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-	origin := r.Header.Get("Origin")
-	if origin != "" {
-		// Block disallowed origins
-		if !svc.allowedOrigins["*"] && !svc.allowedOrigins[origin] {
-			return errors.Newcf(http.StatusForbidden, "disallowed origin '%s", origin)
-		}
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Expose-Headers", "*")
-		if r.Method == "OPTIONS" {
-			// CORS preflight requests are returned empty
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		}
-	}
-
 	// Use the first segment of the URI as the hostname to contact
 	u, err := resolveInternalURL(r.URL, svc.portMappings)
 	if err != nil {
@@ -440,24 +380,6 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 	internalURL := u.String()
-	internalHost := u.Host
-	metrics := internalHost == metricsapi.Hostname || strings.HasPrefix(internalHost, metricsapi.Hostname+":")
-	if !metrics {
-		if internalHost != "favicon.ico" {
-			svc.LogInfo(ctx, "Request received",
-				"url", internalURL,
-			)
-		}
-		// Automatically redirect HTTP port 80 to HTTPS port 443
-		if svc.secure443 && r.TLS == nil && r.URL.Port() == "80" {
-			u := *r.URL
-			u.Scheme = "https"
-			u.Host = strings.TrimSuffix(u.Host, ":80")
-			s := u.String()
-			http.Redirect(w, r, s, http.StatusTemporaryRedirect)
-			return nil
-		}
-	}
 
 	// Read the body fully
 	body, err := svc.readRequestBody(r)
@@ -472,39 +394,9 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		pub.URL(internalURL),
 		pub.Body(body),
 		pub.Unicast(),
-		pub.CopyHeaders(r.Header),     // Copy all headers
-		pub.ContentLength(len(body)),  // Overwrite the Content-Length header
-		pub.Header("Traceparent", ""), // Disallowed header
-		pub.Header("Tracestate", ""),  // Disallowed header
+		pub.CopyHeaders(r.Header),    // Copy all headers
+		pub.ContentLength(len(body)), // Overwrite the Content-Length header
 	}
-
-	// Add the time budget to the request headers and set it as the context's timeout
-	delegateCtx := ctx
-	timeBudget := svc.TimeBudget()
-	if r.Header.Get("Request-Timeout") != "" {
-		headerTimeoutSecs, err := strconv.Atoi(r.Header.Get("Request-Timeout"))
-		if err == nil {
-			timeBudget = time.Duration(headerTimeoutSecs) * time.Second
-		}
-	}
-	if timeBudget > 0 {
-		var cancel context.CancelFunc
-		delegateCtx, cancel = context.WithTimeout(ctx, timeBudget)
-		defer cancel()
-	}
-
-	// Set proxy headers, if there's no upstream proxy
-	if r.Header.Get("X-Forwarded-Host") == "" {
-		options = append(options, pub.Header("X-Forwarded-Host", r.Host))
-		options = append(options, pub.Header("X-Forwarded-For", r.RemoteAddr))
-		if r.TLS != nil {
-			options = append(options, pub.Header("X-Forwarded-Proto", "https"))
-		} else {
-			options = append(options, pub.Header("X-Forwarded-Proto", "http"))
-		}
-		options = append(options, pub.Header("X-Forwarded-Prefix", ""))
-	}
-	options = append(options, pub.Header("X-Forwarded-Path", origPath))
 
 	// OpenTelemetry: pass the span in the headers
 	carrier := make(propagation.HeaderCarrier)
@@ -514,77 +406,12 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Delegate the request over NATS
-	internalRes, err := svc.Request(delegateCtx, options...)
+	internalRes, err := svc.Request(ctx, options...)
 	if err != nil {
 		return err // No trace
 	}
-
-	// Write back headers
-	for hdrName, hdrVals := range internalRes.Header {
-		for _, val := range hdrVals {
-			w.Header().Add(hdrName, val)
-		}
-	}
-
-	// No caching by default
-	if internalRes.Header.Get("Cache-Control") == "" {
-		w.Header().Set("Cache-Control", "no-store")
-	}
-
-	// Compress textual content using gzip or deflate
-	var closer io.Closer
-	var writer io.Writer
-	writer = w
-	acceptEncoding := r.Header.Get("Accept-Encoding")
-	if acceptEncoding != "" && internalRes.Body != nil {
-		contentType := internalRes.Header.Get("Content-Type")
-		contentEncoding := internalRes.Header.Get("Content-Encoding")
-		if contentEncoding == "" {
-			contentEncoding = "identity"
-		}
-		contentLength, _ := strconv.Atoi(internalRes.Header.Get("Content-Length"))
-		if contentLength >= 4*1024 && contentEncoding == "identity" &&
-			!strings.HasPrefix(contentType, "image/") &&
-			!strings.HasPrefix(contentType, "video/") &&
-			!strings.HasPrefix(contentType, "audio/") {
-			if strings.Contains(acceptEncoding, "br") {
-				w.Header().Del("Content-Length")
-				w.Header().Set("Content-Encoding", "br")
-				brot := brotli.NewWriter(w)
-				writer = brot
-				closer = brot
-			} else if strings.Contains(acceptEncoding, "deflate") {
-				w.Header().Del("Content-Length")
-				w.Header().Set("Content-Encoding", "deflate")
-				deflater, _ := flate.NewWriter(w, flate.DefaultCompression)
-				writer = deflater
-				closer = deflater
-			} else if strings.Contains(acceptEncoding, "gzip") {
-				w.Header().Del("Content-Length")
-				w.Header().Set("Content-Encoding", "gzip")
-				gzipper := gzip.NewWriter(w)
-				writer = gzipper
-				closer = gzipper
-			}
-		}
-	}
-
-	// Write back the status code
-	if internalRes.StatusCode != 0 {
-		w.WriteHeader(internalRes.StatusCode)
-	}
-
-	// Write back the body
-	if internalRes.Body != nil {
-		_, err = io.Copy(writer, internalRes.Body)
-		if closer != nil {
-			closer.Close()
-		}
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-	return nil
+	err = httpx.Copy(w, internalRes)
+	return errors.Trace(err)
 }
 
 // readRequestBody reads the body of the request into memory, within the memory limit

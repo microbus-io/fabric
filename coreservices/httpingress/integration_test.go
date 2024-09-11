@@ -28,6 +28,7 @@ import (
 	"github.com/microbus-io/testarossa"
 
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/coreservices/httpingress/middleware"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/rand"
@@ -42,12 +43,22 @@ func Initialize() (err error) {
 			svc.SetPorts("4040,4443")
 			svc.SetAllowedOrigins("allowed.origin")
 			svc.SetPortMappings("4040:*->*, 4443:*->443")
-			svc.AddMiddlewareFunc(func(w http.ResponseWriter, r *http.Request, next connector.HTTPHandler) (err error) {
-				r.Header.Add("Middleware", "Hello")
-				err = next(w, r)
-				w.Header().Add("Middleware", "Goodbye")
-				return err // No trace
-			})
+			svc.Middleware().Append("HelloGoodbye", middleware.OnRoutePrefix("/greeting:555/", middleware.Group(
+				func(next connector.HTTPHandler) connector.HTTPHandler {
+					return func(w http.ResponseWriter, r *http.Request) error {
+						r.Header.Add("Middleware", "Hello")
+						err = next(w, r)
+						return err // No trace
+					}
+				},
+				func(next connector.HTTPHandler) connector.HTTPHandler {
+					return func(w http.ResponseWriter, r *http.Request) error {
+						err = next(w, r)
+						w.Header().Add("Middleware", "Goodbye")
+						return err // No trace
+					}
+				},
+			)))
 		}),
 	)
 	if err != nil {
@@ -453,6 +464,7 @@ func TestHttpingress_InternalHeaders(t *testing.T) {
 	con.Subscribe("GET", ":555/ok", func(w http.ResponseWriter, r *http.Request) error {
 		// No Microbus headers should be accepted from client
 		testarossa.Equal(t, "", r.Header.Get(frame.HeaderPrefix+"In-Request"))
+		testarossa.Equal(t, "", r.Header.Get(strings.ToUpper(frame.HeaderPrefix+"In-Request-Upper")))
 		// Microbus headers generated internally should pass through the middleware chain
 		testarossa.Equal(t, Hostname, frame.Of(r).FromHost())
 
@@ -469,25 +481,35 @@ func TestHttpingress_InternalHeaders(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://localhost:4040/internal.headers:555/ok", nil)
 	testarossa.NoError(t, err)
 	req.Header.Set(frame.HeaderPrefix+"In-Request", "STOP")
+	req.Header.Set(strings.ToUpper(frame.HeaderPrefix)+"In-Request-Upper", "STOP")
 	res, err := client.Do(req)
 	if testarossa.NoError(t, err) {
 		// No Microbus headers should leak outside
 		testarossa.Equal(t, "", res.Header.Get(frame.HeaderPrefix+"In-Response"))
+		testarossa.Equal(t, "", res.Header.Get(strings.ToUpper(frame.HeaderPrefix+"In-Request-Upper")))
 		for h := range res.Header {
 			testarossa.False(t, strings.HasPrefix(h, frame.HeaderPrefix))
 		}
 	}
 }
 
-func TestHttpingress_Middleware(t *testing.T) {
+func TestHttpingress_OnRoute(t *testing.T) {
 	t.Parallel()
 
-	con := connector.New("final.destination")
+	con := connector.New("greeting")
 	con.Subscribe("GET", ":555/ok", func(w http.ResponseWriter, r *http.Request) error {
 		// Headers should pass through
 		testarossa.Equal(t, "Bearer 123456", r.Header.Get("Authorization"))
 		// Middleware added a request header
 		testarossa.Equal(t, "Hello", r.Header.Get("Middleware"))
+		w.Write([]byte("ok"))
+		return nil
+	})
+	con.Subscribe("GET", ":500/ok", func(w http.ResponseWriter, r *http.Request) error {
+		// Headers should pass through
+		testarossa.Equal(t, "Bearer 123456", r.Header.Get("Authorization"))
+		// Middleware did not run on this route
+		testarossa.Equal(t, "", r.Header.Get("Middleware"))
 		w.Write([]byte("ok"))
 		return nil
 	})
@@ -497,7 +519,7 @@ func TestHttpingress_Middleware(t *testing.T) {
 
 	client := http.Client{Timeout: time.Second * 2}
 
-	req, err := http.NewRequest("GET", "http://localhost:4040/final.destination:555/ok", nil)
+	req, err := http.NewRequest("GET", "http://localhost:4040/greeting:555/ok", nil)
 	testarossa.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer 123456")
 	res, err := client.Do(req)
@@ -508,6 +530,19 @@ func TestHttpingress_Middleware(t *testing.T) {
 		}
 		// Middleware added a response header
 		testarossa.Equal(t, "Goodbye", res.Header.Get("Middleware"))
+	}
+
+	req, err = http.NewRequest("GET", "http://localhost:4040/greeting:500/ok", nil)
+	testarossa.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer 123456")
+	res, err = client.Do(req)
+	if testarossa.NoError(t, err) {
+		b, err := io.ReadAll(res.Body)
+		if testarossa.NoError(t, err) {
+			testarossa.Equal(t, "ok", string(b))
+		}
+		// Middleware did not run on this route
+		testarossa.Equal(t, "", res.Header.Get("Middleware"))
 	}
 }
 
@@ -540,6 +575,44 @@ func TestHttpingress_BlockedPaths(t *testing.T) {
 	res, err = client.Do(req)
 	if testarossa.NoError(t, err) {
 		testarossa.Equal(t, http.StatusOK, res.StatusCode)
+	}
+}
+
+func TestHttpingress_DefaultFavIcon(t *testing.T) {
+	t.Parallel()
+
+	client := http.Client{Timeout: time.Second * 2}
+
+	req, err := http.NewRequest("GET", "http://localhost:4040/favicon.ico", nil)
+	testarossa.NoError(t, err)
+	res, err := client.Do(req)
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, http.StatusOK, res.StatusCode)
+		testarossa.Equal(t, "image/x-icon", res.Header.Get("Content-Type"))
+		icon, err := io.ReadAll(res.Body)
+		if testarossa.NoError(t, err) {
+			testarossa.NotZero(t, len(icon))
+		}
+	}
+}
+
+func TestHttpingress_NoCache(t *testing.T) {
+	t.Parallel()
+
+	con := connector.New("no.cache")
+	con.Subscribe("GET", "ok", func(w http.ResponseWriter, r *http.Request) error {
+		w.Write([]byte("ok"))
+		return nil
+	})
+	App.Add(con)
+	err := con.Startup()
+	testarossa.NoError(t, err)
+	defer con.Shutdown()
+
+	client := http.Client{Timeout: time.Second * 2}
+	res, err := client.Get("http://localhost:4040/no.cache/ok")
+	if testarossa.NoError(t, err) {
+		testarossa.Equal(t, "no-store", res.Header.Get("Cache-Control"))
 	}
 }
 

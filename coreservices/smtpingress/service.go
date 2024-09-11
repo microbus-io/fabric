@@ -36,7 +36,6 @@ import (
 	"github.com/microbus-io/fabric/coreservices/smtpingress/smtpingressapi"
 	"github.com/microbus-io/fabric/errors"
 	"github.com/microbus-io/fabric/trc"
-	"github.com/microbus-io/fabric/utils"
 )
 
 const processorName = "MessageProcessor"
@@ -140,7 +139,7 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 					ctx, span = svc.StartSpan(svc.Lifetime(), ":"+strconv.Itoa(svc.Port()), trc.Server()) // Use lifetime as parent ctx
 					defer span.End()
 
-					err = utils.CatchPanic(func() error {
+					err = errors.CatchPanic(func() error {
 						res, err = svc.processEnvelope(p, e, task)
 						return errors.Trace(err)
 					})

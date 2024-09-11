@@ -49,7 +49,7 @@ func (tc *{{ .Name }}TestCase) Get() (err error) {
 func {{ .Name }}(t *testing.T, ctx context.Context) *{{ .Name }}TestCase {
 	tc := &{{ .Name }}TestCase{t: t}
 	t0 := time.Now()
-	tc.err = utils.CatchPanic(func() error {
+	tc.err = errors.CatchPanic(func() error {
 		return Svc.{{ .Name }}(ctx)
 	})
 	tc.dur = time.Since(t0)
