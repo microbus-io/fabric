@@ -32,7 +32,7 @@ import (
 var methodValidator = regexp.MustCompile(`^[A-Z]+$`)
 
 // HTTPHandler extends the standard http.Handler to also return an error.
-type HTTPHandler func(w http.ResponseWriter, r *http.Request) error
+type HTTPHandler func(w http.ResponseWriter, r *http.Request) (err error)
 
 // Subscription handles incoming requests.
 // Although technically public, it is used internally and should not be constructed by microservices directly.

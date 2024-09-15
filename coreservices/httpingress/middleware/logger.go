@@ -28,37 +28,43 @@ import (
 
 // Logger returns a middleware that logs requests.
 func Logger(logger service.Logger) Middleware {
+	pathAndQuery := func(r *http.Request, maxLen int) string {
+		s := r.URL.Path
+		if len(r.URL.RawQuery) != 0 {
+			s += "?" + r.URL.RawQuery
+		}
+		if len(s) > maxLen {
+			return s[:maxLen] + "..."
+		}
+		return s
+	}
+
 	return func(next connector.HTTPHandler) connector.HTTPHandler {
 		metricsPrefix := "/" + metricsapi.Hostname
 		return func(w http.ResponseWriter, r *http.Request) (err error) {
 			if !strings.HasPrefix(r.URL.Path, metricsPrefix) {
 				logger.LogInfo(r.Context(), "Request received",
-					"path", r.URL.Path,
+					"path", pathAndQuery(r, 512),
 				)
 			}
 			err = next(w, r) // No trace
 			if err != nil {
-				var urlStr string
-				errors.CatchPanic(func() error {
-					urlStr = r.URL.String()
-					if len(urlStr) > 2048 {
-						urlStr = urlStr[:2048] + "..."
-					}
-					return nil
-				})
 				statusCode := errors.StatusCode(err)
 				if statusCode <= 0 || statusCode >= 1000 {
 					statusCode = http.StatusInternalServerError
 				}
 				logFunc := logger.LogError
+				maxLen := 2048
 				if statusCode == http.StatusNotFound {
 					logFunc = logger.LogInfo
+					maxLen = 512
 				} else if statusCode < 500 {
 					logFunc = logger.LogWarn
+					maxLen = 512
 				}
 				logFunc(r.Context(), "Serving",
 					"error", err,
-					"url", urlStr,
+					"path", pathAndQuery(r, maxLen),
 					"status", statusCode,
 				)
 			}
