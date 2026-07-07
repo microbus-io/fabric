@@ -263,21 +263,69 @@ func TestLRU_MaxAge(t *testing.T) {
 	// Elements older than the max age of the cache should expire
 	cache.timeOffset += time.Second * 10 // t=40
 	cache.Store(40, "X")
-	assert.Equal(3, cache.Len()) // 0 element is still cached
+	assert.Equal(2, cache.Len()) // 0 element was trimmed from the tail on store
 	assert.False(cache.Exists(0))
 	assert.True(cache.Exists(30))
 	assert.True(cache.Exists(40))
-	assert.Equal(2, cache.Len()) // 0 element was evicted on failed load
+	assert.Equal(2, cache.Len())
 
 	cache.timeOffset += time.Second * 30 // t=70
 	assert.False(cache.Exists(30))
 	assert.True(cache.Exists(40))
-	assert.Equal(1, cache.Len()) // 30 element was evicted on failed load
+	assert.Equal(1, cache.Len()) // 30 element was trimmed from the tail
 
 	// The load option overrides the cache's default max age
 	_, ok := cache.Load(40, MaxAge(29*time.Second))
 	assert.False(ok)
 
+	assert.True(integrity(cache))
+}
+
+func TestLRU_TrimOldest(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	// Weight limit is generous, so diet() never fires: an expired entry that is never read again would linger
+	// under the old lazy scheme. maybeTrimOldest reclaims it on unrelated activity.
+	cache := New[int, string](1024, time.Second*30)
+
+	cache.Store(1, "X")
+	cache.Store(2, "X")
+	assert.Equal(2, cache.Len())
+
+	// Advance past the max age of entries 1 and 2, then touch an unrelated key. The tail is reaped incrementally,
+	// two per operation, even though the cache is nowhere near its weight limit.
+	cache.timeOffset += time.Second * 40
+	cache.Store(3, "X") // trims 1 and 2 from the tail (k=2)
+	assert.Equal(1, cache.Len())
+	assert.False(cache.Exists(1))
+	assert.False(cache.Exists(2))
+	assert.True(cache.Exists(3))
+	assert.True(integrity(cache))
+}
+
+func TestLRU_TrimOldestUsesMaxAge(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	// maybeTrimOldest measures expiry against the cache-wide max age, not any shorter per-call age, so an entry
+	// within the max age is left in place by unrelated activity - only an explicit short-max-age read would evict it.
+	cache := New[int, string](1024, time.Minute)
+
+	cache.Store(1, "X")
+	cache.timeOffset += time.Second * 40 // past a 30s age, but within the 60s cache max
+
+	// Unrelated activity does not trim entry 1: it is still within the cache max age.
+	cache.Store(2, "X")
+	assert.Equal(2, cache.Len())
+	assert.True(cache.Exists(1))
+
+	// Once past the cache-wide max age, the same unrelated activity trims it from the tail.
+	cache.timeOffset += time.Second * 30 // t=70, past the 60s max
+	cache.Store(3, "X")
+	assert.False(cache.Exists(1))
+	assert.True(cache.Exists(2))
+	assert.True(cache.Exists(3))
 	assert.True(integrity(cache))
 }
 
@@ -436,7 +484,7 @@ func BenchmarkLRU_Store(b *testing.B) {
 	// goarch: arm64
 	// pkg: github.com/microbus-io/fabric/lru
 	// cpu: Apple M1 Pro
-	// BenchmarkLRU_Store-10    	 5560801	       254.4 ns/op	     142 B/op	       2 allocs/op
+	// BenchmarkLRU_Store-10    	 3914073	       327.8 ns/op	     164 B/op	       2 allocs/op
 }
 
 func BenchmarkLRU_LoadNoBump(b *testing.B) {
@@ -453,7 +501,7 @@ func BenchmarkLRU_LoadNoBump(b *testing.B) {
 	// goarch: arm64
 	// pkg: github.com/microbus-io/fabric/lru
 	// cpu: Apple M1 Pro
-	// BenchmarkLRU_LoadNoBump-10    	 6022860	       223.9 ns/op	      24 B/op	       1 allocs/op
+	// BenchmarkLRU_LoadNoBump-10    	 5143230	       287.4 ns/op	      24 B/op	       1 allocs/op
 }
 
 func BenchmarkLRU_LoadBump(b *testing.B) {
@@ -470,7 +518,60 @@ func BenchmarkLRU_LoadBump(b *testing.B) {
 	// goarch: arm64
 	// pkg: github.com/microbus-io/fabric/lru
 	// cpu: Apple M1 Pro
-	// BenchmarkLRU_LoadBump-10    	 4951041	       254.0 ns/op	      24 B/op	       1 allocs/op
+	// BenchmarkLRU_LoadBump-10    	 6879088	       283.3 ns/op	      24 B/op	       1 allocs/op
+}
+
+// BenchmarkLRU_LoadBumpParallel measures the contended bump path: every goroutine takes the one exclusive mutex to
+// reorder the LRU list. This is the single-mutex ceiling the review flagged.
+func BenchmarkLRU_LoadBumpParallel(b *testing.B) {
+	const workingSet = 4096 // power of two for the mask below
+	cache := New[int, int](workingSet*2, time.Hour)
+	for i := range workingSet {
+		cache.Store(i, i)
+	}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			cache.Load(i & (workingSet - 1))
+			i++
+		}
+	})
+
+	// goos: darwin
+	// goarch: arm64
+	// pkg: github.com/microbus-io/fabric/lru
+	// cpu: Apple M1 Pro
+	// BenchmarkLRU_LoadBumpParallel-10    	 4514941	       250.8 ns/op	      24 B/op	       1 allocs/op
+	// ~4M bump-loads/sec aggregate under 10-way contention, on par with the serial rate: the single mutex is not the
+	// bottleneck, and it sustains millions of reads/sec - orders of magnitude above the rate a roundtrip-saving
+	// cache sees.
+}
+
+// BenchmarkLRU_LoadNoBumpParallel measures the contended read-only path. It still serializes on the same mutex
+// today (Load always locks), which is why an RWMutex only helps if most reads are made bump-free first.
+func BenchmarkLRU_LoadNoBumpParallel(b *testing.B) {
+	const workingSet = 4096 // power of two for the mask below
+	cache := New[int, int](workingSet*2, time.Hour)
+	for i := range workingSet {
+		cache.Store(i, i)
+	}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			cache.Load(i&(workingSet-1), NoBump())
+			i++
+		}
+	})
+
+	// goos: darwin
+	// goarch: arm64
+	// pkg: github.com/microbus-io/fabric/lru
+	// cpu: Apple M1 Pro
+	// BenchmarkLRU_LoadNoBumpParallel-10    	 5365264	       230.9 ns/op	      24 B/op	       1 allocs/op
+	// ~4.3M read-only-loads/sec aggregate under 10-way contention: faster than the bump path (no list surgery) but
+	// still serialized on the same mutex, so a bump-free read gains concurrency only once the lock itself is relaxed.
 }
 
 // integrity checks the internal structure of the cache.

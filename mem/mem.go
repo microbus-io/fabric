@@ -55,7 +55,7 @@ func Alloc(byteSize int) []byte {
 			return (*ptrBuf)[:0]
 		}
 	}
-	return make([]byte, byteSize)
+	return make([]byte, byteSize)[:0]
 }
 
 // Free releases the memory block.

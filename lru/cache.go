@@ -86,21 +86,23 @@ func (c *Cache[K, V]) Store(key K, value V, options ...Option) {
 		return
 	}
 	c.lock.Lock()
-	c.delete(key)
-	c.store(key, value, opts)
+	now := c.now()
+	c.delete(key, now)
+	c.store(key, value, opts, now)
 	c.lock.Unlock()
 }
 
-func (c *Cache[K, V]) store(key K, value V, opts cacheOptions) {
+func (c *Cache[K, V]) store(key K, value V, opts cacheOptions, now time.Time) {
 	if c.maxWeight <= 0 || c.maxAge <= 0 {
 		return
 	}
+	c.maybeTrimOldest(2, now)
 	// Create and store the node
 	nd := &node[K, V]{
 		key:      key,
 		value:    value,
 		weight:   opts.Weight,
-		inserted: time.Now().Add(c.timeOffset),
+		inserted: now,
 		older:    c.newest,
 	}
 	c.lookup[key] = nd
@@ -131,6 +133,39 @@ func (c *Cache[K, V]) diet() {
 	}
 }
 
+// now returns the current time adjusted by the test-only offset. It is computed once per public operation and
+// threaded through the internal helpers, so a single load or store reads the clock exactly once.
+func (c *Cache[K, V]) now() time.Time {
+	return time.Now().Add(c.timeOffset)
+}
+
+// maybeTrimOldest reaps up to k expired entries from the oldest (tail) end of the cache. Store and bump stamp the
+// current time and move the node to the front, so the list is ordered by insertion time with the oldest at the tail:
+// if the oldest entry has not exceeded the cache's max age, none have, and the scan stops. Expiry is measured against
+// the cache-wide max age only - an item read with a shorter per-call max age is treated as expired by that read but
+// not physically reclaimed until it exceeds the max age. k bounds the work so a single operation never stalls on a
+// large backlog; the rest is reaped by later operations. Must not call delete, which calls this.
+func (c *Cache[K, V]) maybeTrimOldest(k int, now time.Time) {
+	if c.maxAge <= 0 {
+		return
+	}
+	for range k {
+		if c.oldest == nil || now.Sub(c.oldest.inserted) <= c.maxAge {
+			return
+		}
+		oldest := c.oldest
+		delete(c.lookup, oldest.key)
+		c.oldest = oldest.newer
+		if c.oldest != nil {
+			c.oldest.older = nil
+		} else {
+			c.newest = nil
+		}
+		c.weight -= oldest.weight
+		oldest.newer = nil
+	}
+}
+
 // Exists indicates if the key is in the cache.
 func (c *Cache[K, V]) Exists(key K) bool {
 	_, ok := c.Load(key, NoBump())
@@ -148,15 +183,16 @@ func (c *Cache[K, V]) Load(key K, options ...Option) (value V, ok bool) {
 		opt(&opts)
 	}
 	c.lock.Lock()
-	value, ok = c.load(key, opts)
+	value, ok = c.load(key, opts, c.now())
 	c.lock.Unlock()
 	return value, ok
 }
 
-func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
+func (c *Cache[K, V]) load(key K, opts cacheOptions, now time.Time) (value V, ok bool) {
+	c.maybeTrimOldest(2, now)
 	nd, ok := c.lookup[key]
-	if ok && time.Now().Add(c.timeOffset).Sub(nd.inserted) > opts.MaxAge {
-		c.delete(key)
+	if ok && now.Sub(nd.inserted) > opts.MaxAge {
+		c.delete(key, now)
 		ok = false
 	}
 	if !ok {
@@ -190,7 +226,7 @@ func (c *Cache[K, V]) load(key K, opts cacheOptions) (value V, ok bool) {
 			c.newest.newer = nd
 		}
 		c.newest = nd
-		nd.inserted = time.Now().Add(c.timeOffset) // Bumping renews the life of the element
+		nd.inserted = now // Bumping renews the life of the element
 	}
 	return nd.value, true
 }
@@ -213,10 +249,11 @@ func (c *Cache[K, V]) LoadOrStoreFunc(key K, newValue func() V, options ...Optio
 		opt(&opts)
 	}
 	c.lock.Lock()
-	value, found = c.load(key, opts)
+	now := c.now()
+	value, found = c.load(key, opts, now)
 	if !found {
 		value = newValue()
-		c.store(key, value, opts)
+		c.store(key, value, opts, now)
 	}
 	c.lock.Unlock()
 	return value, found
@@ -225,13 +262,14 @@ func (c *Cache[K, V]) LoadOrStoreFunc(key K, newValue func() V, options ...Optio
 // Delete removes an element from the cache by key.
 func (c *Cache[K, V]) Delete(key K) {
 	c.lock.Lock()
-	c.delete(key)
+	c.delete(key, c.now())
 	c.lock.Unlock()
 }
 
 // Delete removes elements from the cache whose keys match the predicate function.
 func (c *Cache[K, V]) DeletePredicate(predicate func(key K) bool) {
 	c.lock.Lock()
+	now := c.now()
 	toDelete := []K{}
 	for k := range c.lookup {
 		if predicate(k) {
@@ -239,12 +277,12 @@ func (c *Cache[K, V]) DeletePredicate(predicate func(key K) bool) {
 		}
 	}
 	for _, k := range toDelete {
-		c.delete(k)
+		c.delete(k, now)
 	}
 	c.lock.Unlock()
 }
 
-func (c *Cache[K, V]) delete(key K) {
+func (c *Cache[K, V]) delete(key K, now time.Time) {
 	nd, ok := c.lookup[key]
 	if !ok {
 		return
@@ -263,6 +301,7 @@ func (c *Cache[K, V]) delete(key K) {
 	nd.older = nil
 	nd.newer = nil
 	c.weight -= nd.weight
+	c.maybeTrimOldest(2, now)
 }
 
 // Weight returns the total weight of all the elements in the cache.

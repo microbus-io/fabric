@@ -94,6 +94,22 @@ func TestMem_TooLarge(t *testing.T) {
 	Free(block2)
 }
 
+func TestMem_TooLargeZeroLength(t *testing.T) {
+	// No parallel
+	assert := testarossa.For(t)
+
+	// A request larger than the largest pool class falls through to a plain allocation, but must still come back
+	// zero-length with capacity for the request - exactly like the pooled path - so append starts at index 0
+	// rather than after a run of zero bytes.
+	const size = 8 << 20 // 8MB, above the 4MB largest class
+	block := Alloc(size)
+	assert.Equal(0, len(block))
+	assert.Equal(size, cap(block))
+
+	block = append(block, []byte("hello")...)
+	assert.Equal([]byte("hello"), block)
+}
+
 func TestMem_Copy(t *testing.T) {
 	// No parallel
 	assert := testarossa.For(t)
