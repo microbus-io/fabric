@@ -105,7 +105,9 @@ func (svc *Service) defaultMiddleware() *middleware.Chain {
 		}
 		return "", false
 	}))
-	m.Append(XForwarded, middleware.XForwarded())
+	m.Append(XForwarded, middleware.XForwarded(func() int {
+		return svc.TrustedProxyHops()
+	}))
 	m.Append(InternalHeaders, middleware.InternalHeaders())
 	m.Append(RootPath, middleware.RootPath("/root"))
 	m.Append(Timeout, middleware.Timeout(func() time.Duration {

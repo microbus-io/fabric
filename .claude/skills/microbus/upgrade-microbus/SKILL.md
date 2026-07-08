@@ -162,7 +162,23 @@ user to apply the same rename wherever `AllowedOrigins` is set for `http.ingress
 environments. This is safe to get wrong in only one direction: an environment still setting the old name refuses
 to start with an error naming the two new configs, rather than silently coming up with a changed CORS posture.
 
-#### 3d. Remove Calls to the Removed `Span.SetRequest` (Grep-Guided)
+#### 3d. Set `TrustedProxyHops` for Deployments Behind a Reverse Proxy (Config, Ask the User)
+
+v1.46.0 changes how the HTTP ingress handles inbound `X-Forwarded-*` headers. Previously they were trusted
+whenever present; now they are ignored and rewritten from the actual request unless the new `TrustedProxyHops`
+config (default 0) says how many reverse proxies (CDN, load balancer) sit in front of the ingress. Ask the user
+whether their deployments run the ingress behind trusted proxies; if so, set for `http.ingress.core`:
+
+```yaml
+http.ingress.core:
+  TrustedProxyHops: 1   # e.g. Cloudflare only; 2 for CDN + load balancer, etc.
+```
+
+Without it, a proxied deployment sees the proxy's address as every client's `X-Forwarded-For` and the ingress's
+own host in absolute URLs - a visible but non-silent regression. As with 3c, production config often lives outside
+this checkout; tell the user to apply it in their deployment environments.
+
+#### 3e. Remove Calls to the Removed `Span.SetRequest` (Grep-Guided)
 
 v1.46.0 removes `trc.Span.SetRequest`. The structural request attributes it used to add (method, URL path, host)
 are now attached to every span at creation, and headers and query arguments are never recorded in any deployment

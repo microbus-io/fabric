@@ -86,3 +86,26 @@ unreachable at a key-rotation boundary) does not suppress retries for a second o
 callers for the same issuer are collapsed into a single in-flight fetch via `singleflight`, which both spares them
 a spurious miss while the fetch is in flight and preserves the anti-amplification property that the deferred
 timestamp write would otherwise open up (every unknown-kid request launching its own fetch until the first lands).
+
+### X-Forwarded trust is positional, and the ingress is the single trust boundary
+
+`TrustedProxyHops` (default 0) states how many reverse proxies in front of the ingress are trusted. The count
+exists because `X-Forwarded-For` is an append-only chain: each proxy appends the peer address it accepted the
+connection from and faithfully relays the rest, so even a fully-trusted CDN forwards whatever fabricated prefix
+the client sent, with the real client IP appended after it. Trust is therefore positional - the last N entries
+were authored by trusted proxies; everything to their left is client input - and a boolean cannot express "which
+entry is the real client" once there is more than one tier. At 0, the edge posture, all inbound `X-Forwarded`
+headers are ignored and rewritten from the actual request, so a directly-internet-facing ingress cannot be spoofed.
+
+The `XForwarded` middleware sanitizes as well as derives: whatever the posture, it deletes every inbound
+`X-Forwarded-*` header and emits exactly one canonical set downstream - `-For` truncated to the trusted subset
+(client leftmost), `-Host`/`-Proto` from the end user's perspective (first value wins, since the outermost proxy
+writes first; appending stacks like Apache produce comma lists), `-Prefix` combining the routing prefixes stripped
+by each proxy tier into one (outermost first, so `/x` and `/y` become `/x/y`), and `-Path` always ingress-authored
+as the external path after prefixes were stripped. Downstream microservices consume these via
+`frame.XForwardedBaseURL` / `ExternalizeURL` with zero trust logic of their own; concentrating the trust decision
+in the ingress is the point, since the connector's `Publish` allowlist propagates `X-Forwarded-*` mesh-wide.
+
+The operator's side of the contract is not verifiable by the framework: the edge proxy must record the client-facing
+host and proto (or preserve the `Host` header through the chain), and interior hops must pass them through. That
+is standard reverse-proxy configuration and belongs in the deployment guide.

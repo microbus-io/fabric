@@ -433,7 +433,7 @@ func (svc *Service) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	u, err := resolveInternalURL(r.URL)
 	if err != nil {
 		// Ignore requests to invalid internal hostnames, such as via https://example.com/%3Fterms=1 or https://example.com/.env
-		return errors.New("", http.StatusNotFound)
+		return errors.Trace(err)
 	}
 	// Apply the internal-port firewall
 	port := 443
@@ -536,10 +536,11 @@ func (svc *Service) releaseRequestBody(body []byte) {
 /*
 OnChangedAllowedOrigins is called when the AllowedOrigins config property changes.
 
-AllowedOrigins is REMOVED. It has been split into AllowedCredentialedOrigins and
+AllowedOrigins is DEPRECATED. It has been split into AllowedCredentialedOrigins and
 AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
 Setting this config to any non-empty value causes the microservice to refuse to start,
 rather than silently ignore an operator's intended posture.
+
 Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead
 */
 func (svc *Service) OnChangedAllowedOrigins(ctx context.Context) (err error) { // MARKER: AllowedOrigins
@@ -698,7 +699,7 @@ func resolveInternalURL(externalURL *url.URL) (natsURL *url.URL, err error) {
 	}
 	internalURL, err := httpx.ParseURL("https:/" + externalURI) // First part of the URL is the internal host
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, errors.New("", http.StatusNotFound)
 	}
 	internalURL.Host = strings.ToLower(internalURL.Host)
 	internalURL.Host = strings.TrimSuffix(internalURL.Host, ":443")

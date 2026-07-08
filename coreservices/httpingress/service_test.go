@@ -514,12 +514,36 @@ func TestHttpingress_Incoming(t *testing.T) {
 			}
 		}
 
-		// Make a request appear to be coming through an upstream proxy server
+		// With no trusted proxies (the default), client-supplied X-Forwarded headers are ignored and rewritten
+		req, err = http.NewRequest("GET", "http://localhost:4040/forwarded.headers/ok", nil)
+		assert.NoError(err)
+		req.Header.Set("X-Forwarded-Host", "www.spoofed.example")
+		req.Header.Set("X-Forwarded-Prefix", "/app")
+		req.Header.Set("X-Forwarded-For", "1.2.3.4")
+		req.Header.Set("X-Forwarded-Proto", "https")
+		res, err = httpClient.Do(req)
+		if assert.NoError(err) {
+			b, err := io.ReadAll(res.Body)
+			if assert.NoError(err) {
+				body := string(b)
+				assert.True(strings.Contains(body, "X-Forwarded-Host: localhost:4040\n"))
+				assert.False(strings.Contains(body, "X-Forwarded-Prefix:"))
+				assert.True(strings.Contains(body, "X-Forwarded-Proto: http\n"))
+				assert.False(strings.Contains(body, "1.2.3.4"))
+				assert.True(strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
+			}
+		}
+
+		// Behind one trusted proxy, its X-Forwarded headers are trusted,
+		// but the untrusted portion of the For chain is truncated
+		err = svc.SetTrustedProxyHops(1)
+		assert.NoError(err)
+		defer svc.SetTrustedProxyHops(0)
 		req, err = http.NewRequest("GET", "http://localhost:4040/forwarded.headers/ok", nil)
 		assert.NoError(err)
 		req.Header.Set("X-Forwarded-Host", "www.example.com")
 		req.Header.Set("X-Forwarded-Prefix", "/app")
-		req.Header.Set("X-Forwarded-For", "1.2.3.4")
+		req.Header.Set("X-Forwarded-For", "6.6.6.6, 1.2.3.4") // 6.6.6.6 fabricated by the client, 1.2.3.4 appended by the proxy
 		req.Header.Set("X-Forwarded-Proto", "https")
 		res, err = httpClient.Do(req)
 		if assert.NoError(err) {
@@ -529,7 +553,8 @@ func TestHttpingress_Incoming(t *testing.T) {
 				assert.True(strings.Contains(body, "X-Forwarded-Host: www.example.com\n"))
 				assert.True(strings.Contains(body, "X-Forwarded-Prefix: /app\n"))
 				assert.True(strings.Contains(body, "X-Forwarded-Proto: https\n"))
-				assert.True(strings.Contains(body, "X-Forwarded-For: 1.2.3.4"))
+				assert.True(strings.Contains(body, "X-Forwarded-For: 1.2.3.4\n"))
+				assert.False(strings.Contains(body, "6.6.6.6"))
 				assert.True(strings.Contains(body, "X-Forwarded-Path: /forwarded.headers/ok"))
 			}
 		}

@@ -108,6 +108,20 @@ var AllowedUncredentialedOrigins = define.Config{ // MARKER: AllowedUncredential
 }
 
 /*
+TrustedProxyHops is the number of trusted reverse proxies (CDN, load balancer) between the internet and the ingress.
+When 0 (the default), the ingress is assumed to face the internet directly: all inbound X-Forwarded headers are
+ignored and rewritten from the actual request, so clients cannot spoof their address or origin. When N or more,
+the last N entries of X-Forwarded-For and the proxy-authored X-Forwarded-Host, -Proto and -Prefix are trusted,
+and any untrusted remainder is discarded. In all cases the ingress forwards a single sanitized set of X-Forwarded
+headers downstream, so microservices never apply trust logic themselves.
+*/
+var TrustedProxyHops = define.Config{ // MARKER: TrustedProxyHops
+	Value:      int(0),
+	Default:    "0",
+	Validation: "int [0,32]",
+}
+
+/*
 PortMappings is REMOVED. The x:y->z port-rewrite model has been replaced by AllowedInternalPorts
 (internal-port allowlist, no rewrite). Setting this config to any non-empty value causes the
 microservice to refuse to start, rather than silently ignore an operator's intended posture.

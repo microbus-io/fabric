@@ -110,10 +110,11 @@ files are present. Port 80 is always plaintext.`),
 	)
 	svc.DefineConfig( // MARKER: AllowedOrigins
 		"AllowedOrigins",
-		cfg.Description(`AllowedOrigins is REMOVED. It has been split into AllowedCredentialedOrigins and
+		cfg.Description(`AllowedOrigins is DEPRECATED. It has been split into AllowedCredentialedOrigins and
 AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
 Setting this config to any non-empty value causes the microservice to refuse to start,
 rather than silently ignore an operator's intended posture.
+
 Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead`),
 	)
 	svc.DefineConfig( // MARKER: AllowedCredentialedOrigins
@@ -133,6 +134,17 @@ requests, or * to allow all origins. The browser blocks credentials for these or
 correct semantics for a public API. An origin listed in AllowedCredentialedOrigins takes precedence.
 When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
 own scheme://host, which permits only same-origin browser reads.`),
+	)
+	svc.DefineConfig( // MARKER: TrustedProxyHops
+		"TrustedProxyHops",
+		cfg.Description(`TrustedProxyHops is the number of trusted reverse proxies (CDN, load balancer) between the internet and the ingress.
+When 0 (the default), the ingress is assumed to face the internet directly: all inbound X-Forwarded headers are
+ignored and rewritten from the actual request, so clients cannot spoof their address or origin. When N or more,
+the last N entries of X-Forwarded-For and the proxy-authored X-Forwarded-Host, -Proto and -Prefix are trusted,
+and any untrusted remainder is discarded. In all cases the ingress forwards a single sanitized set of X-Forwarded
+headers downstream, so microservices never apply trust logic themselves.`),
+		cfg.DefaultValue(`0`),
+		cfg.Validation(`int [0,32]`),
 	)
 	svc.DefineConfig( // MARKER: PortMappings
 		"PortMappings",
@@ -341,10 +353,11 @@ func (svc *Intermediate) SetRequestMemoryLimit(value int) (err error) { // MARKE
 	return svc.SetConfig("RequestMemoryLimit", strconv.Itoa(value))
 }
 
-// AllowedOrigins is REMOVED. It has been split into AllowedCredentialedOrigins and
+// AllowedOrigins is DEPRECATED. It has been split into AllowedCredentialedOrigins and
 // AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
 // Setting this config to any non-empty value causes the microservice to refuse to start,
 // rather than silently ignore an operator's intended posture.
+//
 // Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead
 func (svc *Intermediate) AllowedOrigins() (value string) { // MARKER: AllowedOrigins
 	return svc.Config("AllowedOrigins")
@@ -383,6 +396,23 @@ func (svc *Intermediate) AllowedUncredentialedOrigins() (value string) { // MARK
 // SetAllowedUncredentialedOrigins sets the value of the configuration property.
 func (svc *Intermediate) SetAllowedUncredentialedOrigins(value string) (err error) { // MARKER: AllowedUncredentialedOrigins
 	return svc.SetConfig("AllowedUncredentialedOrigins", value)
+}
+
+// TrustedProxyHops is the number of trusted reverse proxies (CDN, load balancer) between the internet and the ingress.
+// When 0 (the default), the ingress is assumed to face the internet directly: all inbound X-Forwarded headers are
+// ignored and rewritten from the actual request, so clients cannot spoof their address or origin. When N or more,
+// the last N entries of X-Forwarded-For and the proxy-authored X-Forwarded-Host, -Proto and -Prefix are trusted,
+// and any untrusted remainder is discarded. In all cases the ingress forwards a single sanitized set of X-Forwarded
+// headers downstream, so microservices never apply trust logic themselves.
+func (svc *Intermediate) TrustedProxyHops() (value int) { // MARKER: TrustedProxyHops
+	_val := svc.Config("TrustedProxyHops")
+	_i, _ := strconv.ParseInt(_val, 10, 64)
+	return int(_i)
+}
+
+// SetTrustedProxyHops sets the value of the configuration property.
+func (svc *Intermediate) SetTrustedProxyHops(value int) (err error) { // MARKER: TrustedProxyHops
+	return svc.SetConfig("TrustedProxyHops", strconv.Itoa(value))
 }
 
 // PortMappings is REMOVED. The x:y->z port-rewrite model has been replaced by AllowedInternalPorts

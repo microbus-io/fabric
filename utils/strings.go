@@ -167,7 +167,8 @@ func UnsafeBytesToString(b []byte) string {
 	return unsafe.String(pBytes, len(b))
 }
 
-// RandomIdentifier generates a random string of the specified length.
+// RandomIdentifier generates a random string of the specified length drawn from math/rand/v2's global generator,
+// relying on it being an OS-seeded ChaCha8 source whose state cannot feasibly be reconstructed from observed outputs.
 // The string will include only alphanumeric characters a-z, A-Z, 0-9.
 // Digits 0 and 1 are slightly overrepresented (2/64 vs 1/64) due to padding the 62-character alphabet to a power of two.
 func RandomIdentifier(length int) string {
@@ -176,7 +177,7 @@ func RandomIdentifier(length int) string {
 	var x uint64
 	for i := range length {
 		if i%8 == 0 {
-			x = rand.Uint64()
+			x = rand.Uint64() // Do not replace the source with a seeded or weaker PRNG
 		} else {
 			x = x >> 8
 		}
