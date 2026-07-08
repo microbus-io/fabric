@@ -38,6 +38,7 @@ import (
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/transport"
 	"github.com/microbus-io/fabric/utils"
+	"github.com/microbus-io/seamster"
 	"golang.org/x/sync/singleflight"
 
 	"go.opentelemetry.io/otel/metric"
@@ -130,6 +131,10 @@ type Connector struct {
 	actorKeys     map[string]ed25519.PublicKey
 	lastJWKSFetch map[string]time.Time
 	jwksFlight    singleflight.Group
+
+	underTest     bool
+	underTestName string
+	seams         *seamster.Seamster
 }
 
 // NewConnector constructs a new Connector.
@@ -153,6 +158,8 @@ func NewConnector() *Connector {
 		responseDefrags:   lru.New[string, *httpx.DefragResponse](1<<10, time.Minute), // 1024 fragmented responses
 		maxFragmentSize:   1 << 20,                                                    // 1MB
 	}
+	c.underTestName, c.underTest = utils.Testing()
+	c.seams = seamster.New(c.underTest)
 	c.SetResFSDir(".")
 	return c
 }

@@ -256,6 +256,7 @@ func (c *Connector) onRequest(msg *transport.Msg, s *sub.Subscription) {
 		c.LogError(c.Lifetime(), "Acking request", "error", err)
 		return
 	}
+	c.seams.Checkpoint(c.Lifetime(), checkpointAfterAck)
 	go func() {
 		defer c.pendingOps.Add(-1)
 		err := c.handleRequest(msg, s)
@@ -473,6 +474,9 @@ func (c *Connector) ackRequest(msg *transport.Msg, s *sub.Subscription) (err err
 	} else {
 		httpRes.StatusCode = http.StatusAccepted
 		httpRes.Status = "202 Accepted"
+	}
+	if c.seams.IsFault(faultDropAck, s.Name) {
+		return nil
 	}
 	err = c.transportConn.Response(subjectOfResponse(c.plane, c.hostname, fromHost, fromID), httpRes)
 	if err != nil {
@@ -706,6 +710,11 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 	span.End()
 	spanEnded = true
 
+	if c.seams.IsFault(faultDropResponse, s.Name) {
+		return nil
+	}
+	c.seams.Checkpoint(c.Lifetime(), checkpointBeforeResponseSend)
+
 	// Send back the response, in fragments if needed
 	fragger, err := httpx.NewFragResponse(httpResponse, c.maxFragmentSize)
 	if err != nil {
@@ -870,6 +879,10 @@ func (c *Connector) fetchActorKeys(host string) error {
 			return nil, nil
 		}
 		c.actorKeysLock.Unlock()
+
+		if c.seams.IsFault(faultJWKSFetchErr, host) {
+			return nil, errors.New("injected JWKS fetch failure")
+		}
 
 		resp, err := c.Request(
 			c.Lifetime(),

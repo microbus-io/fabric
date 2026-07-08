@@ -32,7 +32,6 @@ import (
 	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/service"
 	"github.com/microbus-io/fabric/trc"
-	"github.com/microbus-io/fabric/utils"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -83,14 +82,11 @@ func (c *Connector) Startup(ctx context.Context) (err error) {
 				return errors.Trace(err)
 			}
 		}
-		if c.plane == "" {
-			testingFuncName, underTest := utils.Testing()
-			if underTest {
-				// Generate a unique plane from the test name
-				h := sha256.New()
-				h.Write([]byte(testingFuncName))
-				c.plane = strings.ToLower(hex.EncodeToString(h.Sum(nil)[:8]))
-			}
+		if c.plane == "" && c.underTest {
+			// Generate a unique plane from the test name
+			h := sha256.New()
+			h.Write([]byte(c.underTestName))
+			c.plane = strings.ToLower(hex.EncodeToString(h.Sum(nil)[:8]))
 		}
 		if c.plane == "" {
 			c.plane = "microbus"
@@ -119,11 +115,8 @@ func (c *Connector) Startup(ctx context.Context) (err error) {
 				return errors.Trace(err)
 			}
 		}
-		if c.deployment == "" {
-			_, underTest := utils.Testing()
-			if underTest {
-				c.deployment = TESTING
-			}
+		if c.deployment == "" && c.underTest {
+			c.deployment = TESTING
 		}
 		if c.deployment == "" {
 			c.deployment = LOCAL

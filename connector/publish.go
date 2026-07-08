@@ -256,6 +256,7 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) iter.Seq[
 		c.reqs.Delete(msgID)
 		close(awaitCh.Done)
 	}
+	c.seams.Checkpoint(ctx, checkpointReqRegistered)
 
 	// Send the message
 	port := "443"
@@ -631,40 +632,47 @@ func (c *Connector) handleResponse(msg *transport.Msg) error {
 		return nil
 	}
 
-	// Try to push inline for when the channel has enough capacity
-	select {
-	case ch.C <- response:
-		return nil
-	default:
-	}
-	// If not enough capacity, spin up a non-blocking goroutine to push the message
-	// More messages can block, so need to listen to the Done channel
-	go func() {
+	deliver := func() {
+		// Try to push inline for when the channel has enough capacity
 		select {
 		case ch.C <- response:
 			return
-		case <-ch.Done:
-			// Handle message that arrive after the request is done.
-			frm := frame.Of(response)
-			opCode := frm.OpCode()
-			if opCode != frame.OpCodeAck {
-				subject, ok := c.postRequestData.Load("multicast:"+msgID, lru.NoBump())
-				if ok {
-					c.knownResponders.Delete(subject)
-					c.postRequestData.Delete("multicast:" + msgID)
-				}
-				subject, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
-				if ok {
-					c.LogInfo(c.Lifetime(), "Response received after timeout",
-						"msg", msgID,
-						"fromID", frm.FromID(),
-						"fromHost", frm.FromHost(),
-						"queue", frm.Queue(),
-						"subject", subject,
-					)
+		default:
+		}
+		// If not enough capacity, spin up a non-blocking goroutine to push the message
+		// More messages can block, so need to listen to the Done channel
+		go func() {
+			select {
+			case ch.C <- response:
+				return
+			case <-ch.Done:
+				// Handle message that arrive after the request is done.
+				frm := frame.Of(response)
+				opCode := frm.OpCode()
+				if opCode != frame.OpCodeAck {
+					subject, ok := c.postRequestData.Load("multicast:"+msgID, lru.NoBump())
+					if ok {
+						c.knownResponders.Delete(subject)
+						c.postRequestData.Delete("multicast:" + msgID)
+					}
+					subject, ok = c.postRequestData.Load("timeout:"+msgID, lru.NoBump())
+					if ok {
+						c.LogInfo(c.Lifetime(), "Response received after timeout",
+							"msg", msgID,
+							"fromID", frm.FromID(),
+							"fromHost", frm.FromHost(),
+							"queue", frm.Queue(),
+							"subject", subject,
+						)
+					}
 				}
 			}
-		}
-	}()
+		}()
+	}
+	deliver()
+	// Test-only: re-inject the same response to drive the overflow-goroutine path deterministically.
+	for c.seams.IsFault(faultDuplicateResponse, frame.Of(response).FromHost()) {
+		deliver()
+	}
 	return nil
 }

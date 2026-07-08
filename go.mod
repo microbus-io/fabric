@@ -14,6 +14,7 @@ require (
 	github.com/microbus-io/dwarf v0.9.5
 	github.com/microbus-io/errors v1.0.1
 	github.com/microbus-io/pyvenv v1.0.3
+	github.com/microbus-io/seamster v0.1.0
 	github.com/microbus-io/sequel v1.10.7
 	github.com/microbus-io/testarossa v0.7.3
 	github.com/mnako/letters v0.2.8
@@ -73,7 +74,6 @@ require (
 	github.com/klauspost/compress v1.19.0 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/microbus-io/copyrighter v1.4.0 // indirect
-	github.com/microbus-io/seamster v0.1.0 // indirect
 	github.com/minio/highwayhash v1.0.4 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
