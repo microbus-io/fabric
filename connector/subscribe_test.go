@@ -1918,3 +1918,66 @@ func TestConnector_Subscriptions_Snapshot(t *testing.T) {
 		}
 	}
 }
+
+// TestConnector_UnsignedTokenDeploymentGate pins the alg=none carve-out: an unsigned actor token
+// (as minted by pub.Actor) is accepted only in the TESTING deployment, where its claims are still
+// evaluated against requiredClaims, and is rejected outright everywhere else. This guards against a
+// future change silently widening the carve-out to LAB/PROD.
+func TestConnector_UnsignedTokenDeploymentGate(t *testing.T) {
+	t.Parallel()
+
+	newGated := func(hostname, deployment string) (*Connector, *int) {
+		entered := 0
+		con := New(hostname)
+		con.SetDeployment(deployment)
+		con.Subscribe("Admin",
+			func(w http.ResponseWriter, r *http.Request) error {
+				entered++
+				return nil
+			},
+			sub.At("GET", "admin"),
+			sub.Web(),
+			sub.RequiredClaims(`roles.admin`),
+		)
+		return con, &entered
+	}
+
+	t.Run("accepted_in_testing", func(t *testing.T) {
+		assert := testarossa.For(t)
+		ctx := t.Context()
+		con, entered := newGated("unsigned.testing.connector", TESTING)
+		err := con.Startup(ctx)
+		assert.NoError(err)
+		defer con.Shutdown(ctx)
+
+		// An unsigned token with the required claim is accepted and reaches the handler.
+		_, err = con.Request(ctx, pub.GET("https://unsigned.testing.connector/admin"),
+			pub.Actor(jwt.MapClaims{"roles": []string{"admin"}}))
+		assert.NoError(err)
+		assert.Equal(1, *entered)
+
+		// An unsigned token that fails the claim is rejected 403 - the claims are still evaluated.
+		_, err = con.Request(ctx, pub.GET("https://unsigned.testing.connector/admin"),
+			pub.Actor(jwt.MapClaims{"roles": []string{"viewer"}}))
+		assert.Error(err)
+		assert.Equal(http.StatusForbidden, errors.StatusCode(err))
+		assert.Equal(1, *entered)
+	})
+
+	t.Run("rejected_outside_testing", func(t *testing.T) {
+		assert := testarossa.For(t)
+		ctx := t.Context()
+		con, entered := newGated("unsigned.lab.connector", LAB)
+		err := con.Startup(ctx)
+		assert.NoError(err)
+		defer con.Shutdown(ctx)
+
+		// The same unsigned token, claim and all, is rejected 401 outside TESTING - the signature
+		// (absent) is never trusted, so claims are not even reached.
+		_, err = con.Request(ctx, pub.GET("https://unsigned.lab.connector/admin"),
+			pub.Actor(jwt.MapClaims{"roles": []string{"admin"}}))
+		assert.Error(err)
+		assert.Equal(http.StatusUnauthorized, errors.StatusCode(err))
+		assert.Equal(0, *entered)
+	})
+}
