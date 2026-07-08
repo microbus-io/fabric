@@ -832,7 +832,7 @@ func (c *Connector) verifyToken(token string, requiredClaims string) (jwt.MapCla
 	// Verify the JWT signature
 	_, err = jwt.Parse(token, func(t *jwt.Token) (any, error) {
 		return key, nil
-	})
+	}, jwt.WithValidMethods([]string{"EdDSA"}))
 	if err != nil {
 		return nil, errors.New("", http.StatusUnauthorized)
 	}

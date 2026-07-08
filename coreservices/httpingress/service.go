@@ -851,7 +851,7 @@ func (svc *Service) exchangeToken(ctx context.Context, bearerToken string) (acce
 	// Verify the JWT signature
 	verified, err := jwt.Parse(bearerToken, func(t *jwt.Token) (any, error) {
 		return key, nil
-	})
+	}, jwt.WithValidMethods([]string{"EdDSA"}))
 	if err != nil {
 		return "", nil
 	}
