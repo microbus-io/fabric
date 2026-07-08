@@ -126,15 +126,10 @@ func (svc *Service) MakeRequest(w http.ResponseWriter, r *http.Request) (err err
 	req = req.WithContext(ctx) // Attach the caller's context
 
 	// OpenTelemetry: create a child span
-	spanOptions := []trc.Option{
+	_, span := svc.StartSpan(ctx, req.URL.Hostname(),
 		trc.Client(),
-		// Do not record the request attributes yet because they take a lot of memory, they will be added if there's an error
-	}
-	if svc.Deployment() == connector.LOCAL {
-		// Add the request attributes in LOCAL deployment to facilitate debugging
-		spanOptions = append(spanOptions, trc.Request(r))
-	}
-	_, span := svc.StartSpan(ctx, req.URL.Hostname(), spanOptions...)
+		trc.Request(req),
+	)
 	spanEnded := false
 	defer func() {
 		if !spanEnded {
@@ -195,8 +190,7 @@ func (svc *Service) MakeRequest(w http.ResponseWriter, r *http.Request) (err err
 		}
 	}
 	if err != nil {
-		// OpenTelemetry: record the error, adding the request attributes
-		span.SetRequest(req)
+		// OpenTelemetry: record the error
 		span.SetError(err)
 		svc.ForceTrace(ctx)
 	} else {

@@ -360,6 +360,16 @@ func TestHttpingress_Incoming(t *testing.T) {
 		}
 	})
 
+	t.Run("uri_too_long", func(t *testing.T) {
+		assert := testarossa.For(t)
+
+		// The hostname and path map to a NATS subject, capped at 1024 by the connector
+		res, err := httpClient.Get("http://localhost:4040/ports/" + strings.Repeat("x", 1100))
+		if assert.NoError(err) {
+			assert.Equal(http.StatusRequestURITooLong, res.StatusCode)
+		}
+	})
+
 	t.Run("trust_root_and_control_ports_blocked", func(t *testing.T) {
 		assert := testarossa.For(t)
 

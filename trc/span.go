@@ -19,7 +19,6 @@ package trc
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -209,16 +208,6 @@ func (s Span) SetAttributes(args ...any) {
 			s.internal.SetAttributes(attribute.String(k, fmt.Sprintf("%v", v)))
 		}
 	}
-}
-
-// SetRequest tags the span with the request data.
-// Warning: this has a large memory footprint.
-func (s Span) SetRequest(r *http.Request) {
-	if s.internal == nil {
-		return
-	}
-	s.internal.SetAttributes(attributesOfRequest(r)...)
-	s.SetClientIP(r.RemoteAddr)
 }
 
 // SetClientIP tags the span during its creation with the IP address and port number of the client.

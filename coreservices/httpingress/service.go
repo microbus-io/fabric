@@ -56,21 +56,21 @@ The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.
 type Service struct {
 	*Intermediate // IMPORTANT: Do not remove
 
-	httpServers          map[int]*http.Server
-	certs                *httpx.CertStore
-	mux                  sync.Mutex
+	httpServers           map[int]*http.Server
+	certs                 *httpx.CertStore
+	mux                   sync.Mutex
 	credentialedOrigins   map[string]bool
 	uncredentialedOrigins map[string]bool
-	allowedInternalPorts map[int]bool
-	reqMemoryUsed        int64
-	secure443            bool
-	blockedPaths         map[string]bool
-	middleware           *middleware.Chain
-	handler              connector.HTTPHandler
-	bearerTokenMu        sync.RWMutex
-	bearerTokenKeys      map[string]ed25519.PublicKey
-	lastJWKSFetch        map[string]time.Time
-	jwksFlight           singleflight.Group
+	allowedInternalPorts  map[int]bool
+	reqMemoryUsed         int64
+	secure443             bool
+	blockedPaths          map[string]bool
+	middleware            *middleware.Chain
+	handler               connector.HTTPHandler
+	bearerTokenMu         sync.RWMutex
+	bearerTokenKeys       map[string]ed25519.PublicKey
+	lastJWKSFetch         map[string]time.Time
+	jwksFlight            singleflight.Group
 }
 
 // OnStartup is called when the microservice is started up.
@@ -354,16 +354,12 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// OpenTelemetry: create the root span
-	spanOptions := []trc.Option{
-		trc.Server(),
-		// Do not record the request attributes yet because they take a lot of memory, they will be added if there's an error
-	}
-	if svc.Deployment() == connector.LOCAL {
-		// Add the request attributes in LOCAL deployment to facilitate debugging
-		spanOptions = append(spanOptions, trc.Request(r))
-	}
 	var span trc.Span
-	ctx, span = svc.StartSpan(ctx, ":"+port+r.URL.Path, spanOptions...)
+	ctx, span = svc.StartSpan(ctx, ":"+port+r.URL.Path,
+		trc.Server(),
+		trc.Request(r),
+		trc.ClientIP(r.RemoteAddr),
+	)
 	spanEnded := false
 	defer func() {
 		if !spanEnded {
@@ -380,8 +376,7 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return svc.handler(ww, r)
 	})
 	if err != nil {
-		// OpenTelemetry: record the error, adding the request attributes
-		span.SetRequest(r)
+		// OpenTelemetry: record the error
 		span.SetError(err)
 		svc.ForceTrace(ctx)
 	} else {
@@ -696,6 +691,10 @@ func resolveInternalURL(externalURL *url.URL) (natsURL *url.URL, err error) {
 	externalURI := externalURL.RequestURI()
 	if !strings.HasPrefix(externalURI, "/") {
 		externalURI = "/" + externalURI
+	}
+	// NATS subject caps at 1024 so reject outright
+	if len(externalURI) > 1024 {
+		return nil, errors.New("", http.StatusRequestURITooLong)
 	}
 	internalURL, err := httpx.ParseURL("https:/" + externalURI) // First part of the URL is the internal host
 	if err != nil {

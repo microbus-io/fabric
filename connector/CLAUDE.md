@@ -104,6 +104,12 @@ NATS subjects are derived from `(plane, trust, port, src, dest, idOrLocality, me
 <plane>.<trust>.<port>.<src_flat>.<dest_flat>.<id_or_locality>.<method>.<path...>
 ```
 
+A request whose derived subject exceeds 1024 characters (`maxSubjectLength`) is rejected by `Publish` with a
+`414 Request URI Too Long` before touching the bus, and `activateSub` refuses to subscribe to a subject over the
+same cap - NATS recommends short subjects, and the cap bounds attacker-lengthened URLs. The HTTP ingress enforces
+the same bound at the edge, rejecting external request paths longer than 1024 so oversized URLs never enter the
+mesh, its logs, or its spans.
+
 The slot keeps per-instance and locality-aware addressing on a separate axis from the dest hostname so publishers can target without ambiguous segment-level reasoning - the publisher inspects the URL hostname's first segment, and a `id-` or `loc-` prefix becomes the slot value while the rest of the hostname becomes the dest. The reservation is enforced centrally in `httpx.ValidateHostname`, which rejects any hostname matching `^id-` or `^loc-`. Both service identities (via `SetHostname` / `SetLocality`) and subscription route hostnames (via `sub.NewSubscription`'s route-validation helper) flow through the same check, so `id-`/`loc-` first segments cannot enter the system at either registration point.
 
 Hostname encoding (`escapeHostname` / `unescapeHostname`):

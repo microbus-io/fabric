@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -110,6 +111,41 @@ func TestConnector_NotFound(t *testing.T) {
 		response, nil,
 		errors.StatusCode(err), http.StatusNotFound,
 	)
+}
+
+func TestConnector_SubjectTooLong(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	ctx := t.Context()
+
+	// Create the microservice
+	con := New("subject.too.long.connector")
+
+	// Startup the microservices
+	err := con.Startup(ctx)
+	assert.NoError(err)
+	defer con.Shutdown(ctx)
+
+	// A path that inflates the NATS subject past the cap is rejected before reaching the bus
+	longPath := "/" + strings.Repeat("x", 1100)
+	response, err := con.GET(ctx, "https://subject.too.long.connector"+longPath)
+	assert.Expect(
+		err != nil, true,
+		response, nil,
+		errors.StatusCode(err), http.StatusRequestURITooLong,
+	)
+
+	// A path within the cap is dispatched (and fails with 404, not 414)
+	okPath := "/" + strings.Repeat("x", 100)
+	_, err = con.GET(ctx, "https://subject.too.long.connector"+okPath)
+	assert.Equal(http.StatusNotFound, errors.StatusCode(err))
+
+	// A subscription whose subject exceeds the cap fails to activate
+	err = con.Subscribe("TooLong", func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}, sub.At("GET", longPath), sub.Web())
+	assert.Error(err, "subject exceeds")
 }
 
 func TestConnector_Error(t *testing.T) {

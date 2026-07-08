@@ -26,6 +26,11 @@ const (
 	localityPrefix = "loc-"
 )
 
+// maxSubjectLength caps the length of a request's NATS subject. NATS recommends keeping subjects
+// short (well under 256 characters); the cap is generous to accommodate long hostname+path
+// combinations while still bounding attacker-lengthened URLs before they reach the bus.
+const maxSubjectLength = 1024
+
 // subjectHexDigits supplies the lowercase hex alphabet used for percent-encoded
 // bytes in NATS subject segments. Lowercase blends with the lowercase hostname
 // segments and the rest of the subject; url.PathUnescape accepts both cases on

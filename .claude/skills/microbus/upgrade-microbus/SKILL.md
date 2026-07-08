@@ -162,6 +162,19 @@ user to apply the same rename wherever `AllowedOrigins` is set for `http.ingress
 environments. This is safe to get wrong in only one direction: an environment still setting the old name refuses
 to start with an error naming the two new configs, rather than silently coming up with a changed CORS posture.
 
+#### 3d. Remove Calls to the Removed `Span.SetRequest` (Grep-Guided)
+
+v1.46.0 removes `trc.Span.SetRequest`. The structural request attributes it used to add (method, URL path, host)
+are now attached to every span at creation, and headers and query arguments are never recorded in any deployment
+because they routinely carry credentials. Find any callers:
+
+```bash
+grep -rn --include='*.go' --exclude-dir=vendor '\.SetRequest(' .
+```
+
+Delete each call - the attributes it added are already on the span. A caller that relied on its client-IP side
+effect can call `span.SetClientIP(r.RemoteAddr)` directly, which remains available.
+
 ### Step 4: Phase 2 - Chain to the Next Release, or Finish
 
 Find the next release to apply: from `go list -m -versions github.com/microbus-io/fabric`, the smallest published version `NEXT` in the range `DEST < NEXT <= TARGET` (semver). The upper bound `<= TARGET` is what stops the chain from overshooting a user-supplied `TARGET`.

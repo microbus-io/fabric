@@ -268,6 +268,11 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) iter.Seq[
 	host := httpReq.URL.Hostname()
 	host, idOrLocality := cutIDOrLocality(host)
 	subject := SubjectOfRequest(c.plane, port, c.hostname, host, idOrLocality, httpReq.Method, httpReq.URL.Path)
+	if len(subject) > maxSubjectLength {
+		releaseAwaitCh()
+		err := errors.New("subject too long", http.StatusRequestURITooLong, c.Span(ctx).TraceID())
+		return pub.NewSoloResponseQueue(pub.NewErrorResponse(err))
+	}
 
 	frame.Of(httpReq).SetMessageID(msgID)
 

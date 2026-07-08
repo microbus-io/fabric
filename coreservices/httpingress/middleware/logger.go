@@ -27,12 +27,11 @@ import (
 )
 
 // Logger returns a middleware that logs the incoming requests and error responses.
+// Query arguments are deliberately not logged: they routinely carry credentials
+// (tokens, signatures, secret keys) that must never reach the log stream.
 func Logger(logger service.Logger) Middleware {
-	pathAndQuery := func(r *http.Request, maxLen int) string {
+	loggedPath := func(r *http.Request, maxLen int) string {
 		s := r.URL.Path
-		if len(r.URL.RawQuery) != 0 {
-			s += "?" + r.URL.RawQuery
-		}
 		if len(s) > maxLen {
 			return s[:maxLen] + "..."
 		}
@@ -44,7 +43,7 @@ func Logger(logger service.Logger) Middleware {
 		return func(w http.ResponseWriter, r *http.Request) (err error) {
 			if !strings.HasPrefix(r.URL.Path, metricsPrefix) {
 				logger.LogInfo(r.Context(), "Request received",
-					"path", pathAndQuery(r, 512),
+					"path", loggedPath(r, 512),
 				)
 			}
 			err = next(w, r) // No trace
@@ -64,7 +63,7 @@ func Logger(logger service.Logger) Middleware {
 				}
 				logFunc(r.Context(), "Serving",
 					"error", err,
-					"path", pathAndQuery(r, maxLen),
+					"path", loggedPath(r, maxLen),
 					"status", statusCode,
 				)
 			}

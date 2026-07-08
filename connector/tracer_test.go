@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -49,13 +50,19 @@ func TestConnector_TraceRequestAttributes(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) error {
 			span = beta.Span(r.Context())
 
-			// The request attributes should not be added until and unless there's an error
+			// The structural request attributes are attached at span creation
 			attributes := spanAttributes(span)
-			assert.Zero(len(attributes["http.method"]))
-			assert.Zero(len(attributes["url.scheme"]))
-			assert.Zero(len(attributes["server.address"]))
-			assert.Zero(len(attributes["server.port"]))
-			assert.Zero(len(attributes["url.path"]))
+			assert.Equal("GET", attributes["http.method"])
+			assert.Equal("https", attributes["url.scheme"])
+			assert.Equal("beta.test.request.attributes.connector", attributes["server.address"])
+			assert.Equal("443", attributes["server.port"])
+			assert.Equal("/handle", attributes["url.path"])
+
+			// Headers and query arguments must never be recorded: they routinely carry credentials
+			for k := range attributes {
+				assert.False(strings.HasPrefix(k, "http.request.header."), "header attribute %s leaked", k)
+				assert.NotEqual("url.query", k)
+			}
 
 			assert.Equal(0, spanStatus(span))
 
@@ -79,13 +86,10 @@ func TestConnector_TraceRequestAttributes(t *testing.T) {
 	// A request that returns with an error
 	_, err = alpha.GET(ctx, "https://beta.test.request.attributes.connector/handle?err=1")
 	if assert.Error(err) {
-		// The request attributes should be added since there was an error
+		// The query argument must not be recorded even on the error path
 		attributes := spanAttributes(span)
-		assert.Equal("GET", attributes["http.method"])
-		assert.Equal("https", attributes["url.scheme"])
-		assert.Equal("beta.test.request.attributes.connector", attributes["server.address"])
-		assert.Equal("443", attributes["server.port"])
 		assert.Equal("/handle", attributes["url.path"])
+		assert.Zero(len(attributes["url.query"]))
 
 		assert.Equal(1, spanStatus(span))
 	}
@@ -93,13 +97,8 @@ func TestConnector_TraceRequestAttributes(t *testing.T) {
 	// A request that returns OK
 	_, err = alpha.GET(ctx, "https://beta.test.request.attributes.connector/handle")
 	if assert.NoError(err) {
-		// The request attributes should not be added since there was no error
 		attributes := spanAttributes(span)
-		assert.Zero(len(attributes["http.method"]))
-		assert.Zero(len(attributes["url.scheme"]))
-		assert.Zero(len(attributes["server.address"]))
-		assert.Zero(len(attributes["server.port"]))
-		assert.Zero(len(attributes["url.path"]))
+		assert.Equal("/handle", attributes["url.path"])
 
 		assert.Equal(2, spanStatus(span))
 	}

@@ -148,15 +148,14 @@ func (svc *Service) startDaemon(ctx context.Context) (err error) {
 						return errors.Trace(err)
 					})
 					if err != nil || svc.Deployment() == connector.LOCAL {
-						// The request attributes may take a lot of memory, so record only in LOCAL deployment or if there's an error
+						// Record identifying attributes only in LOCAL deployment or if there's an error.
+						// Email headers are deliberately not recorded: they are attacker-influenced and
+						// occasionally credential-bearing, and must never reach the span exporter
 						span.SetAttributes(
 							"email.subject", e.Subject,
 							"email.from", e.MailFrom.String(),
 						)
 						span.SetClientIP(e.RemoteIP)
-						for k, v := range e.Header {
-							span.SetAttributes("email.header."+k, v)
-						}
 					}
 					if err != nil {
 						// OpenTelemetry: record the error, adding the request attributes

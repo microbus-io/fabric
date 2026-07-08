@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/microbus-io/fabric/frame"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -95,18 +94,12 @@ func attributesOfRequest(r *http.Request) []attribute.KeyValue {
 		attribute.Int("server.port", portInt),
 		attribute.String("url.path", r.URL.Path),
 	}
-	for k, v := range r.Header {
-		if !strings.HasPrefix(k, frame.HeaderPrefix) && k != "Traceparent" && k != "Tracestate" {
-			attrs = append(attrs, attribute.StringSlice("http.request.header."+k, v))
-		}
-	}
-	encodedQuery := r.URL.Query().Encode()
-	if encodedQuery != "" {
-		attrs = append(attrs, attribute.String("url.query", encodedQuery))
-	}
 	if r.ContentLength > 0 {
 		attrs = append(attrs, attribute.Int("http.request.body.size", int(r.ContentLength)))
 	}
+	// Headers and query arguments are deliberately not recorded, in any deployment:
+	// they routinely carry credentials (Authorization, Cookie, tokens in query arguments)
+	// that must never reach the log or span exporters.
 	return attrs
 }
 

@@ -320,11 +320,16 @@ func (c *Connector) activateSub(s *sub.Subscription) (err error) {
 		}
 	}
 	for _, prefix := range prefixes {
+		subject := SubjectOfRequestSub(c.plane, s.Port, s.Host, prefix, s.Method, s.Path)
+		if len(subject) > maxSubjectLength {
+			err = errors.New("subject too long", http.StatusRequestURITooLong)
+			break
+		}
 		var transportSub *transport.Subscription
 		if s.Queue != "" {
-			transportSub, err = c.transportConn.QueueSubscribe(SubjectOfRequestSub(c.plane, s.Port, s.Host, prefix, s.Method, s.Path), s.Queue, handler)
+			transportSub, err = c.transportConn.QueueSubscribe(subject, s.Queue, handler)
 		} else {
-			transportSub, err = c.transportConn.Subscribe(SubjectOfRequestSub(c.plane, s.Port, s.Host, prefix, s.Method, s.Path), handler)
+			transportSub, err = c.transportConn.Subscribe(subject, handler)
 		}
 		if err != nil {
 			break
@@ -538,15 +543,11 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 	if s.NoTrace {
 		span = trc.NewSpan(nil)
 	} else {
-		spanOptions := []trc.Option{
+		ctx, span = c.StartSpan(ctx, fmt.Sprintf(":%s%s", s.Port, s.Path),
 			trc.Server(),
-			// Do not record the request attributes yet because they take a lot of memory, they will be added if there's an error
-		}
-		if c.deployment == LOCAL {
-			// Add the request attributes in LOCAL deployment to facilitate debugging
-			spanOptions = append(spanOptions, trc.Request(httpReq), trc.String("http.route", s.Path))
-		}
-		ctx, span = c.StartSpan(ctx, fmt.Sprintf(":%s%s", s.Port, s.Path), spanOptions...)
+			trc.Request(httpReq),
+			trc.String("http.route", s.Path),
+		)
 	}
 	spanEnded := false
 	defer func() {
@@ -624,9 +625,7 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 			"code", statusCode,
 		)
 
-		// OpenTelemetry: record the error, adding the request attributes
-		span.SetAttributes("http.route", s.Path)
-		span.SetRequest(httpReq)
+		// OpenTelemetry: record the error
 		span.SetError(convertedErr)
 		c.ForceTrace(ctx)
 
