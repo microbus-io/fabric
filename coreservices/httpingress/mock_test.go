@@ -65,6 +65,26 @@ func TestHttpingress_Mock(t *testing.T) {
 		assert.NoError(err)
 	})
 
+	t.Run("on_changed_allowed_credentialed_origins", func(t *testing.T) { // MARKER: AllowedCredentialedOrigins
+		assert := testarossa.For(t)
+
+		mock.MockOnChangedAllowedCredentialedOrigins(func(ctx context.Context) (err error) {
+			return
+		})
+		err := mock.OnChangedAllowedCredentialedOrigins(ctx)
+		assert.NoError(err)
+	})
+
+	t.Run("on_changed_allowed_uncredentialed_origins", func(t *testing.T) { // MARKER: AllowedUncredentialedOrigins
+		assert := testarossa.For(t)
+
+		mock.MockOnChangedAllowedUncredentialedOrigins(func(ctx context.Context) (err error) {
+			return
+		})
+		err := mock.OnChangedAllowedUncredentialedOrigins(ctx)
+		assert.NoError(err)
+	})
+
 	t.Run("on_changed_port_mappings", func(t *testing.T) { // MARKER: PortMappings
 		assert := testarossa.For(t)
 

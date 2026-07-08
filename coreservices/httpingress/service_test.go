@@ -57,7 +57,7 @@ func TestHttpingress_Incoming(t *testing.T) {
 	svc := NewService()
 	svc.SetTimeBudget(time.Second * 2)
 	svc.SetPorts("4040,40443")
-	svc.SetAllowedOrigins("allowed.origin")
+	svc.SetAllowedCredentialedOrigins("allowed.origin")
 	// Internal :443 is implicit; :5555 is needed by several downstream test services below.
 	svc.SetAllowedInternalPorts("5500, 5555")
 	svc.Middleware().Append("HelloGoodbye", middleware.OnRoutePrefix("/greeting:5555/", middleware.Group(
@@ -999,6 +999,7 @@ func TestHTTPIngress_OnChangedAllowedOrigins(t *testing.T) { // MARKER: AllowedO
 
 	// Initialize the microservice under test
 	svc := NewService()
+	svc.SetPorts("40911") // Avoid contention on the default port with parallel tests
 
 	// Run the testing app
 	app := application.New()
@@ -1008,16 +1009,12 @@ func TestHTTPIngress_OnChangedAllowedOrigins(t *testing.T) { // MARKER: AllowedO
 	)
 	app.RunInTest(t)
 
-	/*
-		HINT: Fill in test cases using the following pattern
+	t.Run("removed_config_refuses_non_empty_value", func(t *testing.T) {
+		assert := testarossa.For(t)
 
-		t.Run("test_case_name", func(t *testing.T) {
-			assert := testarossa.For(t)
-
-			err := svc.SetAllowedOrigins(value)
-			assert.NoError(err)
-		})
-	*/
+		err := svc.SetAllowedOrigins("https://app.example")
+		assert.Error(err, "AllowedOrigins has been split")
+	})
 }
 
 func TestHTTPIngress_OnChangedPortMappings(t *testing.T) { // MARKER: PortMappings
@@ -1186,4 +1183,65 @@ func TestHTTPIngress_OnChangedBlockedPaths(t *testing.T) { // MARKER: BlockedPat
 			assert.NoError(err)
 		})
 	*/
+}
+
+func TestHTTPIngress_OnChangedAllowedCredentialedOrigins(t *testing.T) { // MARKER: AllowedCredentialedOrigins
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+	svc.SetPorts("40912") // Avoid contention on the default port with parallel tests
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+	)
+	app.RunInTest(t)
+
+	t.Run("named_origins_accepted", func(t *testing.T) {
+		assert := testarossa.For(t)
+
+		err := svc.SetAllowedCredentialedOrigins("https://app.example, https://admin.example")
+		assert.NoError(err)
+		assert.True(svc.credentialedOrigins["https://app.example"])
+		assert.True(svc.credentialedOrigins["https://admin.example"])
+	})
+
+	t.Run("wildcard_rejected", func(t *testing.T) {
+		assert := testarossa.For(t)
+
+		err := svc.SetAllowedCredentialedOrigins("https://app.example, *")
+		assert.Error(err, "cannot be credentialed")
+	})
+}
+
+func TestHTTPIngress_OnChangedAllowedUncredentialedOrigins(t *testing.T) { // MARKER: AllowedUncredentialedOrigins
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+	svc.SetPorts("40913") // Avoid contention on the default port with parallel tests
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+	)
+	app.RunInTest(t)
+
+	t.Run("wildcard_and_named_origins_accepted", func(t *testing.T) {
+		assert := testarossa.For(t)
+
+		err := svc.SetAllowedUncredentialedOrigins("https://reader.example, *")
+		assert.NoError(err)
+		assert.True(svc.uncredentialedOrigins["https://reader.example"])
+		assert.True(svc.uncredentialedOrigins["*"])
+	})
 }

@@ -28,14 +28,16 @@ import (
 // Mock is a mockable version of the microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
-	mockOnChangedPorts                func(ctx context.Context) (err error) // MARKER: Ports
-	mockOnChangedAllowedOrigins       func(ctx context.Context) (err error) // MARKER: AllowedOrigins
-	mockOnChangedPortMappings         func(ctx context.Context) (err error) // MARKER: PortMappings
-	mockOnChangedAllowedInternalPorts func(ctx context.Context) (err error) // MARKER: AllowedInternalPorts
-	mockOnChangedReadTimeout          func(ctx context.Context) (err error) // MARKER: ReadTimeout
-	mockOnChangedWriteTimeout         func(ctx context.Context) (err error) // MARKER: WriteTimeout
-	mockOnChangedReadHeaderTimeout    func(ctx context.Context) (err error) // MARKER: ReadHeaderTimeout
-	mockOnChangedBlockedPaths         func(ctx context.Context) (err error) // MARKER: BlockedPaths
+	mockOnChangedPorts                        func(ctx context.Context) (err error) // MARKER: Ports
+	mockOnChangedAllowedOrigins               func(ctx context.Context) (err error) // MARKER: AllowedOrigins
+	mockOnChangedAllowedCredentialedOrigins   func(ctx context.Context) (err error) // MARKER: AllowedCredentialedOrigins
+	mockOnChangedAllowedUncredentialedOrigins func(ctx context.Context) (err error) // MARKER: AllowedUncredentialedOrigins
+	mockOnChangedPortMappings                 func(ctx context.Context) (err error) // MARKER: PortMappings
+	mockOnChangedAllowedInternalPorts         func(ctx context.Context) (err error) // MARKER: AllowedInternalPorts
+	mockOnChangedReadTimeout                  func(ctx context.Context) (err error) // MARKER: ReadTimeout
+	mockOnChangedWriteTimeout                 func(ctx context.Context) (err error) // MARKER: WriteTimeout
+	mockOnChangedReadHeaderTimeout            func(ctx context.Context) (err error) // MARKER: ReadHeaderTimeout
+	mockOnChangedBlockedPaths                 func(ctx context.Context) (err error) // MARKER: BlockedPaths
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -83,6 +85,34 @@ func (svc *Mock) MockOnChangedAllowedOrigins(handler func(ctx context.Context) (
 func (svc *Mock) OnChangedAllowedOrigins(ctx context.Context) (err error) { // MARKER: AllowedOrigins
 	if svc.mockOnChangedAllowedOrigins != nil {
 		err = svc.mockOnChangedAllowedOrigins(ctx)
+	}
+	return errors.Trace(err)
+}
+
+// MockOnChangedAllowedCredentialedOrigins sets up a mock handler for OnChangedAllowedCredentialedOrigins.
+func (svc *Mock) MockOnChangedAllowedCredentialedOrigins(handler func(ctx context.Context) (err error)) *Mock { // MARKER: AllowedCredentialedOrigins
+	svc.mockOnChangedAllowedCredentialedOrigins = handler
+	return svc
+}
+
+// OnChangedAllowedCredentialedOrigins executes the mock handler.
+func (svc *Mock) OnChangedAllowedCredentialedOrigins(ctx context.Context) (err error) { // MARKER: AllowedCredentialedOrigins
+	if svc.mockOnChangedAllowedCredentialedOrigins != nil {
+		err = svc.mockOnChangedAllowedCredentialedOrigins(ctx)
+	}
+	return errors.Trace(err)
+}
+
+// MockOnChangedAllowedUncredentialedOrigins sets up a mock handler for OnChangedAllowedUncredentialedOrigins.
+func (svc *Mock) MockOnChangedAllowedUncredentialedOrigins(handler func(ctx context.Context) (err error)) *Mock { // MARKER: AllowedUncredentialedOrigins
+	svc.mockOnChangedAllowedUncredentialedOrigins = handler
+	return svc
+}
+
+// OnChangedAllowedUncredentialedOrigins executes the mock handler.
+func (svc *Mock) OnChangedAllowedUncredentialedOrigins(ctx context.Context) (err error) { // MARKER: AllowedUncredentialedOrigins
+	if svc.mockOnChangedAllowedUncredentialedOrigins != nil {
+		err = svc.mockOnChangedAllowedUncredentialedOrigins(ctx)
 	}
 	return errors.Trace(err)
 }

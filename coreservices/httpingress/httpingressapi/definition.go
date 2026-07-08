@@ -17,8 +17,9 @@ limitations under the License.
 package httpingressapi
 
 import (
-	"github.com/microbus-io/fabric/define"
 	"time"
+
+	"github.com/microbus-io/fabric/define"
 )
 
 // HINT: This file is the single source of truth for the microservice's API. After editing it, run
@@ -37,59 +38,101 @@ const Version = 381
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.`
 
-// TimeBudget specifies the timeout for handling a request, after it has been read.
+/*
+TimeBudget specifies the timeout for handling a request, after it has been read.
+*/
 var TimeBudget = define.Config{ // MARKER: TimeBudget
 	Value:      time.Duration(0),
 	Default:    "20s",
 	Validation: "dur [1s,15m]",
 }
 
-// Ports is a comma-separated list of HTTP ports on which to listen for requests. A port may be
-// followed by a "tls" marker, e.g. "80, 443 tls, 8080", to terminate TLS using the SAN-indexed
-// certificates; a bare port enables TLS only when its legacy httpingress-{port}-cert.pem and -key.pem
-// files are present. Port 80 is always plaintext.
+/*
+Ports is a comma-separated list of HTTP ports on which to listen for requests. A port may be
+followed by a "tls" marker, e.g. "80, 443 tls, 8080", to terminate TLS using the SAN-indexed
+certificates; a bare port enables TLS only when its legacy httpingress-{port}-cert.pem and -key.pem
+files are present. Port 80 is always plaintext.
+*/
 var Ports = define.Config{ // MARKER: Ports
 	Value:    string(""),
 	Default:  "8080",
 	Callback: true,
 }
 
-// RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
+/*
+RequestMemoryLimit is the memory capacity used to hold pending requests, in megabytes.
+*/
 var RequestMemoryLimit = define.Config{ // MARKER: RequestMemoryLimit
 	Value:      int(0),
 	Default:    "4096",
 	Validation: "int [1,]",
 }
 
-// AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
-// When empty (the default), Access-Control-Allow-Origin is pinned to the request's own scheme://host,
-// which permits only same-origin browser reads. The * origin can be used to reflect any caller's Origin;
-// operators must opt into that explicitly because it combines with credentials.
+/*
+AllowedOrigins is DEPRECATED. It has been split into AllowedCredentialedOrigins and
+AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
+Setting this config to any non-empty value causes the microservice to refuse to start,
+rather than silently ignore an operator's intended posture.
+
+Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead
+*/
 var AllowedOrigins = define.Config{ // MARKER: AllowedOrigins
 	Value:    string(""),
 	Callback: true,
 }
 
-// PortMappings is REMOVED. The x:y->z port-rewrite model has been replaced by AllowedInternalPorts
-// (internal-port allowlist, no rewrite). Setting this config to any non-empty value causes the
-// microservice to refuse to start, rather than silently ignore an operator's intended posture.
+/*
+AllowedCredentialedOrigins is a comma-separated list of CORS origins trusted to make credentialed requests.
+A listed origin is reflected in Access-Control-Allow-Origin along with Access-Control-Allow-Credentials: true,
+permitting the browser to send and read authenticated (cookie-bearing) requests cross-origin.
+The wildcard origin is rejected: combining any-origin with credentials is the classic CORS vulnerability,
+and this config exists to make it inexpressible.
+When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+own scheme://host, which permits only same-origin browser reads.
+*/
+var AllowedCredentialedOrigins = define.Config{ // MARKER: AllowedCredentialedOrigins
+	Value:    string(""),
+	Callback: true,
+}
+
+/*
+AllowedUncredentialedOrigins is a comma-separated list of CORS origins allowed to make uncredentialed
+requests, or * to allow all origins. The browser blocks credentials for these origins, which is the
+correct semantics for a public API. An origin listed in AllowedCredentialedOrigins takes precedence.
+When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+own scheme://host, which permits only same-origin browser reads.
+*/
+var AllowedUncredentialedOrigins = define.Config{ // MARKER: AllowedUncredentialedOrigins
+	Value:    string(""),
+	Callback: true,
+}
+
+/*
+PortMappings is REMOVED. The x:y->z port-rewrite model has been replaced by AllowedInternalPorts
+(internal-port allowlist, no rewrite). Setting this config to any non-empty value causes the
+microservice to refuse to start, rather than silently ignore an operator's intended posture.
+*/
 var PortMappings = define.Config{ // MARKER: PortMappings
 	Value:    string(""),
 	Callback: true,
 }
 
-// AllowedInternalPorts is the operator-tunable allowlist of internal destination ports the
-// ingress is willing to forward to, in addition to the implicitly-allowed :443. Entries are
-// comma-separated and may be a single port or an inclusive range "N-M", e.g. "1234, 10000-11000".
-// All entries must satisfy 1024 <= port <= 65535; the microservice refuses to start otherwise.
-// Ports :666 and :888 are hard-blocked in every deployment mode and cannot be allowlisted. In LOCAL
-// deployment this config is ignored and every port except :666 and :888 is reachable.
+/*
+AllowedInternalPorts is the operator-tunable allowlist of internal destination ports the
+ingress is willing to forward to, in addition to the implicitly-allowed :443. Entries are
+comma-separated and may be a single port or an inclusive range "N-M", e.g. "1234, 10000-11000".
+All entries must satisfy 1024 <= port <= 65535; the microservice refuses to start otherwise.
+Ports :666 and :888 are hard-blocked in every deployment mode and cannot be allowlisted. In LOCAL
+deployment this config is ignored and every port except :666 and :888 is reachable.
+*/
 var AllowedInternalPorts = define.Config{ // MARKER: AllowedInternalPorts
 	Value:    string(""),
 	Callback: true,
 }
 
-// ReadTimeout specifies the timeout for fully reading a request.
+/*
+ReadTimeout specifies the timeout for fully reading a request.
+*/
 var ReadTimeout = define.Config{ // MARKER: ReadTimeout
 	Value:      time.Duration(0),
 	Default:    "5m",
@@ -97,7 +140,9 @@ var ReadTimeout = define.Config{ // MARKER: ReadTimeout
 	Callback:   true,
 }
 
-// WriteTimeout specifies the timeout for fully writing the response to a request.
+/*
+WriteTimeout specifies the timeout for fully writing the response to a request.
+*/
 var WriteTimeout = define.Config{ // MARKER: WriteTimeout
 	Value:      time.Duration(0),
 	Default:    "5m",
@@ -105,7 +150,9 @@ var WriteTimeout = define.Config{ // MARKER: WriteTimeout
 	Callback:   true,
 }
 
-// ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
+/*
+ReadHeaderTimeout specifies the timeout for fully reading the header of a request.
+*/
 var ReadHeaderTimeout = define.Config{ // MARKER: ReadHeaderTimeout
 	Value:      time.Duration(0),
 	Default:    "20s",
@@ -113,9 +160,11 @@ var ReadHeaderTimeout = define.Config{ // MARKER: ReadHeaderTimeout
 	Callback:   true,
 }
 
-// A newline-separated list of paths or extensions to block with a 404.
-// Paths should not include any arguments and are matched exactly.
-// Extensions are specified with "*.ext" and are matched against the extension of the path only.
+/*
+A newline-separated list of paths or extensions to block with a 404.
+Paths should not include any arguments and are matched exactly.
+Extensions are specified with "*.ext" and are matched against the extension of the path only.
+*/
 var BlockedPaths = define.Config{ // MARKER: BlockedPaths
 	Value: string(""),
 	Default: `/geoserver

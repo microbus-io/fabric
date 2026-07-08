@@ -135,6 +135,33 @@ grep -rn --include='*.go' --exclude-dir=vendor 'Parallel(jobs \.\.\.func()' .
 Rewrite each declaration to `Parallel(ctx context.Context, jobs ...func(ctx context.Context) (err error)) error`
 and thread the new arguments through the body.
 
+#### 3c. Split the Ingress `AllowedOrigins` Config (Grep-Guided)
+
+v1.46.0 splits the HTTP ingress's `AllowedOrigins` config into `AllowedCredentialedOrigins` (origins trusted with
+credentialed requests; the wildcard is rejected) and `AllowedUncredentialedOrigins` (origins, or `*`, that may read
+responses without credentials). The old name refuses startup when set to any non-empty value. Find every setting:
+
+```bash
+grep -rn 'AllowedOrigins' config.yaml config.local.yaml *_test.go 2>/dev/null
+grep -rn --include='*.go' --include='*.yaml' --exclude-dir=vendor 'SetAllowedOrigins\|AllowedOrigins:' .
+```
+
+For each configured origin, ask the user which posture it needs - do not guess, this is a security decision:
+
+- An origin whose users log in through the browser (cookie/`Authorization`-cookie flows) goes to
+  `AllowedCredentialedOrigins`.
+- A public-API consumer, and the `*` wildcard, go to `AllowedUncredentialedOrigins`. Note that under the old config
+  `*` reflected the caller's origin *with* credentials; the new wildcard is uncredentialed by construction. A
+  deployment that relied on credentialed access from arbitrary origins must now name those origins explicitly.
+
+Both lists may be set together; a named credentialed origin takes precedence over the wildcard.
+
+This step can only migrate the config files in this checkout. Production and staging deployments often set config
+outside the repo (operator-managed `config.yaml`, env overrides), which this skill cannot see or edit. Tell the
+user to apply the same rename wherever `AllowedOrigins` is set for `http.ingress.core` in their deployment
+environments. This is safe to get wrong in only one direction: an environment still setting the old name refuses
+to start with an error naming the two new configs, rather than silently coming up with a changed CORS posture.
+
 ### Step 4: Phase 2 - Chain to the Next Release, or Finish
 
 Find the next release to apply: from `go list -m -versions github.com/microbus-io/fabric`, the smallest published version `NEXT` in the range `DEST < NEXT <= TARGET` (semver). The upper bound `<= TARGET` is what stops the chain from overshooting a user-supplied `TARGET`.

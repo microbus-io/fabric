@@ -41,14 +41,16 @@ const (
 type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
-	OnChangedPorts(ctx context.Context) (err error)                // MARKER: Ports
-	OnChangedAllowedOrigins(ctx context.Context) (err error)       // MARKER: AllowedOrigins
-	OnChangedPortMappings(ctx context.Context) (err error)         // MARKER: PortMappings
-	OnChangedAllowedInternalPorts(ctx context.Context) (err error) // MARKER: AllowedInternalPorts
-	OnChangedReadTimeout(ctx context.Context) (err error)          // MARKER: ReadTimeout
-	OnChangedWriteTimeout(ctx context.Context) (err error)         // MARKER: WriteTimeout
-	OnChangedReadHeaderTimeout(ctx context.Context) (err error)    // MARKER: ReadHeaderTimeout
-	OnChangedBlockedPaths(ctx context.Context) (err error)         // MARKER: BlockedPaths
+	OnChangedPorts(ctx context.Context) (err error)                        // MARKER: Ports
+	OnChangedAllowedOrigins(ctx context.Context) (err error)               // MARKER: AllowedOrigins
+	OnChangedAllowedCredentialedOrigins(ctx context.Context) (err error)   // MARKER: AllowedCredentialedOrigins
+	OnChangedAllowedUncredentialedOrigins(ctx context.Context) (err error) // MARKER: AllowedUncredentialedOrigins
+	OnChangedPortMappings(ctx context.Context) (err error)                 // MARKER: PortMappings
+	OnChangedAllowedInternalPorts(ctx context.Context) (err error)         // MARKER: AllowedInternalPorts
+	OnChangedReadTimeout(ctx context.Context) (err error)                  // MARKER: ReadTimeout
+	OnChangedWriteTimeout(ctx context.Context) (err error)                 // MARKER: WriteTimeout
+	OnChangedReadHeaderTimeout(ctx context.Context) (err error)            // MARKER: ReadHeaderTimeout
+	OnChangedBlockedPaths(ctx context.Context) (err error)                 // MARKER: BlockedPaths
 }
 
 // NewService creates a new instance of the microservice.
@@ -108,10 +110,29 @@ files are present. Port 80 is always plaintext.`),
 	)
 	svc.DefineConfig( // MARKER: AllowedOrigins
 		"AllowedOrigins",
-		cfg.Description(`AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
-When empty (the default), Access-Control-Allow-Origin is pinned to the request's own scheme://host,
-which permits only same-origin browser reads. The * origin can be used to reflect any caller's Origin;
-operators must opt into that explicitly because it combines with credentials.`),
+		cfg.Description(`AllowedOrigins is REMOVED. It has been split into AllowedCredentialedOrigins and
+AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
+Setting this config to any non-empty value causes the microservice to refuse to start,
+rather than silently ignore an operator's intended posture.
+Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead`),
+	)
+	svc.DefineConfig( // MARKER: AllowedCredentialedOrigins
+		"AllowedCredentialedOrigins",
+		cfg.Description(`AllowedCredentialedOrigins is a comma-separated list of CORS origins trusted to make credentialed requests.
+A listed origin is reflected in Access-Control-Allow-Origin along with Access-Control-Allow-Credentials: true,
+permitting the browser to send and read authenticated (cookie-bearing) requests cross-origin.
+The wildcard origin is rejected: combining any-origin with credentials is the classic CORS vulnerability,
+and this config exists to make it inexpressible.
+When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+own scheme://host, which permits only same-origin browser reads.`),
+	)
+	svc.DefineConfig( // MARKER: AllowedUncredentialedOrigins
+		"AllowedUncredentialedOrigins",
+		cfg.Description(`AllowedUncredentialedOrigins is a comma-separated list of CORS origins allowed to make uncredentialed
+requests, or * to allow all origins. The browser blocks credentials for these origins, which is the
+correct semantics for a public API. An origin listed in AllowedCredentialedOrigins takes precedence.
+When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+own scheme://host, which permits only same-origin browser reads.`),
 	)
 	svc.DefineConfig( // MARKER: PortMappings
 		"PortMappings",
@@ -232,6 +253,18 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 			return errors.Trace(err)
 		}
 	}
+	if changed("AllowedCredentialedOrigins") {
+		err = svc.OnChangedAllowedCredentialedOrigins(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if changed("AllowedUncredentialedOrigins") {
+		err = svc.OnChangedAllowedUncredentialedOrigins(ctx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 	if changed("PortMappings") {
 		err = svc.OnChangedPortMappings(ctx)
 		if err != nil {
@@ -308,10 +341,11 @@ func (svc *Intermediate) SetRequestMemoryLimit(value int) (err error) { // MARKE
 	return svc.SetConfig("RequestMemoryLimit", strconv.Itoa(value))
 }
 
-// AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
-// When empty (the default), Access-Control-Allow-Origin is pinned to the request's own scheme://host,
-// which permits only same-origin browser reads. The * origin can be used to reflect any caller's Origin;
-// operators must opt into that explicitly because it combines with credentials.
+// AllowedOrigins is REMOVED. It has been split into AllowedCredentialedOrigins and
+// AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
+// Setting this config to any non-empty value causes the microservice to refuse to start,
+// rather than silently ignore an operator's intended posture.
+// Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead
 func (svc *Intermediate) AllowedOrigins() (value string) { // MARKER: AllowedOrigins
 	return svc.Config("AllowedOrigins")
 }
@@ -319,6 +353,36 @@ func (svc *Intermediate) AllowedOrigins() (value string) { // MARKER: AllowedOri
 // SetAllowedOrigins sets the value of the configuration property.
 func (svc *Intermediate) SetAllowedOrigins(value string) (err error) { // MARKER: AllowedOrigins
 	return svc.SetConfig("AllowedOrigins", value)
+}
+
+// AllowedCredentialedOrigins is a comma-separated list of CORS origins trusted to make credentialed requests.
+// A listed origin is reflected in Access-Control-Allow-Origin along with Access-Control-Allow-Credentials: true,
+// permitting the browser to send and read authenticated (cookie-bearing) requests cross-origin.
+// The wildcard origin is rejected: combining any-origin with credentials is the classic CORS vulnerability,
+// and this config exists to make it inexpressible.
+// When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+// own scheme://host, which permits only same-origin browser reads.
+func (svc *Intermediate) AllowedCredentialedOrigins() (value string) { // MARKER: AllowedCredentialedOrigins
+	return svc.Config("AllowedCredentialedOrigins")
+}
+
+// SetAllowedCredentialedOrigins sets the value of the configuration property.
+func (svc *Intermediate) SetAllowedCredentialedOrigins(value string) (err error) { // MARKER: AllowedCredentialedOrigins
+	return svc.SetConfig("AllowedCredentialedOrigins", value)
+}
+
+// AllowedUncredentialedOrigins is a comma-separated list of CORS origins allowed to make uncredentialed
+// requests, or * to allow all origins. The browser blocks credentials for these origins, which is the
+// correct semantics for a public API. An origin listed in AllowedCredentialedOrigins takes precedence.
+// When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+// own scheme://host, which permits only same-origin browser reads.
+func (svc *Intermediate) AllowedUncredentialedOrigins() (value string) { // MARKER: AllowedUncredentialedOrigins
+	return svc.Config("AllowedUncredentialedOrigins")
+}
+
+// SetAllowedUncredentialedOrigins sets the value of the configuration property.
+func (svc *Intermediate) SetAllowedUncredentialedOrigins(value string) (err error) { // MARKER: AllowedUncredentialedOrigins
+	return svc.SetConfig("AllowedUncredentialedOrigins", value)
 }
 
 // PortMappings is REMOVED. The x:y->z port-rewrite model has been replaced by AllowedInternalPorts

@@ -59,7 +59,8 @@ type Service struct {
 	httpServers          map[int]*http.Server
 	certs                *httpx.CertStore
 	mux                  sync.Mutex
-	allowedOrigins       map[string]bool
+	credentialedOrigins   map[string]bool
+	uncredentialedOrigins map[string]bool
 	allowedInternalPorts map[int]bool
 	reqMemoryUsed        int64
 	secure443            bool
@@ -74,7 +75,18 @@ type Service struct {
 
 // OnStartup is called when the microservice is started up.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	svc.OnChangedAllowedOrigins(ctx)
+	err = svc.OnChangedAllowedOrigins(ctx)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = svc.OnChangedAllowedCredentialedOrigins(ctx)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = svc.OnChangedAllowedUncredentialedOrigins(ctx)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	err = svc.OnChangedPortMappings(ctx)
 	if err != nil {
 		return errors.Trace(err)
@@ -529,21 +541,66 @@ func (svc *Service) releaseRequestBody(body []byte) {
 /*
 OnChangedAllowedOrigins is called when the AllowedOrigins config property changes.
 
-AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
-When empty (the default), Access-Control-Allow-Origin is pinned to the request's own scheme://host,
-which permits only same-origin browser reads. The * origin can be used to reflect any caller's Origin;
-operators must opt into that explicitly because it combines with credentials.
+AllowedOrigins is REMOVED. It has been split into AllowedCredentialedOrigins and
+AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
+Setting this config to any non-empty value causes the microservice to refuse to start,
+rather than silently ignore an operator's intended posture.
+Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead
 */
 func (svc *Service) OnChangedAllowedOrigins(ctx context.Context) (err error) { // MARKER: AllowedOrigins
-	value := svc.AllowedOrigins()
+	if strings.TrimSpace(svc.AllowedOrigins()) != "" {
+		return errors.New(
+			"AllowedOrigins has been split into AllowedCredentialedOrigins and AllowedUncredentialedOrigins (got '%s')",
+			svc.AllowedOrigins(),
+		)
+	}
+	return nil
+}
+
+/*
+OnChangedAllowedCredentialedOrigins is called when the AllowedCredentialedOrigins config property changes.
+
+AllowedCredentialedOrigins is a comma-separated list of CORS origins trusted to make credentialed requests.
+A listed origin is reflected in Access-Control-Allow-Origin along with Access-Control-Allow-Credentials: true,
+permitting the browser to send and read authenticated (cookie-bearing) requests cross-origin.
+The wildcard origin is rejected: combining any-origin with credentials is the classic CORS vulnerability,
+and this config exists to make it inexpressible.
+When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+own scheme://host, which permits only same-origin browser reads.
+*/
+func (svc *Service) OnChangedAllowedCredentialedOrigins(ctx context.Context) (err error) { // MARKER: AllowedCredentialedOrigins
 	newOrigins := map[string]bool{}
-	for _, origin := range strings.Split(value, ",") {
+	for origin := range strings.SplitSeq(svc.AllowedCredentialedOrigins(), ",") {
+		origin = strings.TrimSpace(origin)
+		if origin == "*" {
+			return errors.New("the wildcard origin cannot be credentialed; list it in AllowedUncredentialedOrigins instead")
+		}
+		if origin != "" {
+			newOrigins[origin] = true
+		}
+	}
+	svc.credentialedOrigins = newOrigins
+	return nil
+}
+
+/*
+OnChangedAllowedUncredentialedOrigins is called when the AllowedUncredentialedOrigins config property changes.
+
+AllowedUncredentialedOrigins is a comma-separated list of CORS origins allowed to make uncredentialed
+requests, or * to allow all origins. The browser blocks credentials for these origins, which is the
+correct semantics for a public API. An origin listed in AllowedCredentialedOrigins takes precedence.
+When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+own scheme://host, which permits only same-origin browser reads.
+*/
+func (svc *Service) OnChangedAllowedUncredentialedOrigins(ctx context.Context) (err error) { // MARKER: AllowedUncredentialedOrigins
+	newOrigins := map[string]bool{}
+	for origin := range strings.SplitSeq(svc.AllowedUncredentialedOrigins(), ",") {
 		origin = strings.TrimSpace(origin)
 		if origin != "" {
 			newOrigins[origin] = true
 		}
 	}
-	svc.allowedOrigins = newOrigins
+	svc.uncredentialedOrigins = newOrigins
 	return nil
 }
 

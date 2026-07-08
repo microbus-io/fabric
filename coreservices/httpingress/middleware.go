@@ -84,22 +84,26 @@ func (svc *Service) defaultMiddleware() *middleware.Chain {
 	m.Append(SecureRedirect, middleware.SecureRedirect(func() bool {
 		return svc.secure443
 	}))
-	m.Append(CORS, middleware.Cors(func(r *http.Request, origin string) string {
-		if svc.allowedOrigins["*"] {
-			return origin
+	m.Append(CORS, middleware.Cors(func(r *http.Request, origin string) (allowed string, credentialed bool) {
+		if svc.credentialedOrigins[origin] {
+			return origin, true
 		}
-		if svc.allowedOrigins[origin] {
-			return origin
+		if svc.uncredentialedOrigins["*"] {
+			// The literal * allows any origin without credentials
+			return "*", false
 		}
-		if len(svc.allowedOrigins) == 0 {
+		if svc.uncredentialedOrigins[origin] {
+			return origin, false
+		}
+		if len(svc.credentialedOrigins) == 0 && len(svc.uncredentialedOrigins) == 0 {
 			// No allowlist configured: permit only same-origin reads by pinning
 			// ACAO to the request's own scheme://host. The browser then rejects
 			// cross-origin reads because the reflected ACAO won't match the
 			// caller's Origin. X-Forwarded-* headers are deliberately ignored
 			// since they are attacker-controlled at the edge.
-			return requestSameOrigin(r)
+			return requestSameOrigin(r), false
 		}
-		return ""
+		return "", false
 	}))
 	m.Append(XForwarded, middleware.XForwarded())
 	m.Append(InternalHeaders, middleware.InternalHeaders())

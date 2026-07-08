@@ -29,11 +29,11 @@ func TestCors_AllowedOrigin(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
 
-	mw := Cors(func(r *http.Request, origin string) string {
+	mw := Cors(func(r *http.Request, origin string) (string, bool) {
 		if origin == "https://allowed.example" {
-			return origin
+			return origin, true
 		}
-		return ""
+		return "", false
 	})
 
 	w := httpx.NewResponseRecorder()
@@ -43,13 +43,54 @@ func TestCors_AllowedOrigin(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("https://allowed.example", w.Header().Get("Access-Control-Allow-Origin"))
 	assert.Equal("true", w.Header().Get("Access-Control-Allow-Credentials"))
+	assert.Contains(w.Header().Values("Vary"), "Origin")
+}
+
+func TestCors_WildcardOriginIsUncredentialed(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	mw := Cors(func(r *http.Request, origin string) (string, bool) {
+		return "*", false
+	})
+
+	w := httpx.NewResponseRecorder()
+	r, _ := http.NewRequest("GET", "http://ingress.example/x", nil)
+	r.Header.Set("Origin", "https://anywhere.example")
+	err := mw(func(w http.ResponseWriter, r *http.Request) error { return nil })(w, r)
+	assert.NoError(err)
+	assert.Equal("*", w.Header().Get("Access-Control-Allow-Origin"))
+	_, hasCredentials := w.Header()["Access-Control-Allow-Credentials"]
+	assert.False(hasCredentials)
+	assert.Equal("*", w.Header().Get("Access-Control-Allow-Methods"))
+	assert.Equal("*, Authorization", w.Header().Get("Access-Control-Allow-Headers"))
+	assert.Equal("*", w.Header().Get("Access-Control-Expose-Headers"))
+}
+
+func TestCors_NamedUncredentialedOrigin(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	mw := Cors(func(r *http.Request, origin string) (string, bool) {
+		return origin, false
+	})
+
+	w := httpx.NewResponseRecorder()
+	r, _ := http.NewRequest("GET", "http://ingress.example/x", nil)
+	r.Header.Set("Origin", "https://reader.example")
+	err := mw(func(w http.ResponseWriter, r *http.Request) error { return nil })(w, r)
+	assert.NoError(err)
+	assert.Equal("https://reader.example", w.Header().Get("Access-Control-Allow-Origin"))
+	_, hasCredentials := w.Header()["Access-Control-Allow-Credentials"]
+	assert.False(hasCredentials)
+	assert.Contains(w.Header().Values("Vary"), "Origin")
 }
 
 func TestCors_RejectedOrigin(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
 
-	mw := Cors(func(r *http.Request, origin string) string { return "" })
+	mw := Cors(func(r *http.Request, origin string) (string, bool) { return "", false })
 
 	w := httpx.NewResponseRecorder()
 	r, _ := http.NewRequest("GET", "http://ingress.example/x", nil)
@@ -65,9 +106,9 @@ func TestCors_NoOriginPassesThrough(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
 
-	mw := Cors(func(r *http.Request, origin string) string {
+	mw := Cors(func(r *http.Request, origin string) (string, bool) {
 		t.Fatal("allowedOrigin must not be consulted when Origin is absent")
-		return ""
+		return "", false
 	})
 
 	called := false
@@ -89,12 +130,12 @@ func TestCors_SameOriginPinningFromRequest(t *testing.T) {
 	// Simulates the default config: pin ACAO to scheme://host derived from
 	// the request itself. X-Forwarded-* must be ignored so an edge attacker
 	// cannot inflate ACAO to a host they control.
-	allow := func(r *http.Request, origin string) string {
+	allow := func(r *http.Request, origin string) (string, bool) {
 		scheme := "http"
 		if r.TLS != nil {
 			scheme = "https"
 		}
-		return scheme + "://" + r.Host
+		return scheme + "://" + r.Host, false
 	}
 	mw := Cors(allow)
 
@@ -124,15 +165,22 @@ func TestCors_PreflightShortCircuits(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
 
-	mw := Cors(func(r *http.Request, origin string) string { return origin })
+	mw := Cors(func(r *http.Request, origin string) (string, bool) { return origin, true })
 
 	w := httpx.NewResponseRecorder()
 	r, _ := http.NewRequest("OPTIONS", "http://ingress.example/x", nil)
 	r.Header.Set("Origin", "https://allowed.example")
+	r.Header.Set("Access-Control-Request-Method", "PUT")
+	r.Header.Set("Access-Control-Request-Headers", "content-type, x-custom")
 	err := mw(func(w http.ResponseWriter, r *http.Request) error {
 		t.Fatal("preflight must not call the downstream handler")
 		return nil
 	})(w, r)
 	assert.NoError(err)
 	assert.Equal(http.StatusNoContent, w.Result().StatusCode)
+	// In credentialed mode wildcards are literal, so the preflight's method and headers are reflected
+	assert.Equal("PUT", w.Header().Get("Access-Control-Allow-Methods"))
+	assert.Equal("content-type, x-custom", w.Header().Get("Access-Control-Allow-Headers"))
+	assert.Contains(w.Header().Values("Vary"), "Access-Control-Request-Method")
+	assert.Contains(w.Header().Values("Vary"), "Access-Control-Request-Headers")
 }

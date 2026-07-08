@@ -19,7 +19,7 @@ general:
   hostname: http.ingress.core
   description: The HTTP ingress microservice relays incoming HTTP requests to the NATS bus.
   package: github.com/microbus-io/fabric/coreservices/httpingress
-  modifiedAt: "2026-06-18T23:27:48Z"
+  modifiedAt: "2026-07-08T00:42:56Z"
 
 configs:
   TimeBudget:
@@ -44,10 +44,31 @@ configs:
   AllowedOrigins:
     signature: AllowedOrigins() (value string)
     description: |-
-      AllowedOrigins is a comma-separated list of CORS origins to allow requests from.
-      When empty (the default), Access-Control-Allow-Origin is pinned to the request's own scheme://host,
-      which permits only same-origin browser reads. The * origin can be used to reflect any caller's Origin;
-      operators must opt into that explicitly because it combines with credentials.
+      AllowedOrigins is REMOVED. It has been split into AllowedCredentialedOrigins and
+      AllowedUncredentialedOrigins so that an origin's access to credentials is always explicit.
+      Setting this config to any non-empty value causes the microservice to refuse to start,
+      rather than silently ignore an operator's intended posture.
+      Deprecated: Use AllowedCredentialedOrigins or AllowedUncredentialedOrigins instead
+    callback: true
+  AllowedCredentialedOrigins:
+    signature: AllowedCredentialedOrigins() (value string)
+    description: |-
+      AllowedCredentialedOrigins is a comma-separated list of CORS origins trusted to make credentialed requests.
+      A listed origin is reflected in Access-Control-Allow-Origin along with Access-Control-Allow-Credentials: true,
+      permitting the browser to send and read authenticated (cookie-bearing) requests cross-origin.
+      The wildcard origin is rejected: combining any-origin with credentials is the classic CORS vulnerability,
+      and this config exists to make it inexpressible.
+      When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+      own scheme://host, which permits only same-origin browser reads.
+    callback: true
+  AllowedUncredentialedOrigins:
+    signature: AllowedUncredentialedOrigins() (value string)
+    description: |-
+      AllowedUncredentialedOrigins is a comma-separated list of CORS origins allowed to make uncredentialed
+      requests, or * to allow all origins. The browser blocks credentials for these origins, which is the
+      correct semantics for a public API. An origin listed in AllowedCredentialedOrigins takes precedence.
+      When both origin lists are empty (the default), Access-Control-Allow-Origin is pinned to the request's
+      own scheme://host, which permits only same-origin browser reads.
     callback: true
   PortMappings:
     signature: PortMappings() (value string)

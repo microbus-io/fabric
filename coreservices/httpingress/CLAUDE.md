@@ -52,7 +52,28 @@ The ingress is a generic forwarder whose source-derived NATS ACL collapses to a 
 
 The previous `x:y->z` port-rewrite mechanism is gone. The `PortMappings` config name is still defined, but `OnChangedPortMappings` returns an error if it has any non-empty value, which makes the ingress refuse to start. Failing closed is deliberately stricter than "warn and ignore": a prod operator who set `PortMappings` to enforce a posture should see their configuration take effect or see a hard failure that points them at `AllowedInternalPorts`, never silent erosion of the posture they thought they were running.
 
-### JWKS fetch is debounced per issuer
+### CORS splits origins by credential trust
+
+CORS origins are configured in two lists rather than one: `AllowedCredentialedOrigins` (reflected origin +
+`Access-Control-Allow-Credentials: true`) and `AllowedUncredentialedOrigins` (origins, or `*`, that may read
+responses but never with credentials). The split exists to make the classic CORS vulnerability - reflecting an
+arbitrary caller's origin while granting credentials - *inexpressible*: the credentialed list rejects `*` at config
+time, and the wildcard lives only in the uncredentialed list, where the browser itself blocks credentials against a
+literal `Access-Control-Allow-Origin: *`. Naming an origin in the credentialed list is an explicit trust statement,
+greppable in config as the credentialed attack surface. The credentialed list is checked first, so
+`AllowedCredentialedOrigins: https://app.example` plus `AllowedUncredentialedOrigins: *` gives the app credentialed
+access and everyone else public uncredentialed access. The predecessor config `AllowedOrigins` conflated the two
+postures (any allowed origin was reflected with credentials); like `PortMappings`, setting it now refuses startup
+rather than silently ignoring an operator's intended posture.
+
+Within the `Cors` middleware, header emission follows the credential mode. Uncredentialed responses use the true
+wildcards (`Allow-Methods: *`, `Allow-Headers: *, Authorization` - the `Authorization` header is carved out of the
+wildcard by the Fetch spec and must be named, `Expose-Headers: *`). Credentialed responses cannot use wildcards
+(a `*` is matched literally in credentialed mode), so the preflight's own `Access-Control-Request-Method` and
+`Access-Control-Request-Headers` are reflected instead - safe because the origin gate has already passed and the
+connector enforces methods and `requiredClaims` downstream. Every reflected (non-`*`) origin adds `Vary: Origin` so
+a shared cache never serves one origin's ACAO to another. When both lists are empty, ACAO is pinned to the request's
+own `scheme://host`, permitting only same-origin reads.
 
 `exchangeToken` resolves an external bearer token's `kid` to a public key, fetching JWKS on a cache miss.
 `fetchBearerTokenKeys` debounces those fetches per issuer at `jwksFetchCooldown` (1s), so internet-origin tokens
