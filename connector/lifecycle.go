@@ -509,22 +509,32 @@ func (c *Connector) Go(ctx context.Context, f func(ctx context.Context) (err err
 	return nil
 }
 
-// Parallel executes multiple jobs in parallel and returns the first error it encounters.
+// Parallel executes multiple jobs in parallel, waits for all of them to complete,
+// and returns the first error it encounters.
+// Jobs are passed a cancelable subcontext of the parent context that is canceled when any job errors,
+// allowing the remaining jobs to abandon their work early.
 // It is a convenient pattern for calling multiple other microservices and thus amortize the network latency.
 // There is no mechanism to identify the failed jobs so this pattern isn't suited for jobs that
 // update data and require to be rolled back on failure.
-func (c *Connector) Parallel(jobs ...func() (err error)) error {
+func (c *Connector) Parallel(ctx context.Context, jobs ...func(ctx context.Context) (err error)) error {
 	n := len(jobs)
+	subCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	errChan := make(chan error, n)
 	var wg sync.WaitGroup
 	wg.Add(n)
 	c.pendingOps.Add(int32(n))
 	for _, j := range jobs {
-		j := j
 		go func() {
 			defer c.pendingOps.Add(-1)
 			defer wg.Done()
-			errChan <- errors.CatchPanic(j)
+			err := errors.CatchPanic(func() error {
+				return j(subCtx)
+			})
+			if err != nil {
+				errChan <- err
+				cancel()
+			}
 		}()
 	}
 	wg.Wait()

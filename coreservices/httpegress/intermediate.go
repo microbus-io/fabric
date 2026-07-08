@@ -90,7 +90,7 @@ The proxied request is expected to be posted in the body of the request in binar
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel()
+	return svc.Parallel(ctx)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

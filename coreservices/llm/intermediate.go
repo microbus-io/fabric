@@ -150,7 +150,7 @@ toolResults state key, which the next CallLLM folds into the conversation.`),
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel()
+	return svc.Parallel(ctx)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

@@ -282,7 +282,7 @@ Every call to an endpoint is automatically wrapped with a trace span. The span c
 
 ### Goroutines
 
-Use `svc.Go(ctx, func)` to launch a goroutine in the context of a microservice. Use `svc.Parallel(func1, func2, ...)` to launch multiple goroutines and wait for all to complete.
+Use `svc.Go(ctx, func)` to launch a goroutine in the context of a microservice. Use `svc.Parallel(ctx, func1, func2, ...)` to launch multiple goroutines and wait for all to complete. Each job receives a cancelable subcontext of `ctx` that is canceled when any job errors, so a job that observes its context can abandon its work early; a job that should run to completion regardless can ignore its context argument and capture the outer `ctx` instead.
 
 For long-lived background work that should run for the whole microservice lifetime (worker pools,
 refillers, model warmers, periodic reconcilers), launch raw goroutines from `OnStartup` passing

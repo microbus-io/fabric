@@ -296,7 +296,7 @@ Only persons whose reservation has expired (reserved_before < NOW) are reserved.
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel()
+	return svc.Parallel(ctx)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

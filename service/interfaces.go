@@ -146,7 +146,7 @@ type Ticker interface {
 // Executor are actions for running jobs in Go routines.
 type Executor interface {
 	Go(ctx context.Context, f func(ctx context.Context) (err error)) error
-	Parallel(jobs ...func() (err error)) error
+	Parallel(ctx context.Context, jobs ...func(ctx context.Context) (err error)) error
 }
 
 // Timer are actions related to time management.

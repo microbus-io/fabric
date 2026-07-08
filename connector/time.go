@@ -33,6 +33,7 @@ type tickerCallback struct {
 	Handler  service.TickerHandler
 	Interval time.Duration
 	Ticker   *time.Ticker
+	Done     chan bool
 }
 
 // StartTicker initiates a recurring job at a set interval.
@@ -69,7 +70,6 @@ func (c *Connector) StartTicker(name string, interval time.Duration, handler ser
 }
 
 // StopTicker stops a running ticker.
-// Ticker names are case-insensitive.
 // Ticker names are case sensitive.
 func (c *Connector) StopTicker(name string) error {
 	c.tickersLock.Lock()
@@ -82,6 +82,8 @@ func (c *Connector) StopTicker(name string) error {
 	if job.Ticker != nil {
 		job.Ticker.Stop()
 		job.Ticker = nil
+		close(job.Done)
+		job.Done = nil
 	}
 	delete(c.tickers, name)
 	return nil
@@ -94,6 +96,8 @@ func (c *Connector) stopTickers() error {
 		if job.Ticker != nil {
 			job.Ticker.Stop()
 			job.Ticker = nil
+			close(job.Done)
+			job.Done = nil
 		}
 	}
 	c.tickersLock.Unlock()
@@ -124,22 +128,34 @@ func (c *Connector) runTicker(job *tickerCallback) {
 		return // Already running
 	}
 	job.Ticker = time.NewTicker(job.Interval)
+	job.Done = make(chan bool)
 	ticker := job.Ticker
+	done := job.Done
+	lifetime := c.Lifetime()
+	c.pendingOps.Add(1)
 	go func() {
-		c.LogDebug(c.Lifetime(), "Ticker started",
+		defer c.pendingOps.Add(-1)
+		c.LogDebug(lifetime, "Ticker started",
 			"name", job.Name,
 		)
-		defer c.LogDebug(c.Lifetime(), "Ticker stopped",
+		defer c.LogDebug(lifetime, "Ticker stopped",
 			"name", job.Name,
 		)
-		for range ticker.C {
+		for {
+			select {
+			case <-ticker.C:
+			case <-done:
+				return
+			case <-lifetime.Done():
+				return
+			}
 			if !c.isPhase(startedUp) {
 				continue
 			}
 
 			// OpenTelemetry: create a span for the callback
 			handlerName := utils.ToKebabCase(job.Name)
-			ctx, span := c.StartSpan(c.Lifetime(), handlerName, trc.Internal())
+			ctx, span := c.StartSpan(lifetime, handlerName, trc.Internal())
 
 			c.pendingOps.Add(1)
 			startTime := time.Now()
@@ -176,17 +192,17 @@ func (c *Connector) runTicker(job *tickerCallback) {
 
 			// Drain ticker, in case of a long-running job that spans multiple intervals
 			skipped := 0
-			done := false
-			for !done {
+			drained := false
+			for !drained {
 				select {
 				case <-ticker.C:
 					skipped++
 				default:
-					done = true
+					drained = true
 				}
 			}
 			if skipped > 0 {
-				c.LogWarn(c.Lifetime(), "Ticker skipped",
+				c.LogWarn(lifetime, "Ticker skipped",
 					"name", job.Name,
 					"beats", skipped,
 					"runtime", dur,

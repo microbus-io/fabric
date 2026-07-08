@@ -73,6 +73,7 @@ func (_c MulticastClient) WithOptions(opts ...pub.Option) MulticastClient {
 }
 
 // Collect returns the latest aggregated metrics.
+// The secret key must be provided in an "Authorization: Bearer" header (preferred), or in a "secretKey" query argument.
 func (_c Client) Collect(ctx context.Context, relativeURL string) (res *http.Response, err error) { // MARKER: Collect
 	return _c.svc.Request(
 		ctx,
@@ -84,6 +85,7 @@ func (_c Client) Collect(ctx context.Context, relativeURL string) (res *http.Res
 }
 
 // Collect returns the latest aggregated metrics.
+// The secret key must be provided in an "Authorization: Bearer" header (preferred), or in a "secretKey" query argument.
 func (_c MulticastClient) Collect(ctx context.Context, relativeURL string) iter.Seq[*pub.Response] { // MARKER: Collect
 	return _c.svc.Publish(
 		ctx,

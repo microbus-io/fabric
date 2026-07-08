@@ -36,14 +36,20 @@ const Version = 215
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.`
 
-// SecretKey must be provided with the request to collect the metrics.
-// This key is required except in local development and tests.
+/*
+SecretKey must be provided with the request to collect the metrics, preferably in an "Authorization: Bearer" header,
+or in a "secretKey" query argument.
+This key is required except in local development and tests.
+*/
 var SecretKey = define.Config{ // MARKER: SecretKey
 	Value:  string(""),
 	Secret: true,
 }
 
-// Collect returns the latest aggregated metrics.
+/*
+Collect returns the latest aggregated metrics.
+The secret key must be provided in an "Authorization: Bearer" header (preferred), or in a "secretKey" query argument.
+*/
 var Collect = define.Web{ // MARKER: Collect
 	Host: Hostname, Method: "GET", Route: "/collect",
 }

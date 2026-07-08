@@ -182,7 +182,6 @@ func (_c MulticastClient) Mint(ctx context.Context, claims any) iter.Seq[*MintRe
 }
 
 // JWKS aggregates public keys from all replicas and returns them in JWKS format.
-//
 // Callers may cache the response, or debounce fetches to this endpoint, for up to 1 second.
 func (_c Client) JWKS(ctx context.Context) (keys []JWK, err error) { // MARKER: JWKS
 	_in := JWKSIn{}
@@ -201,7 +200,6 @@ func (_res *JWKSResponse) Get() (keys []JWK, err error) { // MARKER: JWKS
 }
 
 // JWKS aggregates public keys from all replicas and returns them in JWKS format.
-//
 // Callers may cache the response, or debounce fetches to this endpoint, for up to 1 second.
 func (_c MulticastClient) JWKS(ctx context.Context) iter.Seq[*JWKSResponse] { // MARKER: JWKS
 	_in := JWKSIn{}

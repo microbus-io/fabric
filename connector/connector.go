@@ -38,6 +38,7 @@ import (
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/transport"
 	"github.com/microbus-io/fabric/utils"
+	"golang.org/x/sync/singleflight"
 
 	"go.opentelemetry.io/otel/metric"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
@@ -128,6 +129,7 @@ type Connector struct {
 	actorKeysLock sync.RWMutex
 	actorKeys     map[string]ed25519.PublicKey
 	lastJWKSFetch map[string]time.Time
+	jwksFlight    singleflight.Group
 }
 
 // NewConnector constructs a new Connector.

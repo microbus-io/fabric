@@ -16,8 +16,8 @@ description: TRIGGER when the user asks to upgrade the project to a newer or the
 - **Migration** = the source edits taking a project from `SOURCE` to `DEST`, authored in Step 3. Empty when the release has no breaking changes.
 
 ```
-SOURCE = v1.44.0
-DEST   = v1.45.0
+SOURCE = v1.45.0
+DEST   = v1.46.0
 ```
 
 <!-- RELEASE AUTHOR: set SOURCE and DEST above, and fill Step 3, when cutting a release. -->
@@ -74,50 +74,66 @@ Otherwise the project is exactly one version behind this release. Migrate it:
 
    `go vet` must pass before Step 4. A grep-guided or manual migration can leave a compile error at a site it could not fix mechanically; resolve those now - with the user when the fix is a design choice - so the project compiles at `DEST`. (A migration may deliberately leave a runtime `// TODO:` that still compiles; the final `go test` in Step 4 surfaces it.)
 
-### Step 3: Release-Specific Migration (v1.44.0 -> v1.45.0)
+### Step 3: Release-Specific Migration (v1.45.0 -> v1.46.0)
 
 *Invoked by Step 2. This is `DEST`'s migration; a release author replaces it when cutting the next release (see "Authoring framework upgrade skills" in the repo-root `CLAUDE.md`). Confine it to source edits - Step 2 owns the per-increment `genservice` + `go vet`, and Step 4 owns the final `go test`.*
 
-v1.45.0 removes flow-stop notification from the workflow subsystem: `workflow.FlowOptions.NotifyOnStop` (the option field) and the foreman `OnFlowStopped` outbound event (with its `NewHook`/`NewMulticastTrigger` methods) are gone. Both are loud compile errors with no mechanical rewrite - the replacement is a per-call-site design choice. A project that never set `NotifyOnStop` and never subscribed to `OnFlowStopped` needs no change from this step.
+v1.46.0 changes the signature of `Parallel` (on the connector, the `*Service` base type, and the
+`service.Executor` interface):
 
-#### 3a. Remove `FlowOptions.NotifyOnStop` and Choose How the Caller Learns the Outcome (Grep-Guided)
-
-Find every site that set the flag:
-
-```bash
-grep -rn --include='*.go' --exclude-dir=vendor 'NotifyOnStop' .
+```go
+// before
+Parallel(jobs ...func() (err error)) error
+// after
+Parallel(ctx context.Context, jobs ...func(ctx context.Context) (err error)) error
 ```
 
-For each hit, delete the `NotifyOnStop` field from the `FlowOptions` literal (if it was the only field, the whole `&workflow.FlowOptions{...}` may become `nil`), then decide how that caller now learns the outcome - do not guess; ask the user when it is unclear:
+`Parallel` still waits for all jobs to complete and returns the first error. What changed: each job now receives a
+cancelable subcontext of the parent `ctx` that is canceled when any job errors, so a job that observes its context
+can abandon its work early once a sibling has failed.
 
-- **A caller standing by for the result** (it holds, or can hold, the flowKey and can wait): switch to `Await`. `Create` auto-runs and returns the key:
-  ```go
-  // before
-  flowKey, err := foremanapi.NewClient(svc).Create(ctx, url, initialState,
-      &workflow.FlowOptions{NotifyOnStop: true})
-  // ... later, react in an OnFlowStopped handler ...
+Generated code fixes itself: Step 2's `genservice` run regenerates `doOnObserveMetrics` in every `intermediate.go`.
+Only hand-written call sites need edits.
 
-  // after
-  flowKey, err := foremanapi.NewClient(svc).Create(ctx, url, initialState, nil)
-  outcome, err := foremanapi.NewClient(svc).Await(ctx, flowKey)
-  // react to outcome.Status / outcome.State / outcome.Error / outcome.InterruptPayload here
-  ```
-  `Await` returns without the outcome if the caller's context deadline fires first while the flow keeps running; a caller that may outlive its request budget must be prepared to `Await` again (it still holds the key).
-- **A follow-up that must happen reliably** regardless of who is waiting (fire-and-forget submit, a push notification, a downstream call, a compensation): move the reaction into the workflow, not a caller. Author an orchestrating graph whose entry task launches the real work as a subgraph and whose success/failure tasks do the follow-up as their own durable, retryable steps (`AddTransition` for success, `AddTransitionOnError` for failure). The `add-workflow` and `add-task` skills scaffold this; the shape is in `.claude/rules/workflows.txt` under "Detecting Flow Completion".
+#### 3a. Rewrite `Parallel` Call Sites (Grep-Guided)
 
-#### 3b. Replace `OnFlowStopped` Subscriptions and Triggers (Grep-Guided)
-
-Find every reference to the removed event:
+Find every call site (`t.Parallel()` hits are Go's testing API, not this migration - skip them):
 
 ```bash
-grep -rn --include='*.go' --exclude-dir=vendor 'OnFlowStopped' .
+grep -rn --include='*.go' --exclude-dir=vendor '\.Parallel(' . | grep -v 't\.Parallel()'
 ```
 
-Each hit is one of:
+For each hit:
 
-- **A subscription** - `foremanapi.NewHook(svc).ForHost(...).OnFlowStopped(func(ctx, flowKey string, outcome *workflow.FlowOutcome) error { ... })`. Delete the subscription and relocate its handler body to wherever the outcome is now learned in 3a: inline after the `Await` (standing-by caller), or into the workflow's success/failure task (reliable follow-up). The handler's logic is preserved; only its trigger moves.
-- **A trigger** - `foremanapi.NewMulticastTrigger(svc).ForHost(...).OnFlowStopped(...)`. Only the foreman itself fired this event, so a downstream project should not have one; if it does, remove the call.
-- **A leftover handler method or hook type** left unused once its subscription is gone. Remove the dead code.
+1. Pass a context as the new first argument - the `ctx` already in scope, or `r.Context()` in a web handler.
+2. Change each job from `func() error` to `func(ctx context.Context) error`. This includes job slices built for
+   `Parallel`: `[]func() error` becomes `[]func(ctx context.Context) error`.
+3. Decide, per job, which context its body should use:
+   - **Use the job's `ctx` parameter** (shadowing the outer one) when the job makes downstream calls or queries and
+     should abandon its work once a sibling job fails. This is the right default.
+   - **Name the parameter `_` and keep using the outer `ctx`** when the job must run to completion regardless of
+     sibling failures. This preserves the pre-v1.46.0 behavior, where jobs could not observe each other's errors:
+     ```go
+     svc.Parallel(ctx,
+         func(_ context.Context) error { return svc.recordAudit(ctx, entry) },
+     )
+     ```
+
+The choice in item 3 is a per-site judgment call: a read fan-out (parallel queries assembling one response) wants the
+subcontext; independent side effects (audit writes, notifications) usually want to run to completion. Ask the user
+when the intent is unclear.
+
+#### 3b. Update `service.Executor` Implementations (Grep-Guided)
+
+A project that hand-implements the `service.Executor` interface (rare - mocks or decorators around a service) must
+update its `Parallel` method to the new signature:
+
+```bash
+grep -rn --include='*.go' --exclude-dir=vendor 'Parallel(jobs \.\.\.func()' .
+```
+
+Rewrite each declaration to `Parallel(ctx context.Context, jobs ...func(ctx context.Context) (err error)) error`
+and thread the new arguments through the body.
 
 ### Step 4: Phase 2 - Chain to the Next Release, or Finish
 

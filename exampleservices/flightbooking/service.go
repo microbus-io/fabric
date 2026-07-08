@@ -306,15 +306,15 @@ type demoData struct {
 
 // loadHistory fills the step history and Mermaid diagram for a flow into the view model.
 func (svc *Service) loadHistory(ctx context.Context, foremanClient foremanapi.Client, flowKey string, data *demoData) {
-	svc.Parallel(
-		func() error {
+	svc.Parallel(ctx,
+		func(ctx context.Context) error {
 			steps, err := foremanClient.History(ctx, flowKey)
 			if err == nil {
 				data.Steps = flattenSteps(steps, false)
 			}
 			return nil
 		},
-		func() error {
+		func(ctx context.Context) error {
 			res, err := foremanClient.HistoryMermaid(ctx, "?flowKey="+flowKey+"&format=raw")
 			if err == nil {
 				defer res.Body.Close()

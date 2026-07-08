@@ -66,10 +66,9 @@ func (svc *Service) fetchTools(ctx context.Context, toolURLs []string) ([]llmapi
 
 	docs := make(map[string]*openapi.Document, len(hostOrder))
 	var docsMu sync.Mutex
-	jobs := make([]func() error, 0, len(hostOrder))
+	jobs := make([]func(ctx context.Context) error, 0, len(hostOrder))
 	for _, hp := range hostOrder {
-		hp := hp
-		jobs = append(jobs, func() error {
+		jobs = append(jobs, func(ctx context.Context) error {
 			doc, err := svc.fetchOpenAPIDoc(ctx, hp)
 			if err != nil {
 				return errors.Trace(err, "host", hp)
@@ -80,7 +79,8 @@ func (svc *Service) fetchTools(ctx context.Context, toolURLs []string) ([]llmapi
 			return nil
 		})
 	}
-	if err := svc.Parallel(jobs...); err != nil {
+	err := svc.Parallel(ctx, jobs...)
+	if err != nil {
 		return nil, err // No trace
 	}
 

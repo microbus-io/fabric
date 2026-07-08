@@ -294,15 +294,15 @@ func (svc *Service) runWorkflow(ctx context.Context, foremanClient foremanapi.Cl
 	}
 
 	// Fetch history and Mermaid diagram in parallel
-	svc.Parallel(
-		func() error {
+	svc.Parallel(ctx,
+		func(ctx context.Context) error {
 			steps, err := foremanClient.History(ctx, flowKey)
 			if err == nil {
 				result.steps = flattenSteps(steps, false)
 			}
 			return nil
 		},
-		func() error {
+		func(ctx context.Context) error {
 			res, err := foremanClient.HistoryMermaid(ctx, "?flowKey="+flowKey+"&format=raw")
 			if err == nil {
 				defer res.Body.Close()

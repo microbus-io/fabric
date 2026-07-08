@@ -100,10 +100,7 @@ func (svc *Service) navBar(r *http.Request) widget.Widget {
 }
 
 /*
-ListWorkflows renders an HTML page listing every workflow endpoint discoverable
-on the bus. Multicasts to //all:888/openapi.json and filters operations down to
-those with x-feature-type=workflow. Bypasses the openapi portal because the
-portal port-filters and we want every port (workflows live on :428, not :443).
+ListWorkflows renders an HTML page listing the workflows available in the system.
 */
 func (svc *Service) ListWorkflows(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ListWorkflows
 	type wfRow struct {
@@ -182,11 +179,7 @@ func (svc *Service) ListWorkflows(w http.ResponseWriter, r *http.Request) (err e
 }
 
 /*
-WorkflowDetail renders an HTML page with the structure and definition of a
-single workflow graph. The workflow is identified by its full bus URL minus
-the https:// scheme, captured as the greedy {workflowURL...} path argument.
-The handler fetches the graph from the workflow endpoint and renders it via
-the workflow package's GraphRenderer.
+WorkflowDetail renders an HTML page with the structure and definition of a single workflow graph.
 */
 func (svc *Service) WorkflowDetail(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: WorkflowDetail
 	raw := r.PathValue("workflowURL")
@@ -292,11 +285,7 @@ func (svc *Service) WorkflowDetail(w http.ResponseWriter, r *http.Request) (err 
 }
 
 /*
-TaskDetail renders an HTML page with the metadata of a single task in a
-workflow graph. Designed to be embedded inside the WorkflowDetail page's side
-panel. Reads workflow=<workflowURL>&task=<taskName> from the query, fetches
-the workflow graph to resolve the task's URL and detect subgraphs, then pulls
-the task's description from the hosting microservice's :888/openapi.json.
+TaskDetail renders an HTML page with the metadata of a single task in a workflow graph.
 */
 func (svc *Service) TaskDetail(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: TaskDetail
 	workflowURL := r.URL.Query().Get("workflow")
@@ -376,11 +365,11 @@ func (svc *Service) Dashboard(w http.ResponseWriter, r *http.Request) (err error
 		histFlows = histFlows[:dashboardHistoryLimit]
 	}
 	histories := make([][]foremanapi.FlowStep, len(histFlows))
-	jobs := make([]func() error, len(histFlows))
+	jobs := make([]func(ctx context.Context) error, len(histFlows))
 	for i := range histFlows {
-		i, fk := i, histFlows[i].FlowKey
-		jobs[i] = func() error {
-			steps, herr := svc.foreman.History(r.Context(), fk)
+		fk := histFlows[i].FlowKey
+		jobs[i] = func(ctx context.Context) error {
+			steps, herr := svc.foreman.History(ctx, fk)
 			if herr == nil {
 				histories[i] = steps
 			}
@@ -388,7 +377,7 @@ func (svc *Service) Dashboard(w http.ResponseWriter, r *http.Request) (err error
 		}
 	}
 	if len(jobs) > 0 {
-		_ = svc.Parallel(jobs...)
+		_ = svc.Parallel(r.Context(), jobs...)
 	}
 
 	windowDropdown := wf.Dropdown("window", windowKey(window)).WithAutoSubmit(true).WithRequired(true).
@@ -415,7 +404,7 @@ func (svc *Service) Dashboard(w http.ResponseWriter, r *http.Request) (err error
 }
 
 /*
-ListFlows renders an HTML page with a paginated table of flows.
+ListFlows renders an HTML page with a paginated, sortable table of flows.
 */
 func (svc *Service) ListFlows(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ListFlows
 	tbl := wf.Table().
@@ -769,11 +758,7 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 }
 
 /*
-StepDetail renders an HTML page with the details of one execution step. Designed
-to be embedded inside the FlowDetail page's modal. Reads the step's full state,
-changes, and interrupt payload from foreman.Step and lays them out as a form
-with one field per state key; fields whose values changed during this step
-show the initial and changed value side-by-side.
+StepDetail renders an HTML page with the details of one execution step.
 */
 func (svc *Service) StepDetail(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: StepDetail
 	stepKey := r.PathValue("stepKey")
@@ -939,10 +924,7 @@ func (svc *Service) Assets(w http.ResponseWriter, r *http.Request) (err error) {
 }
 
 /*
-RunWorkflow renders a form to create and start a workflow with an initial state,
-and submits it to the foreman. On success it redirects the parent page to the
-new flow's detail page. State is parsed as JSON first; on failure, retried as
-YAML so the caller can paste either format without a manual switch.
+RunWorkflow renders a form to create and start a workflow with an initial state and FlowOptions.
 */
 func (svc *Service) RunWorkflow(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: RunWorkflow
 	state := wf.StateOf(r)
@@ -993,10 +975,7 @@ func (svc *Service) RunWorkflow(w http.ResponseWriter, r *http.Request) (err err
 }
 
 /*
-ContinueFlow renders a form to continue a completed flow's thread with
-additional state, calls foreman.Continue, and redirects the parent page to the
-new running flow's detail page. Any flowKey in the target thread is accepted;
-foreman.Continue resolves the thread from the latest completed flow.
+ContinueFlow renders a form to continue a completed flow's thread with additional state.
 */
 func (svc *Service) ContinueFlow(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ContinueFlow
 	state := wf.StateOf(r)
@@ -1046,9 +1025,9 @@ func (svc *Service) ContinueFlow(w http.ResponseWriter, r *http.Request) (err er
 	return page.Draw(w, r)
 }
 
-// PollFlow long-polls a flow's graph state. Returns JSON for the bespa
-// ProgressWidget: value=-1 keeps the indeterminate animation, action=URL
-// drives a partial page redraw, stop=true halts the browser polling loop.
+/*
+PollFlow returns a JSON status payload driving the FlowDetail live-update progress bar.
+*/
 func (svc *Service) PollFlow(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: PollFlow
 	flowKey := strings.TrimSpace(r.URL.Query().Get("flow"))
 	if flowKey == "" {
@@ -1115,9 +1094,7 @@ const (
 )
 
 /*
-ForkFromStep renders a form to fork a terminal flow from a specific recorded step
-with optional state overrides, calls foreman.Fork, and redirects the parent page
-to the newly forked flow's detail page. The original flow is never modified.
+ForkFromStep renders a form to fork a terminal flow from a specific recorded step into a new flow with optional state overrides.
 */
 func (svc *Service) ForkFromStep(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ForkFromStep
 	state := wf.StateOf(r)
@@ -1168,10 +1145,7 @@ func (svc *Service) ForkFromStep(w http.ResponseWriter, r *http.Request) (err er
 }
 
 /*
-ResumeFlow renders a form to resume an interrupted flow with a resume payload,
-calls foreman.Resume, and redirects the parent page back to the same flow's
-detail page. The payload is delivered to the parked task's flow.Interrupt
-call as its return value (not merged into state).
+ResumeFlow renders a form to resume an interrupted flow with a resume payload.
 */
 func (svc *Service) ResumeFlow(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ResumeFlow
 	state := wf.StateOf(r)

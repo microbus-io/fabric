@@ -19,18 +19,21 @@ general:
   hostname: metrics.core
   description: The Metrics service is a core microservice that aggregates metrics from other microservices and makes them available for collection.
   package: github.com/microbus-io/fabric/coreservices/metrics
-  modifiedAt: "2026-06-18T23:18:44Z"
+  modifiedAt: "2026-07-07T23:35:07Z"
 
 configs:
   SecretKey:
     signature: SecretKey() (value string)
     description: |-
-      SecretKey must be provided with the request to collect the metrics.
+      SecretKey must be provided with the request to collect the metrics, preferably in an "Authorization: Bearer" header,
+      or in a "secretKey" query argument.
       This key is required except in local development and tests.
     secret: true
 
 webs:
   Collect:
-    description: Collect returns the latest aggregated metrics.
+    description: |-
+      Collect returns the latest aggregated metrics.
+      The secret key must be provided in an "Authorization: Bearer" header (preferred), or in a "secretKey" query argument.
     method: GET
     route: /collect

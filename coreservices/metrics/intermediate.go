@@ -81,12 +81,14 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Subscribe( // MARKER: Collect
 		"Collect", svc.Collect,
 		sub.At(metricsapi.Collect.Method, metricsapi.Collect.Route),
-		sub.Description(`Collect returns the latest aggregated metrics.`),
+		sub.Description(`Collect returns the latest aggregated metrics.
+The secret key must be provided in an "Authorization: Bearer" header (preferred), or in a "secretKey" query argument.`),
 		sub.Web(),
 	)
 	svc.DefineConfig( // MARKER: SecretKey
 		"SecretKey",
-		cfg.Description(`SecretKey must be provided with the request to collect the metrics.
+		cfg.Description(`SecretKey must be provided with the request to collect the metrics, preferably in an "Authorization: Bearer" header,
+or in a "secretKey" query argument.
 This key is required except in local development and tests.`),
 		cfg.Secret(),
 	)
@@ -96,7 +98,7 @@ This key is required except in local development and tests.`),
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel()
+	return svc.Parallel(ctx)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.
@@ -104,7 +106,8 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 	return nil
 }
 
-// SecretKey must be provided with the request to collect the metrics.
+// SecretKey must be provided with the request to collect the metrics, preferably in an "Authorization: Bearer" header,
+// or in a "secretKey" query argument.
 // This key is required except in local development and tests.
 func (svc *Intermediate) SecretKey() (value string) { // MARKER: SecretKey
 	return svc.Config("SecretKey")

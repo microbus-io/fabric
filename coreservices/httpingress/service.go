@@ -45,6 +45,7 @@ import (
 	"github.com/microbus-io/fabric/trc"
 	"github.com/microbus-io/fabric/utils"
 	"go.opentelemetry.io/otel/propagation"
+	"golang.org/x/sync/singleflight"
 )
 
 /*
@@ -68,6 +69,7 @@ type Service struct {
 	bearerTokenMu        sync.RWMutex
 	bearerTokenKeys      map[string]ed25519.PublicKey
 	lastJWKSFetch        map[string]time.Time
+	jwksFlight           singleflight.Group
 }
 
 // OnStartup is called when the microservice is started up.
@@ -381,7 +383,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx,
 		"microbus_server_request_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
-		"canonical", r.Host+"/",
 		"name", "ServeHTTP",
 		"port", port,
 		"method", r.Method,
@@ -398,7 +399,6 @@ func (svc *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx,
 		"microbus_server_response_body_bytes",
 		float64(ww.ContentLength()),
-		"canonical", r.Host+"/",
 		"name", "ServeHTTP",
 		"port", port,
 		"method", r.Method,
@@ -704,41 +704,41 @@ func (svc *Service) lookupBearerTokenKey(kid string) (ed25519.PublicKey, bool) {
 	return key, ok
 }
 
-// jwksFetchCooldown debounces per-issuer JWKS fetches. The bearer token service's :888/jwks
-// endpoint declares this window safe to cache.
-const jwksFetchCooldown = time.Second
-
 // fetchBearerTokenKeys fetches JWKS from the given host and updates the key cache.
-// It is a no-op when the last fetch for the host was within jwksFetchCooldown.
+// It is a no-op when the last fetch for the host was within 1s.
+// Concurrent calls for the same host share a single fetch.
 func (svc *Service) fetchBearerTokenKeys(ctx context.Context, host string) error {
-	svc.bearerTokenMu.Lock()
-	if svc.lastJWKSFetch == nil {
-		svc.lastJWKSFetch = map[string]time.Time{}
-	}
-	if last, ok := svc.lastJWKSFetch[host]; ok && time.Since(last) < jwksFetchCooldown {
-		svc.bearerTokenMu.Unlock()
-		return nil
-	}
-	svc.lastJWKSFetch[host] = time.Now()
-	svc.bearerTokenMu.Unlock()
-
-	jwks, err := bearertokenapi.NewClient(svc).ForHost(host).JWKS(ctx)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	svc.bearerTokenMu.Lock()
-	defer svc.bearerTokenMu.Unlock()
-	if svc.bearerTokenKeys == nil {
-		svc.bearerTokenKeys = make(map[string]ed25519.PublicKey)
-	}
-	for _, jwk := range jwks {
-		pubBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
-		if err != nil {
-			continue
+	_, err, _ := svc.jwksFlight.Do(host, func() (any, error) {
+		svc.bearerTokenMu.Lock()
+		if svc.lastJWKSFetch == nil {
+			svc.lastJWKSFetch = map[string]time.Time{}
 		}
-		svc.bearerTokenKeys[jwk.KID] = ed25519.PublicKey(pubBytes)
-	}
-	return nil
+		if last, ok := svc.lastJWKSFetch[host]; ok && time.Since(last) < time.Second {
+			svc.bearerTokenMu.Unlock()
+			return nil, nil
+		}
+		svc.bearerTokenMu.Unlock()
+
+		jwks, err := bearertokenapi.NewClient(svc).ForHost(host).JWKS(ctx)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		svc.bearerTokenMu.Lock()
+		defer svc.bearerTokenMu.Unlock()
+		svc.lastJWKSFetch[host] = time.Now()
+		if svc.bearerTokenKeys == nil {
+			svc.bearerTokenKeys = make(map[string]ed25519.PublicKey)
+		}
+		for _, jwk := range jwks {
+			pubBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
+			if err != nil {
+				continue
+			}
+			svc.bearerTokenKeys[jwk.KID] = ed25519.PublicKey(pubBytes)
+		}
+		return nil, nil
+	})
+	return errors.Trace(err)
 }
 
 // exchangeToken validates the external bearer token and returns a corresponding internal access token.

@@ -19,17 +19,18 @@ package metrics
 import (
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/connector"
-	"github.com/microbus-io/fabric/coreservices/control/controlapi"
 	"github.com/microbus-io/fabric/coreservices/metrics/metricsapi"
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/pub"
 )
 
@@ -60,21 +61,31 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 
 /*
 Collect returns the latest aggregated metrics.
+The secret key must be provided in an "Authorization: Bearer" header (preferred), or in a "secretKey" query argument.
 */
 func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Collect
-	if svc.SecretKey() == "" && svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
+	configuredKey := svc.SecretKey()
+	if configuredKey == "" && svc.Deployment() != connector.LOCAL && svc.Deployment() != connector.TESTING {
 		return errors.New("secret key required")
 	}
-
-	secretKey := r.URL.Query().Get("secretKey")
-	if secretKey == "" {
-		secretKey = r.URL.Query().Get("secretkey")
-	}
-	if secretKey == "" {
-		secretKey = r.URL.Query().Get("secret_key")
-	}
-	if secretKey != svc.SecretKey() && svc.SecretKey() != "" {
-		return errors.New("incorrect secret key", http.StatusNotFound)
+	if configuredKey != "" {
+		// Prefer the Authorization header; the query arguments are a legacy fallback that tends to leak into logs
+		secretKey, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if !ok {
+			secretKey = r.URL.Query().Get("secretKey")
+			if secretKey == "" {
+				secretKey = r.URL.Query().Get("secretkey")
+			}
+			if secretKey == "" {
+				secretKey = r.URL.Query().Get("secret_key")
+			}
+		}
+		// Compare digests in constant time to avoid leaking the key or its length
+		provided := sha256.Sum256([]byte(secretKey))
+		expected := sha256.Sum256([]byte(configuredKey))
+		if subtle.ConstantTimeCompare(provided[:], expected[:]) != 1 {
+			return errors.New("incorrect secret key", http.StatusNotFound)
+		}
 	}
 
 	host := r.URL.Query().Get("service")
@@ -113,74 +124,58 @@ func (svc *Service) Collect(w http.ResponseWriter, r *http.Request) (err error) 
 
 	w.Header().Set("Content-Type", "text/plain")
 
-	var delay time.Duration
-	var mux sync.Mutex
-	var wg sync.WaitGroup
-	for serviceInfo := range controlapi.NewMulticastClient(svc).ForHost(host).PingServices(ctx) {
-		wg.Add(1)
-		go func(s string, delay time.Duration) {
-			defer wg.Done()
-			time.Sleep(delay) // Stagger requests to avoid all of them coming back at the same time
-			u := "https://" + s + ":888/metrics"
-			ch := svc.Publish(
-				ctx,
-				pub.GET(u),
-				pub.Header("Accept-Encoding", "gzip"),
-				timeout,
+	// A single multicast reaches all replicas of the target host at once, each returning its own metrics
+	ch := svc.Publish(
+		ctx,
+		pub.GET("https://"+host+":888/metrics"),
+		pub.Header("Accept-Encoding", "gzip"),
+		timeout,
+	)
+	for i := range ch {
+		res, err := i.Get()
+		if err != nil {
+			svc.LogWarn(ctx, "Fetching metrics",
+				"error", err,
 			)
-			for i := range ch {
-				res, err := i.Get()
-				if err != nil {
-					// Error 501 Status Not Implemented indicates that Prometheus metric collection is disabled.
-					// Set the PROMETHEUS_EXPORTER_ENABLED environment variable to enable.
-					svc.LogWarn(ctx, "Fetching metrics",
-						"error", err,
-						"targetService", s,
-					)
-					continue
-				}
-				if res.StatusCode != http.StatusOK {
-					// Error 501 Status Not Implemented indicates that Prometheus metric collection is disabled.
-					// Set the PROMETHEUS_EXPORTER_ENABLED environment variable to enable.
-					svc.LogWarn(ctx, "Fetching metrics",
-						"statusCode", res.StatusCode,
-						"targetService", s,
-					)
-					continue
-				}
+			continue
+		}
+		targetService := frame.Of(res).FromHost()
+		if res.StatusCode != http.StatusOK {
+			// Error 501 Status Not Implemented indicates that Prometheus metric collection is disabled.
+			// Set the PROMETHEUS_EXPORTER_ENABLED environment variable to enable.
+			svc.LogWarn(ctx, "Fetching metrics",
+				"statusCode", res.StatusCode,
+				"targetService", targetService,
+			)
+			continue
+		}
 
-				var reader io.Reader
-				var rCloser io.Closer
-				reader = res.Body
-				rCloser = res.Body
-				if res.Header.Get("Content-Encoding") == "gzip" {
-					unzipper, err := gzip.NewReader(res.Body)
-					if err != nil {
-						svc.LogWarn(ctx, "Unzippping metrics",
-							"error", err,
-							"targetService", s,
-						)
-						continue
-					}
-					reader = unzipper
-					rCloser = unzipper
-				}
-
-				mux.Lock()
-				_, err = io.Copy(writer, reader)
-				mux.Unlock()
-				if err != nil {
-					svc.LogWarn(ctx, "Copying metrics",
-						"error", err,
-						"targetService", s,
-					)
-				}
-				rCloser.Close()
+		var reader io.Reader
+		var rCloser io.Closer
+		reader = res.Body
+		rCloser = res.Body
+		if res.Header.Get("Content-Encoding") == "gzip" {
+			unzipper, err := gzip.NewReader(res.Body)
+			if err != nil {
+				svc.LogWarn(ctx, "Unzippping metrics",
+					"error", err,
+					"targetService", targetService,
+				)
+				continue
 			}
-		}(serviceInfo.Hostname, delay)
-		delay += time.Millisecond
+			reader = unzipper
+			rCloser = unzipper
+		}
+
+		_, err = io.Copy(writer, reader)
+		if err != nil {
+			svc.LogWarn(ctx, "Copying metrics",
+				"error", err,
+				"targetService", targetService,
+			)
+		}
+		rCloser.Close()
 	}
-	wg.Wait()
 	writer.Write([]byte(""))
 	if wCloser != nil {
 		wCloser.Close()

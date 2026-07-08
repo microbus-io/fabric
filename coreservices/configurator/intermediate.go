@@ -131,7 +131,7 @@ An error is returned if any of the values sent to the microservices fails valida
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel()
+	return svc.Parallel(ctx)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

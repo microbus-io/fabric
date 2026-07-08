@@ -19,7 +19,7 @@ general:
   hostname: bearer.token.core
   description: BearerToken signs long-lived JWTs with Ed25519 keys for external actor authentication.
   package: github.com/microbus-io/fabric/coreservices/bearertoken
-  modifiedAt: "2026-07-05T14:18:48Z"
+  modifiedAt: "2026-07-07T22:49:48Z"
 
 configs:
   AuthTokenTTL:
@@ -48,7 +48,6 @@ functions:
     signature: JWKS() (keys []JWK)
     description: |-
       JWKS returns the public keys of the token issuer in JWKS format.
-      
       Callers may cache the response, or debounce fetches to this endpoint, for up to 1 second.
     method: ANY
     route: :888/jwks

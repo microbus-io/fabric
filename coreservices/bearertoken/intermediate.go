@@ -94,7 +94,6 @@ func NewIntermediate(impl ToDo) *Intermediate {
 		"JWKS", svc.doJWKS,
 		sub.At(bearertokenapi.JWKS.Method, bearertokenapi.JWKS.Route),
 		sub.Description(`JWKS returns the public keys of the token issuer in JWKS format.
-
 Callers may cache the response, or debounce fetches to this endpoint, for up to 1 second.`),
 		sub.Function(bearertokenapi.JWKSIn{}, bearertokenapi.JWKSOut{}),
 	)
@@ -120,7 +119,7 @@ Callers may cache the response, or debounce fetches to this endpoint, for up to 
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel()
+	return svc.Parallel(ctx)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

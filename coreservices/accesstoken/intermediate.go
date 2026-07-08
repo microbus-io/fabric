@@ -95,7 +95,6 @@ falling back to DefaultTokenLifetime if no budget is set, and capped at MaxToken
 		"JWKS", svc.doJWKS,
 		sub.At(accesstokenapi.JWKS.Method, accesstokenapi.JWKS.Route),
 		sub.Description(`JWKS aggregates public keys from all replicas and returns them in JWKS format.
-
 Callers may cache the response, or debounce fetches to this endpoint, for up to 1 second.`),
 		sub.Function(accesstokenapi.JWKSIn{}, accesstokenapi.JWKSOut{}),
 	)
@@ -131,7 +130,7 @@ Callers may cache the response, or debounce fetches to this endpoint, for up to 
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel()
+	return svc.Parallel(ctx)
 }
 
 // doOnConfigChanged is called when the config of the microservice changes.

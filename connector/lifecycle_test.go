@@ -380,18 +380,18 @@ func TestConnector_Parallel(t *testing.T) {
 	j2 := false
 	j3 := false
 	started := time.Now()
-	err = con.Parallel(
-		func() (err error) {
+	err = con.Parallel(ctx,
+		func(ctx context.Context) (err error) {
 			time.Sleep(100 * time.Millisecond)
 			j1 = true
 			return nil
 		},
-		func() (err error) {
+		func(ctx context.Context) (err error) {
 			time.Sleep(200 * time.Millisecond)
 			j2 = true
 			return nil
 		},
-		func() (err error) {
+		func(ctx context.Context) (err error) {
 			time.Sleep(300 * time.Millisecond)
 			j3 = true
 			return nil
@@ -403,4 +403,35 @@ func TestConnector_Parallel(t *testing.T) {
 	assert.True(j1)
 	assert.True(j2)
 	assert.True(j3)
+}
+
+func TestConnector_ParallelCancelOnError(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	assert := testarossa.For(t)
+
+	con := New("parallel.cancel.on.error.connector")
+	err := con.Startup(ctx)
+	assert.NoError(err)
+	defer con.Shutdown(ctx)
+
+	canceled := false
+	started := time.Now()
+	err = con.Parallel(ctx,
+		func(ctx context.Context) (err error) {
+			return errors.New("oops")
+		},
+		func(ctx context.Context) (err error) {
+			select {
+			case <-ctx.Done():
+				canceled = true
+			case <-time.After(4 * time.Second):
+			}
+			return nil
+		},
+	)
+	dur := time.Since(started)
+	assert.Error(err, "oops")
+	assert.True(canceled)
+	assert.True(dur < 4*time.Second)
 }

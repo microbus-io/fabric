@@ -653,14 +653,11 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 	}
 
 	// Meter
-	canonical := s.Canonical()
 	_ = c.RecordHistogram(
 		ctx,
 		"microbus_server_request_duration_seconds",
 		time.Since(handlerStartTime).Seconds(),
 		"name", s.Name,
-		"route", s.Path,
-		"canonical", canonical,
 		"port", s.Port,
 		"method", httpReq.Method,
 		"code", httpRecorder.StatusCode(),
@@ -677,8 +674,6 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 		"microbus_server_response_body_bytes",
 		float64(httpRecorder.ContentLength()),
 		"name", s.Name,
-		"route", s.Path,
-		"canonical", canonical,
 		"port", s.Port,
 		"method", httpReq.Method,
 		"code", httpRecorder.StatusCode(),
@@ -863,55 +858,59 @@ func (c *Connector) lookupActorKey(kid string) (ed25519.PublicKey, bool) {
 }
 
 // fetchActorKeys fetches JWKS from the given host at :888/jwks and updates the key cache.
-// It is a no-op when the last fetch for the host was within 1 sec.
+// It is a no-op when the last fetch for the host was within 1s.
+// Concurrent calls for the same host share a single fetch.
 func (c *Connector) fetchActorKeys(host string) error {
-	c.actorKeysLock.Lock()
-	if c.lastJWKSFetch == nil {
-		c.lastJWKSFetch = map[string]time.Time{}
-	}
-	if last, ok := c.lastJWKSFetch[host]; ok && time.Since(last) < time.Second {
-		c.actorKeysLock.Unlock()
-		return nil
-	}
-	c.lastJWKSFetch[host] = time.Now()
-	c.actorKeysLock.Unlock()
-
-	resp, err := c.Request(
-		c.Lifetime(),
-		pub.GET("https://"+host+":888/jwks"),
-	)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	var jwksResp struct {
-		Keys []struct {
-			KID string `json:"kid"`
-			X   string `json:"x"`
-		} `json:"keys"`
-	}
-	err = json.Unmarshal(body, &jwksResp)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	c.actorKeysLock.Lock()
-	defer c.actorKeysLock.Unlock()
-	if c.actorKeys == nil {
-		c.actorKeys = make(map[string]ed25519.PublicKey)
-	}
-	for _, jwk := range jwksResp.Keys {
-		pubBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
-		if err != nil {
-			continue
+	_, err, _ := c.jwksFlight.Do(host, func() (any, error) {
+		c.actorKeysLock.Lock()
+		if c.lastJWKSFetch == nil {
+			c.lastJWKSFetch = map[string]time.Time{}
 		}
-		c.actorKeys[jwk.KID] = ed25519.PublicKey(pubBytes)
-	}
-	return nil
+		if last, ok := c.lastJWKSFetch[host]; ok && time.Since(last) < time.Second {
+			c.actorKeysLock.Unlock()
+			return nil, nil
+		}
+		c.actorKeysLock.Unlock()
+
+		resp, err := c.Request(
+			c.Lifetime(),
+			pub.GET("https://"+host+":888/jwks"),
+		)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		var jwksResp struct {
+			Keys []struct {
+				KID string `json:"kid"`
+				X   string `json:"x"`
+			} `json:"keys"`
+		}
+		err = json.Unmarshal(body, &jwksResp)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		c.actorKeysLock.Lock()
+		defer c.actorKeysLock.Unlock()
+		c.lastJWKSFetch[host] = time.Now()
+		if c.actorKeys == nil {
+			c.actorKeys = make(map[string]ed25519.PublicKey)
+		}
+		for _, jwk := range jwksResp.Keys {
+			pubBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
+			if err != nil {
+				continue
+			}
+			c.actorKeys[jwk.KID] = ed25519.PublicKey(pubBytes)
+		}
+		return nil, nil
+	})
+	return errors.Trace(err)
 }
 
 // invalidateKnownRespondersCache clears known responder cache for any of the indicated hosts.

@@ -33,7 +33,7 @@ In `TESTING` deployment the `sub.Manual` flag is ignored: `activateSubs` brings 
 
 1. **Prepare.** Stop tickers; deactivate auto subscriptions (inbound business requests stop). Manual subscriptions (dlru's `:888/dcache/...` plus anything user-tagged) stay on-bus.
 2. **`OnShutdown(ctx)`.** Runs *before* any drain. `c.Lifetime()` is still valid, dlru is still up, the transport is still connected, outbound calls work, `svc.Go` can still launch goroutines. User code that owns long-lived workers drains them here (the foreman, for example, drains its worker pool, timer, and refiller in strict order before returning).
-3. **Soft drain.** Cooperatively polls `pendingOps` until it reaches zero, bounded by the partition of the remaining ctx budget. `pendingOps` counts in-flight requests, ticker invocations, and goroutines launched via `Go` / `Parallel`. Anything launched with bare `go` is invisible to this counter.
+3. **Soft drain.** Cooperatively polls `pendingOps` until it reaches zero, bounded by the partition of the remaining ctx budget. `pendingOps` counts in-flight requests, ticker goroutines and their invocations, and goroutines launched via `Go` / `Parallel`. Anything launched with bare `go` is invisible to this counter. Ticker goroutines are stopped in the prepare phase (each ticker's `Done` channel is closed, and the lifetime context is a backstop), so they exit during the soft drain rather than blocking it.
 4. **Cancel lifetime ctx.** The escalation step. Goroutines still running observe `Lifetime().Done()` and should exit promptly.
 5. **Hard drain.** A short tail (capped at 2s) for cancellation-aware goroutines to exit after seeing it.
 6. **Mandatory teardown.** Closes dlru, unsubscribes the response sub, disconnects the transport, flushes OTel. These steps run on `context.WithoutCancel(ctx)` wrapped in a 2-second `teardownBudget`, so they are never preempted by the caller's deadline expiring upstream - a missed flush or skipped offload would silently lose data.
@@ -77,6 +77,16 @@ In LOCAL deployment only, if the ack timer fires after `8 * ackTimeout` of wall 
 Multicasts can finish before the full timeout when the connector recognizes "I've seen everyone I expected." `knownResponders` is keyed by NATS subject and stores the set of responder queues seen on the previous successful call. Each subsequent call compares `seenQueues == expectedResponders` and short-circuits when the set matches.
 
 The cache is invalidated when any peer announces new subscriptions on `:888/on-new-subs`. `notifyOnNewSubs` is broadcast on every `Subscribe` call (after Startup), telling other microservices that a new subscriber is in town so they can drop stale cache entries. On a request timeout the local cache entry for that subject is also dropped.
+
+The broadcast is a deliberate O(replicas)-per-activation cost paid for multicast determinism. Without it, a client
+holding a stale known-responders set short-circuits before the new responder answers and misses it - while another
+client, whose timing differs, sees it. Two clients issuing the same multicast would then get different responder
+sets indefinitely, with nothing driving convergence: a successful short-circuit never times out, so the stale cache
+never self-corrects. The broadcast also has to land before the new subscription comes on-bus, which is why it cannot
+be debounced or coalesced without delaying activation. Post-startup subscription churn is rare and coarse (a manual
+sub activating once its backing resource is ready, a `410 Gone` recovery), so the per-activation cost is acceptable;
+a service that flips manual subscriptions at high frequency is an application design smell, not a load the framework
+optimizes for.
 
 ### Locality-aware routing is a NATS subscription trick, not a router
 
@@ -269,3 +279,10 @@ cannot amplify one-to-one into bus calls to the token services on the auth hot p
 since a present actor token is verified even under empty `requiredClaims` (see "Actor tokens are verified whenever
 present"). The 1s window is safe by the contract on the token services' `JWKS` endpoint, whose godoc declares it
 cacheable for that long.
+
+The cooldown timestamp is written only after a successful fetch, so a failed fetch (e.g. the token service briefly
+unreachable at a key-rotation boundary) does not suppress retries for a second of synchronized 401s across the mesh.
+Concurrent callers for the same issuer are collapsed into a single in-flight fetch via `singleflight`, which both
+spares them a spurious miss while the fetch is in flight and preserves the anti-amplification property that the
+deferred timestamp write would otherwise open up (every unknown-kid request launching its own fetch until the first
+lands). The same structure is mirrored in the HTTP ingress's bearer-token JWKS fetch.

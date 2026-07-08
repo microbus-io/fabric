@@ -522,7 +522,7 @@ func (svc *Service) List(ctx context.Context, query yellowpagesapi.Query) (objs 
 
 	// Query
 	stmtStr := stmt.String()
-	f1 := func() (err error) {
+	f1 := func(ctx context.Context) (err error) {
 		// Query for the objects
 		rows, err := svc.db.QueryContext(ctx, stmtStr, args...)
 		if err != nil {
@@ -551,7 +551,7 @@ func (svc *Service) List(ctx context.Context, query yellowpagesapi.Query) (objs 
 		}
 		return nil
 	}
-	f2 := func() (err error) {
+	f2 := func(ctx context.Context) (err error) {
 		// Query for the total count
 		p := strings.Index(stmtStr, "FROM "+tableName+" WHERE ")
 		q := strings.Index(stmtStr, "ORDER BY ")
@@ -560,10 +560,10 @@ func (svc *Service) List(ctx context.Context, query yellowpagesapi.Query) (objs 
 	}
 	if !query.Key.IsZero() || (query.Offset == 0 && query.Limit == 0) {
 		// No need to count separately when fetching by key or when fetching the entire dataset
-		err = f1()
+		err = f1(ctx)
 		totalCount = len(objs)
 	} else {
-		err = svc.Parallel(f1, f2)
+		err = svc.Parallel(ctx, f1, f2)
 	}
 	if err != nil {
 		return nil, 0, errors.Trace(err)

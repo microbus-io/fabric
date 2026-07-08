@@ -176,8 +176,8 @@ through a backtick raw string (real newlines, not a literal \n) into the manifes
 
 // doOnObserveMetrics is called when metrics are produced.
 func (svc *Intermediate) doOnObserveMetrics(ctx context.Context) (err error) {
-	return svc.Parallel(
-		func() error { return svc.OnObserveQueueDepth(ctx) },
+	return svc.Parallel(ctx,
+		func(_ context.Context) error { return svc.OnObserveQueueDepth(ctx) },
 	)
 }
 

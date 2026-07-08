@@ -202,7 +202,6 @@ func TestMetrics_Collect(t *testing.T) {
 			"method", "GET",
 			"name", "DcacheAll",
 			"port", "888",
-			"route", "/dcache/all",
 			"service", con1.Hostname(),
 			"type", "web",
 		))
@@ -219,7 +218,6 @@ func TestMetrics_Collect(t *testing.T) {
 			"method", "GET",
 			"name", "Ten",
 			"port", "443",
-			"route", "/ten",
 			"service", con1.Hostname(),
 			"type", "web",
 		))
@@ -230,7 +228,6 @@ func TestMetrics_Collect(t *testing.T) {
 			"method", "GET",
 			"name", "Ten",
 			"port", "443",
-			"route", "/ten",
 			"service", con1.Hostname(),
 			"type", "web",
 		))
@@ -247,7 +244,6 @@ func TestMetrics_Collect(t *testing.T) {
 			"method", "GET",
 			"name", "Ten",
 			"port", "443",
-			"route", "/ten",
 			"service", con1.Hostname(),
 			"type", "web",
 			"le", "0.1",
@@ -259,7 +255,6 @@ func TestMetrics_Collect(t *testing.T) {
 			"method", "GET",
 			"name", "Ten",
 			"port", "443",
-			"route", "/ten",
 			"service", con1.Hostname(),
 			"type", "web",
 			"le", "0.5",
@@ -370,6 +365,34 @@ func TestMetrics_SecretKey(t *testing.T) {
 
 		_, err = client.Collect(ctx, "?secretKey="+svc.SecretKey())
 		assert.NoError(err)
+	})
+
+	t.Run("correct_key_in_bearer_header", func(t *testing.T) {
+		assert := testarossa.For(t)
+
+		svc.SetSecretKey(utils.RandomIdentifier(16))
+
+		bearerClient := metricsapi.NewClient(tester).WithOptions(
+			pub.Header("Authorization", "Bearer "+svc.SecretKey()),
+		)
+		_, err := bearerClient.Collect(ctx, "")
+		assert.NoError(err)
+	})
+
+	t.Run("incorrect_key_in_bearer_header", func(t *testing.T) {
+		assert := testarossa.For(t)
+
+		svc.SetSecretKey(utils.RandomIdentifier(16))
+
+		bearerClient := metricsapi.NewClient(tester).WithOptions(
+			pub.Header("Authorization", "Bearer "+utils.RandomIdentifier(16)),
+		)
+		_, err := bearerClient.Collect(ctx, "")
+		assert.Contains(err, "incorrect secret key")
+
+		// The header takes precedence over the query argument
+		_, err = bearerClient.Collect(ctx, "?secretkey="+svc.SecretKey())
+		assert.Contains(err, "incorrect secret key")
 	})
 
 	t.Run("no_key_required", func(t *testing.T) {

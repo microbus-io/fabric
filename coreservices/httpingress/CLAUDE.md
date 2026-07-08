@@ -59,3 +59,9 @@ The previous `x:y->z` port-rewrite mechanism is gone. The `PortMappings` config 
 carrying unrecognized kids cannot amplify into bus calls to the bearer token service - the ingress being the
 internet-facing verifier makes this the primary surface for that amplification. The 1s window is safe by the contract
 on the bearer token service's `JWKS` endpoint, whose godoc declares it cacheable for that long.
+
+The cooldown timestamp is written only after a successful fetch, so a failed fetch (e.g. the token service briefly
+unreachable at a key-rotation boundary) does not suppress retries for a second of synchronized 401s. Concurrent
+callers for the same issuer are collapsed into a single in-flight fetch via `singleflight`, which both spares them
+a spurious miss while the fetch is in flight and preserves the anti-amplification property that the deferred
+timestamp write would otherwise open up (every unknown-kid request launching its own fetch until the first lands).

@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -124,15 +125,16 @@ func TestConnector_TickerPendingOps(t *testing.T) {
 	assert.NoError(err)
 	defer con.Shutdown(ctx)
 
+	// Each running ticker goroutine holds one pending op; invocations hold one more
 	<-step1 // at 1 intervals
 	<-step2 // at 1 intervals
-	assert.Equal(int32(2), con.pendingOps.Load())
+	assert.Equal(int32(4), con.pendingOps.Load())
 	<-hold1
 	time.Sleep(interval / 4) // at 1.25 intervals
-	assert.Equal(int32(1), con.pendingOps.Load())
+	assert.Equal(int32(3), con.pendingOps.Load())
 	<-hold2 // at 1.5 intervals
 	time.Sleep(interval / 4)
-	assert.Zero(con.pendingOps.Load())
+	assert.Equal(int32(2), con.pendingOps.Load())
 }
 
 func TestConnector_TickerTimeout(t *testing.T) {
@@ -267,6 +269,39 @@ func TestConnector_TickerStop(t *testing.T) {
 	<-enter
 	assert.Equal(int32(2), count.Load())
 	<-exit
+}
+
+func TestConnector_TickerStopDoesNotLeakGoroutine(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	assert := testarossa.For(t)
+
+	con := New("ticker.stop.leak.connector")
+	con.SetDeployment(LAB) // Tickers are disabled in TESTING
+	err := con.Startup(ctx)
+	assert.NoError(err)
+	defer con.Shutdown(ctx)
+
+	// Each running ticker goroutine holds one pending op, so pendingOps observes their exit
+	n := int32(100)
+	before := con.pendingOps.Load()
+	for i := range n {
+		err = con.StartTicker(fmt.Sprintf("ticker-%d", i), time.Hour, func(ctx context.Context) error {
+			return nil
+		})
+		assert.NoError(err)
+	}
+	assert.Equal(before+n, con.pendingOps.Load())
+	for i := range n {
+		err = con.StopTicker(fmt.Sprintf("ticker-%d", i))
+		assert.NoError(err)
+	}
+	// The ticker goroutines should exit promptly
+	deadline := time.Now().Add(4 * time.Second)
+	for con.pendingOps.Load() > before && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.Equal(before, con.pendingOps.Load())
 }
 
 func TestConnector_Sleep(t *testing.T) {
