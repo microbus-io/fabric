@@ -292,3 +292,10 @@ Concurrent callers for the same issuer are collapsed into a single in-flight fet
 spares them a spurious miss while the fetch is in flight and preserves the anti-amplification property that the
 deferred timestamp write would otherwise open up (every unknown-kid request launching its own fetch until the first
 lands). The same structure is mirrored in the HTTP ingress's bearer-token JWKS fetch.
+
+The cache is keyed by issuer host, and a successful fetch **replaces** that issuer's whole key set rather than
+merging into it (`c.actorKeys[host] = fresh`). A `kid` the issuer has rotated out of its published JWKS is therefore
+evicted on the next fetch, not retained. Merging would leave a rotated-out key - notably a compromised bearer key an
+operator has pulled - trusted for the life of the process, a revocation gap unrelated to the cooldown (even a
+fresh, successful fetch would not drop it). `TestConnector_JWKSRotationEvictsStaleKey` pins the eviction, and the
+ingress mirrors both the host-keying and the wholesale replace.

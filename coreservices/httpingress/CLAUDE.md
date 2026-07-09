@@ -87,6 +87,13 @@ callers for the same issuer are collapsed into a single in-flight fetch via `sin
 a spurious miss while the fetch is in flight and preserves the anti-amplification property that the deferred
 timestamp write would otherwise open up (every unknown-kid request launching its own fetch until the first lands).
 
+The key cache is keyed by issuer host, and a successful fetch **replaces** that issuer's whole key set rather than
+merging into it (`svc.bearerTokenKeys[host] = fresh`). Because bearer keys are manually rotated - the operator sets
+`AltPrivateKey` to the outgoing key and `PrivateKey` to the incoming one, then drops the compromised key - a merge
+would keep the pulled key trusted for the life of the process (bearer tokens default to a 720h lifetime), a
+revocation gap the cooldown does not address. Wholesale replacement evicts it on the next fetch.
+`TestHTTPIngress_BearerKeyRotationEvictsStaleKey` pins the eviction; the connector's actor-key cache mirrors it.
+
 ### X-Forwarded trust is positional, and the ingress is the single trust boundary
 
 `TrustedProxyHops` (default 0) states how many reverse proxies in front of the ingress are trusted. The count

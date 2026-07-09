@@ -1458,6 +1458,89 @@ func TestConnector_ActorVerifiedWithoutRequiredClaims(t *testing.T) {
 	assert.Equal(2, entered)
 }
 
+// TestConnector_JWKSRotationEvictsStaleKey verifies that a successful JWKS fetch replaces the
+// issuer's cached key set rather than merging into it, so a kid the issuer has rotated out of its
+// JWKS stops being trusted. Without eviction a rotated-out (e.g. compromised) key would remain
+// usable for the life of the process.
+func TestConnector_JWKSRotationEvictsStaleKey(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	type JWK struct {
+		KTY string `json:"kty"`
+		CRV string `json:"crv"`
+		X   string `json:"x"`
+		KID string `json:"kid"`
+	}
+
+	kidOf := func(pub ed25519.PublicKey) string {
+		hash := sha256.Sum256(pub)
+		return base64.RawURLEncoding.EncodeToString(hash[:8])
+	}
+
+	// Two key pairs: the issuer serves key1 first, then rotates to key2 only.
+	pub1, _, err := ed25519.GenerateKey(rand.Reader)
+	assert.NoError(err)
+	pub2, _, err := ed25519.GenerateKey(rand.Reader)
+	assert.NoError(err)
+	kid1, kid2 := kidOf(pub1), kidOf(pub2)
+
+	// The issuer serves whichever key `served`/`servedKid` currently point at.
+	served, servedKid := pub1, kid1
+	issuer := New("access.token.core")
+	issuer.Subscribe("JWKS",
+		func(w http.ResponseWriter, r *http.Request) error {
+			jwks := struct {
+				Keys []JWK `json:"keys"`
+			}{}
+			jwks.Keys = append(jwks.Keys, JWK{
+				KTY: "OKP",
+				CRV: "Ed25519",
+				X:   base64.RawURLEncoding.EncodeToString(served),
+				KID: servedKid,
+			})
+			w.Header().Set("Content-Type", "application/json")
+			return json.NewEncoder(w).Encode(jwks)
+		},
+		sub.At("GET", ":888/jwks"),
+		sub.Web(),
+	)
+
+	con := New("con.jwks.rotation.connector")
+
+	ctx := t.Context()
+	err = issuer.Startup(ctx)
+	assert.NoError(err)
+	defer issuer.Shutdown(ctx)
+	err = con.Startup(ctx)
+	assert.NoError(err)
+	defer con.Shutdown(ctx)
+
+	host := "access.token.core"
+
+	// First fetch caches key1.
+	err = con.fetchActorKeys(host)
+	assert.NoError(err)
+	_, found := con.lookupActorKey(host, kid1)
+	assert.True(found, "key1 should be cached after the first fetch")
+
+	// The issuer rotates key1 out; it now publishes only key2.
+	served, servedKid = pub2, kid2
+
+	// Clear the 1s debounce so the next fetch actually reaches the issuer.
+	con.actorKeysLock.Lock()
+	delete(con.lastJWKSFetch, host)
+	con.actorKeysLock.Unlock()
+
+	// The rotation fetch replaces the issuer's key set: key2 is cached, key1 is evicted.
+	err = con.fetchActorKeys(host)
+	assert.NoError(err)
+	_, found = con.lookupActorKey(host, kid2)
+	assert.True(found, "key2 should be cached after the rotation fetch")
+	_, found = con.lookupActorKey(host, kid1)
+	assert.False(found, "key1 must be evicted once the issuer stops publishing it")
+}
+
 // TestConnector_ActorPinnedIssuer verifies that the JWKS-pinning gate rejects tokens
 // whose iss claim points at a hostname that is not on the framework's pinned-issuer list,
 // even when the token would otherwise be syntactically valid and signed correctly. The

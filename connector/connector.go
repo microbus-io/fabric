@@ -128,7 +128,7 @@ type Connector struct {
 	stringBundle map[string]map[string]string
 
 	actorKeysLock sync.RWMutex
-	actorKeys     map[string]ed25519.PublicKey
+	actorKeys     map[string]map[string]ed25519.PublicKey
 	lastJWKSFetch map[string]time.Time
 	jwksFlight    singleflight.Group
 

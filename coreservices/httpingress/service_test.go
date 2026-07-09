@@ -18,6 +18,11 @@ package httpingress
 
 import (
 	"bytes"
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -1279,4 +1284,74 @@ func TestHTTPIngress_OnChangedAllowedUncredentialedOrigins(t *testing.T) { // MA
 		assert.True(svc.uncredentialedOrigins["https://reader.example"])
 		assert.True(svc.uncredentialedOrigins["*"])
 	})
+}
+
+// TestHTTPIngress_BearerKeyRotationEvictsStaleKey verifies that a successful bearer-token JWKS fetch
+// replaces the issuer's cached key set rather than merging into it, so a kid the issuer has rotated
+// out of its JWKS stops being trusted. Without eviction a rotated-out (e.g. compromised) bearer key
+// would remain usable for the life of the process.
+func TestHTTPIngress_BearerKeyRotationEvictsStaleKey(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	assert := testarossa.For(t)
+
+	kidOf := func(pub ed25519.PublicKey) string {
+		hash := sha256.Sum256(pub)
+		return base64.RawURLEncoding.EncodeToString(hash[:8])
+	}
+
+	// Two key pairs: the issuer serves key1 first, then rotates to key2 only.
+	pub1, _, err := ed25519.GenerateKey(rand.Reader)
+	assert.NoError(err)
+	pub2, _, err := ed25519.GenerateKey(rand.Reader)
+	assert.NoError(err)
+	kid1, kid2 := kidOf(pub1), kidOf(pub2)
+
+	// The mocked bearer token service serves whichever key `served`/`servedKid` point at.
+	served, servedKid := pub1, kid1
+	bearerMock := bearertoken.NewMock()
+	bearerMock.MockJWKS(func(ctx context.Context) (keys []bearertokenapi.JWK, err error) {
+		return []bearertokenapi.JWK{{
+			KTY: "OKP",
+			CRV: "Ed25519",
+			X:   base64.RawURLEncoding.EncodeToString(served),
+			KID: servedKid,
+		}}, nil
+	})
+
+	svc := NewService()
+	tester := connector.New("tester.client")
+	_ = tester
+
+	app := application.New()
+	app.Add(
+		bearerMock,
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	host := bearertokenapi.Hostname
+
+	// First fetch caches key1.
+	err = svc.fetchBearerTokenKeys(ctx, host)
+	assert.NoError(err)
+	_, found := svc.lookupBearerTokenKey(host, kid1)
+	assert.True(found, "key1 should be cached after the first fetch")
+
+	// The issuer rotates key1 out; it now publishes only key2.
+	served, servedKid = pub2, kid2
+
+	// Clear the 1s debounce so the next fetch actually reaches the issuer.
+	svc.bearerTokenMu.Lock()
+	delete(svc.lastJWKSFetch, host)
+	svc.bearerTokenMu.Unlock()
+
+	// The rotation fetch replaces the issuer's key set: key2 is cached, key1 is evicted.
+	err = svc.fetchBearerTokenKeys(ctx, host)
+	assert.NoError(err)
+	_, found = svc.lookupBearerTokenKey(host, kid2)
+	assert.True(found, "key2 should be cached after the rotation fetch")
+	_, found = svc.lookupBearerTokenKey(host, kid1)
+	assert.False(found, "key1 must be evicted once the issuer stops publishing it")
 }

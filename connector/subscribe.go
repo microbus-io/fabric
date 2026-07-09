@@ -825,13 +825,13 @@ func (c *Connector) verifyToken(token string, requiredClaims string) (jwt.MapCla
 	}
 
 	// Look up the public key, refresh cache if needed
-	key, found := c.lookupActorKey(kid)
+	key, found := c.lookupActorKey(issuerHost, kid)
 	if !found {
 		err = c.fetchActorKeys(issuerHost)
 		if err != nil {
 			return nil, errors.New("", http.StatusUnauthorized, err)
 		}
-		key, found = c.lookupActorKey(kid)
+		key, found = c.lookupActorKey(issuerHost, kid)
 		if !found {
 			return nil, errors.New("", http.StatusUnauthorized)
 		}
@@ -857,11 +857,11 @@ func (c *Connector) verifyToken(token string, requiredClaims string) (jwt.MapCla
 	return claims, nil
 }
 
-// lookupActorKey returns the cached Ed25519 public key for the given kid.
-func (c *Connector) lookupActorKey(kid string) (ed25519.PublicKey, bool) {
+// lookupActorKey returns the cached Ed25519 public key for the given issuer host and kid.
+func (c *Connector) lookupActorKey(host, kid string) (ed25519.PublicKey, bool) {
 	c.actorKeysLock.RLock()
 	defer c.actorKeysLock.RUnlock()
-	key, ok := c.actorKeys[kid]
+	key, ok := c.actorKeys[host][kid]
 	return key, ok
 }
 
@@ -907,19 +907,24 @@ func (c *Connector) fetchActorKeys(host string) error {
 			return nil, errors.Trace(err)
 		}
 
-		c.actorKeysLock.Lock()
-		defer c.actorKeysLock.Unlock()
-		c.lastJWKSFetch[host] = time.Now()
-		if c.actorKeys == nil {
-			c.actorKeys = make(map[string]ed25519.PublicKey)
-		}
+		// Build the issuer's fresh key set, then swap it in wholesale so a successful fetch is
+		// authoritative: a kid the issuer has rotated out of its JWKS is evicted, not retained.
+		fresh := make(map[string]ed25519.PublicKey, len(jwksResp.Keys))
 		for _, jwk := range jwksResp.Keys {
 			pubBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
 			if err != nil {
 				continue
 			}
-			c.actorKeys[jwk.KID] = ed25519.PublicKey(pubBytes)
+			fresh[jwk.KID] = ed25519.PublicKey(pubBytes)
 		}
+
+		c.actorKeysLock.Lock()
+		defer c.actorKeysLock.Unlock()
+		c.lastJWKSFetch[host] = time.Now()
+		if c.actorKeys == nil {
+			c.actorKeys = make(map[string]map[string]ed25519.PublicKey)
+		}
+		c.actorKeys[host] = fresh
 		return nil, nil
 	})
 	return errors.Trace(err)

@@ -68,7 +68,7 @@ type Service struct {
 	middleware            *middleware.Chain
 	handler               connector.HTTPHandler
 	bearerTokenMu         sync.RWMutex
-	bearerTokenKeys       map[string]ed25519.PublicKey
+	bearerTokenKeys       map[string]map[string]ed25519.PublicKey
 	lastJWKSFetch         map[string]time.Time
 	jwksFlight            singleflight.Group
 }
@@ -753,11 +753,11 @@ func (svc *Service) OnChangedBlockedPaths(ctx context.Context) (err error) { // 
 	return nil
 }
 
-// lookupBearerTokenKey returns the cached Ed25519 public key for the given kid.
-func (svc *Service) lookupBearerTokenKey(kid string) (ed25519.PublicKey, bool) {
+// lookupBearerTokenKey returns the cached Ed25519 public key for the given issuer host and kid.
+func (svc *Service) lookupBearerTokenKey(host, kid string) (ed25519.PublicKey, bool) {
 	svc.bearerTokenMu.RLock()
 	defer svc.bearerTokenMu.RUnlock()
-	key, ok := svc.bearerTokenKeys[kid]
+	key, ok := svc.bearerTokenKeys[host][kid]
 	return key, ok
 }
 
@@ -780,19 +780,24 @@ func (svc *Service) fetchBearerTokenKeys(ctx context.Context, host string) error
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
-		svc.bearerTokenMu.Lock()
-		defer svc.bearerTokenMu.Unlock()
-		svc.lastJWKSFetch[host] = time.Now()
-		if svc.bearerTokenKeys == nil {
-			svc.bearerTokenKeys = make(map[string]ed25519.PublicKey)
-		}
+		// Build the issuer's fresh key set, then swap it in wholesale so a successful fetch is
+		// authoritative: a kid the issuer has rotated out of its JWKS is evicted, not retained.
+		fresh := make(map[string]ed25519.PublicKey, len(jwks))
 		for _, jwk := range jwks {
 			pubBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
 			if err != nil {
 				continue
 			}
-			svc.bearerTokenKeys[jwk.KID] = ed25519.PublicKey(pubBytes)
+			fresh[jwk.KID] = ed25519.PublicKey(pubBytes)
 		}
+
+		svc.bearerTokenMu.Lock()
+		defer svc.bearerTokenMu.Unlock()
+		svc.lastJWKSFetch[host] = time.Now()
+		if svc.bearerTokenKeys == nil {
+			svc.bearerTokenKeys = make(map[string]map[string]ed25519.PublicKey)
+		}
+		svc.bearerTokenKeys[host] = fresh
 		return nil, nil
 	})
 	return errors.Trace(err)
@@ -833,7 +838,7 @@ func (svc *Service) exchangeToken(ctx context.Context, bearerToken string) (acce
 	}
 
 	// Look up the public key, refresh cache if needed
-	key, found := svc.lookupBearerTokenKey(kid)
+	key, found := svc.lookupBearerTokenKey(issuerHost, kid)
 	if !found {
 		err = svc.fetchBearerTokenKeys(ctx, issuerHost)
 		if err != nil {
@@ -842,7 +847,7 @@ func (svc *Service) exchangeToken(ctx context.Context, bearerToken string) (acce
 			}
 			return "", errors.Trace(err)
 		}
-		key, found = svc.lookupBearerTokenKey(kid)
+		key, found = svc.lookupBearerTokenKey(issuerHost, kid)
 		if !found {
 			return "", nil
 		}
