@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
@@ -229,39 +230,66 @@ func TestConfigurator_CoalesceRefresh(t *testing.T) {
 
 	configSvc := NewService()
 
-	// Simulate an in-progress refresh
-	blocked := make(chan struct{})
-	configSvc.refreshLock.Lock()
-	configSvc.refreshDone = blocked
-	configSvc.refreshLock.Unlock()
+	// Each round signals it has started and blocks until the test sends its result on release.
+	started := make(chan struct{})
+	release := make(chan error)
+	var rounds int32
+	configSvc.refreshWork = func(ctx context.Context) error {
+		atomic.AddInt32(&rounds, 1)
+		started <- struct{}{}
+		return <-release
+	}
 
-	// A concurrent Refresh should wait for the in-progress one
-	returned := make(chan error, 1)
+	// Caller A starts round 1 and becomes the runner.
+	aErr := make(chan error, 1)
+	go func() { aErr <- configSvc.Refresh(context.Background()) }()
+	<-started // Round 1 is running and blocked
+
+	// Callers B and C arrive while round 1 is in flight. Their change may postdate round 1, so
+	// coalescing must not let them piggyback on it - a later round must run and carry their result.
+	bErr := make(chan error, 1)
+	cErr := make(chan error, 1)
+	go func() { bErr <- configSvc.Refresh(context.Background()) }()
+	go func() { cErr <- configSvc.Refresh(context.Background()) }()
+
+	// Wait until at least one of B/C has registered as a waiter on a subsequent round, so releasing
+	// round 1 is guaranteed to trigger round 2 rather than the callers starting from scratch.
+	for {
+		configSvc.refreshLock.Lock()
+		registered := configSvc.refreshNext != nil
+		configSvc.refreshLock.Unlock()
+		if registered {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	// Every round after the first fails validation; feed that error to each subsequent round so
+	// whichever round B and C land on, they observe the same failure.
+	valErr := errors.New("validation failed")
+	feederDone := make(chan struct{})
 	go func() {
-		returned <- configSvc.Refresh(context.Background())
+		for {
+			select {
+			case <-started:
+				release <- valErr
+			case <-feederDone:
+				return
+			}
+		}
 	}()
 
-	// Verify the goroutine is blocked
-	select {
-	case <-returned:
-		assert.True(false, "Refresh returned while another refresh is in progress")
-	case <-time.After(100 * time.Millisecond):
-		// Expected: still blocked
-	}
+	// Round 1 succeeds; A's own change propagated in it, so A must see nil.
+	release <- nil
 
-	// Complete the simulated refresh
-	configSvc.refreshLock.Lock()
-	close(blocked)
-	configSvc.refreshDone = nil
-	configSvc.refreshLock.Unlock()
-
-	// The coalesced goroutine should now return without error
-	select {
-	case err := <-returned:
-		assert.NoError(err)
-	case <-time.After(time.Second):
-		assert.True(false, "Refresh did not return after coalescing")
-	}
+	assert.NoError(<-aErr)
+	// B and C waited for a round that started after they arrived, and both see that round's error -
+	// never a false nil, and identical across the two callers.
+	assert.Equal(valErr, <-bErr)
+	assert.Equal(valErr, <-cErr)
+	// At least a second round ran: the concurrent requests were not coalesced away.
+	assert.True(atomic.LoadInt32(&rounds) >= 2)
+	close(feederDone)
 }
 
 func TestConfigurator_PeerSync(t *testing.T) {

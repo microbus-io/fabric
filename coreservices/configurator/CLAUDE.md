@@ -45,6 +45,25 @@ takes effect only when the configurator is restarted (which re-triggers the refr
 below. The `PeriodicRefresh` ticker (20 minutes) is the only autonomous propagation path, so a config change made
 without a configurator restart can take up to that interval to reach every microservice.
 
+### Refresh coalescing must not drop a change, and every waiter shares a result
+
+`Refresh` coalesces concurrent calls, but the coalescing has to respect that a caller's change may
+*postdate* an already-running refresh. So a caller arriving while a round is in flight does not piggyback on
+it - that round may have started before the caller's change and would not propagate it. Instead it waits for a
+*subsequent* round (`refreshNext`), which the runner starts after the current one finishes precisely because a
+waiter registered. The invariant is "at least one full round *starts after* the last request arrived." The runner
+loops, draining `refreshNext` into a fresh round until no one is waiting, so a burst of concurrent callers collapses
+to at most one extra round rather than one-per-caller.
+
+Each round is a `refreshRound{done, err}`: the runner writes `err` and closes `done` under `refreshLock`, and every
+waiter on that round reads the same `err`. This closes the second half of the defect - previously a piggybacking
+caller returned `nil` unconditionally, reporting success even when the refresh it waited on failed validation. The
+runner returns its *own* first round's result (that round started after it called), while later waiters get the
+later round they actually waited on. `PeriodicRefresh` is invoked through the `refreshWork` field (defaulting to
+`PeriodicRefresh`) so `TestConfigurator_CoalesceRefresh` can substitute a gated round to drive the concurrency
+deterministically; the work runs under `errors.CatchPanic` so a panic in one round cannot strand waiters on an
+unclosed `done`. The runner's context drives every round, including those run on behalf of later waiters.
+
 ### Replicas reconcile by timestamp
 
 Configurator replicas gossip their loaded repositories to each other via `SyncRepo` and pick a winner by comparing

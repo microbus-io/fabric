@@ -2,7 +2,7 @@
 
 Create a core microservice at hostname `configurator.core` that centralizes configuration value distribution to all microservices in the application.
 
-The service maintains an in-memory `repository` (a map of `hostname -> property name -> value`) protected by a `sync.RWMutex`. A separate `sync.Mutex` (`refreshLock`) and a `chan struct{}` (`refreshDone`) coalesce concurrent `Refresh` calls so that multiple simultaneous callers wait for a single in-flight refresh rather than each triggering their own.
+The service maintains an in-memory `repository` (a map of `hostname -> property name -> value`) protected by a `sync.RWMutex`. A separate `sync.Mutex` (`refreshLock`) coalesces concurrent `Refresh` calls: callers arriving while a refresh is in flight wait for a subsequent round (guaranteed to start after they arrived) rather than piggybacking on the in-flight one, so a change is never dropped, and every waiter on a round observes that round's result.
 
 On startup, walk from the current working directory up to the filesystem root looking for `config.yaml` and `config.local.yaml` at each level. Load all found files in order (later files override earlier values). After loading, broadcast the repository to replica peers via `SyncRepo`, then call `Refresh` to push configs to all microservices.
 

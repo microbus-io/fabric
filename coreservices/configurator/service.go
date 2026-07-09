@@ -37,6 +37,12 @@ var (
 	_ http.Request
 )
 
+// refreshRound tracks one execution of the config refresh fan-out.
+type refreshRound struct {
+	done chan struct{}
+	err  error
+}
+
 /*
 Service implements the configurator.core microservice.
 
@@ -45,11 +51,13 @@ The Configurator is a core microservice that centralizes the dissemination of co
 type Service struct {
 	*Intermediate // IMPORTANT: Do not remove
 
-	repo          *repository
-	repoTimestamp time.Time
-	lock          sync.RWMutex
-	refreshLock   sync.Mutex
-	refreshDone   chan struct{}
+	repo           *repository
+	repoTimestamp  time.Time
+	lock           sync.RWMutex
+	refreshLock    sync.Mutex
+	refreshCurrent *refreshRound
+	refreshNext    *refreshRound
+	refreshWork    func(ctx context.Context) error // Defaults to PeriodicRefresh; overridable in tests
 }
 
 // OnStartup is called when the microservice is started up.
@@ -141,28 +149,50 @@ Refresh tells all microservices to contact the configurator and refresh their co
 An error is returned if any of the values sent to the microservices fails validation.
 */
 func (svc *Service) Refresh(ctx context.Context) (err error) {
-	// Coalesce concurrent calls
+	// Coalesce concurrent calls, but never silently drop one: a caller arriving while a refresh is
+	// already running waits for a *subsequent* round guaranteed to start after this call, so its
+	// change is propagated rather than piggybacking on a round that may predate it.
 	svc.refreshLock.Lock()
-	if svc.refreshDone != nil {
-		done := svc.refreshDone
+	if svc.refreshCurrent != nil {
+		if svc.refreshNext == nil {
+			svc.refreshNext = &refreshRound{done: make(chan struct{})}
+		}
+		round := svc.refreshNext
 		svc.refreshLock.Unlock()
-		<-done     // Wait for concurrent refresh to finish
-		return nil // Return with no further action
+		<-round.done
+		return round.err
 	}
-	svc.refreshDone = make(chan struct{})
+	// No refresh is running; this caller becomes the runner of its own round.
+	mine := &refreshRound{done: make(chan struct{})}
+	svc.refreshCurrent = mine
 	svc.refreshLock.Unlock()
-	defer func() {
-		svc.refreshLock.Lock()
-		close(svc.refreshDone)
-		svc.refreshDone = nil
-		svc.refreshLock.Unlock()
-	}()
 
-	err = svc.PeriodicRefresh(ctx)
-	if err != nil {
-		return errors.Trace(err)
+	work := svc.refreshWork // For injection during test
+	if work == nil {
+		work = svc.PeriodicRefresh
 	}
-	return nil
+
+	round := mine
+	for {
+		roundErr := errors.CatchPanic(func() error {
+			return work(ctx)
+		})
+
+		svc.refreshLock.Lock()
+		round.err = roundErr
+		close(round.done)
+		next := svc.refreshNext
+		svc.refreshNext = nil
+		svc.refreshCurrent = next
+		svc.refreshLock.Unlock()
+
+		if next == nil {
+			// Return this runner's own round result - the first round, which started after this call.
+			return mine.err
+		}
+		// Callers arrived while this round ran; drive one more round so their change propagates.
+		round = next
+	}
 }
 
 /*
