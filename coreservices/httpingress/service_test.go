@@ -1355,3 +1355,33 @@ func TestHTTPIngress_BearerKeyRotationEvictsStaleKey(t *testing.T) {
 	_, found = svc.lookupBearerTokenKey(host, kid1)
 	assert.False(found, "key1 must be evicted once the issuer stops publishing it")
 }
+
+// TestHTTPIngress_PortInUse verifies that startHTTPServers reports a bind failure rather than
+// falsely reporting a healthy start. A first ingress binds :4040; a second ingress on the same
+// port must fail Startup because the bind (net.Listen) now surfaces synchronously.
+func TestHTTPIngress_PortInUse(t *testing.T) {
+	// No t.Parallel: binds a real OS port shared with other non-parallel ingress tests.
+	assert := testarossa.For(t)
+
+	// First ingress binds :4040 and keeps serving for the test's lifetime.
+	svc1 := NewService()
+	svc1.SetPorts("4040")
+	app := application.New()
+	app.Add(svc1)
+	app.RunInTest(t)
+
+	// Second ingress on the same port. Its startup must fail on the bind, not race a timer.
+	svc2 := NewService()
+	svc2.SetPorts("4040")
+	svc2.SetDeployment(connector.TESTING)
+	svc2.SetPlane("portinuse")
+
+	startCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err := svc2.Startup(startCtx)
+	if assert.Error(err, "second ingress must fail to bind an in-use port") {
+		assert.Contains(strings.ToLower(err.Error()), "address already in use")
+	} else {
+		svc2.Shutdown(startCtx)
+	}
+}

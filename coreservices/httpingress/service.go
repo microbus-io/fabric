@@ -24,6 +24,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -286,40 +287,38 @@ func (svc *Service) startHTTPServers(ctx context.Context) (err error) {
 			}
 		}
 		svc.httpServers[s.port] = httpServer
-		errChan := make(chan error)
-		calledChan := make(chan bool)
-		if s.tls {
-			go func() {
-				close(calledChan)
-				e := httpServer.ListenAndServeTLS("", "")
-				if e != nil {
-					errChan <- errors.Trace(e)
-				}
-			}()
-		} else {
-			go func() {
-				close(calledChan)
-				e := httpServer.ListenAndServe()
-				if e != nil {
-					errChan <- errors.Trace(e)
-				}
-			}()
-		}
-		<-calledChan // Goroutine called
-		select {
-		case err = <-errChan:
+
+		// Bind synchronously so a bind error (e.g. the port is already in use) surfaces here
+		// deterministically, rather than racing a fixed timer for it to appear on a channel.
+		listener, err := net.Listen("tcp", httpServer.Addr)
+		if err != nil {
 			svc.LogError(ctx, "Starting HTTP listener",
 				"error", err,
 				"port", s.port,
 				"secure", s.tls,
 			)
 			return errors.Trace(err)
-		case <-time.After(time.Millisecond * 250):
-			svc.LogInfo(ctx, "Started HTTP listener",
-				"port", s.port,
-				"secure", s.tls,
-			)
 		}
+		svc.LogInfo(ctx, "Started HTTP listener",
+			"port", s.port,
+			"secure", s.tls,
+		)
+		go func() {
+			var e error
+			if s.tls {
+				e = httpServer.ServeTLS(listener, "", "")
+			} else {
+				e = httpServer.Serve(listener)
+			}
+			// A Close during shutdown surfaces as ErrServerClosed, which is not a failure.
+			if e != nil && !errors.Is(e, http.ErrServerClosed) {
+				svc.LogError(ctx, "Serving HTTP listener",
+					"error", e,
+					"port", s.port,
+					"secure", s.tls,
+				)
+			}
+		}()
 	}
 	return nil
 }
