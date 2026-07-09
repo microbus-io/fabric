@@ -189,6 +189,14 @@ func (c *Connector) Startup(ctx context.Context) (err error) {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// Fail closed: a microservice that holds secret configs must not fetch them over an
+	// unencrypted transport in a deployed environment.
+	err = c.refuseInsecureSecrets(c.transportConn.Secure())
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	c.maxFragmentSize = c.transportConn.MaxPayload() - 64<<10 // Up to 64K for headers
 	if c.maxFragmentSize < 64<<10 {
 		return errors.New("message size limit is too restrictive")

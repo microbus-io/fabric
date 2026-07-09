@@ -199,3 +199,30 @@ func TestTransport_ResolveArtifact(t *testing.T) {
 		assert.Equal(c.want, got, fmt.Sprintf("hostname=%q artifact=%q", c.hostname, c.artifact))
 	}
 }
+
+// TestTransport_Secure verifies Secure() in both deployment modes the CI matrix runs: with no NATS
+// (short-circuit only) it reports secure by construction, and with a NATS connection it agrees with
+// the connection's actual TLS state. It asserts no fixed value for the NATS case so it holds whether
+// CI points at a plaintext or a TLS NATS.
+func TestTransport_Secure(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	assert := testarossa.For(t)
+
+	// Not opened: no NATS connection, secure by construction.
+	var c Conn
+	assert.True(c.Secure(), "an unopened transport has no wire and is secure")
+
+	err := c.Open(ctx, "", nil)
+	assert.NoError(err)
+	defer c.Close()
+
+	if nc := c.natsConn.Load(); nc == nil {
+		// Short-circuit only (no MICROBUS_NATS): still secure.
+		assert.True(c.Secure(), "a short-circuit-only transport is secure by construction")
+	} else {
+		// Connected to NATS: Secure() must match the connection's real TLS state.
+		_, tlsErr := nc.TLSConnectionState()
+		assert.Equal(tlsErr == nil, c.Secure(), "Secure() must reflect the NATS connection's TLS state")
+	}
+}

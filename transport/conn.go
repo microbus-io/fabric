@@ -284,6 +284,19 @@ func (c *Conn) MaxPayload() int64 {
 	}
 }
 
+// Secure reports whether the transport carries messages over an encrypted path.
+// The in-process short-circuit transport never touches a wire, so a short-circuit-only
+// deployment (no NATS connection) is secure by construction. A NATS connection is secure
+// only when it is TLS.
+func (c *Conn) Secure() bool {
+	natsConn := c.natsConn.Load()
+	if natsConn == nil {
+		return true
+	}
+	_, err := natsConn.TLSConnectionState()
+	return err == nil
+}
+
 // Publish sends data to a subject, allowing for multiple recipients.
 func (c *Conn) Publish(subject string, httpReq *http.Request) (err error) {
 	natsConn := c.natsConn.Load()

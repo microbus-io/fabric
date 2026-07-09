@@ -81,6 +81,33 @@ func (c *Connector) Config(name string) (value string) {
 	return value
 }
 
+// refuseInsecureSecrets returns an error when the connector holds secret configs but the transport
+// is not secure in a deployed environment (PROD or LAB), and nil otherwise. Secrets travel from the
+// configurator over the bus, so without an encrypted transport they would cross the network in the
+// clear. The transport's Secure result is passed in so the policy is decidable without a live
+// connection.
+func (c *Connector) refuseInsecureSecrets(secure bool) error {
+	if secure {
+		return nil
+	}
+	if c.deployment != PROD && c.deployment != LAB {
+		return nil
+	}
+	c.configLock.Lock()
+	hasSecret := false
+	for _, config := range c.configs {
+		if config.Secret {
+			hasSecret = true
+			break
+		}
+	}
+	c.configLock.Unlock()
+	if !hasSecret {
+		return nil
+	}
+	return errors.New("refusing to start with secret configs over an insecure transport", "deployment", c.deployment)
+}
+
 // SetConfig sets the value of a previously defined configuration property.
 // This action is restricted to the TESTING deployment in which the fetching of values from the configurator is disabled.
 // Config property names are case sensitive.

@@ -349,3 +349,84 @@ func TestConnector_ReadFromFile(t *testing.T) {
 		con.Config("Undefined"), "",
 	)
 }
+
+// TestConnector_RefuseInsecureSecrets pins the fail-closed policy: a connector holding secret
+// configs must refuse to start over an insecure transport in a deployed environment, and must be
+// allowed in every other combination.
+func TestConnector_RefuseInsecureSecrets(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	newCon := func(deployment string, secret bool) *Connector {
+		c := New("refuse.insecure.secrets.connector")
+		c.SetDeployment(deployment)
+		if secret {
+			c.DefineConfig("APIKey", cfg.Secret())
+		} else {
+			c.DefineConfig("Plain", cfg.DefaultValue("x"))
+		}
+		return c
+	}
+
+	// Deployed + secret + insecure transport: refuse.
+	assert.Error(newCon(LAB, true).refuseInsecureSecrets(false))
+	assert.Error(newCon(PROD, true).refuseInsecureSecrets(false))
+	// Secure transport: allowed regardless of deployment or secrets.
+	assert.NoError(newCon(LAB, true).refuseInsecureSecrets(true))
+	assert.NoError(newCon(PROD, true).refuseInsecureSecrets(true))
+	// No secret config: allowed even over an insecure transport.
+	assert.NoError(newCon(LAB, false).refuseInsecureSecrets(false))
+	assert.NoError(newCon(PROD, false).refuseInsecureSecrets(false))
+	// Non-deployed environments are never gated.
+	assert.NoError(newCon(TESTING, true).refuseInsecureSecrets(false))
+	assert.NoError(newCon(LOCAL, true).refuseInsecureSecrets(false))
+}
+
+// TestConnector_SecretConfigTransportGate verifies the fail-closed check is wired into Startup and
+// tracks the transport: a deployed connector with a secret config starts over a secure transport
+// (short-circuit or TLS NATS) and is refused over an insecure one. It adapts to the CI matrix's
+// transport mode rather than assuming one.
+func TestConnector_SecretConfigTransportGate(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	assert := testarossa.For(t)
+
+	plane := utils.RandomIdentifier(12)
+
+	// Mock config service. It defines no secret configs, so it always starts, and its transport
+	// reports the environment's security (short-circuit or NATS) that the connector below will see.
+	mockCfg := New("configurator.core")
+	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTING
+	mockCfg.SetPlane(plane)
+	mockCfg.Subscribe("Values",
+		func(w http.ResponseWriter, r *http.Request) error {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte("{}"))
+			return nil
+		},
+		sub.At("POST", ":888/values"),
+		sub.Web(),
+	)
+	err := mockCfg.Startup(ctx)
+	assert.NoError(err)
+	defer mockCfg.Shutdown(ctx)
+	secure := mockCfg.transportConn.Secure()
+
+	// A deployed connector with a secret config.
+	con := New("secret.transport.gate.connector")
+	con.SetDeployment(LAB)
+	con.SetPlane(plane)
+	err = con.DefineConfig("APIKey", cfg.Secret())
+	assert.NoError(err)
+
+	err = con.Startup(ctx)
+	if secure {
+		assert.NoError(err, "secret config over a secure transport must start")
+		con.Shutdown(ctx)
+	} else {
+		assert.Error(err, "secret config over an insecure transport must be refused")
+		if err != nil {
+			assert.Contains(err.Error(), "insecure transport")
+		}
+	}
+}
