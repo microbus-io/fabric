@@ -108,10 +108,9 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.DescribeCounter("kitchen_requests_total", `RequestsTotal counts requests handled by the kitchen fixture, labelled by status.`)            // MARKER: RequestsTotal
 	svc.DescribeGauge("kitchen_queue_depth", `QueueDepth records the current depth of the kitchen queue.`)                                        // MARKER: QueueDepth
 	svc.DescribeHistogram("kitchen_latency_seconds", `LatencySeconds records request latency in seconds.`, []float64{0.01, 0.05, 0.1, 0.5, 1, 5}) // MARKER: LatencySeconds
-	svc.DefineConfig(                                                                                                                             // MARKER: SecretKey
-		"SecretKey",
-		cfg.Description(`SecretKey is a credential used by the kitchen fixture; never logged.`),
-		cfg.Secret(),
+	svc.DefineConfig(                                                                                                                             // MARKER: ApiKey
+		"ApiKey",
+		cfg.Description(`ApiKey is a plain (non-secret) identifier used by the kitchen fixture.`),
 	)
 	svc.DefineConfig( // MARKER: Threshold
 		"Threshold",
@@ -208,14 +207,14 @@ func (svc *Intermediate) RecordLatencySeconds(ctx context.Context, value float64
 	return svc.RecordHistogram(ctx, "kitchen_latency_seconds", value)
 }
 
-// SecretKey is a credential used by the kitchen fixture; never logged.
-func (svc *Intermediate) SecretKey() (value string) { // MARKER: SecretKey
-	return svc.Config("SecretKey")
+// ApiKey is a plain (non-secret) identifier used by the kitchen fixture.
+func (svc *Intermediate) ApiKey() (value string) { // MARKER: ApiKey
+	return svc.Config("ApiKey")
 }
 
-// SetSecretKey sets the value of the configuration property.
-func (svc *Intermediate) SetSecretKey(value string) (err error) { // MARKER: SecretKey
-	return svc.SetConfig("SecretKey", value)
+// SetApiKey sets the value of the configuration property.
+func (svc *Intermediate) SetApiKey(value string) (err error) { // MARKER: ApiKey
+	return svc.SetConfig("ApiKey", value)
 }
 
 // Threshold caps the kitchen fixture's in-flight requests.

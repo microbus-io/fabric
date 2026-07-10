@@ -5,13 +5,12 @@ general:
   hostname: kitchen.fixture
   description: Kitchen is a gencreds fixture exercising every detected call pattern.
   package: github.com/microbus-io/fabric/cmd/gencreds/testdata/kitchen
-  modifiedAt: "2026-06-19T04:11:11Z"
+  modifiedAt: "2026-07-10T06:52:57Z"
 
 configs:
-  SecretKey:
-    signature: SecretKey() (value string)
-    description: SecretKey is a credential used by the kitchen fixture; never logged.
-    secret: true
+  ApiKey:
+    signature: ApiKey() (value string)
+    description: ApiKey is a plain (non-secret) identifier used by the kitchen fixture.
   Threshold:
     signature: Threshold() (value string)
     description: Threshold caps the kitchen fixture's in-flight requests.

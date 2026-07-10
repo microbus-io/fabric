@@ -37,10 +37,9 @@ const Version = 1
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `Kitchen is a gencreds fixture exercising every detected call pattern.`
 
-// SecretKey is a credential used by the kitchen fixture; never logged.
-var SecretKey = define.Config{ // MARKER: SecretKey
-	Value:  string(""),
-	Secret: true,
+// ApiKey is a plain (non-secret) identifier used by the kitchen fixture.
+var ApiKey = define.Config{ // MARKER: ApiKey
+	Value: string(""),
 }
 
 // Threshold caps the kitchen fixture's in-flight requests.
