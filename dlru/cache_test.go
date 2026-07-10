@@ -17,11 +17,14 @@ limitations under the License.
 package dlru_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/rand/v2"
 	"runtime"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -34,654 +37,1045 @@ import (
 	"github.com/microbus-io/testarossa"
 )
 
-func TestDLRU_Lookup(t *testing.T) {
-	t.Parallel()
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	alpha := connector.New("lookup.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("lookup.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	gamma := connector.New("lookup.dlru")
-	err = gamma.Startup(ctx)
-	assert.NoError(err)
-	defer gamma.Shutdown(ctx)
-	gammaLRU := gamma.DistribCache()
-
-	// Insert to alpha cache
-	err = alphaLRU.Store(ctx, "A", []byte("AAA"))
-	assert.NoError(err)
-	jsonObject := struct {
-		Num int    `json:"num"`
-		Str string `json:"str"`
-	}{
-		123,
-		"abc",
-	}
-	err = alphaLRU.Set(ctx, "B", jsonObject)
-	assert.NoError(err)
-	err = alphaLRU.Set(ctx, "C", jsonObject, dlru.Compress(true))
-	assert.NoError(err)
-
-	assert.Equal(3, alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-	assert.Zero(gammaLRU.LocalCache().Len())
-
-	// Should be loadable from all caches
-	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
-		val, ok, err := c.Load(ctx, "A")
-		assert.NoError(err)
-		assert.True(ok)
-		assert.Equal("AAA", string(val))
-
-		var jval struct {
-			Num int    `json:"num"`
-			Str string `json:"str"`
+// eventually polls cond until it returns true or the deadline elapses.
+func eventually(d time.Duration, cond func() bool) bool {
+	deadline := time.Now().Add(d)
+	for {
+		if cond() {
+			return true
 		}
-		ok, err = c.Get(ctx, "B", &jval)
-		assert.NoError(err)
-		assert.True(ok)
-		assert.Equal(jsonObject, jval)
-		ok, err = c.Get(ctx, "C", &jval)
-		assert.NoError(err)
-		assert.True(ok)
-		assert.Equal(jsonObject, jval)
-	}
-
-	// Delete from gamma cache
-	err = gammaLRU.Delete(ctx, "A")
-	assert.NoError(err)
-
-	assert.Equal(2, alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-	assert.Zero(gammaLRU.LocalCache().Len())
-
-	// Should not be loadable from any of the caches
-	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
-		val, ok, err := c.Load(ctx, "A")
-		assert.NoError(err)
-		assert.False(ok)
-		assert.Equal("", string(val))
-
-		val, ok, err = c.Load(ctx, "B")
-		assert.NoError(err)
-		assert.True(ok)
-		assert.Equal(`{"num":123,"str":"abc"}`, string(val))
-	}
-
-	// Clear the cache via beta
-	err = betaLRU.Clear(ctx)
-	assert.NoError(err)
-
-	assert.Zero(alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-	assert.Zero(gammaLRU.LocalCache().Len())
-
-	// Should not be loadable from any of the caches
-	for _, c := range []*dlru.Cache{gammaLRU, betaLRU, alphaLRU} {
-		val, ok, err := c.Load(ctx, "B")
-		assert.NoError(err)
-		assert.False(ok)
-		assert.Equal("", string(val))
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 
-func TestDLRU_Replicate(t *testing.T) {
+func TestDLRU_Membership(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
+	ctx := context.Background()
 
-	ctx := t.Context()
-
-	alpha := connector.New("replicate.dlru")
+	// A single replica sees only itself.
+	alpha := connector.New("membership.cache.dlru")
 	err := alpha.Startup(ctx)
 	assert.NoError(err)
 	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+	err = alphaCache.SetPingInterval(time.Second)
+	assert.NoError(err)
 
-	beta := connector.New("replicate.dlru")
+	members := alphaCache.Members()
+	assert.Equal([]string{alpha.ID()}, members)
+	gen1 := alphaCache.Generation()
+	assert.NotEqual("", gen1)
+
+	// A second replica joins. Both should see each other, on the same generation, and it should change.
+	beta := connector.New("membership.cache.dlru")
 	err = beta.Startup(ctx)
 	assert.NoError(err)
 	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	gamma := connector.New("replicate.dlru")
-	err = gamma.Startup(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
 	assert.NoError(err)
-	defer gamma.Shutdown(ctx)
-	gammaLRU := gamma.DistribCache()
-
-	// Insert to alpha cache
-	err = alphaLRU.Store(ctx, "A", []byte("AAA"), dlru.Replicate(true))
-	assert.NoError(err)
-	jsonObject := struct {
-		Num int    `json:"num"`
-		Str string `json:"str"`
-	}{
-		123,
-		"abc",
-	}
-	err = alphaLRU.Set(ctx, "B", jsonObject, dlru.Replicate(true))
-	assert.NoError(err)
-	err = alphaLRU.Set(ctx, "C", jsonObject, dlru.Replicate(true), dlru.Compress(true))
+	err = betaCache.SetPingInterval(time.Second)
 	assert.NoError(err)
 
-	assert.Equal(3, alphaLRU.LocalCache().Len())
-	assert.Equal(3, betaLRU.LocalCache().Len())
-	assert.Equal(3, gammaLRU.LocalCache().Len())
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
 
-	// Delete from gamma cache
-	err = gammaLRU.Delete(ctx, "A")
+	// beta learned alpha before subscribing, then counted itself in.
+	betaMembers := betaCache.Members()
+	assert.Equal(both, betaMembers)
+	// alpha learned beta from its join broadcast.
+	alphaSawBeta := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both)
+	})
+	assert.True(alphaSawBeta)
+
+	gen2 := alphaCache.Generation()
+	betaGen := betaCache.Generation()
+	assert.Equal(gen2, betaGen) // both derive the same generation
+	assert.NotEqual(gen1, gen2) // and it is not the single-replica generation
+
+	// Simulate an ungraceful departure: beta closes but its leave announcement is lost (fault-injected).
+	// alpha's periodic ping should then drop beta on its own.
+	betaCache.Seams().Inject(dlru.FaultSkipLeave)
+	err = betaCache.Close(ctx)
 	assert.NoError(err)
 
-	assert.Equal(2, alphaLRU.LocalCache().Len())
-	assert.Equal(2, betaLRU.LocalCache().Len())
-	assert.Equal(2, gammaLRU.LocalCache().Len())
-
-	// Clear the cache via beta
-	err = betaLRU.Clear(ctx)
-	assert.NoError(err)
-
-	assert.Zero(alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-	assert.Zero(gammaLRU.LocalCache().Len())
+	alphaDroppedBeta := eventually(3*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), []string{alpha.ID()})
+	})
+	assert.True(alphaDroppedBeta)
+	finalGen := alphaCache.Generation()
+	assert.Equal(gen1, finalGen) // generation returns to the single-replica value
 }
 
-func TestDLRU_Rescue(t *testing.T) {
-	// No parallel
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	alpha := connector.New("rescue.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	alphaLRU := alpha.DistribCache()
-
-	// Store values in alpha before starting beta and gamma
-	n := 2048
-	numChan := make(chan int, n)
-	for i := range n {
-		numChan <- i
-	}
-	close(numChan)
-	var wg sync.WaitGroup
-	for range runtime.NumCPU() {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for i := range numChan {
-				err := alphaLRU.Store(ctx, strconv.Itoa(i), []byte(strconv.Itoa(i)))
-				assert.NoError(err)
-			}
-		}()
-	}
-	wg.Wait()
-	assert.Equal(n, alphaLRU.LocalCache().Len())
-
-	beta := connector.New("rescue.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	gamma := connector.New("rescue.dlru")
-	err = gamma.Startup(ctx)
-	assert.NoError(err)
-	defer gamma.Shutdown(ctx)
-	gammaLRU := gamma.DistribCache()
-
-	assert.Zero(betaLRU.LocalCache().Len())
-	assert.Zero(gammaLRU.LocalCache().Len())
-
-	// Should distribute the elements to beta and gamma
-	err = alpha.Shutdown(ctx)
-	assert.NoError(err)
-	assert.Equal(n, betaLRU.LocalCache().Len()+gammaLRU.LocalCache().Len())
-
-	numChan = make(chan int, n)
-	for i := range n {
-		numChan <- i
-	}
-	close(numChan)
-	for range runtime.NumCPU() {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for i := range numChan {
-				val, ok, err := betaLRU.Load(ctx, strconv.Itoa(i))
-				if assert.NoError(err) && assert.True(ok, i) {
-					assert.Equal(strconv.Itoa(i), string(val))
-				}
-				val, ok, err = gammaLRU.Load(ctx, strconv.Itoa(i))
-				if assert.NoError(err) && assert.True(ok, i) {
-					assert.Equal(strconv.Itoa(i), string(val))
-				}
-			}
-		}()
-	}
-	wg.Wait()
-}
-
-func TestDLRU_MaxMemory(t *testing.T) {
+func TestDLRU_StoreLoad(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
+	ctx := context.Background()
 
-	ctx := t.Context()
-	maxMem := 4096
-
-	alpha := connector.New("max.memory.dlru")
+	alpha := connector.New("storeload.cache.dlru")
 	err := alpha.Startup(ctx)
 	assert.NoError(err)
 	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-	alphaLRU.SetMaxMemory(maxMem)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
 
-	beta := connector.New("max.memory.dlru")
+	beta := connector.New("storeload.cache.dlru")
 	err = beta.Startup(ctx)
 	assert.NoError(err)
 	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-	betaLRU.SetMaxMemory(maxMem)
-
-	// Insert enough to max out the memory limit
-	payload := utils.RandomIdentifier(maxMem / 4)
-	err = alphaLRU.Store(ctx, "A", []byte(payload))
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
 	assert.NoError(err)
-	err = alphaLRU.Store(ctx, "B", []byte(payload))
-	assert.NoError(err)
-	err = alphaLRU.Store(ctx, "C", []byte(payload))
-	assert.NoError(err)
-	err = alphaLRU.Store(ctx, "D", []byte(payload))
-	assert.NoError(err)
+	defer betaCache.Close(ctx)
 
-	// Should be stored in alpha
-	// alpha: D C B A
-	// beta:
-	assert.Equal(4, alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-	assert.Equal(maxMem, alphaLRU.LocalCache().Weight())
-	assert.Zero(betaLRU.LocalCache().Weight())
+	// Both replicas should agree on the two-member set before routing.
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
 
-	// Insert another 1/4
-	err = alphaLRU.Store(ctx, "E", []byte(payload))
-	assert.NoError(err)
-
-	// Alpha will have A evicted
-	// alpha: E D C B
-	// beta:
-	assert.Equal(4, alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-	assert.Equal(maxMem, alphaLRU.LocalCache().Weight())
-	assert.Zero(betaLRU.LocalCache().Weight())
-
-	for _, k := range []string{"A", "B", "C", "D", "E"} {
-		val, ok, err := betaLRU.Load(ctx, k)
+	// Store a spread of keys via alpha. HRW routes each to its owner, which may be alpha or beta.
+	keys := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("v-"+k))
 		assert.NoError(err)
-		assert.Equal(k != "A", ok)
-		if ok {
-			assert.Equal(payload, string(val))
+	}
+
+	// Each key is held by exactly one replica (single copy), and loadable from either.
+	for _, k := range keys {
+		_, okA := alphaCache.LocalCache().Load(k)
+		_, okB := betaCache.LocalCache().Load(k)
+		assert.True(okA != okB) // exactly one owner holds it
+
+		valA, foundA, err := alphaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.True(foundA)
+		assert.Equal("v-"+k, string(valA))
+
+		valB, foundB, err := betaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.True(foundB)
+		assert.Equal("v-"+k, string(valB))
+	}
+
+	// The total element count across both replicas equals the number of distinct keys.
+	total := alphaCache.LocalCache().Len() + betaCache.LocalCache().Len()
+	assert.Equal(len(keys), total)
+
+	// A missing key is a clean miss from either replica.
+	_, found, err := betaCache.Load(ctx, "missing")
+	assert.NoError(err)
+	assert.False(found)
+}
+
+func TestDLRU_GenerationGate(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("gengate.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("gengate.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// Find two keys owned by beta, so alpha routes them remotely and the owner's gate applies.
+	var remote []string
+	for _, k := range []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"} {
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			remote = append(remote, k)
+			if len(remote) == 2 {
+				break
+			}
 		}
 	}
+	numRemote := len(remote)
+	assert.Equal(2, numRemote)
+	keyHeld, keyRejected := remote[0], remote[1]
+
+	// Baseline: a remote store with a matching generation lands and loads back.
+	err = alphaCache.Store(ctx, keyHeld, []byte("v"))
+	assert.NoError(err)
+	val, ok, err := alphaCache.Load(ctx, keyHeld)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("v", string(val))
+
+	// A stale-generation store is refused by the owner (417) and never lands.
+	alphaCache.Seams().Inject(dlru.FaultStaleGen)
+	err = alphaCache.Store(ctx, keyRejected, []byte("v2"))
+	assert.NoError(err)
+	_, rejectedFound, err := alphaCache.Load(ctx, keyRejected)
+	assert.NoError(err)
+	assert.False(rejectedFound)
+
+	// A stale-generation load is refused even though the owner holds the value; the prev-gen retry
+	// falls back to this replica, which is not the owner, so it is a clean miss.
+	alphaCache.Seams().Inject(dlru.FaultStaleGen)
+	_, staleFound, err := alphaCache.Load(ctx, keyHeld)
+	assert.NoError(err)
+	assert.False(staleFound)
+
+	// Without the fault the owner still holds and serves it.
+	val, ok, err = alphaCache.Load(ctx, keyHeld)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("v", string(val))
 }
 
-func TestDLRU_WeightAndLen(t *testing.T) {
+func TestDLRU_OffloadOnShutdown(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
+	ctx := context.Background()
 
-	ctx := t.Context()
-
-	alpha := connector.New("weight.and.len.dlru")
+	alpha := connector.New("offshut.cache.dlru")
 	err := alpha.Startup(ctx)
 	assert.NoError(err)
 	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
 
-	beta := connector.New("weight.and.len.dlru")
+	beta := connector.New("offshut.cache.dlru")
 	err = beta.Startup(ctx)
 	assert.NoError(err)
 	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
 
-	payload := utils.RandomIdentifier(1024)
-	err = alphaLRU.Store(ctx, "A", []byte(payload))
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// Store only keys that alpha owns, so they all sit on alpha and must move when it leaves.
+	var alphaKeys []string
+	for i := 0; i < 60 && len(alphaKeys) < 5; i++ {
+		k := "key" + strconv.Itoa(i)
+		if alphaCache.OwnerOf(k) == alpha.ID() {
+			alphaKeys = append(alphaKeys, k)
+		}
+	}
+	numKeys := len(alphaKeys)
+	assert.Equal(5, numKeys)
+	for _, k := range alphaKeys {
+		err = alphaCache.Store(ctx, k, []byte("v-"+k))
+		assert.NoError(err)
+	}
+	alphaLen := alphaCache.LocalCache().Len()
+	assert.Equal(numKeys, alphaLen)
+	betaLen := betaCache.LocalCache().Len()
+	assert.Equal(0, betaLen)
+
+	// Closing alpha offloads its keys to beta, the sole survivor.
+	err = alphaCache.Close(ctx)
 	assert.NoError(err)
 
-	wt, _ := alphaLRU.Weight(ctx)
-	assert.Equal(1024, wt)
-	len, _ := alphaLRU.Len(ctx)
-	assert.Equal(1, len)
+	betaSole := eventually(2*time.Second, func() bool {
+		return slices.Equal(betaCache.Members(), []string{beta.ID()})
+	})
+	assert.True(betaSole)
+	relocated := eventually(2*time.Second, func() bool {
+		return betaCache.LocalCache().Len() == numKeys
+	})
+	assert.True(relocated)
 
-	wt, _ = betaLRU.Weight(ctx)
-	assert.Equal(1024, wt)
-	len, _ = betaLRU.Len(ctx)
-	assert.Equal(1, len)
+	// Every offloaded key is now held and served by beta.
+	for _, k := range alphaKeys {
+		val, ok, err := betaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.True(ok)
+		assert.Equal("v-"+k, string(val))
+	}
+}
 
-	err = betaLRU.Store(ctx, "B", []byte(payload))
+func TestDLRU_RediscoverOn404(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("rediscover.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("rediscover.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
 	assert.NoError(err)
 
-	wt, _ = alphaLRU.Weight(ctx)
-	assert.Equal(2048, wt)
-	len, _ = alphaLRU.Len(ctx)
-	assert.Equal(2, len)
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
 
-	wt, _ = betaLRU.Weight(ctx)
-	assert.Equal(2048, wt)
-	len, _ = betaLRU.Len(ctx)
-	assert.Equal(2, len)
+	// A key owned by beta, so alpha routes it there.
+	var betaKey string
+	for i := 0; i < 40 && betaKey == ""; i++ {
+		k := "key" + strconv.Itoa(i)
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			betaKey = k
+		}
+	}
+	assert.NotEqual("", betaKey)
+
+	// beta dies ungracefully: no leave broadcast and no offload, so alpha keeps routing betaKey to it.
+	betaCache.Seams().Inject(dlru.FaultSkipLeave)
+	betaCache.Seams().Inject(dlru.FaultSkipOffload)
+	err = betaCache.Close(ctx)
+	assert.NoError(err)
+	err = beta.Shutdown(ctx)
+	assert.NoError(err)
+
+	// Nothing has told alpha that beta is gone; it still lists both.
+	stillBoth := slices.Equal(alphaCache.Members(), both)
+	assert.True(stillBoth)
+
+	// Loading the beta-owned key hits a 404 to the dead owner, which triggers a re-discovery. The
+	// default ping interval is a minute, so dropping beta within seconds proves the 404 trigger fired.
+	_, _, err = alphaCache.Load(ctx, betaKey)
+	assert.NoError(err)
+	dropped := eventually(3*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), []string{alpha.ID()})
+	})
+	assert.True(dropped)
+}
+
+func TestDLRU_OffloadDoesNotClobber(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("noclobber.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	// alpha is closed explicitly mid-test to drive its offload.
+
+	// alpha is the sole owner; store V1, on alpha.
+	var keys []string
+	for i := 0; i < 12; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("V1"))
+		assert.NoError(err)
+	}
+
+	// Skip alpha's shed on join, so V1 stays on alpha, the old owner.
+	alphaCache.Seams().Inject(dlru.FaultSkipOffload)
+
+	beta := connector.New("noclobber.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// A key that beta now owns, so an upstream write of V2 lands on beta while alpha still holds V1.
+	var moved string
+	for _, k := range keys {
+		if betaCache.OwnerOf(k) == beta.ID() {
+			moved = k
+			break
+		}
+	}
+	assert.NotEqual("", moved)
+	err = betaCache.Store(ctx, moved, []byte("V2"))
+	assert.NoError(err)
+
+	// alpha leaves and offloads its stale V1 to beta. The soft store must not overwrite V2.
+	err = alphaCache.Close(ctx)
+	assert.NoError(err)
+
+	betaSole := eventually(2*time.Second, func() bool {
+		return slices.Equal(betaCache.Members(), []string{beta.ID()})
+	})
+	assert.True(betaSole)
+
+	val, ok, err := betaCache.Load(ctx, moved)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("V2", string(val)) // the upstream write survived the offload
+}
+
+func TestDLRU_Delete(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("del.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("del.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	var keys []string
+	for i := 0; i < 10; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("v-"+k))
+		assert.NoError(err)
+	}
+	total := alphaCache.LocalCache().Len() + betaCache.LocalCache().Len()
+	assert.Equal(len(keys), total)
+
+	// Deleting each key removes it from its owner, and it loads as a miss from either replica.
+	for _, k := range keys {
+		err = alphaCache.Delete(ctx, k)
+		assert.NoError(err)
+	}
+	remaining := alphaCache.LocalCache().Len() + betaCache.LocalCache().Len()
+	assert.Equal(0, remaining)
+	for _, k := range keys {
+		_, found, err := betaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.False(found)
+	}
+}
+
+func TestDLRU_DeleteReachesOldOwner(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("delold.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	var keys []string
+	for i := 0; i < 12; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("v-"+k))
+		assert.NoError(err)
+	}
+
+	// Skip the shed so keys stay on alpha, the old owner, when beta joins.
+	alphaCache.Seams().Inject(dlru.FaultSkipOffload)
+
+	beta := connector.New("delold.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// A key that beta now owns but that the skipped shed left on alpha.
+	var moved string
+	for _, k := range keys {
+		if betaCache.OwnerOf(k) == beta.ID() {
+			moved = k
+			break
+		}
+	}
+	assert.NotEqual("", moved)
+	_, onAlpha := alphaCache.LocalCache().Load(moved)
+	assert.True(onAlpha)
+
+	// Deleting via beta, the new owner, must also reach alpha, the previous owner, within the window.
+	err = betaCache.Delete(ctx, moved)
+	assert.NoError(err)
+	_, stillOnAlpha := alphaCache.LocalCache().Load(moved)
+	assert.False(stillOnAlpha)
+}
+
+func TestDLRU_Clear(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("clear.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("clear.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	var keys []string
+	for i := 0; i < 10; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("v-"+k))
+		assert.NoError(err)
+	}
+	total := alphaCache.LocalCache().Len() + betaCache.LocalCache().Len()
+	assert.Equal(len(keys), total)
+
+	// Clear empties every replica's local cache.
+	err = alphaCache.Clear(ctx)
+	assert.NoError(err)
+	cleared := eventually(2*time.Second, func() bool {
+		return alphaCache.LocalCache().Len() == 0 && betaCache.LocalCache().Len() == 0
+	})
+	assert.True(cleared)
+}
+
+func TestDLRU_DeletePredicate(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("delpred.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("delpred.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// A mix of keys, spread across both owners by HRW.
+	var userKeys, orderKeys []string
+	for i := 0; i < 8; i++ {
+		userKeys = append(userKeys, "user:"+strconv.Itoa(i))
+		orderKeys = append(orderKeys, "order:"+strconv.Itoa(i))
+	}
+	for _, k := range append(append([]string{}, userKeys...), orderKeys...) {
+		err = alphaCache.Store(ctx, k, []byte("v"))
+		assert.NoError(err)
+	}
+	total := alphaCache.LocalCache().Len() + betaCache.LocalCache().Len()
+	assert.Equal(len(userKeys)+len(orderKeys), total)
+
+	// DeletePrefix removes the user:* family from every replica; order:* survives.
+	err = alphaCache.DeletePrefix(ctx, "user:")
+	assert.NoError(err)
+	afterPrefix := eventually(2*time.Second, func() bool {
+		return alphaCache.LocalCache().Len()+betaCache.LocalCache().Len() == len(orderKeys)
+	})
+	assert.True(afterPrefix)
+	for _, k := range userKeys {
+		_, found, err := betaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.False(found)
+	}
+
+	// DeleteContains removes what is left; a substring shared by all order keys clears them.
+	err = alphaCache.DeleteContains(ctx, "order")
+	assert.NoError(err)
+	afterContains := eventually(2*time.Second, func() bool {
+		return alphaCache.LocalCache().Len()+betaCache.LocalCache().Len() == 0
+	})
+	assert.True(afterContains)
+}
+
+func TestDLRU_PrevGenRetry(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("prevgen.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	// alpha is the sole owner; store keys, all on alpha.
+	var keys []string
+	for i := 0; i < 12; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("v-"+k))
+		assert.NoError(err)
+	}
+
+	// Skip the shed so keys stay on alpha, the old owner, when beta joins.
+	alphaCache.Seams().Inject(dlru.FaultSkipOffload)
+
+	beta := connector.New("prevgen.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// Find a key whose ownership moved to beta but which the skipped shed left on alpha.
+	var moved string
+	for _, k := range keys {
+		if betaCache.OwnerOf(k) == beta.ID() {
+			moved = k
+			break
+		}
+	}
+	assert.NotEqual("", moved)
+	_, onAlpha := alphaCache.LocalCache().Load(moved)
+	assert.True(onAlpha) // still on the old owner
+	_, onBeta := betaCache.LocalCache().Load(moved)
+	assert.False(onBeta) // shed was skipped, so the new owner does not hold it
+
+	// Loading from beta, the new owner, misses locally, then the previous-generation retry finds it
+	// on alpha, the old owner, whose gate accepts the previous generation within the overlap window.
+	val, ok, err := betaCache.Load(ctx, moved)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("v-"+moved, string(val))
+}
+
+func TestDLRU_OffloadOnJoin(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("offjoin.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	// alpha is the sole owner, so every stored key lands on alpha.
+	var keys []string
+	for i := 0; i < 10; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("v-"+k))
+		assert.NoError(err)
+	}
+	alphaLen := alphaCache.LocalCache().Len()
+	assert.Equal(len(keys), alphaLen)
+
+	// beta joins; alpha sheds the keys whose ownership moved to beta.
+	beta := connector.New("offjoin.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// After the shed, the copies are conserved and each key sits on its HRW owner.
+	settled := eventually(2*time.Second, func() bool {
+		return alphaCache.LocalCache().Len()+betaCache.LocalCache().Len() == len(keys)
+	})
+	assert.True(settled)
+	for _, k := range keys {
+		owner := alphaCache.OwnerOf(k)
+		_, onAlpha := alphaCache.LocalCache().Load(k)
+		_, onBeta := betaCache.LocalCache().Load(k)
+		if owner == beta.ID() {
+			assert.True(onBeta)   // shed to beta
+			assert.False(onAlpha) // removed from alpha
+		} else {
+			assert.True(onAlpha) // kept on alpha
+			assert.False(onBeta)
+		}
+		val, ok, err := betaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.True(ok)
+		assert.Equal("v-"+k, string(val))
+	}
+}
+
+func TestDLRU_Accessors(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("accessors.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("accessors.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// Set/Get round-trip a JSON-marshaled value across the owner boundary.
+	type point struct {
+		X int `json:"x"`
+		Y int `json:"y"`
+	}
+	for i, k := range []string{"p1", "p2", "p3", "p4", "p5", "p6"} {
+		err = alphaCache.Set(ctx, k, point{X: i, Y: i * 2})
+		assert.NoError(err)
+	}
+	var got point
+	found, err := betaCache.Get(ctx, "p3", &got)
+	assert.NoError(err)
+	assert.True(found)
+	assert.Equal(point{X: 2, Y: 4}, got)
+
+	// A missing key is a clean not-found.
+	found, err = betaCache.Get(ctx, "absent", &got)
+	assert.NoError(err)
+	assert.False(found)
+
+	// Weight and Len aggregate the disjoint per-replica shards into the cluster totals.
+	n, err := alphaCache.Len(ctx)
+	assert.NoError(err)
+	assert.Equal(6, n)
+	localTotal := alphaCache.LocalCache().Len() + betaCache.LocalCache().Len()
+	assert.Equal(6, localTotal)
+
+	wt, err := alphaCache.Weight(ctx)
+	assert.NoError(err)
+	assert.True(wt > 0)
+	assert.Equal(alphaCache.LocalCache().Weight()+betaCache.LocalCache().Weight(), wt)
+
+	// Hits and Misses accumulate across the accessors used above. A hit and a miss are guaranteed.
+	assert.True(alphaCache.Hits() > 0 || betaCache.Hits() > 0)
+	assert.True(betaCache.Misses() > 0)
+}
+
+func TestDLRU_LoadOrCompute(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("loadorcompute.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	// First call computes and stores; a second call hits the cache without recomputing.
+	calls := 0
+	maker := func(ctx context.Context) ([]byte, error) {
+		calls++
+		return []byte("computed"), nil
+	}
+	v, err := alphaCache.LoadOrCompute(ctx, "k", maker)
+	assert.NoError(err)
+	assert.Equal("computed", string(v))
+	assert.Equal(1, calls)
+
+	v, err = alphaCache.LoadOrCompute(ctx, "k", maker)
+	assert.NoError(err)
+	assert.Equal("computed", string(v))
+	assert.Equal(1, calls)
+
+	// A maker error is not cached and propagates to the caller.
+	boom := errors.New("boom")
+	_, err = alphaCache.LoadOrCompute(ctx, "err", func(ctx context.Context) ([]byte, error) {
+		return nil, boom
+	})
+	assert.Error(err)
+
+	// GetOrCompute marshals the typed value and round-trips it.
+	type box struct {
+		N int `json:"n"`
+	}
+	var out box
+	err = alphaCache.GetOrCompute(ctx, "box", &out, func(ctx context.Context) (any, error) {
+		return box{N: 42}, nil
+	})
+	assert.NoError(err)
+	assert.Equal(42, out.N)
 }
 
 func TestDLRU_Options(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
+	ctx := context.Background()
 
-	ctx := t.Context()
-	con := connector.New("www.example.com")
+	alpha := connector.New("options.cache.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("options.cache.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// Find a key owned by beta so the option travels over the wire, not just the local path.
+	remoteKey := ""
+	for i := 0; i < 100; i++ {
+		k := "remote-" + strconv.Itoa(i)
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			remoteKey = k
+			break
+		}
+	}
+	assert.NotEqual("", remoteKey)
+
+	// Compress: the stored bytes at the owner are not the plaintext, but Load decompresses back to it.
+	payload := []byte(strings.Repeat("compress me ", 64))
+	err = alphaCache.Store(ctx, remoteKey, payload, dlru.Compress(true))
+	assert.NoError(err)
+	stored, ok := betaCache.LocalCache().Load(remoteKey)
+	assert.True(ok)
+	assert.NotEqual(string(payload), string(stored))
+	got, ok, err := alphaCache.Load(ctx, remoteKey)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal(string(payload), string(got))
+
+	// MaxAge: a tiny max-age on load discards a value not bumped within the window, yielding a miss
+	// even though the owner still holds it.
+	ageKey := ""
+	for i := 0; i < 100; i++ {
+		k := "age-" + strconv.Itoa(i)
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			ageKey = k
+			break
+		}
+	}
+	assert.NotEqual("", ageKey)
+	err = alphaCache.Store(ctx, ageKey, []byte("v"))
+	assert.NoError(err)
+	slept := alpha.Sleep(ctx, 10*time.Millisecond)
+	assert.NoError(slept)
+	_, ok, err = alphaCache.Load(ctx, ageKey, dlru.MaxAge(time.Millisecond))
+	assert.NoError(err)
+	assert.False(ok)
+
+	// Has and Peek observe presence without requiring the value to be bumped.
+	err = alphaCache.Set(ctx, "present", "yes")
+	assert.NoError(err)
+	has, err := betaCache.Has(ctx, "present")
+	assert.NoError(err)
+	assert.True(has)
+	has, err = betaCache.Has(ctx, "absent")
+	assert.NoError(err)
+	assert.False(has)
+	var peeked string
+	found, err := betaCache.Peek(ctx, "present", &peeked)
+	assert.NoError(err)
+	assert.True(found)
+	assert.Equal("yes", peeked)
+}
+
+// startConn boots a connector for the given host, failing the test on error.
+func startConn(t testing.TB, ctx context.Context, host string) *connector.Connector {
+	con := connector.New(host)
 	err := con.Startup(ctx)
-	assert.NoError(err)
-	defer con.Shutdown(ctx)
-
-	cache, err := dlru.NewCache(ctx, con, "/path")
-	assert.NoError(err)
-	cache.SetMaxAge(5 * time.Hour)
-	cache.SetMaxMemoryMB(8)
-
-	assert.Equal(5*time.Hour, cache.MaxAge())
-	assert.Equal(8*1024*1024, cache.MaxMemory())
+	if err != nil {
+		t.Fatalf("startup %s: %v", host, err)
+	}
+	return con
 }
 
-func TestDLRU_MulticastOptim(t *testing.T) {
-	// No parallel
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	alpha := connector.New("multicast.optim.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("multicast.optim.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-
-	// First operation is slow because of being the first broadcast
-	t0 := time.Now()
-	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
-	assert.NoError(err)
-	durSlow := time.Since(t0)
-
-	// Second operation is fast, even if not the same action, because of the known responders optimization
-	var totalDurFast time.Duration
-	for range 10 {
-		t0 = time.Now()
-		err = alphaLRU.Clear(ctx)
-		assert.NoError(err)
-		totalDurFast += time.Since(t0)
+// newCache builds a Cache on the connector at a fixed path, with short intervals suited to tests.
+func newCache(t testing.TB, ctx context.Context, con *connector.Connector) *dlru.Cache {
+	c, err := dlru.NewCache(ctx, con, ":444/testcache")
+	if err != nil {
+		t.Fatalf("newcache: %v", err)
 	}
-	assert.True(totalDurFast*2/10 < durSlow)
+	err = c.SetPingInterval(250 * time.Millisecond)
+	if err != nil {
+		t.Fatalf("setpinginterval: %v", err)
+	}
+	err = c.SetOffloadDuration(500 * time.Millisecond)
+	if err != nil {
+		t.Fatalf("setoffloadduration: %v", err)
+	}
+	return c
 }
 
-func TestDLRU_InvalidRequests(t *testing.T) {
-	t.Parallel()
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	con := connector.New("invalid.requests.dlru")
-	err := con.Startup(ctx)
-	assert.NoError(err)
-	defer con.Shutdown(ctx)
-
-	cache, err := dlru.NewCache(ctx, con, "/cache")
-	assert.NoError(err)
-	defer cache.Close(ctx)
-
-	_, _, err = cache.Load(ctx, "")
-	assert.Equal("missing key", err.Error())
-	err = cache.Store(ctx, "", nil)
-	assert.Equal("missing key", err.Error())
-	err = cache.Delete(ctx, "")
-	assert.Equal("missing key", err.Error())
-}
-
-func TestDLRU_Inconsistency(t *testing.T) {
-	t.Parallel()
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	alpha := connector.New("inconsistency.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("inconsistency.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	// Store an element in the cache
-	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
-	assert.NoError(err)
-
-	// Should be stored in alpha
-	assert.Equal(1, alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-
-	// Should be loadable from either caches
-	val, ok, err := alphaLRU.Load(ctx, "Foo")
-	assert.NoError(err)
-	assert.True(ok)
-	assert.Equal("Bar", string(val))
-	val, ok, err = betaLRU.Load(ctx, "Foo")
-	assert.NoError(err)
-	assert.True(ok)
-	assert.Equal("Bar", string(val))
-
-	// Store a different value in beta
-	betaLRU.LocalCache().Store("Foo", []byte("Bad"))
-
-	// Loading without the consistency check should succeed and return different results
-	val, ok, err = alphaLRU.Load(ctx, "Foo", dlru.ConsistencyCheck(false))
-	assert.NoError(err)
-	assert.True(ok)
-	assert.Equal("Bar", string(val))
-	val, ok, err = betaLRU.Load(ctx, "Foo", dlru.ConsistencyCheck(false))
-	assert.NoError(err)
-	assert.True(ok)
-	assert.Equal("Bad", string(val))
-
-	// Loading with a consistency check should fail from either caches
-	_, ok, err = alphaLRU.Load(ctx, "Foo")
-	assert.NoError(err)
-	assert.False(ok)
-	_, ok, err = betaLRU.Load(ctx, "Foo")
-	assert.NoError(err)
-	assert.False(ok)
-
-	// The inconsistent values should be removed
-	assert.Zero(alphaLRU.LocalCache().Len())
-	assert.Zero(betaLRU.LocalCache().Len())
-}
-
-func TestDLRU_MaxAge(t *testing.T) {
-	t.Parallel()
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	alpha := connector.New("maxage.actions.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("maxage.actions.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	// Store an element in the cache
-	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
-	assert.NoError(err)
-
-	// Wait a second and load it back
-	// Do not bump so that the life of the element is not renewed
-	time.Sleep(time.Second)
-	cached, ok, err := betaLRU.Load(ctx, "Foo", dlru.NoBump())
-	assert.NoError(err)
-	if assert.True(ok) {
-		assert.Equal(string(cached), "Bar")
-	}
-
-	// Use a max age option when loading
-	_, ok, err = betaLRU.Load(ctx, "Foo", dlru.MaxAge(time.Millisecond*990))
-	assert.NoError(err)
-	assert.False(ok)
-}
-
-func TestDLRU_DeletePrefix(t *testing.T) {
-	t.Parallel()
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	alpha := connector.New("delete.prefix.actions.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("delete.prefix.actions.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	for i := 1; i <= 10; i++ {
-		alphaLRU.Store(ctx, fmt.Sprintf("prefix.%d", i), []byte("X"))
-	}
-	for i := 1; i <= 10; i++ {
-		betaLRU.Store(ctx, fmt.Sprintf("other.%d", i), []byte("X"))
-	}
-
-	for i := 1; i <= 10; i++ {
-		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("prefix.%d", i))
-		assert.NoError(err)
-		assert.True(ok)
-		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("other.%d", i))
-		assert.NoError(err)
-		assert.True(ok)
-	}
-
-	err = betaLRU.DeletePrefix(ctx, "prefix.")
-	assert.NoError(err)
-
-	for i := 1; i <= 10; i++ {
-		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("prefix.%d", i))
-		assert.NoError(err)
-		assert.False(ok)
-		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("other.%d", i))
-		assert.NoError(err)
-		assert.True(ok)
+// converge waits until every cache sees the full membership set.
+func converge(t testing.TB, caches ...*dlru.Cache) {
+	ok := eventually(3*time.Second, func() bool {
+		for _, c := range caches {
+			if len(c.Members()) != len(caches) {
+				return false
+			}
+		}
+		return true
+	})
+	if !ok {
+		t.Fatalf("caches did not converge to %d members", len(caches))
 	}
 }
 
-func TestDLRU_DeleteContains(t *testing.T) {
-	t.Parallel()
-	assert := testarossa.For(t)
-
-	ctx := t.Context()
-
-	alpha := connector.New("delete.contains.actions.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("delete.contains.actions.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	for i := 1; i <= 10; i++ {
-		alphaLRU.Store(ctx, fmt.Sprintf("alpha.%d.end", i), []byte("X"))
-	}
-	for i := 1; i <= 10; i++ {
-		betaLRU.Store(ctx, fmt.Sprintf("beta.%d.end", i), []byte("X"))
-	}
-
-	for i := 1; i <= 10; i++ {
-		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("alpha.%d.end", i))
-		assert.NoError(err)
-		assert.True(ok)
-		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("beta.%d.end", i))
-		assert.NoError(err)
-		assert.True(ok)
-	}
-
-	err = betaLRU.DeleteContains(ctx, ".1")
-	assert.NoError(err)
-
-	for i := 1; i <= 10; i++ {
-		_, ok, err := betaLRU.Load(ctx, fmt.Sprintf("alpha.%d.end", i))
-		assert.NoError(err)
-		assert.Equal(i != 1 && i != 10, ok)
-		_, ok, err = alphaLRU.Load(ctx, fmt.Sprintf("beta.%d.end", i))
-		assert.NoError(err)
-		assert.Equal(i != 1 && i != 10, ok)
+// keyOwnedBy returns a key whose HRW owner is the given peer ID.
+func keyOwnedBy(c *dlru.Cache, prefix, owner string) string {
+	for i := 0; ; i++ {
+		k := prefix + strconv.Itoa(i)
+		if c.OwnerOf(k) == owner {
+			return k
+		}
 	}
 }
 
+// TestDLRU_RandomActions drives a random sequence of store/load/delete across three replicas and
+// checks every load against a reference model. Ported from TestDLRU_RandomActions, extended to actually
+// exercise delete (the original's delete branch was unreachable), and to route through Cache's single
+// owner rather than the write-local model.
 func TestDLRU_RandomActions(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
+	ctx := context.Background()
 
-	ctx := t.Context()
-
-	alpha := connector.New("random.actions.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
+	host := "random.actions.cache.dlru"
+	alpha := startConn(t, ctx, host)
 	defer alpha.Shutdown(ctx)
-
-	beta := connector.New("random.actions.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
+	beta := startConn(t, ctx, host)
 	defer beta.Shutdown(ctx)
-
-	gamma := connector.New("random.actions.dlru")
-	err = gamma.Startup(ctx)
-	assert.NoError(err)
+	gamma := startConn(t, ctx, host)
 	defer gamma.Shutdown(ctx)
 
-	caches := []*dlru.Cache{
-		alpha.DistribCache(),
-		beta.DistribCache(),
-		gamma.DistribCache(),
-	}
+	alphaCache := newCache(t, ctx, alpha)
+	defer alphaCache.Close(ctx)
+	betaCache := newCache(t, ctx, beta)
+	defer betaCache.Close(ctx)
+	gammaCache := newCache(t, ctx, gamma)
+	defer gammaCache.Close(ctx)
+	converge(t, alphaCache, betaCache, gammaCache)
 
+	caches := []*dlru.Cache{alphaCache, betaCache, gammaCache}
 	state := map[string][]byte{}
-	for range 10000 {
+	for range 5000 {
 		cache := caches[rand.IntN(len(caches))]
 		key := strconv.Itoa(rand.IntN(20))
 		switch rand.IntN(4) {
-		case 1, 2: // Load
+		case 0, 1: // Load
 			bump := rand.IntN(2) == 1
 			val1, ok1, err := cache.Load(ctx, key, dlru.Bump(bump))
 			assert.NoError(err)
@@ -689,13 +1083,13 @@ func TestDLRU_RandomActions(t *testing.T) {
 			assert.Equal(ok2, ok1)
 			assert.Equal(val2, val1)
 
-		case 3: // Store
+		case 2: // Store
 			val := []byte(utils.RandomIdentifier(15))
 			err := cache.Store(ctx, key, val)
 			assert.NoError(err)
 			state[key] = val
 
-		case 4: // Delete
+		case 3: // Delete
 			err := cache.Delete(ctx, key)
 			assert.NoError(err)
 			delete(state, key)
@@ -703,214 +1097,54 @@ func TestDLRU_RandomActions(t *testing.T) {
 	}
 }
 
-func BenchmarkDLRU_Store(b *testing.B) {
-	ctx := context.Background()
-
-	alpha := connector.New("benchmark.store.dlru")
-	err := alpha.Startup(ctx)
-	testarossa.NoError(b, err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("benchmark.store.dlru")
-	err = beta.Startup(ctx)
-	testarossa.NoError(b, err)
-	defer beta.Shutdown(ctx)
-
-	b.ResetTimer()
-	for b.Loop() {
-		err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
-		testarossa.NoError(b, err)
-	}
-	b.StopTimer()
-
-	// goos: darwin
-	// goarch: arm64
-	// pkg: github.com/microbus-io/fabric/dlru
-	// cpu: Apple M1 Pro
-	// BenchmarkDLRU_Store-10    	    9290	    119185 ns/op	   17602 B/op	     300 allocs/op
-}
-
-func BenchmarkDLRU_Load(b *testing.B) {
-	ctx := context.Background()
-
-	alpha := connector.New("benchmark.load.dlru")
-	err := alpha.Startup(ctx)
-	testarossa.NoError(b, err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("benchmark.load.dlru")
-	err = beta.Startup(ctx)
-	testarossa.NoError(b, err)
-	defer beta.Shutdown(ctx)
-
-	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"))
-	testarossa.NoError(b, err)
-
-	b.ResetTimer()
-	for b.Loop() {
-		_, ok, err := alphaLRU.Load(ctx, "Foo")
-		testarossa.NoError(b, err)
-		testarossa.True(b, ok)
-	}
-	b.StopTimer()
-
-	// goos: darwin
-	// goarch: arm64
-	// pkg: github.com/microbus-io/fabric/dlru
-	// cpu: Apple M1 Pro
-	// BenchmarkDLRU_Load-10    	    9517	    116841 ns/op	   19462 B/op	     320 allocs/op
-}
-
-func BenchmarkDLRU_LoadNoConsistencyCheck(b *testing.B) {
-	ctx := context.Background()
-
-	alpha := connector.New("benchmark.load.dlru")
-	err := alpha.Startup(ctx)
-	testarossa.NoError(b, err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("benchmark.load.dlru")
-	err = beta.Startup(ctx)
-	testarossa.NoError(b, err)
-	defer beta.Shutdown(ctx)
-
-	err = alphaLRU.Store(ctx, "Foo", []byte("Bar"), dlru.Replicate(true))
-	testarossa.NoError(b, err)
-
-	b.ResetTimer()
-	for b.Loop() {
-		_, ok, err := alphaLRU.Load(ctx, "Foo", dlru.ConsistencyCheck(false))
-		testarossa.NoError(b, err)
-		testarossa.True(b, ok)
-	}
-	b.StopTimer()
-
-	// goos: darwin
-	// goarch: arm64
-	// pkg: github.com/microbus-io/fabric/dlru
-	// cpu: Apple M1 Pro
-	// BenchmarkDLRU_LoadNoConsistencyCheck-10    	 5620533	       190.4 ns/op	     120 B/op	       4 allocs/op
-}
-
-func TestDLRU_Interface(t *testing.T) {
-	t.Parallel()
-
-	c := connector.New("example")
-	_ = dlru.Service(c)
-}
-
-func TestDLRU_Compression(t *testing.T) {
+// TestDLRU_InvalidRequests ports TestDLRU_InvalidRequests.
+func TestDLRU_InvalidRequests(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
+	ctx := context.Background()
 
-	ctx := t.Context()
+	con := startConn(t, ctx, "invalid.requests.cache.dlru")
+	defer con.Shutdown(ctx)
+	cache := newCache(t, ctx, con)
+	defer cache.Close(ctx)
 
-	alpha := connector.New("compression.dlru")
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
-	alphaLRU := alpha.DistribCache()
-
-	beta := connector.New("compression.dlru")
-	err = beta.Startup(ctx)
-	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-	betaLRU := beta.DistribCache()
-
-	// Insert to alpha cache
-	payload := []byte("The quick brown fox jumps over the lazy dog")
-	err = alphaLRU.Store(ctx, "Fox", payload, dlru.Compress(true))
-	assert.NoError(err)
-
-	// Read from beta cache
-	value, ok, err := betaLRU.Load(ctx, "Fox")
-	if assert.NoError(err) && assert.True(ok) {
-		assert.Equal(payload, value)
-	}
-
-	// Insert to alpha cache
-	payload = []byte(utils.RandomIdentifier(10 << 10)) // 10KiB
-	err = alphaLRU.Store(ctx, "Random", payload, dlru.Compress(true))
-	assert.NoError(err)
-
-	// Read from beta cache
-	value, ok, err = betaLRU.Load(ctx, "Random")
-	if assert.NoError(err) && assert.True(ok) {
-		assert.Equal(payload, value)
-	}
+	_, _, err := cache.Load(ctx, "")
+	assert.Equal("missing key", err.Error())
+	err = cache.Store(ctx, "", nil)
+	assert.Equal("missing key", err.Error())
+	err = cache.Delete(ctx, "")
+	assert.Equal("missing key", err.Error())
 }
 
-func TestDLRU_AvailableInOnStartup(t *testing.T) {
+// TestDLRU_OptionGetters ports TestDLRU_Options (the max-age/max-memory getters).
+func TestDLRU_OptionGetters(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
-	ctx := t.Context()
+	ctx := context.Background()
 
-	alpha := connector.New("availeable.in.on.startup.dlru")
-	alpha.SetOnStartup(func(ctx context.Context) error {
-		alpha.DistribCache().Set(ctx, "Foo", "Bar")
-		return nil
-	})
-	err := alpha.Startup(ctx)
-	assert.NoError(err)
-	defer alpha.Shutdown(ctx)
+	con := startConn(t, ctx, "options.getters.cache.dlru")
+	defer con.Shutdown(ctx)
+	cache := newCache(t, ctx, con)
+	defer cache.Close(ctx)
 
-	beta := connector.New("availeable.in.on.startup.dlru")
-	beta.SetOnStartup(func(ctx context.Context) error {
-		var val string
-		beta.DistribCache().Get(ctx, "Foo", &val)
-		assert.Equal("Bar", val)
-		beta.DistribCache().Set(ctx, "Foo", "Baz")
-		return nil
-	})
-	err = beta.Startup(ctx)
+	err := cache.SetMaxAge(5 * time.Hour)
 	assert.NoError(err)
-	defer beta.Shutdown(ctx)
-
-	gamma := connector.New("availeable.in.on.startup.dlru")
-	gamma.SetOnStartup(func(ctx context.Context) error {
-		var val string
-		gamma.DistribCache().Get(ctx, "Foo", &val)
-		assert.Equal("Baz", val)
-		return nil
-	})
-	err = gamma.Startup(ctx)
+	err = cache.SetMaxMemoryMB(8)
 	assert.NoError(err)
-	defer gamma.Shutdown(ctx)
+	assert.Equal(5*time.Hour, cache.MaxAge())
+	assert.Equal(8*1024*1024, cache.MaxMemory())
 }
 
-func TestDLRU_LoadOrCompute(t *testing.T) {
+// TestDLRU_ComputeStampede ports the singleflight-focused subtests of TestDLRU_LoadOrCompute and
+// TestDLRU_GetOrCompute that the basic Cache compute test does not cover.
+func TestDLRU_ComputeStampede(t *testing.T) {
 	t.Parallel()
-	ctx := t.Context()
+	ctx := context.Background()
 
-	alpha := connector.New("load.or.compute.dlru")
-	err := alpha.Startup(ctx)
-	testarossa.For(t).NoError(err)
-	defer alpha.Shutdown(ctx)
-	cache := alpha.DistribCache()
-
-	t.Run("miss_invokes_maker_and_caches", func(t *testing.T) {
-		assert := testarossa.For(t)
-		var calls int
-		value, err := cache.LoadOrCompute(ctx, "miss-key", func(ctx context.Context) ([]byte, error) {
-			calls++
-			return []byte("computed"), nil
-		})
-		assert.NoError(err)
-		assert.Equal([]byte("computed"), value)
-		assert.Equal(1, calls)
-
-		// Second call should hit the cache; maker not invoked.
-		value, err = cache.LoadOrCompute(ctx, "miss-key", func(ctx context.Context) ([]byte, error) {
-			calls++
-			return []byte("should-not-be-called"), nil
-		})
-		assert.NoError(err)
-		assert.Equal([]byte("computed"), value)
-		assert.Equal(1, calls)
-	})
+	con := startConn(t, ctx, "compute.stampede.cache.dlru")
+	defer con.Shutdown(ctx)
+	cache := newCache(t, ctx, con)
+	defer cache.Close(ctx)
 
 	t.Run("singleflight_dedups_concurrent_makers", func(t *testing.T) {
 		assert := testarossa.For(t)
@@ -941,45 +1175,6 @@ func TestDLRU_LoadOrCompute(t *testing.T) {
 		}
 	})
 
-	t.Run("error_not_cached_and_returned_to_waiters", func(t *testing.T) {
-		assert := testarossa.For(t)
-		const goroutines = 20
-		var calls atomic.Int64
-		release := make(chan struct{})
-		var wg sync.WaitGroup
-		wg.Add(goroutines)
-		errs := make([]error, goroutines)
-		for i := range goroutines {
-			go func() {
-				defer wg.Done()
-				<-release
-				_, errs[i] = cache.LoadOrCompute(ctx, "error-key", func(ctx context.Context) ([]byte, error) {
-					calls.Add(1)
-					time.Sleep(50 * time.Millisecond)
-					return nil, errors.New("maker failed")
-				})
-			}()
-		}
-		close(release)
-		wg.Wait()
-		assert.Equal(int64(1), calls.Load())
-		for i := range goroutines {
-			assert.Error(errs[i])
-			assert.Contains(errs[i].Error(), "maker failed")
-		}
-
-		// Cache stayed empty; next caller retries.
-		_, ok, err := cache.Load(ctx, "error-key")
-		assert.NoError(err)
-		assert.False(ok)
-
-		value, err := cache.LoadOrCompute(ctx, "error-key", func(ctx context.Context) ([]byte, error) {
-			return []byte("recovered"), nil
-		})
-		assert.NoError(err)
-		assert.Equal([]byte("recovered"), value)
-	})
-
 	t.Run("validates_inputs", func(t *testing.T) {
 		assert := testarossa.For(t)
 		_, err := cache.LoadOrCompute(ctx, "", func(ctx context.Context) ([]byte, error) {
@@ -992,8 +1187,6 @@ func TestDLRU_LoadOrCompute(t *testing.T) {
 
 	t.Run("forwards_store_options", func(t *testing.T) {
 		assert := testarossa.For(t)
-		// Compress is detectable: the brotli wrapper rewrites stored bytes, but Load returns
-		// the decompressed payload, so verify by storing a long string and reading back equal.
 		payload := []byte(utils.RandomIdentifier(4 << 10)) // 4KiB
 		value, err := cache.LoadOrCompute(ctx, "compressed-key", func(ctx context.Context) ([]byte, error) {
 			return payload, nil
@@ -1008,156 +1201,617 @@ func TestDLRU_LoadOrCompute(t *testing.T) {
 	})
 }
 
-func TestDLRU_GetOrCompute(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
+// TestDLRU_Soak sustains concurrent store/load/delete traffic against a stable core of replicas
+// while a churner replica joins and leaves continuously. Run under -race, it stresses the membership,
+// generation-gate, offload, and 404-rediscover paths for data races and deadlocks, and checks that
+// goroutines do not grow unbounded after the churn stops. It is not a correctness oracle - the reference
+// model check lives in FuzzDLRU_, which runs against a quiescent cluster.
+func TestDLRU_Soak(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping soak test in -short mode")
+	}
+	ctx := context.Background()
+	host := "soak.cache.dlru"
 
-	alpha := connector.New("get.or.compute.dlru")
-	err := alpha.Startup(ctx)
-	testarossa.For(t).NoError(err)
-	defer alpha.Shutdown(ctx)
-	cache := alpha.DistribCache()
+	// Stable core of two replicas.
+	coreCons := make([]*connector.Connector, 0, 2)
+	coreCaches := make([]*dlru.Cache, 0, 2)
+	for range 2 {
+		con := startConn(t, ctx, host)
+		coreCons = append(coreCons, con)
+		coreCaches = append(coreCaches, newCache(t, ctx, con))
+	}
+	defer func() {
+		for _, c := range coreCaches {
+			c.Close(ctx)
+		}
+		for _, con := range coreCons {
+			con.Shutdown(ctx)
+		}
+	}()
+	converge(t, coreCaches...)
 
-	type user struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
+	runtime.GC()
+	baseline := runtime.NumGoroutine()
+
+	runCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	var failOnce sync.Once
+	var failed atomic.Bool
+	fail := func(where string, err error) {
+		failOnce.Do(func() {
+			t.Errorf("soak %s failed: %v", where, err)
+			failed.Store(true)
+		})
+	}
+	stop := func() bool { return runCtx.Err() != nil || failed.Load() }
+
+	var wg sync.WaitGroup
+
+	// Operation workers.
+	for range 4 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for !stop() {
+				cache := coreCaches[rand.IntN(len(coreCaches))]
+				key := fmt.Sprintf("k%d", rand.IntN(128))
+				switch op := rand.IntN(10); {
+				case op < 4:
+					err := cache.Store(ctx, key, []byte(utils.RandomIdentifier(16)))
+					if err != nil {
+						fail("store", err)
+						return
+					}
+				case op < 7:
+					_, _, err := cache.Load(ctx, key)
+					if err != nil {
+						fail("load", err)
+						return
+					}
+				case op < 9:
+					err := cache.Delete(ctx, key)
+					if err != nil {
+						fail("delete", err)
+						return
+					}
+				default:
+					err := cache.Set(ctx, key, "v")
+					if err != nil {
+						fail("set", err)
+						return
+					}
+				}
+			}
+		}()
 	}
 
-	t.Run("miss_invokes_maker_and_caches_typed_value", func(t *testing.T) {
-		assert := testarossa.For(t)
-		var calls int
-		var got user
-		err := cache.GetOrCompute(ctx, "user/1", &got, func(ctx context.Context) (any, error) {
-			calls++
-			return user{ID: 1, Name: "Alice"}, nil
-		})
-		assert.NoError(err)
-		assert.Equal(user{ID: 1, Name: "Alice"}, got)
-		assert.Equal(1, calls)
-
-		// Second call hits cache.
-		var got2 user
-		err = cache.GetOrCompute(ctx, "user/1", &got2, func(ctx context.Context) (any, error) {
-			calls++
-			return user{ID: 999, Name: "Bogus"}, nil
-		})
-		assert.NoError(err)
-		assert.Equal(user{ID: 1, Name: "Alice"}, got2)
-		assert.Equal(1, calls)
-	})
-
-	t.Run("singleflight_dedups_concurrent_makers", func(t *testing.T) {
-		assert := testarossa.For(t)
-		const goroutines = 100
-		var calls atomic.Int64
-		release := make(chan struct{})
-		var wg sync.WaitGroup
-		wg.Add(goroutines)
-		results := make([]user, goroutines)
-		errs := make([]error, goroutines)
-		for i := range goroutines {
-			go func() {
-				defer wg.Done()
-				<-release
-				errs[i] = cache.GetOrCompute(ctx, "user/stampede", &results[i], func(ctx context.Context) (any, error) {
-					calls.Add(1)
-					time.Sleep(50 * time.Millisecond)
-					return user{ID: 42, Name: "Bob"}, nil
-				})
-			}()
+	// Churn worker: bring a third replica in and out, forcing membership and generation changes plus
+	// offload on every departure.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for !stop() {
+			con := connector.New(host)
+			err := con.Startup(ctx)
+			if err != nil {
+				fail("churn startup", err)
+				return
+			}
+			churner := newCache(t, ctx, con)
+			time.Sleep(150 * time.Millisecond)
+			err = churner.Close(ctx)
+			if err != nil {
+				fail("churn close", err)
+				con.Shutdown(ctx)
+				return
+			}
+			err = con.Shutdown(ctx)
+			if err != nil {
+				fail("churn shutdown", err)
+				return
+			}
 		}
-		close(release)
-		wg.Wait()
-		assert.Equal(int64(1), calls.Load())
-		for i := range goroutines {
-			assert.NoError(errs[i])
-			assert.Equal(user{ID: 42, Name: "Bob"}, results[i])
-		}
-	})
+	}()
 
-	t.Run("error_not_cached", func(t *testing.T) {
-		assert := testarossa.For(t)
-		var got user
-		err := cache.GetOrCompute(ctx, "user/error", &got, func(ctx context.Context) (any, error) {
-			return nil, errors.New("backend down")
+	wg.Wait()
+
+	// Let the core settle back to two members and any offload goroutines drain, then check the cluster is
+	// still functional and goroutines have not leaked.
+	converge(t, coreCaches...)
+	err := coreCaches[0].Store(ctx, "final", []byte("ok"))
+	if err != nil {
+		t.Fatalf("post-soak store: %v", err)
+	}
+	val, ok, err := coreCaches[1].Load(ctx, "final")
+	if err != nil {
+		t.Fatalf("post-soak load: %v", err)
+	}
+	if !ok || string(val) != "ok" {
+		t.Fatalf("post-soak load: ok=%v val=%q", ok, val)
+	}
+
+	time.Sleep(500 * time.Millisecond)
+	runtime.GC()
+	final := runtime.NumGoroutine()
+	t.Logf("goroutines: baseline=%d final=%d", baseline, final)
+	// Generous bound: the churner is fully closed, so goroutines should return near the baseline. A gross
+	// leak (undrained offload responses, leaked ping loops) would blow well past this.
+	if final > baseline+40 {
+		t.Errorf("goroutine growth suggests a leak: baseline=%d final=%d", baseline, final)
+	}
+}
+
+// Shared cluster for the fuzz target, built once and reused across inputs.
+var (
+	fuzzOnce  sync.Once
+	fuzzMu    sync.Mutex
+	fuzzAlpha *dlru.Cache
+	fuzzBeta  *dlru.Cache
+	fuzzCtx   = context.Background()
+)
+
+// FuzzDLRU_ drives randomized operation sequences over a small key space against a stable two-replica
+// cluster, checking the full key space against a reference model after every operation. Because the cluster
+// is quiescent (no membership churn), Cache's single-owner routing is immediately consistent, so the model
+// is exact: it also asserts the single-copy invariant (each present key is held by exactly one replica).
+func FuzzDLRU_(f *testing.F) {
+	f.Add([]byte{0, 0, 5})
+	f.Add([]byte{0, 0, 1, 1, 3, 2, 2, 1, 7})
+	f.Add([]byte{0, 0, 9, 0, 3, 9, 5, 0, 0, 6, 1, 0})
+	f.Add([]byte{4, 0, 0, 0, 1, 1, 2, 2, 2})
+
+	keys := []string{"a0", "a1", "a2", "b0", "b1", "b2", "c0", "c1", "c2"}
+	prefixes := []string{"a", "b", "c"}
+	digits := []string{"0", "1", "2"}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		fuzzMu.Lock()
+		defer fuzzMu.Unlock()
+
+		fuzzOnce.Do(func() {
+			host := "fuzz.cache.dlru"
+			a := connector.New(host)
+			err := a.Startup(fuzzCtx)
+			if err != nil {
+				t.Fatalf("fuzz alpha startup: %v", err)
+			}
+			b := connector.New(host)
+			err = b.Startup(fuzzCtx)
+			if err != nil {
+				t.Fatalf("fuzz beta startup: %v", err)
+			}
+			fuzzAlpha = newCache(t, fuzzCtx, a)
+			fuzzBeta = newCache(t, fuzzCtx, b)
+			converge(t, fuzzAlpha, fuzzBeta)
 		})
-		assert.Error(err)
-		assert.Contains(err.Error(), "backend down")
 
-		ok, err := cache.Has(ctx, "user/error")
-		assert.NoError(err)
-		assert.False(ok)
-	})
+		// Isolate each input.
+		err := fuzzAlpha.Clear(fuzzCtx)
+		if err != nil {
+			t.Fatalf("clear: %v", err)
+		}
+		model := map[string][]byte{}
 
-	t.Run("nil_maker_returns_error", func(t *testing.T) {
-		assert := testarossa.For(t)
-		var got user
-		err := cache.GetOrCompute(ctx, "user/nil", &got, nil)
-		assert.Error(err)
+		i := 0
+		for i+1 < len(data) {
+			op, sel := data[i], data[i+1]
+			i += 2
+			var vb byte
+			if i < len(data) {
+				vb = data[i]
+				i++
+			}
+			key := keys[int(sel)%len(keys)]
+			val := bytes.Repeat([]byte{vb}, 1+int(vb)%8)
+			cache := fuzzAlpha
+			if sel&1 == 1 {
+				cache = fuzzBeta
+			}
+
+			switch op % 7 {
+			case 0: // store
+				err = cache.Store(fuzzCtx, key, val)
+				model[key] = val
+			case 1: // store compressed
+				err = cache.Store(fuzzCtx, key, val, dlru.Compress(true))
+				model[key] = val
+			case 2: // typed set
+				err = cache.Set(fuzzCtx, key, string(val))
+				model[key] = val
+			case 3: // delete
+				err = cache.Delete(fuzzCtx, key)
+				delete(model, key)
+			case 4: // clear
+				err = cache.Clear(fuzzCtx)
+				model = map[string][]byte{}
+			case 5: // delete prefix
+				p := prefixes[int(sel)%len(prefixes)]
+				err = cache.DeletePrefix(fuzzCtx, p)
+				for k := range model {
+					if strings.HasPrefix(k, p) {
+						delete(model, k)
+					}
+				}
+			case 6: // delete contains
+				d := digits[int(vb)%len(digits)]
+				err = cache.DeleteContains(fuzzCtx, d)
+				for k := range model {
+					if strings.Contains(k, d) {
+						delete(model, k)
+					}
+				}
+			}
+			if err != nil {
+				t.Fatalf("op %d on key %s: %v", op%7, key, err)
+			}
+
+			// Verify the full key space from both replicas against the model, plus single-copy placement.
+			for _, k := range keys {
+				want, present := model[k]
+				for _, cc := range []*dlru.Cache{fuzzAlpha, fuzzBeta} {
+					got, ok, err := cc.Load(fuzzCtx, k)
+					if err != nil {
+						t.Fatalf("load %s: %v", k, err)
+					}
+					if ok != present {
+						t.Fatalf("key %s presence: got %v want %v", k, ok, present)
+					}
+					if present && !bytes.Equal(got, want) {
+						t.Fatalf("key %s value: got %q want %q", k, got, want)
+					}
+				}
+				copies := 0
+				if _, ok := fuzzAlpha.LocalCache().Load(k); ok {
+					copies++
+				}
+				if _, ok := fuzzBeta.LocalCache().Load(k); ok {
+					copies++
+				}
+				exp := 0
+				if present {
+					exp = 1
+				}
+				if copies != exp {
+					t.Fatalf("key %s copies: got %d want %d", k, copies, exp)
+				}
+			}
+		}
 	})
 }
 
-// TestDLRU_LifecycleSurvivesRestart pins the restart contract; see CLAUDE.md.
-func TestDLRU_LifecycleSurvivesRestart(t *testing.T) {
-	// No parallel - restarts a connector.
-	ctx := t.Context()
+// BenchmarkDLRU_StoreLocal stores a key this replica owns (no round trip).
+func BenchmarkDLRU_StoreLocal(b *testing.B) {
+	ctx := context.Background()
+	alpha := startConn(b, ctx, "bench.store.cache.dlru")
+	defer alpha.Shutdown(ctx)
+	beta := startConn(b, ctx, "bench.store.cache.dlru")
+	defer beta.Shutdown(ctx)
+	alphaCache := newCache(b, ctx, alpha)
+	defer alphaCache.Close(ctx)
+	betaCache := newCache(b, ctx, beta)
+	defer betaCache.Close(ctx)
+	converge(b, alphaCache, betaCache)
 
-	verify := func(t *testing.T, alpha, beta *connector.Connector) {
-		t.Helper()
-		assert := testarossa.For(t)
-		// alpha stores locally; beta's Load broadcasts and must reach alpha's /all sub.
-		err := alpha.DistribCache().Store(ctx, "k", []byte("v"))
+	key := keyOwnedBy(alphaCache, "local-", alpha.ID())
+	b.ResetTimer()
+	for b.Loop() {
+		err := alphaCache.Store(ctx, key, []byte("Bar"))
+		testarossa.NoError(b, err)
+	}
+	b.StopTimer()
+}
+
+// BenchmarkDLRU_StoreRemote stores a key owned by the peer (one unicast round trip).
+func BenchmarkDLRU_StoreRemote(b *testing.B) {
+	ctx := context.Background()
+	alpha := startConn(b, ctx, "bench.store.cache.dlru")
+	defer alpha.Shutdown(ctx)
+	beta := startConn(b, ctx, "bench.store.cache.dlru")
+	defer beta.Shutdown(ctx)
+	alphaCache := newCache(b, ctx, alpha)
+	defer alphaCache.Close(ctx)
+	betaCache := newCache(b, ctx, beta)
+	defer betaCache.Close(ctx)
+	converge(b, alphaCache, betaCache)
+
+	key := keyOwnedBy(alphaCache, "remote-", beta.ID())
+	b.ResetTimer()
+	for b.Loop() {
+		err := alphaCache.Store(ctx, key, []byte("Bar"))
+		testarossa.NoError(b, err)
+	}
+	b.StopTimer()
+}
+
+// BenchmarkDLRU_LoadLocal loads a key this replica owns (served from local memory).
+func BenchmarkDLRU_LoadLocal(b *testing.B) {
+	ctx := context.Background()
+	alpha := startConn(b, ctx, "bench.load.cache.dlru")
+	defer alpha.Shutdown(ctx)
+	beta := startConn(b, ctx, "bench.load.cache.dlru")
+	defer beta.Shutdown(ctx)
+	alphaCache := newCache(b, ctx, alpha)
+	defer alphaCache.Close(ctx)
+	betaCache := newCache(b, ctx, beta)
+	defer betaCache.Close(ctx)
+	converge(b, alphaCache, betaCache)
+
+	key := keyOwnedBy(alphaCache, "local-", alpha.ID())
+	err := alphaCache.Store(ctx, key, []byte("Bar"))
+	testarossa.NoError(b, err)
+	b.ResetTimer()
+	for b.Loop() {
+		_, ok, err := alphaCache.Load(ctx, key)
+		testarossa.NoError(b, err)
+		testarossa.True(b, ok)
+	}
+	b.StopTimer()
+}
+
+// BenchmarkDLRU_LoadRemote loads a key owned by the peer (one unicast round trip).
+func BenchmarkDLRU_LoadRemote(b *testing.B) {
+	ctx := context.Background()
+	alpha := startConn(b, ctx, "bench.load.cache.dlru")
+	defer alpha.Shutdown(ctx)
+	beta := startConn(b, ctx, "bench.load.cache.dlru")
+	defer beta.Shutdown(ctx)
+	alphaCache := newCache(b, ctx, alpha)
+	defer alphaCache.Close(ctx)
+	betaCache := newCache(b, ctx, beta)
+	defer betaCache.Close(ctx)
+	converge(b, alphaCache, betaCache)
+
+	key := keyOwnedBy(alphaCache, "remote-", beta.ID())
+	err := alphaCache.Store(ctx, key, []byte("Bar"))
+	testarossa.NoError(b, err)
+	b.ResetTimer()
+	for b.Loop() {
+		_, ok, err := alphaCache.Load(ctx, key)
+		testarossa.NoError(b, err)
+		testarossa.True(b, ok)
+	}
+	b.StopTimer()
+}
+
+// TestDLRU_ConcurrentStartupConvergence pins the startup-convergence contract: when replicas start
+// concurrently, every replica must know the full membership set and cross-replica read-after-write must
+// succeed immediately, with no settle time. It deliberately leaves the ping interval at its default (one
+// minute) so periodic re-discovery cannot mask a join that raced subscription activation - the startup
+// join exchange alone must converge the cluster. Regresses the bug where a join broadcast arriving before
+// a peer's subscription was active left that peer unaware of the joiner (and routing keys to the wrong
+// owner) until the next ping.
+func TestDLRU_ConcurrentStartupConvergence(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	const replicas = 3
+	for trial := range 8 {
+		host := fmt.Sprintf("converge%d.cache.dlru", trial)
+		cons := make([]*connector.Connector, replicas)
+		for i := range cons {
+			cons[i] = startConn(t, ctx, host)
+		}
+
+		// Create the caches concurrently so join broadcasts race subscription activation. Default ping
+		// interval - no re-discovery to paper over a missed join.
+		caches := make([]*dlru.Cache, replicas)
+		errs := make([]error, replicas)
+		var wg sync.WaitGroup
+		for i := range caches {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				caches[i], errs[i] = dlru.NewCache(ctx, cons[i], ":444/testcache")
+			}()
+		}
+		wg.Wait()
+		for i := range errs {
+			assert.NoError(errs[i])
+		}
+
+		// Every replica must see the full set as soon as construction returns.
+		full := make([]string, replicas)
+		for i := range cons {
+			full[i] = cons[i].ID()
+		}
+		slices.Sort(full)
+		for i, c := range caches {
+			assert.Equal(full, c.Members(), "trial %d replica %d did not converge", trial, i)
+		}
+
+		// Cross-replica read-after-write must succeed with no settle time: store via one replica, load via
+		// the next. A membership disagreement would route these to different owners and miss.
+		for k := 0; k < 4*replicas; k++ {
+			key := fmt.Sprintf("k%d", k)
+			val := []byte(fmt.Sprintf("v%d", k))
+			err := caches[k%replicas].Store(ctx, key, val)
+			assert.NoError(err)
+			got, ok, err := caches[(k+1)%replicas].Load(ctx, key)
+			assert.NoError(err)
+			assert.True(ok, "trial %d key %s missing after cross-replica store", trial, key)
+			assert.Equal(val, got)
+		}
+
+		for _, c := range caches {
+			c.Close(ctx)
+		}
+		for _, con := range cons {
+			con.Shutdown(ctx)
+		}
+	}
+}
+
+// TestDLRU_ShedInFlight freezes a join-triggered shed at the exact moment before a displaced key is
+// soft-stored to its new owner and, in that window, exercises the two guarantees that make an in-flight
+// shed safe: a Load for the moving key still resolves (previous-generation retry falls back to the old
+// owner, which is still serving and still holds the value), and an upstream write to the new owner is not
+// clobbered by the offloaded value (soft store is store-if-absent). A checkpoint makes the window
+// deterministic instead of relying on timing.
+func TestDLRU_ShedInFlight(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("shedinflight.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	// alpha is the sole owner: store a spread of keys as V1, all landing on alpha.
+	var keys []string
+	for i := 0; i < 16; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("V1"))
 		assert.NoError(err)
-		val, ok, err := beta.DistribCache().Load(ctx, "k")
-		assert.NoError(err)
-		assert.True(ok, "beta should have loaded k from alpha via /all broadcast")
-		assert.Equal("v", string(val))
 	}
 
-	t.Run("clean_restart", func(t *testing.T) {
-		assert := testarossa.For(t)
+	// Freeze alpha's join-triggered shed just before the first displaced key is soft-stored. handleJoin
+	// has already added beta and computed the offload set, but nothing has been deleted, so every
+	// displaced key is still on alpha.
+	alphaCache.Seams().Break(dlru.CheckpointOffloadBeforeStore)
 
-		alpha := connector.New("restart.clean.dlru")
-		err := alpha.Startup(ctx)
-		assert.NoError(err)
-		err = alpha.Shutdown(ctx)
-		assert.NoError(err)
-		err = alpha.Startup(ctx)
-		assert.NoError(err)
-		defer alpha.Shutdown(ctx)
+	beta := connector.New("shedinflight.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	var betaCache *dlru.Cache
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// broadcastJoin blocks on alpha's frozen handleJoin response until the shed is resumed.
+		betaCache, _ = dlru.NewCache(ctx, beta, ":444/test")
+	}()
 
-		beta := connector.New("restart.clean.dlru")
-		err = beta.Startup(ctx)
-		assert.NoError(err)
-		defer beta.Shutdown(ctx)
+	// Wait until alpha is frozen mid-shed.
+	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
 
-		verify(t, alpha, beta)
+	// alpha has added beta by now. Pick a key beta owns that is still physically on alpha.
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	assert.Equal(both, alphaCache.Members())
+	var moved string
+	for _, k := range keys {
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			moved = k
+			break
+		}
+	}
+	assert.NotEqual("", moved)
+
+	// Liveness during shed: a Load for the moving key still resolves. The new owner (beta) misses, and the
+	// previous-generation retry falls back to alpha, which is still serving and still holds V1.
+	val, ok, err := alphaCache.Load(ctx, moved)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("V1", string(val))
+
+	// No clobber during shed: an upstream write of V2, routed to the new owner beta while the shed is
+	// frozen, must survive the offload's soft store.
+	err = alphaCache.Store(ctx, moved, []byte("V2"))
+	assert.NoError(err)
+
+	// Release the shed and let beta finish joining.
+	alphaCache.Seams().Resume(dlru.CheckpointOffloadBeforeStore)
+	<-done
+	assert.NotNil(betaCache)
+	defer betaCache.Close(ctx)
+
+	// The upstream V2 won; the soft-stored V1 did not clobber it.
+	got, ok, err := betaCache.Load(ctx, moved)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("V2", string(got))
+}
+
+// TestDLRU_StoreGateDuringTopologyChange freezes a Store after it has chosen its owner and stamped the
+// current generation onto the request, then changes the topology (a third replica joins, bumping the
+// generation) before releasing it. The store carries the now-previous generation to its owner, which
+// still accepts it within the overlap window (previous-generation acceptance), so the value lands rather
+// than being dropped. This exercises the generation gate against a real concurrent membership change,
+// deterministically, rather than the forged staleGen fault.
+func TestDLRU_StoreGateDuringTopologyChange(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("gatetopo.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	beta := connector.New("gatetopo.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/test")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
 	})
+	assert.True(converged)
 
-	t.Run("restart_after_failed_onstartup", func(t *testing.T) {
-		assert := testarossa.For(t)
+	// A key beta owns, so alpha routes the store remotely and stamps the current generation.
+	var key string
+	for i := 0; ; i++ {
+		k := "k" + strconv.Itoa(i)
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			key = k
+			break
+		}
+	}
 
-		alpha := connector.New("restart.failed.dlru")
-		var fail bool = true
-		alpha.SetOnStartup(func(ctx context.Context) error {
-			if fail {
-				return errors.New("simulated startup failure")
-			}
-			return nil
-		})
-		err := alpha.Startup(ctx)
-		assert.Error(err, "first Startup should fail because OnStartup returned an error")
+	// Freeze the store after owner and generation are stamped, before the request is sent.
+	alphaCache.Seams().Break(dlru.CheckpointBeforeSend)
+	var storeErr error
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		storeErr = alphaCache.Store(ctx, key, []byte("V"))
+	}()
+	alphaCache.Seams().Wait(dlru.CheckpointBeforeSend)
 
-		fail = false
-		err = alpha.Startup(ctx)
-		assert.NoError(err)
-		defer alpha.Shutdown(ctx)
+	// Change the topology underneath the in-flight store: a third replica joins, bumping the generation
+	// on alpha and beta (their message handlers process the join independently of the frozen store).
+	gamma := connector.New("gatetopo.dlru")
+	err = gamma.Startup(ctx)
+	assert.NoError(err)
+	defer gamma.Shutdown(ctx)
+	gammaCache, err := dlru.NewCache(ctx, gamma, ":444/test")
+	assert.NoError(err)
+	defer gammaCache.Close(ctx)
 
-		beta := connector.New("restart.failed.dlru")
-		err = beta.Startup(ctx)
-		assert.NoError(err)
-		defer beta.Shutdown(ctx)
-
-		verify(t, alpha, beta)
+	allThree := []string{alpha.ID(), beta.ID(), gamma.ID()}
+	slices.Sort(allThree)
+	converged = eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), allThree) && slices.Equal(betaCache.Members(), allThree)
 	})
+	assert.True(converged)
+
+	// Release the store. It carries the previous generation to beta, which still accepts it within the
+	// overlap window.
+	alphaCache.Seams().Resume(dlru.CheckpointBeforeSend)
+	<-done
+	assert.NoError(storeErr)
+
+	// The value landed and is retrievable (from beta directly, or via a previous-generation retry if
+	// ownership moved to gamma under the new generation).
+	val, ok, err := betaCache.Load(ctx, key)
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("V", string(val))
 }

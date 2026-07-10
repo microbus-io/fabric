@@ -104,10 +104,11 @@ Example:
 	c.LogDebug(ctx, "Tight loop", "index", i)
 */
 func (c *Connector) LogDebug(ctx context.Context, msg string, args ...any) {
-	if c.logger == nil {
+	logger := c.logger.Load()
+	if logger == nil {
 		return
 	}
-	c.logger.DebugContext(ctx, msg, args...)
+	logger.DebugContext(ctx, msg, args...)
 }
 
 /*
@@ -120,10 +121,11 @@ Example:
 	c.LogInfo(ctx, "File uploaded", "gb", sizeGB)
 */
 func (c *Connector) LogInfo(ctx context.Context, msg string, args ...any) {
-	if c.logger == nil {
+	logger := c.logger.Load()
+	if logger == nil {
 		return
 	}
-	c.logger.InfoContext(ctx, msg, args...)
+	logger.InfoContext(ctx, msg, args...)
 }
 
 /*
@@ -136,10 +138,11 @@ Example:
 	c.LogWarn(ctx, "Dropping job", "job", jobID)
 */
 func (c *Connector) LogWarn(ctx context.Context, msg string, args ...any) {
-	if c.logger == nil {
+	logger := c.logger.Load()
+	if logger == nil {
 		return
 	}
-	c.logger.WarnContext(ctx, msg, args...)
+	logger.WarnContext(ctx, msg, args...)
 }
 
 /*
@@ -153,10 +156,11 @@ Example:
 	c.LogError(ctx, "Opening file", "error", err, "file", fileName)
 */
 func (c *Connector) LogError(ctx context.Context, msg string, args ...any) {
-	if c.logger == nil {
+	logger := c.logger.Load()
+	if logger == nil {
 		return
 	}
-	c.logger.ErrorContext(ctx, msg, args...)
+	logger.ErrorContext(ctx, msg, args...)
 }
 
 // discardLogger is returned by Logger before Startup, so the accessor never returns nil and pre-startup logging is a
@@ -172,16 +176,17 @@ var discardLogger = slog.New(slog.DiscardHandler)
 // Fetch the logger at point of use rather than caching it across Startup: the discard logger is replaced by the
 // real one during Startup, so a reference held from before Startup keeps discarding.
 func (c *Connector) Logger() *slog.Logger {
-	if c.logger == nil {
+	logger := c.logger.Load()
+	if logger == nil {
 		return discardLogger
 	}
-	return c.logger
+	return logger
 }
 
 // initLogger initializes a logger to match the deployment environment, fanning out to an OTLP logs exporter when one
 // is configured via the environment.
 func (c *Connector) initLogger(ctx context.Context) (err error) {
-	if c.logger != nil {
+	if c.logger.Load() != nil {
 		return nil
 	}
 
@@ -216,13 +221,13 @@ func (c *Connector) initLogger(ctx context.Context) (err error) {
 		return errors.Trace(err)
 	}
 
-	c.logger = slog.New(&logHandler{c: c, console: console, otel: otelLeg}).With(
+	c.logger.Store(slog.New(&logHandler{c: c, console: console, otel: otelLeg}).With(
 		"plane", c.Plane(),
 		"service", c.Hostname(),
 		"ver", c.Version(),
 		"id", c.ID(),
 		"deployment", c.Deployment(),
-	)
+	))
 	return nil
 }
 
@@ -271,7 +276,7 @@ func (c *Connector) termLogger(ctx context.Context) (err error) {
 	}
 	releaseOTLPConn(c.logOTLPKey)
 	c.logOTLPKey = ""
-	c.logger = nil
+	c.logger.Store(nil)
 	if err != nil {
 		return errors.Trace(err)
 	}

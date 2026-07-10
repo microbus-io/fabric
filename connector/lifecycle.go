@@ -229,6 +229,12 @@ func (c *Connector) Startup(ctx context.Context) (err error) {
 		if err != nil {
 			return errors.Trace(err)
 		}
+		// Cap the shutdown offload so it fits within the mandatory teardown budget alongside the other
+		// teardown steps (see teardownBudget). This also sets the cache's previous-generation retry window.
+		err = c.distribCache.SetOffloadDuration(cacheOffloadBudget)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	// Call the callback function
@@ -401,6 +407,11 @@ func (c *Connector) Shutdown(ctx context.Context) (err error) {
 // (dlru close, OTel flush) so they don't run unbounded if a downstream is unreachable.
 // The per-export OTLP timeout (see OTel docs) governs each network attempt within that.
 const teardownBudget = 2 * time.Second
+
+// cacheOffloadBudget caps the distributed cache's shutdown offload so it fits within teardownBudget
+// alongside the other mandatory teardown steps (transport disconnect, OTel flush). It also sets the
+// cache's previous-generation retry window to twice this value.
+const cacheOffloadBudget = teardownBudget - 500*time.Millisecond
 
 // drainPendingOps polls pendingOps until it reaches zero or deadline passes. Returns
 // the number of operations still pending when it returns.

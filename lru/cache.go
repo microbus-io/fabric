@@ -81,12 +81,10 @@ func (c *Cache[K, V]) Store(key K, value V, options ...Option) {
 	for _, opt := range options {
 		opt(&opts)
 	}
-	if opts.Weight > c.maxWeight {
-		// Too heavy for this cache
-		return
-	}
 	c.lock.Lock()
 	now := c.now()
+	// Always drop any prior entry under this key first, even when the new value is too heavy to keep:
+	// leaving the old value in place would serve a stale entry the caller believes it overwrote.
 	c.delete(key, now)
 	c.store(key, value, opts, now)
 	c.lock.Unlock()
@@ -94,6 +92,11 @@ func (c *Cache[K, V]) Store(key K, value V, options ...Option) {
 
 func (c *Cache[K, V]) store(key K, value V, opts cacheOptions, now time.Time) {
 	if c.maxWeight <= 0 || c.maxAge <= 0 {
+		return
+	}
+	if opts.Weight > c.maxWeight {
+		// Too heavy for this cache; do not insert. Storing it and letting diet evict it would shed other,
+		// smaller live entries from the tail to make room for a value that cannot be kept anyway.
 		return
 	}
 	c.maybeTrimOldest(2, now)

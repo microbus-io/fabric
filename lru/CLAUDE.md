@@ -67,3 +67,15 @@ Capacity is a total **weight**, not an entry count; each entry carries a caller-
 `SetMaxWeight`/`SetMaxMemory` (in dlru) bound the sum. `diet` evicts from the tail until the total is back under the
 limit. Billing by weight is what lets dlru account real memory honestly (it weighs each value by its byte length),
 so the eviction budget reflects bytes held rather than a proxy count.
+
+A value whose own weight exceeds `maxWeight` can never be kept, and `store` rejects it up front rather than inserting
+it and letting `diet` reclaim it. Inserting first is not equivalent: the oversized node pushes the total over the
+limit, so `diet` would shed *other, smaller, live* entries from the tail before finally evicting the oversized one -
+wiping good data to make room for a value that cannot stay. Two consequences at the seam:
+
+- `Store` still deletes any prior entry under the key **before** the size check, so overwriting with an oversized
+  value removes the old value rather than leaving a stale one the caller believes it replaced. (The distributed
+  `dlru` layer above returns success regardless of whether the local keep happened, so this delete is what prevents
+  a stale local read after an oversized overwrite.)
+- `LoadOrStore` of an oversized value for an absent key is a clean no-op - it neither keeps the value nor disturbs
+  the rest of the cache.

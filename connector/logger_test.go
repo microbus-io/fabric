@@ -38,7 +38,7 @@ func TestConnector_Log(t *testing.T) {
 	assert.False(con.IsStarted())
 
 	// No-op when logger is nil, no logs to observe
-	assert.Nil(con.logger)
+	assert.Nil(con.logger.Load())
 	con.LogDebug(ctx, "This is a log debug message", "someStr", "some string")
 	con.LogInfo(ctx, "This is a log info message", "someStr", "some string")
 	con.LogWarn(ctx, "This is a log warn message", "error", stderror, "someStr", "some string")
@@ -50,14 +50,14 @@ func TestConnector_Log(t *testing.T) {
 	defer con.Shutdown(ctx)
 
 	// Logger initialized, it can now be observed
-	assert.NotNil(con.logger)
+	assert.NotNil(con.logger.Load())
 
 	// Observe the logs to assert expected values. The capture logger composes the same logHandler the connector
 	// uses, so debug gating and enrichment are exercised; only the terminal handler is swapped for an in-memory one.
 	var buf strings.Builder
-	con.logger = slog.New(&logHandler{c: con, console: slog.NewTextHandler(&buf, &slog.HandlerOptions{
+	con.logger.Store(slog.New(&logHandler{c: con, console: slog.NewTextHandler(&buf, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
-	})})
+	})}))
 
 	// LogDebug is gated by c.logDebug, which Startup sets from MICROBUS_LOG_DEBUG.
 	// Drive it explicitly so the test is independent of the ambient env var and
@@ -154,11 +154,11 @@ func TestConnector_LogTraceRouting(t *testing.T) {
 
 	con.logDebug = true
 	var console, otel strings.Builder
-	con.logger = slog.New(&logHandler{
+	con.logger.Store(slog.New(&logHandler{
 		c:       con,
 		console: slog.NewTextHandler(&console, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		otel:    slog.NewTextHandler(&otel, &slog.HandlerOptions{Level: slog.LevelDebug}),
-	})
+	}))
 
 	spanCtx, span := con.StartSpan(ctx, "test")
 	con.LogInfo(spanCtx, "with span", "someStr", "some string")

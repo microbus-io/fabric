@@ -115,7 +115,9 @@ type Connector struct {
 	configLock      sync.Mutex
 	onConfigChanged service.ConfigChangedHandler
 
-	logger      *slog.Logger
+	// logger is atomic because request handlers read it concurrently with Shutdown's termLogger, including
+	// via in-process short-circuit deliveries from a peer connector that is shutting down at the same time.
+	logger      atomic.Pointer[slog.Logger]
 	logDebug    bool
 	logProvider *sdklog.LoggerProvider
 	logOTLPKey  string

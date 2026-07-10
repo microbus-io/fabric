@@ -195,8 +195,10 @@ func TestMetrics_Collect(t *testing.T) {
 			"op", "load",
 			"service", con1.Hostname(),
 		))
-		assert.True(findLine(body, "microbus_server_request_duration_seconds_count", "2",
-			"code", "404",
+		// Cache routes each key to its single HRW owner and serves a local owner without a broadcast, so
+		// the only request reaching this replica's DcacheAll handler is its own startup join announcement.
+		assert.True(findLine(body, "microbus_server_request_duration_seconds_count", "1",
+			"code", "200",
 			"error", "OK",
 			"id", con1.ID(),
 			"method", "GET",

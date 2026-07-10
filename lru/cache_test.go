@@ -145,6 +145,46 @@ func TestLRU_MaxWeight(t *testing.T) {
 	assert.True(integrity(cache))
 }
 
+func TestLRU_OversizedStoreDeletesExisting(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	maxWt := 16
+	cache := New[int, string](maxWt, time.Hour)
+
+	// Seed a normal value under a key.
+	cache.Store(1, "small", Weight(1))
+	v, ok := cache.Load(1)
+	assert.True(ok)
+	assert.Equal("small", v)
+
+	// Overwrite it with a value too heavy to keep. The new value is not stored, but the stale prior value
+	// must not survive - the caller believes it overwrote the key.
+	cache.Store(1, "too big", Weight(maxWt+1))
+	_, ok = cache.Load(1)
+	assert.False(ok)
+	assert.Zero(cache.Weight())
+
+	// An oversized store to an absent key is a clean no-op.
+	cache.Store(2, "also too big", Weight(maxWt+1))
+	_, ok = cache.Load(2)
+	assert.False(ok)
+	assert.Zero(cache.Weight())
+
+	// An oversized LoadOrStore keeps neither the value nor evicts other live entries: without the size
+	// guard, adding the oversized node would make diet shed the unrelated live entry to reclaim weight.
+	cache.Store(3, "keep me", Weight(1))
+	got, found := cache.LoadOrStore(4, "oversized", Weight(maxWt+1))
+	assert.False(found)
+	assert.Equal("oversized", got)
+	_, ok = cache.Load(4)
+	assert.False(ok)
+	assert.True(cache.Exists(3))
+	assert.Equal(1, cache.Weight())
+
+	assert.True(integrity(cache))
+}
+
 func TestLRU_ChangeMaxWeight(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)
