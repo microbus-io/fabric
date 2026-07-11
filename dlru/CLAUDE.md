@@ -95,6 +95,24 @@ live write, in either interleaving. The offloaded V1 cannot overwrite V2 (soft s
 write of V2 always wins over a soft-stored V1. `TestDLRU_ShedInFlight` freezes the shed mid-pass, via a checkpoint, to
 pin both this no-clobber property and the read liveness the previous-generation retry provides during the window.
 
+### Delete tombstones keep deletes deleted during a shed
+
+Soft store resolves the write/shed race, but a *delete* leaves absence, and absence is exactly what a soft store
+fills: a shed of key K fired by the old owner but not yet landed races a `Delete` of K - the delete removes the key
+from both owners, then the late soft store lands on the new owner and resurrects the stale value. The owner
+therefore records a tombstone when it deletes a key within the transition window (the only time sheds can be in
+flight), and the soft store consults it: fill-if-absent becomes fill-if-absent-and-not-recently-deleted. Each
+tombstone stores the timestamp until which it is valid (the transition window), and the soft store re-checks after
+filling - a delete records its tombstone *before* removing the value, so any interleaving of a concurrent delete is
+caught by one of the two checks.
+
+`Clear`, `DeletePrefix`, and `DeleteContains` cannot tombstone the keys they must suppress by name: a key mid-shed
+sits on no replica, so no walk can match it. They instead record a blanket "accept no soft stores until" timestamp
+covering the window - heavier, but these are rare invalidation events, and a rejected shed is just a miss.
+Tombstones live in a side map rather than as marker values in the lru, so `Len` and `Weight` stay truthful. The map
+only accrues entries within the window; expired entries are swept on the next delete, and the whole map is dropped
+on the first delete outside the window.
+
 ### Offload fires and drains within a bounded budget
 
 The soft stores are fired without waiting for each response (throughput), then *all* responses are drained once at the
@@ -110,7 +128,10 @@ same knob defines the overlap window used by the gate and the previous-generatio
 If a request routes to an owner that has crashed, the owner acks with a 404 timeout. The caller treats it as a miss (a
 `Store` is dropped, a `Load` misses, a `Delete` is done, since a dead owner cannot hold the key) and signals the
 discovery loop to re-derive membership immediately rather than waiting for the next ping. The signal is coalesced
-through a capacity-1 channel, so a burst of timeouts to a departed owner queues at most one re-derivation.
+through a capacity-1 channel, so a burst of timeouts to a departed owner queues at most one re-derivation. A 417
+gen-mismatch triggers the same signal: mid-transition it is redundant (the caller converges through the join and
+leave broadcasts anyway, and re-derivation is a no-op once views agree), but a caller that missed a membership
+broadcast would otherwise keep stamping a stale generation until the next periodic ping.
 
 ### The failure boundary: crash is safe, partition is lossy
 
@@ -140,7 +161,10 @@ deliberate no-ops. `ConsistencyCheck` is moot: with a single owner there is no s
 generation gate replaces the original's checksum broadcast entirely. `Replicate` (write-to-all) contradicts the
 single-owner model and its capacity rationale, so it is accepted and ignored rather than silently changing routing.
 `Compress` (brotli behind a four-byte magic-word prefix, so compressed and uncompressed values coexist) and the load
-options `Bump` / `NoBump` / `MaxAge` are honored, threaded through to the owner's local lru.
+options `Bump` / `NoBump` / `MaxAge` are honored, threaded through to the owner's local lru. The magic-word scheme
+has a known collision: an uncompressed value that happens to begin with the prefix bytes is misread as compressed on
+load and fails to decode. At roughly 2^-32 per arbitrary binary value this is an accepted trade-off of coexistence;
+callers storing adversarial or high-volume raw binary should compress uniformly.
 
 ### Weight and Len sum disjoint shards
 

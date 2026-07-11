@@ -88,17 +88,20 @@ const checkpointBeforeSend = "beforeSend"
 const defaultOffloadDuration = 4 * time.Second
 
 /*
-Cache is a reworking of [Cache] that routes each operation to a single owning peer via rendezvous hashing,
-rather than multicasting every operation to all peers. It is tied to the microservice and is typically constructed
-in the OnStartup callback of the microservice and destroyed in the OnShutdown.
+Cache is a distributed LRU cache shared among the replicas of a microservice. Each key is held by a single
+owning peer chosen via rendezvous hashing, and every operation is routed to that owner rather than multicast
+to all peers. It is tied to the microservice and is typically constructed in the OnStartup callback of the
+microservice and destroyed in the OnShutdown.
 
 	con := connector.New("www.example.com")
-	var myCache dlru.Cache
+	var myCache *dlru.Cache
 	con.SetOnStartup(func(ctx context.Context) error {
-		myCache = dlru.NewCache(ctx, con, ":444/my-cache")
+		var err error
+		myCache, err = dlru.NewCache(ctx, con, ":444/my-cache")
+		return err
 	})
 	con.SetOnShutdown(func(ctx context.Context) error {
-		myCache.Close(ctx)
+		return myCache.Close(ctx)
 	})
 */
 type Cache struct {
@@ -115,6 +118,8 @@ type Cache struct {
 	prevGeneration  string
 	genChangedAt    time.Time
 	offloadDuration time.Duration
+	tombstones      map[string]time.Time
+	blanketUntil    time.Time
 	discoverNow     chan struct{}
 	hits            atomic.Int64
 	misses          atomic.Int64
@@ -124,8 +129,9 @@ type Cache struct {
 	wg              sync.WaitGroup
 }
 
-// NewCache starts a new cache for the service at a given path.
-// For security reasons, it is advised to use a non-public port for the path, such as :444/my-cache .
+// NewCache starts a new cache for the service at a given path. The cache's subscription names are
+// derived from the path's last segment. For security reasons, it is advised to use a non-public port
+// for the path, such as :444/my-cache .
 // By default, the cache size limit is set to 32MB and the TTL to 1 hour.
 func NewCache(ctx context.Context, svc Service, path string) (*Cache, error) {
 	basePath := httpx.JoinHostAndPath(svc.Hostname(), path)
@@ -238,6 +244,9 @@ func (c *Cache) OffloadDuration() time.Duration {
 func (c *Cache) start(ctx context.Context) error {
 	c.allSubName = c.subscriptionName("All")
 	c.oneSubName = c.subscriptionName("One")
+	if c.allSubName == "" || c.oneSubName == "" {
+		return errors.New("cannot derive a subscription name from path '%s'", c.basePath)
+	}
 
 	// Discover existing peers before going on the bus, then count self in.
 	c.discoverPeers(ctx)
@@ -270,10 +279,14 @@ func (c *Cache) start(ctx context.Context) error {
 	// and load requests - closing the window where a key could route to an owner whose /one is not yet up.
 	err = c.svc.ActivateSubscription(c.oneSubName)
 	if err != nil {
+		_ = c.svc.Unsubscribe(c.allSubName)
+		_ = c.svc.Unsubscribe(c.oneSubName)
 		return errors.Trace(err)
 	}
 	err = c.svc.ActivateSubscription(c.allSubName)
 	if err != nil {
+		_ = c.svc.Unsubscribe(c.allSubName)
+		_ = c.svc.Unsubscribe(c.oneSubName)
 		return errors.Trace(err)
 	}
 
@@ -459,7 +472,8 @@ func (c *Cache) broadcastLeave(ctx context.Context) {
 
 // offload ships every locally-cached element this replica no longer owns to its new owner and drops
 // it locally. On shutdown self has been removed from the membership set, so every key moves; on a
-// join only the keys displaced to the new peer move. The pass is bounded by OffloadDuration.
+// join only the keys displaced to the new peer move. The pass is bounded by OffloadDuration; once the
+// budget is spent, remaining displaced keys are dropped without shipping (a miss), never retained.
 //
 // The stores are fired without waiting for each response (throughput), then all the responses are
 // drained once at the end. Draining is what makes it safe: it waits roughly one round trip in total
@@ -481,16 +495,16 @@ func (c *Cache) offload(ctx context.Context) {
 	defer cancel()
 	var pending []iter.Seq[*pub.Response]
 	for key, value := range c.localCache.ToMap() {
-		if octx.Err() != nil {
-			break
-		}
 		owner := ownerOfIn(key, members)
 		if owner == "" || owner == self {
 			continue
 		}
-		c.seams.Checkpoint(octx, checkpointOffloadBeforeStore)
-		u := fmt.Sprintf("%s/one?do=store&key=%s&gen=%s&soft=true", c.ownerURL(owner), url.QueryEscape(key), url.QueryEscape(gen))
-		pending = append(pending, c.svc.Publish(octx, pub.Method("PUT"), pub.URL(u), pub.Body(value)))
+		if octx.Err() == nil {
+			c.seams.Checkpoint(octx, checkpointOffloadBeforeStore)
+			u := fmt.Sprintf("%s/one?do=store&key=%s&gen=%s&soft=true", c.ownerURL(owner), url.QueryEscape(key), url.QueryEscape(gen))
+			ch := c.svc.Publish(octx, pub.Method("PUT"), pub.URL(u), pub.Body(value))
+			pending = append(pending, ch)
+		}
 		c.localCache.Delete(key)
 	}
 	// Drain every response so the fire-and-forget goroutines settle before returning. Each store was
@@ -503,17 +517,39 @@ func (c *Cache) offload(ctx context.Context) {
 	}
 }
 
-// subscriptionName produces a per-cache, Go-style listen name (e.g. "DcacheAll", "DcacheOne").
+// subscriptionName produces a per-cache, user-friendly listen name from the last segment of the base
+// path, folding non-alphanumeric characters at PascalCase boundaries (e.g. ":444/my-cache" yields
+// "MyCacheAll" and "MyCacheOne"). It returns "" if no valid identifier can be derived.
 func (c *Cache) subscriptionName(suffix string) string {
 	last := c.basePath
 	if i := strings.LastIndex(last, "/"); i >= 0 {
 		last = last[i+1:]
 	}
-	if last == "" {
-		last = "Cache"
+	var b strings.Builder
+	upperNext := true
+	for _, r := range last {
+		switch {
+		case r >= 'a' && r <= 'z':
+			if upperNext {
+				r -= 'a' - 'A'
+			}
+			b.WriteRune(r)
+			upperNext = false
+		case r >= 'A' && r <= 'Z' || r >= '0' && r <= '9':
+			b.WriteRune(r)
+			upperNext = false
+		default:
+			upperNext = true
+		}
 	}
-	last = strings.ToUpper(last[:1]) + last[1:]
-	return last + suffix
+	if b.Len() == 0 {
+		return ""
+	}
+	name := b.String() + suffix
+	if !utils.IsUpperCaseIdentifier(name) {
+		return ""
+	}
+	return name
 }
 
 // handleAll dispatches a no-queue multicast to the underlying action named by the "do" query argument.
@@ -554,28 +590,35 @@ func (c *Cache) handleLen(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// handleClear empties this replica's local cache in response to a clear broadcast.
+// handleClear empties this replica's local cache in response to a clear broadcast. It records a
+// blanket tombstone first, so an in-flight shed cannot repopulate cleared keys.
 func (c *Cache) handleClear(w http.ResponseWriter, r *http.Request) error {
+	c.blanketTombstone()
 	c.localCache.Clear()
 	return nil
 }
 
 // handleDeletePredicate deletes local keys matching a prefix or a substring, in response to a
 // broadcast. It walks all keys, so it is O(N) per replica; reserve it for cache-invalidation events.
+// A key mid-shed cannot be matched by the predicate on any replica, so it records a blanket
+// tombstone first, like handleClear.
 func (c *Cache) handleDeletePredicate(w http.ResponseWriter, r *http.Request) error {
-	if prefix := r.URL.Query().Get("prefix"); prefix != "" {
+	prefix := r.URL.Query().Get("prefix")
+	contains := r.URL.Query().Get("contains")
+	if prefix == "" && contains == "" {
+		return errors.New("missing prefix or contains")
+	}
+	c.blanketTombstone()
+	if prefix != "" {
 		c.localCache.DeletePredicate(func(key string) bool {
 			return strings.HasPrefix(key, prefix)
 		})
 		return nil
 	}
-	if contains := r.URL.Query().Get("contains"); contains != "" {
-		c.localCache.DeletePredicate(func(key string) bool {
-			return strings.Contains(key, contains)
-		})
-		return nil
-	}
-	return errors.New("missing prefix or contains")
+	c.localCache.DeletePredicate(func(key string) bool {
+		return strings.Contains(key, contains)
+	})
+	return nil
 }
 
 // handlePing acknowledges a peer discovery broadcast with an empty 200 response.
@@ -618,13 +661,14 @@ func (c *Cache) handleOne(w http.ResponseWriter, r *http.Request) error {
 }
 
 // handleDelete removes a key from this replica's local cache. It is unconditional - deleting is
-// idempotent and safe, so it is not gated on the generation.
+// idempotent and safe, so it is not gated on the generation. Within the transition window it records
+// a tombstone so an in-flight shed cannot resurrect the key.
 func (c *Cache) handleDelete(w http.ResponseWriter, r *http.Request) error {
 	key := r.URL.Query().Get("key")
 	if key == "" {
 		return errors.New("missing key")
 	}
-	c.localCache.Delete(key)
+	c.deleteLocal(key)
 	return nil
 }
 
@@ -792,12 +836,72 @@ func (c *Cache) ownerURL(owner string) string {
 	return strings.Replace(c.basePath, "https://", "https://"+owner+".", 1)
 }
 
+// deleteLocal removes a key from the local cache, first recording a tombstone within the transition
+// window so an in-flight offload soft store cannot resurrect the deleted key. Each tombstone holds
+// the timestamp until which it is valid. The tombstone is recorded before the removal: a concurrent
+// soft store re-checks the tombstones after filling, so one of its two checks always observes the
+// delete. Expired tombstones are swept on the way in, and the whole map is dropped on the first
+// delete outside the window.
+func (c *Cache) deleteLocal(key string) {
+	c.mux.Lock()
+	window := 2 * c.offloadDuration
+	if time.Since(c.genChangedAt) < window {
+		now := time.Now()
+		for k, until := range c.tombstones {
+			if now.After(until) {
+				delete(c.tombstones, k)
+			}
+		}
+		if c.tombstones == nil {
+			c.tombstones = map[string]time.Time{}
+		}
+		c.tombstones[key] = now.Add(window)
+	} else {
+		c.tombstones = nil
+	}
+	c.mux.Unlock()
+	c.localCache.Delete(key)
+}
+
+// blanketTombstone rejects all soft stores for the transition window. Clear and predicate deletes
+// cannot tombstone the keys of in-flight soft stores by name - a key mid-shed sits on no replica -
+// so they blanket-reject instead, degrading concurrent sheds to misses.
+func (c *Cache) blanketTombstone() {
+	c.mux.Lock()
+	c.blanketUntil = time.Now().Add(2 * c.offloadDuration)
+	c.tombstones = nil
+	c.mux.Unlock()
+}
+
+// rejectSoftStore reports whether a soft store of the key must be dropped because the key was
+// deleted, or the cache cleared, recently enough that the soft store may be an in-flight shed of a
+// stale value.
+func (c *Cache) rejectSoftStore(key string) bool {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+	now := time.Now()
+	if now.Before(c.blanketUntil) {
+		return true
+	}
+	until, ok := c.tombstones[key]
+	return ok && now.Before(until)
+}
+
 // storeLocal writes a value into the local cache. A soft store only fills an absent key, using the
 // lru's atomic store-if-absent, so an offloaded value cannot clobber a newer value that an upstream
-// write placed on the new owner while the old owner was still shedding.
+// write placed on the new owner while the old owner was still shedding; nor can it resurrect a
+// tombstoned key that a delete removed while the shed was in flight.
 func (c *Cache) storeLocal(key string, value []byte, soft bool) {
 	if soft {
+		if c.rejectSoftStore(key) {
+			return
+		}
 		c.localCache.LoadOrStore(key, value, lru.Weight(len(value)))
+		// Re-check after the fill: a delete records its tombstone before removing the value, so a delete
+		// that interleaved with the fill is caught here and the resurrected value is removed.
+		if c.rejectSoftStore(key) {
+			c.localCache.Delete(key)
+		}
 		return
 	}
 	c.localCache.Store(key, value, lru.Weight(len(value)))
@@ -822,7 +926,9 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte, options ...
 	}
 	owner := c.ownerOf(key)
 	if owner == "" || owner == c.svc.ID() {
-		c.storeLocal(key, value, false)
+		// Clone so a caller mutating its slice after the store cannot corrupt the cached value, matching
+		// the value semantics the remote path gets from serialization.
+		c.storeLocal(key, slices.Clone(value), false)
 		c.svc.IncrementCounter(ctx, "microbus_cache_operations", 1, "op", "store")
 		return nil
 	}
@@ -840,7 +946,9 @@ func (c *Cache) Store(ctx context.Context, key string, value []byte, options ...
 	}
 	if res.StatusCode == http.StatusExpectationFailed {
 		// The owner disagreed on the generation and dropped the store; a future load recomputes.
+		// Re-derive membership promptly in case this replica missed a membership broadcast.
 		c.svc.LogDebug(ctx, "Cache store rejected on generation mismatch", "key", key)
+		c.triggerDiscover()
 	}
 	c.svc.IncrementCounter(ctx, "microbus_cache_operations", 1, "op", "store")
 	return nil
@@ -898,16 +1006,18 @@ func (c *Cache) Load(ctx context.Context, key string, options ...LoadOption) (va
 
 // loadFromOwner loads a key from a specific owner, serving locally when this replica is the owner and
 // otherwise routing a unicast stamped with gen. A dead owner, a genuine 404, and a 417 gen-mismatch
-// all read as a miss.
+// all read as a miss; a dead owner or a gen-mismatch also triggers a prompt membership re-derivation.
 func (c *Cache) loadFromOwner(ctx context.Context, owner, key, gen string, opts cacheOptions) (value []byte, ok bool, err error) {
 	if owner == "" || owner == c.svc.ID() {
 		value, found := c.localCache.Load(key, lru.Bump(opts.Bump), lru.MaxAge(opts.MaxAge))
 		if !found {
 			return nil, false, nil
 		}
-		return value, true, nil
+		// Clone so a caller mutating the loaded slice cannot corrupt the cached value, matching the
+		// value semantics the remote path gets from serialization.
+		return slices.Clone(value), true, nil
 	}
-	u := fmt.Sprintf("%s/one?do=load&key=%s&gen=%s&bump=%v&ttl=%s", c.ownerURL(owner), url.QueryEscape(key), url.QueryEscape(gen), opts.Bump, opts.MaxAge.String())
+	u := fmt.Sprintf("%s/one?do=load&key=%s&gen=%s&bump=%v&ttl=%s", c.ownerURL(owner), url.QueryEscape(key), url.QueryEscape(gen), opts.Bump, url.QueryEscape(opts.MaxAge.String()))
 	res, err := c.svc.Request(ctx, pub.Method("GET"), pub.URL(u))
 	if err != nil {
 		// A dead owner acks with a 404 timeout; treat it as a miss and re-derive membership.
@@ -916,6 +1026,12 @@ func (c *Cache) loadFromOwner(ctx context.Context, owner, key, gen string, opts 
 			return nil, false, nil
 		}
 		return nil, false, errors.Trace(err)
+	}
+	if res.StatusCode == http.StatusExpectationFailed {
+		// The owner disagreed on the generation; treat as a miss and re-derive membership promptly in
+		// case this replica missed a membership broadcast.
+		c.triggerDiscover()
+		return nil, false, nil
 	}
 	if res.StatusCode != http.StatusOK {
 		return nil, false, nil
@@ -928,8 +1044,9 @@ func (c *Cache) loadFromOwner(ctx context.Context, owner, key, gen string, opts 
 }
 
 // Delete a key from the cache. It is removed from the current owner and, within the transition
-// window, from the previous owner too, so a key still sitting on the old owner is not left behind
-// (nor resurrected by that owner's pending offload, which has nothing left to shed).
+// window, from the previous owner too, so a key still sitting on the old owner is not left behind.
+// Each owner records a tombstone for the window, so an in-flight offload soft store cannot
+// resurrect the deleted key.
 func (c *Cache) Delete(ctx context.Context, key string) error {
 	if key == "" {
 		return errors.New("missing key")
@@ -955,7 +1072,7 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 // treated as done and triggers a membership re-derivation.
 func (c *Cache) deleteFromOwner(ctx context.Context, owner, key string) error {
 	if owner == "" || owner == c.svc.ID() {
-		c.localCache.Delete(key)
+		c.deleteLocal(key)
 		return nil
 	}
 	u := fmt.Sprintf("%s/one?do=delete&key=%s", c.ownerURL(owner), url.QueryEscape(key))
@@ -1218,6 +1335,9 @@ func (c *Cache) Has(ctx context.Context, key string, options ...LoadOption) (fou
 // If maker returns an error, the value is not cached, the error is returned to all waiters, and the
 // next caller will retry. Stampede protection is per-process: with N peers, up to N concurrent maker
 // invocations may occur on a cold key.
+//
+// The shared maker runs with the context of the caller that first entered it; if that context is
+// canceled, all waiters receive its error.
 func (c *Cache) LoadOrCompute(ctx context.Context, key string, maker func(ctx context.Context) ([]byte, error), options ...StoreOption) (value []byte, err error) {
 	if key == "" {
 		return nil, errors.New("missing key")
@@ -1269,6 +1389,9 @@ func (c *Cache) LoadOrCompute(ctx context.Context, key string, maker func(ctx co
 //
 // If maker returns an error, the value is not cached, the error is returned to all waiters, and the
 // next caller will retry.
+//
+// The shared maker runs with the context of the caller that first entered it; if that context is
+// canceled, all waiters receive its error.
 func (c *Cache) GetOrCompute(ctx context.Context, key string, value any, maker func(ctx context.Context) (any, error), options ...StoreOption) error {
 	if maker == nil {
 		return errors.New("missing maker")

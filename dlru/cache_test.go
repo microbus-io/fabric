@@ -1114,6 +1114,22 @@ func TestDLRU_InvalidRequests(t *testing.T) {
 	assert.Equal("missing key", err.Error())
 	err = cache.Delete(ctx, "")
 	assert.Equal("missing key", err.Error())
+
+	// Subscription names are derived from the last path segment, folding non-alphanumerics at
+	// PascalCase boundaries.
+	_, err = dlru.NewCache(ctx, con, ":444/123")
+	assert.Error(err) // an identifier cannot start with a digit
+	valid, err := dlru.NewCache(ctx, con, ":444/my-cache")
+	assert.NoError(err)
+	found := false
+	for _, s := range con.Subscriptions() {
+		if s.Name == "MyCacheAll" {
+			found = true
+		}
+	}
+	assert.True(found, "expected folded subscription name 'MyCacheAll'")
+	err = valid.Close(ctx)
+	assert.NoError(err)
 }
 
 // TestDLRU_OptionGetters ports TestDLRU_Options (the max-age/max-memory getters).
@@ -1729,6 +1745,428 @@ func TestDLRU_ShedInFlight(t *testing.T) {
 	assert.NoError(err)
 	assert.True(ok)
 	assert.Equal("V2", string(got))
+}
+
+// TestDLRU_ValueSemantics pins that the cache does not alias caller slices on the local-owner paths:
+// mutating a slice after storing it, or mutating a loaded slice, must not corrupt the cached value.
+// A single-replica cache always serves locally, which is exactly the path that would alias.
+func TestDLRU_ValueSemantics(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	con := startConn(t, ctx, "value.semantics.cache.dlru")
+	defer con.Shutdown(ctx)
+	cache := newCache(t, ctx, con)
+	defer cache.Close(ctx)
+
+	// Mutating the stored slice must not affect the cached value.
+	stored := []byte("original")
+	err := cache.Store(ctx, "key", stored)
+	assert.NoError(err)
+	copy(stored, "MUTATED!")
+	val, ok, err := cache.Load(ctx, "key")
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("original", string(val))
+
+	// Mutating the loaded slice must not affect the cached value.
+	copy(val, "MUTATED!")
+	val, ok, err = cache.Load(ctx, "key")
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("original", string(val))
+}
+
+// TestDLRU_SubMillisecondTTL pins that a remote load with a sub-millisecond MaxAge round-trips the
+// wire: such durations stringify with the Unicode micro sign (e.g. "1.5µs") and must be URL-escaped
+// into the ttl query argument for the owner to parse them.
+func TestDLRU_SubMillisecondTTL(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := startConn(t, ctx, "submsttl.dlru")
+	defer alpha.Shutdown(ctx)
+	alphaCache := newCache(t, ctx, alpha)
+	defer alphaCache.Close(ctx)
+	beta := startConn(t, ctx, "submsttl.dlru")
+	defer beta.Shutdown(ctx)
+	betaCache := newCache(t, ctx, beta)
+	defer betaCache.Close(ctx)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// A key beta owns, so alpha's load routes remotely and carries the ttl on the URL.
+	var key string
+	for i := 0; ; i++ {
+		k := "k" + strconv.Itoa(i)
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			key = k
+			break
+		}
+	}
+	err := alphaCache.Store(ctx, key, []byte("V1"))
+	assert.NoError(err)
+
+	// A generous ttl round-trips and hits.
+	val, ok, err := alphaCache.Load(ctx, key, dlru.MaxAge(90*time.Minute))
+	assert.NoError(err)
+	assert.True(ok)
+	assert.Equal("V1", string(val))
+
+	// A sub-millisecond ttl parses on the owner; the element is older than it, so it reads as a miss -
+	// the point is the absence of a transport or parse error.
+	_, ok, err = alphaCache.Load(ctx, key, dlru.MaxAge(1500*time.Nanosecond))
+	assert.NoError(err)
+	assert.False(ok)
+}
+
+// failingActivation wraps a connector, failing every subscription activation.
+type failingActivation struct {
+	*connector.Connector
+}
+
+func (f *failingActivation) ActivateSubscription(name string) error {
+	return errors.New("induced activation failure")
+}
+
+// TestDLRU_ActivationFailureCleanup pins that a NewCache that fails to activate its subscriptions
+// unsubscribes them before returning, so the path remains usable on a subsequent attempt.
+func TestDLRU_ActivationFailureCleanup(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	con := startConn(t, ctx, "activation.failure.cache.dlru")
+	defer con.Shutdown(ctx)
+
+	_, err := dlru.NewCache(ctx, &failingActivation{con}, ":444/cleanup")
+	assert.Error(err)
+
+	// The failed construction must not leak its subscriptions: the same path is usable again.
+	cache, err := dlru.NewCache(ctx, con, ":444/cleanup")
+	assert.NoError(err)
+	err = cache.Close(ctx)
+	assert.NoError(err)
+}
+
+// TestDLRU_RediscoverOn417 pins that a store rejected on a generation mismatch triggers a prompt
+// membership re-derivation. alpha is made to miss a membership broadcast (its broadcast handler is
+// deactivated while gamma joins), so with a one-minute ping interval only the 417 trigger can explain
+// its convergence.
+func TestDLRU_RediscoverOn417(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := startConn(t, ctx, "rediscover417.dlru")
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/gate")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+	beta := startConn(t, ctx, "rediscover417.dlru")
+	defer beta.Shutdown(ctx)
+	betaCache, err := dlru.NewCache(ctx, beta, ":444/gate")
+	assert.NoError(err)
+	defer betaCache.Close(ctx)
+	// A short offload duration shrinks beta's previous-generation window, so the stale store is
+	// rejected with 417 rather than accepted under the previous generation.
+	err = betaCache.SetOffloadDuration(20 * time.Millisecond)
+	assert.NoError(err)
+
+	both := []string{alpha.ID(), beta.ID()}
+	slices.Sort(both)
+	converged := eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), both) && slices.Equal(betaCache.Members(), both)
+	})
+	assert.True(converged)
+
+	// alpha goes deaf: it misses gamma's discovery ping and join broadcast.
+	err = alpha.DeactivateSubscription("GateAll")
+	assert.NoError(err)
+
+	gamma := startConn(t, ctx, "rediscover417.dlru")
+	defer gamma.Shutdown(ctx)
+	gammaCache, err := dlru.NewCache(ctx, gamma, ":444/gate")
+	assert.NoError(err)
+	defer gammaCache.Close(ctx)
+
+	all := []string{alpha.ID(), beta.ID(), gamma.ID()}
+	slices.Sort(all)
+	converged = eventually(2*time.Second, func() bool {
+		return slices.Equal(betaCache.Members(), all)
+	})
+	assert.True(converged)
+	assert.Equal(both, alphaCache.Members()) // alpha missed the join
+
+	// alpha can hear again, but nothing tells it to look until a 417.
+	err = alpha.ActivateSubscription("GateAll")
+	assert.NoError(err)
+	// Wait out beta's previous-generation window so alpha's stale generation is rejected.
+	time.Sleep(50 * time.Millisecond)
+
+	// A store routed to beta with alpha's stale generation draws a 417, which triggers rediscovery.
+	var key string
+	for i := 0; ; i++ {
+		k := "k" + strconv.Itoa(i)
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			key = k
+			break
+		}
+	}
+	err = alphaCache.Store(ctx, key, []byte("V"))
+	assert.NoError(err)
+	converged = eventually(2*time.Second, func() bool {
+		return slices.Equal(alphaCache.Members(), all)
+	})
+	assert.True(converged)
+}
+
+// TestDLRU_MagicWordCollision pins the documented trade-off of the compressed/uncompressed
+// coexistence scheme: a raw value that begins with the brotli magic word is misread as compressed on
+// load and fails to decode.
+func TestDLRU_MagicWordCollision(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	con := startConn(t, ctx, "magicword.cache.dlru")
+	defer con.Shutdown(ctx)
+	cache := newCache(t, ctx, con)
+	defer cache.Close(ctx)
+
+	raw := append([]byte{0x91, 0x19, 0x62, 0x66}, []byte("not brotli")...)
+	err := cache.Store(ctx, "collision", raw)
+	assert.NoError(err)
+	_, _, err = cache.Load(ctx, "collision")
+	assert.Error(err)
+}
+
+// TestDLRU_TruncatedOffloadDrops pins the behavior of an offload whose time budget expires mid-pass:
+// displaced keys that were not shipped are dropped locally, never retained. Retaining them would break
+// the delete-on-shed invariant, letting a later soft store yield to the stale copy: a fresh value
+// written to the new owner and shed back on its departure would lose to the retained stale value,
+// which would then be served for up to the TTL.
+func TestDLRU_TruncatedOffloadDrops(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("truncatedoffload.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+	// A short budget so the join-triggered shed expires while frozen at the checkpoint.
+	err = alphaCache.SetOffloadDuration(100 * time.Millisecond)
+	assert.NoError(err)
+
+	// alpha is the sole owner: store a spread of keys as V1, all landing on alpha.
+	var keys []string
+	for i := 0; i < 32; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("V1"))
+		assert.NoError(err)
+	}
+
+	// Freeze alpha's join-triggered shed just before the first displaced key ships, and hold it past the
+	// offload budget so the rest of the pass runs with an expired context.
+	alphaCache.Seams().Break(dlru.CheckpointOffloadBeforeStore)
+
+	beta := connector.New("truncatedoffload.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	var betaCache *dlru.Cache
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// broadcastJoin blocks on alpha's frozen handleJoin response until the shed is resumed.
+		betaCache, _ = dlru.NewCache(ctx, beta, ":444/test")
+	}()
+	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
+	time.Sleep(300 * time.Millisecond) // outlive the offload budget
+	alphaCache.Seams().Resume(dlru.CheckpointOffloadBeforeStore)
+	<-done
+	assert.NotNil(betaCache)
+
+	// The truncated shed must not retain displaced keys: alpha's local cache holds only keys it owns.
+	var displaced []string
+	local := alphaCache.LocalCache().ToMap()
+	for _, k := range keys {
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			displaced = append(displaced, k)
+			_, retained := local[k]
+			assert.False(retained, "displaced key '%s' retained after truncated offload", k)
+		}
+	}
+	assert.True(len(displaced) >= 2)
+
+	// End-to-end: write V2 to every displaced key (landing on beta), then close beta, shedding them back
+	// to alpha as soft stores. Had alpha retained stale V1 copies, the soft stores would yield to them
+	// and V1 would be served; with the drop, the soft-stored V2 fills the absent keys.
+	for _, k := range displaced {
+		err = alphaCache.Store(ctx, k, []byte("V2"))
+		assert.NoError(err)
+	}
+	err = betaCache.Close(ctx)
+	assert.NoError(err)
+	for _, k := range displaced {
+		val, ok, err := alphaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.True(ok, "displaced key '%s' lost after shed back", k)
+		assert.Equal("V2", string(val), "displaced key '%s' served stale value", k)
+	}
+}
+
+// TestDLRU_DeleteDuringShedNotResurrected freezes a join-triggered shed before the displaced keys are
+// soft-stored, deletes one of them, then releases the shed. The offload has already snapshotted its
+// key set, so the deleted key's soft store still lands after the delete - and must be rejected by the
+// delete's tombstone rather than resurrect the stale value.
+func TestDLRU_DeleteDuringShedNotResurrected(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("deletetombstone.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	// alpha is the sole owner: store a spread of keys as V1, all landing on alpha.
+	var keys []string
+	for i := 0; i < 16; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("V1"))
+		assert.NoError(err)
+	}
+
+	// Freeze alpha's join-triggered shed just before the first displaced key ships.
+	alphaCache.Seams().Break(dlru.CheckpointOffloadBeforeStore)
+
+	beta := connector.New("deletetombstone.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	var betaCache *dlru.Cache
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// broadcastJoin blocks on alpha's frozen handleJoin response until the shed is resumed.
+		betaCache, _ = dlru.NewCache(ctx, beta, ":444/test")
+	}()
+	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
+
+	// Delete a key that moved to beta while its shed is in flight: the delete reaches both owners
+	// before the frozen offload fires the key's soft store.
+	var moved string
+	for _, k := range keys {
+		if alphaCache.OwnerOf(k) == beta.ID() {
+			moved = k
+			break
+		}
+	}
+	assert.NotEqual("", moved)
+	err = alphaCache.Delete(ctx, moved)
+	assert.NoError(err)
+
+	alphaCache.Seams().Resume(dlru.CheckpointOffloadBeforeStore)
+	<-done
+	assert.NotNil(betaCache)
+	defer betaCache.Close(ctx)
+
+	// The deleted key must not be resurrected by the late soft store.
+	_, ok, err := alphaCache.Load(ctx, moved)
+	assert.NoError(err)
+	assert.False(ok, "deleted key '%s' was resurrected by an in-flight shed", moved)
+
+	// The tombstone is per-key: the other displaced keys shed normally.
+	for _, k := range keys {
+		if k == moved {
+			continue
+		}
+		val, ok, err := alphaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.True(ok)
+		assert.Equal("V1", string(val))
+	}
+}
+
+// TestDLRU_ClearDuringShedNotResurrected freezes a join-triggered shed before the displaced keys are
+// soft-stored, clears the cache, then releases the shed. The late soft stores must be rejected by the
+// clear's blanket tombstone, leaving the cache empty rather than repopulated with stale values.
+func TestDLRU_ClearDuringShedNotResurrected(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+	ctx := context.Background()
+
+	alpha := connector.New("cleartombstone.dlru")
+	err := alpha.Startup(ctx)
+	assert.NoError(err)
+	defer alpha.Shutdown(ctx)
+	alphaCache, err := dlru.NewCache(ctx, alpha, ":444/test")
+	assert.NoError(err)
+	defer alphaCache.Close(ctx)
+
+	// alpha is the sole owner: store a spread of keys as V1, all landing on alpha.
+	var keys []string
+	for i := 0; i < 16; i++ {
+		keys = append(keys, "key"+strconv.Itoa(i))
+	}
+	for _, k := range keys {
+		err = alphaCache.Store(ctx, k, []byte("V1"))
+		assert.NoError(err)
+	}
+
+	// Freeze alpha's join-triggered shed just before the first displaced key ships.
+	alphaCache.Seams().Break(dlru.CheckpointOffloadBeforeStore)
+
+	beta := connector.New("cleartombstone.dlru")
+	err = beta.Startup(ctx)
+	assert.NoError(err)
+	defer beta.Shutdown(ctx)
+	var betaCache *dlru.Cache
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		betaCache, _ = dlru.NewCache(ctx, beta, ":444/test")
+	}()
+	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
+
+	// Clear the cache while the shed is in flight. The broadcast reaches both replicas concurrently
+	// with the frozen join handler.
+	err = alphaCache.Clear(ctx)
+	assert.NoError(err)
+
+	alphaCache.Seams().Resume(dlru.CheckpointOffloadBeforeStore)
+	<-done
+	assert.NotNil(betaCache)
+	defer betaCache.Close(ctx)
+
+	// No key survives: the late soft stores are blanket-rejected.
+	for _, k := range keys {
+		_, ok, err := alphaCache.Load(ctx, k)
+		assert.NoError(err)
+		assert.False(ok, "cleared key '%s' was repopulated by an in-flight shed", k)
+	}
+	n, err := alphaCache.Len(ctx)
+	assert.NoError(err)
+	assert.Equal(0, n)
 }
 
 // TestDLRU_StoreGateDuringTopologyChange freezes a Store after it has chosen its owner and stamped the
