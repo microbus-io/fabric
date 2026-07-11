@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -38,7 +39,7 @@ func TestPerson_ValidateObject(t *testing.T) {
 		Birthday:  time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 		Example:   "Valid value",
 	}
-	err := validObject.Validate(ctx)
+	err := dv8.Validate(ctx, &validObject)
 	assert.NoError(err)
 
 	// HINT: Check validation of individual object fields
@@ -46,48 +47,48 @@ func TestPerson_ValidateObject(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.FirstName = ""
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 	t.Run("first_name_too_long", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.FirstName = strings.Repeat("X", 65)
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 	t.Run("last_name_required", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.LastName = ""
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 	t.Run("last_name_too_long", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.LastName = strings.Repeat("X", 65)
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 	t.Run("email_required", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.Email = ""
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 	t.Run("email_too_long", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.Email = strings.Repeat("x", 250) + "@ab.com"
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 	t.Run("birthday_in_future", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.Birthday = time.Now().Add(24 * time.Hour)
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 	t.Run("example_too_long", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.Example = strings.Repeat("X", 1024) // Too long
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 }

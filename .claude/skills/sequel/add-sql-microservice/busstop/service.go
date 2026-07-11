@@ -203,7 +203,7 @@ func (svc *Service) closeDatabase(ctx context.Context) (err error) {
 }
 
 /*
-Create creates a new object, returning its key.
+Create creates a new bus stop, returning its key.
 */
 func (svc *Service) Create(ctx context.Context, obj *busstopapi.BusStop) (objKey busstopapi.BusStopKey, err error) { // MARKER: Create
 	objKeys, err := svc.BulkCreate(ctx, []*busstopapi.BusStop{obj})
@@ -214,7 +214,7 @@ func (svc *Service) Create(ctx context.Context, obj *busstopapi.BusStop) (objKey
 }
 
 /*
-Store updates the object.
+Store updates the bus stop.
 */
 func (svc *Service) Store(ctx context.Context, obj *busstopapi.BusStop) (stored bool, err error) { // MARKER: Store
 	storedKeys, err := svc.BulkStore(ctx, []*busstopapi.BusStop{obj})
@@ -222,7 +222,7 @@ func (svc *Service) Store(ctx context.Context, obj *busstopapi.BusStop) (stored 
 }
 
 /*
-MustStore updates the object.
+MustStore updates the bus stop, erroring if not found.
 */
 func (svc *Service) MustStore(ctx context.Context, obj *busstopapi.BusStop) (err error) { // MARKER: MustStore
 	stored, err := svc.Store(ctx, obj)
@@ -236,7 +236,7 @@ func (svc *Service) MustStore(ctx context.Context, obj *busstopapi.BusStop) (err
 }
 
 /*
-Revise updates the object only if the revision matches.
+Revise updates the bus stop only if the revision matches.
 */
 func (svc *Service) Revise(ctx context.Context, obj *busstopapi.BusStop) (revised bool, err error) { // MARKER: Revise
 	revisedKeys, err := svc.BulkRevise(ctx, []*busstopapi.BusStop{obj})
@@ -244,7 +244,7 @@ func (svc *Service) Revise(ctx context.Context, obj *busstopapi.BusStop) (revise
 }
 
 /*
-MustRevise updates the object only if the revision matches.
+MustRevise updates the bus stop only if the revision matches, erroring on conflict.
 */
 func (svc *Service) MustRevise(ctx context.Context, obj *busstopapi.BusStop) (err error) { // MARKER: MustRevise
 	revised, err := svc.Revise(ctx, obj)
@@ -258,7 +258,7 @@ func (svc *Service) MustRevise(ctx context.Context, obj *busstopapi.BusStop) (er
 }
 
 /*
-Delete deletes the object.
+Delete deletes the bus stop.
 */
 func (svc *Service) Delete(ctx context.Context, objKey busstopapi.BusStopKey) (deleted bool, err error) { // MARKER: Delete
 	deletedKeys, err := svc.BulkDelete(ctx, []busstopapi.BusStopKey{objKey})
@@ -266,7 +266,7 @@ func (svc *Service) Delete(ctx context.Context, objKey busstopapi.BusStopKey) (d
 }
 
 /*
-MustDelete deletes the object.
+MustDelete deletes the bus stop, erroring if not found.
 */
 func (svc *Service) MustDelete(ctx context.Context, objKey busstopapi.BusStopKey) (err error) { // MARKER: MustDelete
 	deleted, err := svc.Delete(ctx, objKey)
@@ -280,13 +280,9 @@ func (svc *Service) MustDelete(ctx context.Context, objKey busstopapi.BusStopKey
 }
 
 /*
-List returns the objects matching the query, and the total count of matches regardless of the limit.
+List returns the bus stops matching the query, and the total count of matches regardless of the limit.
 */
 func (svc *Service) List(ctx context.Context, query busstopapi.Query) (objs []*busstopapi.BusStop, totalCount int, err error) { // MARKER: List
-	err = query.Validate(ctx)
-	if err != nil {
-		return nil, 0, errors.Trace(err, http.StatusBadRequest)
-	}
 	var obj busstopapi.BusStop
 	columnMapping, err := svc.mapColumnsOnSelect(ctx, &obj)
 	if err != nil {
@@ -464,13 +460,9 @@ func (svc *Service) List(ctx context.Context, query busstopapi.Query) (objs []*b
 }
 
 /*
-Lookup returns the single object matching the query. It errors if more than one object matches the query.
+Lookup returns the single bus stop matching the query.
 */
 func (svc *Service) Lookup(ctx context.Context, query busstopapi.Query) (obj *busstopapi.BusStop, found bool, err error) { // MARKER: Lookup
-	err = query.Validate(ctx)
-	if err != nil {
-		return nil, false, errors.Trace(err, http.StatusBadRequest)
-	}
 	query.Offset = 0
 	query.Limit = 2
 	objs, _, err := svc.List(ctx, query)
@@ -488,7 +480,7 @@ func (svc *Service) Lookup(ctx context.Context, query busstopapi.Query) (obj *bu
 }
 
 /*
-MustLookup returns the single object matching the query. It errors unless exactly one object matches the query.
+MustLookup returns the single bus stop matching the query. It errors unless exactly one bus stop matches the query.
 */
 func (svc *Service) MustLookup(ctx context.Context, query busstopapi.Query) (obj *busstopapi.BusStop, err error) { // MARKER: MustLookup
 	obj, found, err := svc.Lookup(ctx, query)
@@ -502,7 +494,7 @@ func (svc *Service) MustLookup(ctx context.Context, query busstopapi.Query) (obj
 }
 
 /*
-Load returns the object associated with the key.
+Load returns the bus stop associated with the key.
 */
 func (svc *Service) Load(ctx context.Context, objKey busstopapi.BusStopKey) (obj *busstopapi.BusStop, found bool, err error) { // MARKER: Load
 	if objKey.IsZero() {
@@ -513,7 +505,7 @@ func (svc *Service) Load(ctx context.Context, objKey busstopapi.BusStopKey) (obj
 }
 
 /*
-MustLoad returns the object associated with the key. It errors if the object is not found.
+MustLoad returns the bus stop associated with the key, erroring if not found.
 */
 func (svc *Service) MustLoad(ctx context.Context, objKey busstopapi.BusStopKey) (obj *busstopapi.BusStop, err error) { // MARKER: MustLoad
 	obj, ok, err := svc.Load(ctx, objKey)
@@ -527,7 +519,7 @@ func (svc *Service) MustLoad(ctx context.Context, objKey busstopapi.BusStopKey) 
 }
 
 /*
-BulkLoad returns the objects matching the keys.
+BulkLoad returns the bus stops matching the keys.
 */
 func (svc *Service) BulkLoad(ctx context.Context, objKeys []busstopapi.BusStopKey) (objs []*busstopapi.BusStop, err error) { // MARKER: BulkLoad
 	if len(objKeys) == 0 {
@@ -559,7 +551,7 @@ func (svc *Service) BulkLoad(ctx context.Context, objKeys []busstopapi.BusStopKe
 }
 
 /*
-BulkDelete deletes the objects matching the keys, returning the keys of the deleted objects.
+BulkDelete deletes the bus stops matching the keys, returning the keys of the deleted bus stops.
 */
 func (svc *Service) BulkDelete(ctx context.Context, objKeys []busstopapi.BusStopKey) (deletedKeys []busstopapi.BusStopKey, err error) { // MARKER: BulkDelete
 	if len(objKeys) == 0 {
@@ -690,7 +682,7 @@ func (svc *Service) BulkDelete(ctx context.Context, objKeys []busstopapi.BusStop
 }
 
 /*
-BulkStore updates multiple objects, returning the keys of the stored objects.
+BulkStore updates multiple bus stops, returning the keys of the stored bus stops.
 */
 func (svc *Service) BulkStore(ctx context.Context, objs []*busstopapi.BusStop) (storedKeys []busstopapi.BusStopKey, err error) { // MARKER: BulkStore
 	storedKeys, err = svc.bulkUpdate(ctx, objs, false)
@@ -705,8 +697,7 @@ func (svc *Service) BulkStore(ctx context.Context, objs []*busstopapi.BusStop) (
 }
 
 /*
-BulkRevise updates multiple objects, returning the number of rows affected.
-Only rows with matching revisions are updated.
+BulkRevise updates multiple bus stops only if the revisions match, returning the keys of the revised bus stops.
 */
 func (svc *Service) BulkRevise(ctx context.Context, objs []*busstopapi.BusStop) (revisedKeys []busstopapi.BusStopKey, err error) { // MARKER: BulkRevise
 	revisedKeys, err = svc.bulkUpdate(ctx, objs, true)
@@ -718,17 +709,13 @@ func (svc *Service) bulkUpdate(ctx context.Context, objs []*busstopapi.BusStop, 
 	if len(objs) == 0 {
 		return nil, nil
 	}
-	// Validate all objects before updating any
+	// Check all objects before updating any
 	for i, obj := range objs {
 		if obj == nil {
 			return nil, errors.New("nil object", http.StatusBadRequest, "index", i)
 		}
 		if obj.Key.IsZero() {
 			return nil, errors.New("zero key", http.StatusBadRequest, "index", i)
-		}
-		err = obj.Validate(ctx)
-		if err != nil {
-			return nil, errors.Trace(err, http.StatusBadRequest, "index", i)
 		}
 	}
 	// Sort by ID to optimize disk access
@@ -952,20 +939,15 @@ func (svc *Service) bulkUpdate(ctx context.Context, objs []*busstopapi.BusStop, 
 }
 
 /*
-BulkCreate creates multiple objects, returning their keys.
+BulkCreate creates multiple bus stops, returning their keys.
 */
 func (svc *Service) BulkCreate(ctx context.Context, objs []*busstopapi.BusStop) (objKeys []busstopapi.BusStopKey, err error) { // MARKER: BulkCreate
 	if len(objs) == 0 {
 		return nil, nil
 	}
-	// Validate all objects before inserting any
 	for i, obj := range objs {
 		if obj == nil {
 			return nil, errors.New("nil object", http.StatusBadRequest, "index", i)
-		}
-		err = obj.Validate(ctx)
-		if err != nil {
-			return nil, errors.Trace(err, http.StatusBadRequest, "index", i)
 		}
 	}
 	testing := svc.Deployment() == connector.TESTING
@@ -1106,7 +1088,7 @@ func (svc *Service) BulkCreate(ctx context.Context, objs []*busstopapi.BusStop) 
 }
 
 /*
-Purge deletes all objects matching the query, returning the keys of the deleted objects.
+Purge deletes all bus stops matching the query, returning the keys of the deleted bus stops.
 */
 func (svc *Service) Purge(ctx context.Context, query busstopapi.Query) (deletedKeys []busstopapi.BusStopKey, err error) { // MARKER: Purge
 	query.Select = "id"
@@ -1123,7 +1105,7 @@ func (svc *Service) Purge(ctx context.Context, query busstopapi.Query) (deletedK
 }
 
 /*
-Count returns the number of objects matching the query, disregarding pagination.
+Count returns the number of bus stops matching the query.
 */
 func (svc *Service) Count(ctx context.Context, query busstopapi.Query) (count int, err error) { // MARKER: Count
 	query.Offset = 0
@@ -1208,7 +1190,6 @@ func (svc *Service) TryReserve(ctx context.Context, objKey busstopapi.BusStopKey
 
 /*
 TryBulkReserve attempts to reserve bus stops for the given duration, returning the keys of those successfully reserved.
-Only bus stops whose reservation has expired (reserved_before < NOW) are reserved.
 */
 func (svc *Service) TryBulkReserve(ctx context.Context, objKeys []busstopapi.BusStopKey, dur time.Duration) (reservedKeys []busstopapi.BusStopKey, err error) { // MARKER: TryBulkReserve
 	return svc.bulkReserve(ctx, objKeys, dur, false)

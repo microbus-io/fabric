@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -33,7 +34,7 @@ func TestPerson_ValidateQuery(t *testing.T) {
 		// HINT: Initialize the query's fields with valid values
 		Example: "Valid value",
 	}
-	err := validQuery.Validate(ctx)
+	err := dv8.Validate(ctx, &validQuery)
 	assert.NoError(err)
 
 	// HINT: Check validation of individual query fields
@@ -41,24 +42,24 @@ func TestPerson_ValidateQuery(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidQuery := validQuery
 		invalidQuery.FirstName = strings.Repeat("X", 65)
-		assert.Error(invalidQuery.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidQuery))
 	})
 	t.Run("last_name_too_long", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidQuery := validQuery
 		invalidQuery.LastName = strings.Repeat("X", 65)
-		assert.Error(invalidQuery.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidQuery))
 	})
 	t.Run("email_too_long", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidQuery := validQuery
 		invalidQuery.Email = strings.Repeat("x", 257)
-		assert.Error(invalidQuery.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidQuery))
 	})
 	t.Run("example_too_long", func(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidQuery := validQuery
 		invalidQuery.Example = strings.Repeat("X", 1024) // Too long
-		assert.Error(invalidQuery.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidQuery))
 	})
 }

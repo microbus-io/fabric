@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -17,7 +18,7 @@ func TestBusStop_ValidateObject(t *testing.T) {
 		// HINT: Initialize the object's fields with valid values
 		Example: "Valid value",
 	}
-	err := validObject.Validate(ctx)
+	err := dv8.Validate(ctx, &validObject)
 	assert.NoError(err)
 
 	// HINT: Check validation of individual object fields
@@ -25,6 +26,6 @@ func TestBusStop_ValidateObject(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidObject := validObject
 		invalidObject.Example = strings.Repeat("X", 1024) // Too long
-		assert.Error(invalidObject.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidObject))
 	})
 }

@@ -118,6 +118,11 @@ Skip this step if the metric is not observable just in time, or if instructed to
 
 When present, the boilerplate generator created a placeholder test function `TestMyService_OnObserveMyMetric` in `service_test.go`, tagged with a `// MARKER: MyMetric` comment and a `HINT` block. Add one or more test cases at the bottom of that function, following the pattern shown in its `HINT` comment. Do not remove the `HINT` comment.
 
+If the feature or microservice cannot or should not be tested - for example, it starts a daemon or requires a
+resource unavailable in the test environment - do not delete the generated test. The generator keys on the test
+function's name and would scaffold it again on the next regeneration. Instead, replace the entire body of the
+test with a `t.Skip("reason")` explaining why.
+
 #### Step 10: Housekeeping
 
 Follow the `housekeeping` skill.

@@ -31,14 +31,14 @@ Read the local `CLAUDE.md` file in the microservice's directory. It contains mic
 
 Find the type definition of the object in `mynounapi/object.go`.
 Remove the appropriate fields from the type definition of the struct.
-Remove the irrelevant code from the object's `Validate` method.
+Remove the field's `dv8` tags and any irrelevant code from the object's `Validate` method.
 Clean up any unused imports.
 
 #### Step 3: Update the Type Definition of the Query
 
 Find the type definition of the query in `mynounapi/query.go`.
 Remove the appropriate fields from the type definition of the struct.
-Remove the irrelevant code from the query's `Validate` method.
+Remove the field's `dv8` tags and any irrelevant code from the query's `Validate` method.
 Clean up any unused imports.
 
 #### Step 4: Update Database Schema

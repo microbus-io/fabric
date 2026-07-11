@@ -36,8 +36,9 @@ var (
 )
 
 // PersonKey is the ID of the person.
+// The delegate directive routes dv8 directives declared on a key-typed field to the ID.
 type PersonKey struct {
-	ID int `json:"id,omitzero"`
+	ID int `json:"id,omitzero" dv8:"delegate,val>=0"`
 }
 
 // ParseKey returns a key from its scrambled (string) or unscrambled (int) ID.

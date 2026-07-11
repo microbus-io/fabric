@@ -143,6 +143,11 @@ When present, the boilerplate generator created a placeholder test function `Tes
 
 `SetMyConfig` runs the value through the same validation as a configured value and returns an error when it fails. If the config has a `Validation` rule, cover both paths: a valid value that sets cleanly (`assert.NoError`, then assert the getter returns it), and an out-of-range or malformed value that is rejected (`assert.Error`). The `HINT` block only shows the happy path.
 
+If the feature or microservice cannot or should not be tested - for example, it starts a daemon or requires a
+resource unavailable in the test environment - do not delete the generated test. The generator keys on the test
+function's name and would scaffold it again on the next regeneration. Instead, replace the entire body of the
+test with a `t.Skip("reason")` explaining why.
+
 #### Step 9: Add to Config File
 
 Add a commented-out entry for the new configuration property to the appropriate config file at the root of the project, nested under the hostname of the microservice. Use the default value if one was defined, or leave it blank otherwise.

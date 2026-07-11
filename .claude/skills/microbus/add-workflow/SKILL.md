@@ -168,6 +168,11 @@ Skip this step if instructed to be "quick" or to skip tests.
 
 The boilerplate generator created a placeholder test function `TestMyService_MyWorkflow` in `service_test.go`, tagged with a `// MARKER: MyWorkflow` comment and a `HINT` block. Add one or more test cases at the bottom of that function, following the pattern shown in its `HINT` comment. Do not remove the `HINT` comment.
 
+If the feature or microservice cannot or should not be tested - for example, it starts a daemon or requires a
+resource unavailable in the test environment - do not delete the generated test. The generator keys on the test
+function's name and would scaffold it again on the next regeneration. Instead, replace the entire body of the
+test with a `t.Skip("reason")` explaining why.
+
 #### Step 9: Housekeeping
 
 Follow the `housekeeping` skill.

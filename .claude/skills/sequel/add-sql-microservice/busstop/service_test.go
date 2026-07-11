@@ -88,7 +88,6 @@ func TestBusStop_Create(t *testing.T) { // MARKER: Create
 
 		invalidObj := NewObject(t)
 		invalidObj.Example = strings.Repeat("X", 1024) // Too long
-		assert.Error(invalidObj.Validate(ctx))
 		key, err := client.Create(ctx, invalidObj)
 		assert.Error(err)
 		assert.Zero(key)
@@ -263,7 +262,6 @@ func TestBusStop_Store(t *testing.T) { // MARKER: Store
 
 		invalidObj := *originalObj
 		invalidObj.Example = strings.Repeat("X", 1024) // Too long
-		assert.Error(invalidObj.Validate(ctx))
 		stored, err := client.Store(ctx, &invalidObj)
 		assert.Error(err)
 		assert.False(stored)
@@ -661,7 +659,6 @@ func TestBusStop_Revise(t *testing.T) { // MARKER: Revise
 
 		invalidObj := *originalObj
 		invalidObj.Example = strings.Repeat("X", 1024) // Too long
-		assert.Error(invalidObj.Validate(ctx))
 		revised, err := client.Revise(ctx, &invalidObj)
 		assert.Error(err)
 		assert.False(revised)

@@ -20,8 +20,9 @@ var (
 )
 
 // BusStopKey is the ID of the bus stop.
+// The delegate directive routes dv8 directives declared on a key-typed field to the ID.
 type BusStopKey struct {
-	ID int `json:"id,omitzero"`
+	ID int `json:"id,omitzero" dv8:"delegate,val>=0"`
 }
 
 // ParseKey returns a key from its scrambled (string) or unscrambled (int) ID.

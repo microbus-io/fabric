@@ -31,13 +31,13 @@ Read the local `CLAUDE.md` file in the microservice's directory. It contains mic
 
 Find the type definition of the object in `mynounapi/object.go` in the API directory of the microservice.
 Change the fields in the type definition of the struct appropriately.
-Change the code in the object's `Validate` method appropriately.
+Change the field's `dv8` tags and the code in the object's `Validate` method appropriately.
 
 #### Step 3: Update the Type Definition of the Query
 
 Find the type definition of the query in `mynounapi/query.go` in the API directory of the microservice.
 Change the fields in the type definition of the struct appropriately.
-Change the code in the query's `Validate` method appropriately.
+Change the field's `dv8` tags and the code in the query's `Validate` method appropriately.
 
 #### Step 4: Update Database Schema
 

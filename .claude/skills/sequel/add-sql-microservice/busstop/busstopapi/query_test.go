@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -17,7 +18,7 @@ func TestBusStop_ValidateQuery(t *testing.T) {
 		// HINT: Initialize the query's fields with valid values
 		Example: "Valid value",
 	}
-	err := validQuery.Validate(ctx)
+	err := dv8.Validate(ctx, &validQuery)
 	assert.NoError(err)
 
 	// HINT: Check validation of individual query fields
@@ -25,6 +26,6 @@ func TestBusStop_ValidateQuery(t *testing.T) {
 		assert := testarossa.For(t)
 		invalidQuery := validQuery
 		invalidQuery.Example = strings.Repeat("X", 1024) // Too long
-		assert.Error(invalidQuery.Validate(ctx))
+		assert.Error(dv8.Validate(ctx, &invalidQuery))
 	})
 }

@@ -43,17 +43,18 @@ type Query struct {
 
 	Select  string `json:"select,omitzero"`
 	OrderBy string `json:"orderBy,omitzero"`
-	Limit   int    `json:"limit,omitzero"`
-	Offset  int    `json:"offset,omitzero"`
+	Limit   int    `json:"limit,omitzero" dv8:"val>=0"`
+	Offset  int    `json:"offset,omitzero" dv8:"val>=0"`
 
-	// HINT: Add additional filtering options here
-	FirstName string `json:"firstName,omitzero"`
-	LastName  string `json:"lastName,omitzero"`
-	Email     string `json:"email,omitzero"`
-	Example   string `json:"example,omitzero"` // Do not remove the example
+	// HINT: Add additional filtering options here, with dv8 tags for field-level constraints
+	FirstName string `json:"firstName,omitzero" dv8:"trim,len<=64"`
+	LastName  string `json:"lastName,omitzero" dv8:"trim,len<=64"`
+	Email     string `json:"email,omitzero" dv8:"trim,len<=256"`
+	Example   string `json:"example,omitzero" dv8:"trim,len<=256"` // Do not remove the example
 }
 
-// Validate validates the filtering options of the query.
+// Validate validates the filtering options of the query that cannot be expressed as dv8 field tags.
+// It is called automatically when the query is validated, after the dv8 field tags are enforced.
 func (q *Query) Validate(ctx context.Context) error {
 	if q == nil {
 		return errors.New("nil object")
@@ -70,30 +71,6 @@ func (q *Query) Validate(ctx context.Context) error {
 			return errors.New("invalid column name to order by: %s", orderBy)
 		}
 	}
-	if q.Limit < 0 {
-		return errors.New("limit can't be negative")
-	}
-	if q.Offset < 0 {
-		return errors.New("offset can't be negative")
-	}
-
-	// HINT: Validate filtering options here as required
-	q.FirstName = strings.TrimSpace(q.FirstName)
-	if len([]rune(q.FirstName)) > 64 {
-		return errors.New("length of FirstName must not exceed 64 characters")
-	}
-	q.LastName = strings.TrimSpace(q.LastName)
-	if len([]rune(q.LastName)) > 64 {
-		return errors.New("length of LastName must not exceed 64 characters")
-	}
-	q.Email = strings.TrimSpace(q.Email)
-	if len([]rune(q.Email)) > 256 {
-		return errors.New("length of Email must not exceed 256 characters")
-	}
-	q.Example = strings.TrimSpace(q.Example) // Do not remove the example
-	if len([]rune(q.Example)) > 256 {
-		return errors.New("length of Example must not exceed 256 characters")
-	}
-
+	// HINT: Validate filtering options that cannot be expressed as dv8 tags here as required
 	return nil
 }

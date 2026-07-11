@@ -391,10 +391,6 @@ func (svc *Service) MustDelete(ctx context.Context, objKey yellowpagesapi.Person
 List returns the objects matching the query, and the total count of matches regardless of the limit.
 */
 func (svc *Service) List(ctx context.Context, query yellowpagesapi.Query) (objs []*yellowpagesapi.Person, totalCount int, err error) { // MARKER: List
-	err = query.Validate(ctx)
-	if err != nil {
-		return nil, 0, errors.Trace(err, http.StatusBadRequest)
-	}
 	var obj yellowpagesapi.Person
 	columnMapping, err := svc.mapColumnsOnSelect(ctx, &obj)
 	if err != nil {
@@ -575,10 +571,6 @@ func (svc *Service) List(ctx context.Context, query yellowpagesapi.Query) (objs 
 Lookup returns the single object matching the query. It errors if more than one object matches the query.
 */
 func (svc *Service) Lookup(ctx context.Context, query yellowpagesapi.Query) (obj *yellowpagesapi.Person, found bool, err error) { // MARKER: Lookup
-	err = query.Validate(ctx)
-	if err != nil {
-		return nil, false, errors.Trace(err, http.StatusBadRequest)
-	}
 	query.Offset = 0
 	query.Limit = 2
 	objs, _, err := svc.List(ctx, query)
@@ -826,17 +818,13 @@ func (svc *Service) bulkUpdate(ctx context.Context, objs []*yellowpagesapi.Perso
 	if len(objs) == 0 {
 		return nil, nil
 	}
-	// Validate all objects before updating any
+	// Check all objects before updating any
 	for i, obj := range objs {
 		if obj == nil {
 			return nil, errors.New("nil object", http.StatusBadRequest, "index", i)
 		}
 		if obj.Key.IsZero() {
 			return nil, errors.New("zero key", http.StatusBadRequest, "index", i)
-		}
-		err = obj.Validate(ctx)
-		if err != nil {
-			return nil, errors.Trace(err, http.StatusBadRequest, "index", i)
 		}
 	}
 	// Sort by ID to optimize disk access
@@ -1066,14 +1054,9 @@ func (svc *Service) BulkCreate(ctx context.Context, objs []*yellowpagesapi.Perso
 	if len(objs) == 0 {
 		return nil, nil
 	}
-	// Validate all objects before inserting any
 	for i, obj := range objs {
 		if obj == nil {
 			return nil, errors.New("nil object", http.StatusBadRequest, "index", i)
-		}
-		err = obj.Validate(ctx)
-		if err != nil {
-			return nil, errors.Trace(err, http.StatusBadRequest, "index", i)
 		}
 	}
 	testing := svc.Deployment() == connector.TESTING

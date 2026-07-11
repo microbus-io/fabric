@@ -38,41 +38,36 @@ Be sure to include a JSON tag. Use camelCase for the JSON name, and specify to `
 
 When referring to an object persisted by another microservices, use its respective key.
 
+Express field-level constraints (trimming, length limits, value ranges, required values) as `dv8` tags on the
+fields; they are enforced automatically when the object is validated (see the `add-type` skill).
+
 ```go
 type MyNoun struct {
 	Key MyNounKey `json:"key,omitzero"`
 
-	// HINT: Define the fields of the object here
-	MyFieldString   string             `json:"myFieldString,omitzero"`
-	MyFieldInteger  int                `json:"myFieldInteger,omitzero"`
-	MyFieldNullable string             `json:"myFieldNullable,omitzero"`
+	// HINT: Define the fields of the object here, with dv8 tags for field-level constraints
+	MyFieldString   string             `json:"myFieldString,omitzero" dv8:"trim,len<=256"`
+	MyFieldInteger  int                `json:"myFieldInteger,omitzero" dv8:"val>=0"`
+	MyFieldNullable string             `json:"myFieldNullable,omitzero" dv8:"trim,len<=256"`
 	MyFieldTime     time.Time          `json:"myFieldTime,omitzero"`
-	MyFieldTags     map[string]string  `json:"myFieldTags,omitzero"`
+	MyFieldTags     map[string]string  `json:"myFieldTags,omitzero" dv8:"each len<=256"`
 	
-	MyOtherObjectKey otherobjectapi.OtherObjectKey `json:"myOtherObjectKey,omitzero"`
+	MyOtherObjectKey otherobjectapi.OtherObjectKey `json:"myOtherObjectKey,omitzero" dv8:"notzero"`
 }
 ```
 
-Modify the object's `Validate` method appropriately to return an error if the values of the new fields do not meet the validation requirements. Be sure to strip strings of extra spaces using `strings.TrimSpace` if appropriate.
+Constraints that the `dv8` tag grammar cannot express - comparisons against the current time, invariants that span
+multiple fields - go in the object's `Validate` method, which is called automatically after the tags are enforced.
 
 ```go
-// Validate validates the object before storing it.
+// Validate validates invariants that span multiple fields of the object.
+// It is called automatically when the object is validated, after the dv8 field tags are enforced.
 func (obj *MyNoun) Validate(ctx context.Context) error {
 	// ...
 
-	// HINT: Validate the fields of the object here as required
-	obj.MyFieldString = strings.TrimSpace(obj.MyFieldString)
-	if len([]rune(obj.MyFieldString)) > 256 {
-		return errors.New("length of MyFieldString must not exceed 256 characters")
-	}
-	if obj.MyFieldInteger < 0 {
-		return errors.New("MyFieldInteger must not be negative")
-	}
+	// HINT: Validate invariants that span multiple fields here as required
 	if obj.MyFieldTime.After(time.Now()) {
 		return errors.New("MyFieldTime must not be in the future")
-	}
-	if obj.MyOtherObjectKey.IsZero() {
-		return errors.New("MyOtherObjectKey is required")
 	}
 	return nil
 }
@@ -87,35 +82,33 @@ Be sure to include a JSON tag. Use camelCase for the JSON name, and specify to `
 
 When referring to a parent object that is persisted by another SQL CRUD microservices, use its respective key as the field type.
 
+Express field-level constraints as `dv8` tags on the fields, matching the constraints of the object fields they
+filter by (e.g. the same length limit).
+
 ```go
 type Query struct {
 	Key MyNounKey `json:"key,omitzero"`
 
-	// HINT: Define the fields of the object here
-	MyFieldInteger  int       `json:"myFieldInteger,omitzero"`
-	MyFieldNullable string    `json:"myFieldNullable,omitzero"`
+	// HINT: Define the fields of the object here, with dv8 tags for field-level constraints
+	MyFieldInteger  int       `json:"myFieldInteger,omitzero" dv8:"val>=0"`
+	MyFieldNullable string    `json:"myFieldNullable,omitzero" dv8:"trim,len<=256"`
 	MyFieldTimeGTE  time.Time `json:"myFieldTimeStart,omitzero"`
 	MyFieldTimeLT   time.Time `json:"myFieldTimeEnd,omitzero"`
 	
-	ParentKey parentapi.ParentKey `json:"parentKey,omitzero"`
+	ParentKey parentapi.ParentKey `json:"parentKey,omitzero" dv8:"notzero"`
 }
 ```
 
-Modify the `Query`'s `Validate` method appropriately to return an error if the values of the new fields do not meet the validation requirements. Be sure to strip strings of extra spaces using `strings.TrimSpace` if appropriate.
+Constraints that the `dv8` tag grammar cannot express go in the `Query`'s `Validate` method, which is called
+automatically after the tags are enforced.
 
 ```go
-// Validate validates the filtering options of the query.
+// Validate validates the filtering options of the query that cannot be expressed as dv8 field tags.
+// It is called automatically when the query is validated, after the dv8 field tags are enforced.
 func (q *Query) Validate(ctx context.Context) error {
 	// ...
 
-	// HINT: Validate filtering options here as required
-	if q.MyFieldInteger < 0 {
-		return errors.New("MyFieldInteger must not be negative")
-	}
-	q.MyFieldNullable = strings.TrimSpace(q.MyFieldNullable)
-	if len([]rune(q.MyFieldNullable)) > 256 {
-		return errors.New("length of MyFieldNullable must not exceed 256 characters")
-	}
+	// HINT: Validate filtering options that cannot be expressed as dv8 tags here as required
 	if q.MyFieldTimeGTE.After(time.Now()) {
 		return errors.New("MyFieldTimeGTE must not be in the future")
 	}
@@ -124,9 +117,6 @@ func (q *Query) Validate(ctx context.Context) error {
 	}
 	if q.MyFieldTimeGTE.After(q.MyFieldTimeLT) {
 		return errors.New("MyFieldTimeGTE must not be after MyFieldTimeLT")
-	}
-	if q.ParentKey.IsZero() {
-		return errors.New("ParentKey is required")
 	}
 	return nil
 }
