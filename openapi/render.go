@@ -186,6 +186,9 @@ func Render(s *Service) *Document {
 				httpRequestBodyExists = true // Makes all other args query or path args
 				if methodHasBody(method) {   // Only works if the method has a body
 					schemaIn := jsonschemaReflectFromType(field.Type)
+					// The body schema is reflected from the field's type alone, which drops the field-level
+					// tag, so dv8 directives on the field itself are applied directly.
+					applyDV8FieldTag(schemaIn, field)
 					resolveRefs(doc, schemaIn, epKey+"_IN")
 					doc.Components.Schemas[epKey+"_IN"] = schemaIn
 
@@ -246,6 +249,10 @@ func Render(s *Service) *Document {
 					if desc := fieldTagDescription(field); desc != "" {
 						parameter.Description = desc
 					}
+					// The parameter schema is reflected from the field's type alone, which drops the
+					// field-level tag, so dv8 directives on the field itself are applied directly.
+					// The parameter is deliberately not marked required (see CLAUDE.md).
+					applyDV8FieldTag(parameter.Schema, field)
 					op.Parameters = append(op.Parameters, parameter)
 				}
 			} else {
@@ -487,7 +494,9 @@ func jsonschemaReflectFromType(t reflect.Type) *jsonschema.Schema {
 	r := jsonschema.Reflector{
 		AllowAdditionalProperties: true,
 	}
-	return r.ReflectFromType(t)
+	schema := r.ReflectFromType(t)
+	applyDV8Type(schema, t)
+	return schema
 }
 
 // jsonschemaReflect reflects to Schema from a value, allowing additional properties by default.
@@ -495,5 +504,7 @@ func jsonschemaReflect(v any) *jsonschema.Schema {
 	r := jsonschema.Reflector{
 		AllowAdditionalProperties: true,
 	}
-	return r.Reflect(v)
+	schema := r.Reflect(v)
+	applyDV8Type(schema, reflect.TypeOf(v))
+	return schema
 }

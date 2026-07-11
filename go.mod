@@ -11,7 +11,7 @@ require (
 	github.com/invopop/jsonschema v0.14.0
 	github.com/microbus-io/bespa v0.1.4
 	github.com/microbus-io/boolexp v1.1.2
-	github.com/microbus-io/dv8 v0.3.2
+	github.com/microbus-io/dv8 v0.4.0
 	github.com/microbus-io/dwarf v0.9.5
 	github.com/microbus-io/errors v1.0.1
 	github.com/microbus-io/pyvenv v1.0.3

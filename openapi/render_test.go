@@ -334,3 +334,169 @@ func TestRender_GreedyPath(t *testing.T) {
 	_, nameDotted := gotIn["name..."]
 	assert.False(nameDotted, "parameter name must not include the trailing dots")
 }
+
+// TestRender_DV8BodyConstraints covers the projection of dv8 field directives onto the schema of a
+// request body: length and value bounds, patterns, enums, defaults, required fields, and the each/key
+// prefixes that descend into the elements and keys of containers.
+func TestRender_DV8BodyConstraints(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	type Person struct {
+		Name    string            `json:"name,omitzero" dv8:"trim,notzero,len<=64"`
+		Email   string            `json:"email,omitzero" dv8:"regexp ^.+@.+$"`
+		Age     int               `json:"age,omitzero" dv8:"val>=0,val<120"`
+		Size    string            `json:"size,omitzero" dv8:"oneof S|M|L,default=M"`
+		Tags    []string          `json:"tags,omitzero" dv8:"len>0,each len<=16"`
+		Attribs map[string]string `json:"attribs,omitzero" dv8:"len<8,key len>=2,each notzero"`
+	}
+	type CreateIn struct {
+		Person Person `json:"person,omitzero" dv8:"notzero"`
+	}
+	type CreateOut struct {
+		Created bool `json:"created,omitzero"`
+	}
+
+	svc := &Service{
+		ServiceName: "directory.test",
+		Endpoints: []*Endpoint{
+			{
+				Type:       "function",
+				Name:       "Create",
+				Method:     "POST",
+				Route:      "/create",
+				Summary:    "Create(person Person) (created bool)",
+				InputArgs:  CreateIn{},
+				OutputArgs: CreateOut{},
+			},
+		},
+	}
+
+	data, err := json.Marshal(Render(svc))
+	if !assert.NoError(err) {
+		return
+	}
+	var doc map[string]any
+	err = json.Unmarshal(data, &doc)
+	if !assert.NoError(err) {
+		return
+	}
+
+	components := doc["components"].(map[string]any)
+	schemas := components["schemas"].(map[string]any)
+
+	// notzero on the top-level field marks it required on the IN schema
+	inSchema := resolveSchema(schemas, "directory_test__Create_IN")
+	assert.Expect(inSchema["required"], []any{"person"})
+
+	personSchema := schemas["directory_test__Create_IN_Person"].(map[string]any)
+	assert.Expect(personSchema["required"], []any{"name"})
+	props := personSchema["properties"].(map[string]any)
+
+	nameProp := props["name"].(map[string]any)
+	assert.Expect(nameProp["minLength"], float64(1)) // notzero
+	assert.Expect(nameProp["maxLength"], float64(64))
+
+	emailProp := props["email"].(map[string]any)
+	assert.Expect(emailProp["pattern"], "^.+@.+$")
+
+	ageProp := props["age"].(map[string]any)
+	assert.Expect(ageProp["minimum"], float64(0))
+	assert.Expect(ageProp["exclusiveMaximum"], float64(120))
+
+	sizeProp := props["size"].(map[string]any)
+	assert.Expect(sizeProp["enum"], []any{"S", "M", "L"})
+	assert.Expect(sizeProp["default"], "M")
+
+	tagsProp := props["tags"].(map[string]any)
+	assert.Expect(tagsProp["minItems"], float64(1)) // len>0
+	tagsItems := tagsProp["items"].(map[string]any)
+	assert.Expect(tagsItems["maxLength"], float64(16)) // each len<=16
+
+	attribsProp := props["attribs"].(map[string]any)
+	assert.Expect(attribsProp["maxProperties"], float64(7)) // len<8
+	attribsKeys := attribsProp["propertyNames"].(map[string]any)
+	assert.Expect(attribsKeys["minLength"], float64(2)) // key len>=2
+	attribsVals := attribsProp["additionalProperties"].(map[string]any)
+	assert.Expect(attribsVals["minLength"], float64(1)) // each notzero
+}
+
+// TestRender_DV8ParamConstraints covers the projection of dv8 directives declared on the fields backing
+// scalar query parameters and magic HTTP body arguments, whose schemas are reflected from the field type
+// alone (dropping the field-level tag). Query parameters remain not required regardless of notzero.
+func TestRender_DV8ParamConstraints(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	type ListIn struct {
+		Filter string `json:"filter,omitzero" dv8:"notzero,len<=32"`
+		Limit  int    `json:"limit,omitzero" dv8:"val>0,val<=100"`
+	}
+	type ListOut struct {
+		HTTPResponseBody []string `json:"-"`
+	}
+	type ImportIn struct {
+		HTTPRequestBody []string `json:"-" dv8:"notzero,each len>0"`
+	}
+	type ImportOut struct {
+		Imported int `json:"imported,omitzero"`
+	}
+
+	svc := &Service{
+		ServiceName: "catalog.test",
+		Endpoints: []*Endpoint{
+			{
+				Type:       "function",
+				Name:       "List",
+				Method:     "GET",
+				Route:      "/list",
+				Summary:    "List(filter string, limit int) (items []string)",
+				InputArgs:  ListIn{},
+				OutputArgs: ListOut{},
+			},
+			{
+				Type:       "function",
+				Name:       "Import",
+				Method:     "POST",
+				Route:      "/import",
+				Summary:    "Import(items []string) (imported int)",
+				InputArgs:  ImportIn{},
+				OutputArgs: ImportOut{},
+			},
+		},
+	}
+
+	data, err := json.Marshal(Render(svc))
+	if !assert.NoError(err) {
+		return
+	}
+	var doc map[string]any
+	err = json.Unmarshal(data, &doc)
+	if !assert.NoError(err) {
+		return
+	}
+
+	paths := doc["paths"].(map[string]any)
+
+	listOp := paths["/catalog.test/list"].(map[string]any)["get"].(map[string]any)
+	params := listOp["parameters"].([]any)
+	byName := map[string]map[string]any{}
+	for _, p := range params {
+		param := p.(map[string]any)
+		byName[param["name"].(string)] = param
+	}
+	filterSchema := byName["filter"]["schema"].(map[string]any)
+	assert.Expect(filterSchema["minLength"], float64(1)) // notzero
+	assert.Expect(filterSchema["maxLength"], float64(32))
+	assert.Expect(byName["filter"]["required"], nil) // query params stay optional
+	limitSchema := byName["limit"]["schema"].(map[string]any)
+	assert.Expect(limitSchema["exclusiveMinimum"], float64(0))
+	assert.Expect(limitSchema["maximum"], float64(100))
+
+	components := doc["components"].(map[string]any)
+	schemas := components["schemas"].(map[string]any)
+	importIn := schemas["catalog_test__Import_IN"].(map[string]any)
+	assert.Expect(importIn["minItems"], float64(1)) // notzero
+	importItems := importIn["items"].(map[string]any)
+	assert.Expect(importItems["minLength"], float64(1)) // each len>0
+}
