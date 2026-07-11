@@ -87,6 +87,8 @@ github.com/microbus-io/boolexp v1.1.2 h1:US520kR+zlnV01OucaH+cLNnOLa0uNDCbfDmkHz
 github.com/microbus-io/boolexp v1.1.2/go.mod h1:3hNRg2w67v0axnTy+BpgRufa7/vXucsblBMncq64lv4=
 github.com/microbus-io/copyrighter v1.4.0 h1:EucSuHMyUO1fb+0eVOAz9ORpygTfaQxz/LK4jumciJ4=
 github.com/microbus-io/copyrighter v1.4.0/go.mod h1:zk1Tt0nD2cI3NA1i6SHOCRgj7n02TZLyq6uHAMqLmXs=
+github.com/microbus-io/dv8 v0.3.2 h1:3SQyAuZQnyt7Qx37oPnBC54zUhTdy40UXbdpQcGsNZU=
+github.com/microbus-io/dv8 v0.3.2/go.mod h1:I/pviMCHuhCMBdu1bvBDhYj5+fc23/S6qSj9X2ZWEcw=
 github.com/microbus-io/dwarf v0.9.5 h1:K5km6j/jcJwoH6Q0WvB82XFFjCij5eyl517g5gt0vgg=
 github.com/microbus-io/dwarf v0.9.5/go.mod h1:qMC5Uf+LMPea/v42TLtUX8oX+LyujgEfde4rw3w9Cd4=
 github.com/microbus-io/errors v1.0.1 h1:pujosfRSEqSJi0gcx6d+A7Mf2RZr2vQVMSQz0pG+wkM=

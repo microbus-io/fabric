@@ -964,3 +964,154 @@ func BenchmarkCreditFlow_CreditApprovalParallel(b *testing.B) {
 		BenchmarkCreditFlow_CreditApprovalParallel-10    	    150	   9121310 ns/op	 1395101 B/op	   19108 allocs/op
 	*/
 }
+
+func TestCreditFlow_InitIdentityVerification(t *testing.T) { // MARKER: InitIdentityVerification
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester
+	tester := connector.New("tester.client")
+	exec := creditflowapi.NewExecutor(tester)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Use WithOutputFlow to also verify control signals (Goto, Retry, Interrupt, Sleep) if applicable.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := exec.InitIdentityVerification(ctx, applicantName, ssn, address, phone)
+			assert.NoError(err)
+		})
+	*/
+}
+
+func TestCreditFlow_RunIdentityVerification(t *testing.T) { // MARKER: RunIdentityVerification
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester
+	tester := connector.New("tester.client")
+	exec := creditflowapi.NewExecutor(tester)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Use WithOutputFlow to also verify control signals (Goto, Retry, Interrupt, Sleep) if applicable.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			identityVerified, err := exec.RunIdentityVerification(ctx, applicantName, ssn, address, phone)
+			assert.Expect(
+				identityVerified, expectedIdentityVerified,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestCreditFlow_HandleCreditError(t *testing.T) { // MARKER: HandleCreditError
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester
+	tester := connector.New("tester.client")
+	exec := creditflowapi.NewExecutor(tester)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Use WithOutputFlow to also verify control signals (Goto, Retry, Interrupt, Sleep) if applicable.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			creditVerified, err := exec.HandleCreditError(ctx, onErr)
+			assert.Expect(
+				creditVerified, expectedCreditVerified,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestCreditFlow_IdentityVerification(t *testing.T) { // MARKER: IdentityVerification
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the testers
+	tester := connector.New("tester.client")
+	foremanClient := foremanapi.NewClient(tester)
+	exec := creditflowapi.NewExecutor(tester).WithWorkflowRunner(foremanClient)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		foreman.NewService(),
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			identityVerified, status, err := exec.IdentityVerification(ctx, applicantName, ssn, address, phone)
+			assert.Expect(
+				err, nil,
+				status, workflow.StatusCompleted,
+				identityVerified, expectedIdentityVerified,
+			)
+		})
+	*/
+}

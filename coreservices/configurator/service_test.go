@@ -18,6 +18,7 @@ package configurator
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -99,6 +100,68 @@ func TestConfigurator_NoConfigsOfItsOwn(t *testing.T) {
 
 	assert.False(fetched.Load(),
 		"the configurator fetched config from configurator.core during startup, which means it declares a config property of its own - adding one deadlocks its startup in production")
+}
+
+func TestConfigurator_NestedYAMLStructConfig(t *testing.T) {
+	// No parallel - Setting envars
+	ctx := t.Context()
+	env.Push("MICROBUS_PLANE", utils.RandomIdentifier(12))
+	defer env.Pop("MICROBUS_PLANE")
+	env.Push("MICROBUS_DEPLOYMENT", connector.LAB)
+	defer env.Pop("MICROBUS_DEPLOYMENT")
+
+	assert := testarossa.For(t)
+
+	configSvc := NewService()
+	con := connector.New("nested.yaml.configurator")
+	con.DefineConfig("limits",
+		cfg.Validation("json"),
+		cfg.DefaultValue(`{"read":1,"write":1}`),
+		cfg.Validator(func(ctx context.Context, value string) error {
+			var v struct {
+				Read  int `json:"read"`
+				Write int `json:"write"`
+			}
+			err := json.Unmarshal([]byte(value), &v)
+			if err != nil {
+				return err
+			}
+			if v.Read <= 0 || v.Write <= 0 {
+				return errors.New("limits must be positive")
+			}
+			return nil
+		}),
+	)
+
+	// The nested YAML value canonicalizes to a JSON string and passes the validator
+	err := configSvc.loadYAML(`
+nested.yaml.configurator:
+  limits:
+    write: 4
+    read: 8
+`)
+	assert.NoError(err)
+
+	app := application.New()
+	app.Add(configSvc)
+	app.Add(con)
+	err = app.Startup(ctx)
+	assert.NoError(err)
+	defer app.Shutdown(ctx)
+
+	assert.Equal(`{"read":8,"write":4}`, con.Config("limits"))
+
+	// A nested value failing the validator falls back to the default on refresh
+	err = configSvc.loadYAML(`
+nested.yaml.configurator:
+  limits:
+    write: -1
+    read: 8
+`)
+	assert.NoError(err)
+	err = configSvc.Refresh(ctx)
+	assert.NoError(err)
+	assert.Equal(`{"read":1,"write":1}`, con.Config("limits"))
 }
 
 func TestConfigurator_ManyMicroservices(t *testing.T) {
@@ -348,4 +411,242 @@ www.example.com:
 	assert.Equal("Baz", val, "First peer should have been updated")
 
 	assert.Equal("Baz", con.Config("Foo"), "Microservice should have been updated")
+}
+
+func TestConfigurator_Values(t *testing.T) { // MARKER: Values
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := configuratorapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			values, err := client.Values(ctx, names)
+			assert.Expect(
+				values, expectedValues,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestConfigurator_Refresh(t *testing.T) { // MARKER: Refresh
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := configuratorapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := client.Refresh(ctx)
+			assert.NoError(err)
+		})
+	*/
+}
+
+func TestConfigurator_SyncRepo(t *testing.T) { // MARKER: SyncRepo
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := configuratorapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := client.SyncRepo(ctx, timestamp, values)
+			assert.NoError(err)
+		})
+	*/
+}
+
+func TestConfigurator_Values443(t *testing.T) { // MARKER: Values443
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := configuratorapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			values, err := client.Values443(ctx, names)
+			assert.Expect(
+				values, expectedValues,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestConfigurator_Refresh443(t *testing.T) { // MARKER: Refresh443
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := configuratorapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := client.Refresh443(ctx)
+			assert.NoError(err)
+		})
+	*/
+}
+
+func TestConfigurator_Sync443(t *testing.T) { // MARKER: Sync443
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := configuratorapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := client.Sync443(ctx, timestamp, values)
+			assert.NoError(err)
+		})
+	*/
+}
+
+func TestConfigurator_PeriodicRefresh(t *testing.T) { // MARKER: PeriodicRefresh
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := svc.PeriodicRefresh(ctx)
+			assert.NoError(err)
+		})
+	*/
 }

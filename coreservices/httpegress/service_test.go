@@ -290,7 +290,7 @@ func TestHttpegress_IsBlockedIP(t *testing.T) { // MARKER: MakeRequest
 
 	blocked := []string{
 		"127.0.0.1", "::1", // loopback
-		"169.254.169.254", // cloud metadata (link-local)
+		"169.254.169.254",                       // cloud metadata (link-local)
 		"10.1.2.3", "172.16.0.1", "192.168.1.1", // RFC1918 private
 		"fd00:ec2::254", // IPv6 unique-local (AWS metadata)
 		"0.0.0.0", "::", // unspecified
@@ -307,4 +307,40 @@ func TestHttpegress_IsBlockedIP(t *testing.T) { // MARKER: MakeRequest
 	for _, s := range allowed {
 		assert.False(isBlockedIP(net.ParseIP(s)), "expected %s to be allowed", s)
 	}
+}
+
+func TestHTTPEgress_MakeRequest(t *testing.T) { // MARKER: MakeRequest
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := httpegressapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			res, err := client.MakeRequest(ctx, "", nil)
+			if assert.NoError(err) {
+				assert.Expect(res.StatusCode, http.StatusOK)
+			}
+		})
+	*/
 }

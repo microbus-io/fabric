@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/connector"
@@ -72,6 +73,19 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			flightbookingapi.SearchFlightsIn{},  // MARKER: SearchFlights
+			flightbookingapi.ProposeFlightIn{},  // MARKER: ProposeFlight
+			flightbookingapi.AwaitDecisionIn{},  // MARKER: AwaitDecision
+			flightbookingapi.ChooseSeatIn{},     // MARKER: ChooseSeat
+			flightbookingapi.ConfirmBookingIn{}, // MARKER: ConfirmBooking
+			flightbookingapi.NoFlightsIn{},      // MARKER: NoFlights
+			flightbookingapi.PickSeatIn{},       // MARKER: PickSeat
+		)
+	})
 
 	svc.Subscribe( // MARKER: Demo
 		"Demo", svc.Demo,
@@ -163,6 +177,10 @@ func (svc *Intermediate) doSearchFlights(w http.ResponseWriter, r *http.Request)
 	snap := flow.Snapshot()
 	var in flightbookingapi.SearchFlightsIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out flightbookingapi.SearchFlightsOut
 	out.Candidates, out.FlightIndex, err = svc.SearchFlights(r.Context(), &flow, in.Origin, in.Destination)
 	if err != nil {
@@ -187,6 +205,10 @@ func (svc *Intermediate) doProposeFlight(w http.ResponseWriter, r *http.Request)
 	snap := flow.Snapshot()
 	var in flightbookingapi.ProposeFlightIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out flightbookingapi.ProposeFlightOut
 	out.CurrentFlight, out.Exhausted, err = svc.ProposeFlight(r.Context(), &flow, in.Candidates, in.FlightIndex)
 	if err != nil {
@@ -211,6 +233,10 @@ func (svc *Intermediate) doAwaitDecision(w http.ResponseWriter, r *http.Request)
 	snap := flow.Snapshot()
 	var in flightbookingapi.AwaitDecisionIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out flightbookingapi.AwaitDecisionOut
 	out.Accepted, out.FlightIndexOut, err = svc.AwaitDecision(r.Context(), &flow, in.CurrentFlight, in.FlightIndex)
 	if err != nil {
@@ -235,6 +261,10 @@ func (svc *Intermediate) doChooseSeat(w http.ResponseWriter, r *http.Request) (e
 	snap := flow.Snapshot()
 	var in flightbookingapi.ChooseSeatIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out flightbookingapi.ChooseSeatOut
 	out.Seat, err = svc.ChooseSeat(r.Context(), &flow, in.SeatPreference, in.CurrentFlight)
 	if err != nil {
@@ -259,6 +289,10 @@ func (svc *Intermediate) doConfirmBooking(w http.ResponseWriter, r *http.Request
 	snap := flow.Snapshot()
 	var in flightbookingapi.ConfirmBookingIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out flightbookingapi.ConfirmBookingOut
 	out.Confirmation, out.Airline, out.FlightNo, err = svc.ConfirmBooking(r.Context(), &flow, in.CurrentFlight, in.Seat)
 	if err != nil {
@@ -283,6 +317,10 @@ func (svc *Intermediate) doNoFlights(w http.ResponseWriter, r *http.Request) (er
 	snap := flow.Snapshot()
 	var in flightbookingapi.NoFlightsIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out flightbookingapi.NoFlightsOut
 	out.Confirmation, err = svc.NoFlights(r.Context(), &flow)
 	if err != nil {
@@ -307,6 +345,10 @@ func (svc *Intermediate) doPickSeat(w http.ResponseWriter, r *http.Request) (err
 	snap := flow.Snapshot()
 	var in flightbookingapi.PickSeatIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out flightbookingapi.PickSeatOut
 	out.Seat, err = svc.PickSeat(r.Context(), &flow, in.SeatPreference, in.AvailableSeats)
 	if err != nil {

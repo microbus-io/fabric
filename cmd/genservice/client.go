@@ -35,6 +35,7 @@ const (
 	impReflect     = "reflect"
 	impStrconv     = "strconv"
 	impTesting     = "testing"
+	impDV8         = "github.com/microbus-io/dv8"
 	impWorkflow    = "github.com/microbus-io/dwarf/workflow"
 	impErrors      = "github.com/microbus-io/errors"
 	impTestarossa  = "github.com/microbus-io/testarossa"
@@ -259,7 +260,7 @@ func buildClientModel(svc *service, header string) *clientModel {
 		need(impContext, impService, impPub, impWorkflow)
 	}
 	if m.HasEvent() {
-		need(impContext, impIter, impHTTP, impService, impPub, impSub, impHTTPX, impErrors)
+		need(impContext, impIter, impHTTP, impService, impPub, impSub, impHTTPX, impErrors, impDV8)
 	}
 	if m.HasFunc() {
 		need(impContext, impIter, impService, impPub, impHTTPX, impErrors)

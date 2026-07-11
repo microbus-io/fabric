@@ -27,6 +27,11 @@ configs:
       /admin
       /.git
       *.env
+  Mascot:
+    signature: Mascot() (value Pet)
+    description: Mascot is the pet representing the microservice; exercises a struct-valued config.
+    validation: json
+    default: "{\"name\":\"Rex\",\"age\":3}"
   RefreshInterval:
     signature: RefreshInterval() (value time.Duration)
     description: RefreshInterval controls how often state is refreshed.

@@ -66,7 +66,16 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 
-{{range .Funcs}}	svc.Subscribe( // MARKER: {{.Name}}
+{{if .HasCompileInputs}}	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+{{range .Funcs}}			{{$.APIPkg}}.{{.In}}{}, // MARKER: {{.Name}}
+{{end}}{{range .Tasks}}			{{$.APIPkg}}.{{.In}}{}, // MARKER: {{.Name}}
+{{end}}{{range .InboundEvents}}			{{.SrcPkg}}.{{.In}}{}, // MARKER: {{.Name}}
+{{end}}		)
+	})
+
+{{end}}{{range .Funcs}}	svc.Subscribe( // MARKER: {{.Name}}
 		"{{.Name}}", svc.do{{.Name}},
 		sub.At({{$.APIPkg}}.{{.Name}}.Method, {{$.APIPkg}}.{{.Name}}.Route),
 {{if .Doc}}		sub.Description(`{{.Doc}}`),
@@ -99,6 +108,14 @@ func NewIntermediate(impl ToDo) *Intermediate {
 {{if .Default}}		cfg.DefaultValue(`{{.Default}}`),
 {{end}}{{if .Validation}}		cfg.Validation(`{{.Validation}}`),
 {{end}}{{if .Secret}}		cfg.Secret(),
+{{end}}{{if not .Scalar}}		cfg.Validator(func(ctx context.Context, value string) error {
+			var v {{.GoType}}
+			err := json.Unmarshal([]byte(value), &v)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			return errors.Trace(dv8.Validate(ctx, &v))
+		}),
 {{end}}	)
 {{end}}
 	return svc
@@ -125,6 +142,10 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 {{if .Funcs}}// marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -161,6 +182,10 @@ func (svc *Intermediate) do{{.Name}}(w http.ResponseWriter, r *http.Request) (er
 	snap := flow.Snapshot()
 	var in {{$.APIPkg}}.{{.In}}
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out {{$.APIPkg}}.{{.Out}}
 	{{.Dot "out"}}err = svc.{{.Name}}(r.Context(), &flow{{.InArgs "in"}})
 	if err != nil {
@@ -217,6 +242,7 @@ func (svc *Intermediate) do{{.Name}}(w http.ResponseWriter, r *http.Request) (er
 	return _dur
 {{end}}{{else}}	_val := svc.Config("{{.Name}}")
 	_ = json.Unmarshal([]byte(_val), &value)
+	_ = dv8.Validate(svc.Lifetime(), &value) // Apply normalizing directives
 	return value
 {{end}}}
 

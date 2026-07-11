@@ -530,3 +530,39 @@ func TestMcpportal_ToolsCallEndToEnd(t *testing.T) {
 		assert.Equal(42, out.Result)
 	})
 }
+
+func TestMCPPortal_MCP(t *testing.T) { // MARKER: MCP
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := mcpportalapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			res, err := client.MCP(ctx, "", nil)
+			if assert.NoError(err) {
+				assert.Expect(res.StatusCode, http.StatusOK)
+			}
+		})
+	*/
+}

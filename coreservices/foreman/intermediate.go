@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cfg"
@@ -83,6 +84,29 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			foremanapi.CreateIn{},      // MARKER: Create
+			foremanapi.SnapshotIn{},    // MARKER: Snapshot
+			foremanapi.FingerprintIn{}, // MARKER: Fingerprint
+			foremanapi.ResumeIn{},      // MARKER: Resume
+			foremanapi.CancelIn{},      // MARKER: Cancel
+			foremanapi.ForkIn{},        // MARKER: Fork
+			foremanapi.HistoryIn{},     // MARKER: History
+			foremanapi.StepIn{},        // MARKER: Step
+			foremanapi.ListIn{},        // MARKER: List
+			foremanapi.DeleteIn{},      // MARKER: Delete
+			foremanapi.PurgeIn{},       // MARKER: Purge
+			foremanapi.ShardInfoIn{},   // MARKER: ShardInfo
+			foremanapi.AwaitIn{},       // MARKER: Await
+			foremanapi.PollIn{},        // MARKER: Poll
+			foremanapi.RunIn{},         // MARKER: Run
+			foremanapi.ContinueIn{},    // MARKER: Continue
+			foremanapi.SignalIn{},      // MARKER: Signal
+		)
+	})
 
 	svc.Subscribe( // MARKER: Create
 		"Create", svc.doCreate,
@@ -248,6 +272,10 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}

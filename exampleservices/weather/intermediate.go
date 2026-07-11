@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/connector"
@@ -69,6 +70,16 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			weatherapi.LatLngIn{},   // MARKER: LatLng
+			weatherapi.ForecastIn{}, // MARKER: Forecast
+			weatherapi.AskIn{},      // MARKER: Ask
+			weatherapi.AnswerIn{},   // MARKER: Answer
+		)
+	})
+
 	svc.Subscribe( // MARKER: LatLng
 		"LatLng", svc.doLatLng,
 		sub.At(weatherapi.LatLng.Method, weatherapi.LatLng.Route),
@@ -118,6 +129,10 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -175,6 +190,10 @@ func (svc *Intermediate) doAnswer(w http.ResponseWriter, r *http.Request) (err e
 	snap := flow.Snapshot()
 	var in weatherapi.AnswerIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out weatherapi.AnswerOut
 	out.Answer, err = svc.Answer(r.Context(), &flow, in.Question)
 	if err != nil {

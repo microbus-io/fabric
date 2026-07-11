@@ -85,6 +85,42 @@ all:
 	assert.False(ok)
 }
 
+func TestRepository_LoadYAMLNested(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	y := `
+my.service:
+  thresholds:
+    - 123
+    - 456
+  limits:
+    write: 4
+    read: 8
+  quoted: '[1,2]'
+  deep:
+    outer:
+      flag: true
+      name: x
+`
+
+	var r repository
+	err := r.LoadYAML([]byte(y))
+	assert.NoError(err)
+
+	cases := map[string]string{
+		"thresholds": `[123,456]`,
+		"limits":     `{"read":8,"write":4}`, // JSON canonicalization sorts keys
+		"quoted":     `[1,2]`,                // a quoted JSON string is stored verbatim
+		"deep":       `{"outer":{"flag":true,"name":"x"}}`,
+	}
+	for name, expected := range cases {
+		value, ok := r.Value("my.service", name)
+		assert.True(ok)
+		assert.Equal(expected, value)
+	}
+}
+
 func TestRepository_Equals(t *testing.T) {
 	t.Parallel()
 	assert := testarossa.For(t)

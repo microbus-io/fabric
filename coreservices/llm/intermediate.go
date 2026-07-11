@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cfg"
@@ -88,6 +89,18 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			llmapi.ChatIn{},            // MARKER: Chat
+			llmapi.TurnIn{},            // MARKER: Turn
+			llmapi.InitChatIn{},        // MARKER: InitChat
+			llmapi.CallLLMIn{},         // MARKER: CallLLM
+			llmapi.ProcessResponseIn{}, // MARKER: ProcessResponse
+			llmapi.ExecuteToolIn{},     // MARKER: ExecuteTool
+		)
+	})
 
 	svc.Subscribe( // MARKER: Chat
 		"Chat", svc.doChat,
@@ -164,6 +177,10 @@ func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in an
 	if err != nil {
 		return errors.Trace(err)
 	}
+	err = dv8.Validate(r.Context(), in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	err = execute(in, out)
 	if err != nil {
 		return err // No trace
@@ -207,6 +224,10 @@ func (svc *Intermediate) doInitChat(w http.ResponseWriter, r *http.Request) (err
 	snap := flow.Snapshot()
 	var in llmapi.InitChatIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out llmapi.InitChatOut
 	err = svc.InitChat(r.Context(), &flow, in.Provider, in.Model, in.Items, in.ToolURLs, in.Options)
 	if err != nil {
@@ -231,6 +252,10 @@ func (svc *Intermediate) doCallLLM(w http.ResponseWriter, r *http.Request) (err 
 	snap := flow.Snapshot()
 	var in llmapi.CallLLMIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out llmapi.CallLLMOut
 	out.ItemsOut, out.PendingToolCalls, out.TurnUsage, err = svc.CallLLM(r.Context(), &flow, in.Provider, in.Model, in.Items, in.ToolResults)
 	if err != nil {
@@ -255,6 +280,10 @@ func (svc *Intermediate) doProcessResponse(w http.ResponseWriter, r *http.Reques
 	snap := flow.Snapshot()
 	var in llmapi.ProcessResponseIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out llmapi.ProcessResponseOut
 	out.ToolsRequested, out.ToolRoundsOut, out.UsageOut, err = svc.ProcessResponse(r.Context(), &flow, in.PendingToolCalls, in.TurnUsage, in.ToolRounds)
 	if err != nil {
@@ -279,6 +308,10 @@ func (svc *Intermediate) doExecuteTool(w http.ResponseWriter, r *http.Request) (
 	snap := flow.Snapshot()
 	var in llmapi.ExecuteToolIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out llmapi.ExecuteToolOut
 	out.ToolResults, err = svc.ExecuteTool(r.Context(), &flow, in.CurrentTool)
 	if err != nil {

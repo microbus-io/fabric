@@ -79,34 +79,10 @@ Determine if the endpoint should be restricted to authorized actors only. Compos
 
 #### Step 6: Define Complex Types
 
-Identify the struct types in the signature. Define these complex types in the `myserviceapi` directory. Skip this step if there are no complex types.
-
-Place each definition in a separate file named after the type, e.g. `myserviceapi/mystruct.go`.
-
-If the complex type is owned by this microservice, define its struct explicitly. Include `json` tags with camelCase names and the `omitzero` option, and a short `jsonschema` description tag on each field.
-
-```go
-package myserviceapi
-
-// MyStruct is X.
-type MyStruct struct {
-	FooField string `json:"fooField,omitzero" jsonschema_description:"FooField is X"`
-	BarField int    `json:"barField,omitzero" jsonschema_description:"BarField is X"`
-}
-```
-
-If the complex type is owned by another microservice, define an alias to it instead.
-
-```go
-package myserviceapi
-
-import (
-	"github.com/path/to/thirdparty"
-)
-
-// ThirdPartyStruct is X.
-type ThirdPartyStruct = thirdparty.ThirdPartyStruct
-```
+Identify the struct types in the signature and define each in the `myserviceapi` directory following the
+`add-type` skill: one file per type, camelCase `json` tags with `omitzero`, `jsonschema_description` tags,
+optional `dv8` validation tags, and an optional pure `Validate` method for cross-field invariants. A type
+owned by another microservice is aliased rather than redefined. Skip this step if there are no complex types.
 
 #### Step 7: Declare the Endpoint in `definition.go`
 
@@ -135,6 +111,7 @@ type MyFunctionOut struct { // MARKER: MyFunction
 
 - `Host` is always `Hostname`. `Method` and `Route` come from Step 3. Set `In` and `Out` to the In/Out struct literals (`MyFunctionIn{}`, `MyFunctionOut{}`)
 - The In struct holds the input arguments excluding `ctx`; the Out struct holds the output arguments excluding `err`. Use PascalCase field names and camelCase `json` tags with `omitzero`
+- In struct fields may carry `dv8` validation tags (see the `add-type` skill); they are enforced automatically after decoding, rejecting an invalid payload with `400 Bad Request` before the handler runs. Tags on Out struct fields are inert
 - For a magic HTTP argument (`httpRequestBody`, `httpResponseBody`, `httpStatusCode`), set the field's `json` tag to `-`. A `jsonschema_description` tag still applies to a body field (`HTTPRequestBody`/`HTTPResponseBody`) and describes the whole body payload in the OpenAPI doc, e.g. `` `json:"-" jsonschema_description:"The object to create"` ``
 - If an In/Out field's type comes from another package (e.g. a `time.Time` field needs `"time"`), add that import to `definition.go`
 - Add the gating and routing fields only when needed:

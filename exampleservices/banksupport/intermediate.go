@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/connector"
@@ -71,6 +72,16 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			banksupportapi.BalanceIn{},      // MARKER: Balance
+			banksupportapi.TransactionsIn{}, // MARKER: Transactions
+			banksupportapi.DemoStatusIn{},   // MARKER: DemoStatus
+			banksupportapi.RunSupportIn{},   // MARKER: RunSupport
+		)
+	})
 
 	svc.Subscribe( // MARKER: Balance
 		"Balance", svc.doBalance,
@@ -152,6 +163,10 @@ func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in an
 	if err != nil {
 		return errors.Trace(err)
 	}
+	err = dv8.Validate(r.Context(), in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	err = execute(in, out)
 	if err != nil {
 		return err // No trace
@@ -206,6 +221,10 @@ func (svc *Intermediate) doRunSupport(w http.ResponseWriter, r *http.Request) (e
 	snap := flow.Snapshot()
 	var in banksupportapi.RunSupportIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out banksupportapi.RunSupportOut
 	out.Advice, out.BlockCard, out.Risk, err = svc.RunSupport(r.Context(), &flow, in.Query)
 	if err != nil {

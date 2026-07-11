@@ -17,36 +17,33 @@ limitations under the License.
 package control
 
 import (
-	"context"
 	"testing"
-
-	"github.com/golang-jwt/jwt/v5"
-
-	"github.com/microbus-io/fabric/application"
-	"github.com/microbus-io/fabric/connector"
-	"github.com/microbus-io/fabric/frame"
-	"github.com/microbus-io/fabric/pub"
-	"github.com/microbus-io/testarossa"
-
-	"github.com/microbus-io/fabric/coreservices/control/controlapi"
 )
 
-var (
-	_ context.Context
-	_ *testing.T
-	_ jwt.MapClaims
-	_ application.Application
-	_ connector.Connector
-	_ frame.Frame
-	_ pub.Option
-	_ testarossa.Asserter
-	_ controlapi.Client
-)
+// The microservice exists only to generate the client API for the :888 control subscriptions and is
+// deliberately unstartable. These placeholders keep the boilerplate generator from scaffolding tests
+// that would attempt to start it.
 
-// MARKER: Ping
+func TestControl_Ping(t *testing.T) { // MARKER: Ping
+	t.Skip("control.core is unstartable by design")
+}
 
-// MARKER: ConfigRefresh
+func TestControl_ConfigRefresh(t *testing.T) { // MARKER: ConfigRefresh
+	t.Skip("control.core is unstartable by design")
+}
 
-// MARKER: Trace
+func TestControl_Trace(t *testing.T) { // MARKER: Trace
+	t.Skip("control.core is unstartable by design")
+}
 
-// MARKER: Metrics
+func TestControl_Metrics(t *testing.T) { // MARKER: Metrics
+	t.Skip("control.core is unstartable by design")
+}
+
+func TestControl_OpenAPI(t *testing.T) { // MARKER: OpenAPI
+	t.Skip("control.core is unstartable by design")
+}
+
+func TestControl_OnNewSubs(t *testing.T) { // MARKER: OnNewSubs
+	t.Skip("control.core is unstartable by design")
+}

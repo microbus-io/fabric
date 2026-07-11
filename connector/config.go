@@ -108,6 +108,24 @@ func (c *Connector) refuseInsecureSecrets(secure bool) error {
 	return errors.New("refusing to start with secret configs over an insecure transport", "deployment", c.deployment)
 }
 
+// validateConfigValue checks a raw config value against the config's validation rule
+// and validator function, if set. It must be called without holding configLock because
+// the validator function may execute user code.
+func (c *Connector) validateConfigValue(ctx context.Context, config *cfg.Config, value string) error {
+	if !cfg.Validate(config.Validation, value) {
+		return errors.New("value doesn't validate against rule '%s'", config.Validation)
+	}
+	if config.Validator != nil {
+		err := errors.CatchPanic(func() error {
+			return config.Validator(ctx, value)
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
 // SetConfig sets the value of a previously defined configuration property.
 // This action is restricted to the TESTING deployment in which the fetching of values from the configurator is disabled.
 // Config property names are case sensitive.
@@ -117,15 +135,16 @@ func (c *Connector) SetConfig(name string, value any) error {
 	}
 	c.configLock.Lock()
 	config, ok := c.configs[name]
+	c.configLock.Unlock()
 	if !ok {
-		c.configLock.Unlock()
 		return nil
 	}
 	v := utils.AnyToString(value)
-	if !cfg.Validate(config.Validation, v) {
-		c.configLock.Unlock()
-		return c.captureInitErr(errors.New("invalid value '%s' for config property '%s'", v, name))
+	err := c.validateConfigValue(context.Background(), config, v)
+	if err != nil {
+		return c.captureInitErr(errors.New("invalid value '%s' for config property '%s'", v, name, err))
 	}
+	c.configLock.Lock()
 	changed := config.Value != v
 	config.Value = v
 	config.Set = true
@@ -257,25 +276,35 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) (err error
 		maps.Copy(fetchedValues, responseObj.Values)
 	}
 
+	// Snapshot the configs; all fields except Value and Set are immutable once the connector starts.
+	// Validation runs outside the lock because the validator function may execute user code.
 	c.configLock.Lock()
-	changed := map[string]bool{}
+	configs := make([]*cfg.Config, 0, len(c.configs))
 	for _, config := range c.configs {
+		configs = append(configs, config)
+	}
+	c.configLock.Unlock()
+
+	changed := map[string]bool{}
+	for _, config := range configs {
 		valueToSet := config.DefaultValue
 		if fetchedValue, ok := fetchedValues[config.Name]; ok {
-			if cfg.Validate(config.Validation, fetchedValue) {
+			err := c.validateConfigValue(ctx, config, fetchedValue)
+			if err == nil {
 				valueToSet = fetchedValue
 			} else {
 				c.LogWarn(ctx, "Invalid config value",
 					"name", config.Name,
 					"value", c.printableConfigValue(fetchedValue, config.Secret),
-					"rule", config.Validation,
+					"error", err,
 				)
 			}
 		}
-		if !cfg.Validate(config.Validation, valueToSet) {
-			c.configLock.Unlock()
-			return errors.New("value '%s' of config '%s' doesn't validate against rule '%s'", c.printableConfigValue(valueToSet, config.Secret), config.Name, config.Validation)
+		err := c.validateConfigValue(ctx, config, valueToSet)
+		if err != nil {
+			return errors.New("invalid value '%s' of config '%s'", c.printableConfigValue(valueToSet, config.Secret), config.Name, err)
 		}
+		c.configLock.Lock()
 		if valueToSet != config.Value {
 			changed[config.Name] = true
 			config.Value = valueToSet
@@ -284,8 +313,8 @@ func (c *Connector) refreshConfig(ctx context.Context, callback bool) (err error
 				"value", c.printableConfigValue(valueToSet, config.Secret),
 			)
 		}
+		c.configLock.Unlock()
 	}
-	c.configLock.Unlock()
 
 	// Call the callback function, if provided
 	if callback && len(changed) > 0 && c.onConfigChanged != nil {

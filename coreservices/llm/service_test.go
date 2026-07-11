@@ -663,3 +663,248 @@ func TestLLM_ErrorProbeGeminiBurst(t *testing.T) {
 			i, te.StatusCode, te.Error(), te.Properties)
 	}
 }
+
+func TestLLM_OnResolveProvider(t *testing.T) { // MARKER: OnResolveProvider
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the testers
+	tester := connector.New("tester.client")
+	trigger := llmapi.NewMulticastTrigger(tester)
+	hook := llmapi.NewHook(tester)
+	_ = trigger
+	_ = hook
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Enter distinct alphanumeric queue names in sub.Queue when hooking multiple times to simulate multiple clients.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			unsub, err := hook.WithOptions(sub.Queue("UniqueQueueName")).OnResolveProvider(
+				func(ctx context.Context, model string) (ok bool, err error) {
+					// Implement event sink here...
+					return ok, nil
+				},
+			)
+			if assert.NoError(err) {
+				defer unsub()
+			}
+			for e := range trigger.OnResolveProvider(ctx, model) {
+				if frame.Of(e.HTTPResponse).FromHost() == tester.Hostname() {
+					ok, err := e.Get()
+					assert.Expect(
+						ok, expectedOk,
+						err, nil,
+					)
+				}
+			}
+		})
+	*/
+}
+
+func TestLLM_Turn(t *testing.T) { // MARKER: Turn
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := llmapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			itemsOut, stopReason, usage, err := client.Turn(ctx, model, items, tools, options)
+			assert.Expect(
+				itemsOut, expectedItemsOut,
+				stopReason, expectedStopReason,
+				usage, expectedUsage,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestLLM_InitChat(t *testing.T) { // MARKER: InitChat
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester
+	tester := connector.New("tester.client")
+	exec := llmapi.NewExecutor(tester)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Use WithOutputFlow to also verify control signals (Goto, Retry, Interrupt, Sleep) if applicable.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := exec.InitChat(ctx, provider, model, items, toolURLs, options)
+			assert.NoError(err)
+		})
+	*/
+}
+
+func TestLLM_CallLLM(t *testing.T) { // MARKER: CallLLM
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester
+	tester := connector.New("tester.client")
+	exec := llmapi.NewExecutor(tester)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Use WithOutputFlow to also verify control signals (Goto, Retry, Interrupt, Sleep) if applicable.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			itemsOut, pendingToolCalls, turnUsage, err := exec.CallLLM(ctx, provider, model, items, toolResults)
+			assert.Expect(
+				itemsOut, expectedItemsOut,
+				pendingToolCalls, expectedPendingToolCalls,
+				turnUsage, expectedTurnUsage,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestLLM_ProcessResponse(t *testing.T) { // MARKER: ProcessResponse
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester
+	tester := connector.New("tester.client")
+	exec := llmapi.NewExecutor(tester)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Use WithOutputFlow to also verify control signals (Goto, Retry, Interrupt, Sleep) if applicable.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			toolsRequested, toolRoundsOut, usageOut, err := exec.ProcessResponse(ctx, pendingToolCalls, turnUsage, toolRounds)
+			assert.Expect(
+				toolsRequested, expectedToolsRequested,
+				toolRoundsOut, expectedToolRoundsOut,
+				usageOut, expectedUsageOut,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestLLM_ExecuteTool(t *testing.T) { // MARKER: ExecuteTool
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester
+	tester := connector.New("tester.client")
+	exec := llmapi.NewExecutor(tester)
+	_ = exec
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Use WithOutputFlow to also verify control signals (Goto, Retry, Interrupt, Sleep) if applicable.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			toolResults, err := exec.ExecuteTool(ctx, currentTool)
+			assert.Expect(
+				toolResults, expectedToolResults,
+				err, nil,
+			)
+		})
+	*/
+}

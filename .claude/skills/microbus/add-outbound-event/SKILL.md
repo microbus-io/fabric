@@ -69,34 +69,13 @@ Describe the event starting with its name, in Go doc style: `OnMyEvent is trigge
 
 #### Step 5: Define Complex Types
 
-Identify the struct types in the signature. Define these complex types in the `myserviceapi` directory. Skip this step if there are no complex types.
+Identify the struct types in the signature and define each in the `myserviceapi` directory following the
+`add-type` skill: one file per type, camelCase `json` tags with `omitzero`, `jsonschema_description` tags,
+optional `dv8` validation tags, and an optional pure `Validate` method for cross-field invariants. A type
+owned by another microservice is aliased rather than redefined. Skip this step if there are no complex types.
 
-Place each definition in a separate file named after the type, e.g. `myserviceapi/mystruct.go`.
-
-If the complex type is owned by this microservice, define its struct explicitly. Include `json` tags with camelCase names and the `omitzero` option, and a short `jsonschema` description tag on each field.
-
-```go
-package myserviceapi
-
-// MyStruct is X.
-type MyStruct struct {
-	FooField string `json:"fooField,omitzero" jsonschema_description:"FooField is X"`
-	BarField int    `json:"barField,omitzero" jsonschema_description:"BarField is X"`
-}
-```
-
-If the complex type is owned by another microservice, define an alias to it instead.
-
-```go
-package myserviceapi
-
-import (
-	"github.com/path/to/thirdparty"
-)
-
-// ThirdPartyStruct is X.
-type ThirdPartyStruct = thirdparty.ThirdPartyStruct
-```
+Note that `dv8` tags on an event's In struct are enforced at every sink when the event is received: the
+source authors the payload contract and its validation together.
 
 #### Step 6: Declare the Event in `definition.go`
 

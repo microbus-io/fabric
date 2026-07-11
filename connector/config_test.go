@@ -18,10 +18,13 @@ package connector
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 
+	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/fabric/utils"
@@ -151,6 +154,119 @@ func TestConnector_FetchConfig(t *testing.T) {
 	assert.Equal("bam", con.Config("foo"))
 	assert.Equal("8", con.Config("int"))
 	assert.True(callbackCalled)
+}
+
+func TestConnector_ValidatorConfig(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	assert := testarossa.For(t)
+
+	plane := utils.RandomIdentifier(12)
+
+	// Mock a config service
+	mockCfg := New("configurator.core")
+	mockCfg.SetDeployment(LAB) // Configs are disabled in TESTING
+	mockCfg.SetPlane(plane)
+	jValue := `{"n":5}`
+	mockCfg.Subscribe("Values",
+		func(w http.ResponseWriter, r *http.Request) error {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"values":{"j":` + strconv.Quote(jValue) + `}}`))
+			return nil
+		},
+		sub.At("POST", ":888/values"),
+		sub.Web(),
+	)
+
+	err := mockCfg.Startup(ctx)
+	assert.NoError(err)
+	defer mockCfg.Shutdown(ctx)
+
+	// Connector
+	con := New("validator.config.connector")
+	con.SetDeployment(LAB) // Configs are disabled in TESTING
+	con.SetPlane(plane)
+	err = con.DefineConfig("j",
+		cfg.Validation("json"),
+		cfg.DefaultValue(`{"n":1}`),
+		cfg.Validator(func(ctx context.Context, value string) error {
+			var v struct {
+				N int `json:"n"`
+			}
+			err := json.Unmarshal([]byte(value), &v)
+			if err != nil {
+				return err
+			}
+			if v.N >= 10 {
+				return errors.New("n must be less than 10")
+			}
+			return nil
+		}),
+	)
+	assert.NoError(err)
+
+	err = con.Startup(ctx)
+	assert.NoError(err)
+	defer con.Shutdown(ctx)
+
+	assert.Equal(`{"n":5}`, con.Config("j"), "Valid value should be accepted")
+
+	// A value passing the rule but failing the validator falls back to the default
+	jValue = `{"n":50}`
+	_, err = mockCfg.GET(ctx, "https://validator.config.connector:888/config-refresh")
+	assert.NoError(err)
+	assert.Equal(`{"n":1}`, con.Config("j"))
+
+	jValue = `{"n":8}`
+	_, err = mockCfg.GET(ctx, "https://validator.config.connector:888/config-refresh")
+	assert.NoError(err)
+	assert.Equal(`{"n":8}`, con.Config("j"))
+}
+
+func TestConnector_ValidatorSetConfig(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	con := New("validator.set.config.connector")
+	err := con.DefineConfig("j",
+		cfg.Validation("json"),
+		cfg.DefaultValue(`{"n":1}`),
+		cfg.Validator(func(ctx context.Context, value string) error {
+			var v struct {
+				N int `json:"n"`
+			}
+			err := json.Unmarshal([]byte(value), &v)
+			if err != nil {
+				return err
+			}
+			if v.N >= 10 {
+				return errors.New("n must be less than 10")
+			}
+			return nil
+		}),
+	)
+	assert.NoError(err)
+
+	err = con.SetConfig("j", `{"n":5}`)
+	assert.NoError(err)
+	assert.Equal(`{"n":5}`, con.Config("j"))
+
+	// A rejected value leaves the current value in place
+	err = con.SetConfig("j", `{"n":50}`)
+	assert.Error(err)
+	assert.Equal(`{"n":5}`, con.Config("j"))
+	con.initErr = nil // Clear the captured init error
+
+	// A panicking validator is captured as an error
+	err = con.DefineConfig("p",
+		cfg.Validator(func(ctx context.Context, value string) error {
+			panic("boom")
+		}),
+	)
+	assert.NoError(err)
+	err = con.SetConfig("p", "x")
+	assert.Error(err)
+	con.initErr = nil // Clear the captured init error
 }
 
 func TestConnector_NoFetchInTestingApp(t *testing.T) {

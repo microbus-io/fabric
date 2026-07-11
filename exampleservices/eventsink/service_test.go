@@ -250,3 +250,119 @@ func TestEventsink_OnAllowRegister(t *testing.T) { // MARKER: OnAllowRegister
 func TestEventsink_OnRegistered(t *testing.T) { // MARKER: OnRegistered
 	t.Skip() // Tested by TestEventsink_Registered
 }
+
+func TestEventSink_Registered(t *testing.T) { // MARKER: Registered
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := eventsinkapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			emails, err := client.Registered(ctx)
+			assert.Expect(
+				emails, expectedEmails,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestEventSink_OnAllowRegister(t *testing.T) { // MARKER: OnAllowRegister
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the testers
+	tester := connector.New("tester.client")
+	trigger := eventsourceapi.NewMulticastTrigger(tester)
+	_ = trigger
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			for e := range trigger.OnAllowRegister(ctx, email) {
+				allow, err := e.Get()
+				if frame.Of(e.HTTPResponse).FromHost() == svc.Hostname() {
+					assert.Expect(
+						allow, expectedAllow,
+						err, nil,
+					)
+				}
+			}
+		})
+	*/
+}
+
+func TestEventSink_OnRegistered(t *testing.T) { // MARKER: OnRegistered
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the testers
+	tester := connector.New("tester.client")
+	trigger := eventsourceapi.NewMulticastTrigger(tester)
+	_ = trigger
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			for e := range trigger.OnRegistered(ctx, email) {
+				err := e.Get()
+				if frame.Of(e.HTTPResponse).FromHost() == svc.Hostname() {
+					assert.NoError(err)
+				}
+			}
+		})
+	*/
+}

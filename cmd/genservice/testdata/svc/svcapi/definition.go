@@ -223,6 +223,13 @@ var DenyList = define.Config{
 *.env`,
 }
 
+// Mascot is the pet representing the microservice; exercises a struct-valued config.
+var Mascot = define.Config{
+	Value:      Pet{},
+	Default:    `{"name":"Rex","age":3}`,
+	Validation: "json",
+}
+
 // RefreshInterval controls how often state is refreshed.
 var RefreshInterval = define.Config{
 	Value:      time.Duration(0),

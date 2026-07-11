@@ -16,7 +16,11 @@ limitations under the License.
 
 package cfg
 
-import "github.com/microbus-io/errors"
+import (
+	"context"
+
+	"github.com/microbus-io/errors"
+)
 
 // Option is used to construct a request in Connector.Publish
 type Option func(c *Config) error
@@ -83,6 +87,17 @@ func Validation(validation string) Option {
 func Secret() Option {
 	return func(c *Config) error {
 		c.Secret = true
+		return nil
+	}
+}
+
+// Validator sets a function that validates the raw string value of the config property,
+// in addition to the validation rule. A value is rejected when the function returns an error.
+// It is typically wired by code-generated intermediates rather than by hand.
+// The function must be a pure check of its input, without I/O or downstream calls.
+func Validator(fn func(ctx context.Context, value string) error) Option {
+	return func(c *Config) error {
+		c.Validator = fn
 		return nil
 	}
 }

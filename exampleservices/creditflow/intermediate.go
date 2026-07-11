@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/connector"
@@ -95,6 +96,25 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			creditflowapi.SubmitCreditApplicationIn{},  // MARKER: SubmitCreditApplication
+			creditflowapi.VerifyCreditIn{},             // MARKER: VerifyCredit
+			creditflowapi.VerifyEmploymentIn{},         // MARKER: VerifyEmployment
+			creditflowapi.InitIdentityVerificationIn{}, // MARKER: InitIdentityVerification
+			creditflowapi.VerifySSNIn{},                // MARKER: VerifySSN
+			creditflowapi.VerifyAddressIn{},            // MARKER: VerifyAddress
+			creditflowapi.VerifyPhoneNumberIn{},        // MARKER: VerifyPhoneNumber
+			creditflowapi.IdentityDecisionIn{},         // MARKER: IdentityDecision
+			creditflowapi.RunIdentityVerificationIn{},  // MARKER: RunIdentityVerification
+			creditflowapi.RequestMoreInfoIn{},          // MARKER: RequestMoreInfo
+			creditflowapi.ReviewCreditIn{},             // MARKER: ReviewCredit
+			creditflowapi.HandleCreditErrorIn{},        // MARKER: HandleCreditError
+			creditflowapi.DecisionIn{},                 // MARKER: Decision
+		)
+	})
 
 	svc.Subscribe( // MARKER: Demo
 		"Demo", svc.Demo,
@@ -220,6 +240,10 @@ func (svc *Intermediate) doSubmitCreditApplication(w http.ResponseWriter, r *htt
 	snap := flow.Snapshot()
 	var in creditflowapi.SubmitCreditApplicationIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.SubmitCreditApplicationOut
 	out.ApplicantName, out.SSN, out.Address, out.Phone, out.Employers, out.CreditScore, err = svc.SubmitCreditApplication(r.Context(), &flow, in.Applicant)
 	if err != nil {
@@ -244,6 +268,10 @@ func (svc *Intermediate) doVerifyCredit(w http.ResponseWriter, r *http.Request) 
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyCreditIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.VerifyCreditOut
 	out.CreditVerified, err = svc.VerifyCredit(r.Context(), &flow, in.CreditScore)
 	if err != nil {
@@ -268,6 +296,10 @@ func (svc *Intermediate) doVerifyEmployment(w http.ResponseWriter, r *http.Reque
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyEmploymentIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.VerifyEmploymentOut
 	out.EmploymentFailuresOut, err = svc.VerifyEmployment(r.Context(), &flow, in.ApplicantName, in.EmployerName)
 	if err != nil {
@@ -292,6 +324,10 @@ func (svc *Intermediate) doInitIdentityVerification(w http.ResponseWriter, r *ht
 	snap := flow.Snapshot()
 	var in creditflowapi.InitIdentityVerificationIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.InitIdentityVerificationOut
 	err = svc.InitIdentityVerification(r.Context(), &flow, in.ApplicantName, in.SSN, in.Address, in.Phone)
 	if err != nil {
@@ -316,6 +352,10 @@ func (svc *Intermediate) doVerifySSN(w http.ResponseWriter, r *http.Request) (er
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifySSNIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.VerifySSNOut
 	out.SsnVerified, err = svc.VerifySSN(r.Context(), &flow, in.SSN)
 	if err != nil {
@@ -340,6 +380,10 @@ func (svc *Intermediate) doVerifyAddress(w http.ResponseWriter, r *http.Request)
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyAddressIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.VerifyAddressOut
 	out.AddressVerified, err = svc.VerifyAddress(r.Context(), &flow, in.Address)
 	if err != nil {
@@ -364,6 +408,10 @@ func (svc *Intermediate) doVerifyPhoneNumber(w http.ResponseWriter, r *http.Requ
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyPhoneNumberIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.VerifyPhoneNumberOut
 	out.PhoneVerified, err = svc.VerifyPhoneNumber(r.Context(), &flow, in.Phone)
 	if err != nil {
@@ -388,6 +436,10 @@ func (svc *Intermediate) doIdentityDecision(w http.ResponseWriter, r *http.Reque
 	snap := flow.Snapshot()
 	var in creditflowapi.IdentityDecisionIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.IdentityDecisionOut
 	out.IdentityVerified, err = svc.IdentityDecision(r.Context(), &flow, in.SsnVerified, in.AddressVerified, in.PhoneVerified)
 	if err != nil {
@@ -412,6 +464,10 @@ func (svc *Intermediate) doRunIdentityVerification(w http.ResponseWriter, r *htt
 	snap := flow.Snapshot()
 	var in creditflowapi.RunIdentityVerificationIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.RunIdentityVerificationOut
 	out.IdentityVerified, err = svc.RunIdentityVerification(r.Context(), &flow, in.ApplicantName, in.SSN, in.Address, in.Phone)
 	if err != nil {
@@ -436,6 +492,10 @@ func (svc *Intermediate) doRequestMoreInfo(w http.ResponseWriter, r *http.Reques
 	snap := flow.Snapshot()
 	var in creditflowapi.RequestMoreInfoIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.RequestMoreInfoOut
 	out.ReviewAttemptsOut, err = svc.RequestMoreInfo(r.Context(), &flow, in.ReviewAttempts)
 	if err != nil {
@@ -460,6 +520,10 @@ func (svc *Intermediate) doReviewCredit(w http.ResponseWriter, r *http.Request) 
 	snap := flow.Snapshot()
 	var in creditflowapi.ReviewCreditIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.ReviewCreditOut
 	out.CreditVerifiedOut, err = svc.ReviewCredit(r.Context(), &flow, in.CreditScore, in.CreditVerified, in.ReviewAttempts)
 	if err != nil {
@@ -484,6 +548,10 @@ func (svc *Intermediate) doHandleCreditError(w http.ResponseWriter, r *http.Requ
 	snap := flow.Snapshot()
 	var in creditflowapi.HandleCreditErrorIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.HandleCreditErrorOut
 	out.CreditVerified, err = svc.HandleCreditError(r.Context(), &flow, in.OnErr)
 	if err != nil {
@@ -508,6 +576,10 @@ func (svc *Intermediate) doDecision(w http.ResponseWriter, r *http.Request) (err
 	snap := flow.Snapshot()
 	var in creditflowapi.DecisionIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out creditflowapi.DecisionOut
 	out.Approved, err = svc.Decision(r.Context(), &flow, in.CreditVerified, in.EmploymentFailures, in.IdentityVerified)
 	if err != nil {

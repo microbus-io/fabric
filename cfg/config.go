@@ -17,6 +17,8 @@ limitations under the License.
 package cfg
 
 import (
+	"context"
+
 	"github.com/microbus-io/errors"
 )
 
@@ -27,6 +29,7 @@ type Config struct {
 	Description  string
 	DefaultValue string
 	Validation   string
+	Validator    func(ctx context.Context, value string) error
 	Secret       bool
 
 	Set   bool

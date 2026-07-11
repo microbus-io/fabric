@@ -89,34 +89,14 @@ Determine if the task endpoint should be restricted to authorized actors only. C
 
 #### Step 6: Define Complex Types
 
-Identify the struct types in the signature. Define these complex types in the `myserviceapi` directory. Skip this step if there are no complex types.
+Identify the struct types in the signature and define each in the `myserviceapi` directory following the
+`add-type` skill: one file per type, camelCase `json` tags with `omitzero`, `jsonschema_description` tags,
+optional `dv8` validation tags, and an optional pure `Validate` method for cross-field invariants. A type
+owned by another microservice is aliased rather than redefined. Skip this step if there are no complex types.
 
-Place each definition in a separate file named after the type, e.g. `myserviceapi/mystruct.go`.
-
-If the complex type is owned by this microservice, define its struct explicitly. Include `json` tags with camelCase names and the `omitzero` option, and a short `jsonschema` description tag on each field.
-
-```go
-package myserviceapi
-
-// MyStruct is X.
-type MyStruct struct {
-	FooField string `json:"fooField,omitzero" jsonschema_description:"FooField is X"`
-	BarField int    `json:"barField,omitzero" jsonschema_description:"BarField is X"`
-}
-```
-
-If the complex type is owned by another microservice, define an alias to it instead.
-
-```go
-package myserviceapi
-
-import (
-	"github.com/path/to/thirdparty"
-)
-
-// ThirdPartyStruct is X.
-type ThirdPartyStruct = thirdparty.ThirdPartyStruct
-```
+A task's inputs are read from the workflow's shared state, which is populated by the workflow's caller, by
+LLMs, and by tasks possibly hosted in other microservices. `dv8` tags on the task's In struct are enforced
+when the state is parsed; a violation fails the flow at this step rather than propagating invalid state.
 
 #### Step 7: Declare the Task in `definition.go`
 

@@ -59,6 +59,12 @@ func (m *intermediateModel) ObservableMetrics() []*metricView {
 	return out
 }
 
+// HasCompileInputs returns whether the microservice has endpoint input types whose
+// validation directives are compiled at startup.
+func (m *intermediateModel) HasCompileInputs() bool {
+	return len(m.Funcs) > 0 || len(m.Tasks) > 0 || len(m.InboundEvents) > 0
+}
+
 // CallbackConfigs returns the configs whose change fires an OnChanged<Name> callback.
 func (m *intermediateModel) CallbackConfigs() []*configView {
 	var out []*configView
@@ -176,6 +182,10 @@ func emitIntermediate(svc *service, pkg, apiPath, resourcesPath, header string, 
 	if len(m.Funcs) > 0 {
 		imports[impHTTPX] = true
 	}
+	// Functions validate decoded inputs; the startup dv8.Compile covers functions and inbound events
+	if m.HasCompileInputs() {
+		imports[impDV8] = true
+	}
 	if len(m.Funcs) > 0 || m.HasTask() || m.HasWorkflow() || len(m.CallbackConfigs()) > 0 {
 		imports[impErrors] = true
 	}
@@ -189,12 +199,16 @@ func emitIntermediate(svc *service, pkg, apiPath, resourcesPath, header string, 
 	if len(m.Configs) > 0 {
 		imports[impCfg] = true
 	}
-	// A struct-valued config's getter/setter marshal JSON; the setter traces a marshal error.
+	// A struct-valued config's getter/setter marshal JSON and its validator runs dv8;
+	// the validation rule on the raw string, if declared, can only be "json".
 	for _, c := range m.Configs {
 		if !c.Scalar {
+			if c.Validation != "" && c.Validation != "json" {
+				return nil, fmt.Errorf("config %s: validation of a struct-valued config must be `json`, not `%s`", c.Name, c.Validation)
+			}
 			imports[impJSON] = true
 			imports[impErrors] = true
-			break
+			imports[impDV8] = true
 		}
 	}
 	if intermediateNeedsStrconv(m) {
@@ -376,6 +390,7 @@ func inboundView(svc *service, f feature, resolveSource func(string) (*service, 
 		Name:        f.name,
 		Doc:         f.doc,
 		DocComment:  docComment(f.doc),
+		In:          ev.in,
 		SrcPkg:      f.srcPkg,
 		SrcEvent:    f.srcEvent,
 		HookOptions: hookOptions(svc, f),

@@ -87,9 +87,10 @@ validator keyword against `Value`'s type.
 env); the default flows through the same validate-then-convert path as a supplied value. A `Default any` would
 have to be normalized back to a string anyway.
 
-Follow-on: struct/JSON config values are model-only until `cfg`/`connector` gain a runtime json-unmarshal path.
-The `define` model expresses them now (`Value: MyStruct{}`, `Validation: "json"`); the runtime support is a
-separate, deferrable framework change.
+A struct-valued config (`Value: MyStruct{}`, `Validation: "json"`) is fully runtime-supported: the configurator
+canonicalizes a nested YAML value to a JSON string, the generated getter json-unmarshals it, and the generated
+`cfg.Validator` closure rejects a value that does not unmarshal into the carrier type or that fails
+`dv8.Validate` (struct tags plus a custom `Validate` method).
 
 ### Metric carries Value and Labels
 

@@ -389,3 +389,143 @@ func TestEventsource_OnRegistered(t *testing.T) { // MARKER: OnRegistered
 		<-done // OnRegistered is firing async, so need to wait
 	})
 }
+
+func TestEventSource_OnAllowRegister(t *testing.T) { // MARKER: OnAllowRegister
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the testers
+	tester := connector.New("tester.client")
+	trigger := eventsourceapi.NewMulticastTrigger(tester)
+	hook := eventsourceapi.NewHook(tester)
+	_ = trigger
+	_ = hook
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Enter distinct alphanumeric queue names in sub.Queue when hooking multiple times to simulate multiple clients.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			unsub, err := hook.WithOptions(sub.Queue("UniqueQueueName")).OnAllowRegister(
+				func(ctx context.Context, email string) (allow bool, err error) {
+					// Implement event sink here...
+					return allow, nil
+				},
+			)
+			if assert.NoError(err) {
+				defer unsub()
+			}
+			for e := range trigger.OnAllowRegister(ctx, email) {
+				if frame.Of(e.HTTPResponse).FromHost() == tester.Hostname() {
+					allow, err := e.Get()
+					assert.Expect(
+						allow, expectedAllow,
+						err, nil,
+					)
+				}
+			}
+		})
+	*/
+}
+
+func TestEventSource_OnRegistered(t *testing.T) { // MARKER: OnRegistered
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the testers
+	tester := connector.New("tester.client")
+	trigger := eventsourceapi.NewMulticastTrigger(tester)
+	hook := eventsourceapi.NewHook(tester)
+	_ = trigger
+	_ = hook
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern.
+		Enter distinct alphanumeric queue names in sub.Queue when hooking multiple times to simulate multiple clients.
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			unsub, err := hook.WithOptions(sub.Queue("UniqueQueueName")).OnRegistered(
+				func(ctx context.Context, email string) (err error) {
+					// Implement event sink here...
+					return nil
+				},
+			)
+			if assert.NoError(err) {
+				defer unsub()
+			}
+			for e := range trigger.OnRegistered(ctx, email) {
+				if frame.Of(e.HTTPResponse).FromHost() == tester.Hostname() {
+					err := e.Get()
+					assert.NoError(err)
+				}
+			}
+		})
+	*/
+}
+
+func TestEventSource_Register(t *testing.T) { // MARKER: Register
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := eventsourceapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			allowed, err := client.Register(ctx, email)
+			assert.Expect(
+				allowed, expectedAllowed,
+				err, nil,
+			)
+		})
+	*/
+}

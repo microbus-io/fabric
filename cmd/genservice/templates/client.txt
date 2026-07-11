@@ -244,6 +244,10 @@ func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in an
 	if err != nil {
 		return errors.Trace(err)
 	}
+	err = dv8.Validate(r.Context(), in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	err = execute(in, out)
 	if err != nil {
 		return err // No trace

@@ -129,13 +129,34 @@ value; the typed accessor does the marshaling. `configView` carries both the raw
 struct name - used by the scalar getter switch and the manifest signature, which documents the api-level contract
 unqualified) and `GoType`, the same type qualified for the service package via `qualifyTypes` (`RetryPolicy` ->
 `svcapi.RetryPolicy`, scalars unchanged). The generated getter (`func (svc *Intermediate) Retry() (value
-svcapi.RetryPolicy)`) reads `svc.Config` and `json.Unmarshal`s it, swallowing the error to a zero value the same way
-the scalar getters swallow parse errors; the setter `json.Marshal`s and `errors.Trace`s a marshal failure. The
-struct type must live in the api package (it is named from `definition.go`, which is in the api package, so it
+svcapi.RetryPolicy)`) reads `svc.Config`, `json.Unmarshal`s it (swallowing the error to a zero value the same way
+the scalar getters swallow parse errors), and runs `dv8.Validate` over the result to apply normalizing directives
+(`default=`, `trim`); the setter `json.Marshal`s and `errors.Trace`s a marshal failure. The registration also wires
+a `cfg.Validator` closure that unmarshals the raw string into the carrier type and runs `dv8.Validate`, so the
+connector rejects a value that is not a `RetryPolicy` (or that fails its dv8 tags or custom `Validate` method)
+before it is committed - the getter can therefore keep swallowing errors, because an invalid value never reaches
+it. A struct config's declared `Validation` may only be `json` (or empty); emitIntermediate rejects anything else.
+The struct type must live in the api package (it is named from `definition.go`, which is in the api package, so it
 cannot live in the service package without an import cycle) - which is exactly what lets a test in the service
-package name `svcapi.RetryPolicy{...}` and call the typed setter. `encoding/json` + `errors` are added to
+package name `svcapi.RetryPolicy{...}` and call the typed setter. `encoding/json` + `errors` + `dv8` are added to
 `intermediate.go`'s imports only when a non-scalar config is present. `mock.go` is unaffected (a config surfaces
 there only as its `OnChanged` callback, which carries no value type).
+
+## Input validation via dv8
+
+The `marshalFunction` helpers (one in `intermediate.go` for functions, one in `client.go` for inbound-event
+hooks) and the task `doXxx` handlers run `dv8.Validate` over the decoded In struct before invoking the handler,
+so dv8 tags and `Validate` methods on api types are enforced at the trust boundary. dv8 stamps the HTTP status
+on its own errors (400 for invalid input, 500 for a malformed directive - a bug in the tags, not the input), so
+the generated code propagates with a plain `errors.Trace` and never branches on the error kind. Tasks are included because a workflow's state is a cross-service contract:
+its fields are populated by the workflow's caller, by LLMs, and by tasks hosted in other microservices, so a
+task's declared inputs are a boundary, and a violated contract fails the flow at the offending step rather than
+propagating garbage. Mocks inherit the validation because `Mock` routes through `NewIntermediate`. Out types are
+deliberately not validated: dv8 mutates (`default=`, `trim`), and outputs are produced by trusted code.
+
+`NewIntermediate` also wires a `Connector.Init` that calls `dv8.Compile` over every function In type, task In
+type, and inbound event's source In type (one `// MARKER: <Feature>` per line), so a malformed directive fails
+the microservice at startup rather than mid-request. Web handlers are raw and have no In struct.
 
 ## Feature-selective emission, conditional imports, no var guards
 

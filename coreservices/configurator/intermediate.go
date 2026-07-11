@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/coreservices/configurator/configuratorapi"
@@ -86,6 +87,18 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			configuratorapi.ValuesIn{},     // MARKER: Values
+			configuratorapi.RefreshIn{},    // MARKER: Refresh
+			configuratorapi.SyncRepoIn{},   // MARKER: SyncRepo
+			configuratorapi.Values443In{},  // MARKER: Values443
+			configuratorapi.Refresh443In{}, // MARKER: Refresh443
+			configuratorapi.Sync443In{},    // MARKER: Sync443
+		)
+	})
+
 	svc.Subscribe( // MARKER: Values
 		"Values", svc.doValues,
 		sub.At(configuratorapi.Values.Method, configuratorapi.Values.Route),
@@ -142,6 +155,10 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}

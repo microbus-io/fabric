@@ -17,6 +17,7 @@ limitations under the License.
 package configurator
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/microbus-io/errors"
@@ -29,6 +30,7 @@ type repository struct {
 
 /*
 LoadYAML loads the values specified in the YAML into the repo.
+A nested mapping or sequence value is canonicalized to a JSON string.
 The expected format of the YAML is:
 
 	hello.example:
@@ -36,11 +38,15 @@ The expected format of the YAML is:
 	  repeat: 3
 	http.ingress.core:
 	  ports: 9090
+	my.service:
+	  thresholds:
+	    - 128
+	    - 256
 	all:
 	  sql: sql.host
 */
 func (r *repository) LoadYAML(data []byte) error {
-	var values map[string]map[string]string
+	var values map[string]map[string]yaml.Node
 	err := yaml.Unmarshal(data, &values)
 	if err != nil {
 		return errors.Trace(err)
@@ -54,8 +60,12 @@ func (r *repository) LoadYAML(data []byte) error {
 		if r.values[domain] == nil {
 			r.values[domain] = map[string]string{}
 		}
-		for name, val := range valmap {
+		for name, node := range valmap {
 			name = strings.TrimSpace(name)
+			val, err := stringifyNode(node)
+			if err != nil {
+				return errors.Trace(err, "domain", domain, "name", name)
+			}
 			if val == "" {
 				delete(r.values[domain], name)
 			} else {
@@ -64,6 +74,30 @@ func (r *repository) LoadYAML(data []byte) error {
 		}
 	}
 	return nil
+}
+
+// stringifyNode converts a YAML value node to its string form: scalars keep their verbatim text,
+// mappings and sequences are canonicalized to a JSON string.
+func stringifyNode(node yaml.Node) (string, error) {
+	if node.Kind == yaml.ScalarNode {
+		return node.Value, nil
+	}
+	var v any
+	err := node.Decode(&v)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	switch v := v.(type) {
+	case nil:
+		return "", nil
+	case string:
+		return v, nil
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	return string(b), nil
 }
 
 // Value returns the value most specifically associated with the property name.

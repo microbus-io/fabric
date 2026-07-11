@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cfg"
@@ -81,6 +82,18 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			svcapi.GreetIn{},       // MARKER: Greet
+			svcapi.AdoptIn{},       // MARKER: Adopt
+			svcapi.PingIn{},        // MARKER: Ping
+			svcapi.ProcessStepIn{}, // MARKER: ProcessStep
+			svcapi.ReviewStepIn{},  // MARKER: ReviewStep
+			srcapi.OnSrcEventIn{},  // MARKER: OnSrcEvent
+		)
+	})
 
 	svc.Subscribe( // MARKER: Greet
 		"Greet", svc.doGreet,
@@ -164,6 +177,20 @@ through a backtick raw string (real newlines, not a literal \n) into the manifes
 /.git
 *.env`),
 	)
+	svc.DefineConfig( // MARKER: Mascot
+		"Mascot",
+		cfg.Description(`Mascot is the pet representing the microservice; exercises a struct-valued config.`),
+		cfg.DefaultValue(`{"name":"Rex","age":3}`),
+		cfg.Validation(`json`),
+		cfg.Validator(func(ctx context.Context, value string) error {
+			var v svcapi.Pet
+			err := json.Unmarshal([]byte(value), &v)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			return errors.Trace(dv8.Validate(ctx, &v))
+		}),
+	)
 	svc.DefineConfig( // MARKER: RefreshInterval
 		"RefreshInterval",
 		cfg.Description(`RefreshInterval controls how often state is refreshed.`),
@@ -195,6 +222,10 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -252,6 +283,10 @@ func (svc *Intermediate) doProcessStep(w http.ResponseWriter, r *http.Request) (
 	snap := flow.Snapshot()
 	var in svcapi.ProcessStepIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out svcapi.ProcessStepOut
 	out.Done, err = svc.ProcessStep(r.Context(), &flow, in.Item)
 	if err != nil {
@@ -276,6 +311,10 @@ func (svc *Intermediate) doReviewStep(w http.ResponseWriter, r *http.Request) (e
 	snap := flow.Snapshot()
 	var in svcapi.ReviewStepIn
 	flow.ParseState(&in)
+	err = dv8.Validate(r.Context(), &in)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	var out svcapi.ReviewStepOut
 	out.CountOut, err = svc.ReviewStep(r.Context(), &flow, in.Count)
 	if err != nil {
@@ -358,6 +397,23 @@ func (svc *Intermediate) DenyList() (value string) { // MARKER: DenyList
 // SetDenyList sets the value of the configuration property.
 func (svc *Intermediate) SetDenyList(value string) (err error) { // MARKER: DenyList
 	return svc.SetConfig("DenyList", value)
+}
+
+// Mascot is the pet representing the microservice; exercises a struct-valued config.
+func (svc *Intermediate) Mascot() (value svcapi.Pet) { // MARKER: Mascot
+	_val := svc.Config("Mascot")
+	_ = json.Unmarshal([]byte(_val), &value)
+	_ = dv8.Validate(svc.Lifetime(), &value) // Apply normalizing directives
+	return value
+}
+
+// SetMascot sets the value of the configuration property.
+func (svc *Intermediate) SetMascot(value svcapi.Pet) (err error) { // MARKER: Mascot
+	_data, err := json.Marshal(value)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return svc.SetConfig("Mascot", string(_data))
 }
 
 // RefreshInterval controls how often state is refreshed.

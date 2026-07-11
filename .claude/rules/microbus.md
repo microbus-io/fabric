@@ -472,6 +472,7 @@ Microbus uses a number of naming conventions to drive framework behavior without
 |---|---|---|
 | `httpRequestBody`, `httpResponseBody`, `httpStatusCode` | Magic HTTP arguments on functional endpoints — the named arg is bound directly to the HTTP request/response body or status code. | Magic HTTP Arguments |
 | Path argument names matching function arg names | A function argument whose name matches a `{argName}` segment in the route is auto-populated from the path. | Reading Path Argument Values |
+| `dv8` tags and `Validate(ctx) error` / `Validate() error` methods on api types | Enforced automatically on the In structs of functions, tasks, and events after decoding (an invalid payload is rejected `400` before the handler runs, failing a flow at the offending task) and on structured config values before they are committed. Inert on Out structs. | `add-type` skill |
 
 ### OpenAPI Parameter Descriptions
 

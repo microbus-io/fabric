@@ -104,8 +104,8 @@ var Retry = define.Config{ // MARKER: Retry
 
 - The `Value` carrier may be a struct (`RetryPolicy{}`), a slice (`[]int{}`), a map (`map[string]bool{}`), or a slice/map of structs (`[]RetryPolicy{}`)
 - Set `Validation: "json"` so the stored value is checked as valid JSON; when present, `Default` is the JSON text of the value (e.g. `[80,443]` for a `[]int`, `{"beta":true}` for a `map[string]bool`)
-- Define any new struct type in the **api package**, either inline in `definition.go` or in a separate file beside it (e.g. `myserviceapi/retrypolicy.go`). It must live in the api package, not the service package, so the generated getter/setter (which live in the service package) and tests can name it. Give its fields camelCase `json` tags; add `jsonschema_description:"..."` tags if the type also feeds an endpoint's OpenAPI schema
-- The generated getter returns the typed value; a missing or malformed stored value yields the type's zero value
+- Define any new struct type in the **api package**, in a separate file beside `definition.go` (e.g. `myserviceapi/retrypolicy.go`), following the `add-type` skill. It must live in the api package, not the service package, so the generated getter/setter (which live in the service package) and tests can name it. The type's `dv8` validation tags and optional pure `Validate` method are enforced on every configured value: a value that does not unmarshal into the type or that fails validation is rejected before it is committed
+- The generated getter returns the typed value with normalizing `dv8` directives (`default=`, `trim`) applied; a missing or malformed stored value yields the type's zero value
 
 #### Step 5: Generate the Boilerplate
 
@@ -154,6 +154,16 @@ If a section for the hostname already exists in the file, add the new property t
 ```yaml
 my.service.hostname:
   # MyConfig: default
+```
+
+A structured config's value may be written either as native nested YAML or as a quoted JSON string; both
+canonicalize to the same stored value:
+
+```yaml
+my.service.hostname:
+  # Retry:
+  #   maxRetries: 3
+  #   backoff: 1s
 ```
 
 #### Step 10: Housekeeping

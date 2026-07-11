@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/connector"
@@ -108,6 +109,40 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			yellowpagesapi.CreateIn{},         // MARKER: Create
+			yellowpagesapi.StoreIn{},          // MARKER: Store
+			yellowpagesapi.MustStoreIn{},      // MARKER: MustStore
+			yellowpagesapi.ReviseIn{},         // MARKER: Revise
+			yellowpagesapi.MustReviseIn{},     // MARKER: MustRevise
+			yellowpagesapi.DeleteIn{},         // MARKER: Delete
+			yellowpagesapi.MustDeleteIn{},     // MARKER: MustDelete
+			yellowpagesapi.ListIn{},           // MARKER: List
+			yellowpagesapi.LookupIn{},         // MARKER: Lookup
+			yellowpagesapi.MustLookupIn{},     // MARKER: MustLookup
+			yellowpagesapi.LoadIn{},           // MARKER: Load
+			yellowpagesapi.MustLoadIn{},       // MARKER: MustLoad
+			yellowpagesapi.BulkLoadIn{},       // MARKER: BulkLoad
+			yellowpagesapi.BulkDeleteIn{},     // MARKER: BulkDelete
+			yellowpagesapi.BulkCreateIn{},     // MARKER: BulkCreate
+			yellowpagesapi.BulkStoreIn{},      // MARKER: BulkStore
+			yellowpagesapi.BulkReviseIn{},     // MARKER: BulkRevise
+			yellowpagesapi.PurgeIn{},          // MARKER: Purge
+			yellowpagesapi.CountIn{},          // MARKER: Count
+			yellowpagesapi.CreateRESTIn{},     // MARKER: CreateREST
+			yellowpagesapi.StoreRESTIn{},      // MARKER: StoreREST
+			yellowpagesapi.DeleteRESTIn{},     // MARKER: DeleteREST
+			yellowpagesapi.LoadRESTIn{},       // MARKER: LoadREST
+			yellowpagesapi.ListRESTIn{},       // MARKER: ListREST
+			yellowpagesapi.TryReserveIn{},     // MARKER: TryReserve
+			yellowpagesapi.TryBulkReserveIn{}, // MARKER: TryBulkReserve
+			yellowpagesapi.ReserveIn{},        // MARKER: Reserve
+			yellowpagesapi.BulkReserveIn{},    // MARKER: BulkReserve
+		)
+	})
 
 	svc.Subscribe( // MARKER: Create
 		"Create", svc.doCreate,
@@ -307,6 +342,10 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}

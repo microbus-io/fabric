@@ -22,6 +22,7 @@ import (
 
 	"github.com/microbus-io/fabric/application"
 	"github.com/microbus-io/fabric/connector"
+	"github.com/microbus-io/fabric/exampleservices/embedder/embedderapi"
 	"github.com/microbus-io/testarossa"
 )
 
@@ -64,4 +65,186 @@ func TestEmbedder_PythonSubscriptionsManual(t *testing.T) {
 	if tt.True(ok, "subscription Demo not found") {
 		tt.False(demo.Manual, "Demo must not be a manual subscription")
 	}
+}
+
+func TestEmbedder_Embed(t *testing.T) { // MARKER: Embed
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := embedderapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			vector, err := client.Embed(ctx, text)
+			assert.Expect(
+				vector, expectedVector,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestEmbedder_Similarity(t *testing.T) { // MARKER: Similarity
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := embedderapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			score, err := client.Similarity(ctx, a, b)
+			assert.Expect(
+				score, expectedScore,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestEmbedder_Demo(t *testing.T) { // MARKER: Demo
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := embedderapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			res, err := client.Demo(ctx, "GET", "", nil)
+			if assert.NoError(err) {
+				assert.Expect(res.StatusCode, http.StatusOK)
+			}
+		})
+	*/
+}
+
+func TestEmbedder_DemoInit(t *testing.T) { // MARKER: DemoInit
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := embedderapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			res, err := client.DemoInit(ctx, "", nil)
+			if assert.NoError(err) {
+				assert.Expect(res.StatusCode, http.StatusOK)
+			}
+		})
+	*/
+}
+
+func TestEmbedder_DemoStatus(t *testing.T) { // MARKER: DemoStatus
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := embedderapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			res, err := client.DemoStatus(ctx, "")
+			if assert.NoError(err) {
+				assert.Expect(res.StatusCode, http.StatusOK)
+			}
+		})
+	*/
 }

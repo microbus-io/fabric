@@ -128,3 +128,72 @@ func TestLiteLLM_Turn(t *testing.T) { // MARKER: Turn
 		}
 	})
 }
+
+func TestLiteLLM_OnResolveProvider(t *testing.T) { // MARKER: OnResolveProvider
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the testers
+	tester := connector.New("tester.client")
+	trigger := llmapi.NewMulticastTrigger(tester)
+	_ = trigger
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			for e := range trigger.OnResolveProvider(ctx, model) {
+				ok, err := e.Get()
+				if frame.Of(e.HTTPResponse).FromHost() == svc.Hostname() {
+					assert.Expect(
+						ok, expectedOk,
+						err, nil,
+					)
+				}
+			}
+		})
+	*/
+}
+
+func TestLiteLLM_RefreshModels(t *testing.T) { // MARKER: RefreshModels
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := svc.RefreshModels(ctx)
+			assert.NoError(err)
+		})
+	*/
+}

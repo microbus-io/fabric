@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/cmd/genservice/testdata/configonly/configonlyapi"
@@ -84,6 +85,14 @@ is the only thing in this fixture that requires the time import in the generated
 and the qualification of the value type into the service package.`),
 		cfg.DefaultValue(`{"maxRetries":3,"backoff":"1s"}`),
 		cfg.Validation(`json`),
+		cfg.Validator(func(ctx context.Context, value string) error {
+			var v configonlyapi.RetryPolicy
+			err := json.Unmarshal([]byte(value), &v)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			return errors.Trace(dv8.Validate(ctx, &v))
+		}),
 	)
 
 	return svc
@@ -138,6 +147,7 @@ func (svc *Intermediate) SetDenyList(value string) (err error) { // MARKER: Deny
 func (svc *Intermediate) Retry() (value configonlyapi.RetryPolicy) { // MARKER: Retry
 	_val := svc.Config("Retry")
 	_ = json.Unmarshal([]byte(_val), &value)
+	_ = dv8.Validate(svc.Lifetime(), &value) // Apply normalizing directives
 	return value
 }
 
