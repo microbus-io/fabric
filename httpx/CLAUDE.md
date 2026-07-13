@@ -44,6 +44,29 @@ Last write wins. So a query-string argument can override a body field, which can
 
 `Close()` is a no-op - there's nothing to close, but the type satisfies `io.ReadCloser` for `http.Request.Body` / `http.Response.Body`. The connector substitutes `BodyReader` into incoming requests when it has a buffered body to give them; user handlers can therefore depend on `Reset()` working on inbound requests but should not depend on it on arbitrary `io.ReadCloser` bodies.
 
+### `ReadRequest` splits headers from body to hand back a `BodyReader`
+
+`ReadRequest([]byte)` is the connector's inbound-request parser, used in place of the standard
+`http.ReadRequest(bufio.NewReader(...))`. It finds the `\r\n\r\n` header terminator, parses only the header
+section, and sets `req.Body` to a `BodyReader` over the remaining bytes of the same buffer.
+
+The point is *not* to avoid a body copy. `http.ReadRequest` does not copy the body either - it leaves `req.Body`
+as a reader over the buffered source, and `bufio` bypasses its own buffer for a large read, so raw read
+throughput is already fine. The point is the *type*: a body parsed by `http.ReadRequest` is an opaque
+`http.body`, so the `BodyReader` fast paths never engage. By handing back a `*BodyReader` instead, `ReadRequest`
+makes the inbound body (1) re-readable via `Reset()` - the connector re-reads it during defragmentation and the
+handler may read it more than once - and (2) eligible for the zero-copy paths in `Copy` (ownership transfer into
+a `ResponseRecorder`) and `NewFragRequest` (skip the fragment-array allocation). Those matter on a forwarding,
+re-serializing, or re-fragmenting path, not on a terminal handler that decodes the body once. It also gives the
+connector an exact body length (`Bytes()`) without re-measuring.
+
+This is the substitution the `BodyReader` note above refers to when it says "the connector substitutes
+`BodyReader` into incoming requests." The tradeoff is that manual header/body splitting assumes Content-Length
+framing and never chunked transfer-encoding - which holds because the Microbus serializer always emits
+Content-Length, so the body genuinely is the literal tail after the header block. This couples the parser to the
+serializer's exact output rather than delegating framing to the standard library; the framework owns both sides,
+so the coupling is acceptable, and a buffer with no header terminator falls back to the standard parser.
+
 ### `Copy` transfers byte ownership when possible
 
 When both the source `*http.Response.Body` is a `BodyReader` and the destination `http.ResponseWriter` is a `*ResponseRecorder` (and the recorder is empty), `Copy` constructs the recorder's buffer *directly over the BodyReader's bytes* - `bytes.NewBuffer(br.bytes)` - instead of copying. The comment in code calls this "somewhat risky: bytes are now owned by the buffer." After this transfer, mutating either side affects the other.
@@ -101,6 +124,8 @@ This is why a string `"{"foo":1}"` posted via the egress proxy automatically get
 `DefragRequest.Add` stores fragments by index; arrival order doesn't matter. `Integrated()` walks 1..maxIndex and errors if any are missing. The integrated body is built with `io.MultiReader` over the per-fragment readers - no big buffer copy. The result is set onto fragment 1's request (so headers come from the first fragment), with `Content-Length` summed across fragments.
 
 This is what allows the connector's NATS subscriber to call `Add` from its receive callback without sequencing.
+
+`Add` also enforces the framing rather than trusting the sender: the receiver reassembles a transfer sized by its declared fragment count (`connector/CLAUDE.md`, "Fragment reassembly"). The count is pinned from the first fragment seen: a later fragment declaring a different `max`, an index outside `1..max`, or a duplicate index is rejected instead of silently rewriting the declared size or double-counting `arrived` (which would let completion fire with fragments genuinely missing). `DefragResponse.Add` enforces the same. A rejection is the connector's cue to tombstone the whole transfer.
 
 ### `CertStore` matches on SAN, not on file name
 

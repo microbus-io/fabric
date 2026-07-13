@@ -25,10 +25,19 @@ import (
 	"github.com/microbus-io/fabric/httpx"
 )
 
-const fragTimeoutMultiplier = 8
+// admitFirstFragment creates the reassembly entry for a multi-fragment request, carrying the lifetime deadline.
+// It returns false if an entry for the key already exists (a duplicate first fragment).
+func (c *Connector) admitFirstFragment(r *http.Request) (admitted bool) {
+	fromID := frame.Of(r).FromID()
+	msgID := frame.Of(r).MessageID()
+	key := fromID + "|" + msgID
+	d := httpx.NewDefragRequest()
+	deadline := time.Now().Add(frame.Of(r).TimeBudget())
+	return c.requestDefrags.admit(key, d, deadline)
+}
 
-// defragRequest assembles all fragments of an incoming HTTP request and returns the integrated HTTP request.
-// If not all fragments are available yet, it returns nil
+// defragRequest assembles the fragments of an incoming request. It returns the integrated request once the last
+// fragment arrives, or a nil request for a non-final fragment.
 func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, err error) {
 	_, fragmentMax := frame.Of(r).Fragment()
 	if fragmentMax <= 1 {
@@ -36,85 +45,72 @@ func (c *Connector) defragRequest(r *http.Request) (integrated *http.Request, er
 	}
 	fromID := frame.Of(r).FromID()
 	msgID := frame.Of(r).MessageID()
-	fragKey := fromID + "|" + msgID
+	key := fromID + "|" + msgID
 
-	defragger, loaded := c.requestDefrags.LoadOrStoreFunc(fragKey, func() *httpx.DefragRequest {
-		return httpx.NewDefragRequest()
-	})
-	if !loaded {
-		// Timeout if fragments stop arriving
-		go func() {
-			for {
-				time.Sleep(c.networkRoundtrip / 2)
-				if _, ok := c.requestDefrags.Load(fragKey); !ok {
-					break
-				}
-				if defragger.LastActivity() > fragTimeoutMultiplier*c.networkRoundtrip {
-					c.requestDefrags.Store(fragKey, nil) // Nil indicates a timeout
-					break
-				}
-			}
-		}()
+	// Every fragment - including the first - joins the entry created synchronously at fragment 1.
+	d, ok := c.requestDefrags.defragger(key)
+	if !ok {
+		// Reject if no live entry (never admitted, or already swept)
+		return nil, errors.New("unknown or expired transfer", http.StatusRequestTimeout)
 	}
-	if defragger == nil {
-		// Most likely caused after a timeout, but can also happen if initial chunk has wrong index
-		return nil, errors.New("defrag timeout", http.StatusRequestTimeout)
-	}
-	final, err := defragger.Add(r)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-	if !final {
-		// Not all fragments arrived yet
-		return nil, nil
-	}
-	c.requestDefrags.Delete(fragKey)
-	integrated, err = defragger.Integrated()
+	integrated, err = c.addRequestFragment(key, d, r)
 	return integrated, errors.Trace(err)
 }
 
-// defragResponse assembles all fragments of an incoming HTTP response and returns the integrated HTTP request.
-// If not all fragments are available yet, it returns nil
+// addRequestFragment adds one fragment to an admitted request transfer, returning the integrated request on the
+// final fragment, or a nil request while fragments are still outstanding. A framing violation drops the transfer.
+func (c *Connector) addRequestFragment(key string, d *httpx.DefragRequest, r *http.Request) (integrated *http.Request, err error) {
+	final, err := d.Add(r)
+	if err != nil {
+		c.requestDefrags.remove(key)
+		return nil, errors.Trace(err)
+	}
+	if !final {
+		return nil, nil
+	}
+	c.requestDefrags.remove(key)
+	integrated, err = d.Integrated()
+	return integrated, errors.Trace(err)
+}
+
+// defragResponse assembles the fragments of an incoming response, mirroring defragRequest.
 func (c *Connector) defragResponse(r *http.Response) (integrated *http.Response, err error) {
-	_, fragmentMax := frame.Of(r).Fragment()
+	index, fragmentMax := frame.Of(r).Fragment()
 	if fragmentMax <= 1 {
 		return r, nil
 	}
 	fromID := frame.Of(r).FromID()
 	msgID := frame.Of(r).MessageID()
-	fragKey := fromID + "|" + msgID
+	key := fromID + "|" + msgID
 
-	defragger, loaded := c.responseDefrags.LoadOrStoreFunc(fragKey, func() *httpx.DefragResponse {
-		return httpx.NewDefragResponse()
-	})
-	if !loaded {
-		// Timeout if fragments stop arriving
-		go func() {
-			for {
-				time.Sleep(c.networkRoundtrip / 2)
-				if _, ok := c.responseDefrags.Load(fragKey); !ok {
-					break
-				}
-				if defragger.LastActivity() > fragTimeoutMultiplier*c.networkRoundtrip {
-					c.responseDefrags.Store(fragKey, nil) // Nil indicates a timeout
-					break
-				}
-			}
-		}()
+	if index == 1 {
+		d := httpx.NewDefragResponse()
+		deadline := time.Now().Add(c.maxTimeBudget)
+		if !c.responseDefrags.admit(key, d, deadline) {
+			return nil, nil
+		}
+		return c.addResponseFragment(key, d, r)
 	}
-	if defragger == nil {
-		// Most likely caused after a timeout, but can also happen if initial chunk has wrong index
-		return nil, errors.New("defrag timeout", http.StatusRequestTimeout)
+
+	d, ok := c.responseDefrags.defragger(key)
+	if !ok {
+		return nil, errors.New("unknown or expired transfer", http.StatusRequestTimeout)
 	}
-	final, err := defragger.Add(r)
+	integrated, err = c.addResponseFragment(key, d, r)
+	return integrated, errors.Trace(err)
+}
+
+// addResponseFragment adds one fragment to an admitted response transfer, mirroring addRequestFragment.
+func (c *Connector) addResponseFragment(key string, d *httpx.DefragResponse, r *http.Response) (integrated *http.Response, err error) {
+	final, err := d.Add(r)
 	if err != nil {
+		c.responseDefrags.remove(key)
 		return nil, errors.Trace(err)
 	}
 	if !final {
-		// Not all fragments arrived yet
 		return nil, nil
 	}
-	c.responseDefrags.Delete(fragKey)
-	integrated, err = defragger.Integrated()
+	c.responseDefrags.remove(key)
+	integrated, err = d.Integrated()
 	return integrated, errors.Trace(err)
 }

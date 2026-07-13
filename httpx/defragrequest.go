@@ -94,16 +94,25 @@ func (st *DefragRequest) Integrated() (integrated *http.Request, err error) {
 
 // Add a fragment to be integrated.
 // The integrated request is returned if this was the last fragment.
+// The fragment count declared by the first fragment is pinned: a later fragment declaring a different count, an
+// out-of-range index, or a duplicate index is rejected rather than corrupting the assembly.
 func (st *DefragRequest) Add(r *http.Request) (final bool, err error) {
 	index, max := frame.Of(r).Fragment()
+	if max < 1 || index < 1 || index > max {
+		return false, errors.New("invalid fragment %d of %d", index, max, http.StatusBadRequest)
+	}
 	st.mux.Lock()
+	defer st.mux.Unlock()
+	if st.maxIndex == 0 {
+		st.maxIndex = max
+	} else if max != st.maxIndex {
+		return false, errors.New("inconsistent fragment count %d, expected %d", max, st.maxIndex, http.StatusBadRequest)
+	}
+	if _, exists := st.fragments[index]; exists {
+		return false, errors.New("duplicate fragment %d", index, http.StatusBadRequest)
+	}
 	st.fragments[index] = r
-	st.maxIndex = max
 	st.arrived++
 	st.lastActivity.Store(time.Now().UnixMilli())
-	if st.arrived == st.maxIndex {
-		final = true
-	}
-	st.mux.Unlock()
-	return final, errors.Trace(err)
+	return st.arrived == st.maxIndex, nil
 }

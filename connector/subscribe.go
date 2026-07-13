@@ -218,21 +218,22 @@ var validRequestMethods = map[string]bool{
 
 // onRequest handles an incoming request. It acks it, then calls the handler to process it and responds to the caller.
 func (c *Connector) onRequest(msg *transport.Msg, s *sub.Subscription) {
+	dd := int32(-1)
 	c.pendingOps.Add(1)
+	defer func() {
+		c.pendingOps.Add(dd)
+	}()
 
 	if msg.Request == nil {
 		// Parse the request
-		httpReq, err := http.ReadRequest(bufio.NewReaderSize(bytes.NewReader(msg.Data), 64))
+		httpReq, err := httpx.ReadRequest(msg.Data)
 		if err != nil {
-			c.pendingOps.Add(-1)
-			err = errors.Trace(err)
-			c.LogError(c.Lifetime(), "Parsing request", "error", err)
+			c.LogError(c.Lifetime(), "Parsing request", "error", errors.Trace(err))
 			return
 		}
 		msg.Request = httpReq
 	}
 	if !validRequestMethods[msg.Request.Method] {
-		c.pendingOps.Add(-1)
 		err := errors.New("invalid method",
 			http.StatusMethodNotAllowed,
 			"method", msg.Request.Method,
@@ -249,14 +250,27 @@ func (c *Connector) onRequest(msg *transport.Msg, s *sub.Subscription) {
 	_, _, _, src, _, _ := splitSubject(msg.Subject)
 	frame.Of(msg.Request).SetFromHost(src)
 
+	// Create the reassembly entry synchronously before the ack so fragments 2..N don't race it
+	index, fragmentMax := frame.Of(msg.Request).Fragment()
+	if fragmentMax > 1 && index == 1 {
+		if !c.admitFirstFragment(msg.Request) {
+			// A duplicate first fragment, which a well-behaved sender never emits.
+			// An error would fail the transfer, so tolerate.
+			c.LogWarn(c.Lifetime(), "Duplicate first fragment",
+				"msg", frame.Of(msg.Request).MessageID(),
+				"from", frame.Of(msg.Request).FromHost(),
+			)
+			return
+		}
+	}
+
 	err := c.ackRequest(msg, s)
 	if err != nil {
-		c.pendingOps.Add(-1)
-		err = errors.Trace(err)
-		c.LogError(c.Lifetime(), "Acking request", "error", err)
+		c.LogError(c.Lifetime(), "Acking request", "error", errors.Trace(err))
 		return
 	}
 	c.seams.Checkpoint(c.Lifetime(), checkpointAfterAck)
+	dd = 0 // Take over the pending op
 	go func() {
 		defer c.pendingOps.Add(-1)
 		err := c.handleRequest(msg, s)
@@ -489,11 +503,12 @@ func (c *Connector) ackRequest(msg *transport.Msg, s *sub.Subscription) (err err
 // The message is dispatched to the appropriate web handler and the response is serialized and sent back to the response channel of the sender.
 func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err error) {
 	ctx := c.Lifetime()
+	handlerStartTime := time.Now()
 
 	httpReq := msg.Request
 	if httpReq == nil {
 		// Parse the request
-		httpReq, err = http.ReadRequest(bufio.NewReaderSize(bytes.NewReader(msg.Data), 64))
+		httpReq, err = httpx.ReadRequest(msg.Data)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -529,19 +544,30 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 		budget = min(budget, s.TimeBudget)
 	}
 	frame.Of(httpReq).SetTimeBudget(budget)
+
+	// Handler error captures the first error in the pipeline that is returned to the caller
+	var handlerErr error
+
+	// Fail fast if the budget is too small
 	budgetExhausted := budget <= c.networkRoundtrip
+	if budgetExhausted {
+		handlerErr = errors.New("timeout", http.StatusRequestTimeout)
+	}
 
 	// Integrate fragments together
-	httpReq, err = c.defragRequest(httpReq)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if httpReq == nil {
-		// Not all fragments arrived yet
-		return nil
+	if handlerErr == nil {
+		httpReq, err = c.defragRequest(httpReq)
+		if err != nil {
+			// Inform the caller so it fails fast rather than waiting out its time budget.
+			handlerErr = errors.Trace(err)
+		}
+		if err == nil && httpReq == nil {
+			// Not all fragments arrived yet
+			return nil
+		}
 	}
 
-	// OpenTelemetry: create a child span
+	// OpenTelemetry: create a child span only when all fragments have arrived
 	ctx = propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(httpReq.Header))
 	var span trc.Span
 	if s.NoTrace {
@@ -551,6 +577,7 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 			trc.Server(),
 			trc.Request(httpReq),
 			trc.String("http.route", s.Path),
+			trc.Timestamp(handlerStartTime), // Backdate
 		)
 	}
 	spanEnded := false
@@ -560,22 +587,11 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 		}
 	}()
 
-	// Execute the request
-	handlerStartTime := time.Now()
-	httpRecorder := httpx.NewResponseRecorder()
-	var handlerErr error
-
 	// Prepare the context with a timeout set to the time budget reduced by a network hop
 	ctx = frame.ContextWithClonedFrameOf(ctx, httpReq.Header)
 	ctx, cancel := context.WithTimeout(ctx, budget-c.networkRoundtrip)
 	httpReq = httpReq.WithContext(ctx)
 	httpReq.Header = frame.Of(ctx).Header()
-
-	// A budget too small to dispatch fails fast as 408, routed through the error
-	// response below so the caller is told rather than left to its own pub.Timeout.
-	if budgetExhausted {
-		handlerErr = errors.New("timeout", http.StatusRequestTimeout)
-	}
 
 	// Check actor constraints. Whenever an actor token is present it is verified,
 	// even if the endpoint declares no requiredClaims, so a handler that reads claims
@@ -604,6 +620,7 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 	}
 
 	// Call the handler
+	httpRecorder := httpx.NewResponseRecorder()
 	if handlerErr == nil {
 		handlerErr = errors.CatchPanic(func() error {
 			return s.Handler.(HTTPHandler)(httpRecorder, httpReq)

@@ -104,8 +104,8 @@ type Connector struct {
 	multicastChanCap  int
 	ackTimeout        time.Duration
 
-	requestDefrags  *lru.Cache[string, *httpx.DefragRequest]
-	responseDefrags *lru.Cache[string, *httpx.DefragResponse]
+	requestDefrags  *defragCache[*httpx.DefragRequest]
+	responseDefrags *defragCache[*httpx.DefragResponse]
 
 	knownResponders *lru.Cache[string, map[string]bool]
 	postRequestData *lru.Cache[string, string]
@@ -156,9 +156,9 @@ func NewConnector() *Connector {
 		localResponder:    lru.New[string, string](64<<10, 24*time.Hour),          // 64KB
 		multicastChanCap:  32,
 		metricInstruments: map[string]*metricInstrument{},
-		requestDefrags:    lru.New[string, *httpx.DefragRequest](1<<10, time.Minute),  // 1024 fragmented requests
-		responseDefrags:   lru.New[string, *httpx.DefragResponse](1<<10, time.Minute), // 1024 fragmented responses
-		maxFragmentSize:   1 << 20,                                                    // 1MB
+		requestDefrags:    newDefragCache[*httpx.DefragRequest](),
+		responseDefrags:   newDefragCache[*httpx.DefragResponse](),
+		maxFragmentSize:   1 << 20, // 1MB
 	}
 	c.underTestName, c.underTest = utils.Testing()
 	c.seams = seamster.New(c.underTest)

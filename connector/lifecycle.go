@@ -205,6 +205,10 @@ func (c *Connector) Startup(ctx context.Context) (err error) {
 	c.ackTimeout = c.networkRoundtrip
 	c.LogInfo(ctx, "Transport latency", "latency", c.networkRoundtrip)
 
+	// Configure the fragment-reassembly caches now that the round-trip time is known.
+	c.requestDefrags.configureSweeper(8 * c.ackTimeout)
+	c.responseDefrags.configureSweeper(8 * c.ackTimeout)
+
 	// Prepare the connector's lifetime context before any user-visible callback runs.
 	// OnStartup and downstream code can rely on svc.Lifetime() being a real cancellable
 	// context. It is cancelled in Shutdown after OnShutdown returns.
@@ -289,6 +293,10 @@ func (c *Connector) Shutdown(ctx context.Context) (err error) {
 		lastErr = errors.Trace(err)
 	}
 
+	// Stop the fragment sweepers in the prepare phase (like tickers) so their goroutines exit before teardown.
+	c.requestDefrags.stop()
+	c.responseDefrags.stop()
+
 	// Deactivate the auto subscriptions. Manual subscriptions (the distributed cache plus
 	// anything the user marked sub.Manual) stay active so OnShutdown code can still use
 	// them. The connector tears down its own dlru-tagged group after OnShutdown returns;
@@ -366,6 +374,10 @@ func (c *Connector) Shutdown(ctx context.Context) (err error) {
 
 	// Disconnect the transport
 	c.transportConn.Close()
+
+	// Drop fragment reassemblies still in flight.
+	c.requestDefrags.clear()
+	c.responseDefrags.clear()
 
 	// Last chance to log an error
 	if lastErr != nil {

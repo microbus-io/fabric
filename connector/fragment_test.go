@@ -298,27 +298,36 @@ func TestConnector_DefragRequest(t *testing.T) {
 		f.SetFromID("12345678")
 		f.SetMessageID(msgID)
 		f.SetFragment(fragIndex, fragMax)
+		f.SetTimeBudget(time.Minute)
 		return r
+	}
+	// deliver mirrors onRequest: the first fragment creates the entry synchronously, every fragment is added.
+	deliver := func(r *http.Request) (*http.Request, error) {
+		index, fragMax := frame.Of(r).Fragment()
+		if fragMax > 1 && index == 1 {
+			con.admitFirstFragment(r)
+		}
+		return con.defragRequest(r)
 	}
 
 	// One chunk only: should return the exact same object
 	r := makeChunk("one", 1, 1, strings.Repeat("1", 1024))
-	integrated, err := con.defragRequest(r)
+	integrated, err := deliver(r)
 	if assert.NoError(err) {
 		assert.Equal(r, integrated)
 	}
 
 	// Three chunks: should return the integrated chunk after the final chunk
 	r = makeChunk("three", 1, 3, strings.Repeat("1", 1024))
-	integrated, err = con.defragRequest(r)
+	integrated, err = deliver(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
 	r = makeChunk("three", 2, 3, strings.Repeat("2", 1024))
-	integrated, err = con.defragRequest(r)
+	integrated, err = deliver(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
 	r = makeChunk("three", 3, 3, strings.Repeat("3", 1024))
-	integrated, err = con.defragRequest(r)
+	integrated, err = deliver(r)
 	if assert.NoError(err) && assert.NotNil(integrated) {
 		body, err := io.ReadAll(integrated.Body)
 		if assert.NoError(err) {
@@ -326,17 +335,17 @@ func TestConnector_DefragRequest(t *testing.T) {
 		}
 	}
 
-	// Three chunks not in order: should return the integrated chunk after the final chunk
-	r = makeChunk("outoforder", 3, 3, strings.Repeat("3", 1024))
-	integrated, err = con.defragRequest(r)
+	// Fragments 2..N out of order after the first: still integrates correctly
+	r = makeChunk("outoforder", 1, 3, strings.Repeat("1", 1024))
+	integrated, err = deliver(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
-	r = makeChunk("outoforder", 1, 3, strings.Repeat("1", 1024))
-	integrated, err = con.defragRequest(r)
+	r = makeChunk("outoforder", 3, 3, strings.Repeat("3", 1024))
+	integrated, err = deliver(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
 	r = makeChunk("outoforder", 2, 3, strings.Repeat("2", 1024))
-	integrated, err = con.defragRequest(r)
+	integrated, err = deliver(r)
 	if assert.NoError(err) && assert.NotNil(integrated) {
 		body, err := io.ReadAll(integrated.Body)
 		if assert.NoError(err) {
@@ -344,17 +353,19 @@ func TestConnector_DefragRequest(t *testing.T) {
 		}
 	}
 
-	// Taking too long: should timeout
+	// A swept transfer: stragglers find no live entry and are rejected
 	r = makeChunk("delayed", 1, 3, strings.Repeat("1", 1024))
-	integrated, err = con.defragRequest(r)
+	integrated, err = deliver(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
-	time.Sleep(con.networkRoundtrip * (fragTimeoutMultiplier + 2))
+	// Force expiry: a far-future clock outlives the deadline, and a zero staleness threshold makes any gap since
+	// the last fragment count as stalled.
+	con.requestDefrags.sweep(time.Now().Add(time.Hour), 0)
 	r = makeChunk("delayed", 2, 3, strings.Repeat("2", 1024))
-	_, err = con.defragRequest(r)
+	_, err = deliver(r)
 	assert.Error(err)
 	r = makeChunk("delayed", 3, 3, strings.Repeat("3", 1024))
-	_, err = con.defragRequest(r)
+	_, err = deliver(r)
 	assert.Error(err)
 }
 
@@ -398,12 +409,12 @@ func TestConnector_DefragResponse(t *testing.T) {
 		}
 	}
 
-	// Three chunks not in order: should return the integrated chunk after the final chunk
-	r = makeChunk("outoforder", 3, 3, strings.Repeat("3", 1024))
+	// Fragments 2..N out of order after the first: still integrates correctly
+	r = makeChunk("outoforder", 1, 3, strings.Repeat("1", 1024))
 	integrated, err = con.defragResponse(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
-	r = makeChunk("outoforder", 1, 3, strings.Repeat("1", 1024))
+	r = makeChunk("outoforder", 3, 3, strings.Repeat("3", 1024))
 	integrated, err = con.defragResponse(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
@@ -416,16 +427,54 @@ func TestConnector_DefragResponse(t *testing.T) {
 		}
 	}
 
-	// Taking too long: should timeout
+	// A swept transfer: stragglers find no live entry and are rejected
 	r = makeChunk("delayed", 1, 3, strings.Repeat("1", 1024))
 	integrated, err = con.defragResponse(r)
 	assert.NoError(err)
 	assert.Nil(integrated)
-	time.Sleep(con.networkRoundtrip * (fragTimeoutMultiplier + 2))
+	// Force expiry: a far-future clock outlives the deadline, and a zero staleness threshold makes any gap since
+	// the last fragment count as stalled.
+	con.responseDefrags.sweep(time.Now().Add(time.Hour), 0)
 	r = makeChunk("delayed", 2, 3, strings.Repeat("2", 1024))
 	_, err = con.defragResponse(r)
 	assert.Error(err)
 	r = makeChunk("delayed", 3, 3, strings.Repeat("3", 1024))
 	_, err = con.defragResponse(r)
+	assert.Error(err)
+}
+
+// TestConnector_DefragSweepExpiresStalledTransfer proves the sweeper drops a stalled transfer and that a
+// straggling fragment afterward is rejected.
+func TestConnector_DefragSweepExpiresStalledTransfer(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	con := New("defrag.sweep.expire.connector")
+
+	makeChunk := func(fragIndex, fragMax int, content string) *http.Request {
+		r, err := http.NewRequest("GET", "", strings.NewReader(content))
+		assert.NoError(err)
+		f := frame.Of(r)
+		f.SetFromID("12345678")
+		f.SetMessageID("sweep")
+		f.SetFragment(fragIndex, fragMax)
+		f.SetTimeBudget(time.Minute)
+		return r
+	}
+
+	// Admit the first fragment, as onRequest does.
+	r := makeChunk(1, 3, strings.Repeat("1", 1024))
+	assert.True(con.admitFirstFragment(r))
+	_, err := con.defragRequest(r)
+	assert.NoError(err)
+	assert.Equal(1, con.requestDefrags.len())
+
+	// The sweeper expires the stalled transfer.
+	con.requestDefrags.sweep(time.Now().Add(time.Hour), 0)
+	assert.Equal(0, con.requestDefrags.len())
+
+	// A straggling fragment finds no entry and is rejected.
+	r2 := makeChunk(2, 3, strings.Repeat("2", 1024))
+	_, err = con.defragRequest(r2)
 	assert.Error(err)
 }

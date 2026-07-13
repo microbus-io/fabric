@@ -169,7 +169,25 @@ The short-circuit transport carries `Msg.Subject` the same way the NATS path doe
 
 The first fragment of a multi-fragment request publishes on the normal subject so any replica's queue group can pick it up. Once a replica acks, fragments 2..N are published with the responder's `id-XXXX` value as the `id_or_locality` slot, so they all land on the exact replica that took the first fragment. Without direct addressing the queue group would round-robin subsequent fragments across replicas, and the receiving replica would never see a complete request. Any locality slot present in the original URL is stripped at fragment-publish time - once we have an instance ID, locality is no longer relevant.
 
-The ack op-code reflects this: a fragmented request acks with `100 Continue`, an unfragmented one with `202 Accepted`. The defragger times out a partial fragment set after `8 * networkRoundtrip` of inactivity (polled every `networkRoundtrip / 2`).
+The ack op-code reflects this: a fragmented request acks with `100 Continue`, an unfragmented one with `202 Accepted`. A partial fragment set is timed out after `8 * networkRoundtrip` of inactivity, or when it outlives the caller's time budget, by the connector-wide defrag sweeper (see "Fragment reassembly" below).
+
+### Fragment reassembly
+
+Reassembly state lives in `defragCache` (`defragcache.go`), a plain map keyed `fromID|msgID`. Each entry carries
+its assembler and a lifetime deadline. The map has no count cap; a stalled transfer is reclaimed by the cache's own
+sweeper on inactivity. One invariant carries the design:
+
+**Only fragment 1 creates an entry, and it is created synchronously in `onRequest` before the ack**
+(`admitFirstFragment`), *not* in the handler goroutine. Request handlers run concurrently, so creating the entry
+in the handler would let consecutive fragments lookup race ahead of fragment 1's create.
+A fragment with index >1 that finds no entry is rejected `408` rather than starting a fresh assembly.
+
+Each `defragCache` owns its sweeper goroutine and **runs it lazily** - started on the first admit, self-stopping on
+the first tick that finds the cache empty. The laziness is load-bearing, not tidiness: an always-on per-connector
+sweeper, waking on a short interval and taking two mutexes, added enough scheduler contention across a bundle of
+hundreds of connectors to tip a tight-timing multicast test into failure. A connector that never reassembles a
+fragment - the overwhelmingly common case - must run no sweeper at all.
+The sweeper is **not** counted in `pendingOps` and instead stopped via a dedicate `stop` called in the shutdown prepare phase.
 
 ### Frame propagation in Publish is an explicit allowlist
 

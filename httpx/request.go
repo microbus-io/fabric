@@ -17,6 +17,8 @@ limitations under the License.
 package httpx
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -27,6 +29,8 @@ import (
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/utils"
 )
+
+var headerTerminator = []byte("\r\n\r\n")
 
 // SetRequestBody sets the body of the request.
 // Arguments of type [io.Reader], [io.ReadCloser], []byte and string are serialized in binary form.
@@ -163,4 +167,25 @@ func MustNewRequest(method string, url string, body any) *http.Request {
 		panic(err)
 	}
 	return r
+}
+
+// ReadRequest parses an HTTP request from a byte buffer emitted by the Microbus transport. It parses only the
+// header section and wraps the remaining bytes as a zero-copy [BodyReader], rather than letting the standard
+// parser buffer the body through a reader. This makes the body reusable ([BodyReader.Reset]) and hands its raw
+// bytes to the fast paths in [Copy] and [NewFragRequest] without a copy.
+//
+// The buffer must hold a complete message framed by Content-Length, as the Microbus serializer emits (never
+// chunked transfer-encoding). A buffer with no header terminator falls back to the standard parser.
+func ReadRequest(data []byte) (*http.Request, error) {
+	eoh := bytes.Index(data, headerTerminator)
+	if eoh < 0 {
+		req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(data)))
+		return req, errors.Trace(err)
+	}
+	req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(data[:eoh+len(headerTerminator)])))
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	req.Body = NewBodyReader(data[eoh+len(headerTerminator):])
+	return req, nil
 }

@@ -27,9 +27,45 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/microbus-io/fabric/frame"
 	"github.com/microbus-io/fabric/utils"
 	"github.com/microbus-io/testarossa"
 )
+
+func TestHttpx_DefragAddHardening(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	frag := func(index, max int) *http.Request {
+		r, _ := http.NewRequest("POST", "https://example.com/", strings.NewReader("x"))
+		frame.Of(r).SetFragment(index, max)
+		return r
+	}
+
+	// An index beyond the declared count is rejected
+	d := NewDefragRequest()
+	_, err := d.Add(frag(4, 3))
+	assert.Error(err)
+
+	// A later fragment declaring a different count is rejected; the pinned count wins
+	d = NewDefragRequest()
+	_, err = d.Add(frag(1, 3))
+	assert.NoError(err)
+	_, err = d.Add(frag(2, 5))
+	assert.Error(err)
+
+	// A duplicate index is rejected and does not corrupt completion accounting
+	d = NewDefragRequest()
+	_, err = d.Add(frag(1, 2))
+	assert.NoError(err)
+	final, err := d.Add(frag(1, 2))
+	assert.Error(err)
+	assert.False(final)
+	// The genuine second fragment still completes the assembly
+	final, err = d.Add(frag(2, 2))
+	assert.NoError(err)
+	assert.True(final)
+}
 
 func TestHttpx_FragRequest(t *testing.T) {
 	t.Parallel()

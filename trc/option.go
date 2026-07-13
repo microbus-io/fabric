@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -31,6 +32,11 @@ type Option trace.SpanStartOption
 // Server indicates that the span represents the operation of handling a request from a client.
 func Server() Option {
 	return trace.WithSpanKind(trace.SpanKindServer)
+}
+
+// Timestamp sets the time of the event.
+func Timestamp(t time.Time) Option {
+	return trace.WithTimestamp(t)
 }
 
 // Client indicates that the span represents the operation of client making a request to a server.

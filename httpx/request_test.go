@@ -17,8 +17,10 @@ limitations under the License.
 package httpx
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -148,4 +150,60 @@ func TestHttpx_MustRequest(t *testing.T) {
 		return nil
 	})
 	assert.Error(err)
+}
+
+func TestHttpx_ReadRequest(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	body := []byte("hello world body")
+	req, err := http.NewRequest("POST", "https://example.com/path?q=1", bytes.NewReader(body))
+	assert.NoError(err)
+	req.Header.Set("Content-Type", "text/plain")
+	req.Header.Set("X-Custom", "value")
+	req.ContentLength = int64(len(body))
+
+	var buf bytes.Buffer
+	err = req.Write(&buf)
+	assert.NoError(err)
+
+	parsed, err := ReadRequest(buf.Bytes())
+	assert.NoError(err)
+	assert.Equal("POST", parsed.Method)
+	assert.Equal("/path", parsed.URL.Path)
+	assert.Equal("q=1", parsed.URL.RawQuery)
+	assert.Equal("value", parsed.Header.Get("X-Custom"))
+
+	// The body is wrapped as a zero-copy, re-readable BodyReader over the tail of the buffer
+	br, ok := parsed.Body.(*BodyReader)
+	assert.True(ok)
+
+	got, err := io.ReadAll(parsed.Body)
+	assert.NoError(err)
+	assert.Equal(body, got)
+
+	br.Reset()
+	got, err = io.ReadAll(parsed.Body)
+	assert.NoError(err)
+	assert.Equal(body, got)
+}
+
+func TestHttpx_ReadRequestEmptyBody(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	req, err := http.NewRequest("GET", "https://example.com/ping", nil)
+	assert.NoError(err)
+
+	var buf bytes.Buffer
+	err = req.Write(&buf)
+	assert.NoError(err)
+
+	parsed, err := ReadRequest(buf.Bytes())
+	assert.NoError(err)
+	assert.Equal("GET", parsed.Method)
+
+	got, err := io.ReadAll(parsed.Body)
+	assert.NoError(err)
+	assert.Len(got, 0)
 }
