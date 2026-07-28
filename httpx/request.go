@@ -43,10 +43,19 @@ func SetRequestBody(r *http.Request, body any) error {
 	}
 	hasContentType := r.Header.Get("Content-Type") != ""
 	switch v := body.(type) {
-	case io.ReadCloser:
-		r.Body = v
 	case io.Reader:
-		r.Body = io.NopCloser(v)
+		// Buffer the reader so that the body can be read more than once
+		if bodyReader, ok := v.(*BodyReader); ok {
+			return SetRequestBody(r, bodyReader.Bytes())
+		}
+		b, err := io.ReadAll(v)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if closer, ok := v.(io.Closer); ok {
+			_ = closer.Close()
+		}
+		return SetRequestBody(r, b)
 	case []byte:
 		r.Body = NewBodyReader(v)
 		if !hasContentType {

@@ -79,7 +79,9 @@ func TestHttpx_Request(t *testing.T) {
 	if assert.NoError(err) {
 		assert.Equal("PUT", req.Method)
 		assert.Equal("https://example.com", req.URL.String())
-		assert.Equal("", req.Header.Get("Content-Type"))
+		// A reader is buffered, so its content type is detected the same as for []byte and string
+		assert.Equal("text/plain; charset=utf-8", req.Header.Get("Content-Type"))
+		assert.Equal("5", req.Header.Get("Content-Length"))
 		body, _ := io.ReadAll(req.Body)
 		assert.Equal("hello", string(body))
 	}

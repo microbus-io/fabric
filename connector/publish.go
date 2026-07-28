@@ -204,6 +204,10 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) iter.Seq[
 	if req.Body == nil {
 		req.Body = http.NoBody
 	}
+	// Rewind the body, which a prior attempt at this request may have consumed
+	if br, ok := req.Body.(*httpx.BodyReader); ok {
+		br.Reset()
+	}
 	for name, value := range req.Header {
 		httpReq.Header[name] = value
 	}

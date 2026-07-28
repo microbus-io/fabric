@@ -1965,3 +1965,86 @@ func TestConnector_TimeToReturn(t *testing.T) {
 	}
 	assert.True(time.Since(t0) > delay)
 }
+
+func TestConnector_LocalityRetryBody(t *testing.T) {
+	t.Parallel()
+
+	const payload = "Lorem ipsum dolor sit amet"
+	testCases := []struct {
+		kind string
+		body func() any
+	}{
+		{"bytes", func() any { return []byte(payload) }},
+		{"string", func() any { return payload }},
+		{"reader", func() any { return strings.NewReader(payload) }},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.kind, func(t *testing.T) {
+			t.Parallel()
+			assert := testarossa.For(t)
+
+			ctx := t.Context()
+
+			// Create the microservices
+			alpha := New("alpha." + testCase.kind + ".locality.retry.body.connector")
+			alpha.SetLocality("az1.dc2.west.us")
+
+			betaHost := "beta." + testCase.kind + ".locality.retry.body.connector"
+			beta := New(betaHost)
+			beta.SetLocality("az1.dc2.west.us")
+
+			var mux sync.Mutex
+			var bodies []string
+			var hosts []string
+			beta.Subscribe("Echo",
+				func(w http.ResponseWriter, r *http.Request) error {
+					body, err := io.ReadAll(r.Body)
+					assert.NoError(err)
+					mux.Lock()
+					bodies = append(bodies, string(body))
+					hosts = append(hosts, r.Host)
+					attempt := len(bodies)
+					mux.Unlock()
+					if attempt == 1 {
+						// Fail the localized attempt to force a retry at the original URL
+						return errors.New("no responder in locality", http.StatusNotFound)
+					}
+					_, err = w.Write(body)
+					return errors.Trace(err)
+				},
+				sub.At("POST", "echo"),
+				sub.Web(),
+			)
+
+			// Startup the microservices
+			err := alpha.Startup(ctx)
+			assert.NoError(err)
+			defer alpha.Shutdown(ctx)
+			err = beta.Startup(ctx)
+			assert.NoError(err)
+			defer beta.Shutdown(ctx)
+
+			// Prime the locality cache so the first attempt is addressed to the locality slot
+			alpha.localResponder.Store("https://"+betaHost+":443/echo", "us-west-dc2-az1")
+
+			res, err := alpha.POST(ctx, "https://"+betaHost+"/echo", testCase.body())
+			assert.NoError(err)
+
+			mux.Lock()
+			defer mux.Unlock()
+			// Both the localized attempt and the retry must have reached the handler
+			if assert.Equal(2, len(bodies)) {
+				assert.True(strings.HasPrefix(hosts[0], "loc-us-west-dc2-az1."), "%s", hosts[0])
+				assert.False(strings.HasPrefix(hosts[1], "loc-"), "%s", hosts[1])
+				// The retry must carry the same body as the original attempt
+				assert.Equal(payload, bodies[0])
+				assert.Equal(payload, bodies[1])
+			}
+			if res != nil {
+				echoed, err := io.ReadAll(res.Body)
+				assert.NoError(err)
+				assert.Equal(payload, string(echoed))
+			}
+		})
+	}
+}
