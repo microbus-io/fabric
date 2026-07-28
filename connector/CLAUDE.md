@@ -171,6 +171,42 @@ The first fragment of a multi-fragment request publishes on the normal subject s
 
 The ack op-code reflects this: a fragmented request acks with `100 Continue`, an unfragmented one with `202 Accepted`. A partial fragment set is timed out after `8 * networkRoundtrip` of inactivity, or when it outlives the caller's time budget, by the connector-wide defrag sweeper (see "Fragment reassembly" below).
 
+### The outbound body is released once sent, not held for the call
+
+`makeRequest` drops its hold on the request body as soon as the body can no longer be needed, rather than pinning it
+until the response arrives. The duration of a remote call is not ours to control, so holding a body for it makes
+in-flight memory a function of how slow the far end is: a hung downstream turns every queued request into a retained
+body for the whole time budget (20s by default, up to 15 minutes). Releasing early makes the retention a function of
+the ack window instead, which is ours.
+
+The body is released at two points, in `releaseBody`:
+
+- **Unfragmented**, immediately after the publish returns. Nothing will re-read it.
+- **Fragmented**, when the ack timer fires. Fragments 2..N are only ever sent to a responder that acked, so once no
+  further ack is expected the fragmentor is dead. This is deliberately *not* done per-fragment-pull: in a multicast
+  every responder pulls the full set (`fragmentsSent` is keyed by `fromID`), so discarding a fragment after its
+  first pull would starve every responder after the first. It also would not free anything, because the fragments
+  are slices into one backing array and the array dies only when the last view does.
+
+Two rules keep this safe:
+
+**Only this connector's own references may be dropped.** `httpReq` is left strictly alone. The short-circuit
+transport hands the live `*http.Request` to the receiver by pointer, and `onRequest` acks before it spawns the
+handler goroutine, so the receiver is still reading the body after the send call has returned to the sender.
+Clearing `httpReq.Body` nil-panics that handler. Dropping `req.Body` and the fragmentor is safe because the
+receiver's own `Msg.Request` then keeps the bytes alive for exactly as long as it needs them, and no longer.
+
+**The fragment-sending goroutine snapshots the fragmentor.** `fragger` is a captured variable shared with the
+awaiting goroutine, so a release would otherwise nil it out from under a send already in flight. The goroutine takes
+a local copy, which both keeps the fragmentor alive for the send and leaves the release free to proceed.
+
+An ack arriving after the release is presumed absent by the same contract that governs ack-or-fail-fast, and is
+logged rather than served; its transfer fails at the receiver's defrag timeout.
+
+Because the release mutates `req.Body`, the locality-aware retry in `Publish` (which re-issues the same
+`pub.Request` at the original URL) stashes the body beforehand and restores it before retrying. That case genuinely
+holds its body for the first attempt's duration, and is the one path that cannot benefit.
+
 ### Fragment reassembly
 
 Reassembly state lives in `defragCache` (`defragcache.go`), a plain map keyed `fromID|msgID`. Each entry carries

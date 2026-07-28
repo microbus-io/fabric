@@ -2048,3 +2048,76 @@ func TestConnector_LocalityRetryBody(t *testing.T) {
 		})
 	}
 }
+
+func TestConnector_ReleaseRequestBody(t *testing.T) {
+	t.Parallel()
+
+	const fragmentSize = 128
+	testCases := []struct {
+		kind       string
+		size       int
+		fragmented bool
+	}{
+		{"unfragmented", fragmentSize / 2, false},
+		{"fragmented", fragmentSize * 8, true},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.kind, func(t *testing.T) {
+			t.Parallel()
+			assert := testarossa.For(t)
+
+			ctx := t.Context()
+
+			// Create the microservices
+			alpha := New("alpha." + testCase.kind + ".release.body.connector")
+			alpha.maxFragmentSize = fragmentSize
+
+			betaHost := "beta." + testCase.kind + ".release.body.connector"
+			beta := New(betaHost)
+
+			release := make(chan struct{})
+			entered := make(chan string, 1)
+			beta.Subscribe("Park", func(w http.ResponseWriter, r *http.Request) error {
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(err)
+				entered <- string(body)
+				<-release // Hold the request in flight past the ack window
+				return nil
+			}, sub.At("POST", "park"), sub.Web())
+
+			// Startup the microservices
+			err := alpha.Startup(ctx)
+			assert.NoError(err)
+			defer alpha.Shutdown(ctx)
+			err = beta.Startup(ctx)
+			assert.NoError(err)
+			defer beta.Shutdown(ctx)
+
+			payload := strings.Repeat("Lorem ipsum. ", testCase.size/13+1)[:testCase.size]
+			req, err := pub.NewRequest(pub.POST("https://"+betaHost+"/park"), pub.Body(payload))
+			assert.NoError(err)
+			outboundFrame := frame.Of(req.Header)
+			outboundFrame.SetFromHost(alpha.hostname)
+			outboundFrame.SetFromID(alpha.id)
+			outboundFrame.SetFromVersion(alpha.version)
+			outboundFrame.SetOpCode(frame.OpCodeRequest)
+
+			queue := alpha.makeRequest(ctx, req)
+			if !testCase.fragmented {
+				// An unfragmented body is released on this goroutine before the responses are awaited,
+				// so reading it here is free of a race with the awaiting goroutine
+				assert.Equal(http.NoBody, req.Body)
+			}
+
+			// The responder must receive the whole body, fragments included
+			assert.Equal(payload, <-entered)
+			close(release)
+			for range queue {
+			}
+
+			// Draining the queue synchronizes with the awaiting goroutine, which releases a
+			// fragmented body once the ack window closes
+			assert.Equal(http.NoBody, req.Body)
+		})
+	}
+}

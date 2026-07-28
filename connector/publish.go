@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"iter"
 	"net/http"
 	"strings"
@@ -147,6 +148,12 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) iter.Seq
 		}
 	}
 
+	// makeRequest releases the body once sent, so hold on to it when a retry may need it again
+	var retryBody io.Reader
+	if optimizeLocality && lastKnownLocality != "" {
+		retryBody = req.Body
+	}
+
 	// Make the request
 	queue := c.makeRequest(ctx, req)
 
@@ -165,6 +172,7 @@ func (c *Connector) Publish(ctx context.Context, options ...pub.Option) iter.Seq
 			c.localResponder.Delete(localityCacheKey)
 			lastKnownLocality = ""
 			req.URL = origURL
+			req.Body = retryBody
 			queue = c.makeRequest(ctx, req)
 			res, _ = firstResponse(queue).Get()
 		}
@@ -298,6 +306,20 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) iter.Seq[
 		err = errors.Trace(err, c.Span(ctx).TraceID())
 		return pub.NewSoloResponseQueue(pub.NewErrorResponse(err))
 	}
+	// Release the sender's hold on the body rather than pin it for the duration of the call.
+	// Only this connector's own references are dropped: httpReq is left alone because the
+	// short-circuit transport hands it to the receiver by pointer.
+	nFrags := fragger.N()
+	releaseBody := func() {
+		if fragger == nil {
+			return
+		}
+		fragger = nil
+		req.Body = http.NoBody
+	}
+	if nFrags == 1 {
+		releaseBody()
+	}
 
 	// Await and return the responses
 	enumResponders := func(responders map[string]bool) string {
@@ -398,42 +420,53 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) iter.Seq[
 					}
 
 					// Send additional fragments (if there are any) to all those who ack'ed
-					if fragger.N() > 1 && !fragmentsSent[fromID] {
+					if nFrags > 1 && !fragmentsSent[fromID] {
 						fragmentsSent[fromID] = true
-						go func() {
-							for f := 2; f <= fragger.N(); f++ {
-								fragment, err := fragger.Fragment(f)
-								if err != nil {
-									err = errors.Trace(err)
-									c.LogError(ctx, "Sending fragments",
-										"error", err,
-										"url", req.Canonical(),
-										"method", req.Method,
-									)
-									break
-								}
+						// Snapshot the fragmentor so that releasing it does not pull it from
+						// under a send that is already in flight
+						frg := fragger
+						if frg == nil {
+							c.LogWarn(ctx, "Ack past the ack window, fragments not sent",
+								"msg", msgID,
+								"fromID", fromID,
+								"subject", subject,
+							)
+						} else {
+							go func() {
+								for f := 2; f <= nFrags; f++ {
+									fragment, err := frg.Fragment(f)
+									if err != nil {
+										err = errors.Trace(err)
+										c.LogError(ctx, "Sending fragments",
+											"error", err,
+											"url", req.Canonical(),
+											"method", req.Method,
+										)
+										break
+									}
 
-								// Direct addressing - pin subsequent fragments to the exact replica that ack'd the first fragment.
-								fragmentHost, _ := cutIDOrLocality(fragment.URL.Hostname())
-								subject := SubjectOfRequest(c.plane, port, c.hostname, fragmentHost, fromID, fragment.Method, fragment.URL.Path)
+									// Direct addressing - pin subsequent fragments to the exact replica that ack'd the first fragment.
+									fragmentHost, _ := cutIDOrLocality(fragment.URL.Hostname())
+									subject := SubjectOfRequest(c.plane, port, c.hostname, fragmentHost, fromID, fragment.Method, fragment.URL.Path)
 
-								frame.Of(fragment).SetMessageID(msgID)
-								if req.Multicast {
-									err = c.transportConn.Publish(subject, fragment)
-								} else {
-									err = c.transportConn.Request(subject, fragment)
+									frame.Of(fragment).SetMessageID(msgID)
+									if req.Multicast {
+										err = c.transportConn.Publish(subject, fragment)
+									} else {
+										err = c.transportConn.Request(subject, fragment)
+									}
+									if err != nil {
+										err = errors.Trace(err)
+										c.LogError(ctx, "Sending fragments",
+											"error", err,
+											"url", req.Canonical(),
+											"method", req.Method,
+										)
+										break
+									}
 								}
-								if err != nil {
-									err = errors.Trace(err)
-									c.LogError(ctx, "Sending fragments",
-										"error", err,
-										"url", req.Canonical(),
-										"method", req.Method,
-									)
-									break
-								}
-							}
-						}()
+							}()
+						}
 					}
 				}
 
@@ -535,6 +568,8 @@ func (c *Connector) makeRequest(ctx context.Context, req *pub.Request) iter.Seq[
 					continue
 				}
 				doneWaitingForAcks = true
+				// No further responder can ack, so fragments 2..N will not be requested again
+				releaseBody()
 				if len(seenIDs) == 0 {
 					if req.Multicast {
 						// Known responders optimization
