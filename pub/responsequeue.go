@@ -101,6 +101,7 @@ func (q *ResponseQueue) Q() iter.Seq[*Response] {
 				return
 			}
 			r := q.queue[q.cursor]
+			q.queue[q.cursor] = nil // Release the consumed response rather than hold it for the whole iteration
 			q.cursor++
 			q.mu.Unlock()
 			if !yield(r) {

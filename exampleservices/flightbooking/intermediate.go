@@ -174,6 +174,8 @@ func (svc *Intermediate) doSearchFlights(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in flightbookingapi.SearchFlightsIn
 	flow.ParseState(&in)
@@ -202,6 +204,8 @@ func (svc *Intermediate) doProposeFlight(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in flightbookingapi.ProposeFlightIn
 	flow.ParseState(&in)
@@ -230,6 +234,8 @@ func (svc *Intermediate) doAwaitDecision(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in flightbookingapi.AwaitDecisionIn
 	flow.ParseState(&in)
@@ -258,6 +264,8 @@ func (svc *Intermediate) doChooseSeat(w http.ResponseWriter, r *http.Request) (e
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in flightbookingapi.ChooseSeatIn
 	flow.ParseState(&in)
@@ -286,6 +294,8 @@ func (svc *Intermediate) doConfirmBooking(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in flightbookingapi.ConfirmBookingIn
 	flow.ParseState(&in)
@@ -314,6 +324,8 @@ func (svc *Intermediate) doNoFlights(w http.ResponseWriter, r *http.Request) (er
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in flightbookingapi.NoFlightsIn
 	flow.ParseState(&in)
@@ -342,6 +354,8 @@ func (svc *Intermediate) doPickSeat(w http.ResponseWriter, r *http.Request) (err
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in flightbookingapi.PickSeatIn
 	flow.ParseState(&in)

@@ -199,6 +199,8 @@ func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in an
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the input, so release it for the duration of the handler
+	r.Body = http.NoBody
 	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)

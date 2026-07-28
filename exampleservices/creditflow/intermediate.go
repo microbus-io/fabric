@@ -237,6 +237,8 @@ func (svc *Intermediate) doSubmitCreditApplication(w http.ResponseWriter, r *htt
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.SubmitCreditApplicationIn
 	flow.ParseState(&in)
@@ -265,6 +267,8 @@ func (svc *Intermediate) doVerifyCredit(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyCreditIn
 	flow.ParseState(&in)
@@ -293,6 +297,8 @@ func (svc *Intermediate) doVerifyEmployment(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyEmploymentIn
 	flow.ParseState(&in)
@@ -321,6 +327,8 @@ func (svc *Intermediate) doInitIdentityVerification(w http.ResponseWriter, r *ht
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.InitIdentityVerificationIn
 	flow.ParseState(&in)
@@ -349,6 +357,8 @@ func (svc *Intermediate) doVerifySSN(w http.ResponseWriter, r *http.Request) (er
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifySSNIn
 	flow.ParseState(&in)
@@ -377,6 +387,8 @@ func (svc *Intermediate) doVerifyAddress(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyAddressIn
 	flow.ParseState(&in)
@@ -405,6 +417,8 @@ func (svc *Intermediate) doVerifyPhoneNumber(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.VerifyPhoneNumberIn
 	flow.ParseState(&in)
@@ -433,6 +447,8 @@ func (svc *Intermediate) doIdentityDecision(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.IdentityDecisionIn
 	flow.ParseState(&in)
@@ -461,6 +477,8 @@ func (svc *Intermediate) doRunIdentityVerification(w http.ResponseWriter, r *htt
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.RunIdentityVerificationIn
 	flow.ParseState(&in)
@@ -489,6 +507,8 @@ func (svc *Intermediate) doRequestMoreInfo(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.RequestMoreInfoIn
 	flow.ParseState(&in)
@@ -517,6 +537,8 @@ func (svc *Intermediate) doReviewCredit(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.ReviewCreditIn
 	flow.ParseState(&in)
@@ -545,6 +567,8 @@ func (svc *Intermediate) doHandleCreditError(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.HandleCreditErrorIn
 	flow.ParseState(&in)
@@ -573,6 +597,8 @@ func (svc *Intermediate) doDecision(w http.ResponseWriter, r *http.Request) (err
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in creditflowapi.DecisionIn
 	flow.ParseState(&in)

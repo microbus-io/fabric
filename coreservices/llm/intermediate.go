@@ -177,6 +177,8 @@ func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in an
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the input, so release it for the duration of the handler
+	r.Body = http.NoBody
 	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
@@ -221,6 +223,8 @@ func (svc *Intermediate) doInitChat(w http.ResponseWriter, r *http.Request) (err
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in llmapi.InitChatIn
 	flow.ParseState(&in)
@@ -249,6 +253,8 @@ func (svc *Intermediate) doCallLLM(w http.ResponseWriter, r *http.Request) (err 
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in llmapi.CallLLMIn
 	flow.ParseState(&in)
@@ -277,6 +283,8 @@ func (svc *Intermediate) doProcessResponse(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in llmapi.ProcessResponseIn
 	flow.ParseState(&in)
@@ -305,6 +313,8 @@ func (svc *Intermediate) doExecuteTool(w http.ResponseWriter, r *http.Request) (
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in llmapi.ExecuteToolIn
 	flow.ParseState(&in)

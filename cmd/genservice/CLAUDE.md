@@ -158,6 +158,28 @@ deliberately not validated: dv8 mutates (`default=`, `trim`), and outputs are pr
 type, and inbound event's source In type (one `// MARKER: <Feature>` per line), so a malformed directive fails
 the microservice at startup rather than mid-request. Web handlers are raw and have no In struct.
 
+## The request body is released before the handler runs
+
+The same three generated marshalers set `r.Body = http.NoBody` immediately after decoding, before dispatching to
+the handler. By that point the payload has been fully decoded into the In struct (or the `workflow.Flow`), so the
+inbound buffer is dead weight for the whole duration of the handler - which for an LLM call, a database query, or
+a slow downstream is far longer than the decode. Holding it makes a microservice's resident memory a function of
+how long its own handlers run, multiplied by concurrent requests.
+
+The connector cannot do this itself. It hands the handler an `*http.Request` and has no idea when, or whether, the
+body has been consumed: a web handler may read it at any point, or stream it, so the framework must leave it
+intact. Only the generated marshaler knows the body has been fully decoded and will never be read again, which is
+why the release lives here and not in `subscribe.go`. Web handlers are raw and are deliberately not touched.
+
+Measured over both transports with 64 concurrent 512KB requests parked in the handler, receiver-side retention
+falls from ~100% of the bodies in flight to ~1%. The bytes really are freed rather than merely unreferenced by one
+alias: `onRequest`'s handler goroutine captures the `transport.Msg`, but Go's precise liveness drops it once
+`handleRequest` stops using it, and `httpReq.WithContext` has already shallow-copied the request by the time the
+handler sees it, so the copy's `Body` field is the last root.
+
+`http.NoBody` rather than `nil` because a nil `Body` panics anything that later reads or closes it, which is
+exactly the failure the connector's own release path hit on the short-circuit transport.
+
 ## Feature-selective emission, conditional imports, no var guards
 
 The client emits only the proxy types a microservice actually needs: no `MulticastTrigger` without outbound

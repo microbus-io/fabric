@@ -225,6 +225,8 @@ func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in an
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the input, so release it for the duration of the handler
+	r.Body = http.NoBody
 	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
@@ -280,6 +282,8 @@ func (svc *Intermediate) doProcessStep(w http.ResponseWriter, r *http.Request) (
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in svcapi.ProcessStepIn
 	flow.ParseState(&in)
@@ -308,6 +312,8 @@ func (svc *Intermediate) doReviewStep(w http.ResponseWriter, r *http.Request) (e
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in svcapi.ReviewStepIn
 	flow.ParseState(&in)

@@ -132,6 +132,8 @@ func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in an
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the input, so release it for the duration of the handler
+	r.Body = http.NoBody
 	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
@@ -187,6 +189,8 @@ func (svc *Intermediate) doAnswer(w http.ResponseWriter, r *http.Request) (err e
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The body is fully decoded into the flow, so release it for the duration of the handler
+	r.Body = http.NoBody
 	snap := flow.Snapshot()
 	var in weatherapi.AnswerIn
 	flow.ParseState(&in)
