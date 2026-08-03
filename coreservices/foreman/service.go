@@ -2,7 +2,10 @@ package foreman
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -36,40 +39,62 @@ type Service struct {
 
 // OnStartup is called when the microservice is started up. It builds the dwarf engine from the current
 // config, injects this service as the engine's Host plus the connector's observability providers, and
-// starts it. Under the TESTING deployment it starts against isolated per-test databases keyed by the
-// Microbus plane (shared by every replica in the test app); otherwise it opens the configured DSN.
+// starts it. Under the TESTING deployment it starts against isolated databases keyed by the Microbus plane
+// (shared by every replica in the test app); otherwise it opens the configured shards.
 func (svc *Service) OnStartup(ctx context.Context) (err error) {
-	// Resolve the DSN per deployment, mirroring the legacy foreman: LOCAL with no configured DSN falls
-	// back to a local SQLite file per shard. PROD/LAB use the configured secret. (TESTING ignores the
-	// resolved DSN as a base only - the engine creates throwaway databases off it.)
-	dsn := svc.SQLDataSourceName()
-	if dsn == "" && svc.Deployment() == connector.LOCAL {
-		dsn = "file:shard_%d.local.sqlite"
+	// All of the setters below are construction-time (pre-Startup), so their error returns are always nil
+	// here; the real failure surfaces from Startup. The exception is SetShard, which validates the operator's
+	// spec, so its error is propagated.
+	testing := svc.Deployment() == connector.TESTING
+	var eng *engine.Engine
+	if testing {
+		// The plane keys the isolated, auto-dropped test databases, so a multi-replica shared-state fixture
+		// resolves to the same ones. No shard is registered: the engine opens a single in-memory shard.
+		eng = engine.NewEngineUnderTest(svc.Plane())
+	} else {
+		eng = engine.NewEngine()
+		for _, shard := range svc.resolveShards() {
+			err = eng.SetShard(shard)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
 	}
-	// All of these are construction-time (pre-Startup) sets, so their error returns are always nil here;
-	// the real failure surfaces from Startup below.
-	eng := engine.NewEngine()
-	eng.SetDSN(dsn)
-	eng.SetNumShards(svc.NumShards())
-	eng.SetWorkers(svc.Workers())
+	if w := svc.Workers(); w >= 0 {
+		eng.SetWorkers(w)
+	}
+	if n := svc.MaxOpenConns(); n > 0 {
+		eng.SetMaxOpenConns(n)
+	}
+	eng.SetEngineID(engineID(svc.ID()))
 	eng.SetTimeBudget(svc.TimeBudget())
 	eng.SetDefaultPriority(svc.DefaultPriority())
-	eng.SetMaxOpenConns(svc.SQLConnectionPool())
 	eng.SetHost(svc)
 	eng.SetLogger(svc.Logger())
 	eng.SetMeterProvider(svc.MeterProvider())
 	eng.SetTracerProvider(svc.TracerProvider())
 	svc.engine = eng
 
-	if svc.Deployment() == connector.TESTING {
-		// Use the Microbus plane so a multi-replica shared-state fixture resolves to the same throwaway databases.
-		err = eng.SetInTest(svc.Plane())
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
 	err = eng.Startup(ctx)
 	return errors.Trace(err)
+}
+
+// resolveShards returns the shard set to open, falling back to a single local SQLite file shard when a
+// LOCAL deployment declares none.
+func (svc *Service) resolveShards() []foremanapi.ShardSpec {
+	shards := svc.Shards()
+	if len(shards) == 0 && svc.Deployment() == connector.LOCAL {
+		shards = []foremanapi.ShardSpec{{Index: 1, DSN: "file:shard_1.local.sqlite"}}
+	}
+	return shards
+}
+
+// engineID derives the engine's peer-registry identity from the microservice's instance ID. The engine
+// requires a positive int64 that is unique among the replicas sharing the databases, which is exactly what
+// the instance ID guarantees.
+func engineID(id string) int64 {
+	sum := sha256.Sum256([]byte(id))
+	return int64(binary.BigEndian.Uint64(sum[:8])&math.MaxInt64) | 1
 }
 
 // OnShutdown is called when the microservice is shut down. It drains the engine (workers, timer,
@@ -249,17 +274,6 @@ func (svc *Service) Continue(ctx context.Context, threadKey string, additionalSt
 }
 
 /*
-Signal delivers an opaque cross-replica coordination signal (op, payload) to the embedded engine. Excludes self-delivery; processes only signals originating from a peer foreman replica.
-*/
-func (svc *Service) Signal(ctx context.Context, op string, payload []byte) (err error) { // MARKER: Signal
-	fr := frame.Of(ctx)
-	if fr.FromHost() == foremanapi.Hostname && fr.FromID() != svc.ID() {
-		return svc.engine.DeliverSignal(ctx, op, payload)
-	}
-	return nil
-}
-
-/*
 HistoryMermaid renders an HTML page with a Mermaid diagram of the flow's execution history.
 */
 func (svc *Service) HistoryMermaid(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: HistoryMermaid
@@ -273,10 +287,7 @@ func (svc *Service) HistoryMermaid(w http.ResponseWriter, r *http.Request) (err 
 		return errors.Trace(err)
 	}
 
-	mmd, err := workflow.NewFlowRenderer(steps).WithLinks("step").Render()
-	if err != nil {
-		return errors.Trace(err)
-	}
+	mmd := workflow.NewFlowRenderer(steps).WithLinks("step").Render()
 
 	if r.URL.Query().Get("format") == "raw" {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")

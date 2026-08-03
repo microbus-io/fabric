@@ -59,7 +59,7 @@ func TestConnector_DroppedAckUnicast(t *testing.T) {
 	assert.NoError(err)
 	defer con.Shutdown(ctx)
 
-	con.seams.Inject(faultDropAck, "Ack")
+	con.seams.Inject(faultDropAck("Ack"))
 
 	t0 := time.Now()
 	_, err = con.Request(ctx, pub.GET("https://dropped.ack.unicast.connector/ack"))
@@ -94,7 +94,7 @@ func TestConnector_DroppedResponse(t *testing.T) {
 	assert.NoError(err)
 	defer con.Shutdown(ctx)
 
-	con.seams.Inject(faultDropResponse, "Resp")
+	con.seams.Inject(faultDropResponse("Resp"))
 
 	budget := 500 * time.Millisecond
 	t0 := time.Now()
@@ -158,7 +158,7 @@ func TestConnector_DroppedAckMulticast(t *testing.T) {
 
 	// Drop the ack on the server and slow its handler so the faulted round sees zero acks, zero responses.
 	slow.Store(true)
-	server.seams.Inject(faultDropAck, "Cast")
+	server.seams.Inject(faultDropAck("Cast"))
 
 	// Baseline includes the subject's entry plus incidental control-plane entries (e.g. on-new-subs).
 	krBefore := client.knownResponders.Len()
@@ -203,7 +203,7 @@ func TestConnector_DuplicateResponse(t *testing.T) {
 	defer con.Shutdown(ctx)
 
 	// Re-inject each response well past multicastChanCap so the overflow-goroutine path is taken.
-	con.seams.InjectN(con.multicastChanCap*2, faultDuplicateResponse, con.hostname)
+	con.seams.InjectN(faultDuplicateResponse(con.hostname), con.multicastChanCap*2)
 
 	res, err := con.Request(ctx, pub.GET("https://duplicate.response.connector/echo"))
 	assert.NoError(err)
@@ -224,7 +224,7 @@ func TestConnector_DuplicateResponse(t *testing.T) {
 	assert.True(drained)
 
 	// The connector is not wedged: a follow-up request still round-trips.
-	con.seams.Withdraw(faultDuplicateResponse, con.hostname)
+	con.seams.Withdraw(faultDuplicateResponse(con.hostname))
 	_, err = con.Request(ctx, pub.GET("https://duplicate.response.connector/echo"))
 	assert.NoError(err)
 }
@@ -301,7 +301,7 @@ func TestConnector_JWKSFetchErrRotation(t *testing.T) {
 
 	// Fail exactly the first JWKS fetch, simulating the token service being briefly unreachable at
 	// the rotation boundary when the kid is not yet cached.
-	con.seams.Inject(faultJWKSFetchErr, "access.token.core")
+	con.seams.Inject(faultJWKSFetchErr("access.token.core"))
 
 	// First attempt: the fetch fails, so the key is never found and the token is rejected 401.
 	_, err = con.Request(ctx, pub.GET("https://jwks.fetch.err.connector/gated"), pub.Token(token))
@@ -364,7 +364,7 @@ func TestConnector_CheckpointReqRegistered(t *testing.T) {
 		_, e := client.Request(ctx, pub.GET("https://checkpoint.reqreg.server/echo"))
 		done <- e
 	}()
-	client.seams.Wait(checkpointReqRegistered)
+	assert.True(client.seams.WaitTimeout(ctx, checkpointReqRegistered, time.Second))
 
 	// Registered, but nothing sent yet, so the request is still in flight.
 	assert.Equal(1, client.reqs.Len())
@@ -416,7 +416,7 @@ func TestConnector_CheckpointAfterAck(t *testing.T) {
 		_, e := client.Request(ctx, pub.GET("https://checkpoint.afterack.server/echo"))
 		done <- e
 	}()
-	server.seams.Wait(checkpointAfterAck)
+	assert.True(server.seams.WaitTimeout(ctx, checkpointAfterAck, time.Second))
 
 	// The ack has gone out, but the handler goroutine has not been spawned yet.
 	assert.False(handlerEntered.Load())
@@ -468,7 +468,7 @@ func TestConnector_CheckpointBeforeResponseSend(t *testing.T) {
 		_, e := client.Request(ctx, pub.GET("https://checkpoint.beforeresp.server/echo"))
 		done <- e
 	}()
-	server.seams.Wait(checkpointBeforeResponseSend)
+	assert.True(server.seams.WaitTimeout(ctx, checkpointBeforeResponseSend, time.Second))
 
 	// The handler finished, but its response has not been published, so the caller is still pending.
 	assert.True(handlerReturned.Load())

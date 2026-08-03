@@ -5,18 +5,27 @@ general:
   hostname: foreman.core
   description: Foreman orchestrates agentic workflow execution.
   package: github.com/microbus-io/fabric/coreservices/foreman
-  modifiedAt: "2026-07-05T22:15:09Z"
+  modifiedAt: "2026-08-03T01:26:47Z"
 
 configs:
-  SQLDataSourceName:
-    signature: SQLDataSourceName() (value string)
-    description: SQLDataSourceName is the connection string of the SQL database.
+  Shards:
+    signature: Shards() (value []ShardSpec)
+    description: |-
+      Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
+      Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
+      templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
+      and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+      resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
+      after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
+      file shard.
+    validation: json
+    default: "[]"
     secret: true
   Workers:
     signature: Workers() (value int)
-    description: Workers is the number of concurrent workers that process flow steps.
-    validation: int [1,]
-    default: 64
+    description: Workers is the maximum number of concurrent workers that process flow steps. Leave at -1 to let the engine derive the ceiling from each shard's connection budget and measured round-trip time. 0 stands up a replica that creates, awaits, and serves reads but never executes a task.
+    validation: int [-1,]
+    default: -1
   TimeBudget:
     signature: TimeBudget() (value time.Duration)
     description: TimeBudget is the default time budget for a single task step's execution, applied as the timeout on the task dispatch call. A flow may override it per-flow via FlowOptions.TimeBudget, up to a hard 15m ceiling; a task endpoint may declare a shorter budget of its own via sub.TimeBudget.
@@ -27,16 +36,11 @@ configs:
     description: DefaultPriority is the priority assigned to a flow when the caller does not specify one. Priority is an integer >= 1, lower numbers run first.
     validation: int [1,]
     default: 5
-  NumShards:
-    signature: NumShards() (value int)
-    description: NumShards is the number of database shards. Each shard is a separate database instance. Shards can be added but never removed; a change takes effect on restart.
-    validation: int [1,]
-    default: 1
-  SQLConnectionPool:
-    signature: SQLConnectionPool() (value int)
-    description: SQLConnectionPool is the number of database connections kept open per shard.
-    validation: int [1,]
-    default: 8
+  MaxOpenConns:
+    signature: MaxOpenConns() (value int)
+    description: MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.
+    validation: int [0,]
+    default: 0
 
 metrics:
   AckTimeouts:
@@ -129,12 +133,6 @@ functions:
     description: Continue creates a new running flow from the latest completed flow in a thread, merged with additional state using the graph's reducers. The threadKey can be any flowKey belonging to the thread. The new flow belongs to the same thread and inherits its policy (priority/fairness/budget/baggage); use Create with Opts.ThreadKey to set policy explicitly instead.
     method: POST
     route: :444/continue
-  Signal:
-    signature: Signal(op string, payload []byte)
-    description: Signal delivers an opaque cross-replica coordination signal (op, payload) to the embedded engine. Excludes self-delivery; processes only signals originating from a peer foreman replica.
-    method: POST
-    route: :444/signal
-    loadBalancing: none
 
 webs:
   HistoryMermaid:

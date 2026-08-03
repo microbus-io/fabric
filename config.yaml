@@ -21,8 +21,11 @@ my.service:
   Example: value
 
 foreman.core:
-  Workers: 64
-  # SQLConnectionPool: 8
+  # Shards declares one entry per database shard. Left unset, a LOCAL deployment opens a single SQLite file.
+  # Shards: '[{"index":1,"dsn":"postgres://user:pass@db1:5432/flows","virtualCPUs":16}]'
+  # Workers and MaxOpenConns are expert overrides; leave them at -1 and 0 to let the engine derive both.
+  # Workers: -1
+  # MaxOpenConns: 0
 
 llm.core:
   # MaxToolRounds: 10

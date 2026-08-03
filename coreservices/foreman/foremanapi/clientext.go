@@ -18,7 +18,6 @@ package foremanapi
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
@@ -32,12 +31,8 @@ func (_c Client) RunAndParse(ctx context.Context, workflowURL string, initialSta
 	if err != nil {
 		return outcome, errors.Trace(err)
 	}
-	if result != nil && outcome != nil && outcome.State != nil {
-		data, err := json.Marshal(outcome.State)
-		if err != nil {
-			return outcome, errors.Trace(err)
-		}
-		err = json.Unmarshal(data, result)
+	if result != nil && outcome != nil {
+		err = outcome.State.Parse(result)
 		if err != nil {
 			return outcome, errors.Trace(err)
 		}
@@ -51,12 +46,8 @@ func (_c Client) AwaitAndParse(ctx context.Context, flowKey string, result any) 
 	if err != nil {
 		return outcome, errors.Trace(err)
 	}
-	if result != nil && outcome != nil && outcome.State != nil {
-		data, err := json.Marshal(outcome.State)
-		if err != nil {
-			return outcome, errors.Trace(err)
-		}
-		err = json.Unmarshal(data, result)
+	if result != nil && outcome != nil {
+		err = outcome.State.Parse(result)
 		if err != nil {
 			return outcome, errors.Trace(err)
 		}
@@ -71,12 +62,8 @@ func (_c Client) PollAndParse(ctx context.Context, flowKey string, result any) (
 	if err != nil {
 		return outcome, errors.Trace(err)
 	}
-	if result != nil && outcome != nil && outcome.Stopped() && outcome.State != nil {
-		data, err := json.Marshal(outcome.State)
-		if err != nil {
-			return outcome, errors.Trace(err)
-		}
-		err = json.Unmarshal(data, result)
+	if result != nil && outcome != nil && outcome.Stopped() {
+		err = outcome.State.Parse(result)
 		if err != nil {
 			return outcome, errors.Trace(err)
 		}
@@ -90,12 +77,8 @@ func (_c Client) SnapshotAndParse(ctx context.Context, flowKey string, result an
 	if err != nil {
 		return outcome, errors.Trace(err)
 	}
-	if result != nil && outcome != nil && outcome.State != nil {
-		data, err := json.Marshal(outcome.State)
-		if err != nil {
-			return outcome, errors.Trace(err)
-		}
-		err = json.Unmarshal(data, result)
+	if result != nil && outcome != nil {
+		err = outcome.State.Parse(result)
 		if err != nil {
 			return outcome, errors.Trace(err)
 		}

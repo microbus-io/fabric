@@ -660,38 +660,6 @@ func (_c MulticastClient) Continue(ctx context.Context, threadKey string, additi
 	}
 }
 
-// Signal delivers an opaque cross-replica coordination signal (op, payload) to the embedded engine. Excludes self-delivery; processes only signals originating from a peer foreman replica.
-func (_c Client) Signal(ctx context.Context, op string, payload []byte) (err error) { // MARKER: Signal
-	_in := SignalIn{Op: op, Payload: payload}
-	_out := SignalOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Signal.Method, Signal.Route, &_in, &_out)
-	return err // No trace
-}
-
-// SignalResponse packs the response of Signal.
-type SignalResponse multicastResponse // MARKER: Signal
-
-// Get unpacks the return arguments of Signal.
-func (_res *SignalResponse) Get() (err error) { // MARKER: Signal
-	return _res.err
-}
-
-// Signal delivers an opaque cross-replica coordination signal (op, payload) to the embedded engine. Excludes self-delivery; processes only signals originating from a peer foreman replica.
-func (_c MulticastClient) Signal(ctx context.Context, op string, payload []byte) iter.Seq[*SignalResponse] { // MARKER: Signal
-	_in := SignalIn{Op: op, Payload: payload}
-	_out := SignalOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Signal.Method, Signal.Route, &_in, &_out)
-	return func(yield func(*SignalResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*SignalResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
 // HistoryMermaid renders an HTML page with a Mermaid diagram of the flow's execution history.
 func (_c Client) HistoryMermaid(ctx context.Context, relativeURL string) (res *http.Response, err error) { // MARKER: HistoryMermaid
 	return _c.svc.Request(

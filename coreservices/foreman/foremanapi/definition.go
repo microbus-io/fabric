@@ -22,17 +22,27 @@ const Version = 54
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `Foreman orchestrates agentic workflow execution.`
 
-// SQLDataSourceName is the connection string of the SQL database.
-var SQLDataSourceName = define.Config{ // MARKER: SQLDataSourceName
-	Value:  string(""),
-	Secret: true,
+/*
+Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
+Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
+templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
+and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
+after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
+file shard.
+*/
+var Shards = define.Config{ // MARKER: Shards
+	Value:      []ShardSpec{},
+	Default:    "[]",
+	Secret:     true,
+	Validation: "json",
 }
 
-// Workers is the number of concurrent workers that process flow steps.
+// Workers is the maximum number of concurrent workers that process flow steps. Leave at -1 to let the engine derive the ceiling from each shard's connection budget and measured round-trip time. 0 stands up a replica that creates, awaits, and serves reads but never executes a task.
 var Workers = define.Config{ // MARKER: Workers
 	Value:      int(0),
-	Default:    "64",
-	Validation: "int [1,]",
+	Default:    "-1",
+	Validation: "int [-1,]",
 }
 
 // TimeBudget is the default time budget for a single task step's execution, applied as the timeout on the task dispatch call. A flow may override it per-flow via FlowOptions.TimeBudget, up to a hard 15m ceiling; a task endpoint may declare a shorter budget of its own via sub.TimeBudget.
@@ -49,18 +59,11 @@ var DefaultPriority = define.Config{ // MARKER: DefaultPriority
 	Validation: "int [1,]",
 }
 
-// NumShards is the number of database shards. Each shard is a separate database instance. Shards can be added but never removed; a change takes effect on restart.
-var NumShards = define.Config{ // MARKER: NumShards
+// MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.
+var MaxOpenConns = define.Config{ // MARKER: MaxOpenConns
 	Value:      int(0),
-	Default:    "1",
-	Validation: "int [1,]",
-}
-
-// SQLConnectionPool is the number of database connections kept open per shard.
-var SQLConnectionPool = define.Config{ // MARKER: SQLConnectionPool
-	Value:      int(0),
-	Default:    "8",
-	Validation: "int [1,]",
+	Default:    "0",
+	Validation: "int [0,]",
 }
 
 // Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step. Set Opts.ThreadKey to join an existing thread; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
@@ -330,23 +333,6 @@ type ContinueIn struct { // MARKER: Continue
 // ContinueOut are the output arguments of Continue.
 type ContinueOut struct { // MARKER: Continue
 	NewFlowKey string `json:"newFlowKey,omitzero"`
-}
-
-// Signal delivers an opaque cross-replica coordination signal (op, payload) to the embedded engine. Excludes self-delivery; processes only signals originating from a peer foreman replica.
-var Signal = define.Function{ // MARKER: Signal
-	Host: Hostname, Method: "POST", Route: ":444/signal",
-	LoadBalancing: define.None,
-	In:            SignalIn{}, Out: SignalOut{},
-}
-
-// SignalIn are the input arguments of Signal.
-type SignalIn struct { // MARKER: Signal
-	Op      string `json:"op,omitzero"`
-	Payload []byte `json:"payload,omitzero"`
-}
-
-// SignalOut are the output arguments of Signal.
-type SignalOut struct { // MARKER: Signal
 }
 
 // HistoryMermaid renders an HTML page with a Mermaid diagram of the flow's execution history.

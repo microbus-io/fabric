@@ -392,7 +392,7 @@ func (svc *Service) CallLLM(ctx context.Context, flow *workflow.Flow, provider s
 	// fan-in would re-append this round's results and double-fold), and write the full conversation -
 	// input + folded results + this turn - back to `items` as a plain replace.
 	if len(toolResults) > 0 {
-		flow.Delete("toolResults")
+		flow.Del("toolResults")
 	}
 	itemsOut = append(convo, turnItems...)
 	return itemsOut, llmapi.PendingToolCalls(turnItems), turnUsage, nil
@@ -431,7 +431,7 @@ func (svc *Service) ProcessResponse(ctx context.Context, flow *workflow.Flow, pe
 		// and re-written by the auto-marshaler regardless, so they survive. The
 		// long-term fix is a scratch-naming convention the framework strips at
 		// subgraph boundaries.
-		flow.Delete(
+		flow.Del(
 			"toolSchemas",
 			"turnOptions",
 			"pendingToolCalls",

@@ -13,17 +13,14 @@ schema, metrics, and tracing. This service owns only the Microbus seam:
 
 - **Bus endpoints** delegate 1:1 to engine methods (`Create`, `Run`, `Resume`, `Cancel`, …). The service
   struct holds the engine as a member (`svc.engine`), built in `OnStartup`, drained in `OnShutdown`.
-- **`engine.Host` implementation** (`host.go`): three methods - `LoadGraph` (GET the graph over the bus),
+- **`engine.Host` implementation** (`host.go`): two methods - `LoadGraph` (GET the graph over the bus) and
   `ExecuteTask` (mint the actor token from baggage, POST the flow to the task URL, return any transport error
-  undecorated), and `SignalPeers` (multicast the opaque `(op, payload)` to peer replicas via the single
-  `Signal` endpoint). The engine has no stop-notification callback, so `Host` carries none.
-- **`Signal` inbound endpoint** filters self/foreign delivery, then hands `(op, payload)` to
-  `engine.DeliverSignal`.
+  undecorated). The engine has no stop-notification callback and no cross-replica transport, so `Host`
+  carries neither.
 - **Identity**: actor claims + tenant are read from `frame.Of(ctx)` at `Create`/`Run` and passed to the
   engine as opaque `FlowOptions.Baggage`; the engine never interprets them.
-- **Config / lifecycle**: `OnStartup` builds the engine from the config (`SQLDataSourceName`, `Workers`,
-  `TimeBudget`, `DefaultPriority`, `NumShards`, `SQLConnectionPool`), injects the connector's
-  meter/tracer/slog providers, and starts it.
+- **Config / lifecycle**: `OnStartup` builds the engine from the config (`Shards`, `Workers`, `TimeBudget`,
+  `DefaultPriority`, `MaxOpenConns`), injects the connector's meter/tracer/slog providers, and starts it.
 
 The engine's internal design rationale lives in dwarf's own `CLAUDE.md`; this file covers only the adapter
 and the decisions that are non-obvious *because* the foreman is now a delegating shell.
@@ -70,17 +67,17 @@ staleness-aware retry (it alone knows whether the work is still relevant). The 4
 `CallLLM` resolves identically - same budget-as-horizon, caller-owned long retry via `Chat` returning its partial
 messages plus `llmapi.RetryAfter`.
 
-**Cross-replica coordination rides one `Signal` multicast endpoint.** The engine's
-`SignalPeers(ctx, op, payload)` carries every kind of peer signal (the work doorbell and the status-change
-wake) as a single opaque `(op, payload)` pair. `op` is an opaque routing key the engine parses on the
-receiving side via `DeliverSignal`; the foreman never branches on it, so a new signal kind needs zero adapter
-changes — one endpoint covers all of them.
+**There is no cross-replica messaging.** The engine sends nothing to its peers: replicas sharing a database
+discover pending work, flow outcomes, and fleet membership entirely by polling it. The foreman therefore wires
+no inter-replica transport - the `Signal` endpoint, the `SignalPeers` host method, and the self-delivery echo
+filter they needed are all gone with no replacement. A multi-replica fixture is simply several foreman
+replicas resolving to the same databases.
 
-**Self-delivery filter on inbound `Signal`: `FromHost==Hostname && FromID!=svc.ID`.** Microbus multicast
-echoes to the sender. The engine's contract is that a signal is applied *locally* before `SignalPeers` is
-called, so the originating replica must drop the echo or it double-applies (e.g. a doubled work doorbell or
-status-change wake). The `FromHost==Hostname` half restricts processing to genuine foreman peers; the
-`FromID!=svc.ID` half excludes self. Both are required.
+**Replica identity is pinned from the microservice ID (`SetEngineID`).** The engine registers an identity in
+the shared peer registry so each replica's share of a shard's connection budget can be computed. Its default is
+random per process; the foreman pins it to a hash of `svc.ID()` instead, which satisfies the engine's
+requirement (a positive `int64`, unique among replicas concurrently sharing the databases) and ties the registry
+entry to the identity the rest of Microbus already uses for the replica.
 
 **Telemetry providers are set before `Startup` — and only there.** `SetLogger` / `SetMeterProvider` /
 `SetTracerProvider` are construction-time-only on the engine (it resolves them once at `Startup`; calling
@@ -88,9 +85,11 @@ them on a running engine returns an error). So `OnStartup` calls `eng.SetLogger(
 `eng.Startup(ctx)`. (The engine's config API is `Set*`, each returning an `error`; the pre-`Startup` sets
 here can't fail, so the real error surfaces from `Startup`.) The engine emits `dwarf_*` instruments and spans
 straight through the connector's OTEL pipeline. (The Grafana dashboard at
-`setup/grafana/dashboards/workflow-overview.json` reads the `dwarf_*` names. Note the metric label split:
-step-disposition keys by **`task_name`** (graph node), while `dwarf_task_concurrency_running` keys by
-**`task_url`** (downstream endpoint).)
+`setup/grafana/dashboards/workflow-overview.json` reads the `dwarf_*` names, and covers the engine's whole
+instrument set. Two of its aggregation rules are load-bearing rather than cosmetic: `dwarf_steps_pending` and
+`dwarf_steps_oldest_pending_age_seconds` are computed by querying the shared shard databases, so every replica
+reports the *same* number and they aggregate with `max` - summing them multiplies the backlog by the replica
+count. Every other engine gauge is per-replica and sums.)
 
 **The foreman emits exactly one microbus metric of its own: `AckTimeouts`** (OTel name
 `microbus_foreman_timeout_requests`; the Prometheus exporter appends `_total`, so it queries as
@@ -100,8 +99,9 @@ failed (the alertable "a microservice is missing" signal). It lives here, not in
 host-agnostic and never sees the ack-timeout: it only observes that a `flow.Retry` was armed (indistinguishable
 from a task-armed 429 retry) or that an error came back (indistinguishable from any other failure). General
 retry-dispatch churn, by contrast, *is* an engine signal - `dwarf_steps_executed_total{status="retried"}` - and
-needs no foreman metric. Label `task_url` matches the value dwarf uses for `dwarf_task_concurrency_running` (the
-dispatch URL `ExecuteTask` receives), so the two join on the same key.
+needs no foreman metric. The label is `task_url`, the dispatch URL `ExecuteTask` receives, which is deliberately
+*not* the engine's `task_name` (the graph node): the two name different things, so a dashboard joining foreman
+ack-timeouts to engine step dispositions has to bridge them rather than assume one key.
 
 The name parallels the framework's own `microbus_client_timeout_requests`, which the connector already increments
 for *every* downstream timeout. We do not just filter that by `service="foreman.core"` because (a) it conflates the
@@ -109,17 +109,16 @@ ack-timeout with the foreman's other downstream calls (token mint, graph load) a
 split, and (b) the `service` label is the deploy-time hostname, so an alternative-hostname deployment would silently
 break a dashboard hard-coded to `foreman.core`. The dedicated metric is hostname-independent and pre-split.
 
-**`SetInTest(plane)` + `Startup` under the TESTING deployment, plain `Startup` otherwise.** The foreman runs
-under `app.RunInTest`, so it has no `*testing.T` to hand the engine's `RunInTest`. `eng.SetInTest(name)` is
-the `*testing.T`-free hook: it keys the engine's isolated, auto-dropped test databases by `name`, and the
-following `Startup` opens them. The foreman passes the Microbus **plane**, which every replica in a test app
-shares — so a multi-replica shared-state fixture resolves to the same throwaway DBs. (`SetInTest` is exactly
-what the engine's `RunInTest(t)` calls with `t.Name()`; the foreman just supplies a plane instead of a test
-name.) The resolved DSN is used only as a base; the engine creates the throwaway databases off it.
+**`NewEngineUnderTest(plane)` under the TESTING deployment, `NewEngine()` otherwise.** The foreman runs under
+`app.RunInTest` and has no `*testing.T`, which is why the engine's test constructor takes a *name* rather than a
+`testing.TB`. The name keys the engine's isolated, auto-dropped test databases; the foreman passes the Microbus
+**plane**, which every replica in a test app shares, so a multi-replica shared-state fixture resolves to the same
+throwaway databases. No shard is registered on that path: with none declared the engine opens a single in-memory
+shard, so the `Shards` config is not consulted under TESTING at all.
 
-**DSN resolution is per deployment.** `LOCAL` with no configured DSN falls back to
-`file:shard_%d.local.sqlite` (one SQLite file per shard); PROD/LAB use the `SQLDataSourceName` secret. The
-engine enforces the `%d`-required-when-`NumShards>1` rule itself.
+**Shard resolution is per deployment.** `LOCAL` with no configured `Shards` falls back to a single
+`file:shard_1.local.sqlite` shard; PROD/LAB use the `Shards` secret verbatim. Each shard carries its own DSN -
+the engine never templates one - so a multi-shard deployment names every database explicitly.
 
 **Actor token is minted per `ExecuteTask` from baggage (`mintActorToken`).** The original caller's actor
 claims are captured into `FlowOptions.Baggage` at `Create`/`Run` and ride the dispatch ctx for the flow's
@@ -175,10 +174,17 @@ only a receiver live on the bus at the instant of the stop. Because notification
 authoring, `resolveOptions` stamps no delivery host into baggage, and `mintActorToken` copies every baggage
 key into the actor claims with nothing to scrub (baggage is purely actor identity again).
 
-**`NumShards` is applied once at startup, not live.** `OnStartup` calls `eng.SetNumShards(svc.NumShards())`
-before `Startup`, and the config has **no** `Callback` — a runtime change to `NumShards` does not re-shard a
-running foreman. Sharding is a heavyweight topology change (it opens and migrates database instances and
-changes how new flows are placed), not the kind of knob to trip on a live config edit, so a change takes
-effect only on the next restart. Growth remains the only supported direction: the engine's `SetNumShards`
-opens+migrates added shards at startup and records-but-never-removes on a decrease (old shards drain). Making
-this hot would mean re-wiring `OnChangedNumShards` to `engine.SetNumShards`; it was deliberately removed.
+**`Shards` is applied once at startup, not live.** `OnStartup` calls `eng.SetShard` once per entry before
+`Startup`, and the config has **no** `Callback`, so a runtime change to `Shards` does not re-shard a running
+foreman. Sharding is a heavyweight topology change (it opens and migrates database instances and changes how
+new flows are placed), and the engine rejects `SetShard` on a running engine outright, so a change takes effect
+only on the next restart, and only after a coordinated restart of *every* replica: a flow created on a shard a
+peer does not know is unroutable (404) there. Retire a shard by cordoning it (`"cordoned": true` keeps every
+resident flow running while excluding it from new placement) rather than dropping its entry.
+
+**`Workers` and `MaxOpenConns` default to "derive".** Both are expert overrides in the engine now: it sizes each
+shard's pool from that shard's `VirtualCPUs` and derives the worker ceiling from the pools and the measured
+round-trip time. So `OnStartup` calls `SetWorkers` only for a value `>= 0` and `SetMaxOpenConns` only for one
+`> 0`, and the configs default to `-1` and `0` respectively to mean "leave it derived". `Workers` uses `-1`
+rather than `0` as its sentinel because `SetWorkers(0)` is itself a meaningful shape - a replica that creates,
+awaits, and serves reads but never executes a task - which the config has to stay able to express.

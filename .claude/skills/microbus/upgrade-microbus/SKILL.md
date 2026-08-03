@@ -78,6 +78,11 @@ Otherwise the project is exactly one version behind this release. Migrate it:
 
 *Invoked by Step 2. This is `DEST`'s migration; a release author replaces it when cutting the next release (see "Authoring framework upgrade skills" in the repo-root `CLAUDE.md`). Confine it to source edits - Step 2 owns the per-increment `genservice` + `go vet`, and Step 4 owns the final `go test`.*
 
+v1.46.0 carries two independent migrations: a `Parallel` signature change plus the HTTP ingress and tracing
+changes (3a through 3e), and the dwarf workflow-engine upgrade to v0.10.2 (3f through 3l). A project with no
+workflows can stop after 3e; one that defines tasks or workflows, or that configures `foreman.core`, must do
+both halves.
+
 v1.46.0 changes the signature of `Parallel` (on the connector, the `*Service` base type, and the
 `service.Executor` interface):
 
@@ -190,6 +195,168 @@ grep -rn --include='*.go' --exclude-dir=vendor '\.SetRequest(' .
 
 Delete each call - the attributes it added are already on the span. A caller that relied on its client-IP side
 effect can call `span.SetClientIP(r.RemoteAddr)` directly, which remains available.
+
+#### 3f. Skip 3g Through 3l If the Project Has No Workflows
+
+v1.46.0 moves the embedded workflow engine from dwarf v0.9.5 to v0.10.3, which changes the `workflow` package's
+state model and the foreman's configuration. Check whether any of it applies:
+
+```bash
+grep -rln --include='*.go' --exclude-dir=vendor 'microbus-io/dwarf' . | grep -v '/manifest.yaml'
+grep -rn 'foreman.core' config.yaml config.local.yaml 2>/dev/null
+```
+
+If neither finds anything, the project has no workflows and no foreman configuration; skip to Step 4. Note that
+`go.mod` still moves to dwarf v0.10.3 (it is a fabric dependency) along with transitive bumps to sequel and
+boolexp, which need no source changes.
+
+#### 3g. Rename `flow.Delete` to `flow.Del` (Mechanical)
+
+`Flow.Delete` is now `Flow.Del`. Nothing else about it changed:
+
+```bash
+grep -rl --include='*.go' --exclude-dir=vendor 'flow\.Delete(' . | xargs -r perl -pi -e 's/\bflow\.Delete\(/flow.Del(/g'
+```
+
+The receiver is conventionally named `flow` in a task handler. If a project names it something else, widen the
+pattern to that name, and check the result: `Delete` is a common method name on unrelated types, so a blind
+repo-wide rename is wrong.
+
+#### 3h. Replace `flow.Transform` (Grep-Guided)
+
+`Flow.Transform(newKey, oldKey, ...)` - clear all state, then re-introduce the listed fields under new names - is
+removed with no direct replacement. Find every call:
+
+```bash
+grep -rn --include='*.go' --exclude-dir=vendor '\.Transform(' .
+```
+
+Rewrite each as a snapshot, a clear, and explicit re-sets. `flow.Snapshot()` returns a decoded copy that is
+unaffected by the following `Clear`, so the rename is safe in one dispatch:
+
+```go
+// before
+flow.Transform("conversation", "messages", "answer", "answer")
+
+// after
+snap := flow.Snapshot()
+var messages []llmapi.Item
+snap.Get("messages", &messages)
+var answer string
+snap.Get("answer", &answer)
+flow.Clear()
+flow.Set("conversation", messages)
+flow.Set("answer", answer)
+```
+
+A `Transform` used purely as a "keep these" (all pairs of the form `("name", "name")`) is usually clearer as
+`flow.Del` of the fields that should go. Ask the user when the intended shape is not obvious from the call.
+
+#### 3i. Migrate `map[string]any` State to `workflow.State` (Grep-Guided)
+
+Flow state is now a `workflow.State` value rather than a `map[string]any`. The affected fields and returns:
+
+| Was `map[string]any` | Now `workflow.State` |
+|---|---|
+| `FlowOutcome.State`, `FlowOutcome.InterruptPayload` | same names, `State`-typed |
+| `FlowStep.State`, `FlowStep.Changes`, `FlowStep.InterruptPayload` | same names, `State`-typed |
+| `Flow.Snapshot()`, `Flow.InterruptRequested()`, `Flow.SubgraphRequested()` | return `State` |
+| `workflow.BaggageFrom(ctx)` (was `any`) | returns `State` |
+
+`State` is not a map, so indexing, `len`, `range`, and comparison against `nil` all stop compiling. Find the sites:
+
+```bash
+grep -rn --include='*.go' --exclude-dir=vendor '\.State\b\|\.Changes\b\|\.InterruptPayload\b\|Snapshot()\|BaggageFrom(' .
+```
+
+Rewrite each with the typed accessors, which is usually shorter than what it replaces:
+
+- `m["k"].(float64)` -> `s.GetInt("k")` / `s.GetFloat("k")`; likewise `GetString`, `GetBool`, `GetDuration`,
+  `GetStrings`.
+- A struct or slice value -> `ok, err := s.Get("k", &target)`.
+- `len(m)` -> `s.Len()`; `m != nil` -> `!s.IsZero()`.
+- Unmarshaling the whole state into a struct (a `json.Marshal` then `json.Unmarshal` round trip) -> `s.Parse(&target)`.
+- Code that genuinely needs a generic map (a UI rendering arbitrary keys) -> `m := map[string]any{}; s.Parse(&m)`.
+
+`workflow.MergeState` is also removed; the equivalents are the `State` methods `Merge`, `MergeReduce`, and
+`MergeReduceAll`.
+
+#### 3j. Fix the Remaining Removed Members (Grep-Guided)
+
+Four smaller removals, each a compile error at the call site:
+
+```bash
+grep -rn --include='*.go' --exclude-dir=vendor 'WithInputFlow(\|\.Duration()\|HasFanIn()\|Renderer(' .
+```
+
+- **`Executor.WithInputFlow` takes a `*workflow.RawFlow`**, not a `*workflow.Flow`, because seeding a flow's state
+  is now a raw-orchestration operation. Build the carrier with `workflow.NewRawFlow()` and populate it with
+  `SetRawState(state)`. This is a test-only surface; `Flow.SetState` is gone for the same reason (a task's output
+  is its changes, never a raw state write).
+- **`FlowSummary.Duration()` and `FlowStep.Duration()` are removed.** Compute it: `UpdatedAt.Sub(StartedAt)`,
+  guarded on neither being zero and on the result being non-negative.
+- **`Graph.HasFanIn()` is removed** with no replacement. A caller inspecting a graph's shape should read
+  `graph.Transitions()` instead.
+- **`FlowRenderer.Render()` and `GraphRenderer.Render()` return only a string**, no error. Drop the second return
+  value and the error branch that followed it.
+
+#### 3k. Rewrite the `foreman.core` Shard Configuration (Config, Ask the User)
+
+The foreman's database configuration is replaced. Each shard now declares its own connection string plus the CPU
+count of its database server, from which the engine derives that shard's connection budget and its share of new-flow
+placement. The old single-DSN-plus-count shape is gone:
+
+| Removed | Replacement |
+|---|---|
+| `SQLDataSourceName` (one DSN, `%d` templated per shard) | `Shards`, a JSON array with one entry per shard |
+| `NumShards` | the length of `Shards` |
+| `SQLConnectionPool` | `MaxOpenConns`, now an expert override defaulting to 0 (derive) |
+
+```yaml
+foreman.core:
+  Shards: '[{"index":1,"dsn":"postgres://user:pass@db1:5432/flows","virtualCPUs":16},
+            {"index":2,"dsn":"postgres://user:pass@db2:5432/flows","virtualCPUs":16}]'
+```
+
+Per entry: `index` is >= 1, unique, and stable across restarts (it is encoded into every flow key created on the
+shard, and the index-to-DSN mapping must be identical on every replica); `dsn` is used verbatim, with no templating,
+so a percent-encoded credential survives intact; `virtualCPUs` is the vCPU count off the database instance's spec
+sheet, assumed to be 2 when omitted; `cordoned` excludes the shard from new-flow placement while everything already
+resident keeps running.
+
+Ask the user for each shard's DSN and vCPU count rather than guessing - a large database left at the assumed 2 vCPUs
+runs at a fraction of its capacity, and the DSN is a secret that belongs in `config.local.yaml` or the operator's
+own configuration, not in a committed `config.yaml`. Then check the two override knobs:
+
+- `Workers` now defaults to `-1`, meaning "let the engine derive the ceiling". A project that left it at the old
+  default of 64 should drop the setting so it picks up the derived value; one that pinned it deliberately keeps
+  its number. `0` remains meaningful and distinct: a replica that creates, awaits, and serves reads but never
+  executes a task.
+- `MaxOpenConns` replaces `SQLConnectionPool` and defaults to `0`, meaning "derive from `virtualCPUs`". Set it only
+  when the connection budget is constrained by something the engine cannot see, such as a shared database or an
+  external pooler.
+
+As with 3c and 3d, production config often lives outside this checkout; tell the user to apply the same rewrite
+wherever `foreman.core` is configured in their deployment environments.
+
+#### 3l. Drop Calls to the Removed `foremanapi.Signal`
+
+Dwarf replicas no longer message each other: a fleet sharing a database coordinates entirely by polling it. The
+foreman's `Signal` endpoint and its `SignalIn`/`SignalOut` types are removed along with the host-side
+`SignalPeers`. Nothing replaces them, and nothing needs to.
+
+```bash
+grep -rn --include='*.go' --exclude-dir=vendor 'foremanapi\.Signal\|\.Signal(ctx' .
+```
+
+Delete each call. A test that exercised cross-replica coordination through it should assert on the outcome instead:
+several foreman replicas in one app resolve to the same databases, so the work simply completes across them.
+
+**Tell the user this upgrade needs a maintenance window.** The engine's schema migrations are forward-only and run
+at `Startup`, so the first replica of the new version migrates the database every old replica is still using, and
+there is no downgrade path. The supported procedure is: back up every shard, drain the whole fleet, start one
+replica and confirm it comes up clean, then start the rest. Flows survive it untouched - pending steps stay pending
+and interrupted flows stay parked.
 
 ### Step 4: Phase 2 - Chain to the Next Release, or Finish
 

@@ -489,7 +489,7 @@ func (c *Connector) ackRequest(msg *transport.Msg, s *sub.Subscription) (err err
 		httpRes.StatusCode = http.StatusAccepted
 		httpRes.Status = "202 Accepted"
 	}
-	if c.seams.IsFault(faultDropAck, s.Name) {
+	if c.seams.Enabled() && c.seams.IsFault(faultDropAck(s.Name)) {
 		return nil
 	}
 	err = c.transportConn.Response(subjectOfResponse(c.plane, c.hostname, fromHost, fromID), httpRes)
@@ -727,7 +727,7 @@ func (c *Connector) handleRequest(msg *transport.Msg, s *sub.Subscription) (err 
 	span.End()
 	spanEnded = true
 
-	if c.seams.IsFault(faultDropResponse, s.Name) {
+	if c.seams.Enabled() && c.seams.IsFault(faultDropResponse(s.Name)) {
 		return nil
 	}
 	c.seams.Checkpoint(c.Lifetime(), checkpointBeforeResponseSend)
@@ -897,7 +897,7 @@ func (c *Connector) fetchActorKeys(host string) error {
 		}
 		c.actorKeysLock.Unlock()
 
-		if c.seams.IsFault(faultJWKSFetchErr, host) {
+		if c.seams.Enabled() && c.seams.IsFault(faultJWKSFetchErr(host)) {
 			return nil, errors.New("injected JWKS fetch failure")
 		}
 

@@ -216,18 +216,6 @@ func TestForeman_Mock(t *testing.T) {
 		assert.NoError(err)
 	})
 
-	t.Run("signal", func(t *testing.T) { // MARKER: Signal
-		assert := testarossa.For(t)
-
-		mock.MockSignal(func(ctx context.Context, op string, payload []byte) (err error) {
-			return
-		})
-		var op string
-		var payload []byte
-		err := mock.Signal(ctx, op, payload)
-		assert.NoError(err)
-	})
-
 	t.Run("history_mermaid", func(t *testing.T) { // MARKER: HistoryMermaid
 		assert := testarossa.For(t)
 

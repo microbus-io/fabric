@@ -166,11 +166,12 @@ if yield || err != nil {
 
 **Idempotency.** Tasks may be replayed: `flow.Retry`, worker-death recovery, and Subgraph re-entry all re-run the task body from the top. A task that fires an external side effect (charge a card, send an email, write to a non-transactional store) must carry its own dedupe key or check first whether the effect has already happened. The framework does not deduplicate side effects for you. Pure computation over state needs no special treatment.
 
-**State hygiene.** If this task consumes large intermediates (LLM response, parsed payload, raw API body, image bytes) that downstream tasks do not need, drop them before returning. Three primitives compose for any cleanup pattern:
+**State hygiene.** If this task consumes large intermediates (LLM response, parsed payload, raw API body, image bytes) that downstream tasks do not need, drop them before returning. Two primitives compose for any cleanup pattern:
 
-- `flow.Delete(names...)` - drop the listed fields.
+- `flow.Del(names...)` - drop the listed fields.
 - `flow.Clear()` - drop every field; typical in a task that is about to build a fresh subgraph input from scratch.
-- `flow.Transform("newKey", "oldKey", ...)` - clear all state, then re-introduce the listed fields under new names. Doubles as a "keep these" primitive when called with `("name", "name")` pairs.
+
+To rename a field across a contract boundary, read it off `flow.Snapshot()` (a decoded copy that survives the clear), then `flow.Clear()` and `flow.Set` it under its new name.
 
 Each records JSON null in the step's changes for dropped fields, so the cleanup is preserved in the audit trail; downstream merged state is absent the field (Replace reducer) or sees no contribution (Add/Append/Union/Merge/And/Or/Concat short-circuit to their identity when a branch's value is JSON null).
 

@@ -161,6 +161,26 @@ func stateField(r *http.Request, stateKey, name, value string, style func(s stri
 		AddRight(expandable(r, stateKey, value, style)...)
 }
 
+// stateMap decodes a flow state into a plain map. The studio renders state generically, key by key,
+// so it works off the decoded map rather than the typed State accessors.
+func stateMap(s workflow.State) map[string]any {
+	m := map[string]any{}
+	_ = s.Parse(&m)
+	return m
+}
+
+// flowDuration is the wall-clock time a listed flow has been running, from StartedAt to UpdatedAt.
+func flowDuration(f foremanapi.FlowSummary) time.Duration {
+	if f.StartedAt.IsZero() || f.UpdatedAt.IsZero() {
+		return 0
+	}
+	d := f.UpdatedAt.Sub(f.StartedAt)
+	if d < 0 {
+		return 0
+	}
+	return d
+}
+
 // renderStateForm builds a Form with one field per key in m (sorted).
 func renderStateForm(r *http.Request, prefix string, m map[string]any, dimKeys map[string]bool) any {
 	keys := make([]string, 0, len(m))

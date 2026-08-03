@@ -12,15 +12,13 @@ import (
 	"github.com/microbus-io/errors"
 
 	"github.com/microbus-io/fabric/coreservices/accesstoken/accesstokenapi"
-	"github.com/microbus-io/fabric/coreservices/foreman/foremanapi"
 	"github.com/microbus-io/fabric/pub"
 )
 
 // This file implements the dwarf engine.Host interface for the Microbus transport. The engine owns the
-// orchestration; these three methods are the only seam to the bus:
+// orchestration; these two methods are the only seam to the bus:
 //   - LoadGraph   - GET the workflow graph over the bus.
 //   - ExecuteTask - mint the actor token from baggage, POST the flow to the task, retry on ack-timeout.
-//   - SignalPeers - multicast the opaque (op, payload) to peer replicas, excluding self.
 
 // ackTimeoutRetryProbes is how many times a task dispatch that keeps hitting a 404 ack-timeout is re-probed
 // across the step's time budget: the re-probe interval is budget/ackTimeoutRetryProbes, fixed (not
@@ -135,13 +133,14 @@ func isAckTimeout(err error) bool {
 // when the flow has no actor claims. The iss/idp swap mirrors the legacy foreman: the minted token's
 // issuer is the actor's original identity provider.
 func (svc *Service) mintActorToken(ctx context.Context) (string, error) {
-	baggage, _ := workflow.BaggageFrom(ctx).(map[string]any)
-	if len(baggage) == 0 {
+	baggage := workflow.BaggageFrom(ctx)
+	if baggage.Len() == 0 {
 		return "", nil
 	}
-	actorClaims := make(map[string]any, len(baggage))
-	for k, v := range baggage {
-		actorClaims[k] = v
+	var actorClaims map[string]any
+	err := baggage.Parse(&actorClaims)
+	if err != nil {
+		return "", errors.Trace(err)
 	}
 	iss, _ := actorClaims["iss"].(string)
 	iss = stripProto(iss)
@@ -152,13 +151,6 @@ func (svc *Service) mintActorToken(ctx context.Context) (string, error) {
 		return "", errors.Trace(err)
 	}
 	return token, nil
-}
-
-// SignalPeers multicasts an opaque cross-replica coordination signal to the other foreman replicas via
-// the single Signal endpoint. Implements engine.Host.
-func (svc *Service) SignalPeers(ctx context.Context, op string, payload []byte) {
-	for range foremanapi.NewMulticastClient(svc).Signal(ctx, op, payload) {
-	}
 }
 
 // stripProto removes the scheme (e.g. "https://") from a URL, returning the bare host/path.

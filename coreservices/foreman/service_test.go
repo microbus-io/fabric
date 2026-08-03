@@ -42,7 +42,7 @@ var (
 )
 
 // TestForeman_StartsEngine confirms the service builds and starts the embedded dwarf engine under the
-// TESTING deployment (the SetInTest(plane) + Startup path), and that Shutdown drains it cleanly via t.Cleanup.
+// TESTING deployment (the NewEngineUnderTest(plane) + Startup path), and that Shutdown drains it cleanly.
 func TestForeman_StartsEngine(t *testing.T) {
 	assert := testarossa.For(t)
 
@@ -54,7 +54,7 @@ func TestForeman_StartsEngine(t *testing.T) {
 	)
 	app.RunInTest(t)
 
-	// If OnStartup's engine wiring (build + SetInTest + Startup) failed, RunInTest would have failed the test.
+	// If OnStartup's engine wiring (build + Startup) failed, RunInTest would have failed the test.
 	assert.NotNil(svc.engine)
 }
 
@@ -639,40 +639,6 @@ func TestForeman_Continue(t *testing.T) { // MARKER: Continue
 				newFlowKey, expectedNewFlowKey,
 				err, nil,
 			)
-		})
-	*/
-}
-
-func TestForeman_Signal(t *testing.T) { // MARKER: Signal
-	t.Parallel()
-	ctx := t.Context()
-	_ = ctx
-
-	// Initialize the microservice under test
-	svc := NewService()
-
-	// Initialize the tester client
-	tester := connector.New("tester.client")
-	client := foremanapi.NewClient(tester)
-	_ = client
-
-	// Run the testing app
-	app := application.New()
-	app.Add(
-		// HINT: Add microservices or mocks required for this test
-		svc,
-		tester,
-	)
-	app.RunInTest(t)
-
-	/*
-		HINT: Fill in test cases using the following pattern
-
-		t.Run("test_case_name", func(t *testing.T) {
-			assert := testarossa.For(t)
-
-			err := client.Signal(ctx, op, payload)
-			assert.NoError(err)
 		})
 	*/
 }

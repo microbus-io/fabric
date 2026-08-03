@@ -71,7 +71,7 @@ type Executor struct {
 	svc         service.Publisher
 	host        string
 	opts        []pub.Option
-	inFlow      *workflow.Flow
+	inFlow      *workflow.RawFlow
 	outFlow     *workflow.Flow
 	runner      WorkflowRunner
 	flowOptions *workflow.FlowOptions
@@ -94,7 +94,7 @@ func (_c Executor) WithOptions(opts ...pub.Option) Executor {
 
 // WithInputFlow returns a copy of the executor with an input flow to use for task execution.
 // The input flow's state is available to the task in addition to the typed input arguments.
-func (_c Executor) WithInputFlow(flow *workflow.Flow) Executor {
+func (_c Executor) WithInputFlow(flow *workflow.RawFlow) Executor {
 	return Executor{svc: _c.svc, host: _c.host, opts: _c.opts, inFlow: flow, outFlow: _c.outFlow, runner: _c.runner, flowOptions: _c.flowOptions}
 }
 
@@ -128,15 +128,21 @@ func NewSubgraph(flow *workflow.Flow) Subgraph {
 }
 
 // marshalTask supports task execution via the Executor.
-func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, host string, method string, route string, in any, out any, inFlow *workflow.Flow, outFlow *workflow.Flow) (err error) {
+func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, host string, method string, route string, in any, out any, inFlow *workflow.RawFlow, outFlow *workflow.Flow) (err error) {
 	flow := inFlow
 	if flow == nil {
-		flow = workflow.NewFlow()
+		flow = workflow.NewRawFlow()
 	}
-	err = flow.SetState(in)
+	inState, err := workflow.NewState(in)
 	if err != nil {
 		return errors.Trace(err)
 	}
+	state := flow.RawState()
+	err = state.Merge(inState)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	flow.SetRawState(state)
 	body, err := json.Marshal(flow)
 	if err != nil {
 		return errors.Trace(err)
@@ -158,7 +164,7 @@ func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, 
 		return errors.Trace(err)
 	}
 	if outFlow != nil {
-		*outFlow = *flow
+		*outFlow = flow.Flow
 	}
 	if out != nil {
 		err = flow.ParseState(out)
@@ -180,12 +186,8 @@ func marshalWorkflow(ctx context.Context, runner WorkflowRunner, flowOptions *wo
 		return "", nil
 	}
 	status = outcome.Status
-	if out != nil && outcome.State != nil {
-		data, err := json.Marshal(outcome.State)
-		if err != nil {
-			return status, errors.Trace(err)
-		}
-		err = json.Unmarshal(data, out)
+	if out != nil {
+		err = outcome.State.Parse(out)
 		if err != nil {
 			return status, errors.Trace(err)
 		}

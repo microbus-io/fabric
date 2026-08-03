@@ -95,7 +95,7 @@ It is emitted at the two places a tool actually resolves, so the live `Chat` Go 
 - **Direct bus tools** (`executeTool` in `tools.go`) - used by the live `Chat` loop for every tool and by the `ExecuteTool` task for non-workflow tools. `executeTool` folds transport errors and `>=400` responses into the tool-result JSON (returning a nil Go error so one bad tool doesn't fail the whole chat), so the outcome can only be read *inside* `executeTool`; a deferred increment flips to `error` on any of those failure branches. The `tool not found` early return is not counted (it has no URL to attribute).
 - **Workflow tools** (the `ExecuteTool` task's subgraph branch) - counted on resolution, never on the park. `flow.Subgraph` yields (parks) on the first call and re-enters on the child's terminal state; the increment fires on re-entry (`ok`) or on a subgraph error (`error`), so a parked-but-not-yet-finished tool is not counted until it actually settles.
 
-This is the LLM service's tool-use signal; it is distinct from the engine's `dwarf_task_concurrency_running{task_url}` (which sees workflow-tool subgraphs as ordinary tasks) and the connector's generic `microbus_client_*` downstream metrics.
+This is the LLM service's tool-use signal; it is distinct from the engine's `dwarf_steps_executed_total{task_name}` (which sees workflow-tool subgraphs as ordinary graph nodes) and the connector's generic `microbus_client_*` downstream metrics.
 
 ### ChatLoop Workflow
 

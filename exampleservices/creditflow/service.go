@@ -60,9 +60,9 @@ type Service struct {
 // OnStartup is called when the microservice is started up.
 
 // outcomeStatusState extracts the Status and State from a FlowOutcome.
-func outcomeStatusState(o *workflow.FlowOutcome) (string, map[string]any) {
+func outcomeStatusState(o *workflow.FlowOutcome) (string, workflow.State) {
 	if o == nil {
-		return "", nil
+		return "", workflow.State{}
 	}
 	return o.Status, o.State
 }
@@ -251,7 +251,7 @@ func flattenSteps(steps []foremanapi.FlowStep, indent bool) []demoStep {
 	var result []demoStep
 	for _, s := range steps {
 		changes := ""
-		if len(s.Changes) > 0 {
+		if s.Changes.Len() > 0 {
 			b, _ := json.Marshal(s.Changes)
 			changes = string(b)
 		}

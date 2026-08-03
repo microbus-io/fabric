@@ -27,7 +27,7 @@ func (svc *Service) VerifyCredit(ctx context.Context, flow *workflow.Flow, credi
 
 A task's input and output arguments are a **declaration of the state variables it uses**: an input argument names a state var the task reads, and an output argument names a state var the task writes back. Input arguments are matched by name to fields in the flow's state; output arguments are written back to the state under their name (through the marshaler, and through the graph's reducer for that key if one is set, exactly as an equivalent `flow.Set` would be). An output argument with an `Out` suffix (e.g. `creditScoreOut`) implements a read-modify-write pattern - it appears as both input and output.
 
-**Reading a state var as an input never consumes it.** A state var stays in the flow's state after a task reads it; declaring it as an input just gives the task a typed view of it. The same var remains available to other tasks and to graph machinery - e.g. a task can take `pendingToolCalls` as an input while a `forEach` transition on the same node still iterates that state key. To actually remove a state var, a task must `flow.Delete` it (or `flow.Clear` it); declaring it as an input does not.
+**Reading a state var as an input never consumes it.** A state var stays in the flow's state after a task reads it; declaring it as an input just gives the task a typed view of it. The same var remains available to other tasks and to graph machinery - e.g. a task can take `pendingToolCalls` as an input while a `forEach` transition on the same node still iterates that state key. To actually remove a state var, a task must `flow.Del` it (or `flow.Clear` it); declaring it as an input does not.
 
 A task need not have any outputs. A pure side-effect step (restart a node, attach a file, set a status, then `flow.Goto`) returns only `err error`, and its generated `Out` struct is an empty `struct{}`. That is valid and idiomatic - such a task contributes no state fields and routes purely by side effect, `flow.Goto`, or a downstream `Switch`/`When` reading state set by other tasks.
 
@@ -321,13 +321,13 @@ if yield {
 
 **Re-entry is signaled by the parker's `yield` bool, not by a state field.** Do not invent a `*Out`-suffix flag or a "have I run before" arg - the framework already tracks it via `interrupt_done`/`subgraph_done` columns and surfaces it as `yield`. The `if yield { return nil }` line is the **before-resume region** and runs on every dispatch (first pass, re-entry, every retry attempt); everything after it is the **after-resume region** and runs once per resolution. Exactly-once side effects (firing an event, charging a card) belong after the guard.
 
-**State written before the park survives the park.** A `flow.Set*` / `flow.Delete` made in the same dispatch *before* calling `flow.Interrupt` (or `flow.Subgraph`) is recorded in the step's `changes` and persisted when the step parks, so it is visible as an input on re-entry and to downstream tasks. This is the basis for idempotent side-effecting parks: a task that creates an external resource, records its identifier with `flow.SetString`, and then parks reads that identifier back on re-entry and skips re-creating the resource (e.g. `if id == "" { id = create(); flow.SetString("id", id) }; flow.Interrupt(...)`). Persisting through the change set is what makes this work - a plain local variable, or relying on a return value (output args are written as their zero value when you `return nil` on `yield`), would *not* survive the park.
+**State written before the park survives the park.** A `flow.Set*` / `flow.Del` made in the same dispatch *before* calling `flow.Interrupt` (or `flow.Subgraph`) is recorded in the step's `changes` and persisted when the step parks, so it is visible as an input on re-entry and to downstream tasks. This is the basis for idempotent side-effecting parks: a task that creates an external resource, records its identifier with `flow.SetString`, and then parks reads that identifier back on re-entry and skips re-creating the resource (e.g. `if id == "" { id = create(); flow.SetString("id", id) }; flow.Interrupt(...)`). Persisting through the change set is what makes this work - a plain local variable, or relying on a return value (output args are written as their zero value when you `return nil` on `yield`), would *not* survive the park.
 
-**Returning an error commits nothing - a failed step is atomic.** The generated handler is `out.X, err = svc.Task(...); if err != nil { return err }; flow.SetChanges(out, snap); encode(flow)`. When the task returns a non-nil `err`, the handler returns *before* both `flow.SetChanges` (which applies the output args) and the flow re-encoding, so **neither the output args nor any `flow.Set`/`flow.Delete` the task made in that dispatch reach the foreman** - the step fails, the pre-step state is kept intact, and routing goes to `OnError` if wired. A returned zero value (e.g. `return nil, err`) therefore does *not* overwrite the state var; the error preempts the write entirely. This is the mirror image of the park case above: success-with-yield re-encodes the flow so pre-park writes survive, whereas an error discards them. Consequence for authoring: you cannot return an error *and* persist state in the same dispatch. If a failure path must record something (a status, a partial result), the task has to succeed (`return nil`) and signal the failure through state plus `flow.Goto`, not through `err`.
+**Returning an error commits nothing - a failed step is atomic.** The generated handler is `out.X, err = svc.Task(...); if err != nil { return err }; flow.SetChanges(out, snap); encode(flow)`. When the task returns a non-nil `err`, the handler returns *before* both `flow.SetChanges` (which applies the output args) and the flow re-encoding, so **neither the output args nor any `flow.Set`/`flow.Del` the task made in that dispatch reach the foreman** - the step fails, the pre-step state is kept intact, and routing goes to `OnError` if wired. A returned zero value (e.g. `return nil, err`) therefore does *not* overwrite the state var; the error preempts the write entirely. This is the mirror image of the park case above: success-with-yield re-encodes the flow so pre-park writes survive, whereas an error discards them. Consequence for authoring: you cannot return an error *and* persist state in the same dispatch. If a failure path must record something (a status, a partial result), the task has to succeed (`return nil`) and signal the failure through state plus `flow.Goto`, not through `err`.
 
 **A step parks at most once per dispatch, interrupt XOR subgraph, never both and never two of the same kind.** Sequential side-trips are sequential tasks in the graph, not multiple parks in one task. The guard fires in two places: the `Flow` rejects a second park synchronously with an error from the parker; the foreman re-checks the returned flow after the task returns (trust boundary for a bypassed parker).
 
-**No auto-merge.** The child's `final_state` is returned to the calling task as `out`, not merged into the parent's state. This is the "scope state at the subgraph boundary" payoff: the parent picks fields explicitly with `flow.Set`, `flow.Transform`, or just plain Go code over `out`. The calling task does the reshape itself, so the common case needs no adapter task upstream or downstream of the subgraph.
+**No auto-merge.** The child's `final_state` is returned to the calling task as `out`, not merged into the parent's state. This is the "scope state at the subgraph boundary" payoff: the parent picks fields explicitly with `flow.Set` or just plain Go code over `out`. The calling task does the reshape itself, so the common case needs no adapter task upstream or downstream of the subgraph.
 
 **Interrupts propagate up through the subgraph chain to the root flow.** A child subgraph can call `flow.Interrupt`; the foreman walks the surgraph chain up to the root, the external awaiter of the root flow sees the interrupt with the child's payload, and `Resume` propagates back down to the leaf. The parent's surgraph step stays parked across the whole interrupt/resume cycle; the parent task does **not** re-run for it. This is orthogonal to `subgraph_done` (interrupt rides the step status; `subgraph_done` flips only on terminal completion or failure).
 
@@ -337,7 +337,7 @@ if yield {
 
 ### State Transformation Around a Subgraph
 
-`in` scopes what crosses *into* the child; `out` scopes what comes back. If the parent and child use different field names, reshape inline: build `in` with the names the child expects, then read `out` with the names the child wrote. The `flow.Transform` / `Delete` / `Clear` primitives help when the reshape is non-trivial (see [Best Practices](#best-practices)). The calling task does the reshape itself; no dedicated adapter task is involved.
+`in` scopes what crosses *into* the child; `out` scopes what comes back. If the parent and child use different field names, reshape inline: build `in` with the names the child expects, then read `out` with the names the child wrote. The `flow.Del` / `flow.Clear` primitives help when the reshape is non-trivial (see [Best Practices](#best-practices)). The calling task does the reshape itself; no dedicated adapter task is involved.
 
 ## Using LLMs in Workflows
 
@@ -446,7 +446,7 @@ func (svc *Service) HandleResponse(ctx context.Context, flow *workflow.Flow,
 }
 ```
 
-If the parent workflow only needs the final answer, persist that field and `flow.Delete("messages")`
+If the parent workflow only needs the final answer, persist that field and `flow.Del("messages")`
 to drop the verbose conversation history from downstream state and shrink the audit trail.
 
 ### Exposing Tools
@@ -492,7 +492,7 @@ bare name and subsequent ones get `_2`, `_3`, ... suffixes in argument order.
   `messages` and converge on a fan-in does the parent need
   `graph.SetReducer("messages", workflow.ReducerAppend)`. If the parent carries the conversation
   under a different field name, reshape it in an upstream task with
-  `flow.Transform("messages", "yourField")` (see "State Transformation Around a Subgraph" above).
+  a snapshot-clear-reset rename (see "State Transformation Around a Subgraph" above).
 - **Mocking.** Mock the underlying provider's `Turn` (`claudellm.NewMock().MockTurn(handler)`,
   etc.) rather than mocking `ChatLoop` itself - the loop logic, tool dispatch, and usage
   aggregation stay real, and the test exercises the same code path as production.
@@ -503,13 +503,24 @@ A short list of high-leverage choices that emerge from operating these workflows
 
 **Prefer typed input/output arguments over `flow.Get` / `flow.Set`.** The task signature *is* the state contract - the marshaler binds inputs from state on entry and writes outputs back on exit, mocks get typed handlers, and a reader sees what the task reads and produces without scanning the body. Reach for `flow.Get` / `flow.Set` only when a key's name is dynamic, or when the value's type is internal to the microservice (not part of the API package and not worth promoting). The output `Out` suffix convention covers the read-modify-write case (`counter` in, `counterOut` out, both mapped to state key `counter`).
 
-**Use `flow.Delete` / `flow.Clear` / `flow.Transform` to drop state the rest of the flow does not need.** LLM responses, parsed documents, raw API bodies, image bytes - anything a task consumes once and would otherwise ride through every downstream step's persisted snapshot and bloat both the wire and the audit trail. The three primitives compose for any cleanup pattern:
+**Use `flow.Del` / `flow.Clear` to drop state the rest of the flow does not need.** LLM responses, parsed documents, raw API bodies, image bytes - anything a task consumes once and would otherwise ride through every downstream step's persisted snapshot and bloat both the wire and the audit trail. Two primitives compose for any cleanup pattern:
 
-- `flow.Delete(names...)` - drop the listed fields (variadic; mirrors `delete(m, k)`).
+- `flow.Del(names...)` - drop the listed fields (variadic; mirrors `delete(m, k)`).
 - `flow.Clear()` - drop every field (mirrors `clear(m)`); useful in a task that is about to populate a fresh subgraph input from scratch.
-- `flow.Transform("newKey", "oldKey", ...)` - clear all state, then re-introduce the listed fields under new names (pairs of `newKey, oldKey`). Convenient for tasks that reshape state across a contract boundary; doubles as a "keep these" primitive when you pass `("name", "name")` pairs.
 
-All three record JSON null in the step's changes for dropped fields, so the cleanup is preserved in the audit trail. For Replace-reduced fields, null drops the field from merged state at the next fan-in. For reducer-managed fields (those wired with `SetReducer`), a cleared contribution is treated as the reducer's identity and contributes nothing to the merge. None of these methods are restricted to boundaries - call them mid-flow whenever a field has served its purpose.
+To rename a field across a contract boundary, snapshot before clearing and re-set what should survive under its new name:
+
+```go
+snap := flow.Snapshot()
+var messages []llmapi.Item
+snap.Get("messages", &messages)
+flow.Clear()
+flow.Set("conversation", messages)
+```
+
+`flow.Snapshot()` returns a `workflow.State`, a decoded copy of the state that is unaffected by the subsequent `Clear`, so the read side of the rename is safe to do in either order. A plain "keep only these" is the same shape without the rename, or just `flow.Del` of the fields that should go.
+
+Both record JSON null in the step's changes for dropped fields, so the cleanup is preserved in the audit trail. For Replace-reduced fields, null drops the field from merged state at the next fan-in. For reducer-managed fields (those wired with `SetReducer`), a cleared contribution is treated as the reducer's identity and contributes nothing to the merge. None of these methods are restricted to boundaries - call them mid-flow whenever a field has served its purpose.
 
 **Prefer `Switch` > `When` > `Goto` for branching.** `AddTransitionSwitch` (first-match-wins, validator-enforced mutual exclusivity, no `SetFanIn` needed) is the right tool for any routing where exactly one branch should run. Drop to `AddTransitionWhen` only when you genuinely want parallel branches firing under independent predicates - `When` is fan-out, not routing, and two `When` predicates intended to be mutually exclusive should be a `Switch` instead. Reserve `AddTransitionGoto` for runtime loops the task body must decide (fan-in looping back, "ask for more info then retry"). See [Switch Transitions](#switch-transitions) for the full rationale and validation rules.
 

@@ -256,8 +256,7 @@ func TestForemanIntegration(t *testing.T) {
 			return
 		}
 		assert.Equal(workflow.StatusCompleted, out.Status)
-		n, _ := out.State["n"].(float64)
-		assert.Equal(25, int(n)) // ((1+1)*10)+5
+		assert.Equal(25, out.State.GetInt("n")) // ((1+1)*10)+5
 	})
 
 	t.Run("subgraph_call_and_return", func(t *testing.T) {
@@ -267,8 +266,7 @@ func TestForemanIntegration(t *testing.T) {
 			return
 		}
 		assert.Equal(workflow.StatusCompleted, out.Status)
-		r, _ := out.State["result"].(float64)
-		assert.Equal(6, int(r)) // child computed w = v*2 = 6, parent adopted it
+		assert.Equal(6, out.State.GetInt("result")) // child computed w = v*2 = 6, parent adopted it
 	})
 
 	t.Run("interrupt_then_resume", func(t *testing.T) {
@@ -285,7 +283,7 @@ func TestForemanIntegration(t *testing.T) {
 		}
 		// Await returns when the flow stops, and an interrupt is a stop: interrupted with the payload.
 		assert.Equal(workflow.StatusInterrupted, out.Status)
-		assert.Equal("info", out.InterruptPayload["need"])
+		assert.Equal("info", out.InterruptPayload.GetString("need"))
 
 		if !assert.NoError(client.Resume(ctx, flowKey, map[string]any{"answer": 42})) {
 			return
@@ -295,8 +293,7 @@ func TestForemanIntegration(t *testing.T) {
 			return
 		}
 		assert.Equal(workflow.StatusCompleted, final.Status)
-		ans, _ := final.State["answer"].(float64)
-		assert.Equal(42, int(ans))
+		assert.Equal(42, final.State.GetInt("answer"))
 	})
 
 	t.Run("cancel_running_flow", func(t *testing.T) {
@@ -351,8 +348,7 @@ func TestForemanIntegration(t *testing.T) {
 		// The first dispatch armed flow.Retry itself; the re-dispatch succeeded, so the flow recovers to
 		// completed. The engine did no classification - retry is entirely the task's doing.
 		assert.Equal(workflow.StatusCompleted, out.Status)
-		served, _ := out.State["served"].(bool)
-		assert.True(served)
+		assert.True(out.State.GetBool("served"))
 		assert.True(retryAttempts.Load() >= 2, "expected the task's own retry to re-dispatch")
 	})
 
@@ -387,8 +383,8 @@ func TestForemanIntegration(t *testing.T) {
 
 // TestForemanIntegration_CrossReplica runs a flow against two foreman replicas sharing one plane (hence one
 // set of shard databases). Work created via one replica's client is dispatched and completed across the
-// pair, and the awaiting client is woken via the cross-replica statusChange Signal - exercising the
-// SignalPeers multicast and the inbound Signal self-delivery filter end-to-end.
+// pair, with the replicas coordinating entirely through the shared databases - no message passing between
+// them at any point.
 func TestForemanIntegration_CrossReplica(t *testing.T) {
 	ctx := context.Background()
 	const host = "inttest.xr"
@@ -410,6 +406,5 @@ func TestForemanIntegration_CrossReplica(t *testing.T) {
 	}
 	assert := testarossa.For(t)
 	assert.Equal(workflow.StatusCompleted, out.Status)
-	n, _ := out.State["n"].(float64)
-	assert.Equal(25, int(n))
+	assert.Equal(25, out.State.GetInt("n"))
 }

@@ -17,17 +17,33 @@ limitations under the License.
 package connector
 
 // --- Fault injection ---
-const (
-	// Scoped by subscription name (the name passed to Subscribe):
-	faultDropAck      = "dropAck"      // ackRequest skips sending the ack -> unicast 404 ack-timeout / multicast zero-responder
-	faultDropResponse = "dropResponse" // handleRequest skips sending the response -> caller waits the full time budget (408)
+// Every fault here targets one entity, so its name is assembled by a builder the consult and the arming
+// both call. Each builder allocates, and the caller pays for it before the seams' enabled gate is read, so
+// every consult site is wrapped in c.seams.Enabled().
 
-	// Scoped by responder hostname (the verified From-Host on the response):
-	faultDuplicateResponse = "duplicateResponse" // handleResponse re-injects the response, exercising the overflow-goroutine push path
+// faultDropAck names the fault that makes ackRequest skip sending the ack for one subscription, yielding a
+// unicast 404 ack-timeout or a multicast zero-responder.
+func faultDropAck(subName string) string {
+	return "dropAck:" + subName
+}
 
-	// Scoped by issuer host (access.token.core / bearer.token.core):
-	faultJWKSFetchErr = "jwksFetchErr" // fetchActorKeys fails before the network fetch, without poisoning the 1s cooldown
-)
+// faultDropResponse names the fault that makes handleRequest skip sending the response for one
+// subscription, leaving the caller to wait out its full time budget (408).
+func faultDropResponse(subName string) string {
+	return "dropResponse:" + subName
+}
+
+// faultDuplicateResponse names the fault that makes handleResponse re-inject a response from one responder
+// hostname (the verified From-Host), exercising the overflow-goroutine push path.
+func faultDuplicateResponse(responderHost string) string {
+	return "duplicateResponse:" + responderHost
+}
+
+// faultJWKSFetchErr names the fault that fails fetchActorKeys for one issuer host (access.token.core /
+// bearer.token.core) before the network fetch, without poisoning the 1s cooldown.
+func faultJWKSFetchErr(issuerHost string) string {
+	return "jwksFetchErr:" + issuerHost
+}
 
 // --- Execution checkpoints ---
 const (

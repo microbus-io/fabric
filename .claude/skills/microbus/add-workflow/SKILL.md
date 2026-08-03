@@ -138,7 +138,7 @@ func (svc *Service) MyWorkflow(ctx context.Context) (graph *workflow.Graph, err 
 }
 ```
 
-If a subgraph call needs its input or output adapted across a contract boundary, do it in any ordinary task immediately upstream or downstream of the subgraph using `flow.Transform`/`Delete`/`Clear` - see the "State Transformation Around a Subgraph" section in `.claude/rules/workflows.txt`. If the workflow's terminal state needs scrubbing before it lands in `final_state`, the last task calls `flow.Delete`/`Transform`.
+If a subgraph call needs its input or output adapted across a contract boundary, do it in any ordinary task immediately upstream or downstream of the subgraph using `flow.Del`/`flow.Clear` - see the "State Transformation Around a Subgraph" section in `.claude/rules/workflows.txt`. If the workflow's terminal state needs scrubbing before it lands in `final_state`, the last task calls `flow.Del`.
 
 Naming the same task URL twice with different names is the supported way to reuse a task at multiple positions in the graph (each position keeps its own node identity for fan-in tracking).
 

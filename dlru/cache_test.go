@@ -1707,7 +1707,7 @@ func TestDLRU_ShedInFlight(t *testing.T) {
 	}()
 
 	// Wait until alpha is frozen mid-shed.
-	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
+	assert.True(alphaCache.Seams().WaitTimeout(ctx, dlru.CheckpointOffloadBeforeStore, time.Second))
 
 	// alpha has added beta by now. Pick a key beta owns that is still physically on alpha.
 	both := []string{alpha.ID(), beta.ID()}
@@ -1994,7 +1994,7 @@ func TestDLRU_TruncatedOffloadDrops(t *testing.T) {
 		// broadcastJoin blocks on alpha's frozen handleJoin response until the shed is resumed.
 		betaCache, _ = dlru.NewCache(ctx, beta, ":444/test")
 	}()
-	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
+	assert.True(alphaCache.Seams().WaitTimeout(ctx, dlru.CheckpointOffloadBeforeStore, time.Second))
 	time.Sleep(300 * time.Millisecond) // outlive the offload budget
 	alphaCache.Seams().Resume(dlru.CheckpointOffloadBeforeStore)
 	<-done
@@ -2070,7 +2070,7 @@ func TestDLRU_DeleteDuringShedNotResurrected(t *testing.T) {
 		// broadcastJoin blocks on alpha's frozen handleJoin response until the shed is resumed.
 		betaCache, _ = dlru.NewCache(ctx, beta, ":444/test")
 	}()
-	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
+	assert.True(alphaCache.Seams().WaitTimeout(ctx, dlru.CheckpointOffloadBeforeStore, time.Second))
 
 	// Delete a key that moved to beta while its shed is in flight: the delete reaches both owners
 	// before the frozen offload fires the key's soft store.
@@ -2146,7 +2146,7 @@ func TestDLRU_ClearDuringShedNotResurrected(t *testing.T) {
 		defer close(done)
 		betaCache, _ = dlru.NewCache(ctx, beta, ":444/test")
 	}()
-	alphaCache.Seams().Wait(dlru.CheckpointOffloadBeforeStore)
+	assert.True(alphaCache.Seams().WaitTimeout(ctx, dlru.CheckpointOffloadBeforeStore, time.Second))
 
 	// Clear the cache while the shed is in flight. The broadcast reaches both replicas concurrently
 	// with the frozen join handler.
@@ -2221,7 +2221,7 @@ func TestDLRU_StoreGateDuringTopologyChange(t *testing.T) {
 		defer close(done)
 		storeErr = alphaCache.Store(ctx, key, []byte("V"))
 	}()
-	alphaCache.Seams().Wait(dlru.CheckpointBeforeSend)
+	assert.True(alphaCache.Seams().WaitTimeout(ctx, dlru.CheckpointBeforeSend, time.Second))
 
 	// Change the topology underneath the in-flight store: a third replica joins, bumping the generation
 	// on alpha and beta (their message handlers process the join independently of the frozen store).

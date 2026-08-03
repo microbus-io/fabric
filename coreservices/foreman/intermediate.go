@@ -4,6 +4,7 @@ package foreman
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -46,7 +47,6 @@ type ToDo interface {
 	Poll(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                  // MARKER: Poll
 	Run(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (outcome *workflow.FlowOutcome, err error) // MARKER: Run
 	Continue(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error)                                   // MARKER: Continue
-	Signal(ctx context.Context, op string, payload []byte) (err error)                                                                    // MARKER: Signal
 	HistoryMermaid(w http.ResponseWriter, r *http.Request) (err error)                                                                    // MARKER: HistoryMermaid
 }
 
@@ -104,7 +104,6 @@ func NewIntermediate(impl ToDo) *Intermediate {
 			foremanapi.PollIn{},        // MARKER: Poll
 			foremanapi.RunIn{},         // MARKER: Run
 			foremanapi.ContinueIn{},    // MARKER: Continue
-			foremanapi.SignalIn{},      // MARKER: Signal
 		)
 	})
 
@@ -206,13 +205,6 @@ bridging an open-ended flow to a bounded request can answer within its budget an
 		sub.Description(`Continue creates a new running flow from the latest completed flow in a thread, merged with additional state using the graph's reducers. The threadKey can be any flowKey belonging to the thread. The new flow belongs to the same thread and inherits its policy (priority/fairness/budget/baggage); use Create with Opts.ThreadKey to set policy explicitly instead.`),
 		sub.Function(foremanapi.ContinueIn{}, foremanapi.ContinueOut{}),
 	)
-	svc.Subscribe( // MARKER: Signal
-		"Signal", svc.doSignal,
-		sub.At(foremanapi.Signal.Method, foremanapi.Signal.Route),
-		sub.Description(`Signal delivers an opaque cross-replica coordination signal (op, payload) to the embedded engine. Excludes self-delivery; processes only signals originating from a peer foreman replica.`),
-		sub.NoQueue(),
-		sub.Function(foremanapi.SignalIn{}, foremanapi.SignalOut{}),
-	)
 	svc.Subscribe( // MARKER: HistoryMermaid
 		"HistoryMermaid", svc.HistoryMermaid,
 		sub.At(foremanapi.HistoryMermaid.Method, foremanapi.HistoryMermaid.Route),
@@ -220,16 +212,32 @@ bridging an open-ended flow to a bounded request can answer within its budget an
 		sub.Web(),
 	)
 	svc.DescribeCounter("microbus_foreman_timeout_requests", `AckTimeouts counts task dispatches that hit a 404 ack-timeout (no microservice acked the dispatch), keyed by the task endpoint and the outcome: "retry" when the foreman re-probed within the step's time budget, "giveup" when the budget horizon was spent and the step was failed. The "giveup" series is the alertable "a microservice is missing" signal. Named to parallel the framework's microbus_client_timeout_requests; the Prometheus exporter appends the _total suffix.`) // MARKER: AckTimeouts
-	svc.DefineConfig(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 // MARKER: SQLDataSourceName
-		"SQLDataSourceName",
-		cfg.Description(`SQLDataSourceName is the connection string of the SQL database.`),
+	svc.DefineConfig(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 // MARKER: Shards
+		"Shards",
+		cfg.Description(`Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
+Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
+templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
+and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
+after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
+file shard.`),
+		cfg.DefaultValue(`[]`),
+		cfg.Validation(`json`),
 		cfg.Secret(),
+		cfg.Validator(func(ctx context.Context, value string) error {
+			var v []foremanapi.ShardSpec
+			err := json.Unmarshal([]byte(value), &v)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			return errors.Trace(dv8.Validate(ctx, &v))
+		}),
 	)
 	svc.DefineConfig( // MARKER: Workers
 		"Workers",
-		cfg.Description(`Workers is the number of concurrent workers that process flow steps.`),
-		cfg.DefaultValue(`64`),
-		cfg.Validation(`int [1,]`),
+		cfg.Description(`Workers is the maximum number of concurrent workers that process flow steps. Leave at -1 to let the engine derive the ceiling from each shard's connection budget and measured round-trip time. 0 stands up a replica that creates, awaits, and serves reads but never executes a task.`),
+		cfg.DefaultValue(`-1`),
+		cfg.Validation(`int [-1,]`),
 	)
 	svc.DefineConfig( // MARKER: TimeBudget
 		"TimeBudget",
@@ -243,17 +251,11 @@ bridging an open-ended flow to a bounded request can answer within its budget an
 		cfg.DefaultValue(`5`),
 		cfg.Validation(`int [1,]`),
 	)
-	svc.DefineConfig( // MARKER: NumShards
-		"NumShards",
-		cfg.Description(`NumShards is the number of database shards. Each shard is a separate database instance. Shards can be added but never removed; a change takes effect on restart.`),
-		cfg.DefaultValue(`1`),
-		cfg.Validation(`int [1,]`),
-	)
-	svc.DefineConfig( // MARKER: SQLConnectionPool
-		"SQLConnectionPool",
-		cfg.Description(`SQLConnectionPool is the number of database connections kept open per shard.`),
-		cfg.DefaultValue(`8`),
-		cfg.Validation(`int [1,]`),
+	svc.DefineConfig( // MARKER: MaxOpenConns
+		"MaxOpenConns",
+		cfg.Description(`MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.`),
+		cfg.DefaultValue(`0`),
+		cfg.Validation(`int [0,]`),
 	)
 
 	return svc
@@ -468,17 +470,6 @@ func (svc *Intermediate) doContinue(w http.ResponseWriter, r *http.Request) (err
 	return err // No trace
 }
 
-// doSignal handles marshaling for Signal.
-func (svc *Intermediate) doSignal(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Signal
-	var in foremanapi.SignalIn
-	var out foremanapi.SignalOut
-	err = marshalFunction(w, r, foremanapi.Signal.Route, &in, &out, func(_ any, _ any) error {
-		err = svc.Signal(r.Context(), in.Op, in.Payload)
-		return err // No trace
-	})
-	return err // No trace
-}
-
 // AckTimeouts counts task dispatches that hit a 404 ack-timeout (no microservice acked the dispatch), keyed by the task endpoint and the outcome: "retry" when the foreman re-probed within the step's time budget, "giveup" when the budget horizon was spent and the step was failed. The "giveup" series is the alertable "a microservice is missing" signal. Named to parallel the framework's microbus_client_timeout_requests; the Prometheus exporter appends the _total suffix.
 func (svc *Intermediate) IncrementAckTimeouts(ctx context.Context, value int, task_url string, outcome string) (err error) { // MARKER: AckTimeouts
 	return svc.IncrementCounter(ctx, "microbus_foreman_timeout_requests", float64(value),
@@ -487,17 +478,30 @@ func (svc *Intermediate) IncrementAckTimeouts(ctx context.Context, value int, ta
 	)
 }
 
-// SQLDataSourceName is the connection string of the SQL database.
-func (svc *Intermediate) SQLDataSourceName() (value string) { // MARKER: SQLDataSourceName
-	return svc.Config("SQLDataSourceName")
+// Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
+// Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
+// templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
+// and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+// resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
+// after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
+// file shard.
+func (svc *Intermediate) Shards() (value []foremanapi.ShardSpec) { // MARKER: Shards
+	_val := svc.Config("Shards")
+	_ = json.Unmarshal([]byte(_val), &value)
+	_ = dv8.Validate(svc.Lifetime(), &value) // Apply normalizing directives
+	return value
 }
 
-// SetSQLDataSourceName sets the value of the configuration property.
-func (svc *Intermediate) SetSQLDataSourceName(value string) (err error) { // MARKER: SQLDataSourceName
-	return svc.SetConfig("SQLDataSourceName", value)
+// SetShards sets the value of the configuration property.
+func (svc *Intermediate) SetShards(value []foremanapi.ShardSpec) (err error) { // MARKER: Shards
+	_data, err := json.Marshal(value)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return svc.SetConfig("Shards", string(_data))
 }
 
-// Workers is the number of concurrent workers that process flow steps.
+// Workers is the maximum number of concurrent workers that process flow steps. Leave at -1 to let the engine derive the ceiling from each shard's connection budget and measured round-trip time. 0 stands up a replica that creates, awaits, and serves reads but never executes a task.
 func (svc *Intermediate) Workers() (value int) { // MARKER: Workers
 	_val := svc.Config("Workers")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
@@ -533,26 +537,14 @@ func (svc *Intermediate) SetDefaultPriority(value int) (err error) { // MARKER: 
 	return svc.SetConfig("DefaultPriority", strconv.Itoa(value))
 }
 
-// NumShards is the number of database shards. Each shard is a separate database instance. Shards can be added but never removed; a change takes effect on restart.
-func (svc *Intermediate) NumShards() (value int) { // MARKER: NumShards
-	_val := svc.Config("NumShards")
+// MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.
+func (svc *Intermediate) MaxOpenConns() (value int) { // MARKER: MaxOpenConns
+	_val := svc.Config("MaxOpenConns")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
 
-// SetNumShards sets the value of the configuration property.
-func (svc *Intermediate) SetNumShards(value int) (err error) { // MARKER: NumShards
-	return svc.SetConfig("NumShards", strconv.Itoa(value))
-}
-
-// SQLConnectionPool is the number of database connections kept open per shard.
-func (svc *Intermediate) SQLConnectionPool() (value int) { // MARKER: SQLConnectionPool
-	_val := svc.Config("SQLConnectionPool")
-	_i, _ := strconv.ParseInt(_val, 10, 64)
-	return int(_i)
-}
-
-// SetSQLConnectionPool sets the value of the configuration property.
-func (svc *Intermediate) SetSQLConnectionPool(value int) (err error) { // MARKER: SQLConnectionPool
-	return svc.SetConfig("SQLConnectionPool", strconv.Itoa(value))
+// SetMaxOpenConns sets the value of the configuration property.
+func (svc *Intermediate) SetMaxOpenConns(value int) (err error) { // MARKER: MaxOpenConns
+	return svc.SetConfig("MaxOpenConns", strconv.Itoa(value))
 }

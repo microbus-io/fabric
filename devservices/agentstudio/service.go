@@ -215,14 +215,12 @@ func (svc *Service) WorkflowDetail(w http.ResponseWriter, r *http.Request) (err 
 
 	var flowchartBody any = wf.Text("(graph unavailable)")
 	if graph != nil {
-		mmd, rerr := workflow.NewGraphRenderer(graph).
+		mmd := workflow.NewGraphRenderer(graph).
 			WithPrimaryColors(mermaid.PrimaryContainer, mermaid.OnPrimaryContainer).
 			WithSecondaryColors(mermaid.SecondaryContainer, mermaid.OnSecondaryContainer).
 			WithLinks("task").
 			Render()
-		if rerr == nil {
-			flowchartBody = wf.Mermaid(mmd).WithZoomPan(true).WithHeight("calc(100vh - 120px)")
-		}
+		flowchartBody = wf.Mermaid(mmd).WithZoomPan(true).WithHeight("calc(100vh - 120px)")
 	}
 
 	if !wf.StateOf(r).Has("workflowTab") {
@@ -459,7 +457,7 @@ func (svc *Service) ListFlows(w http.ResponseWriter, r *http.Request) (err error
 				wf.TextStyle(f.WorkflowName).WithColorDeemphasized(),
 			),
 			statusCell,
-			wf.Duration(f.Duration()),
+			wf.Duration(flowDuration(f)),
 			wf.QuickSearchUnderliner(truncate(errCell, 80)),
 		))
 	}
@@ -537,16 +535,13 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 		wf.Field().AddLeft("Duration").AddRight(wf.Duration(updatedAt.Sub(startedAt))),
 	)
 
-	mmd, mmdErr := workflow.NewFlowRenderer(steps).
+	mmd := workflow.NewFlowRenderer(steps).
 		WithPrimaryColors(mermaid.PrimaryContainer, mermaid.OnPrimaryContainer).
 		WithSecondaryColors(mermaid.SecondaryContainer, mermaid.OnSecondaryContainer).
 		WithErrorColors(mermaid.ErrorContainer, mermaid.OnErrorContainer).
 		WithAttentionColors(mermaid.TertiaryContainer, mermaid.OnTertiaryContainer).
 		WithLinks("step").
 		Render()
-	if mmdErr != nil {
-		mmd = "flowchart TD\n  err[\"(history unavailable)\"]"
-	}
 	mmdWidget := wf.Mermaid(mmd).WithZoomPan(true).WithHeight("calc(100vh - 120px)").RedrawIfChanged(r, "flowrefresh")
 	// Seed flowstopped so a flow opened in a terminal state renders the bar
 	// already hidden — Tag.When(false) emits a stable empty placeholder, no
@@ -573,7 +568,7 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 	if len(steps) > 0 {
 		firstStep, err := svc.foreman.Step(r.Context(), steps[0].StepKey)
 		if err == nil && firstStep != nil {
-			inputForm = renderStateForm(r, "expFlowIn", firstStep.State, nil)
+			inputForm = renderStateForm(r, "expFlowIn", stateMap(firstStep.State), nil)
 		}
 		lastKey := steps[len(steps)-1].StepKey
 		lastStep := firstStep
@@ -584,11 +579,8 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 			}
 		}
 		if lastStep != nil {
-			merged := make(map[string]any, len(lastStep.State)+len(lastStep.Changes))
-			for k, v := range lastStep.State {
-				merged[k] = v
-			}
-			for k, v := range lastStep.Changes {
+			merged := stateMap(lastStep.State)
+			for k, v := range stateMap(lastStep.Changes) {
 				merged[k] = v
 			}
 			outputForm = renderStateForm(r, "expFlowOut", merged, nil)
@@ -793,14 +785,16 @@ func (svc *Service) StepDetail(w http.ResponseWriter, r *http.Request) (err erro
 	}
 
 	// Input tab: state snapshot as the task saw it on entry. One row per key.
+	stepState := stateMap(step.State)
+	stepChanges := stateMap(step.Changes)
 	inputForm := wf.Form()
-	inputKeys := make([]string, 0, len(step.State))
-	for k := range step.State {
+	inputKeys := make([]string, 0, len(stepState))
+	for k := range stepState {
 		inputKeys = append(inputKeys, k)
 	}
 	sort.Strings(inputKeys)
 	for _, k := range inputKeys {
-		inputForm.Add(stateField(r, stateKeyFor("expIn", k), k, jsonValueString(step.State[k], true), func(s string) any {
+		inputForm.Add(stateField(r, stateKeyFor("expIn", k), k, jsonValueString(stepState[k], true), func(s string) any {
 			return wf.Text(s)
 		}))
 	}
@@ -816,15 +810,15 @@ func (svc *Service) StepDetail(w http.ResponseWriter, r *http.Request) (err erro
 		}
 		return false
 	}
-	showOutput := len(step.Changes) > 0 || terminal(step.Status)
+	showOutput := len(stepChanges) > 0 || terminal(step.Status)
 	var outputForm any
 	if showOutput {
 		form := wf.Form()
-		outKeys := mergedSortedKeys(step.State, step.Changes)
+		outKeys := mergedSortedKeys(stepState, stepChanges)
 		for _, k := range outKeys {
-			val, inChanges := step.Changes[k]
+			val, inChanges := stepChanges[k]
 			if !inChanges {
-				val = step.State[k]
+				val = stepState[k]
 			}
 			styled := func(s string) any { return wf.Text(s) }
 			if !inChanges {
@@ -845,15 +839,15 @@ func (svc *Service) StepDetail(w http.ResponseWriter, r *http.Request) (err erro
 	// is set on the body switcher (where the bodies live) since that's the one
 	// that owns the default-selected key.
 	var interruptForm any
-	if len(step.InterruptPayload) > 0 {
+	if stepInterrupt := stateMap(step.InterruptPayload); len(stepInterrupt) > 0 {
 		f := wf.Form()
-		intrKeys := make([]string, 0, len(step.InterruptPayload))
-		for k := range step.InterruptPayload {
+		intrKeys := make([]string, 0, len(stepInterrupt))
+		for k := range stepInterrupt {
 			intrKeys = append(intrKeys, k)
 		}
 		sort.Strings(intrKeys)
 		for _, k := range intrKeys {
-			f.Add(stateField(r, stateKeyFor("expIntr", k), k, jsonValueString(step.InterruptPayload[k], true), func(s string) any {
+			f.Add(stateField(r, stateKeyFor("expIntr", k), k, jsonValueString(stepInterrupt[k], true), func(s string) any {
 				return wf.Text(s)
 			}))
 		}

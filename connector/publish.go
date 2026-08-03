@@ -710,7 +710,7 @@ func (c *Connector) handleResponse(msg *transport.Msg) error {
 	}
 	deliver()
 	// Test-only: re-inject the same response to drive the overflow-goroutine path deterministically.
-	for c.seams.IsFault(faultDuplicateResponse, frame.Of(response).FromHost()) {
+	for c.seams.Enabled() && c.seams.IsFault(faultDuplicateResponse(frame.Of(response).FromHost())) {
 		deliver()
 	}
 	return nil

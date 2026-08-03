@@ -31,7 +31,6 @@ type Mock struct {
 	mockPoll           func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Poll
 	mockRun            func(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (outcome *workflow.FlowOutcome, err error) // MARKER: Run
 	mockContinue       func(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error)                                        // MARKER: Continue
-	mockSignal         func(ctx context.Context, op string, payload []byte) (err error)                                                                       // MARKER: Signal
 	mockHistoryMermaid func(w http.ResponseWriter, r *http.Request) (err error)                                                                               // MARKER: HistoryMermaid
 }
 
@@ -278,20 +277,6 @@ func (svc *Mock) Continue(ctx context.Context, threadKey string, additionalState
 		newFlowKey, err = svc.mockContinue(ctx, threadKey, additionalState)
 	}
 	return newFlowKey, errors.Trace(err)
-}
-
-// MockSignal sets up a mock handler for Signal.
-func (svc *Mock) MockSignal(handler func(ctx context.Context, op string, payload []byte) (err error)) *Mock { // MARKER: Signal
-	svc.mockSignal = handler
-	return svc
-}
-
-// Signal executes the mock handler.
-func (svc *Mock) Signal(ctx context.Context, op string, payload []byte) (err error) { // MARKER: Signal
-	if svc.mockSignal != nil {
-		err = svc.mockSignal(ctx, op, payload)
-	}
-	return errors.Trace(err)
 }
 
 // MockHistoryMermaid sets up a mock handler for HistoryMermaid.

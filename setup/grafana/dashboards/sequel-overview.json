@@ -1771,7 +1771,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (database) (rate(sequel_pool_wait_count{deployment=~\"$deployment\"}[$interval]))",
+          "expr": "sum by (database) (rate(sequel_pool_waits_total{deployment=~\"$deployment\"}[$interval]))",
           "instant": false,
           "legendFormat": "{{database}}",
           "range": true,
@@ -1868,7 +1868,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (database) (rate(sequel_pool_wait_duration_seconds{deployment=~\"$deployment\"}[$interval]))",
+          "expr": "sum by (database) (rate(sequel_pool_wait_duration_seconds_total{deployment=~\"$deployment\"}[$interval]))",
           "instant": false,
           "legendFormat": "{{database}}",
           "range": true,

@@ -3532,7 +3532,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (database) (rate(sequel_pool_wait_count{deployment=~\"$deployment\", service=\"$service\"}[$interval]))",
+          "expr": "sum by (database) (rate(sequel_pool_waits_total{deployment=~\"$deployment\", service=\"$service\"}[$interval]))",
           "instant": false,
           "legendFormat": "{{database}}",
           "range": true,

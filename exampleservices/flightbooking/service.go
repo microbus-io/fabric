@@ -250,7 +250,7 @@ func flattenSteps(steps []foremanapi.FlowStep, indent bool) []demoStep {
 	var result []demoStep
 	for _, s := range steps {
 		changes := ""
-		if len(s.Changes) > 0 {
+		if s.Changes.Len() > 0 {
 			b, _ := json.Marshal(s.Changes)
 			changes = string(b)
 		}
@@ -268,19 +268,12 @@ func flattenSteps(steps []foremanapi.FlowStep, indent bool) []demoStep {
 
 // proposedFlight decodes the flight the flow is currently parked on from its interrupt payload.
 func proposedFlight(outcome *workflow.FlowOutcome) (flightbookingapi.Flight, bool) {
-	if outcome == nil || outcome.InterruptPayload == nil {
-		return flightbookingapi.Flight{}, false
-	}
-	raw, ok := outcome.InterruptPayload["flight"]
-	if !ok {
-		return flightbookingapi.Flight{}, false
-	}
-	b, err := json.Marshal(raw)
-	if err != nil {
+	if outcome == nil {
 		return flightbookingapi.Flight{}, false
 	}
 	var f flightbookingapi.Flight
-	if err := json.Unmarshal(b, &f); err != nil {
+	ok, err := outcome.InterruptPayload.Get("flight", &f)
+	if err != nil || !ok {
 		return flightbookingapi.Flight{}, false
 	}
 	return f, true
