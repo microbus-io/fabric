@@ -78,10 +78,11 @@ Otherwise the project is exactly one version behind this release. Migrate it:
 
 *Invoked by Step 2. This is `DEST`'s migration; a release author replaces it when cutting the next release (see "Authoring framework upgrade skills" in the repo-root `CLAUDE.md`). Confine it to source edits - Step 2 owns the per-increment `genservice` + `go vet`, and Step 4 owns the final `go test`.*
 
-v1.46.0 carries two independent migrations: a `Parallel` signature change plus the HTTP ingress and tracing
-changes (3a through 3e), and the dwarf workflow-engine upgrade to v0.10.2 (3f through 3l). A project with no
-workflows can stop after 3e; one that defines tasks or workflows, or that configures `foreman.core`, must do
-both halves.
+v1.46.0 carries two independent migrations. Steps 3a through 3g apply to **every** project: a `Parallel`
+signature change, the HTTP ingress and tracing changes, one deployment prerequisite, and two renamed metric
+series. Steps 3h through 3n apply only to a project that defines tasks or workflows, or that configures
+`foreman.core`, and 3h is the gate that lets everyone else skip them. Work through them in order; do not
+reorder, because 3h exits early.
 
 v1.46.0 changes the signature of `Parallel` (on the connector, the `*Service` base type, and the
 `service.Executor` interface):
@@ -196,9 +197,78 @@ grep -rn --include='*.go' --exclude-dir=vendor '\.SetRequest(' .
 Delete each call - the attributes it added are already on the span. A caller that relied on its client-IP side
 effect can call `span.SetClientIP(r.RemoteAddr)` directly, which remains available.
 
-#### 3f. Skip 3g Through 3l If the Project Has No Workflows
+#### 3f. Confirm PROD and LAB Run NATS Over TLS (Deployment Prerequisite, Ask the User)
 
-v1.46.0 moves the embedded workflow engine from dwarf v0.9.5 to v0.10.3, which changes the `workflow` package's
+**This one can stop a deployment from starting, so raise it before finishing the upgrade.** From v1.46.0 a
+connector aborts `Startup` when all three of these hold:
+
+- the deployment is `PROD` or `LAB` (`LOCAL` and `TESTING` are never affected), and
+- the microservice defines at least one config declared `Secret: true`, and
+- the transport is a live NATS connection without TLS.
+
+It fails with `refusing to start with secret configs over an insecure transport`. A bundle with no wire at all
+(short-circuit only) counts as secure, so this is specifically about a plaintext NATS connection.
+
+**Assume the project is affected.** Several shipped core microservices define secret configs of their own -
+`metrics.core`, `bearertoken.core` and `foreman.core` among them - so an app that runs any of those in PROD or
+LAB hits this even if it declares no secrets itself. List the project's own ones too, so the user can see the
+full surface:
+
+```bash
+grep -rln --include='definition.go' --exclude-dir=vendor 'Secret:[[:space:]]*true' .
+```
+
+Tell the user, whether or not that grep matches: **before or together with this upgrade, PROD and LAB must
+connect to NATS over TLS.** That is the `MICROBUS_NATS` URL and the broker's own configuration, which live in
+the deployment environment rather than this checkout, so this skill cannot verify or change it. Nothing needs
+to change in the project's code. An environment that already uses TLS is unaffected and needs no action.
+
+#### 3g. Update Renamed Metric Series in Dashboards and Alerts (Grep-Guided)
+
+Two metric changes rename or reshape series. Neither affects application code; both silently blank a panel or
+alert that still queries the old name.
+
+**The sequel connection-pool wait metrics became counters** (sequel v1.11.2), which renames one instrument and
+adds the Prometheus `_total` suffix to both:
+
+| Before (PromQL) | After (PromQL) |
+|---|---|
+| `sequel_pool_wait_count` | `sequel_pool_waits_total` |
+| `sequel_pool_wait_duration_seconds` | `sequel_pool_wait_duration_seconds_total` |
+
+Projects often vendor their Grafana dashboards, so rewrite the ones in the repo. Run this as-is; it is
+idempotent and matches nothing in a project that keeps its dashboards elsewhere, so there is no separate
+check to make first (do not grep for the old names to decide whether to run it - `sequel_pool_wait_duration_seconds`
+is a prefix of its own migrated form, so a plain grep reports a hit on an already-migrated file):
+
+```bash
+grep -rl 'sequel_pool_wait' --include='*.json' --include='*.yaml' --include='*.yml' --exclude-dir=vendor . \
+  | xargs -r perl -pi -e '
+      s/\bsequel_pool_wait_duration_seconds\b(?!_total)/sequel_pool_wait_duration_seconds_total/g;
+      s/\bsequel_pool_wait_count\b/sequel_pool_waits_total/g;
+    '
+```
+
+Report which files it changed, if any, so the user knows which dashboards to re-import.
+
+**The server histograms dropped two labels.** `microbus_server_request_duration_seconds` and
+`microbus_server_response_body_bytes` no longer carry `route` or `canonical`; both were derivable from the
+`service`, `port` and `name` labels that remain. This one cannot be rewritten mechanically, because a query
+that grouped by `route` has to be re-aggregated on something else - which grouping is right is the author's
+call:
+
+```bash
+grep -rn 'microbus_server_request_duration_seconds\|microbus_server_response_body_bytes' --include='*.json' --include='*.yaml' --include='*.yml' --exclude-dir=vendor .
+```
+
+Show the user any hit that references `route` or `canonical` and ask what it should group by instead.
+
+Finally, tell the user to apply both changes to any dashboard or alerting rule kept outside this repo - a
+Grafana instance, an ops repo, a Prometheus rules file. This skill can only reach what is checked in here.
+
+#### 3h. Skip 3i Through 3n If the Project Has No Workflows
+
+v1.46.0 moves the embedded workflow engine from dwarf v0.9.5 to v0.10.5, which changes the `workflow` package's
 state model and the foreman's configuration. Check whether any of it applies:
 
 ```bash
@@ -206,11 +276,11 @@ grep -rln --include='*.go' --exclude-dir=vendor 'microbus-io/dwarf' . | grep -v 
 grep -rn 'foreman.core' config.yaml config.local.yaml 2>/dev/null
 ```
 
-If neither finds anything, the project has no workflows and no foreman configuration; skip to Step 4. Note that
-`go.mod` still moves to dwarf v0.10.3 (it is a fabric dependency) along with transitive bumps to sequel and
-boolexp, which need no source changes.
+If neither finds anything, the project has no workflows and no foreman configuration: 3i through 3n do not
+apply, and Step 3 is complete - go to Step 4. `go.mod` still moves to dwarf v0.10.5 either way (it is a
+fabric dependency), along with transitive bumps to sequel and boolexp, and none of those need source changes.
 
-#### 3g. Rename `flow.Delete` to `flow.Del` (Mechanical)
+#### 3i. Rename `flow.Delete` to `flow.Del` (Mechanical)
 
 `Flow.Delete` is now `Flow.Del`. Nothing else about it changed:
 
@@ -222,7 +292,7 @@ The receiver is conventionally named `flow` in a task handler. If a project name
 pattern to that name, and check the result: `Delete` is a common method name on unrelated types, so a blind
 repo-wide rename is wrong.
 
-#### 3h. Replace `flow.Transform` (Grep-Guided)
+#### 3j. Replace `flow.Transform` (Grep-Guided)
 
 `Flow.Transform(newKey, oldKey, ...)` - clear all state, then re-introduce the listed fields under new names - is
 removed with no direct replacement. Find every call:
@@ -252,7 +322,7 @@ flow.Set("answer", answer)
 A `Transform` used purely as a "keep these" (all pairs of the form `("name", "name")`) is usually clearer as
 `flow.Del` of the fields that should go. Ask the user when the intended shape is not obvious from the call.
 
-#### 3i. Migrate `map[string]any` State to `workflow.State` (Grep-Guided)
+#### 3k. Migrate `map[string]any` State to `workflow.State` (Grep-Guided)
 
 Flow state is now a `workflow.State` value rather than a `map[string]any`. The affected fields and returns:
 
@@ -281,7 +351,7 @@ Rewrite each with the typed accessors, which is usually shorter than what it rep
 `workflow.MergeState` is also removed; the equivalents are the `State` methods `Merge`, `MergeReduce`, and
 `MergeReduceAll`.
 
-#### 3j. Fix the Remaining Removed Members (Grep-Guided)
+#### 3l. Fix the Remaining Removed Members (Grep-Guided)
 
 Four smaller removals, each a compile error at the call site:
 
@@ -300,7 +370,7 @@ grep -rn --include='*.go' --exclude-dir=vendor 'WithInputFlow(\|\.Duration()\|Ha
 - **`FlowRenderer.Render()` and `GraphRenderer.Render()` return only a string**, no error. Drop the second return
   value and the error branch that followed it.
 
-#### 3k. Rewrite the `foreman.core` Shard Configuration (Config, Ask the User)
+#### 3m. Rewrite the `foreman.core` Shard Configuration (Config, Ask the User)
 
 The foreman's database configuration is replaced. Each shard now declares its own connection string plus the CPU
 count of its database server, from which the engine derives that shard's connection budget and its share of new-flow
@@ -339,7 +409,7 @@ own configuration, not in a committed `config.yaml`. Then check the two override
 As with 3c and 3d, production config often lives outside this checkout; tell the user to apply the same rewrite
 wherever `foreman.core` is configured in their deployment environments.
 
-#### 3l. Drop Calls to the Removed `foremanapi.Signal`
+#### 3n. Drop Calls to the Removed `foremanapi.Signal`
 
 Dwarf replicas no longer message each other: a fleet sharing a database coordinates entirely by polling it. The
 foreman's `Signal` endpoint and its `SignalIn`/`SignalOut` types are removed along with the host-side
