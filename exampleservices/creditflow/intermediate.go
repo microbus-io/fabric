@@ -239,9 +239,8 @@ func (svc *Intermediate) doSubmitCreditApplication(w http.ResponseWriter, r *htt
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.SubmitCreditApplicationIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -251,7 +250,30 @@ func (svc *Intermediate) doSubmitCreditApplication(w http.ResponseWriter, r *htt
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("applicantName", &out.ApplicantName)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("ssn", &out.SSN)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("address", &out.Address)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("phone", &out.Phone)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("employers", &out.Employers)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("creditScore", &out.CreditScore)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -269,9 +291,8 @@ func (svc *Intermediate) doVerifyCredit(w http.ResponseWriter, r *http.Request) 
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.VerifyCreditIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -281,7 +302,10 @@ func (svc *Intermediate) doVerifyCredit(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("creditVerified", &out.CreditVerified)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -299,9 +323,8 @@ func (svc *Intermediate) doVerifyEmployment(w http.ResponseWriter, r *http.Reque
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.VerifyEmploymentIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -311,7 +334,10 @@ func (svc *Intermediate) doVerifyEmployment(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("employmentFailures", &out.EmploymentFailuresOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -329,19 +355,16 @@ func (svc *Intermediate) doInitIdentityVerification(w http.ResponseWriter, r *ht
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.InitIdentityVerificationIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	var out creditflowapi.InitIdentityVerificationOut
 	err = svc.InitIdentityVerification(r.Context(), &flow, in.ApplicantName, in.SSN, in.Address, in.Phone)
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -359,9 +382,8 @@ func (svc *Intermediate) doVerifySSN(w http.ResponseWriter, r *http.Request) (er
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.VerifySSNIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -371,7 +393,10 @@ func (svc *Intermediate) doVerifySSN(w http.ResponseWriter, r *http.Request) (er
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("ssnVerified", &out.SsnVerified)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -389,9 +414,8 @@ func (svc *Intermediate) doVerifyAddress(w http.ResponseWriter, r *http.Request)
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.VerifyAddressIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -401,7 +425,10 @@ func (svc *Intermediate) doVerifyAddress(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("addressVerified", &out.AddressVerified)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -419,9 +446,8 @@ func (svc *Intermediate) doVerifyPhoneNumber(w http.ResponseWriter, r *http.Requ
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.VerifyPhoneNumberIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -431,7 +457,10 @@ func (svc *Intermediate) doVerifyPhoneNumber(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("phoneVerified", &out.PhoneVerified)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -449,9 +478,8 @@ func (svc *Intermediate) doIdentityDecision(w http.ResponseWriter, r *http.Reque
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.IdentityDecisionIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -461,7 +489,10 @@ func (svc *Intermediate) doIdentityDecision(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("identityVerified", &out.IdentityVerified)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -479,9 +510,8 @@ func (svc *Intermediate) doRunIdentityVerification(w http.ResponseWriter, r *htt
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.RunIdentityVerificationIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -491,7 +521,10 @@ func (svc *Intermediate) doRunIdentityVerification(w http.ResponseWriter, r *htt
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("identityVerified", &out.IdentityVerified)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -509,9 +542,8 @@ func (svc *Intermediate) doRequestMoreInfo(w http.ResponseWriter, r *http.Reques
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.RequestMoreInfoIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -521,7 +553,10 @@ func (svc *Intermediate) doRequestMoreInfo(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("reviewAttempts", &out.ReviewAttemptsOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -539,9 +574,8 @@ func (svc *Intermediate) doReviewCredit(w http.ResponseWriter, r *http.Request) 
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.ReviewCreditIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -551,7 +585,10 @@ func (svc *Intermediate) doReviewCredit(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("creditVerified", &out.CreditVerifiedOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -569,9 +606,8 @@ func (svc *Intermediate) doHandleCreditError(w http.ResponseWriter, r *http.Requ
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.HandleCreditErrorIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -581,7 +617,10 @@ func (svc *Intermediate) doHandleCreditError(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("creditVerified", &out.CreditVerified)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -599,9 +638,8 @@ func (svc *Intermediate) doDecision(w http.ResponseWriter, r *http.Request) (err
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in creditflowapi.DecisionIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -611,7 +649,10 @@ func (svc *Intermediate) doDecision(w http.ResponseWriter, r *http.Request) (err
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("approved", &out.Approved)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {

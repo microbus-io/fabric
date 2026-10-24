@@ -20,7 +20,7 @@ schema, metrics, and tracing. This service owns only the Microbus seam:
 - **Identity**: actor claims + tenant are read from `frame.Of(ctx)` at `Create`/`Run` and passed to the
   engine as opaque `FlowOptions.Baggage`; the engine never interprets them.
 - **Config / lifecycle**: `OnStartup` builds the engine from the config (`Shards`, `Workers`, `TimeBudget`,
-  `DefaultPriority`, `MaxOpenConns`), injects the connector's meter/tracer/slog providers, and starts it.
+  `MaxPriority`), injects the connector's meter/tracer/slog providers, and starts it.
 
 The engine's internal design rationale lives in dwarf's own `CLAUDE.md`; this file covers only the adapter
 and the decisions that are non-obvious *because* the foreman is now a delegating shell.
@@ -86,10 +86,11 @@ them on a running engine returns an error). So `OnStartup` calls `eng.SetLogger(
 here can't fail, so the real error surfaces from `Startup`.) The engine emits `dwarf_*` instruments and spans
 straight through the connector's OTEL pipeline. (The Grafana dashboard at
 `setup/grafana/dashboards/workflow-overview.json` reads the `dwarf_*` names, and covers the engine's whole
-instrument set. Two of its aggregation rules are load-bearing rather than cosmetic: `dwarf_steps_pending` and
-`dwarf_steps_oldest_pending_age_seconds` are computed by querying the shared shard databases, so every replica
-reports the *same* number and they aggregate with `max` - summing them multiplies the backlog by the replica
-count. Every other engine gauge is per-replica and sums.)
+instrument set. Its aggregation rules for the per-shard gauges are load-bearing rather than cosmetic:
+`dwarf_steps_pending` and `dwarf_steps_oldest_pending_age_seconds` are reported every 30 seconds by one leading
+replica per shard, so `dwarf_steps_pending` aggregates with `max` per shard and priority, then `sum` across shards,
+and the oldest-pending age and `dwarf_steps_dispatch_lag_seconds` aggregate with `max`. The per-replica gauges
+sum.)
 
 **The foreman emits exactly one microbus metric of its own: `AckTimeouts`** (OTel name
 `microbus_foreman_timeout_requests`; the Prometheus exporter appends `_total`, so it queries as
@@ -154,14 +155,14 @@ explicit `FairnessKey`, the foreman fills it with the frame's tenant id, so cros
 out of the box without the engine knowing what a tenant is.
 
 **There is no stop-notification endpoint or event; the foreman offers no `NotifyOnStop` or `OnFlowStopped`.**
-The engine has no stop-notification callback (its `Host` is the three methods above), so the adapter exposes
+The engine has no stop-notification callback (its `Host` is the two methods above), so the adapter exposes
 nothing for it either. A caller learns a flow's outcome by **`Await`** (block a live caller, re-await if its
 context deadline fires first), by **`Poll`** (the long-poll sibling of `Await`), or by **composing** the
 follow-up into the workflow itself - an orchestrating graph that runs the real work as a subgraph and routes
 success/failure to separate tasks, each a durable, independently retried step.
 
 `Poll` mirrors `Await` on both layers (`engine.Poll` in dwarf, the `Poll` endpoint here) so the APIs stay
-symmetric. The engine's internal `await` always returns the flow's latest outcome; the public `Await` turns a
+symmetric. Both return the flow's latest outcome once it stops or the wait ends; the public `Await` turns a
 non-stopped result (the ctx expired before the flow stopped, detected via `outcome.Stopped()`) into a timeout
 error, whereas `Poll` returns that running outcome as-is with no error. Because `Poll` never returns an error on
 a not-yet-stopped flow, the foreman handler returns cleanly and Microbus logs nothing - which is the whole point:
@@ -182,9 +183,28 @@ only on the next restart, and only after a coordinated restart of *every* replic
 peer does not know is unroutable (404) there. Retire a shard by cordoning it (`"cordoned": true` keeps every
 resident flow running while excluding it from new placement) rather than dropping its entry.
 
-**`Workers` and `MaxOpenConns` default to "derive".** Both are expert overrides in the engine now: it sizes each
-shard's pool from that shard's `VirtualCPUs` and derives the worker ceiling from the pools and the measured
-round-trip time. So `OnStartup` calls `SetWorkers` only for a value `>= 0` and `SetMaxOpenConns` only for one
-`> 0`, and the configs default to `-1` and `0` respectively to mean "leave it derived". `Workers` uses `-1`
-rather than `0` as its sentinel because `SetWorkers(0)` is itself a meaningful shape - a replica that creates,
-awaits, and serves reads but never executes a task - which the config has to stay able to express.
+**`Workers` defaults to "derive", and a shard's connections are set per shard.** The engine derives each shard's
+connection budget (250-500 by round trip, clamped by the server's `max_connections`, split between the shard's
+two dispatcher replicas) and the worker ceiling from the budgets and the measured round-trip time. So `OnStartup`
+calls `SetWorkers` only for a value `>= 0`, and the config defaults to `-1` to mean "leave it derived". `-1`
+rather than `0` is the sentinel because `SetWorkers(0)` is itself a meaningful shape - a replica that creates,
+awaits, and serves reads but never executes a task - which the config has to stay able to express. There is no
+process-wide pool override: the lever is `maxConnections` on a `Shards` entry, the shard's fleet-wide budget,
+which `foremanapi.ShardSpec` carries because it aliases `engine.ShardSpec`. Set it lower for a database shared
+with other workloads, and explicitly when several shards are databases on one server.
+
+**`MaxPriority` is a config, and the default priority is not.** The engine runs priorities from 1 to a maximum
+(5 by default, at most 100) and gives a flow that sets none the midpoint, so the range is the only knob left.
+It must be the same on every replica, which a config guarantees, and it is read once before `Startup`. Work
+stored above the range (for example, flows created by a replica with a larger `MaxPriority`) is served after every
+level in it.
+
+**The state cache sizes itself from the memory limit.** The engine's state cache defaults to a tenth of the
+memory the process may use: the Go runtime's soft limit (`GOMEMLIMIT` or `debug.SetMemoryLimit`), else the
+cgroup limit, else 1 GiB. The foreman exposes no override; bound it by setting `GOMEMLIMIT` (or calling
+`debug.SetMemoryLimit` before the foreman starts), which also stops the heap from growing to about twice the
+cache. In a bundle, the foreman's share is of the whole process's limit.
+
+**Tracing needs the provider before `Startup`.** The engine binds its tracer at `Startup` and never picks up a
+provider installed later. The connector initializes its tracer before `OnStartup`, and `OnStartup` passes
+`svc.TracerProvider()` to the engine before calling `eng.Startup`, so the order holds.

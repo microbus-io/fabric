@@ -31,7 +31,7 @@ const Hostname = "llm.core"
 const Name = "LLM"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 15
+const Version = 16
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `The LLM microservice bridges LLM tool-calling protocols with Microbus endpoint invocations.`
@@ -147,9 +147,10 @@ type InitChatIn struct { // MARKER: InitChat
 type InitChatOut struct { // MARKER: InitChat
 }
 
-// CallLLM is the sole owner of the items conversation state key. It folds the prior round's tool
+// CallLLM is the sole writer of the items conversation state key. It folds the prior round's tool
 // results (accumulated in the toolResults key by the fan-in) into the conversation, calls the provider,
-// and writes the full conversation back to items (plain replace, not a delta).
+// and contributes the folded tool results and the new turn to items, whose append reducer adds them to the
+// conversation.
 var CallLLM = define.Task{ // MARKER: CallLLM
 	Host: Hostname, Method: "POST", Route: ":428/call-llm",
 	In: CallLLMIn{}, Out: CallLLMOut{},
@@ -163,8 +164,8 @@ type CallLLMIn struct { // MARKER: CallLLM
 	ToolResults []ToolResult `json:"toolResults,omitzero"`
 }
 
-// CallLLMOut are the output arguments of CallLLM. ItemsOut writes the full conversation to the items
-// state key; PendingToolCalls drives the forEach fan-out.
+// CallLLMOut are the output arguments of CallLLM. ItemsOut contributes the folded tool results and the new
+// turn to the Append-reduced items state key; PendingToolCalls drives the forEach fan-out.
 type CallLLMOut struct { // MARKER: CallLLM
 	ItemsOut         []Item     `json:"items,omitzero"`
 	PendingToolCalls []ToolCall `json:"pendingToolCalls,omitzero"`

@@ -289,7 +289,7 @@ func (svc *Mock) MockIdentityVerification(handler func(ctx context.Context, flow
 	mockTaskURL := httpx.JoinHostAndPath(svc.Hostname(), mockRoute)
 	svc.mockIdentityVerificationGraph = func(ctx context.Context) (graph *workflow.Graph, err error) {
 		g := workflow.NewGraph("IdentityVerification")
-		g.AddTransition(mockTaskURL, workflow.END)
+		g.AddTransition(mockTaskURL, workflow.End)
 		return g, nil
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
@@ -297,15 +297,16 @@ func (svc *Mock) MockIdentityVerification(handler func(ctx context.Context, flow
 		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
 			return errors.Trace(err)
 		}
-		snap := f.Snapshot()
 		var in creditflowapi.IdentityVerificationIn
-		f.ParseState(&in)
+		f.Parse(&in)
 		identityVerified, err := handler(r.Context(), &f, in.ApplicantName, in.SSN, in.Address, in.Phone)
 		if err != nil {
 			return err // No trace
 		}
-		out := creditflowapi.IdentityVerificationOut{IdentityVerified: identityVerified}
-		f.SetChanges(out, snap)
+		err = f.Set("identityVerified", &identityVerified)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		return json.NewEncoder(w).Encode(&f)
 	},
@@ -343,7 +344,7 @@ func (svc *Mock) MockCreditApproval(handler func(ctx context.Context, flow *work
 	mockTaskURL := httpx.JoinHostAndPath(svc.Hostname(), mockRoute)
 	svc.mockCreditApprovalGraph = func(ctx context.Context) (graph *workflow.Graph, err error) {
 		g := workflow.NewGraph("CreditApproval")
-		g.AddTransition(mockTaskURL, workflow.END)
+		g.AddTransition(mockTaskURL, workflow.End)
 		return g, nil
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
@@ -351,15 +352,28 @@ func (svc *Mock) MockCreditApproval(handler func(ctx context.Context, flow *work
 		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
 			return errors.Trace(err)
 		}
-		snap := f.Snapshot()
 		var in creditflowapi.CreditApprovalIn
-		f.ParseState(&in)
+		f.Parse(&in)
 		approved, creditVerified, employmentFailures, identityVerified, err := handler(r.Context(), &f, in.Applicant)
 		if err != nil {
 			return err // No trace
 		}
-		out := creditflowapi.CreditApprovalOut{Approved: approved, CreditVerified: creditVerified, EmploymentFailures: employmentFailures, IdentityVerified: identityVerified}
-		f.SetChanges(out, snap)
+		err = f.Set("approved", &approved)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("creditVerified", &creditVerified)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("employmentFailures", &employmentFailures)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("identityVerified", &identityVerified)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		return json.NewEncoder(w).Encode(&f)
 	},

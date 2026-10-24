@@ -166,7 +166,7 @@ func (svc *Mock) MockSupport(handler func(ctx context.Context, flow *workflow.Fl
 	mockTaskURL := httpx.JoinHostAndPath(svc.Hostname(), mockRoute)
 	svc.mockSupportGraph = func(ctx context.Context) (graph *workflow.Graph, err error) {
 		g := workflow.NewGraph("Support")
-		g.AddTransition(mockTaskURL, workflow.END)
+		g.AddTransition(mockTaskURL, workflow.End)
 		return g, nil
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
@@ -174,15 +174,24 @@ func (svc *Mock) MockSupport(handler func(ctx context.Context, flow *workflow.Fl
 		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
 			return errors.Trace(err)
 		}
-		snap := f.Snapshot()
 		var in banksupportapi.SupportIn
-		f.ParseState(&in)
+		f.Parse(&in)
 		advice, blockCard, risk, err := handler(r.Context(), &f, in.Query)
 		if err != nil {
 			return err // No trace
 		}
-		out := banksupportapi.SupportOut{Advice: advice, BlockCard: blockCard, Risk: risk}
-		f.SetChanges(out, snap)
+		err = f.Set("advice", &advice)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("blockCard", &blockCard)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("risk", &risk)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		return json.NewEncoder(w).Encode(&f)
 	},

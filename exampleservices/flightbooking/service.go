@@ -154,12 +154,12 @@ ChooseSeatAgent child workflow as an isolated subgraph to pick a seat, then conf
 */
 func (svc *Service) BookFlight(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: BookFlight
 	graph = workflow.NewGraph("BookFlight")
-	graph.SetEndpoint("SearchFlights", flightbookingapi.SearchFlights.URL())
-	graph.SetEndpoint("ProposeFlight", flightbookingapi.ProposeFlight.URL())
-	graph.SetEndpoint("AwaitDecision", flightbookingapi.AwaitDecision.URL())
-	graph.SetEndpoint("ChooseSeat", flightbookingapi.ChooseSeat.URL())
-	graph.SetEndpoint("ConfirmBooking", flightbookingapi.ConfirmBooking.URL())
-	graph.SetEndpoint("NoFlights", flightbookingapi.NoFlights.URL())
+	graph.SetURL("SearchFlights", flightbookingapi.SearchFlights.URL())
+	graph.SetURL("ProposeFlight", flightbookingapi.ProposeFlight.URL())
+	graph.SetURL("AwaitDecision", flightbookingapi.AwaitDecision.URL())
+	graph.SetURL("ChooseSeat", flightbookingapi.ChooseSeat.URL())
+	graph.SetURL("ConfirmBooking", flightbookingapi.ConfirmBooking.URL())
+	graph.SetURL("NoFlights", flightbookingapi.NoFlights.URL())
 
 	graph.AddTransition("SearchFlights", "ProposeFlight")
 	// First-match routing: exhausted ends the search, otherwise present the candidate for a decision.
@@ -169,8 +169,8 @@ func (svc *Service) BookFlight(ctx context.Context) (graph *workflow.Graph, err 
 	graph.AddTransition("AwaitDecision", "ChooseSeat")
 	graph.AddTransitionGoto("AwaitDecision", "ProposeFlight")
 	graph.AddTransition("ChooseSeat", "ConfirmBooking")
-	graph.AddTransition("ConfirmBooking", workflow.END)
-	graph.AddTransition("NoFlights", workflow.END)
+	graph.AddTransition("ConfirmBooking", workflow.End)
+	graph.AddTransition("NoFlights", workflow.End)
 	return graph, nil
 }
 
@@ -232,8 +232,8 @@ natural-language preference. It is invoked as an isolated subgraph by the BookFl
 */
 func (svc *Service) ChooseSeatAgent(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: ChooseSeatAgent
 	graph = workflow.NewGraph("ChooseSeatAgent")
-	graph.SetEndpoint("PickSeat", flightbookingapi.PickSeat.URL())
-	graph.AddTransition("PickSeat", workflow.END)
+	graph.SetURL("PickSeat", flightbookingapi.PickSeat.URL())
+	graph.AddTransition("PickSeat", workflow.End)
 	return graph, nil
 }
 

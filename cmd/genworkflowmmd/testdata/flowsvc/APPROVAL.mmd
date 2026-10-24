@@ -1,0 +1,23 @@
+graph LR
+    classDef task fill:#32a7c1,color:#f4f2ef,stroke:#32a7c1
+    classDef term fill:#e5f4f3,color:#434343,stroke:#32a7c1
+    linkStyle default stroke:#32a7c1
+
+    t0["Submit"]:::task
+    t1["CheckA"]:::task
+    t2["CheckB"]:::task
+    t3["Decide"]:::task
+    t3_reduce(("reduce")):::term
+    t3_reduce --> t3
+    t3_when{"when"}:::term
+    t4["Recover"]:::task
+    t0 --> t1
+    t0 --> t2
+    t1 --> t3_reduce
+    t2 --> t3_reduce
+    t3 -->|"goto"| t0
+    t0 -->|"onError"| t4
+    t3 --> t3_when
+    _start(( )):::term --> t0
+    t4 --> _end(( )):::term
+    t3_when -->|"approved"| _end(( )):::term

@@ -22,17 +22,18 @@ my.service:
 
 foreman.core:
   # Shards declares one entry per database shard. Left unset, a LOCAL deployment opens a single SQLite file.
-  # Shards: '[{"index":1,"dsn":"postgres://user:pass@db1:5432/flows","virtualCPUs":16}]'
-  # Workers and MaxOpenConns are expert overrides; leave them at -1 and 0 to let the engine derive both.
+  # Shards: '[{"index":1,"dsn":"postgres://user:pass@db1:5432/flows","maxConnections":0}]'
+  # Workers is an expert override; leave it at -1 to let the engine derive it.
   # Workers: -1
-  # MaxOpenConns: 0
+  # MaxPriority is the number of priority levels; set the same value on every replica.
+  # MaxPriority: 5
 
 llm.core:
   # MaxToolRounds: 10
 
 http.ingress.core:
-#  Ports: 8080
-#  TimeBudget: 20s
+  # Ports: 8080
+  # TimeBudget: 20s
 
 petstore.example:
   # RemoteBaseURL: https://petstore3.swagger.io/api/v3

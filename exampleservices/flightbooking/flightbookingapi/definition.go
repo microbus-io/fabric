@@ -15,7 +15,7 @@ const Hostname = "flightbooking.example"
 const Name = "FlightBooking"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 1
+const Version = 2
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `FlightBooking is an example agentic workflow that searches flights, pauses for a human accept/keep-searching decision via Interrupt/Resume, and delegates seat selection to a child LLM workflow.`

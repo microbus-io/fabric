@@ -15,7 +15,7 @@ const Hostname = "banksupport.example"
 const Name = "BankSupport"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 3
+const Version = 4
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `BankSupport is an LLM agent that answers a signed-in customer's banking questions using their own balance and transactions as tools, gated by actor-claims authentication.`

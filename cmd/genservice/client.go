@@ -130,6 +130,29 @@ func newFeatureView(svc *service, f feature) *featureView {
 // HasOut reports whether the feature has any output fields.
 func (f *featureView) HasOut() bool { return len(f.outFields) > 0 }
 
+// stateWrite is one output a task writes to the flow's state.
+type stateWrite struct {
+	Key   string // state field name, e.g. "creditScore"
+	Value string // Go expression of the value, e.g. "&out.CreditScore"
+}
+
+// StateWrites returns the state writes of the output fields of recv, one per field that marshals to JSON. Each
+// value is a pointer, so a MarshalJSON method on a pointer receiver is honored.
+func (f *featureView) StateWrites(recv string) []stateWrite {
+	return stateWrites(f.outFields, func(x fieldDef) string { return "&" + recv + "." + x.goName })
+}
+
+// stateWrites returns the state writes of the fields that marshal to JSON, rendering each value with value.
+func stateWrites(fields []fieldDef, value func(fieldDef) string) []stateWrite {
+	var writes []stateWrite
+	for _, x := range fields {
+		if x.jsonName != "" {
+			writes = append(writes, stateWrite{Key: x.jsonName, Value: value(x)})
+		}
+	}
+	return writes
+}
+
 // Params renders ", name type" for each input field (leading comma per param).
 func (f *featureView) Params() string {
 	var b strings.Builder

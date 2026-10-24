@@ -222,9 +222,8 @@ func (svc *Intermediate) doRunSupport(w http.ResponseWriter, r *http.Request) (e
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in banksupportapi.RunSupportIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -234,7 +233,18 @@ func (svc *Intermediate) doRunSupport(w http.ResponseWriter, r *http.Request) (e
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("advice", &out.Advice)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("blockCard", &out.BlockCard)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("risk", &out.Risk)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {

@@ -184,7 +184,7 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Subscribe( // MARKER: ShardInfo
 		"ShardInfo", svc.doShardInfo,
 		sub.At(foremanapi.ShardInfo.Method, foremanapi.ShardInfo.Route),
-		sub.Description(`ShardInfo returns per-shard health (latency, row counts, error) for every database shard.`),
+		sub.Description(`ShardInfo returns per-shard health (latency, error) for every database shard.`),
 		sub.Function(foremanapi.ShardInfoIn{}, foremanapi.ShardInfoOut{}),
 	)
 	svc.Subscribe( // MARKER: Await
@@ -224,8 +224,9 @@ bridging an open-ended flow to a bounded request can answer within its budget an
 		"Shards",
 		cfg.Description(`Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
 Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
-templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
-and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+templating), MaxConnections (the connection budget shared by the replicas that dispatch the shard, 0 to let the
+engine derive it), Weight (the shard's relative share of new-flow placement; any weight other than 1 switches the
+fleet to weighted placement), and Cordoned (excludes the shard from new-flow placement while everything already
 resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
 after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
 file shard.`),
@@ -253,17 +254,11 @@ file shard.`),
 		cfg.DefaultValue(`2m`),
 		cfg.Validation(`dur [1s,15m]`),
 	)
-	svc.DefineConfig( // MARKER: DefaultPriority
-		"DefaultPriority",
-		cfg.Description(`DefaultPriority is the priority assigned to a flow when the caller does not specify one. Priority is an integer >= 1, lower numbers run first.`),
+	svc.DefineConfig( // MARKER: MaxPriority
+		"MaxPriority",
+		cfg.Description(`MaxPriority is the number of priority levels flows may use. Priorities run from 1 (served first) to MaxPriority, and a flow that sets none gets the midpoint. Set the same value on every replica; it takes effect on restart.`),
 		cfg.DefaultValue(`5`),
-		cfg.Validation(`int [1,]`),
-	)
-	svc.DefineConfig( // MARKER: MaxOpenConns
-		"MaxOpenConns",
-		cfg.Description(`MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.`),
-		cfg.DefaultValue(`0`),
-		cfg.Validation(`int [0,]`),
+		cfg.Validation(`int [1,100]`),
 	)
 
 	return svc
@@ -499,8 +494,9 @@ func (svc *Intermediate) IncrementAckTimeouts(ctx context.Context, value int, ta
 
 // Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
 // Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
-// templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
-// and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+// templating), MaxConnections (the connection budget shared by the replicas that dispatch the shard, 0 to let the
+// engine derive it), Weight (the shard's relative share of new-flow placement; any weight other than 1 switches the
+// fleet to weighted placement), and Cordoned (excludes the shard from new-flow placement while everything already
 // resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
 // after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
 // file shard.
@@ -544,26 +540,14 @@ func (svc *Intermediate) SetTimeBudget(value time.Duration) (err error) { // MAR
 	return svc.SetConfig("TimeBudget", value.String())
 }
 
-// DefaultPriority is the priority assigned to a flow when the caller does not specify one. Priority is an integer >= 1, lower numbers run first.
-func (svc *Intermediate) DefaultPriority() (value int) { // MARKER: DefaultPriority
-	_val := svc.Config("DefaultPriority")
+// MaxPriority is the number of priority levels flows may use. Priorities run from 1 (served first) to MaxPriority, and a flow that sets none gets the midpoint. Set the same value on every replica; it takes effect on restart.
+func (svc *Intermediate) MaxPriority() (value int) { // MARKER: MaxPriority
+	_val := svc.Config("MaxPriority")
 	_i, _ := strconv.ParseInt(_val, 10, 64)
 	return int(_i)
 }
 
-// SetDefaultPriority sets the value of the configuration property.
-func (svc *Intermediate) SetDefaultPriority(value int) (err error) { // MARKER: DefaultPriority
-	return svc.SetConfig("DefaultPriority", strconv.Itoa(value))
-}
-
-// MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.
-func (svc *Intermediate) MaxOpenConns() (value int) { // MARKER: MaxOpenConns
-	_val := svc.Config("MaxOpenConns")
-	_i, _ := strconv.ParseInt(_val, 10, 64)
-	return int(_i)
-}
-
-// SetMaxOpenConns sets the value of the configuration property.
-func (svc *Intermediate) SetMaxOpenConns(value int) (err error) { // MARKER: MaxOpenConns
-	return svc.SetConfig("MaxOpenConns", strconv.Itoa(value))
+// SetMaxPriority sets the value of the configuration property.
+func (svc *Intermediate) SetMaxPriority(value int) (err error) { // MARKER: MaxPriority
+	return svc.SetConfig("MaxPriority", strconv.Itoa(value))
 }

@@ -15,7 +15,7 @@ const Hostname = "weather.example"
 const Name = "Weather"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 3
+const Version = 4
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `Weather is an LLM agent that answers natural-language weather questions by geocoding a location and fetching its forecast through sequential tool-calling.`

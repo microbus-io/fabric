@@ -222,8 +222,8 @@ each turn is its own durable, independently-budgeted foreman step.
 */
 func (svc *Service) Support(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: Support
 	graph = workflow.NewGraph("Support")
-	graph.SetEndpoint("RunSupport", banksupportapi.RunSupport.URL())
-	graph.AddTransition("RunSupport", workflow.END)
+	graph.SetURL("RunSupport", banksupportapi.RunSupport.URL())
+	graph.AddTransition("RunSupport", workflow.End)
 	return graph, nil
 }
 

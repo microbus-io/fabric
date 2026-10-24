@@ -177,11 +177,11 @@ IdentityVerification defines the workflow graph for the identity verification pr
 */
 func (svc *Service) IdentityVerification(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: IdentityVerification
 	graph = workflow.NewGraph("IdentityVerification")
-	graph.SetEndpoint("InitIdentityVerification", creditflowapi.InitIdentityVerification.URL())
-	graph.SetEndpoint("VerifySSN", creditflowapi.VerifySSN.URL())
-	graph.SetEndpoint("VerifyAddress", creditflowapi.VerifyAddress.URL())
-	graph.SetEndpoint("VerifyPhoneNumber", creditflowapi.VerifyPhoneNumber.URL())
-	graph.SetEndpoint("IdentityDecision", creditflowapi.IdentityDecision.URL())
+	graph.SetURL("InitIdentityVerification", creditflowapi.InitIdentityVerification.URL())
+	graph.SetURL("VerifySSN", creditflowapi.VerifySSN.URL())
+	graph.SetURL("VerifyAddress", creditflowapi.VerifyAddress.URL())
+	graph.SetURL("VerifyPhoneNumber", creditflowapi.VerifyPhoneNumber.URL())
+	graph.SetURL("IdentityDecision", creditflowapi.IdentityDecision.URL())
 	graph.SetFanIn("IdentityDecision")
 	// Init fans out to SSN, address, and phone verification
 	graph.AddTransition("InitIdentityVerification", "VerifySSN")
@@ -192,7 +192,7 @@ func (svc *Service) IdentityVerification(ctx context.Context) (graph *workflow.G
 	graph.AddTransition("VerifyAddress", "IdentityDecision")
 	graph.AddTransition("VerifyPhoneNumber", "IdentityDecision")
 	// Decision terminates the subgraph
-	graph.AddTransition("IdentityDecision", workflow.END)
+	graph.AddTransition("IdentityDecision", workflow.End)
 	return graph, nil
 }
 
@@ -413,20 +413,20 @@ CreditApproval defines the workflow graph for the full credit approval process.
 */
 func (svc *Service) CreditApproval(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: CreditApproval
 	graph = workflow.NewGraph("CreditApproval")
-	graph.SetEndpoint("SubmitCreditApplication", creditflowapi.SubmitCreditApplication.URL())
-	graph.SetEndpoint("VerifyCredit", creditflowapi.VerifyCredit.URL())
-	graph.SetEndpoint("VerifyEmployment", creditflowapi.VerifyEmployment.URL())
-	graph.SetEndpoint("IdentityVerification", creditflowapi.RunIdentityVerification.URL())
-	graph.SetEndpoint("HandleCreditError", creditflowapi.HandleCreditError.URL())
+	graph.SetURL("SubmitCreditApplication", creditflowapi.SubmitCreditApplication.URL())
+	graph.SetURL("VerifyCredit", creditflowapi.VerifyCredit.URL())
+	graph.SetURL("VerifyEmployment", creditflowapi.VerifyEmployment.URL())
+	graph.SetURL("IdentityVerification", creditflowapi.RunIdentityVerification.URL())
+	graph.SetURL("HandleCreditError", creditflowapi.HandleCreditError.URL())
 	// ReviewJoin and ReviewCredit are two graph positions sharing the same task URL.
 	// ReviewJoin is the fan-in nexus for the submit cohort; ReviewCredit is reached
 	// sequentially from ReviewJoin and hosts the goto loop with RequestMoreInfo.
 	// Splitting them lets the lineage validator close the cohort frame at ReviewJoin
 	// without conflicting with the goto re-entry into ReviewCredit.
-	graph.SetEndpoint("ReviewJoin", creditflowapi.ReviewCredit.URL())
-	graph.SetEndpoint("ReviewCredit", creditflowapi.ReviewCredit.URL())
-	graph.SetEndpoint("RequestMoreInfo", creditflowapi.RequestMoreInfo.URL())
-	graph.SetEndpoint("Decision", creditflowapi.Decision.URL())
+	graph.SetURL("ReviewJoin", creditflowapi.ReviewCredit.URL())
+	graph.SetURL("ReviewCredit", creditflowapi.ReviewCredit.URL())
+	graph.SetURL("RequestMoreInfo", creditflowapi.RequestMoreInfo.URL())
+	graph.SetURL("Decision", creditflowapi.Decision.URL())
 	graph.SetFanIn("ReviewJoin")
 	graph.SetReducer("employmentFailures", workflow.ReducerAdd)
 	// Submit fans out to credit verification, identity verification (subgraph), and forEach employer verification
@@ -453,6 +453,6 @@ func (svc *Service) CreditApproval(ctx context.Context) (graph *workflow.Graph, 
 	// Review feeds into decision
 	graph.AddTransition("ReviewCredit", "Decision")
 	// Decision terminates the workflow
-	graph.AddTransition("Decision", workflow.END)
+	graph.AddTransition("Decision", workflow.End)
 	return graph, nil
 }

@@ -176,9 +176,8 @@ func (svc *Intermediate) doSearchFlights(w http.ResponseWriter, r *http.Request)
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in flightbookingapi.SearchFlightsIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -188,7 +187,14 @@ func (svc *Intermediate) doSearchFlights(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("candidates", &out.Candidates)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("flightIndex", &out.FlightIndex)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -206,9 +212,8 @@ func (svc *Intermediate) doProposeFlight(w http.ResponseWriter, r *http.Request)
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in flightbookingapi.ProposeFlightIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -218,7 +223,14 @@ func (svc *Intermediate) doProposeFlight(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("currentFlight", &out.CurrentFlight)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("exhausted", &out.Exhausted)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -236,9 +248,8 @@ func (svc *Intermediate) doAwaitDecision(w http.ResponseWriter, r *http.Request)
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in flightbookingapi.AwaitDecisionIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -248,7 +259,14 @@ func (svc *Intermediate) doAwaitDecision(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("accepted", &out.Accepted)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("flightIndex", &out.FlightIndexOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -266,9 +284,8 @@ func (svc *Intermediate) doChooseSeat(w http.ResponseWriter, r *http.Request) (e
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in flightbookingapi.ChooseSeatIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -278,7 +295,10 @@ func (svc *Intermediate) doChooseSeat(w http.ResponseWriter, r *http.Request) (e
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("seat", &out.Seat)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -296,9 +316,8 @@ func (svc *Intermediate) doConfirmBooking(w http.ResponseWriter, r *http.Request
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in flightbookingapi.ConfirmBookingIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -308,7 +327,18 @@ func (svc *Intermediate) doConfirmBooking(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("confirmation", &out.Confirmation)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("airline", &out.Airline)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("flightNo", &out.FlightNo)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -326,9 +356,8 @@ func (svc *Intermediate) doNoFlights(w http.ResponseWriter, r *http.Request) (er
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in flightbookingapi.NoFlightsIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -338,7 +367,10 @@ func (svc *Intermediate) doNoFlights(w http.ResponseWriter, r *http.Request) (er
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("confirmation", &out.Confirmation)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -356,9 +388,8 @@ func (svc *Intermediate) doPickSeat(w http.ResponseWriter, r *http.Request) (err
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in flightbookingapi.PickSeatIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -368,7 +399,10 @@ func (svc *Intermediate) doPickSeat(w http.ResponseWriter, r *http.Request) (err
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("seat", &out.Seat)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {

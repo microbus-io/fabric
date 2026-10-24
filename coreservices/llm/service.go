@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"math/rand/v2"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/microbus-io/dwarf/workflow"
@@ -323,17 +324,19 @@ func (svc *Service) InitChat(ctx context.Context, flow *workflow.Flow, provider 
 }
 
 /*
-CallLLM is the sole owner of the items conversation state key. It folds the prior round's tool
+CallLLM is the sole writer of the items conversation state key. It folds the prior round's tool
 results (accumulated in the toolResults key by the fan-in) into the conversation, calls the provider,
-and writes the full conversation back to items (plain replace, not a delta).
+and contributes the folded tool results and the new turn to items, whose append reducer adds them to the
+conversation.
 */
 func (svc *Service) CallLLM(ctx context.Context, flow *workflow.Flow, provider string, model string, items []llmapi.Item, toolResults []llmapi.ToolResult) (itemsOut []llmapi.Item, pendingToolCalls []llmapi.ToolCall, turnUsage llmapi.Usage, err error) { // MARKER: CallLLM
-	// Fold the prior round's tool results (appended into toolResults by the fan-in reducer) into a local
-	// conversation copy. On the first call (FirstLLM) there are none.
-	convo := items
+	// Fold the prior round's tool results (appended into toolResults by the fan-in reducer) into the
+	// conversation. On the first call (FirstLLM) there are none.
+	var added []llmapi.Item
 	for _, tr := range toolResults {
-		convo = append(convo, tr.AsItem())
+		added = append(added, tr.AsItem())
 	}
+	convo := append(slices.Clip(items), added...)
 
 	// Read tool schemas
 	var tools []llmapi.Tool
@@ -369,11 +372,9 @@ func (svc *Service) CallLLM(ctx context.Context, flow *workflow.Flow, provider s
 				wait = time.Minute // provider marked it retryable but sent a malformed or non-positive retryAfter
 			}
 			if budget := frame.Of(ctx).TimeBudget(); budget > 0 && flow.Retry(wait, 1.0, 0, budget) {
-				// Clean rewind: return the pristine input items so SetChanges records no diff on `items`,
-				// and leave toolResults untouched so the re-dispatched call re-folds them. Returning nil
-				// here would clear `items` (a nil field marshals to null and is persisted with the retry),
-				// losing the conversation.
-				return items, nil, llmapi.Usage{}, nil
+				// Clean rewind: contribute nothing to `items`, and leave toolResults untouched so the
+				// re-dispatched call re-folds them
+				return nil, nil, llmapi.Usage{}, nil
 			}
 		}
 		return nil, nil, llmapi.Usage{}, errors.Trace(err)
@@ -389,12 +390,12 @@ func (svc *Service) CallLLM(ctx context.Context, flow *workflow.Flow, provider s
 	}
 
 	// Commit: the fold is now permanent, so clear the reduced toolResults key (else the next round's
-	// fan-in would re-append this round's results and double-fold), and write the full conversation -
-	// input + folded results + this turn - back to `items` as a plain replace.
+	// fan-in would re-append this round's results and double-fold), and contribute the folded results
+	// and this turn to `items`.
 	if len(toolResults) > 0 {
 		flow.Del("toolResults")
 	}
-	itemsOut = append(convo, turnItems...)
+	itemsOut = append(added, turnItems...)
 	return itemsOut, llmapi.PendingToolCalls(turnItems), turnUsage, nil
 }
 
@@ -412,10 +413,10 @@ func (svc *Service) ProcessResponse(ctx context.Context, flow *workflow.Flow, pe
 
 	toolRoundsOut = toolRounds
 
-	// ProcessResponse does not touch the `items` state key - CallLLM owns it (plain replace, the full
-	// conversation each turn). This step only accumulates usage and routes: fan out to execute the
-	// pending tool calls, or end the loop. The ExecuteTool branches write the `toolResults` state key
-	// (Append-reduced at the fan-in), which the next CallLLM folds into `items`.
+	// ProcessResponse does not touch the `items` state key - CallLLM is its sole writer. This step only
+	// accumulates usage and routes: fan out to execute the pending tool calls, or end the loop. The
+	// ExecuteTool branches write the `toolResults` state key (Append-reduced at the fan-in), which the
+	// next CallLLM folds into `items`.
 
 	// Done when the model returned no tool calls (natural completion), or the round limit has already
 	// been reached. The latter is only hit if the final tool-less call still came back with tool calls -
@@ -440,7 +441,7 @@ func (svc *Service) ProcessResponse(ctx context.Context, flow *workflow.Flow, pe
 			"toolResults",
 			"finalCall",
 		)
-		flow.Goto(workflow.END)
+		flow.Goto(workflow.End)
 		return toolsRequested, toolRoundsOut, usageOut, nil
 	}
 
@@ -521,27 +522,27 @@ ChatLoop defines the workflow graph for multi-turn LLM conversations with tool c
 */
 func (svc *Service) ChatLoop(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: ChatLoop
 	graph = workflow.NewGraph("ChatLoop")
-	graph.SetEndpoint("InitChat", llmapi.InitChat.URL())
+	graph.SetURL("InitChat", llmapi.InitChat.URL())
 	// FirstLLM and NextLLM are two graph positions sharing one task URL. FirstLLM is the
 	// initial sequential call after InitChat; NextLLM is the fan-in nexus for the per-round
 	// tool cohort. Both dispatch to the same CallLLM task. Splitting them lets the lineage
 	// validator pop the cohort frame at NextLLM without conflicting with the initial entry,
 	// which has no frame to pop.
-	graph.SetEndpoint("FirstLLM", llmapi.CallLLM.URL())
-	graph.SetEndpoint("NextLLM", llmapi.CallLLM.URL())
-	graph.SetEndpoint("ProcessResponse", llmapi.ProcessResponse.URL())
-	graph.SetEndpoint("ExecuteTool", llmapi.ExecuteTool.URL())
+	graph.SetURL("FirstLLM", llmapi.CallLLM.URL())
+	graph.SetURL("NextLLM", llmapi.CallLLM.URL())
+	graph.SetURL("ProcessResponse", llmapi.ProcessResponse.URL())
+	graph.SetURL("ExecuteTool", llmapi.ExecuteTool.URL())
 	graph.SetFanIn("NextLLM")
-	// toolResults is the only Append-reduced key: each forEach branch (ExecuteTool) contributes one
-	// tool_result, and the reducer concatenates them at the NextLLM fan-in. The next CallLLM folds the
-	// assembled toolResults into the conversation and clears the key. `items` itself is NOT reduced -
-	// CallLLM owns it and writes the full conversation each turn (plain replace).
+	// Each forEach branch (ExecuteTool) contributes one tool_result, and the reducer concatenates them at
+	// the NextLLM fan-in. The next CallLLM folds the assembled toolResults into the conversation and clears
+	// the key. CallLLM contributes each turn's new items, and the reducer adds them to the conversation.
 	graph.SetReducer("toolResults", workflow.ReducerAppend)
+	graph.SetReducer("items", workflow.ReducerAppend)
 	graph.AddTransition("InitChat", "FirstLLM")
 	graph.AddTransition("FirstLLM", "ProcessResponse")
 	// When ProcessResponse decides the conversation is done (no tools requested or round
-	// limit exceeded), it calls flow.Goto(workflow.END) to exit the loop.
-	graph.AddTransitionGoto("ProcessResponse", workflow.END)
+	// limit exceeded), it calls flow.Goto(workflow.End) to exit the loop.
+	graph.AddTransitionGoto("ProcessResponse", workflow.End)
 	// Otherwise the forEach fans out one ExecuteTool per pending tool call; all branches
 	// converge at NextLLM via the fan-in.
 	graph.AddTransitionForEach("ProcessResponse", "ExecuteTool", "pendingToolCalls", "currentTool")

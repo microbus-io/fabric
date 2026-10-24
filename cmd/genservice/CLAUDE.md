@@ -158,6 +158,25 @@ deliberately not validated: dv8 mutates (`default=`, `trim`), and outputs are pr
 type, and inbound event's source In type (one `// MARKER: <Feature>` per line), so a malformed directive fails
 the microservice at startup rather than mid-request. Web handlers are raw and have no In struct.
 
+## Task and workflow arguments are state fields
+
+A task's In and Out structs, and a workflow's, are views of the flow's state: the task `doXxx` handler `Parse`s the
+In struct out of the state, and writes each output back with its own `flow.Set(jsonName, &out.Field)`. The workflow
+mock's synthetic task does the same with the handler's results, and the Executor's `marshalTask` applies the In
+struct to the carrier with `state.Apply(workflow.ChangesOf(...), nil)`.
+
+The outputs are written field by field rather than by marshaling the Out struct whole, because the struct's fields
+are `omitzero`: a whole-struct marshal drops every zero output, and a returned zero must reach the state like any
+other value (it resets a field with no reducer). A pointer is passed so that a `MarshalJSON` with a pointer receiver
+is honored; `Set` marshals whatever it is given, and a value passed through `any` is not addressable. Writing per
+field also gives each output its own error from `Set`, such as a reducer that cannot combine the value.
+
+Because each field is read and written on its own, a struct-level encoding rule does not apply, so `parseService`
+rejects what would silently misbehave: a field that does not marshal to JSON (unexported or `json:"-"`), which the
+state can never carry; an embedded struct, whose fields are not flattened; the `,string` option, which only an
+enclosing struct's marshal honors, so the state would hold a bare value that the In struct then fails to parse; and
+a JSON name ending in `!` or `+`, which the engine refuses to write.
+
 ## The request body is released before the handler runs
 
 The same three generated marshalers set `r.Body = http.NoBody` immediately after decoding, before dispatching to
@@ -263,8 +282,8 @@ contract.
 A workflow's `Mock` cannot simply call the user's handler the way a function mock does, because callers do not
 invoke the graph directly: the Foreman runtime executes its tasks by posting state to subscribed task URLs.
 `MockMyWorkflow(handler)` therefore subscribes a synthetic task on `:428/mock-<kebab>-<rand>` that decodes the
-incoming flow, parses the workflow's In struct, calls the typed handler, writes the Out struct back, and replaces
-the graph with a single transition to that task.
+incoming flow, parses the workflow's In struct, calls the typed handler, writes each of its results back with
+`flow.Set`, and replaces the graph with a single transition to that task.
 
 ## Mode detection
 
@@ -423,5 +442,6 @@ godoc sync it is deliberately narrow: it only ever *appends* what is missing.
 
 - The import-alias heuristic uses the last path segment as the package name, which is wrong for a `/v2`-style
   module path. It has not bitten any project package.
-- Embedded In/Out struct fields are not flattened; In/Out types are assumed to be declared in the api package.
+- Embedded In/Out struct fields are not flattened (rejected outright for tasks and workflows); In/Out types are
+  assumed to be declared in the api package.
 - Metric labels are assumed to be string-typed, which holds for every current metric.

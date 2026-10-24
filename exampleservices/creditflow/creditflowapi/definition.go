@@ -33,7 +33,7 @@ const Hostname = "creditflow.example"
 const Name = "CreditFlow"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 7
+const Version = 8
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `CreditFlow is an example microservice that demonstrates agentic workflow features.`

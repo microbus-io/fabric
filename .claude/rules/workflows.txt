@@ -25,7 +25,7 @@ func (svc *Service) VerifyCredit(ctx context.Context, flow *workflow.Flow, credi
 }
 ```
 
-A task's input and output arguments are a **declaration of the state variables it uses**: an input argument names a state var the task reads, and an output argument names a state var the task writes back. Input arguments are matched by name to fields in the flow's state; output arguments are written back to the state under their name (through the marshaler, and through the graph's reducer for that key if one is set, exactly as an equivalent `flow.Set` would be). An output argument with an `Out` suffix (e.g. `creditScoreOut`) implements a read-modify-write pattern - it appears as both input and output.
+A task's input and output arguments are a **declaration of the state variables it uses**: an input argument names a state var the task reads, and an output argument names a state var the task writes back. Input arguments are matched by name to fields in the flow's state; output arguments are written back to the state under their name (through the marshaler, and through the graph's reducer for that key if one is set, exactly as an equivalent `flow.Set` would be). **Any value a task returns without an error is applied to the state** - through the field's reducer, or the default `Replace` when it has none - on every successful return, including a park's `yield` path. A zero value is applied like any other: under `Replace` it replaces the field (nil deletes it), and under some reducers it just happens to change nothing (nil under any reducer, `0` under `Add`, `false` under `Or`). An error return applies nothing. Returned values are applied after the task body, so a returned value overwrites an earlier `flow.Set` of the same field simply by running later; do not both `flow.Set` a field and return it as an output - use one or the other. An output argument with an `Out` suffix (e.g. `creditScoreOut`) implements a read-modify-write pattern - it appears as both input and output. On a reduced field, the pair carries a contribution, not the new total (see Reducers below).
 
 **Reading a state var as an input never consumes it.** A state var stays in the flow's state after a task reads it; declaring it as an input just gives the task a typed view of it. The same var remains available to other tasks and to graph machinery - e.g. a task can take `pendingToolCalls` as an input while a `forEach` transition on the same node still iterates that state key. To actually remove a state var, a task must `flow.Del` it (or `flow.Clear` it); declaring it as an input does not.
 
@@ -47,18 +47,18 @@ Tasks are registered on port `:428` by default.
 
 A workflow graph endpoint returns a `*workflow.Graph` that defines the structure of a workflow - its tasks, transitions, and merge strategies. The graph is fetched once when a flow is created and stored with it.
 
-**Naming convention: graph names and task (node) names are PascalCase** (`CreditApproval`, `VerifyCredit`) - they are graph-topology identifiers, kept visually distinct from the lowercased dispatch URLs the nodes resolve to (`myserviceapi.VerifyCredit.URL()`) and the camelCase state field names (`creditVerified`). `SetEndpoint(name, url)` registers a node under a PascalCase name that resolves to the task's URL; every transition, `SetFanIn`, and `flow.Goto` then refers to that PascalCase node name, never the URL.
+**Naming convention: graph names and task (node) names are PascalCase** (`CreditApproval`, `VerifyCredit`) - they are graph-topology identifiers, kept visually distinct from the lowercased dispatch URLs the nodes resolve to (`myserviceapi.VerifyCredit.URL()`) and the camelCase state field names (`creditVerified`). `SetURL(name, url)` registers a node under a PascalCase name that resolves to the task's URL; every transition, `SetFanIn`, and `flow.Goto` then refers to that PascalCase node name, never the URL. The first node bound with `SetURL` is the entry point unless `SetEntryPoint` names another. The name passed to `NewGraph` is a display label; the graph carries no URL of its own, since the foreman is handed the workflow's URL separately (`Run`, `Create`).
 
 ```go
 import "github.com/microbus-io/dwarf/workflow"
 
 func (svc *Service) CreditApproval(ctx context.Context) (graph *workflow.Graph, err error) {
 	graph = workflow.NewGraph("CreditApproval")
-	// SetEndpoint(PascalCaseNodeName, dispatchURL): the node name is the graph identifier; the URL is where it runs.
-	graph.SetEndpoint("SubmitApplication", myserviceapi.SubmitApplication.URL())
-	graph.SetEndpoint("VerifyCredit", myserviceapi.VerifyCredit.URL())
-	graph.SetEndpoint("VerifyEmployment", myserviceapi.VerifyEmployment.URL())
-	graph.SetEndpoint("FinalDecision", myserviceapi.FinalDecision.URL())
+	// SetURL(PascalCaseNodeName, dispatchURL): the node name is the graph identifier; the URL is where it runs.
+	graph.SetURL("SubmitApplication", myserviceapi.SubmitApplication.URL())
+	graph.SetURL("VerifyCredit", myserviceapi.VerifyCredit.URL())
+	graph.SetURL("VerifyEmployment", myserviceapi.VerifyEmployment.URL())
+	graph.SetURL("FinalDecision", myserviceapi.FinalDecision.URL())
 
 	// Fan-out: SubmitApplication has two normal outgoing transitions, so VerifyCredit and VerifyEmployment run as parallel branches
 	graph.AddTransition("SubmitApplication", "VerifyCredit")
@@ -68,7 +68,7 @@ func (svc *Service) CreditApproval(ctx context.Context) (graph *workflow.Graph, 
 	graph.AddTransition("VerifyCredit", "FinalDecision")
 	graph.AddTransition("VerifyEmployment", "FinalDecision")
 	// Conditional transition: the when expression references a state field, which stays camelCase
-	graph.AddTransitionWhen("FinalDecision", workflow.END, "creditVerified")
+	graph.AddTransitionWhen("FinalDecision", workflow.End, "creditVerified")
 	// Goto transition (taken only when the task calls flow.Goto), targeting a PascalCase node name
 	graph.AddTransitionGoto("FinalDecision", "SubmitApplication")
 
@@ -78,68 +78,47 @@ func (svc *Service) CreditApproval(ctx context.Context) (graph *workflow.Graph, 
 
 Task URLs in the graph are obtained from the generated API package constants (e.g. `myserviceapi.TaskName.URL()`); the node names you pass alongside them are PascalCase labels you choose (conventionally matching the task's name).
 
-## The `workflow` Package
+## Reducers
 
-**`workflow.Flow`** is the carrier passed to every task. It provides typed accessors for reading and writing state:
-
-- Read: `GetString`, `GetInt`, `GetFloat`, `GetBool`, `GetDuration`, `GetStrings`, `Has`, `Get` (for complex types), `ParseState` (unmarshal into struct)
-- Write: `SetString`, `SetInt`, `SetFloat`, `SetBool`, `SetDuration`, `SetStrings`, `Set` (for complex types)
-- Struct-based: `Snapshot` captures state before modifications, `SetChanges(source, snap)` records only fields that differ from the snapshot
-
-Control signals on `Flow`:
-
-- `flow.Goto(taskName)` - override transition routing to jump to a specific task node (its PascalCase node name, not its URL)
-- `flow.Retry(initialDelay, delayMultiplier, maxIntervalDelay, giveUpAfter) bool` - re-execute this task with exponential backoff. The bound is **wall-clock, not a count**: returns true while the next attempt would still land within `giveUpAfter` of the step's creation, false once the horizon is reached (including when the next backoff delay alone would overshoot it, so a doomed wait is never parked before failing). The delay before attempt N is `min(initialDelay * delayMultiplier^N, maxIntervalDelay)`; immediate retry is a zero `initialDelay`, fixed interval is `delayMultiplier` 1.0, no per-interval cap is a zero `maxIntervalDelay`. Pass `giveUpAfter <= 0` for unlimited retry; to bound by count instead, pass `0` and gate on `flow.Attempt()`. The single retry primitive: it carries no condition of its own, so the task writes the retryable predicate explicitly in the surrounding `if`. Timeout-only retry is `if errors.StatusCode(err) == http.StatusRequestTimeout && flow.Retry(...)` - both foreman-side `pub.Timeout` and subscriber-side handler timeouts surface as 408
-- `flow.Sleep(duration)` - delay the next step by a duration
-- `flow.Interrupt(payload, &resume) (yield, err)` - park the step for external input (human-in-the-loop). First call returns `yield=true` and the task must `return nil` immediately; on re-entry after `Resume(flowKey, data)` returns `(false, nil)` with `data` unmarshaled into `&resume` so the task proceeds (see [Subgraphs and Interrupts](#subgraphs-and-interrupts))
-- `flow.Subgraph(workflowURL, in, &out) (yield, err)` - park the step and launch a child *workflow*. First call returns `yield=true` (task must `return nil`); on re-entry returns `(false, nil)` with the child's `final_state` unmarshaled into `&out` on success, or `(false, childErr)` on failure - the task adopts fields from `out` or branches on `err`. Prefer the typed `xapi.NewSubgraph(flow)` client over the raw primitive (see [Subgraphs and Interrupts](#subgraphs-and-interrupts))
-
-**`workflow.Graph`** defines workflow structure:
-
-- `NewGraph(name)` - create a new graph (name is a human-friendly PascalCase display label, surfaced in rendering). The graph does NOT carry a resolve URL: the resolve key is a separate opaque URL passed to the foreman (`Run`/`Create`/`LoadGraph`), never stored on the graph
-- `SetEndpoint(name, taskURL)` - bind a node (by PascalCase name) to its dispatch URL, create-or-update (first node bound becomes the default entry point; the same URL may be bound under multiple names)
-- `SetEntryPoint(name)` - override the default entry point by node name
-- `AddTransition(from, to)` - unconditional transition; sibling unconditional/`When` transitions from the same node all fire in parallel (fan-out)
-- `AddTransitionChain(names...)` - convenience for a linear path; adds an unconditional `AddTransition` between each consecutive pair (`AddTransitionChain("A", "B", "C")` == `AddTransition("A", "B")` + `AddTransition("B", "C")`). End a chain with `workflow.END`. For branching, conditions, and loops, mix with the other `AddTransition*` methods
-- `AddTransitionWhen(from, to, when)` - conditional transition based on state expression; sibling `When` transitions are evaluated independently and *all* matching ones fire (fan-out, not first-match)
-- `AddTransitionSwitch(from, to, when)` - first-match-wins routing; siblings are evaluated in registration order and only the first whose expression matches fires. Use `when="true"` as the last branch for a default. Only one branch ever runs, so no `SetFanIn` is needed. See [Switch Transitions](#switch-transitions) below
-- `AddTransitionGoto(from, to)` - transition taken only when `flow.Goto` is called from the task body
-- `AddTransitionForEach(from, to, forEach, as)` - dynamic fan-out over a state array field (`from`/`to` are PascalCase node names; `forEach`/`as` are camelCase state fields)
-- `SetFanIn(name)` - mark a node (by PascalCase name) as the fan-in nexus where parallel branches converge. Mandatory whenever the graph fans out: every fan-out source (a node with 2+ normal outgoing transitions, or any `forEach` transition) must converge on a `SetFanIn` node, otherwise `Validate` rejects the graph (see [Fan-Out and Fan-In](#fan-out-and-fan-in)). `Switch` transitions do **not** count as fan-out and need no `SetFanIn`
-- `AddTransitionOnError(from, to)` - transition taken when the source task returns an error (see [Error Transitions](#error-transitions))
-- `SetReducer(field, reducer)` - attach a fan-in merge strategy to a state field (mandatory whenever a fan-in field needs anything other than last-write-wins; see Reducers below)
-- `workflow.END` - pseudo-node indicating workflow termination
-
-**Reducers** control how state fields are merged at fan-in points. Every field that needs anything other than last-write-wins must be wired explicitly with `graph.SetReducer(field, reducer)` at graph-build time. Fields without a registered reducer use `Replace` (last write wins). State field names carry no hidden semantics - name them naturally (e.g. `messages`, `total`, `tags`) and attach the reducer separately.
+**Reducers** control how writes to a state field combine. A write to a field with a reducer is a **contribution**, folded through the reducer at every hand-off: the next step, the fan-in, the final state and `Continue`. A read returns the combined value. Every field that needs anything other than last-write-wins must be wired explicitly with `graph.SetReducer(field, reducer)` at graph-build time. Fields without a registered reducer use `Replace` (last write wins). State field names carry no hidden semantics - name them naturally (e.g. `messages`, `total`, `tags`) and attach the reducer separately.
 
 ```go
-graph.SetReducer("messages", workflow.ReducerAppend)  // accumulate per-branch deltas
+graph.SetReducer("messages", workflow.ReducerAppend)  // accumulate each write's elements
 graph.SetReducer("total",    workflow.ReducerAdd)     // sum numeric contributions
 graph.SetReducer("seen",     workflow.ReducerUnion)   // dedupe across branches
 graph.SetReducer("approved", workflow.ReducerAnd)     // all branches must approve
 graph.SetReducer("flagged",  workflow.ReducerOr)      // any branch flags
-graph.SetReducer("notes",    workflow.ReducerConcat)  // join string deltas
+graph.SetReducer("notes",    workflow.ReducerConcat)  // join string contributions
 graph.SetReducer("attrs",    workflow.ReducerMerge)   // merge per-branch objects
 ```
 
 The supported reducer values:
 
-- `workflow.ReducerReplace` - last write wins (default; identity none)
-- `workflow.ReducerAppend` - concatenate arrays (identity `[]`)
-- `workflow.ReducerAdd` - sum numeric values (identity `0`)
-- `workflow.ReducerUnion` - merge arrays, deduplicate by JSON value (identity `[]`)
-- `workflow.ReducerMerge` - merge objects, new key wins on collision (identity `{}`)
-- `workflow.ReducerAnd` - logical AND of booleans (identity `false`)
-- `workflow.ReducerOr` - logical OR of booleans (identity `false`)
-- `workflow.ReducerConcat` - concatenate strings (identity `""`)
+- `workflow.ReducerReplace` - last write wins (default)
+- `workflow.ReducerAppend` - concatenate arrays
+- `workflow.ReducerAdd` - sum numeric values
+- `workflow.ReducerMin` - keep the smaller numeric value
+- `workflow.ReducerMax` - keep the larger numeric value
+- `workflow.ReducerUnion` - merge arrays, deduplicate by JSON value (numbers compare by value)
+- `workflow.ReducerMerge` - merge objects, new key wins on collision
+- `workflow.ReducerAnd` - logical AND of booleans
+- `workflow.ReducerOr` - logical OR of booleans
+- `workflow.ReducerConcat` - concatenate strings
 
-Reducers are strict on their input type. `ReducerUnion` rejects object values, `ReducerMerge` rejects array values, `ReducerAdd` rejects strings, etc. A cleared slot (Go nil or JSON null) short-circuits to the reducer's identity (the Go zero value for the underlying type) rather than failing the type check, so `flow.Clear` contributions are ignored at fan-in.
+Reducers are strict on their input type. `ReducerUnion` rejects object values, `ReducerMerge` rejects array values, `ReducerAdd` rejects strings, etc. A nil (JSON null) is the only value that contributes nothing under every reducer. A zero value is folded like any other: `0` changes nothing under `Add` but competes like any other number under `Min`, and `false` changes nothing under `Or` but makes `And` false.
 
-**Empty-cohort behavior.** A `forEach` that spawns zero branches still fires the fan-in. The field takes the reducer's identity. Both `ReducerAnd` and `ReducerOr` return `false` on an empty cohort - there is no "vacuously true" mode. If you need an empty cohort to be treated as approval, branch on the cohort size downstream rather than relying on the reducer.
+**Empty-cohort behavior.** A `forEach` that spawns zero branches still fires the fan-in, which runs on the source task's own state with no branch contributions, so a reduced field keeps its incoming value (absent if nothing wrote it). There is no "vacuously true" `ReducerAnd`: if an empty cohort must count as approval, branch on the cohort size downstream rather than relying on the reducer.
 
-**Order sensitivity.** `Append` (arrays) and `Concat` (strings) preserve the cohort merge order, which is `updated_at, step_id` - not creation order under shard scatter. If you need a specific ordering, sort downstream rather than relying on fan-in order.
+**Order.** `Append` (arrays) and `Concat` (strings) combine a cohort's contributions in branch order - for a `forEach`, the order of the input array - not in the order the branches complete, so the result is deterministic.
 
-Tasks writing to reducer-managed fields must set only the **delta**, not the full accumulated value. For example, with `messages` attached to `ReducerAppend`, each fan-out branch should set just the new messages it produced - not the full conversation history.
+**Contributions, not totals.** The result of a reduced field does not depend on the graph's shape, so the same rules apply in a straight line, in a fan-out branch and at a fan-in:
+
+- **Write your contribution, not the value you read.** With `messages` on `ReducerAppend`, `flow.Set("messages", []llmapi.Item{reply})` adds the reply. `flow.Set("messages", append(history, reply))` adds the whole history again. Likewise a `VerifyEmployment` task running once per employer with `graph.SetReducer("failures", workflow.ReducerAdd)` returns `failuresOut` of 0 or 1 (its own count), not the running total.
+- **`Overwrite` to trim or reset a reduced field.** `flow.Overwrite("messages", history[max(0, len(history)-20):])` keeps the last 20, and later writes in the same task add to the new value. `Overwrite` returns an error inside a fan-out branch, and a `Del` or `Clear` of a reduced field there fails the step: reset the field before the fan-out or after its fan-in.
+- **Contribute after `Interrupt` or `Subgraph`.** A step's runs compose: after a `Retry`, a `Resume` of an `Interrupt`, or a `Subgraph` returning, the task runs from the top again and each run's contributions add to the earlier runs'. A contribution made before the park is made twice.
+- **A subgraph returns only what it adds.** Writing a child's result into a reduced field of the parent is a contribution like any other, so have the child return its new elements, not the history it was given.
+
+**`Out` pairs on a reduced field.** The `items` in, `itemsOut` out pair invites read-modify-write, which is wrong on a reduced field. Return only the contribution: `itemsOut = append(items, reply)` adds the history again, and so does a pass-through branch such as `if nothingToDo { return items }`. On a path that should add nothing, including the `yield` path of a park, return a value that changes nothing under the field's reducer, such as nil for a list. On a field with no reducer the pair stays a plain read-modify-write, and a park's `yield` path returns the input unchanged so the park does not overwrite it.
 
 ## Fan-Out and Fan-In
 
@@ -151,7 +130,7 @@ This is mandatory, not optional. `graph.Validate` (called by the workflow's mars
 graph) rejects:
 
 - A fan-out source with no downstream `SetFanIn` node ("fan-out source ... has no fan-in node downstream").
-- A path that reaches `workflow.END` while parallel branches are still open ("transition to END ... has unpopped
+- A path that reaches `workflow.End` while parallel branches are still open ("transition to END ... has unpopped
   fan-out frames").
 
 A graph that fans out but never calls `SetFanIn` compiles and passes `go vet` - it fails only at run time when the
@@ -159,16 +138,16 @@ foreman fetches and validates the graph. Adding the fan-out without the matching
 to produce an invalid graph, so add the `SetFanIn` call in the same edit as the fan-out transitions.
 
 ```go
-graph.SetEndpoint("Split", myserviceapi.Split.URL())
-graph.SetEndpoint("BranchA", myserviceapi.BranchA.URL())
-graph.SetEndpoint("BranchB", myserviceapi.BranchB.URL())
-graph.SetEndpoint("Join", myserviceapi.Join.URL())
+graph.SetURL("Split", myserviceapi.Split.URL())
+graph.SetURL("BranchA", myserviceapi.BranchA.URL())
+graph.SetURL("BranchB", myserviceapi.BranchB.URL())
+graph.SetURL("Join", myserviceapi.Join.URL())
 graph.SetFanIn("Join")                  // mark the convergence node
 graph.AddTransition("Split", "BranchA") // fan-out: two normal edges
 graph.AddTransition("Split", "BranchB")
 graph.AddTransition("BranchA", "Join")  // every branch converges on the fan-in node
 graph.AddTransition("BranchB", "Join")
-graph.AddTransition("Join", workflow.END)
+graph.AddTransition("Join", workflow.End)
 ```
 
 The same rule applies to a `forEach` fan-out: `graph.AddTransitionForEach("Split", "Worker", "items", "item")` followed
@@ -177,19 +156,13 @@ the foreman then creates the fan-in step directly, so the flow still continues p
 
 State fields produced by the parallel branches are merged at the fan-in node by reducers (see Reducers above). Attach
 the appropriate reducer at graph-build time with `graph.SetReducer(field, reducer)`. Each branch writes only its own
-delta, never the accumulated value.
+contribution, never the accumulated value.
 
 ### `forEach` Branch State
 
-A `forEach` branch does **not** receive a copy of the source array. The foreman strips the array (`forEach` field
-name) from each branch's local state at spawn, so an N-element forEach over a sub-chain `A -> B -> C` does not write
-N copies of the array across every step in every branch. The array still lives in the spawn step's immutable
-snapshot, and the fan-in step rebuilds its own state from that snapshot - so the array is absent only **inside the
-cohort** and reappears in the fan-in step and everything downstream of it. A branch task that needs to read
-something from the source array must take it as an explicit per-element value (the `as` argument) or look it up
-some other way.
-
-Alongside the strip, the foreman injects two read-only fields on each branch's state, named after the `as` alias:
+A `forEach` branch sees the flow's state as it was at the fan-out, including the source array. The array is stored
+once and shared by every branch rather than copied into each, so a large array costs no more per branch than a small
+one. Each branch also gets two read-only fields, named after the `as` alias:
 
 - `<as>Index` (`int`) - this element's 0-based position in the `forEach` array.
 - `<as>Count` (`int`) - the cohort size (total elements in the `forEach` array).
@@ -198,8 +171,7 @@ For `AddTransitionForEach("Split", "Worker", "items", "item")` the branch sees `
 A task argument by that name (e.g. `func Worker(... item string, itemIndex int, itemCount int)`) is auto-populated
 from state like any other. These fields are present only for `forEach` fan-out, not static fan-out.
 
-`<as>`, `<as>Index`, and `<as>Count` are also **dropped from the merged state at fan-in**, symmetric to the source-
-array strip on the way down. They are per-element bookkeeping with no meaning past the cohort, so the foreman
+`<as>`, `<as>Index`, and `<as>Count` are **dropped from the merged state at fan-in**. They are per-element bookkeeping with no meaning past the cohort, so the foreman
 deletes them after merging the cohort's contributions. A workflow that needs the element value past the fan-in
 must forward it under a different key in the branch (e.g. `flow.SetString("chosenItem", item)`); the `as` alias
 itself is gone downstream of the fan-in.
@@ -210,7 +182,7 @@ into the branch's `changes`, the replace reducer folds it over the spawn-step ba
 absent (or whatever the branch wrote) past the join.
 
 To reuse one task at two graph positions across a fan-in boundary (for example, fan in and then loop back), register
-the same task URL under two distinct names with `AddTask`; each name is a separate node with its own lineage scope. See
+the same task URL under two distinct names with `SetURL`; each name is a separate node with its own lineage scope. See
 `exampleservices/creditflow/service.go` for a worked graph that combines fan-out/fan-in, `forEach`, subgraphs, goto loops, and
 error transitions.
 
@@ -219,25 +191,25 @@ error transitions.
 `AddTransitionSwitch(from, to, when)` declares a first-match-wins outgoing transition. When the source task finishes, the foreman walks the source's `Switch` transitions in declaration order, evaluates each `when` expression against the post-task state, and follows the **first** one that matches. The remaining `Switch` transitions are skipped on that step. Because exactly one branch ever fires, the downstream branches do **not** need to converge on a `SetFanIn` node.
 
 ```go
-graph.SetEndpoint("Router", myserviceapi.Router.URL())
-graph.SetEndpoint("HighValue", myserviceapi.HighValue.URL())
-graph.SetEndpoint("MidValue", myserviceapi.MidValue.URL())
-graph.SetEndpoint("LowValue", myserviceapi.LowValue.URL())
+graph.SetURL("Router", myserviceapi.Router.URL())
+graph.SetURL("HighValue", myserviceapi.HighValue.URL())
+graph.SetURL("MidValue", myserviceapi.MidValue.URL())
+graph.SetURL("LowValue", myserviceapi.LowValue.URL())
 graph.AddTransitionSwitch("Router", "HighValue", "amount >= 10000")
 graph.AddTransitionSwitch("Router", "MidValue", "amount >= 1000")
 graph.AddTransitionSwitch("Router", "LowValue", "true") // default branch
-graph.AddTransition("HighValue", workflow.END)
-graph.AddTransition("MidValue", workflow.END)
-graph.AddTransition("LowValue", workflow.END)
+graph.AddTransition("HighValue", workflow.End)
+graph.AddTransition("MidValue", workflow.End)
+graph.AddTransition("LowValue", workflow.End)
 ```
 
 Rules the validator enforces:
 
 - `when` is required on every `Switch` transition. Use `"true"` for the default catch-all.
 - A node that uses `Switch` must declare **every** success-path outgoing transition as `Switch`. Mixing `Switch` with `When`, plain `AddTransition`, `AddTransitionForEach`, or `AddTransitionGoto` from the same source is rejected. `AddTransitionOnError` stays allowed because they live on a different axis (error vs. success).
-- `Switch` cannot combine with `ForEach`, `WithGoto`, or `OnError` on the same transition.
+- A `Switch` transition cannot also be a `forEach`, `Goto` or `OnError` transition: each transition is one kind.
 
-If no `Switch` matches at runtime, the flow ends at the source node (no successor is created, the source step completes, and the flow transitions to `completed` via the normal "no next steps" path). To make termination explicit, target `workflow.END` from a final `Switch` with a tail predicate.
+If no `Switch` matches at runtime, the flow ends at the source node (no successor is created, the source step completes, and the flow transitions to `completed` via the normal "no next steps" path). To make termination explicit, target `workflow.End` from a final `Switch` with a tail predicate.
 
 ### When to choose Switch vs. When vs. Goto
 
@@ -251,7 +223,7 @@ In short: `Switch` is the default for branching. Use `When` only for genuine fan
 
 ## Error Transitions
 
-Error transitions route task failures to an error handler instead of failing the flow. When the source task returns an error, the foreman serializes it as a `*errors.TracedError` (with stack trace, status code, and properties) into the `onErr` state field and dispatches the error handler task. Can be combined with `When` for conditional error routing but not with `ForEach` or `WithGoto`. If the task was in a fan-out, all siblings are cancelled.
+Error transitions route task failures to an error handler instead of failing the flow. When the source task returns an error, the foreman serializes it as a `*errors.TracedError` (with stack trace, status code, and properties) into the `onErr` state field and dispatches the error handler task. An error transition takes no condition and cannot be a `forEach` or `Goto` transition. If the task was in a fan-out, all siblings are cancelled.
 
 The error handler task must include `onErr *errors.TracedError` as an input parameter:
 
@@ -273,7 +245,7 @@ A bare *task* is not an independently invocable unit - it is only ever a node in
 
 **Two ways to compose tasks, by state exposure.** Inside a flow you reach task B either by **graph composition** (B is a node in the same graph: it sees and writes the parent's *full* state - tightest coupling) or by a **subgraph** (B is a separate workflow run as an isolated child: only the explicit `in` crosses in, only the explicit `out` crosses back). Use graph composition when B is a genuine step of this workflow sharing its state vocabulary; use a subgraph when B is a reusable or foreign workflow you invoke with explicit arguments and don't want to hand your whole state to.
 
-**A subgraph is a function call.** Only the explicit `in` crosses into the child as its initial state, and only the explicit `out` (the child's `final_state`, unmarshaled into your pointer by JSON tag) crosses back. The parent's state is NOT inherited in either direction. `nil` input means "no arguments". A caller that wants the parent's full state to cross passes `flow.Snapshot()` (or a derived map) as `in`.
+**A subgraph is a function call.** Only the explicit `in` crosses into the child as its initial state, and only the explicit `out` (the child's final state, unmarshaled into your pointer by JSON tag) crosses back. The parent's state is NOT inherited in either direction. `nil` input means "no arguments". A caller that wants the parent's full state to cross passes `flow.Snapshot()` (or a derived map) as `in`.
 
 **Prefer the typed client over the raw primitive.** The generated `xapi.NewSubgraph(flow)` client wraps `flow.Subgraph` with typed In/Out: `out1, yield, err := otherapi.NewSubgraph(flow).SomeWorkflow(ctx, args...)`. Reach for the raw `flow.Subgraph` only for dynamic/untyped dispatch (a computed URL, or a service whose `*api` package you don't import).
 
@@ -314,22 +286,22 @@ if yield {
 | | `flow.Interrupt()` | `flow.Subgraph()` |
 |---|---|---|
 | **Signal** | Park, wait for external `Resume` | Park, wait for child workflow |
-| **Foreman** | Parks the step, sets `interrupt_done=0` | Parks the step, launches child, sets `subgraph_done=0` |
-| **On completion** | `Resume(flowKey, data)` writes `resume_data` and re-dispatches | Child terminal outcome writes `subgraph_result`/`subgraph_error` and re-dispatches |
-| **Re-entry signal** | `yield=false`, `resumeData` is the Resume payload | `yield=false`, `out` is the child's `final_state` (success) or `err` is the child's failure |
+| **Foreman** | Parks the step | Parks the step and launches the child |
+| **On completion** | `Resume(flowKey, data)` re-dispatches the step | The child's terminal outcome re-dispatches the step |
+| **Re-entry signal** | `yield=false`, the Resume payload in `&resume` | `yield=false`, the child's final state in `&out` (success) or its failure as `err` |
 | **Failure mode** | None (always succeeds on Resume) | Child failure delivered to parent as `err`; parent decides retry/route/propagate |
 
-**Re-entry is signaled by the parker's `yield` bool, not by a state field.** Do not invent a `*Out`-suffix flag or a "have I run before" arg - the framework already tracks it via `interrupt_done`/`subgraph_done` columns and surfaces it as `yield`. The `if yield { return nil }` line is the **before-resume region** and runs on every dispatch (first pass, re-entry, every retry attempt); everything after it is the **after-resume region** and runs once per resolution. Exactly-once side effects (firing an event, charging a card) belong after the guard.
+**Re-entry is signaled by the parker's `yield` bool, not by a state field.** Do not invent a `*Out`-suffix flag or a "have I run before" arg - the engine already tracks it and surfaces it as `yield`. The `if yield { return nil }` line is the **before-resume region** and runs on every dispatch (first pass, re-entry, every retry attempt); everything after it is the **after-resume region** and runs once per resolution. Exactly-once side effects (firing an event, charging a card) belong after the guard.
 
-**State written before the park survives the park.** A `flow.Set*` / `flow.Del` made in the same dispatch *before* calling `flow.Interrupt` (or `flow.Subgraph`) is recorded in the step's `changes` and persisted when the step parks, so it is visible as an input on re-entry and to downstream tasks. This is the basis for idempotent side-effecting parks: a task that creates an external resource, records its identifier with `flow.SetString`, and then parks reads that identifier back on re-entry and skips re-creating the resource (e.g. `if id == "" { id = create(); flow.SetString("id", id) }; flow.Interrupt(...)`). Persisting through the change set is what makes this work - a plain local variable, or relying on a return value (output args are written as their zero value when you `return nil` on `yield`), would *not* survive the park.
+**State written before the park survives the park.** A `flow.Set*` / `flow.Del` made in the same dispatch *before* calling `flow.Interrupt` (or `flow.Subgraph`) is recorded in the step's `changes` and persisted when the step parks, so it is visible as an input on re-entry and to downstream tasks. This is the basis for idempotent side-effecting parks: a task that creates an external resource, records its identifier with `flow.SetString`, and then parks reads that identifier back on re-entry and skips re-creating the resource (e.g. `if id == "" { id = create(); flow.SetString("id", id) }; flow.Interrupt(...)`). Persisting through the change set is what makes this work - a plain local variable would *not* survive the park. Output args returned on `yield` are applied as well, after the body, so keep a field the body sets with `flow.Set*` out of the task's outputs: the returned value would overwrite it.
 
-**Returning an error commits nothing - a failed step is atomic.** The generated handler is `out.X, err = svc.Task(...); if err != nil { return err }; flow.SetChanges(out, snap); encode(flow)`. When the task returns a non-nil `err`, the handler returns *before* both `flow.SetChanges` (which applies the output args) and the flow re-encoding, so **neither the output args nor any `flow.Set`/`flow.Del` the task made in that dispatch reach the foreman** - the step fails, the pre-step state is kept intact, and routing goes to `OnError` if wired. A returned zero value (e.g. `return nil, err`) therefore does *not* overwrite the state var; the error preempts the write entirely. This is the mirror image of the park case above: success-with-yield re-encodes the flow so pre-park writes survive, whereas an error discards them. Consequence for authoring: you cannot return an error *and* persist state in the same dispatch. If a failure path must record something (a status, a partial result), the task has to succeed (`return nil`) and signal the failure through state plus `flow.Goto`, not through `err`.
+**Returning an error commits nothing - a failed step is atomic.** The generated handler is `out.X, err = svc.Task(...); if err != nil { return err }; err = flow.Set("x", &out.X); ...; encode(flow)`. When the task returns a non-nil `err`, the handler returns *before* both the `flow.Set` of each output arg and the flow re-encoding, so **neither the output args nor any `flow.Set`/`flow.Del` the task made in that dispatch reach the foreman** - the step fails, the pre-step state is kept intact, and routing goes to `OnError` if wired. A returned zero value (e.g. `return nil, err`) therefore does *not* overwrite the state var; the error preempts the write entirely. This is the mirror image of the park case above: success-with-yield re-encodes the flow so pre-park writes survive, whereas an error discards them. Consequence for authoring: you cannot return an error *and* persist state in the same dispatch. If a failure path must record something (a status, a partial result), the task has to succeed (`return nil`) and signal the failure through state plus `flow.Goto`, not through `err`.
 
 **A step parks at most once per dispatch, interrupt XOR subgraph, never both and never two of the same kind.** Sequential side-trips are sequential tasks in the graph, not multiple parks in one task. The guard fires in two places: the `Flow` rejects a second park synchronously with an error from the parker; the foreman re-checks the returned flow after the task returns (trust boundary for a bypassed parker).
 
-**No auto-merge.** The child's `final_state` is returned to the calling task as `out`, not merged into the parent's state. This is the "scope state at the subgraph boundary" payoff: the parent picks fields explicitly with `flow.Set` or just plain Go code over `out`. The calling task does the reshape itself, so the common case needs no adapter task upstream or downstream of the subgraph.
+**No auto-merge.** The child's final state is returned to the calling task as `out`, not merged into the caller's state. Merging it in, if at all, is the calling task's job: it picks the fields it wants from `out` and sets them into its own state, with `flow.Set` or as its outputs.
 
-**Interrupts propagate up through the subgraph chain to the root flow.** A child subgraph can call `flow.Interrupt`; the foreman walks the surgraph chain up to the root, the external awaiter of the root flow sees the interrupt with the child's payload, and `Resume` propagates back down to the leaf. The parent's surgraph step stays parked across the whole interrupt/resume cycle; the parent task does **not** re-run for it. This is orthogonal to `subgraph_done` (interrupt rides the step status; `subgraph_done` flips only on terminal completion or failure).
+**Interrupts propagate up through the subgraph chain to the root flow.** A child subgraph can call `flow.Interrupt`; the foreman walks the surgraph chain up to the root, the external awaiter of the root flow sees the interrupt with the child's payload, and `Resume` propagates back down to the leaf. The parent's calling step stays parked across the whole interrupt/resume cycle; the parent task does **not** re-run for it, only when the child completes or fails.
 
 **Cancellation cascades the whole tree.** Cancelling a child cancels its parents. There is no "recover from a bad child" via cancel-of-child; that need is served by the failure-as-`err` path (child timeout surfaces as `err` with 408, parent does `flow.Retry`, an `OnError` route, or propagates).
 
@@ -337,7 +309,7 @@ if yield {
 
 ### State Transformation Around a Subgraph
 
-`in` scopes what crosses *into* the child; `out` scopes what comes back. If the parent and child use different field names, reshape inline: build `in` with the names the child expects, then read `out` with the names the child wrote. The `flow.Del` / `flow.Clear` primitives help when the reshape is non-trivial (see [Best Practices](#best-practices)). The calling task does the reshape itself; no dedicated adapter task is involved.
+`in` scopes what crosses *into* the child; `out` scopes what comes back. If the parent and child use different field names, the calling task maps them: it builds `in` with the names the child expects, and reads `out` with the names the child wrote.
 
 ## Using LLMs in Workflows
 
@@ -357,10 +329,10 @@ not a graph node.
 ```go
 func (svc *Service) MyWorkflow(ctx context.Context) (graph *workflow.Graph, err error) {
     graph = workflow.NewGraph("MyWorkflow")
-    graph.SetEndpoint("RunChat", myapi.RunChat.URL())               // calls flow.Subgraph(llmapi.ChatLoop, ...)
-    graph.SetEndpoint("HandleResponse", myapi.HandleResponse.URL()) // reads the final assistant message
+    graph.SetURL("RunChat", myapi.RunChat.URL())               // calls flow.Subgraph(llmapi.ChatLoop, ...)
+    graph.SetURL("HandleResponse", myapi.HandleResponse.URL()) // reads the final assistant message
     graph.AddTransition("RunChat", "HandleResponse")
-    graph.AddTransition("HandleResponse", workflow.END)
+    graph.AddTransition("HandleResponse", workflow.End)
     return graph, nil
 }
 ```
@@ -372,47 +344,40 @@ whole loop.
 
 ### The *Run* Task
 
-The run task builds the `ChatLoop` input, calls `flow.Subgraph`, and adopts the conversation result
-from `out` on re-entry. The five input fields are the `ChatLoop` input contract:
+The run task builds the `ChatLoop` input, launches it through the typed `llmapi.NewSubgraph(flow)` client, and
+adopts the conversation result on re-entry. The five input arguments are the `ChatLoop` input contract:
 
-- `provider string` - target provider hostname (e.g. `claudellmapi.Hostname`, `chatgptllmapi.Hostname`,
-  `geminillmapi.Hostname`).
-- `model string` - model identifier from the provider's `*api` constants (e.g.
-  `claudellmapi.ModelHaiku45`, `chatgptllmapi.ModelGPT4o`). Typed constants make a typo a compile
-  error.
-- `messages []llmapi.Message` - the initial conversation (system prompt + user turn + any prior
-  history the workflow is replaying).
-- `toolURLs []string` - canonical Microbus endpoint URLs the LLM may call (see "Exposing Tools"
-  below). Empty or nil disables tool calling. `InitChat` resolves each URL to a tool schema by
-  fetching its host's OpenAPI document at the start of the conversation.
-- `options *llmapi.ChatOptions` - optional `MaxTokens`, `Temperature`, `MaxToolRounds`. `nil`
-  accepts defaults.
+- `provider string` - target provider hostname (e.g. `claudellmapi.Hostname`), or `llmapi.ProviderAny` to
+  auto-select a configured provider.
+- `model string` - a tier alias (`llmapi.ModelDefault`, ...), a provider family alias, or a concrete model name
+  from the provider's `*api` constants. Typed constants make a typo a compile error.
+- `items []llmapi.Item` - the initial conversation (system prompt + user turn + any prior history the workflow
+  is replaying), built with `llmapi.NewMessage(role, content).AsItem()`.
+- `toolURLs []string` - canonical Microbus endpoint URLs the LLM may call (see "Exposing Tools" below). Empty or
+  nil disables tool calling. `InitChat` resolves each URL to a tool schema by fetching its host's OpenAPI
+  document at the start of the conversation.
+- `options *llmapi.ChatOptions` - optional `MaxTokens`, `Temperature`, `MaxToolRounds`. `nil` accepts defaults.
 
 ```go
 func (svc *Service) RunChat(ctx context.Context, flow *workflow.Flow, userQuestion string) (
-    messages []llmapi.Message, usage llmapi.Usage, err error,
+    items []llmapi.Item, usage llmapi.Usage, err error,
 ) { // MARKER: RunChat
-    var resp llmapi.ChatLoopOut // the child's final_state unmarshals into resp by JSON tag
-    yield, err := flow.Subgraph(llmapi.ChatLoop.URL(), map[string]any{
-        "provider": claudellmapi.Hostname,
-        "model":    claudellmapi.ModelHaiku45,
-        "messages": []llmapi.Message{
-            {Role: "system", Content: "You are a helpful assistant."},
-            {Role: "user", Content: userQuestion},
-        },
-        "toolURLs": []string{
-            // canonical endpoint URLs the LLM is allowed to call - see "Exposing Tools" below.
-            // e.g. calculatorapi.Arithmetic.URL(),
-        },
-        "options": &llmapi.ChatOptions{MaxTokens: 1024},
-    }, &resp)
-    if yield {
-        return nil, llmapi.Usage{}, nil
+    prompt := []llmapi.Item{
+        llmapi.NewMessage("system", "You are a helpful assistant.").AsItem(),
+        llmapi.NewMessage("user", userQuestion).AsItem(),
     }
+    toolURLs := []string{
+        // canonical endpoint URLs the LLM is allowed to call - see "Exposing Tools" below.
+        // e.g. calculatorapi.Arithmetic.URL(),
+    }
+    items, usage, yield, err := llmapi.NewSubgraph(flow).ChatLoop(ctx, llmapi.ProviderAny, llmapi.ModelDefault, prompt, toolURLs, nil)
     if err != nil {
         return nil, llmapi.Usage{}, errors.Trace(err)
     }
-    return resp.MessagesOut, resp.Usage, nil
+    if yield {
+        return nil, llmapi.Usage{}, nil
+    }
+    return items, usage, nil
 }
 ```
 
@@ -421,32 +386,28 @@ func (svc *Service) RunChat(ctx context.Context, flow *workflow.Flow, userQuesti
 The handle task receives the conversation result via its typed arguments, populated by the run
 task's outputs. The two fields are the `ChatLoop` output contract:
 
-- `messages []llmapi.Message` - the full conversation appended in turn order: the original
-  system/user prompt, every assistant reply, every tool result, and the final assistant reply that
-  ended the loop. The subgraph's internal `Append` reducer assembles this across the per-tool-call
-  fan-in; the parent receives one merged value.
+- `items []llmapi.Item` - the full conversation in turn order: the original system/user prompt, every
+  assistant turn (reasoning, message and tool_call items), every tool result, and the final assistant reply
+  that ended the loop. `items` is `Append`-reduced inside the subgraph; the parent receives the whole value.
 - `usage llmapi.Usage` - aggregated token usage across every turn (input, output, cache-read,
   cache-write tokens, plus the resolved model and turn count).
 
-The last message in `messages` is the LLM's final answer:
+The last assistant message in `items` is the LLM's final answer:
 
 ```go
 func (svc *Service) HandleResponse(ctx context.Context, flow *workflow.Flow,
-    messages []llmapi.Message, usage llmapi.Usage,
+    items []llmapi.Item, usage llmapi.Usage,
 ) (answer string, totalTokens int, err error) { // MARKER: HandleResponse
-    if len(messages) == 0 {
-        return "", 0, errors.New("empty conversation")
-    }
-    last := messages[len(messages)-1]
-    if last.Role != "assistant" {
+    answer = llmapi.LastAssistantMessage(items)
+    if answer == "" {
         // The loop exited mid-conversation (round limit hit, etc.); decide policy.
         return "", 0, errors.New("conversation did not end with an assistant message")
     }
-    return last.Content, usage.InputTokens + usage.OutputTokens, nil
+    return answer, usage.InputTokens + usage.OutputTokens, nil
 }
 ```
 
-If the parent workflow only needs the final answer, persist that field and `flow.Del("messages")`
+If the parent workflow only needs the final answer, persist that field and `flow.Del("items")`
 to drop the verbose conversation history from downstream state and shrink the audit trail.
 
 ### Exposing Tools
@@ -485,14 +446,10 @@ bare name and subsequent ones get `_2`, `_3`, ... suffixes in argument order.
 
 ### Notes
 
-- **The `messages` boundary field.** The conversation crosses the subgraph boundary as a field
-  named `messages`, with its `Append` reducer wired by an explicit `SetReducer` inside the subgraph.
-  The parent itself normally needs no reducer on `messages` - the subgraph is the only contributor,
-  so last-write-wins is correct. Only when the parent has multiple branches that *also* write to
-  `messages` and converge on a fan-in does the parent need
-  `graph.SetReducer("messages", workflow.ReducerAppend)`. If the parent carries the conversation
-  under a different field name, reshape it in an upstream task with
-  a snapshot-clear-reset rename (see "State Transformation Around a Subgraph" above).
+- **The `items` boundary field.** `ChatLoop` returns the whole conversation, not just what it added. The parent
+  normally gives `items` no reducer, so the run task's write replaces it, which is correct. If the parent does
+  wire `items` to `ReducerAppend` and passed its history in, the run task must contribute only the new items
+  (those past the prompt it sent), or the history is added twice.
 - **Mocking.** Mock the underlying provider's `Turn` (`claudellm.NewMock().MockTurn(handler)`,
   etc.) rather than mocking `ChatLoop` itself - the loop logic, tool dispatch, and usage
   aggregation stay real, and the test exercises the same code path as production.
@@ -520,7 +477,7 @@ flow.Set("conversation", messages)
 
 `flow.Snapshot()` returns a `workflow.State`, a decoded copy of the state that is unaffected by the subsequent `Clear`, so the read side of the rename is safe to do in either order. A plain "keep only these" is the same shape without the rename, or just `flow.Del` of the fields that should go.
 
-Both record JSON null in the step's changes for dropped fields, so the cleanup is preserved in the audit trail. For Replace-reduced fields, null drops the field from merged state at the next fan-in. For reducer-managed fields (those wired with `SetReducer`), a cleared contribution is treated as the reducer's identity and contributes nothing to the merge. None of these methods are restricted to boundaries - call them mid-flow whenever a field has served its purpose.
+Both record JSON null in the step's changes for dropped fields, so the cleanup is preserved in the audit trail. A dropped field is removed from the state, reduced or not: `Del` is `Overwrite` with nil, which replaces a reduced field rather than contributing to it. Inside a fan-out branch a `Del` or `Clear` of a reduced field fails the step, so drop reduced fields before the fan-out or after its fan-in. None of these methods are restricted to boundaries - call them mid-flow whenever a field has served its purpose.
 
 **Prefer `Switch` > `When` > `Goto` for branching.** `AddTransitionSwitch` (first-match-wins, validator-enforced mutual exclusivity, no `SetFanIn` needed) is the right tool for any routing where exactly one branch should run. Drop to `AddTransitionWhen` only when you genuinely want parallel branches firing under independent predicates - `When` is fan-out, not routing, and two `When` predicates intended to be mutually exclusive should be a `Switch` instead. Reserve `AddTransitionGoto` for runtime loops the task body must decide (fan-in looping back, "ask for more info then retry"). See [Switch Transitions](#switch-transitions) for the full rationale and validation rules.
 
@@ -530,24 +487,27 @@ Both record JSON null in the step's changes for dropped fields, so the cleanup i
 
 Each task step has an execution time budget enforced by the foreman as an HTTP call timeout. The foreman's `TimeBudget` config is the hard ceiling applied to every task dispatch: it defaults to `2m`, and its validation rejects anything outside `1s`-`15m`. A task endpoint declares its own, shorter budget on its subscription with the framework option `sub.TimeBudget(duration)`; the connector then shortens that task handler's context deadline to the smaller of the caller-provided budget and the declared one, so the task is cancelled at its declared bound. The budget is a property of the task endpoint, not of the workflow graph - the graph carries no timing.
 
-If a task exceeds its budget, the foreman cancels the HTTP call and the step's lease eventually expires for `pollPendingSteps` to recover. A task that intrinsically needs more than 15 minutes to finish must not block the worker - instead, use one of the two patterns below to free the worker between work and completion.
+If a task exceeds its budget, the foreman cancels the HTTP call, and once the step's lease expires the engine recovers the step and runs it again. A task that intrinsically needs more than 15 minutes to finish must not block the worker - instead, use one of the two patterns below to free the worker between work and completion.
 
 ### Pattern 1: Interrupt and External Resume
 
-Use when some external signal will indicate completion (a callback from an async service, a webhook arrival, human approval). The task triggers the long-running operation, then calls `flow.Interrupt(payload)` and returns. The worker is freed immediately and the flow parks in `interrupted` status. Some other process (an inbound event sink, a webhook handler, a UI action) calls `foremanapi.Resume(flowID, data)` when the operation completes; the task re-runs with the resume data merged into state.
+Use when some external signal will indicate completion (a callback from an async service, a webhook arrival, human approval). The task triggers the long-running operation, then calls `flow.Interrupt(payload, &resume)` and returns while `yield` is true. The worker is freed immediately and the flow parks in `interrupted` status. Some other process (an inbound event sink, a webhook handler, a UI action) calls `foremanapi.Resume(flowKey, data)` when the operation completes; the task then runs again from the top, and `flow.Interrupt` returns `yield=false` with `data` unmarshaled into `&resume`. The resume data is not merged into the state.
 
 ```go
-func (svc *Service) WaitForApproval(ctx context.Context, flow *workflow.Flow, requestID string, approved bool) (approvedOut bool, err error) {
-    if approved {
-        // Re-entry: Resume was called with approval data merged into state.
-        return true, nil
-    }
-    // First run: kick off the approval request, then park.
-    if err := svc.sendApprovalRequest(ctx, requestID); err != nil {
+func (svc *Service) WaitForApproval(ctx context.Context, flow *workflow.Flow, requestID string) (approved bool, err error) {
+    // The code before the park runs on every dispatch, so the request must be idempotent
+    err = svc.sendApprovalRequest(ctx, requestID)
+    if err != nil {
         return false, errors.Trace(err)
     }
-    flow.Interrupt(map[string]any{"requestID": requestID}, nil)
-    return false, nil
+    var resume struct {
+        Approved bool `json:"approved"`
+    }
+    yield, err := flow.Interrupt(map[string]any{"requestID": requestID}, &resume)
+    if err != nil || yield {
+        return false, err
+    }
+    return resume.Approved, nil
 }
 ```
 
@@ -577,6 +537,8 @@ func (svc *Service) PollJobStatus(ctx context.Context, flow *workflow.Flow, jobI
     }
 }
 ```
+
+`flow.Retry(initialDelay, delayMultiplier, maxIntervalDelay, giveUpAfter)` is bounded by **wall-clock time, not a count**: it returns true while the next attempt would still land within `giveUpAfter` of the step's creation, and false once the horizon is reached, including when the next delay alone would overshoot it. The delay before attempt N is `min(initialDelay * delayMultiplier^N, maxIntervalDelay)`: a zero `initialDelay` retries immediately, a `delayMultiplier` of 1.0 gives a fixed interval, and a zero `maxIntervalDelay` leaves it uncapped. Pass `giveUpAfter <= 0` for no horizon, and to bound by count instead, pass `0` and gate on `flow.Attempt()`. `Retry` carries no condition of its own, so the task writes the retryable predicate in the surrounding `if`; timeout-only retry is `if errors.StatusCode(err) == http.StatusRequestTimeout && flow.Retry(...)`, since both foreman-side and handler-side timeouts surface as 408.
 
 A separate "kick off the job" task should run before the polling task in the graph, writing `jobID` into state for the poller to read. The two patterns can be combined: trigger work in one task, then either interrupt-and-resume or poll in a downstream task to await completion.
 
@@ -648,7 +610,7 @@ A flow can carry scheduling hints via `*workflow.FlowOptions` (a flow-level conc
 
 ```go
 opts := &workflow.FlowOptions{
-    Priority:       1,        // explicit priority is >= 1, lower runs first; 0 = unset -> the foreman DefaultPriority config
+    Priority:       1,        // 1 to the foreman MaxPriority config (5 by default), lower runs first; 0 = unset -> the midpoint
     FairnessKey:    "tenant-42", // "" -> derived from the tid/tenant actor claim, else the "" bucket
     FairnessWeight: 2.0,      // relative dispatch share of the fairness key; 0 -> 1
     ThreadKey:      "",       // a flowKey in an existing thread to join; "" starts a fresh thread
@@ -657,7 +619,7 @@ outcome, err := foremanapi.NewClient(svc).Run(ctx, myworkflowapi.MyWorkflow.URL(
 flowID, err := foremanapi.NewClient(svc).Create(ctx, myworkflowapi.MyWorkflow.URL(), initialState, opts)
 ```
 
-`FlowOptions` authors a flow's policy **once at genesis** (`Create`/`Run`). Derived operations inherit it and take no options: `Continue` inherits the **thread's** policy, `Fork` inherits the **origin's**, and subgraphs inherit the **parent's** - choosing a derived operation *is* choosing "inherit." `Create` with `Opts.ThreadKey` is the explicit-policy escape hatch: join an existing thread while setting policy yourself. The foreman owns all defaulting; pass `nil` (or leave a field zero) to take the default. The `DefaultPriority` config on `foreman.core` sets the priority assigned when the caller specifies none.
+`FlowOptions` authors a flow's policy **once at genesis** (`Create`/`Run`). Derived operations inherit it and take no options: `Continue` inherits the **thread's** policy, `Fork` inherits the **origin's**, and subgraphs inherit the **parent's** - choosing a derived operation *is* choosing "inherit." `Create` with `Opts.ThreadKey` is the explicit-policy escape hatch: join an existing thread while setting policy yourself. The foreman owns all defaulting; pass `nil` (or leave a field zero) to take the default. A flow that sets no priority gets the midpoint of the range (3 at the default `MaxPriority` of 5), and `Create`/`Run` reject a priority above `MaxPriority`.
 
 There is no time-delayed start option. For a deferred start, give the workflow an entry task that calls `flow.Interrupt`; the flow rests as `interrupted` until a `Resume` releases it (the event trigger). `flow.Sleep` inside a task is the in-flow wait.
 
@@ -672,20 +634,19 @@ output1, status, err := exec.MyWorkflow(ctx, input1, input2) // unchanged signat
 
 Scheduling semantics (active): the foreman dispatches by a two-level selection over the pending steps.
 
-- Priority is a strict band. The lowest priority number with due pending work runs first, with no aging and no
-  safety valve: a continuously fed stream of higher-priority flows will starve a lower-priority flow for as
-  long as the stream lasts. This starvation is by design - use priority only for genuine urgency tiers, not as
-  a soft hint.
+- Priorities are bands that spill. The best due band is filled first, and whatever dispatch capacity it leaves
+  unused goes to the next band, and so on. Priority stays strict over capacity: worse work gets only what better
+  work leaves unused, with no aging, so a stream of higher-priority flows that saturates the workers starves a
+  lower-priority flow for as long as it lasts. Use priority only for genuine urgency tiers, not as a soft hint.
 - Within the chosen priority band, a fairness key is picked by weighted random (share proportional to
-  `FairnessWeight`), then that key's oldest pending step runs. The pick is re-rolled per dispatch, so expected
+  `FairnessWeight`), then that key's oldest due step runs. The pick is re-rolled per dispatch, so expected
   throughput per key tracks its weight regardless of how deep each key has backlogged - a heavy key cannot
   monopolize a light one. Order within a single key is strict FIFO by creation.
-- The weight used for a key is taken from that key's oldest pending step. Supplying inconsistent
-  `FairnessWeight` values for the same key across flows is the caller's responsibility (the behavior is
-  well-defined but the effective weight is then whichever flow is currently oldest).
+- A key dispatches at the lowest `FairnessWeight` among its due work, so give each key one weight; a flow created
+  with a smaller weight for the same key lowers the key's share while it has due work.
 
-Relevant `foreman.core` configs: `DefaultPriority` (priority when the caller specifies none), `Workers` (the
-per-replica candidate-cache size and dispatch parallelism), and `TimeBudget` (the hard per-step dispatch
+Relevant `foreman.core` configs: `MaxPriority` (the number of priority levels, the same on every replica), `Workers` (the
+maximum number of workers executing steps on each replica; left at -1, the engine derives it), and `TimeBudget` (the hard per-step dispatch
 ceiling; a task may declare a shorter `sub.TimeBudget` of its own).
 
 ## Detecting Flow Completion
@@ -726,13 +687,13 @@ success and failure paths. Because each follow-up is its own step, it is checkpo
 a delivery that must not be lost belongs here, not in a caller's `Await`.
 
 ```go
-graph.SetEndpoint("CallSubgraph", myapi.CallSubgraph.URL())
-graph.SetEndpoint("OnSuccess", myapi.OnSuccess.URL())
-graph.SetEndpoint("OnFailure", myapi.OnFailure.URL())
+graph.SetURL("CallSubgraph", myapi.CallSubgraph.URL())
+graph.SetURL("OnSuccess", myapi.OnSuccess.URL())
+graph.SetURL("OnFailure", myapi.OnFailure.URL())
 graph.AddTransition("CallSubgraph", "OnSuccess")        // normal path
 graph.AddTransitionOnError("CallSubgraph", "OnFailure")  // error path
-graph.AddTransition("OnSuccess", workflow.END)
-graph.AddTransition("OnFailure", workflow.END)
+graph.AddTransition("OnSuccess", workflow.End)
+graph.AddTransition("OnFailure", workflow.End)
 ```
 
 - **CallSubgraph** runs the child via `flow.Subgraph` (or the typed `xapi.NewSubgraph(flow)`), yields while it

@@ -154,7 +154,7 @@ func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, 
 		return errors.Trace(err)
 	}
 	state := flow.RawState()
-	err = state.Merge(inState)
+	err = state.Apply(workflow.ChangesOf(inState), nil)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -183,7 +183,7 @@ func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, 
 		*outFlow = flow.Flow
 	}
 	if out != nil {
-		err = flow.ParseState(out)
+		err = flow.Parse(out)
 		return errors.Trace(err)
 	}
 	return nil

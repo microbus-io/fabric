@@ -109,8 +109,8 @@ AskAgent answers a natural-language weather question. It runs the LLM tool-calli
 */
 func (svc *Service) AskAgent(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: AskAgent
 	graph = workflow.NewGraph("AskAgent")
-	graph.SetEndpoint("Answer", weatherapi.Answer.URL())
-	graph.AddTransition("Answer", workflow.END)
+	graph.SetURL("Answer", weatherapi.Answer.URL())
+	graph.AddTransition("Answer", workflow.End)
 	return graph, nil
 }
 

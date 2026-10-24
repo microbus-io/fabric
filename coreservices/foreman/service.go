@@ -63,12 +63,9 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	if w := svc.Workers(); w >= 0 {
 		eng.SetWorkers(w)
 	}
-	if n := svc.MaxOpenConns(); n > 0 {
-		eng.SetMaxOpenConns(n)
-	}
 	eng.SetEngineID(engineID(svc.ID()))
 	eng.SetTimeBudget(svc.TimeBudget())
-	eng.SetDefaultPriority(svc.DefaultPriority())
+	eng.SetMaxPriority(svc.MaxPriority())
 	eng.SetHost(svc)
 	eng.SetLogger(svc.Logger())
 	eng.SetMeterProvider(svc.MeterProvider())
@@ -97,8 +94,8 @@ func engineID(id string) int64 {
 	return int64(binary.BigEndian.Uint64(sum[:8])&math.MaxInt64) | 1
 }
 
-// OnShutdown is called when the microservice is shut down. It drains the engine (workers, timer,
-// refiller) and closes its database connections.
+// OnShutdown is called when the microservice is shut down. It shuts down the engine, which finishes the steps in
+// flight and closes its database connections.
 func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	if svc.engine != nil {
 		err = svc.engine.Shutdown(ctx)
@@ -218,7 +215,7 @@ func (svc *Service) Purge(ctx context.Context, query foremanapi.Query) (deleted 
 }
 
 /*
-ShardInfo returns per-shard health (latency, row counts, error) for every database shard.
+ShardInfo returns per-shard health (latency, error) for every database shard.
 */
 func (svc *Service) ShardInfo(ctx context.Context) (shards []foremanapi.ShardSummary, err error) { // MARKER: ShardInfo
 	return svc.engine.ShardInfo(ctx)

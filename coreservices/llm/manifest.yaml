@@ -19,7 +19,7 @@ general:
   hostname: llm.core
   description: The LLM microservice bridges LLM tool-calling protocols with Microbus endpoint invocations.
   package: github.com/microbus-io/fabric/coreservices/llm
-  modifiedAt: "2026-07-02T04:11:38Z"
+  modifiedAt: "2026-10-23T04:27:15Z"
 
 configs:
   MaxToolRounds:
@@ -67,9 +67,10 @@ tasks:
   CallLLM:
     signature: CallLLM(provider string, model string, items []Item, toolResults []ToolResult) (itemsOut []Item, pendingToolCalls []ToolCall, turnUsage Usage)
     description: |-
-      CallLLM is the sole owner of the items conversation state key. It folds the prior round's tool
+      CallLLM is the sole writer of the items conversation state key. It folds the prior round's tool
       results (accumulated in the toolResults key by the fan-in) into the conversation, calls the provider,
-      and writes the full conversation back to items (plain replace, not a delta).
+      and contributes the folded tool results and the new turn to items, whose append reducer adds them to the
+      conversation.
     route: :428/call-llm
   ProcessResponse:
     signature: ProcessResponse(pendingToolCalls []ToolCall, turnUsage Usage, toolRounds int) (toolsRequested bool, toolRoundsOut int, usageOut Usage)

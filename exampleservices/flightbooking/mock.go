@@ -183,7 +183,7 @@ func (svc *Mock) MockBookFlight(handler func(ctx context.Context, flow *workflow
 	mockTaskURL := httpx.JoinHostAndPath(svc.Hostname(), mockRoute)
 	svc.mockBookFlightGraph = func(ctx context.Context) (graph *workflow.Graph, err error) {
 		g := workflow.NewGraph("BookFlight")
-		g.AddTransition(mockTaskURL, workflow.END)
+		g.AddTransition(mockTaskURL, workflow.End)
 		return g, nil
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
@@ -191,15 +191,28 @@ func (svc *Mock) MockBookFlight(handler func(ctx context.Context, flow *workflow
 		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
 			return errors.Trace(err)
 		}
-		snap := f.Snapshot()
 		var in flightbookingapi.BookFlightIn
-		f.ParseState(&in)
+		f.Parse(&in)
 		confirmation, airline, flightNo, seat, err := handler(r.Context(), &f, in.Origin, in.Destination, in.SeatPreference)
 		if err != nil {
 			return err // No trace
 		}
-		out := flightbookingapi.BookFlightOut{Confirmation: confirmation, Airline: airline, FlightNo: flightNo, Seat: seat}
-		f.SetChanges(out, snap)
+		err = f.Set("confirmation", &confirmation)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("airline", &airline)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("flightNo", &flightNo)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("seat", &seat)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		return json.NewEncoder(w).Encode(&f)
 	},
@@ -237,7 +250,7 @@ func (svc *Mock) MockChooseSeatAgent(handler func(ctx context.Context, flow *wor
 	mockTaskURL := httpx.JoinHostAndPath(svc.Hostname(), mockRoute)
 	svc.mockChooseSeatAgentGraph = func(ctx context.Context) (graph *workflow.Graph, err error) {
 		g := workflow.NewGraph("ChooseSeatAgent")
-		g.AddTransition(mockTaskURL, workflow.END)
+		g.AddTransition(mockTaskURL, workflow.End)
 		return g, nil
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
@@ -245,15 +258,16 @@ func (svc *Mock) MockChooseSeatAgent(handler func(ctx context.Context, flow *wor
 		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
 			return errors.Trace(err)
 		}
-		snap := f.Snapshot()
 		var in flightbookingapi.ChooseSeatAgentIn
-		f.ParseState(&in)
+		f.Parse(&in)
 		seat, err := handler(r.Context(), &f, in.SeatPreference, in.AvailableSeats)
 		if err != nil {
 			return err // No trace
 		}
-		out := flightbookingapi.ChooseSeatAgentOut{Seat: seat}
-		f.SetChanges(out, snap)
+		err = f.Set("seat", &seat)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		return json.NewEncoder(w).Encode(&f)
 	},

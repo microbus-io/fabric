@@ -123,9 +123,10 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Subscribe( // MARKER: CallLLM
 		"CallLLM", svc.doCallLLM,
 		sub.At(llmapi.CallLLM.Method, llmapi.CallLLM.Route),
-		sub.Description(`CallLLM is the sole owner of the items conversation state key. It folds the prior round's tool
+		sub.Description(`CallLLM is the sole writer of the items conversation state key. It folds the prior round's tool
 results (accumulated in the toolResults key by the fan-in) into the conversation, calls the provider,
-and writes the full conversation back to items (plain replace, not a delta).`),
+and contributes the folded tool results and the new turn to items, whose append reducer adds them to the
+conversation.`),
 		sub.Task(llmapi.CallLLMIn{}, llmapi.CallLLMOut{}),
 	)
 	svc.Subscribe( // MARKER: ProcessResponse
@@ -225,19 +226,16 @@ func (svc *Intermediate) doInitChat(w http.ResponseWriter, r *http.Request) (err
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in llmapi.InitChatIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	var out llmapi.InitChatOut
 	err = svc.InitChat(r.Context(), &flow, in.Provider, in.Model, in.Items, in.ToolURLs, in.Options)
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -255,9 +253,8 @@ func (svc *Intermediate) doCallLLM(w http.ResponseWriter, r *http.Request) (err 
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in llmapi.CallLLMIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -267,7 +264,18 @@ func (svc *Intermediate) doCallLLM(w http.ResponseWriter, r *http.Request) (err 
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("items", &out.ItemsOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("pendingToolCalls", &out.PendingToolCalls)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("turnUsage", &out.TurnUsage)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -285,9 +293,8 @@ func (svc *Intermediate) doProcessResponse(w http.ResponseWriter, r *http.Reques
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in llmapi.ProcessResponseIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -297,7 +304,18 @@ func (svc *Intermediate) doProcessResponse(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("toolsRequested", &out.ToolsRequested)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("toolRounds", &out.ToolRoundsOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = flow.Set("usage", &out.UsageOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -315,9 +333,8 @@ func (svc *Intermediate) doExecuteTool(w http.ResponseWriter, r *http.Request) (
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in llmapi.ExecuteToolIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -327,7 +344,10 @@ func (svc *Intermediate) doExecuteTool(w http.ResponseWriter, r *http.Request) (
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("toolResults", &out.ToolResults)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {

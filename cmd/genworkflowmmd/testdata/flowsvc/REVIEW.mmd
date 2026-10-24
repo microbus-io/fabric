@@ -1,0 +1,15 @@
+graph LR
+    classDef task fill:#32a7c1,color:#f4f2ef,stroke:#32a7c1
+    classDef term fill:#e5f4f3,color:#434343,stroke:#32a7c1
+    linkStyle default stroke:#32a7c1
+
+    t0["Score"]:::task
+    t0_switch{"switch"}:::term
+    t1["Accept"]:::task
+    t2["Reject"]:::task
+    t0 --> t0_switch
+    t0_switch -->|"score #gt;= 600"| t1
+    t0_switch -->|"default"| t2
+    _start(( )):::term --> t0
+    t1 --> _end(( )):::term
+    t2 --> _end(( )):::term

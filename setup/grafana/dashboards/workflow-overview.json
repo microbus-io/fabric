@@ -162,7 +162,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(dwarf_flows_terminated_total{deployment=~\"$deployment\", service=~\"$service\", status=\"completed\"}[$__range])))",
+          "expr": "round(sum(increase(dwarf_flows_ended_total{deployment=~\"$deployment\", service=~\"$service\", status=\"completed\"}[$__range])))",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -228,7 +228,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(dwarf_flows_terminated_total{deployment=~\"$deployment\", service=~\"$service\", status=\"failed\"}[$__range])))",
+          "expr": "round(sum(increase(dwarf_flows_ended_total{deployment=~\"$deployment\", service=~\"$service\", status=\"failed\"}[$__range])))",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -294,14 +294,14 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(dwarf_flows_terminated_total{deployment=~\"$deployment\", service=~\"$service\", status=\"cancelled\"}[$__range])))",
+          "expr": "round(sum(increase(dwarf_flows_ended_total{deployment=~\"$deployment\", service=~\"$service\", status=~\"cancelled|terminated\"}[$__range])))",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Flows Cancelled",
+      "title": "Flows Cancelled or Terminated",
       "type": "stat"
     },
     {
@@ -517,14 +517,14 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "round(sum by (workflow, status) (increase(dwarf_flows_terminated_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "expr": "round(sum by (workflow, status) (increase(dwarf_flows_ended_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
           "instant": false,
           "legendFormat": "{{workflow}} ({{status}})",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Flows Terminated by Workflow & Status",
+      "title": "Flows Ended by Workflow & Status",
       "type": "timeseries"
     },
     {
@@ -1944,7 +1944,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "max by (priority) (dwarf_steps_pending{deployment=~\"$deployment\", service=~\"$service\"})",
+          "expr": "sum by (priority) (max by (shard, priority) (dwarf_steps_pending{deployment=~\"$deployment\", service=~\"$service\"}))",
           "instant": false,
           "legendFormat": "p{{priority}}",
           "range": true,
@@ -1953,7 +1953,7 @@
       ],
       "title": "Pending Steps by Priority",
       "type": "timeseries",
-      "description": "Due pending steps per priority band. Cluster-wide: every replica queries the same shared databases and reports the same number, so this aggregates with max, not sum."
+      "description": "Due pending steps per priority band, refreshed every 30 seconds by one leading replica per shard. Aggregated with max per shard, then summed across shards. A series can be absent for up to 30 seconds while a shard changes hands."
     },
     {
       "datasource": {
@@ -2051,7 +2051,8 @@
         }
       ],
       "title": "Oldest Pending Age by Priority",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "How long the longest-due pending step in each priority band has been due, across every shard. Refreshed every 30 seconds by one leading replica per shard; strict priority holds worse bands back by design."
     },
     {
       "datasource": {
@@ -2172,7 +2173,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "max(dwarf_steps_pending{deployment=~\"$deployment\", service=~\"$service\"})",
+          "expr": "sum(max by (shard, priority) (dwarf_steps_pending{deployment=~\"$deployment\", service=~\"$service\"}))",
           "instant": false,
           "legendFormat": "pending backlog",
           "range": true,
@@ -2193,7 +2194,7 @@
       ],
       "title": "Pending Backlog vs Local Cache (refiller throughput)",
       "type": "timeseries",
-      "description": "The shared backlog (cluster-wide, aggregated with max) against this fleet's local worker caches (per-replica, summed). Cache tracking the backlog means selection is keeping up."
+      "description": "The shared backlog (max per shard, summed across shards) against this fleet's local worker caches (per-replica, summed). Cache tracking the backlog means selection is keeping up."
     },
     {
       "datasource": {
@@ -2295,12 +2296,210 @@
       "description": "Per-shard dispatch throughput. Selection, the connection pool and the work split are all per shard, so a fleet-wide total hides one shard falling behind. There is deliberately no per-fairness-key metric: that label would be unbounded cardinality, so fairness and priority are aggregate-only."
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 73
+      },
+      "id": 70,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (shard) (dwarf_steps_dispatch_lag_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "shard {{shard}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Dispatch Lag by Shard",
+      "type": "timeseries",
+      "description": "How long the most overdue step in the priority bands being served has been due on each shard, current to within a selection cycle. Under a second while dispatch keeps up."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 73
+      },
+      "id": 71,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le, shard) (rate(dwarf_operation_seconds_bucket{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "instant": false,
+          "legendFormat": "shard {{shard}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "API Operation 99%ile by Shard",
+      "type": "timeseries",
+      "description": "Time an API operation (create, snapshot, list, ...) spent on a shard, its wait for a turn included. Compare one shard against the others to find a slow one; a shard that refuses connections fails fast and reads as fast."
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 73
+        "y": 81
       },
       "id": 29,
       "panels": [],
@@ -2334,7 +2533,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 74
+        "y": 82
       },
       "id": 30,
       "options": {
@@ -2400,7 +2599,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 74
+        "y": 82
       },
       "id": 31,
       "options": {
@@ -2466,7 +2665,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 74
+        "y": 82
       },
       "id": 32,
       "options": {
@@ -2532,7 +2731,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 74
+        "y": 82
       },
       "id": 33,
       "options": {
@@ -2631,7 +2830,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 78
+        "y": 86
       },
       "id": 34,
       "options": {
@@ -2728,7 +2927,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 78
+        "y": 86
       },
       "id": 35,
       "options": {
@@ -2849,7 +3048,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 86
+        "y": 94
       },
       "id": 36,
       "options": {
@@ -2970,7 +3169,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 86
+        "y": 94
       },
       "id": 37,
       "options": {
@@ -3013,7 +3212,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 102
       },
       "id": 47,
       "panels": [],
@@ -3025,7 +3224,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Replicas each engine sees holding connections to that shard - the divisor its connection pool is sized by. It should settle at the intended replica count.",
+      "description": "Replicas each engine sees holding connections to that shard, from which the fleet picks the shard's dispatchers. It should settle at the intended replica count; a dip means a replica lost the shard.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3082,7 +3281,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 95
+        "y": 103
       },
       "id": 48,
       "options": {
@@ -3185,7 +3384,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 95
+        "y": 103
       },
       "id": 49,
       "options": {
@@ -3288,7 +3487,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 95
+        "y": 103
       },
       "id": 50,
       "options": {
@@ -3329,7 +3528,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Where new flows landed. Placement is weighted by each shard's declared VirtualCPUs, so a skew that does not match the configured capacities means work is not spread as intended.",
+      "description": "Where new flows landed. While every shard's weight is 1, a replica places a new flow on a shard it dispatches, so flows spread by where Create calls arrive. Any other weight switches the fleet to placement in proportion to the declared weights, and a skew that does not match them means work is not spread as intended.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3386,7 +3585,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 103
+        "y": 111
       },
       "id": 51,
       "options": {
@@ -3488,7 +3687,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 103
+        "y": 111
       },
       "id": 52,
       "options": {
@@ -3525,12 +3724,111 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Replicas dispatching each shard: holding a share of its connection budget and running its steps. Up to two per shard; a shard at zero runs nothing.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 119
+      },
+      "id": 72,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (shard) (dwarf_shard_dispatching{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "shard {{shard}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Dispatching Replicas per Shard",
+      "type": "timeseries"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 111
+        "y": 127
       },
       "id": 53,
       "panels": [],
@@ -3599,7 +3897,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 112
+        "y": 128
       },
       "id": 54,
       "options": {
@@ -3698,7 +3996,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 112
+        "y": 128
       },
       "id": 55,
       "options": {
@@ -3797,7 +4095,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 112
+        "y": 128
       },
       "id": 56,
       "options": {
@@ -3896,7 +4194,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 120
+        "y": 136
       },
       "id": 57,
       "options": {
@@ -4007,7 +4305,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 120
+        "y": 136
       },
       "id": 58,
       "options": {
@@ -4062,7 +4360,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 128
+        "y": 144
       },
       "id": 59,
       "panels": [],
@@ -4098,7 +4396,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 129
+        "y": 145
       },
       "id": 60,
       "options": {
@@ -4165,7 +4463,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 129
+        "y": 145
       },
       "id": 61,
       "options": {
@@ -4266,7 +4564,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 129
+        "y": 145
       },
       "id": 62,
       "options": {
@@ -4388,7 +4686,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 133
+        "y": 149
       },
       "id": 63,
       "options": {
@@ -4487,7 +4785,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 137
+        "y": 153
       },
       "id": 64,
       "options": {
@@ -4530,7 +4828,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 145
+        "y": 161
       },
       "id": 65,
       "panels": [],
@@ -4599,7 +4897,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 146
+        "y": 162
       },
       "id": 66,
       "options": {
@@ -4710,7 +5008,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 146
+        "y": 162
       },
       "id": 67,
       "options": {
@@ -4809,7 +5107,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 154
+        "y": 170
       },
       "id": 68,
       "options": {
@@ -4908,7 +5206,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 154
+        "y": 170
       },
       "id": 69,
       "options": {
@@ -4943,6 +5241,117 @@
         }
       ],
       "title": "State Bytes Read by Column",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Memory each replica's state cache is charged for. It defaults to a tenth of the memory limit (GOMEMLIMIT, else the cgroup, else 1 GiB); pinned at that size means the cache is full.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 178
+      },
+      "id": 73,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(dwarf_state_cache_bytes{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "fleet total",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(dwarf_state_cache_bytes{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "largest replica",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "State Cache Memory",
       "type": "timeseries"
     }
   ],

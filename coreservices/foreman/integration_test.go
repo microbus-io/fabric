@@ -36,7 +36,7 @@ import (
 
 // This integration test exercises the foreman end-to-end over the Microbus bus against a real downstream
 // microservice that serves workflow graphs and task endpoints. Unlike the engine's in-process fixtures
-// (which inject a TestProxy Host), this drives the actual adapter seam: host.go's LoadGraph GETs a graph
+// (which inject a hosts.Mux Host), this drives the actual adapter seam: host.go's LoadGraph GETs a graph
 // over the bus and decodes the {"graph": …} envelope, and ExecuteTask marshals the *workflow.Flow to JSON,
 // POSTs it to the task, and unmarshals the returned flow - so the downstream endpoints below do their own
 // (un)marshaling, mirroring what a generated workflow microservice's intermediate.go does.
@@ -87,12 +87,12 @@ func subscribeTask(c *connector.Connector, name, route string, body func(f *work
 // linearGraph is A -> B -> C -> END, used by several subtests as a trivial happy path.
 func linearGraph(host string) *workflow.Graph {
 	g := workflow.NewGraph("Linear")
-	g.SetEndpoint("A", host+":428/a")
-	g.SetEndpoint("B", host+":428/b")
-	g.SetEndpoint("C", host+":428/c")
+	g.SetURL("A", host+":428/a")
+	g.SetURL("B", host+":428/b")
+	g.SetURL("C", host+":428/c")
 	g.AddTransition("A", "B")
 	g.AddTransition("B", "C")
-	g.AddTransition("C", workflow.END)
+	g.AddTransition("C", workflow.End)
 	return g
 }
 
@@ -118,14 +118,14 @@ func TestForemanIntegration(t *testing.T) {
 		// Subgraph: Parent P -> END, where P calls flow.Subgraph(Child) and adopts its output. Child K -> END.
 		subscribeGraph(c, "ParentGraph", ":428/parent", func() *workflow.Graph {
 			g := workflow.NewGraph("Parent")
-			g.SetEndpoint("P", host+":428/p")
-			g.AddTransition("P", workflow.END)
+			g.SetURL("P", host+":428/p")
+			g.AddTransition("P", workflow.End)
 			return g
 		})
 		subscribeGraph(c, "ChildGraph", ":428/child", func() *workflow.Graph {
 			g := workflow.NewGraph("Child")
-			g.SetEndpoint("K", host+":428/k")
-			g.AddTransition("K", workflow.END)
+			g.SetURL("K", host+":428/k")
+			g.AddTransition("K", workflow.End)
 			return g
 		})
 		subscribeTask(c, "P", ":428/p", func(f *workflow.Flow) error {
@@ -143,8 +143,8 @@ func TestForemanIntegration(t *testing.T) {
 		// Interrupt: I -> END. First pass parks via flow.Interrupt; on resume it records the answer.
 		subscribeGraph(c, "InterruptGraph", ":428/interrupt", func() *workflow.Graph {
 			g := workflow.NewGraph("Interrupt")
-			g.SetEndpoint("I", host+":428/i")
-			g.AddTransition("I", workflow.END)
+			g.SetURL("I", host+":428/i")
+			g.AddTransition("I", workflow.End)
 			return g
 		})
 		subscribeTask(c, "I", ":428/i", func(f *workflow.Flow) error {
@@ -164,14 +164,14 @@ func TestForemanIntegration(t *testing.T) {
 		// the deterministic pause that lets the test terminate a flow with a genuinely in-flight subgraph.
 		subscribeGraph(c, "CancelParentGraph", ":428/cancel-parent", func() *workflow.Graph {
 			g := workflow.NewGraph("CancelParent")
-			g.SetEndpoint("CP", host+":428/cp")
-			g.AddTransition("CP", workflow.END)
+			g.SetURL("CP", host+":428/cp")
+			g.AddTransition("CP", workflow.End)
 			return g
 		})
 		subscribeGraph(c, "CancelChildGraph", ":428/cancel-child", func() *workflow.Graph {
 			g := workflow.NewGraph("CancelChild")
-			g.SetEndpoint("CI", host+":428/ci")
-			g.AddTransition("CI", workflow.END)
+			g.SetURL("CI", host+":428/ci")
+			g.AddTransition("CI", workflow.End)
 			return g
 		})
 		subscribeTask(c, "CP", ":428/cp", func(f *workflow.Flow) error {
@@ -194,10 +194,10 @@ func TestForemanIntegration(t *testing.T) {
 		// cancelled. The fallback timeout stays under the foreman's 1s step budget so a stuck test cannot hang.
 		subscribeGraph(c, "GateGraph", ":428/gate", func() *workflow.Graph {
 			g := workflow.NewGraph("Gate")
-			g.SetEndpoint("Gt", host+":428/gt")
-			g.SetEndpoint("GtDone", host+":428/gt-done")
+			g.SetURL("Gt", host+":428/gt")
+			g.SetURL("GtDone", host+":428/gt-done")
 			g.AddTransition("Gt", "GtDone")
-			g.AddTransition("GtDone", workflow.END)
+			g.AddTransition("GtDone", workflow.End)
 			return g
 		})
 		subscribeTask(c, "Gt", ":428/gt", func(f *workflow.Flow) error {
@@ -218,8 +218,8 @@ func TestForemanIntegration(t *testing.T) {
 		// first dispatch by arming a retry, then succeeds on re-dispatch.
 		subscribeGraph(c, "RetryGraph", ":428/retry", func() *workflow.Graph {
 			g := workflow.NewGraph("Retry")
-			g.SetEndpoint("Rt", host+":428/rt")
-			g.AddTransition("Rt", workflow.END)
+			g.SetURL("Rt", host+":428/rt")
+			g.AddTransition("Rt", workflow.End)
 			return g
 		})
 		subscribeTask(c, "Rt", ":428/rt", func(f *workflow.Flow) error {
@@ -237,8 +237,8 @@ func TestForemanIntegration(t *testing.T) {
 		// the give-up horizon, then fails the step.
 		subscribeGraph(c, "AbsentGraph", ":428/absent", func() *workflow.Graph {
 			g := workflow.NewGraph("Absent")
-			g.SetEndpoint("Gone", "absent.host:428/gone")
-			g.AddTransition("Gone", workflow.END)
+			g.SetURL("Gone", "absent.host:428/gone")
+			g.AddTransition("Gone", workflow.End)
 			return g
 		})
 		return nil

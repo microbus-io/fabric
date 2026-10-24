@@ -186,7 +186,7 @@ func buildErrorTimelineChart(flows []foremanapi.FlowSummary, window time.Duratio
 		if f.UpdatedAt.Before(start) || f.UpdatedAt.After(end) {
 			continue
 		}
-		task := f.TaskName
+		task := f.StoppedTaskName
 		if task == "" {
 			task = "(no task)"
 		}

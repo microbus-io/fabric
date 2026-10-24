@@ -121,44 +121,44 @@ Run `go mod tidy` first: the workflow test imports the foreman, which pulls tran
 
 The previous step generated a placeholder graph builder `func (svc *Service) MyWorkflow(ctx context.Context) (graph *workflow.Graph, err error)` in `service.go`, tagged `// MARKER: MyWorkflow`, with a `graph = workflow.NewGraph("MyWorkflow")` starter that returns an empty graph (which fails validation until you define it). Build out the graph with the `workflow.NewGraph` builder API, referencing task endpoints from this or other microservices by their `URL()` method. Leave the generated godoc as it is.
 
-Each node in the graph carries both a short **name** (used in transitions) and a **URL** (used to dispatch the task at runtime). Register nodes with `graph.SetEndpoint("Name", taskURL)`, then write transitions in terms of names. Use **PascalCase** node names matching the task endpoint (e.g. `"TaskA"` for `TaskA`) - they are graph-topology identifiers, kept visually distinct from the lowercased dispatch URLs and the camelCase state field names. The graph display name passed to `NewGraph` is PascalCase too (conventionally the workflow's own name). Child workflows are not graph nodes; they are launched dynamically from a task body via `flow.Subgraph(childWorkflow.URL(), input)` - see the "Subgraphs and Interrupts" section in `.claude/rules/workflows.txt`.
+Each node in the graph carries both a short **name** (used in transitions) and a **URL** (used to dispatch the task at runtime). Register nodes with `graph.SetURL("Name", taskURL)`, then write transitions in terms of names. Use **PascalCase** node names matching the task endpoint (e.g. `"TaskA"` for `TaskA`) - they are graph-topology identifiers, kept visually distinct from the lowercased dispatch URLs and the camelCase state field names. The graph display name passed to `NewGraph` is PascalCase too (conventionally the workflow's own name). Child workflows are not graph nodes; they are launched dynamically from a task body via the child's typed `childapi.NewSubgraph(flow)` client, or `flow.Subgraph(childWorkflowURL, in, &out)`.
 
 ```go
 // MyWorkflow does X.
 func (svc *Service) MyWorkflow(ctx context.Context) (graph *workflow.Graph, err error) { // MARKER: MyWorkflow
 	graph = workflow.NewGraph("MyWorkflow")
-	graph.SetEndpoint("TaskA", myserviceapi.TaskA.URL())
-	graph.SetEndpoint("TaskB", myserviceapi.TaskB.URL())
-	graph.SetEndpoint("TaskC", myserviceapi.TaskC.URL())
+	graph.SetURL("TaskA", myserviceapi.TaskA.URL())
+	graph.SetURL("TaskB", myserviceapi.TaskB.URL())
+	graph.SetURL("TaskC", myserviceapi.TaskC.URL())
 	// graph.AddTransition("TaskA", "TaskB")
 	// graph.AddTransitionSwitch("TaskB", "TaskC", "score >= 50") // first-match-wins routing; end with a "true" arm for the default
-	// graph.AddTransitionSwitch("TaskB", workflow.END, "true")
+	// graph.AddTransitionSwitch("TaskB", workflow.End, "true")
 	// graph.AddTransitionGoto("TaskB", "TaskC")
 	return graph, nil
 }
 ```
 
-If a subgraph call needs its input or output adapted across a contract boundary, do it in any ordinary task immediately upstream or downstream of the subgraph using `flow.Del`/`flow.Clear` - see the "State Transformation Around a Subgraph" section in `.claude/rules/workflows.txt`. If the workflow's terminal state needs scrubbing before it lands in `final_state`, the last task calls `flow.Del`.
+A subgraph's final state is returned to the calling task, not merged into its state. The calling task builds the child's input under the child's field names, and merges what it needs from the result into its own state, if at all. If the workflow's own terminal state needs scrubbing before it becomes the final state, the last task calls `flow.Del`.
 
 Naming the same task URL twice with different names is the supported way to reuse a task at multiple positions in the graph (each position keeps its own node identity for fan-in tracking).
 
-**Every fan-out requires a matching fan-in.** Any node with two or more normal outgoing transitions, or an `AddTransitionForEach` transition, is a fan-out: its branches run in parallel. Every fan-out must converge on a single node that you mark with `graph.SetFanIn("name")`. Add the `SetFanIn` call in the same edit as the fan-out transitions, and route every parallel branch into the marked node before the graph reaches `workflow.END`. A graph that fans out without a `SetFanIn` node still compiles and passes `go vet`, but `graph.Validate()` (run by the generated marshaler) rejects it at run time, so the test in Step 8 fails. This is the single most common workflow-graph mistake. The fan-out/fan-in section in `.claude/rules/workflows.txt` has the full rule and a worked example.
+**Every fan-out requires a matching fan-in.** Any node with two or more normal outgoing transitions, or an `AddTransitionForEach` transition, is a fan-out: its branches run in parallel. Every fan-out must converge on a single node that you mark with `graph.SetFanIn("name")`. Add the `SetFanIn` call in the same edit as the fan-out transitions, and route every parallel branch into the marked node before the graph reaches `workflow.End`. A graph that fans out without a `SetFanIn` node still compiles and passes `go vet`, but `graph.Validate()` (run by the generated marshaler) rejects it at run time, so the test in Step 8 fails. This is the single most common workflow-graph mistake.
 
-**Reducers for fan-in fields.** When parallel branches converge, each field that needs anything other than last-write-wins must be explicitly wired with `graph.SetReducer(field, reducer)` at graph-build time. Fields without a registered reducer use `Replace` (last write wins). No name-driven inference - a field named `messages` and a field named `total` are treated identically until `SetReducer` says otherwise.
+**Reducers.** Each field that needs anything other than last-write-wins, typically one that parallel branches write before they converge, must be explicitly wired with `graph.SetReducer(field, reducer)` at graph-build time. A reducer folds every write to its field, at each step, fan-in and the final state, so every task that writes a reduced field must write only its contribution. Fields without a registered reducer use `Replace` (last write wins). No name-driven inference - a field named `messages` and a field named `total` are treated identically until `SetReducer` says otherwise.
 
 ```go
-graph.SetReducer("messages", workflow.ReducerAppend) // accumulate per-branch deltas
+graph.SetReducer("messages", workflow.ReducerAppend) // accumulate each write's elements
 graph.SetReducer("total",    workflow.ReducerAdd)    // sum numeric contributions
 graph.SetReducer("seen",     workflow.ReducerUnion)  // dedupe across branches
 graph.SetReducer("attrs",    workflow.ReducerMerge)  // merge per-branch objects
 graph.SetReducer("approved", workflow.ReducerAnd)    // all branches must approve
 graph.SetReducer("flagged",  workflow.ReducerOr)     // any branch flags
-graph.SetReducer("notes",    workflow.ReducerConcat) // join string deltas
+graph.SetReducer("notes",    workflow.ReducerConcat) // join string contributions
 ```
 
-Pick the reducer by what the merge means, not by what the field is named. The default `Replace` is correct when only one branch ever writes the field.
+Pick the reducer by what the merge means, not by what the field is named. The default `Replace` is correct when only one branch ever writes the field, or when a task rewrites the whole value.
 
-**Prefer `AddTransitionSwitch` > `AddTransitionWhen` > `AddTransitionGoto` for branching.** `AddTransitionSwitch` is the default for any routing where exactly one branch should run: siblings are first-match-wins in declaration order (use `when="true"` as the last arm for a default), the validator enforces mutual exclusivity, and no `SetFanIn` is needed because only one branch ever fires. Drop to `AddTransitionWhen` only when the source genuinely fans out under multiple independent predicates that may all match - that's parallel work, not routing, and it needs a matching `SetFanIn`. Two `When` predicates meant to be mutually exclusive (`x>0` and `x<=0`) should be a `Switch` so the validator enforces it. Reserve `AddTransitionGoto` for runtime control-flow the task body decides via `flow.Goto`, the canonical case being a fan-in node looping back ("ask for more info, retry the review"). The "Switch Transitions" and "When to choose Switch vs. When vs. Goto" sections in `.claude/rules/workflows.txt` carry the full rules.
+**Prefer `AddTransitionSwitch` > `AddTransitionWhen` > `AddTransitionGoto` for branching.** `AddTransitionSwitch` is the default for any routing where exactly one branch should run: siblings are first-match-wins in declaration order (use `when="true"` as the last arm for a default), the validator enforces mutual exclusivity, and no `SetFanIn` is needed because only one branch ever fires. Drop to `AddTransitionWhen` only when the source genuinely fans out under multiple independent predicates that may all match - that's parallel work, not routing, and it needs a matching `SetFanIn`. Two `When` predicates meant to be mutually exclusive (`x>0` and `x<=0`) should be a `Switch` so the validator enforces it. Reserve `AddTransitionGoto` for runtime control-flow the task body decides via `flow.Goto`, the canonical case being a fan-in node looping back ("ask for more info, retry the review").
 
 To embed this workflow as a subgraph from inside another task body, use the generated `Subgraph` client (`otherapi.NewSubgraph(flow).MyWorkflow(ctx, ...)`), never the `Executor` - the `Executor` is test-only.
 

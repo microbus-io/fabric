@@ -99,11 +99,7 @@ func main() {
 		if err != nil {
 			panic(fmt.Errorf("{{.Method}}: %w", err))
 		}
-		mmd, err := workflow.NewGraphRenderer(g).Render()
-		if err != nil {
-			panic(fmt.Errorf("{{.Method}}: %w", err))
-		}
-		write(dir, {{.OutputLit}}, mmd)
+		write(dir, {{.OutputLit}}, workflow.NewGraphRenderer(g).Render())
 	}
 {{end}}
 }

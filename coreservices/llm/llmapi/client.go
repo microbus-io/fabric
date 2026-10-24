@@ -296,7 +296,7 @@ func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, 
 		return errors.Trace(err)
 	}
 	state := flow.RawState()
-	err = state.Merge(inState)
+	err = state.Apply(workflow.ChangesOf(inState), nil)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -325,7 +325,7 @@ func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, 
 		*outFlow = flow.Flow
 	}
 	if out != nil {
-		err = flow.ParseState(out)
+		err = flow.Parse(out)
 		return errors.Trace(err)
 	}
 	return nil
@@ -433,9 +433,10 @@ func (_c Executor) InitChat(ctx context.Context, provider string, model string, 
 	return err // No trace
 }
 
-// CallLLM is the sole owner of the items conversation state key. It folds the prior round's tool
+// CallLLM is the sole writer of the items conversation state key. It folds the prior round's tool
 // results (accumulated in the toolResults key by the fan-in) into the conversation, calls the provider,
-// and writes the full conversation back to items (plain replace, not a delta).
+// and contributes the folded tool results and the new turn to items, whose append reducer adds them to the
+// conversation.
 func (_c Executor) CallLLM(ctx context.Context, provider string, model string, items []Item, toolResults []ToolResult) (itemsOut []Item, pendingToolCalls []ToolCall, turnUsage Usage, err error) { // MARKER: CallLLM
 	var out CallLLMOut
 	err = marshalTask(ctx, _c.svc, _c.opts, _c.host, CallLLM.Method, CallLLM.Route, CallLLMIn{Provider: provider, Model: model, Items: items, ToolResults: toolResults}, &out, _c.inFlow, _c.outFlow)

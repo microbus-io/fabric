@@ -310,7 +310,7 @@ func (svc *Service) TaskDetail(w http.ResponseWriter, r *http.Request) (err erro
 	if graph != nil {
 		taskURL = graph.URLOf(taskName)
 	}
-	if taskURL == "" || taskURL == workflow.END {
+	if taskURL == "" || taskURL == workflow.End {
 		form.Add(wf.Field().AddLeft("Status").AddRight(wf.Text("(task not registered on the graph)")))
 	} else {
 		form.Add(wf.Field().AddLeft("URL").AddRight(wf.Text(taskURL)))
@@ -449,8 +449,8 @@ func (svc *Service) ListFlows(w http.ResponseWriter, r *http.Request) (err error
 			errCell = f.CancelReason
 		}
 		statusCell := wf.Collection(statusChip(f.Status))
-		if f.TaskName != "" && f.Status != workflow.StatusCompleted {
-			statusCell.Add(" at ", wf.QuickSearchUnderliner(f.TaskName))
+		if f.StoppedTaskName != "" && f.Status != workflow.StatusCompleted {
+			statusCell.Add(" at ", wf.QuickSearchUnderliner(f.StoppedTaskName))
 		}
 		tbl.Add(wf.Row().Add(
 			wf.DateTime(f.CreatedAt),
@@ -867,6 +867,25 @@ func (svc *Service) StepDetail(w http.ResponseWriter, r *http.Request) (err erro
 		interruptForm = f
 	}
 
+	// A step that called a subgraph names the child flow; its outcome is what the subgraph returned
+	var subgraphForm any
+	if step.SubgraphKey != "" {
+		name := step.SubgraphName
+		if name == "" {
+			name = step.SubgraphKey
+		}
+		href := svc.ExternalizeURL(r.Context(), "/flows/"+url.PathEscape(step.SubgraphKey))
+		childOutcome, err := svc.foreman.Snapshot(r.Context(), step.SubgraphKey)
+		if err != nil {
+			subgraphForm = wf.Collection(wf.Link(href).Add(name), wf.HTMLUnsafe("<br>"), wf.Text(err.Error()))
+		} else {
+			subgraphForm = wf.Collection(
+				statusChip(childOutcome.Status), " ", wf.Link(href).Add(name),
+				renderStateForm(r, "expSub", stateMap(childOutcome.State), nil),
+			)
+		}
+	}
+
 	// The labels switcher and the bodies switcher each pick the "first added"
 	// when the state variable is unset, which makes them disagree on the
 	// initial render. Seed the state to defaultTab so both render the same
@@ -889,6 +908,10 @@ func (svc *Service) StepDetail(w http.ResponseWriter, r *http.Request) (err erro
 	if interruptForm != nil {
 		tabLabels.AddLeft(wf.TabLabel("interrupt").Add("Interrupt"))
 		tabBodies.AddLeft(wf.TabBody("interrupt").Add(interruptForm))
+	}
+	if subgraphForm != nil {
+		tabLabels.AddLeft(wf.TabLabel("subgraph").Add("Subgraph"))
+		tabBodies.AddLeft(wf.TabBody("subgraph").Add(subgraphForm))
 	}
 
 	appBar := wf.AppBar(step.TaskName).AddBottom(tabLabels)

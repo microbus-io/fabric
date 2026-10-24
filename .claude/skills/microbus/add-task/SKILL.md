@@ -67,9 +67,7 @@ Constraints:
 - Argument names must start with a lowercase letter
 - The function name must start with an uppercase letter
 
-Naming for fan-in: argument names carry no execution semantics. A fan-in field's reducer is set explicitly at graph-build time with `graph.SetReducer(field, reducer)`; without one, the default is `Replace` (last write wins). Pick names that describe what the field *is* (e.g. `failures`, `messages`, `score`), not the merge strategy. Tasks writing to a reducer-managed field must produce only the **delta** for this branch, not the full accumulated value - otherwise fan-in produces duplicates. For example, a `VerifyEmployment` task running once per employer with `graph.SetReducer("failures", workflow.ReducerAdd)` should return `failuresOut: 0 or 1` (its own count), not the running total.
-
-**Prefer typed input/output arguments over `flow.Get` / `flow.Set`.** Inputs and outputs are auto-bound to state by name; the signature is the task's state contract, mocks get typed handlers, and a reader sees what the task reads and produces without scanning the body. Reserve `flow.Get` / `flow.Set` for keys whose names are dynamic or for internal types not in the API package. See the Best Practices section of `.claude/rules/workflows.txt` for the rationale.
+**Prefer typed input/output arguments over `flow.Get` / `flow.Set`.** Inputs and outputs are auto-bound to state by name; the signature is the task's state contract, mocks get typed handlers, and a reader sees what the task reads and produces without scanning the body. Reserve `flow.Get` / `flow.Set` for keys whose names are dynamic or for internal types not in the API package.
 
 **`forEach` branches see auto-injected per-element fields.** When the task runs as the target of `AddTransitionForEach(..., "items", "item")`, the branch's state contains `item` (the element), `itemIndex` (0-based position), and `itemCount` (cohort size). Take any of them as a typed argument by name - no lookup code needed.
 
@@ -129,7 +127,7 @@ type MyTaskOut struct { // MARKER: MyTask
 - If an In/Out field's type comes from another package (e.g. a `time.Time` field needs `"time"`), add that import to `definition.go`
 - Add the gating fields only when needed:
   - `RequiredClaims: "roles.manager && level>2"` for the claims from Step 5 (omit when open)
-  - `TimeBudget: 5 * time.Minute` if the task has a known runtime ceiling shorter than the foreman default (2m, hard ceiling 15m); add the `"time"` import. For work that does not fit within 15m, use the Interrupt-and-Resume or Polling-with-Retry patterns from `.claude/rules/workflows.txt`
+  - `TimeBudget: 5 * time.Minute` if the task has a known runtime ceiling shorter than the foreman default (2m, hard ceiling 15m); add the `"time"` import. For work that does not fit within 15m, use the Interrupt-and-Resume or Polling-with-Retry pattern
 
 #### Step 8: Generate the Boilerplate
 
@@ -152,7 +150,7 @@ Run `go mod tidy` first: a task that introduces a new import (a downstream clien
 
 The previous step generated a placeholder task `func (svc *Service) MyTask(ctx context.Context, flow *workflow.Flow, ...)` in `service.go`, with the signature and godoc projected from `definition.go`, tagged `// MARKER: MyTask` and holding a `// TODO` body. Fill in that body; leave the generated signature and godoc as they are. Complex types refer to their definition in `myserviceapi`.
 
-The task receives state fields as input arguments and returns state fields as output. It also has access to `flow` for control operations (`flow.Goto()`, `flow.Interrupt()`, `flow.Subgraph()`, `flow.Retry()`, `flow.Sleep()`) and for field-based state access (`flow.GetString()`, `flow.Set()`) when needed. `Interrupt` and `Subgraph` both park the step and return `(data, yield, err)`; the task must `return nil` when `yield` is true and may read `data` / branch on `err` once it resolves (see "Subgraphs and Interrupts" in `.claude/rules/workflows.txt`).
+The task receives state fields as input arguments and returns state fields as output. It also has access to `flow` for control operations (`flow.Goto()`, `flow.Interrupt()`, `flow.Subgraph()`, `flow.Retry()`, `flow.Sleep()`) and for field-based state access (`flow.GetString()`, `flow.Set()`) when needed. `Interrupt` and `Subgraph` both park the step, return `(yield, err)`, and unmarshal the resolved data into a trailing `out` pointer; the task must `return nil` when `yield` is true and may read the data / branch on `err` once it resolves.
 
 To invoke another microservice's workflow as an isolated child flow (a subgraph) from inside this task body, use that microservice's generated `Subgraph` client (only the explicit inputs cross in, only the explicit outputs cross back). Do not use its `Executor` from a task body - the `Executor` is test-only.
 
@@ -173,7 +171,7 @@ if yield || err != nil {
 
 To rename a field across a contract boundary, read it off `flow.Snapshot()` (a decoded copy that survives the clear), then `flow.Clear()` and `flow.Set` it under its new name.
 
-Each records JSON null in the step's changes for dropped fields, so the cleanup is preserved in the audit trail; downstream merged state is absent the field (Replace reducer) or sees no contribution (Add/Append/Union/Merge/And/Or/Concat short-circuit to their identity when a branch's value is JSON null).
+Each records JSON null in the step's changes for dropped fields, so the cleanup is preserved in the audit trail, and downstream state is absent the field, reduced or not. Inside a fan-out branch, a `Del` or `Clear` of a reduced field fails the step, so drop reduced fields before the fan-out or after its fan-in.
 
 #### Step 10: Test the Task
 

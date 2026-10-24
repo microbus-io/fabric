@@ -5,7 +5,7 @@ general:
   hostname: foreman.core
   description: Foreman orchestrates agentic workflow execution.
   package: github.com/microbus-io/fabric/coreservices/foreman
-  modifiedAt: "2026-09-28T03:10:19Z"
+  modifiedAt: "2026-10-23T04:24:40Z"
 
 configs:
   Shards:
@@ -13,8 +13,9 @@ configs:
     description: |-
       Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
       Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
-      templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
-      and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+      templating), MaxConnections (the connection budget shared by the replicas that dispatch the shard, 0 to let the
+      engine derive it), Weight (the shard's relative share of new-flow placement; any weight other than 1 switches the
+      fleet to weighted placement), and Cordoned (excludes the shard from new-flow placement while everything already
       resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
       after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
       file shard.
@@ -31,16 +32,11 @@ configs:
     description: TimeBudget is the default time budget for a single task step's execution, applied as the timeout on the task dispatch call. A flow may override it per-flow via FlowOptions.TimeBudget, up to a hard 15m ceiling; a task endpoint may declare a shorter budget of its own via sub.TimeBudget.
     validation: dur [1s,15m]
     default: 2m
-  DefaultPriority:
-    signature: DefaultPriority() (value int)
-    description: DefaultPriority is the priority assigned to a flow when the caller does not specify one. Priority is an integer >= 1, lower numbers run first.
-    validation: int [1,]
+  MaxPriority:
+    signature: MaxPriority() (value int)
+    description: MaxPriority is the number of priority levels flows may use. Priorities run from 1 (served first) to MaxPriority, and a flow that sets none gets the midpoint. Set the same value on every replica; it takes effect on restart.
+    validation: int [1,100]
     default: 5
-  MaxOpenConns:
-    signature: MaxOpenConns() (value int)
-    description: MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.
-    validation: int [0,]
-    default: 0
 
 metrics:
   AckTimeouts:
@@ -112,7 +108,7 @@ functions:
     route: :444/purge
   ShardInfo:
     signature: ShardInfo() (shards []ShardSummary)
-    description: ShardInfo returns per-shard health (latency, row counts, error) for every database shard.
+    description: ShardInfo returns per-shard health (latency, error) for every database shard.
     method: GET
     route: :444/shard-info
   Await:

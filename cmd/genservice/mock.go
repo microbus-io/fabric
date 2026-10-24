@@ -55,13 +55,13 @@ type mockView struct {
 	usesFlow  bool   // standard: the method carries a *workflow.Flow param (a task)
 
 	// Graph-only.
-	APIPkg       string // api package alias, for the synthetic task's In/Out references
-	KebabRoute   string // kebab-cased name, for the synthetic mock route
-	InType       string // e.g. "svcapi.MainFlowIn"
-	HandlerSig   string // typed handler func signature
-	HandlerArgs  string // ", in.Item, in.Count"
-	HandlerOut   string // "done, err"
-	OutStructLit string // "svcapi.MainFlowOut{Done: done}"
+	APIPkg      string       // api package alias, for the synthetic task's In/Out references
+	KebabRoute  string       // kebab-cased name, for the synthetic mock route
+	InType      string       // e.g. "svcapi.MainFlowIn"
+	HandlerSig  string       // typed handler func signature
+	HandlerArgs string       // ", in.Item, in.Count"
+	HandlerOut  string       // "done, err"
+	StateWrites []stateWrite // the handler's outputs, written to the flow's state
 
 	// Test-only.
 	TestVarDecls []paramDecl // locals to declare before a standard subtest call
@@ -251,16 +251,7 @@ func graphMock(name, apiPkg string, in, out []fieldDef) *mockView {
 	}
 	mv.HandlerOut = strings.Join(append(append([]string{}, outNames...), "err"), ", ")
 
-	var lit strings.Builder
-	fmt.Fprintf(&lit, "%s.%sOut{", apiPkg, name)
-	for i, x := range out {
-		if i > 0 {
-			lit.WriteString(", ")
-		}
-		fmt.Fprintf(&lit, "%s: %s", x.goName, lowerFirst(x.goName))
-	}
-	lit.WriteString("}")
-	mv.OutStructLit = lit.String()
+	mv.StateWrites = stateWrites(out, func(x fieldDef) string { return "&" + lowerFirst(x.goName) })
 	return mv
 }
 
@@ -304,7 +295,7 @@ func mockImports(m *mockModel, aliases map[string]string) importSet {
 		if mv.usesFlow {
 			hasFlow = true
 		}
-		addResolved(imports, aliases, mv.Sig, mv.Results, mv.HandlerSig, mv.InType, mv.OutStructLit)
+		addResolved(imports, aliases, mv.Sig, mv.Results, mv.HandlerSig, mv.InType)
 	}
 	if hasWeb || hasGraph {
 		imports[impHTTP] = true

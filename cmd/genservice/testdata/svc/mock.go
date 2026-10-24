@@ -187,7 +187,7 @@ func (svc *Mock) MockMainFlow(handler func(ctx context.Context, flow *workflow.F
 	mockTaskURL := httpx.JoinHostAndPath(svc.Hostname(), mockRoute)
 	svc.mockMainFlowGraph = func(ctx context.Context) (graph *workflow.Graph, err error) {
 		g := workflow.NewGraph("MainFlow")
-		g.AddTransition(mockTaskURL, workflow.END)
+		g.AddTransition(mockTaskURL, workflow.End)
 		return g, nil
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
@@ -195,15 +195,20 @@ func (svc *Mock) MockMainFlow(handler func(ctx context.Context, flow *workflow.F
 		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
 			return errors.Trace(err)
 		}
-		snap := f.Snapshot()
 		var in svcapi.MainFlowIn
-		f.ParseState(&in)
+		f.Parse(&in)
 		done, since, err := handler(r.Context(), &f, in.Item, in.Pet)
 		if err != nil {
 			return err // No trace
 		}
-		out := svcapi.MainFlowOut{Done: done, Since: since}
-		f.SetChanges(out, snap)
+		err = f.Set("done", &done)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		err = f.Set("since", &since)
+		if err != nil {
+			return errors.Trace(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		return json.NewEncoder(w).Encode(&f)
 	},

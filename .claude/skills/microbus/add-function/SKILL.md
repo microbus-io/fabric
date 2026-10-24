@@ -75,7 +75,7 @@ Do not write per-argument descriptions in the godoc. Put them in `jsonschema_des
 
 #### Step 5: Determine the Required Claims
 
-Determine if the endpoint should be restricted to authorized actors only. Compose a boolean expression over the JWT claims associated with the request that if not met will cause the request to be denied. For example: `roles.manager && level>2`. Default to closed: in a standard ingress configuration an empty `requiredClaims` on a `:443` endpoint (or any port the operator added to `AllowedInternalPorts`) is reachable by the entire internet. Leave it empty only for an intentionally public endpoint; if the endpoint wields a stored secret or a privileged side effect, it must be gated by `requiredClaims` and/or an internal port. See the Ports and Authentication sections of `.claude/rules/microbus.md`.
+Determine if the endpoint should be restricted to authorized actors only. Compose a boolean expression over the JWT claims associated with the request that if not met will cause the request to be denied. For example: `roles.manager && level>2`. Default to closed: in a standard ingress configuration an empty `requiredClaims` on a `:443` endpoint (or any port the operator added to `AllowedInternalPorts`) is reachable by the entire internet. Leave it empty only for an intentionally public endpoint; if the endpoint wields a stored secret or a privileged side effect, it must be gated by `requiredClaims` and/or an internal port.
 
 #### Step 6: Define Complex Types
 

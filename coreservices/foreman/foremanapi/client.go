@@ -523,7 +523,7 @@ func (_c MulticastClient) Purge(ctx context.Context, query Query) iter.Seq[*Purg
 	}
 }
 
-// ShardInfo returns per-shard health (latency, row counts, error) for every database shard.
+// ShardInfo returns per-shard health (latency, error) for every database shard.
 func (_c Client) ShardInfo(ctx context.Context) (shards []ShardSummary, err error) { // MARKER: ShardInfo
 	_in := ShardInfoIn{}
 	_out := ShardInfoOut{}
@@ -540,7 +540,7 @@ func (_res *ShardInfoResponse) Get() (shards []ShardSummary, err error) { // MAR
 	return _d.Shards, _res.err
 }
 
-// ShardInfo returns per-shard health (latency, row counts, error) for every database shard.
+// ShardInfo returns per-shard health (latency, error) for every database shard.
 func (_c MulticastClient) ShardInfo(ctx context.Context) iter.Seq[*ShardInfoResponse] { // MARKER: ShardInfo
 	_in := ShardInfoIn{}
 	_out := ShardInfoOut{}

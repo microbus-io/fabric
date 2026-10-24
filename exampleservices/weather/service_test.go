@@ -218,7 +218,8 @@ func TestWeather_Answer(t *testing.T) { // MARKER: Answer
 		answer, err := exec.WithOutputFlow(&out).Answer(ctx, "What is the weather in London?")
 		if assert.NoError(err) {
 			assert.Equal(answer, "")
-			url, _, ok := out.SubgraphRequested()
+			raw := workflow.RawFlow{Flow: out}
+			url, _, ok := raw.SubgraphRequested()
 			assert.True(ok)
 			assert.Equal(url, llmapi.ChatLoop.URL())
 		}

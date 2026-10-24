@@ -17,7 +17,7 @@ const Hostname = "foreman.core"
 const Name = "Foreman"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 55
+const Version = 56
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `Foreman orchestrates agentic workflow execution.`
@@ -25,8 +25,9 @@ const Description = `Foreman orchestrates agentic workflow execution.`
 /*
 Shards declares the database shards that hold flows and steps, one entry per shard. Each carries its own
 Index (>= 1, unique, stable across restarts and identical on every replica), DSN (used verbatim, no
-templating), VirtualCPUs (the CPU count of that shard's database server, which sizes its connection budget
-and placement weight), and Cordoned (excludes the shard from new-flow placement while everything already
+templating), MaxConnections (the connection budget shared by the replicas that dispatch the shard, 0 to let the
+engine derive it), Weight (the shard's relative share of new-flow placement; any weight other than 1 switches the
+fleet to weighted placement), and Cordoned (excludes the shard from new-flow placement while everything already
 resident keeps running). Shards can be added but never removed, and a change takes effect only on restart,
 after a coordinated restart of every replica. Left empty, a LOCAL deployment falls back to a single SQLite
 file shard.
@@ -52,18 +53,11 @@ var TimeBudget = define.Config{ // MARKER: TimeBudget
 	Validation: "dur [1s,15m]",
 }
 
-// DefaultPriority is the priority assigned to a flow when the caller does not specify one. Priority is an integer >= 1, lower numbers run first.
-var DefaultPriority = define.Config{ // MARKER: DefaultPriority
+// MaxPriority is the number of priority levels flows may use. Priorities run from 1 (served first) to MaxPriority, and a flow that sets none gets the midpoint. Set the same value on every replica; it takes effect on restart.
+var MaxPriority = define.Config{ // MARKER: MaxPriority
 	Value:      int(0),
 	Default:    "5",
-	Validation: "int [1,]",
-}
-
-// MaxOpenConns pins every shard's connection pool to exactly this many open connections. Leave at 0 to let the engine size each pool from that shard's VirtualCPUs. Set it only when the connection budget is constrained by something the engine cannot see, such as a shared database or an external pooler.
-var MaxOpenConns = define.Config{ // MARKER: MaxOpenConns
-	Value:      int(0),
-	Default:    "0",
-	Validation: "int [0,]",
+	Validation: "int [1,100]",
 }
 
 // Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step. Set Opts.ThreadKey to join an existing thread; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
@@ -265,7 +259,7 @@ type PurgeOut struct { // MARKER: Purge
 	Deleted int `json:"deleted,omitzero"`
 }
 
-// ShardInfo returns per-shard health (latency, row counts, error) for every database shard.
+// ShardInfo returns per-shard health (latency, error) for every database shard.
 var ShardInfo = define.Function{ // MARKER: ShardInfo
 	Host: Hostname, Method: "GET", Route: ":444/shard-info",
 	In: ShardInfoIn{}, Out: ShardInfoOut{},

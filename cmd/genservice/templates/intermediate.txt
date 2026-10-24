@@ -183,20 +183,22 @@ func (svc *Intermediate) do{{.Name}}(w http.ResponseWriter, r *http.Request) (er
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in {{$.APIPkg}}.{{.In}}
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	var out {{$.APIPkg}}.{{.Out}}
-	{{.Dot "out"}}err = svc.{{.Name}}(r.Context(), &flow{{.InArgs "in"}})
+	{{if .HasOut}}var out {{$.APIPkg}}.{{.Out}}
+	{{end}}{{.Dot "out"}}err = svc.{{.Name}}(r.Context(), &flow{{.InArgs "in"}})
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
-	w.Header().Set("Content-Type", "application/json")
+	{{range .StateWrites "out"}}err = flow.Set({{printf "%q" .Key}}, {{.Value}})
+	if err != nil {
+		return errors.Trace(err)
+	}
+	{{end}}	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
 		return errors.Trace(err)

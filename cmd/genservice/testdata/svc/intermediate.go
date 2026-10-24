@@ -284,9 +284,8 @@ func (svc *Intermediate) doProcessStep(w http.ResponseWriter, r *http.Request) (
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in svcapi.ProcessStepIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -296,7 +295,10 @@ func (svc *Intermediate) doProcessStep(w http.ResponseWriter, r *http.Request) (
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("done", &out.Done)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {
@@ -314,9 +316,8 @@ func (svc *Intermediate) doReviewStep(w http.ResponseWriter, r *http.Request) (e
 	}
 	// The body is fully decoded into the flow, so release it for the duration of the handler
 	r.Body = http.NoBody
-	snap := flow.Snapshot()
 	var in svcapi.ReviewStepIn
-	flow.ParseState(&in)
+	flow.Parse(&in)
 	err = dv8.Validate(r.Context(), &in)
 	if err != nil {
 		return errors.Trace(err)
@@ -326,7 +327,10 @@ func (svc *Intermediate) doReviewStep(w http.ResponseWriter, r *http.Request) (e
 	if err != nil {
 		return err // No trace
 	}
-	flow.SetChanges(out, snap)
+	err = flow.Set("count", &out.CountOut)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&flow)
 	if err != nil {

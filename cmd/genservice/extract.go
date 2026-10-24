@@ -25,6 +25,8 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -60,14 +62,17 @@ type feature struct {
 
 // structDef is a struct type and its (flattened) fields.
 type structDef struct {
-	name   string
-	fields []fieldDef
+	name     string
+	fields   []fieldDef
+	embedded []string // rendered types of the anonymous (embedded) fields, which are not flattened into fields
 }
 
 // fieldDef is a single struct field.
 type fieldDef struct {
-	goName string // Go field name, e.g. "CreditScore" or "HTTPRequestBody"
-	typ    string // rendered Go type, e.g. "int", "[]string", "*Pet"
+	goName   string // Go field name, e.g. "CreditScore" or "HTTPRequestBody"
+	typ      string // rendered Go type, e.g. "int", "[]string", "*Pet"
+	jsonName string // name encoding/json marshals the field under, e.g. "creditScore"; empty if it is not marshaled
+	asString bool   // the json tag carries the ",string" option
 }
 
 // defineKinds is the set of define.* type names recognized as feature declarations.
@@ -132,6 +137,13 @@ func parseService(dir string) (*service, error) {
 				return nil, fmt.Errorf("%s field of %s must be a string literal, not %q: genservice reads definition.go by AST walking and cannot resolve a const, variable, or expression here, so a non-literal is silently dropped and the setting is lost; inline the literal value", field, ft.name, exprSource(svc.fset, e))
 			}
 		}
+		// Each field of a task's or workflow's In and Out structs is a state field
+		if ft.kind == "Task" || ft.kind == "Workflow" {
+			err := validateStateFields(svc, ft)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 	return svc, nil
 }
@@ -156,14 +168,67 @@ func collectStructs(svc *service, f *ast.File) {
 			if st.Fields != nil {
 				for _, field := range st.Fields.List {
 					typ := exprString(field.Type)
+					if len(field.Names) == 0 {
+						sd.embedded = append(sd.embedded, typ)
+					}
 					for _, n := range field.Names {
-						sd.fields = append(sd.fields, fieldDef{goName: n.Name, typ: typ})
+						name, asString := jsonName(n.Name, field.Tag)
+						sd.fields = append(sd.fields, fieldDef{goName: n.Name, typ: typ, jsonName: name, asString: asString})
 					}
 				}
 			}
 			svc.structs[sd.name] = sd
 		}
 	}
+}
+
+// jsonName returns the name encoding/json marshals a field under: the json tag's name, else the Go name. It
+// returns empty for an unexported field or one tagged "-". asString reports the tag's ",string" option.
+func jsonName(goName string, tag *ast.BasicLit) (name string, asString bool) {
+	if !ast.IsExported(goName) {
+		return "", false
+	}
+	if tag == nil {
+		return goName, false
+	}
+	unquoted, err := strconv.Unquote(tag.Value)
+	if err != nil {
+		return goName, false
+	}
+	j, ok := reflect.StructTag(unquoted).Lookup("json")
+	if !ok {
+		return goName, false
+	}
+	if j == "-" {
+		return "", false
+	}
+	name, opts, _ := strings.Cut(j, ",")
+	if name == "" {
+		name = goName
+	}
+	return name, slices.Contains(strings.Split(opts, ","), "string")
+}
+
+// validateStateFields rejects a task or workflow In or Out field that cannot be carried in the flow's state as
+// the generated code reads and writes it.
+func validateStateFields(svc *service, ft feature) error {
+	for _, side := range []struct{ kind, name string }{{"input", ft.in}, {"output", ft.out}} {
+		if sd := svc.structs[side.name]; sd != nil && len(sd.embedded) > 0 {
+			return fmt.Errorf("%s struct %s of %s embeds %s: declare each state field explicitly instead", side.kind, side.name, ft.name, sd.embedded[0])
+		}
+		for _, x := range svc.fieldsOf(side.name) {
+			if x.jsonName == "" {
+				return fmt.Errorf("%s %s of %s does not marshal to JSON (it is unexported or tagged json:\"-\"), so it cannot be carried in the state; remove it", side.kind, x.goName, ft.name)
+			}
+			if strings.HasSuffix(x.jsonName, "!") || strings.HasSuffix(x.jsonName, "+") {
+				return fmt.Errorf("%s %s of %s maps to state field %q: a state field name must not end with ! or +", side.kind, x.goName, ft.name, x.jsonName)
+			}
+			if x.asString {
+				return fmt.Errorf("%s %s of %s must not use the json ,string option: the state holds the field as its bare value; remove it", side.kind, x.goName, ft.name)
+			}
+		}
+	}
+	return nil
 }
 
 // collectConsts records the Hostname, Version, and Description const values that define the service.

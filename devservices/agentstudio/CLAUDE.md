@@ -43,10 +43,10 @@ while work is in flight, gone the moment the flow stops.
 HTTP ingress' 20s `TimeBudget`) and only returns early when a per-flow fingerprint changes against
 the caller's `since=…` query value. The fingerprint is `computePollToken(status, history)` —
 `status + flatStepCount + maxStepUpdatedAtMillis`, walked recursively through `SubHistory`. It
-changes on the three things that actually move the diagram: flow status, a new step row, or any
-step transition (which bumps `updated_at`). It deliberately ignores foreman traffic that doesn't
-alter the rendered graph — most notably `cohort_arrivals` increments, which don't touch
-`updated_at`. Idle ticks sleep `pollFlowTick` (250ms) between snapshots and bail immediately on
+changes on the three things that actually move the diagram: flow status, a new step, or any
+step transition (which advances the step's `UpdatedAt`). Activity that leaves every step's
+`UpdatedAt` unchanged does not alter the rendered graph, so it does not wake the poll. Idle ticks
+sleep `pollFlowTick` (250ms) between snapshots and bail immediately on
 `r.Context().Done()` when the browser tab closes.
 
 **Baseline ordering invariant.** `FlowDetail` captures the `since` baseline (a `Fingerprint`

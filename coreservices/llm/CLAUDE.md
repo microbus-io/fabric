@@ -102,7 +102,7 @@ This is the LLM service's tool-use signal; it is distinct from the engine's `dwa
 The chat loop is `InitChat → FirstLLM → ProcessResponse → forEach pendingToolCalls → ExecuteTool → NextLLM → ProcessResponse`. Each round, ProcessResponse decides:
 
 - If no tool calls are pending (the prior turn's `stopReason` was a completion: `end_turn`,
-  `stop_sequence`, or `refusal`), it calls `flow.Goto(workflow.END)` to exit the loop. The forEach
+  `stop_sequence`, or `refusal`), it calls `flow.Goto(workflow.End)` to exit the loop. The forEach
   transition is skipped. A truncation / pause_turn / unknown `stopReason` never reaches
   `ProcessResponse` — `CallLLM` fails the step before that, so the workflow's `OnError` route (if any)
   handles it.
@@ -113,23 +113,21 @@ The chat loop is `InitChat → FirstLLM → ProcessResponse → forEach pendingT
   without tools". The `toolRounds >= maxToolRounds` done-check remains as a failsafe against an unbounded
   loop if that tool-less call still returns tool calls.
 
-**`CallLLM` owns the `items` conversation; `toolResults` is the only reduced key.** The single
-Append-reduced key is `toolResults` (`graph.SetReducer("toolResults", workflow.ReducerAppend)`): each
-forEach branch (`ExecuteTool`) contributes one `ToolResult`, and the fan-in at `NextLLM` concatenates
-them. `CallLLM` then folds the assembled `toolResults` into the conversation, clears the key (so the next
-round's fan-in starts empty and results are not double-folded), calls the provider, and writes the full
-conversation back to `items` as a plain replace. `items` is deliberately *not* reduced: making `CallLLM`
-its sole writer removes the fragile "write only a delta, never the full list" rule the old
-`items`-reducer design forced on `ProcessResponse` and `ExecuteTool` (a full-list write under an append
-reducer concatenates history onto itself). The rate-limit retry path in `CallLLM` returns the unchanged
-input `items` (a clean rewind: a nil return would marshal to null and be persisted with the retry,
-losing the conversation), leaving `toolResults` in place to be re-folded on re-dispatch.
+**`CallLLM` is the sole writer of `items`, and both `items` and `toolResults` are Append-reduced.** Each
+forEach branch (`ExecuteTool`) contributes one `ToolResult` to `toolResults`, and the fan-in at `NextLLM`
+concatenates them. `CallLLM` then folds the assembled `toolResults` into the conversation, clears the key (so the
+next round's fan-in starts empty and results are not double-folded), calls the provider, and contributes only the
+folded tool results and the new turn to `items`. Reading `items` returns the whole history, and the engine stores
+each item once rather than the full list at every step. Because a write to a reduced field is a contribution,
+no other task may write `items`: a full-list write would add the history to itself. The rate-limit retry path in
+`CallLLM` returns nil `items` (no contribution), leaving `toolResults` in place to be re-folded on re-dispatch.
+A `Continue` of a `ChatLoop` thread likewise appends the `items` it is given to the conversation.
 
 `FirstLLM` and `NextLLM` are two graph positions sharing one task URL (`CallLLM`). `FirstLLM` is the initial sequential call after `InitChat`; `NextLLM` is the fan-in nexus that closes each per-round tool cohort. The split is forced by the lineage validator: a fan-in target requires a stack frame to pop, so the initial entry (which has no frame) cannot also be the fan-in. Both nodes dispatch to the same task; the foreman runs `CallLLM` once at each visit. See `exampleservices/creditflow` for the same pattern (the `ReviewJoin` / `ReviewCredit` split).
 
-`ExecuteTool` dispatches a workflow tool via `flow.Subgraph(def.URL, input)`, which returns `(out, yield, err)`. On
-the first call it yields (the foreman parks the step and runs the child); on re-entry it returns the child's
-`final_state` as `out`, which `ExecuteTool` wraps into a `tool_result` and returns as its single-element
+`ExecuteTool` dispatches a workflow tool via `flow.Subgraph(def.URL, input, &out)`, which returns `(yield, err)`. On
+the first call it yields (the foreman parks the step and runs the child); on re-entry it fills `out` with the child's
+final state, which `ExecuteTool` wraps into a `tool_result` and returns as its single-element
 `toolResults` output (merged into the `toolResults` state key by the append reducer). Re-entry is detected purely by
 `flow.Subgraph`'s `yield`, so no state field or snapshot-diff tracks it.
 
