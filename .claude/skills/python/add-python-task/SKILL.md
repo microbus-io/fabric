@@ -16,7 +16,7 @@ Adding a Python-backed workflow task:
 - [ ] Step 1: Verify the microservice is Python-backed
 - [ ] Step 2: Determine the task signature
 - [ ] Step 3: Run add-task with Manual + Tags("python")
-- [ ] Step 4: Replace the task body with the Call+Await durability pattern
+- [ ] Step 4: Replace the task body with the Call+Poll durability pattern
 - [ ] Step 5: Add the Python function to service.py
 - [ ] Step 6: Housekeeping
 ```
@@ -64,9 +64,9 @@ Run the `add-task` skill, with these overrides applied as you reach each of its 
 
 When `add-task` finishes, return here for Step 4.
 
-#### Step 4: Replace the Task Body with the Call+Await Durability Pattern
+#### Step 4: Replace the Task Body with the Call+Poll Durability Pattern
 
-In `service.go`, replace the task body that `add-task` left as a stub with the durable Call+Await pattern. The callID is persisted in flow state under the key `pyCallID`; if the task is re-entered (via an unlimited `flow.Retry` gated on a 408 timeout after the step's time budget expires), the existing callID is re-Awaited rather than a fresh call being issued. This lets a Python computation that exceeds the framework's 15-minute hop ceiling survive across task retries.
+In `service.go`, replace the task body that `add-task` left as a stub with the durable Call+Poll pattern. The callID is persisted in flow state under the key `pyCallID`. `Poll` waits for most of the task's remaining time budget; if the call is still running when that wait ends, the task arms an unlimited `flow.Retry` and the next dispatch polls the same callID rather than issuing a fresh call. This lets a Python computation that exceeds the framework's 15-minute hop ceiling survive across task retries.
 
 ```go
 func (svc *Service) MyTask(ctx context.Context, flow *workflow.Flow, input1 string, input2 int) (output1 float64, err error) { // MARKER: MyTask
@@ -88,24 +88,24 @@ func (svc *Service) MyTask(ctx context.Context, flow *workflow.Flow, input1 stri
     }
 
     var out myserviceapi.MyTaskOut
-    err = svc.venv.Await(ctx, callID, &out)
+    done, err := svc.venv.Poll(ctx, callID, &out)
     if err != nil {
-        if errors.StatusCode(err) == http.StatusRequestTimeout && flow.Retry(0, 1.0, 0, 0) {
-            return 0, nil
-        }
-        flow.SetString("pyCallID", "") // clear on terminal error so downstream steps don't see it
         return 0, errors.Trace(err)
     }
-    flow.SetString("pyCallID", "") // clear on success so downstream steps don't see it
+    if !done {
+        flow.Retry(0, 1.0, 0, 0) // unlimited; the retry polls the same call
+        return 0, nil
+    }
+    flow.Del("pyCallID") // the call is consumed, so later steps must not see it
     return out.Output1, nil
 }
 ```
 
 How the pattern composes:
 
-- **First entry**: `pyCallID` is empty, the task issues `Call`, persists the returned callID, then Awaits. If the step time budget allows the call to complete, the result is returned and `pyCallID` is cleared.
-- **Retry entry (after 408 timeout)**: `pyCallID` is the previously-issued callID. The Python work has been running this whole time. The task skips `Call` and goes straight to `Await`, which either completes immediately (Python finished) or waits up to the next step time budget.
-- **Terminal error or completion**: `pyCallID` is cleared so the workflow's later steps don't see the now-consumed callID in flow state.
+- **First entry**: `pyCallID` is empty, so the task issues `Call`, persists the returned callID, then polls. If the call completes within the wait, the result is returned and `pyCallID` is deleted.
+- **Retry entry**: `Poll` waits for 4/5 of the task's remaining time budget and returns `done=false` if the call is still running, leaving the rest of the budget to arm the retry and return. The `pyCallID` it set is kept, and the next dispatch skips `Call` and polls again, which completes immediately if Python has finished.
+- **Terminal error**: an error discards the writes of the run that returns it, but a `pyCallID` set by an earlier run remains in the state. A workflow that routes the failure to an `onError` handler and carries on should `flow.Del("pyCallID")` there.
 
 #### Step 5: Add the Python Function to `service.py`
 

@@ -17,7 +17,7 @@ const Hostname = "foreman.core"
 const Name = "Foreman"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 56
+const Version = 57
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `Foreman orchestrates agentic workflow execution.`
@@ -242,7 +242,7 @@ type DeleteIn struct { // MARKER: Delete
 type DeleteOut struct { // MARKER: Delete
 }
 
-// Purge deletes flows matching the query, except those currently running. Capped at 10000 flows per call.
+// Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
 var Purge = define.Function{ // MARKER: Purge
 	Host: Hostname, Method: "POST", Route: ":444/purge",
 	In: PurgeIn{}, Out: PurgeOut{},

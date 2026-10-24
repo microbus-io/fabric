@@ -33,17 +33,18 @@ Operators can move the `svc.venv.Start(ctx)` call from the background goroutine 
 
 The auto-start in `OnStartup` is gated on `svc.Deployment() != connector.TESTING`. This parallels the framework's existing rule that tickers don't fire in TESTING: anything that touches a long-lived backing resource stays dormant under tests unless the test author opts in. The opt-in is one line — `svc.StartPyVenv(ctx)` — exposed as an exported method so cross-package upstream tests can drive it too.
 
-### Call / Await / Result
+### Call / Await / Poll / Result
 
-The library exposes three primitives:
+The library exposes four primitives:
 
 - `Call(ctx, funcName, args) (callID string, err error)` — enqueues the Python invocation and returns immediately with a callID. The Python work runs in the worker until completion regardless of the caller's ctx lifetime.
 - `Await(ctx, callID, &result) error` — blocks until the call identified by callID completes or ctx expires. Unmarshals the result into `*result` on success. On ctx expiry, returns `ctx.Err()` without consuming the entry, so a later Await on the same callID re-enters the wait. A successful Await consumes the entry; subsequent Awaits return `ErrUnknown`.
+- `Poll(ctx, callID, &result) (done bool, err error)` — waits for 4/5 of the time left until ctx's deadline, then reports. Returns `done=true` with the result populated (or the Python error) when the call completed, and `done=false, nil` without consuming the entry when it is still running, leaving the caller time to act before its own deadline. A ctx with no deadline is waited on in full.
 - `Result(ctx, callID, &result) (ready bool, err error)` — the non-blocking peek. Returns `ready=false, nil` while the call is in flight; `ready=true, nil` (with result populated) when terminal; `ready=true, <python error>` if Python failed; `ready=false, ErrUnknown` if the callID is not known.
 
 For the synchronous shape — Call + Await on the same goroutine — `CallAndAwait(ctx, funcName, args, &result)` is the convenience helper. `add-python-function` uses it directly.
 
-The Call/Await split is what lets a Python computation outlive the caller's ctx. A workflow task that hits its 15-minute hop ceiling returns 408; the Foreman retries the task; the retry rejoins the same in-flight Python work via Await on the persisted callID. This is the pattern `add-python-task` generates.
+The Call/Await split is what lets a Python computation outlive the caller's ctx. A workflow task `Poll`s the call, which returns `done=false` shortly before the task's time budget (at most 15 minutes) ends; the task arms `flow.Retry`, and the retry rejoins the same in-flight Python work by polling the persisted callID. This is the pattern `add-python-task` generates.
 
 Concurrent calls dispatch to the Python `ThreadPoolExecutor` up to `Config.MaxWorkers` in-flight. Single-delivery semantics: only one successful Await/Result per callID; concurrent Awaits on the same callID would have one win the delivery and the other receive `ErrUnknown`. The framework's workflow primitives don't normally create concurrent Awaits (retries are sequential; Fork starts from committed state), so this is a library-level documented constraint rather than something the workflow author has to think about.
 
@@ -52,7 +53,7 @@ Concurrent calls dispatch to the Python `ThreadPoolExecutor` up to `Config.MaxWo
 Pick `add-python-task` when:
 
 - The Python call may exceed the framework's 15-minute ctx ceiling (LLM, training, large batch processing).
-- The call needs workflow-level retry semantics (`flow.Retry` gated on `errors.StatusCode(err) == http.StatusRequestTimeout`, or `AddTransitionOnTimeout`) or composes into a larger graph (fan-out, subgraphs, OnError fallbacks).
+- The call needs workflow-level retry semantics (`flow.Retry`) or composes into a larger graph (fan-out, subgraphs, OnError fallbacks).
 
 Pick `add-python-function` for sub-second to multi-minute calls that fit inside a single RPC.
 
@@ -115,7 +116,7 @@ End-to-end coverage of the pyvenv runtime itself (subprocess lifecycle, pip inst
 
 - **`pip install` failures** are usually transient (network, mirror flakes, lock contention). Retrying the same packages is safe. If the failure surfaces from `Start`, the microservice can call `Start` again after fixing the underlying issue (network connectivity, mirror availability). The on-disk venv is reused; only pip is re-run.
 - **`define` failures** often leave the Python namespace partially mutated because `exec` aborts mid-script. `pyvenv.Venv.Start` kills the worker on a define failure, so a subsequent `Start` spawns a fresh process with a clean namespace. The on-disk venv is reused but the worker is fresh.
-- **`Call` / `Await` errors** surface as normal Go errors. A 408 means the Await timed out at the framework's 15-minute hop budget; the in-flight Python work is still running. Workflow tasks should rejoin the same call with `if errors.StatusCode(err) == http.StatusRequestTimeout && flow.Retry(0, 1.0, 0, 0)` (retry forever on 408 - `giveUpAfter` 0 is unlimited; surface anything else) and persist the callID in flow state so the retry's Await rejoins the same call.
+- **`Call` / `Await` / `Poll` errors** surface as normal Go errors. An `Await` whose context ends returns that context's error while the in-flight Python work keeps running, so a workflow task uses `Poll` instead: it waits for 4/5 of the remaining budget and reports a still-running call as `done=false` with no error. The task persists the callID in flow state and, on `done=false`, rejoins the same call with `flow.Retry(0, 1.0, 0, 0)` (`giveUpAfter` 0 is unlimited); any error is surfaced.
 - **Python exceptions** propagate as Go errors with the Python exception type and message embedded in the error string (e.g. `python call my_func failed: ValueError: expected positive integer`). Programmatic discrimination via `strings.Contains(err.Error(), "ValueError")` is the honest tool; Python exception types don't map cleanly to Go types.
 - **`ErrUnknown`** from Await/Result means the callID is not known to the Venv — the result was already consumed, the cache TTL evicted it, or it was never issued. Workflow tasks treat this as a hard error and let the workflow's OnError transition take over (since the in-flight Python work, if any, is unrecoverable from this replica's perspective).
 - **Subprocess death (`pyvenv.ErrDied`)** indicates the worker exited unexpectedly. The `LivenessCallback` fires `StateDied`, the microservice deactivates Python subs, and recovery via `svc.venv.Start(ctx)` is scheduled in the background. Awaits parked on in-flight calls at the moment of death wake with `ErrDied`; the workflow task / caller is expected to surface the error or retry.

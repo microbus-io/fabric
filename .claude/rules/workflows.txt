@@ -105,7 +105,7 @@ The supported reducer values:
 - `workflow.ReducerOr` - logical OR of booleans
 - `workflow.ReducerConcat` - concatenate strings
 
-Reducers are strict on their input type. `ReducerUnion` rejects object values, `ReducerMerge` rejects array values, `ReducerAdd` rejects strings, etc. A nil (JSON null) is the only value that contributes nothing under every reducer. A zero value is folded like any other: `0` changes nothing under `Add` but competes like any other number under `Min`, and `false` changes nothing under `Or` but makes `And` false.
+Reducers are strict on their input type: `Add`, `Min` and `Max` take numbers, `Merge` takes an object, `And` and `Or` take booleans, `Concat` takes strings, and `Append` and `Union` take either a list or a single element (`Union` deduplicates by value, objects included). A nil (JSON null) is the only value that contributes nothing under every reducer. A zero value is folded like any other: `0` changes nothing under `Add` but competes like any other number under `Min`, and `false` changes nothing under `Or` but makes `And` false.
 
 **Empty-cohort behavior.** A `forEach` that spawns zero branches still fires the fan-in, which runs on the source task's own state with no branch contributions, so a reduced field keeps its incoming value (absent if nothing wrote it). There is no "vacuously true" `ReducerAnd`: if an empty cohort must count as approval, branch on the cohort size downstream rather than relying on the reducer.
 
@@ -277,10 +277,13 @@ return nil
 ```go
 var resume map[string]any
 yield, err := flow.Interrupt(map[string]any{"request": "userInput"}, &resume)
+if err != nil {
+    return errors.Trace(err)
+}
 if yield {
     return nil          // first pass: parked, waiting for Resume
 }
-// resume carries the Resume payload; err is always nil for Interrupt
+// resume carries the Resume payload
 ```
 
 | | `flow.Interrupt()` | `flow.Subgraph()` |
@@ -289,7 +292,7 @@ if yield {
 | **Foreman** | Parks the step | Parks the step and launches the child |
 | **On completion** | `Resume(flowKey, data)` re-dispatches the step | The child's terminal outcome re-dispatches the step |
 | **Re-entry signal** | `yield=false`, the Resume payload in `&resume` | `yield=false`, the child's final state in `&out` (success) or its failure as `err` |
-| **Failure mode** | None (always succeeds on Resume) | Child failure delivered to parent as `err`; parent decides retry/route/propagate |
+| **Failure mode** | No child to fail; `err` only for a payload that does not marshal, resume data that does not unmarshal into `&resume`, or a second park in the step | Child failure delivered to parent as `err`; parent decides retry/route/propagate |
 
 **Re-entry is signaled by the parker's `yield` bool, not by a state field.** Do not invent a `*Out`-suffix flag or a "have I run before" arg - the engine already tracks it and surfaces it as `yield`. The `if yield { return nil }` line is the **before-resume region** and runs on every dispatch (first pass, re-entry, every retry attempt); everything after it is the **after-resume region** and runs once per resolution. Exactly-once side effects (firing an event, charging a card) belong after the guard.
 

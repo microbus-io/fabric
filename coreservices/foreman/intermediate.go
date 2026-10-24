@@ -178,7 +178,7 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Subscribe( // MARKER: Purge
 		"Purge", svc.doPurge,
 		sub.At(foremanapi.Purge.Method, foremanapi.Purge.Route),
-		sub.Description(`Purge deletes flows matching the query, except those currently running. Capped at 10000 flows per call.`),
+		sub.Description(`Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.`),
 		sub.Function(foremanapi.PurgeIn{}, foremanapi.PurgeOut{}),
 	)
 	svc.Subscribe( // MARKER: ShardInfo

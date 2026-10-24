@@ -490,7 +490,7 @@ func (_c MulticastClient) Delete(ctx context.Context, flowKey string) iter.Seq[*
 	}
 }
 
-// Purge deletes flows matching the query, except those currently running. Capped at 10000 flows per call.
+// Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
 func (_c Client) Purge(ctx context.Context, query Query) (deleted int, err error) { // MARKER: Purge
 	_in := PurgeIn{Query: query}
 	_out := PurgeOut{}
@@ -507,7 +507,7 @@ func (_res *PurgeResponse) Get() (deleted int, err error) { // MARKER: Purge
 	return _d.Deleted, _res.err
 }
 
-// Purge deletes flows matching the query, except those currently running. Capped at 10000 flows per call.
+// Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
 func (_c MulticastClient) Purge(ctx context.Context, query Query) iter.Seq[*PurgeResponse] { // MARKER: Purge
 	_in := PurgeIn{Query: query}
 	_out := PurgeOut{}

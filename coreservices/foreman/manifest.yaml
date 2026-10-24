@@ -5,7 +5,7 @@ general:
   hostname: foreman.core
   description: Foreman orchestrates agentic workflow execution.
   package: github.com/microbus-io/fabric/coreservices/foreman
-  modifiedAt: "2026-10-23T04:24:40Z"
+  modifiedAt: "2026-10-24T04:31:43Z"
 
 configs:
   Shards:
@@ -103,7 +103,7 @@ functions:
     route: :444/delete
   Purge:
     signature: Purge(query Query) (deleted int)
-    description: Purge deletes flows matching the query, except those currently running. Capped at 10000 flows per call.
+    description: Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
     method: POST
     route: :444/purge
   ShardInfo:

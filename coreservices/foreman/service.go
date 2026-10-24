@@ -208,7 +208,7 @@ func (svc *Service) Delete(ctx context.Context, flowKey string) (err error) { //
 }
 
 /*
-Purge deletes flows matching the query, except those currently running. Capped at 10000 flows per call.
+Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
 */
 func (svc *Service) Purge(ctx context.Context, query foremanapi.Query) (deleted int, err error) { // MARKER: Purge
 	return svc.engine.Purge(ctx, query)
