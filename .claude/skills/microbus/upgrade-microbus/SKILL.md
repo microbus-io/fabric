@@ -81,8 +81,11 @@ Otherwise the project is exactly one version behind this release. Migrate it:
 v1.50.0 removes the `sequel` skills (`add-sql-microservice` with its `busstop` template, `add-sql-fields`,
 `modify-sql-fields`, `remove-sql-fields`, `rename-sql-object` and `rename-sql-table`) and rewrites
 `.claude/rules/sequel.txt` around how a SQL-backed microservice uses the sequel package and the patterns that work
-well, instead of the template's layout. No source edit is required: a microservice scaffolded from the template is
-the project's own code, and it keeps compiling and working unchanged.
+well, instead of the template's layout. No source edit is required for that: a microservice scaffolded from the
+template is the project's own code, and it keeps compiling and working unchanged.
+
+v1.50.0 also stops the two synchronous tool paths from taking workflow tools: `llm.core`'s `Chat` rejects them, and
+the MCP portal no longer lists workflows. A `Chat` call that passes a workflow tool needs rewriting (3c).
 
 #### 3a. Tell the User
 
@@ -127,6 +130,43 @@ type sqlExpr string
 ```
 
 Step 2's `go vet` reports an unused `sequel` import if the rename left one.
+
+#### 3c. Find `Chat` Calls That Pass a Workflow Tool (Grep-Guided)
+
+`llm.core`'s `Chat` now fails with a 400, `workflow tool requires ChatLoop`, when any of its `toolURLs` is a
+workflow's URL. Such a call never ran the workflow (the LLM got the workflow's graph as the tool's result), so no
+working behavior is lost, but the call compiles and fails only at run time, so `go vet` does not catch it. Find the
+`Chat` calls:
+
+```bash
+grep -rlF --include='*.go' --exclude-dir=vendor 'coreservices/llm/llmapi"' . \
+  | xargs -r grep -HnE '\.Chat\('
+```
+
+Skip a call with no tools (`nil` toolURLs). For each other call, trace its `toolURLs` argument to the URLs it holds.
+A URL is a workflow's when:
+
+- it comes from `xapi.Name.URL()` where `Name` is declared with `define.Workflow` in that api package. For a package
+  outside the project (Fabric's own, or another module's), look it up in the module cache:
+
+  ```bash
+  grep -n 'define.Workflow' "$(go list -f '{{.Dir}}' IMPORT/PATH/xapi)/definition.go"
+  ```
+
+- or it is a literal or configured URL on port `:428`, the port workflows and tasks are served on (a task URL fails
+  `Chat` anyway).
+
+Rewrite each call that passes a workflow tool. The right shape is a design choice, so ask the user:
+
+- **Called from a workflow task:** replace the `Chat` call with the `ChatLoop` workflow as a subgraph,
+  `llmapi.NewSubgraph(flow).ChatLoop(ctx, provider, model, items, toolURLs, options)`, which runs workflow tools as
+  subgraphs of its own. The task parks while the conversation runs (`yield`), and re-enters with the result; see
+  "Using LLMs in Workflows" in `.claude/rules/workflows.txt`.
+- **Called from a function or web handler:** a synchronous request cannot wait on a workflow. Either move the
+  operation into a workflow that runs `ChatLoop`, launched by the code that handles the triggering event, or expose
+  the logic the LLM needs as a function and pass that function's URL instead of the workflow's.
+
+Tell the user, too, that the MCP portal no longer lists workflows as tools, so an MCP client that used one loses it.
 
 ### Step 4: Phase 2 - Chain to the Next Release, or Finish
 
