@@ -1,316 +1,261 @@
-# Developing SQL CRUD Microservices with the Microbus Framework
+# SQL-Backed Microservices
 
 ## Instructions for Agents
 
-**CRITICAL**: These instructions pertain to SQL CRUD microservices only. Do not apply them to other flavors of microservices.
+Read this file before adding a SQL database to a microservice, or working on a microservice that has one.
 
-## Overview
+A SQL-backed microservice keeps its data in a SQL database through the
+[sequel](https://github.com/microbus-io/sequel) package, a thin layer over `database/sql` that gives MySQL, MariaDB,
+PostgreSQL, CockroachDB, SQL Server and SQLite one API. This file covers how sequel plugs into a Microbus
+microservice and the patterns that work well. For sequel's full API, read its own docs in the local Go module
+cache:
 
-SQL CRUD microservices are Microbus microservices that expose a CRUD API to persist and retrieve objects in and out of a SQL database.
+```bash
+ver=$(go list -m -f '{{.Version}}' github.com/microbus-io/sequel)
+cat "$(go env GOMODCACHE)/github.com/microbus-io/sequel@$ver/README.md"
+```
 
-## Key Concepts
+`exampleservices/yellowpages` in the Microbus repository is a small, complete example.
 
-### Multi-Tenant Architecture
+## Endpoints Wrap the SQL Directly
 
-SQL CRUD microservices use a tenant discriminator column `tenant_id` to guarantee isolation between tenants.
-- `tenant_id` is included in every SQL statement: `INSERT`, `UPDATE`, `DELETE` or `SELECT`
-- `tenant_id` is used as the first column in the primary (or clustering) key to contain table fragmentation on a per-tenant basis
-- `tenant_id` is used as the first column in all composite indices to contain index fragmentation on a per-tenant basis
+A microservice's endpoints are the abstraction over its persistence. Each endpoint runs its SQL statements itself;
+no further layer (a repository, a DAO, an ORM) is needed. The microservice boundary already hides the database from
+the rest of the application, so another layer only adds indirection. Small private helpers that several endpoints
+share, such as one that scans a row into a struct, are fine.
 
-By default, the tenant ID is obtained from the actor claim `tenant` or `tid` in the `ctx` by the `Frame` in `tenantOf`. Universal tables that are shared among all tenants should explicitly return a tenant ID of `0` from `tenantOf`.
+## Opening, Migrating and Closing the Database
 
-Solutions that are not multi-tenant where there isn't expected to be a `tenant` or `tid` claim, can safely ignore the tenant concept. The tenant discriminator column will default to `0`.
+Add a secret config for the data source name, typically `SQLDataSourceName`, and hold the database in the
+`Service` struct:
 
-The tenant discriminator column is an integer.
+```go
+type Service struct {
+	*Intermediate // IMPORTANT: Do not remove
 
-### Encapsulation of Persistence Layer
+	db *sequel.DB
+}
+```
 
-Microservices encapsulate their persistence layer and expose functionality only via their public API. To avoid tight coupling, no microservice should refer to another microservice's persistence layer nor make any assumptions based on its internals. This means that a microservice should not define foreign key constraints, nor `JOIN` queries, that refer to the database table of another microservice.
+Open the database and apply its migrations in `OnStartup`, and close it in `OnShutdown`:
 
-Because direct `JOIN`s across microservice boundaries are not possible, an upstream microservice that needs data from a downstream microservice has three strategies:
+```go
+func (svc *Service) OnStartup(ctx context.Context) (err error) {
+	dataSourceName := svc.SQLDataSourceName()
+	if dataSourceName == "" && svc.Deployment() == connector.LOCAL {
+		dataSourceName = "file:local.sqlite"
+	}
+	if svc.Deployment() == connector.TESTING {
+		// An isolated database per test, shared by the replicas of one test app
+		dataSourceName, err = sequel.CreateTestingDatabase("", dataSourceName, svc.Plane())
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	svc.db, err = sequel.OpenSingleton("", dataSourceName) // The driver is inferred from the data source name
+	if err != nil {
+		return errors.Trace(err)
+	}
+	// Route sequel's spans, metrics and migration logs through the connector
+	svc.db.SetTracerProvider(svc.TracerProvider())
+	svc.db.SetMeterProvider(svc.MeterProvider())
+	svc.db.SetLogger(svc.Logger())
+	migrations, err := fs.Sub(svc.ResFS(), "sql")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	err = svc.db.Migrate("myservice", migrations) // A name unique to this microservice; never change it
+	return errors.Trace(err)
+}
 
-- **On-demand querying** - Use the downstream microservice's bulk operations (e.g. `BulkLoad`, `List`) to fetch the needed records on demand. This is simple and always consistent, but adds latency from the extra round-trip.
-- **Caching** - Maintain a cache of downstream objects in memory, e.g. in the upstream microservice's distributed cache. Subscribe to the downstream microservice's outbound events (e.g. `OnObjectStored`, `OnObjectDeleted`) to invalidate stale cache entries or as a trigger to fetch the latest data.
-- **Denormalization** - Add columns to the upstream microservice's own database table that duplicate selected fields from the downstream microservice. Subscribe to the downstream microservice's outbound events to keep the denormalized columns up to date. This enables local `JOIN`s and filtering without cross-service calls, at the cost of eventual consistency and additional storage.
+func (svc *Service) OnShutdown(ctx context.Context) (err error) {
+	if svc.db != nil {
+		err = svc.db.Close()
+	}
+	return errors.Trace(err)
+}
+```
+
+- **LOCAL** falls back to a SQLite file in the working directory when no data source name is configured, so the
+  microservice runs on a developer's machine with no database server.
+- **TESTING** gets its own database from `sequel.CreateTestingDatabase`, keyed by the plane. Tests run in parallel
+  without seeing each other's rows, while the replicas of one test app share a database. With no data source name
+  configured, the testing database is SQLite, unless the `SEQUEL_TESTING_DSN` environment variable names a server;
+  with one, it is created on that server and dropped once every handle on it has closed.
+- **Telemetry.** Without the three `Set` calls, sequel's spans and `sequel_*` metrics never reach the connector, and
+  the sequel Grafana dashboard stays empty.
+- **`OpenSingleton`** returns one shared `*sequel.DB` per data source name within the process, sizing its connection
+  pool to the number of openers, which suits several microservices of one app that use the same database.
+- **The migration sequence name** records which migrations have run on a database. Changing it makes sequel run them
+  all again.
+
+Tests do not read `config.local.yaml`, so the config does not reach them. To run tests against a real database
+server instead of SQLite, set the `SEQUEL_TESTING_DSN` environment variable to a base data source name that names no
+database, in `env.local.yaml` at the root of the project (git-ignored) or in the shell. Each test app then gets its
+own database on that server. If tests fail to connect, ask the user for the credentials.
+
+```yaml
+SEQUEL_TESTING_DSN: root:root@tcp(127.0.0.1:3306)/
+```
+
+Base data source names per database: `root:root@tcp(127.0.0.1:3306)/` (MySQL),
+`mariadb://root:root@tcp(127.0.0.1:3306)/` (MariaDB), `postgres://postgres:postgres@127.0.0.1:5432/` (PostgreSQL),
+`sqlserver://sa:sa@127.0.0.1:1433` (SQL Server).
+
+To run the application locally against a database server instead of the SQLite file, set the microservice's data
+source name, including the database, in `config.local.yaml`:
+
+```yaml
+myservice.example:
+  SQLDataSourceName: root:root@tcp(127.0.0.1:3306)/myservice
+```
+
+## Migrations
+
+The schema is created and evolved by migration files placed in the `sql` subdirectory of the microservice's
+`resources` directory, for example `myservice/resources/sql/1.sql`. The microservice's `resources/embed.go`
+(`//go:embed *`) embeds them into the binary along with its other resources, and `OnStartup` hands that
+subdirectory to `Migrate` through `fs.Sub(svc.ResFS(), "sql")`. Name the files by number (`1.sql`, `2.sql`, ...);
+they run in numeric order, each once per database. Separate the statements in a file with a `;` at the end of a
+line. A `-- DRIVER:` line applies to the one statement that follows it.
+
+- **Never edit a migration that has shipped.** Add the next number instead, even to undo a change: find the largest
+  number in `resources/sql` and add one.
+- **Support the databases the project deploys to**, plus SQLite if it uses the LOCAL and TESTING fallbacks. Mark a
+  statement that differs between databases with a `-- DRIVER:` line naming the drivers it applies to: `mysql`,
+  `mariadb`, `pgx` (PostgreSQL), `cockroachdb`, `mssql` (SQL Server) or `sqlite`. A statement that suits several
+  lists them all, as in `-- DRIVER: mysql mariadb`.
+- **Give time columns millisecond precision** to match `NOW_UTC()`: `DATETIME(3)` on MySQL and MariaDB,
+  `TIMESTAMP(3)` on PostgreSQL, `DATETIME2(3)` on SQL Server, `DATETIME` on SQLite. A plain `DATETIME` on MySQL has
+  no fractional digits.
+- Use snake_case for tables, columns and indexes, and uppercase SQL keywords. SQLite accepts only one column per
+  `ALTER TABLE`.
+
+```sql
+-- DRIVER: mysql mariadb
+ALTER TABLE person ADD nickname VARCHAR(64) NOT NULL DEFAULT '';
+
+-- DRIVER: pgx cockroachdb
+ALTER TABLE person ADD COLUMN nickname VARCHAR(64) NOT NULL DEFAULT '';
+
+-- DRIVER: mssql
+ALTER TABLE person ADD nickname NVARCHAR(64) NOT NULL DEFAULT '';
+
+-- DRIVER: sqlite
+ALTER TABLE person ADD COLUMN nickname TEXT NOT NULL DEFAULT '';
+```
+
+## Writing Queries
+
+- **Bind every value as a `?` parameter**; never build SQL from input. sequel rewrites `?` into each driver's
+  placeholder.
+- **Use sequel's virtual functions** where databases differ: `NOW_UTC()`, `DATE_ADD_MILLIS(expr, ms)`,
+  `DATE_DIFF_MILLIS(a, b)`, `LIMIT_OFFSET(limit, offset)` and `REGEXP_TEXT_SEARCH(? IN col1, col2)`.
+- **Use the database's clock** (`NOW_UTC()`) for created and updated times, so times agree across replicas, and keep
+  times in UTC.
+- **Get a new row's ID with `svc.db.InsertReturnID(ctx, "id", stmt, args...)`**, which works on every driver.
+- **NULL:** write a Go zero value as `NULL` with `sequel.Nullify(value)`. Read a nullable column into a plain field
+  with `sequel.Nullable(&field)`, then call `sequel.ApplyBindings(args...)` after the scan.
+- **Order every paged query by a unique column.** `LIMIT_OFFSET` needs an `ORDER BY`, and times are whole
+  milliseconds, so ordering by a time alone can skip or repeat rows across pages. Add the ID as a tie-breaker.
+- **Filters:** a zero-valued filter adds no condition, so an empty query selects everything. An empty list filter
+  selects nothing (`1=0`), not everything.
+- **Transactions:** `svc.db.Transact(ctx, func(tx *sequel.Tx) error {...})` runs a closure in a transaction and
+  retries it on a deadlock or lock contention.
+- **Rows affected:** MySQL and MariaDB report the rows an `UPDATE` changed, not the rows it matched, so an update
+  that changes nothing reports zero rows. Do not take zero to mean "not found" there without checking.
+
+## Exposing the Data: JSON and REST Endpoints
+
+A SQL-backed microservice can expose its data in either style, or both:
+
+- **JSON (RPC-style) functional endpoints**, such as `Create(ctx, person) (key, err)` and
+  `Load(ctx, key) (person, found, err)`, with typed In/Out structs, called through the generated client by other
+  microservices. The natural choice for data used inside the application.
+- **REST endpoints**, with resource routes and HTTP verbs (`POST /persons`, `GET /persons/{key}`,
+  `PUT /persons/{key}`, `DELETE /persons/{key}`, `GET /persons`), built on the magic `httpRequestBody`,
+  `httpResponseBody` and `httpStatusCode` arguments, so the body is the object itself and the status code carries
+  the outcome. The natural choice for an API consumed outside the application.
+
+When a microservice offers both, the REST endpoints are thin wrappers that call the JSON endpoints' handlers and
+translate the result into HTTP terms, so the SQL lives in one place:
+
+```go
+func (svc *Service) LoadREST(ctx context.Context, key int) (httpResponseBody *myserviceapi.Person, httpStatusCode int, err error) { // MARKER: LoadREST
+	person, found, err := svc.Load(ctx, key)
+	if err != nil {
+		return nil, 0, errors.Trace(err)
+	}
+	if !found {
+		return nil, http.StatusNotFound, nil
+	}
+	return person, http.StatusOK, nil
+}
+```
+
+- **A missing row is an outcome, not an error.** Return `found`, `stored` or `deleted` from the JSON endpoints rather
+  than a 404 error: every error an endpoint returns is logged as one. The REST endpoints turn them into 404s.
+- **Status codes:** 201 on create, 200 with a body on read, 204 on update and delete, 404 when missing, and 409 when
+  a conditional update loses to a newer revision (see below). Invalid input is already a 400 from `dv8` validation.
+- **Choose each endpoint's exposure.** An endpoint on `:443` is the data API, reachable through the ingress; gate it
+  with `requiredClaims`. An endpoint meant only for other microservices goes on `:444`.
+
+## Recommended Patterns
+
+### No Foreign Keys or JOINs Across Microservices
+
+A microservice's tables are its private implementation, even when several microservices share one database. No
+microservice may define a foreign key to, or `JOIN` with, another microservice's tables, nor rely on how they are
+laid out. A microservice that needs another's data picks one of three strategies:
+
+- **On-demand querying** - call the other microservice's endpoints, preferably bulk ones, when the data is needed.
+  Always consistent, at the cost of a round trip.
+- **Caching** - keep the other microservice's objects in a cache (for example `svc.DistribCache`), invalidated by its
+  events.
+- **Denormalization** - copy the needed columns into this microservice's own table, kept current by the other
+  microservice's events. Enables local `JOIN`s and filtering.
 
 | Strategy | Consistency | Latency | Storage |
 |---|---|---|---|
-| On-demand querying | Strong | Higher (round-trip) | None |
+| On-demand querying | Strong | Higher (round trip) | None |
 | Caching | Eventual | Low (cache hit) | Volatile (memory) |
 | Denormalization | Eventual | None (local query) | Durable (database) |
 
-If the downstream data is immutable, the local copy never becomes stale and there is no need to subscribe to events for invalidation. For both caching and denormalization, a ticker can be used as an alternative or supplement to events, running queries on a schedule to periodically refresh the local data.
+Data that never changes needs no invalidation. A ticker can refresh a cache or a copy on a schedule, instead of or
+alongside events.
 
-### Object Definition
+### Multi-Tenancy
 
-The definition of the object's struct is in `object.go` in the API directory of the microservice. The object must be marshalable to and from JSON and should therefore contain only fields that are themselves marshalable. JSON tags should use camelCase.
-
-### Object Key Definition
-
-The object's key is defined in `objectkey.go` in the API directory of the microservice. Internally, the key is represented as a numerical ID.
-
-By default, the key is encrypted when marshaled to JSON and decrypted when unmarshaled so as not to expose the table's cardinality to external users. Set `cipherEnabled` to `false` to disable the encryption. Do not alter the cipher key nor its nonce.
-
-### Database Compatibility
-
-SQL CRUD microservices must support four database drivers: `mysql` (MySQL), `pgx` (PostgreSQL), `mssql` (SQL Server) and `sqlite` (SQLite). SQLite is used by default in `LOCAL` and `TESTING` deployments when `SQLDataSourceName` is empty - `LOCAL` uses a `file:local.sqlite` database file, while `TESTING` uses an in-memory database. Production deployments (`LAB`, `PROD`) require an explicit `SQLDataSourceName` pointing to MySQL, PostgreSQL, or SQL Server. This requirement affects both migration scripts and runtime code.
-
-In migration scripts, use the `-- DRIVER: drivername` prefix when SQL syntax differs between databases. Common differences include column type modifiers (`MODIFY COLUMN` vs `ALTER COLUMN`), string types (`VARCHAR` vs `NVARCHAR`), and auto-increment syntax.
-
-In runtime code, sequel v1.2.0 provides **virtual functions** that are automatically expanded to the correct SQL syntax for each driver. Use these instead of manual driver switches:
-
-- **Current time**: Use `NOW_UTC()` directly in SQL strings, e.g. `"UPDATE t SET updated_at=NOW_UTC() WHERE id=?"`
-- **Date arithmetic**: Use `DATE_ADD_MILLIS(baseExpr, milliseconds)`, e.g. `"SET expires_at=DATE_ADD_MILLIS(NOW_UTC(), ?)"`  with milliseconds as a `?` parameter
-- **Date difference**: Use `DATE_DIFF_MILLIS(a, b)` to compute `(a - b)` in milliseconds
-- **Pagination**: Use `LIMIT_OFFSET(limit, offset)`, e.g. `"SELECT * FROM t ORDER BY id LIMIT_OFFSET(?, ?)"`. SQL Server requires an `ORDER BY` clause
-- **Parameter placeholders**: Use `?` placeholders in all queries. Sequel automatically converts them to the driver-specific format (e.g. `$1, $2` for PostgreSQL). Do not call `ConformArgPlaceholders` (deprecated)
-- **Column mappings**: Use `sequel.UnsafeSQL("NOW_UTC()")` to set a column value to the database's current time in UTC
-
-The only area that still requires `svc.db.DriverName()` switches is **returning affected rows from INSERT/UPDATE/DELETE**: PostgreSQL supports `RETURNING id`, SQL Server supports `OUTPUT INSERTED.id`, while MySQL requires `LastInsertId()` or a `SELECT ... FOR UPDATE` within a transaction
+When the data is multi-tenant, add a tenant column and gate every statement on the caller's tenant
+(`tid, _ := frame.Of(ctx).Tenant()`), reads, updates and deletes alike. Make the tenant column the first column of
+the primary key and of every composite index, so each tenant's rows and index entries stay together. A table shared
+by all tenants uses tenant `0`.
 
 ### Revisions
 
-SQL CRUD microservices use a `revision` integer column for optimistic concurrency control. The revision auto-increments on every update via `revision=(1+revision)` and is exposed on the object as the `Revision` field.
+When concurrent writers may update the same row, add a `revision` column, increment it on every update
+(`revision=revision+1`), and offer a conditional update that adds `AND revision=?` with the caller's copy. If
+another writer updated the row in the meantime, the revision has moved on and the update matches no row: report a
+409 rather than overwriting the newer data.
 
-Two update strategies are available:
+### Events
 
-- `Store` / `BulkStore` update unconditionally - the revision is ignored and the update always succeeds (assuming the record exists). Use this when the caller has exclusive access to the record or does not need conflict detection.
-- `Revise` / `BulkRevise` update conditionally - the `WHERE` clause includes `AND revision=?` per row, so the update only succeeds if the record's current revision matches the caller's copy. If another actor modified the record in the meantime, the revision will have advanced and the update is a no-op. Use this when concurrent modifications are possible and the caller must not silently overwrite another actor's changes.
+Fire outbound events when objects are created, updated and deleted (for example `OnPersonCreated`), carrying the
+keys. They are what let other microservices cache or copy the data.
 
-`MustRevise` is a convenience wrapper around `Revise` that returns a `409 Conflict` error if the revision does not match, rather than a boolean.
+### Bulk Endpoints
 
-### Bulk Operations
+Offer bulk endpoints (`BulkLoad`, `BulkDelete`, ...) so callers do not loop over single calls (1+N round trips).
+Split a large batch across statements within the database's limits: SQL Server allows at most 2,100 parameters per
+statement.
 
-Every CRUD operation has a bulk counterpart (`BulkCreate`, `BulkStore`, `BulkRevise`, `BulkDelete`, `BulkReserve`, etc.) that processes multiple records in a single batched SQL statement. The singular operations delegate to their bulk counterparts with a single-element slice.
+### Opaque Keys
 
-Prefer bulk operations over looping with singular operations to avoid the 1+N query pattern. For example, to delete a list of records, call `BulkDelete` once rather than calling `Delete` in a loop. Bulk operations reduce the number of database round-trips, which is the dominant cost in most CRUD workloads.
+A sequential ID reveals how many rows a table has. When that matters, expose keys in a form that hides it, such as
+an encrypted ID, and keep the integer inside the microservice.
 
-## Common Patterns
+### Reservations
 
-### Migration Scripts
-
-SQL CRUD microservices use migration scripts to prepare the schema of the database table into which the object is stored. The migration scripts are executed sequentially to enable evolution of the schema over time. A migration script only executes once on a given database instance. The `resources/sql` directory of the microservice contains migration scripts that are named with a numeric file name such as `1.sql`, `2.sql` etc. that represents their execution order.
-
-**IMPORTANT**: Create a new migration script whenever you are tasked with making changes to the schema. Do not modify existing scripts unless explicitly told to do so.
-
-To add a migration script, identify the file name with the largest value and create a new `.sql` file with that value incremented by one. For example, if the largest file name is `14.sql` name the new file `15.sql`.
-
-Use SQL statements such as `CREATE TABLE` and `ALTER TABLE` to create or alter the schema of the database table. Separate statements with a `;` followed by a new line. Use snake_case for all database identifiers, including column names, index names and table names. Use UPPERCASE for SQL keywords.
-
-When several columns are added to (or modified on) the same table, consolidate them into a single multi-clause `ALTER TABLE` rather than emitting one statement per column. `mysql` and `pgx` accept comma-separated `ADD COLUMN`/`MODIFY COLUMN`/`ALTER COLUMN` clauses; `mssql` takes a single `ADD` (or `ALTER COLUMN`) followed by comma-separated definitions. A consolidated multi-line statement is still one statement as long as it has a single trailing `;` and no internal `;` followed by a newline. `sqlite` is the exception: it supports only one column per `ALTER TABLE`, so its `ADD COLUMN` statements must each remain separate, one per `-- DRIVER: sqlite` block. Consolidation reduces round-trips and keeps the migration atomic per table on the engines that support it.
-
-It is necessary to enter different SQL statements for each of the supported database driver names when they use a different syntax. The prefix `-- DRIVER: drivername` before a statement indicates to run that statement only on the named database: `mysql` (MySQL), `pgx` (Postgres), `mssql` (SQL Server) or `sqlite` (SQLite).
-
-```sql
--- DRIVER: mysql
-ALTER TABLE my_table MODIFY COLUMN modified_column VARCHAR(384) NOT NULL DEFAULT '';
-
--- DRIVER: pgx
-ALTER TABLE my_table ALTER COLUMN modified_column VARCHAR(384) NOT NULL DEFAULT '';
-
--- DRIVER: mssql
-ALTER TABLE my_table ALTER COLUMN modified_column NVARCHAR(384) NOT NULL DEFAULT '';
-```
-
-### Column Mappings
-
-Column mappings bridge the divide between database columns and Go object fields. Column mapping happens in four cases: on create, on store, on read and on query.
-
-`mapColumnsOnInsert` maps column names to their values during the initial `Create` action.
-- All `NOT NULL` columns that do not have a `DEFAULT` value defined in the database schema must be mapped to a value
-- Values typically come from the corresponding field of the input `obj` but can be sourced elsewhere
-- Wrap a value in `sequel.Nullify` if the database column is `NULL`-able
-- Wrap a string in `sequel.UnsafeSQL` to set the value using a SQL statement
-- Use `sequel.UnsafeSQL("NOW_UTC()")` to set the value to the database's current time in UTC
-- When setting a value of `time.Time`, convert it to UTC first
-- Exclude columns that the actor is not allowed to set on creation
-
-```go
-columnMapping = map[string]any{
-	"first_name": obj.FirstName,
-	"last_name":  obj.LastName,
-	"time_zone":  sequel.Nullify(obj.TimeZone),
-	"created_at": sequel.UnsafeSQL("NOW_UTC()"),
-	"updated_at": sequel.UnsafeSQL("NOW_UTC()"),
-}
-```
-
-`mapColumnsOnUpdate` maps column names to their values during followup `Store` actions.
-- Only modifiable columns need be mapped to a value
-- Values typically come from the corresponding field of the input `obj` but can be sourced elsewhere
-- Wrap a value in `sequel.Nullify` if the database column is `NULL`-able
-- Wrap a string in `sequel.UnsafeSQL` to set the value using a SQL statement
-- Use `sequel.UnsafeSQL("NOW_UTC()")` to set the value to the database's current time in UTC
-- When setting a value of `time.Time`, convert it to UTC first
-- Exclude columns that the actor is not allowed to modify
-
-```go
-columnMapping = map[string]any{
-	"first_name": obj.FirstName,
-	"last_name":  obj.LastName,
-	"time_zone":  sequel.Nullify(obj.TimeZone),
-	"updated_at": sequel.UnsafeSQL("NOW_UTC()"),
-}
-```
-
-`mapColumnsOnSelect` maps column names to their object fields during `List` actions.
-- Wrap the object field reference in `sequel.Nullable` if the database column is `NULL`-able but the Go type of the field is not
-- Use `sequel.Bind` to transform and apply the value manually to the object
-- Exclude columns that the actor is not allowed to read
-
-```go
-columnMapping = map[string]any{
-	"id": &obj.ID,
-	"tags": sequel.Bind(func(tags string) {
-		return json.Unmarshal([]byte(tags), &obj.Tags)
-	}),
-	"birthday": sequel.Bind(func(modifiedTime time.Time) {
-		obj.Year, obj.Month, obj.Day = modifiedTime.Date()
-		return nil
-	}),
-}
-```
-
-`prepareWhereClauses` prepares the conditions to add to the `WHERE` clause of the `SELECT` statement based on the input `Query`.
-- Conditions are `AND`ed together so all conditions must be met for a database record to match the query
-- **IMPORTANT**: Add `WHERE` conditions only for non-zero filtering options in the `Query`
-- Exclude columns that the actor is not allowed to filter on
-
-```go
-if query.Title != "" {
-	conditions = append(conditions, "title=?")
-	args = append(args, query.Title)
-}
-if !query.UpdatedAtGTE.IsZero() {
-	conditions = append(conditions, "updated_at>=?")
-	args = append(args, query.UpdatedAtGTE.UTC())
-}
-if !query.UpdatedAtLT.IsZero() {
-	conditions = append(conditions, "updated_at<?")
-	args = append(args, query.UpdatedAtLT.UTC())
-}
-```
-
-Column mapping and query conditions can be made to be dependent on the claims associated with the actor of the request. For example, an admin may be allowed to read additional columns from the `user` table, or a guest user may apply a `WHERE` condition in order to restrict their view of the results.
-
-```go
-admin, err := frame.Of(ctx).IfActor("roles.admin")
-if err != nil {
-	return errors.Trace(err)
-}
-if admin {
-	// ...
-} else {
-	// ...
-}
-```
-
-### Query Filtering Options
-
-The `Query` struct specifies filtering options which are translated to `WHERE` conditions by `prepareWhereClauses` and applied to the `SELECT` SQL statement in the `List` functional endpoint.
-
-```go
-type Query struct {
-	Name string         `json:"name,omitzero"`
-	AgeGTE int          `json:"ageGte,omitzero"`
-	AgeLT int           `json:"ageLte,omitzero"`
-	OnlyCitizen bool    `json:"onlyCitizen,omitzero"`
-	OnlyNotCitizen bool `json:"onlyNotCitizen,omitzero"`
-	States []string     `json:"states,omitzero"`
-}
-```
-
-Zero-valued filtering options should not result in a `WHERE` condition because an empty `Query` should select all records.
-
-```go
-func (svc *Service) prepareWhereClauses(ctx context.Context, query bookapi.Query) (conditions []string, args []any, err error) {
-	// String filtering option
-	if query.Name != "" {
-		conditions = append(conditions, "name=?")
-		args = append(args, query.Name)
-	}
-	// Range filtering option
-	if query.AgeGTE != 0 {
-		conditions = append(conditions, "age>=?")
-		args = append(args, query.AgeGTE)
-	}
-	if query.AgeLT != 0 {
-		conditions = append(conditions, "age<?")
-		args = append(args, query.AgeLT)
-	}
-	// Boolean filtering option
-	if query.OnlyCitizen {
-		conditions = append(conditions, "citizen=1")
-	}
-	if query.OnlyNotCitizen {
-		conditions = append(conditions, "citizen=0")
-	}
-	// List filtering option
-	if query.States != nil {
-		if len(query.States) > 0 {
-			conditions = append(conditions, "states IN (" + strings.Repeat("?,", len(query.States)-1) + "?)")
-			args = append(args, query.States...)
-		} else {
-			conditions = append(conditions, "1=0") // Empty array should yield no result
-		}
-	}
-	return conditions, args, nil
-}
-```
-
-### REST API
-
-SQL CRUD microservices expose a REST API by defining thin functional endpoints that delegate to the core CRUD operations and translate results into HTTP semantics. These endpoints use the magic variable names `httpRequestBody`, `httpResponseBody` and `httpStatusCode` for automatic request/response body marshaling and status code control.
-
-Five endpoints cover the standard REST verbs:
-
-| Endpoint | Method | Route | Delegates to |
-|---|---|---|---|
-| `CreateREST` | `POST` | `/objects` | `Create` |
-| `StoreREST` | `PUT` | `/objects/{key}` | `Store` |
-| `DeleteREST` | `DELETE` | `/objects/{key}` | `Delete` |
-| `LoadREST` | `GET` | `/objects/{key}` | `Load` |
-| `ListREST` | `GET` | `/objects` | `List` |
-
-The route uses the plural form of the object name in kebab-case (e.g. `/bus-stops` or `/busstops`). The `{key}` path argument is automatically parsed into the object's key type.
-
-### Reservation
-
-SQL CRUD microservices can optionally support reservation of records via a `reserved_before` timestamp column. Reservation is a form of optimistic locking that prevents concurrent actors from processing the same record, without blocking normal CRUD operations (`Create`, `Store`, `Delete`, `Load`, `List`, etc.).
-
-A record is considered reserved when `reserved_before > NOW`. Reservations are time-limited and expire automatically - no explicit release is required, though calling `Reserve` with a duration of `0` effectively releases the reservation by setting `reserved_before` to `NOW`.
-
-Two pairs of endpoints implement this pattern:
-
-- `TryReserve` / `TryBulkReserve` - conditional reservation. Only reserves records whose reservation has expired (`reserved_before < NOW`). Returns which records were successfully reserved. Use this when competing actors should not interfere with each other's work.
-- `Reserve` / `BulkReserve` - forceful reservation. Sets `reserved_before` regardless of current state. Returns which records exist. Use this to forcefully extend or reset a reservation.
-
-```go
-// Reserve the record for 5 minutes
-reserved, err := myserviceapi.NewClient(svc).TryReserve(ctx, objKey, 5*time.Minute)
-if err != nil {
-	return errors.Trace(err)
-}
-if !reserved {
-	return errors.New("record is already reserved")
-}
-defer func() {
-	// Release the reservation when done
-	myserviceapi.NewClient(svc).Reserve(ctx, objKey, 0)
-}()
-// Perform the operation while holding the reservation...
-```
-
-### Configuring the Datasource Name for Testing
-
-Running tests requires the microservices under test to be able to connect to the SQL database. The data source name is configured in `config.local.yaml` at the root of the project. If tests fail to connect to the database, prompt the user to update `config.local.yaml` with the appropriate credentials.
-
-```yaml
-all:
-  SQLDataSourceName: root:root@tcp(127.0.0.1:3306)/
-```
-
-Example data source names for each of the supported drivers:
-- mysql: `root:root@tcp(127.0.0.1:3306)/`
-- pgx: `postgres://postgres:postgres@127.0.0.1:5432/`
-- mssql: `sqlserver://sa:sa@127.0.0.1:1433`
+To let workers claim rows without holding locks, add a `reserved_before` time column. A worker reserves a row with
+an update that sets `reserved_before=DATE_ADD_MILLIS(NOW_UTC(), ?)` only where `reserved_before<=NOW_UTC()`, and
+the reservation lapses on its own if the worker dies.

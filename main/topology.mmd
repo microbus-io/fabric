@@ -42,7 +42,7 @@ graph LR
     login.example[Login<br>login.example] --->|danger| bearer.token.core
     messaging.example[Messaging<br>messaging.example]
     weather.example[Weather<br>weather.example] ---> llm.core
-    yellowpages.example[Person<br>yellowpages.example] --- yellowpages.example.db[(SQL)]
+    yellowpages.example[YellowPages<br>yellowpages.example] --- yellowpages.example.db[(SQL)]
 
     class agentstudio.dev,banksupport.example,browser.example,calculator.example,chatbox.example,creditflow.example,embedder.example,eventsink.example,eventsource.example,flightbooking.example,hello.example,helloworld.example,login.example,messaging.example,weather.example,yellowpages.example svc
     class configurator.core,http.egress.core,foreman.core,http.ingress.core,llm.core,chatgpt.llm.core,claude.llm.core,gemini.llm.core,lite.llm.core,mcp.core,metrics.core,openapi.core core

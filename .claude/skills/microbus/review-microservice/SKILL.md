@@ -166,11 +166,12 @@ Review the public interface of the microservice - its functions, web handlers, e
 
 #### Step 10: Performance and Data Access
 
-This step applies primarily to SQL CRUD microservices. Skip checks that are not relevant if the service does not use a database.
+This step applies primarily to SQL-backed microservices. Skip checks that are not relevant if the microservice does not use a database. For one that does, also check it against the practices in `.claude/rules/sequel.txt`.
 
 - **N+1 queries** - look for loops that iterate over a result set and perform a database query or call another microservice per row. This is a common and expensive pattern. Flag any loop where the body contains a SQL query, a call to `svc.*` client, or a call to a downstream `*api` client.
 - **Expensive operations inside DB loops** - flag any loop over database rows where the body performs HTTP requests, sleeps, or other slow operations. Database connections should be released quickly; long-held result sets block connection pool slots.
-- **Unindexed query conditions** - read the database schema from migration files (typically in `resources/` or a `migrations/` subdirectory). Extract all indexed columns (from `PRIMARY KEY`, `UNIQUE`, `CREATE INDEX`, and `INDEX` declarations). Then examine hardcoded SQL `WHERE`, `JOIN ON`, and `ORDER BY` clauses in the code and flag conditions on columns that have no index and are likely to cause full table scans.
+- **Cross-microservice data access** - flag a foreign key to, or a `JOIN` with, a table that belongs to another microservice. Another microservice's data is reached through its endpoints, a cache, or a denormalized copy kept current by its events.
+- **Unindexed query conditions** - read the database schema from migration files (typically in `resources/sql`). Extract all indexed columns (from `PRIMARY KEY`, `UNIQUE`, `CREATE INDEX`, and `INDEX` declarations). Then examine hardcoded SQL `WHERE`, `JOIN ON`, and `ORDER BY` clauses in the code and flag conditions on columns that have no index and are likely to cause full table scans.
 - **Unbounded queries** - flag SQL `SELECT` statements without a `LIMIT` clause that could return arbitrarily large result sets.
 - **Transaction scope** - flag database transactions that span expensive operations such as downstream service calls or HTTP requests. Transactions should be kept as short as possible.
 - **Migration safety** - SQL migration files should be append-only. Flag edits to existing migration files. Destructive operations (`DROP TABLE`, `DROP COLUMN`, type-narrowing `ALTER COLUMN`) should be flagged for review even if intentional. New `NOT NULL` columns without a default break in-flight rollouts where old replicas still write rows that omit the column.

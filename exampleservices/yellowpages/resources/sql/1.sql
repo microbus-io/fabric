@@ -1,63 +1,55 @@
--- DRIVER: mysql
-CREATE TABLE person (
-	tenant_id INT NOT NULL,
+-- DRIVER: mysql mariadb
+CREATE TABLE persons (
 	id BIGINT NOT NULL AUTO_INCREMENT,
-	revision BIGINT NOT NULL DEFAULT 0,
-	example VARCHAR(256) NULL,
+	first_name VARCHAR(64) NOT NULL,
+	last_name VARCHAR(64) NOT NULL,
+	email VARCHAR(256) NOT NULL,
+	birthday DATETIME(3) NULL,
 	created_at DATETIME(3) NOT NULL,
 	updated_at DATETIME(3) NOT NULL,
-	reserved_before DATETIME(3) NOT NULL,
 
-	CONSTRAINT person_pk PRIMARY KEY (tenant_id, id),
-	UNIQUE INDEX person_idx_id (id),
-	INDEX person_idx_created_at (tenant_id, created_at)
+	CONSTRAINT persons_pk PRIMARY KEY (id),
+	UNIQUE INDEX persons_idx_email (email)
 );
 
--- DRIVER: pgx
-CREATE TABLE person (
-	tenant_id INT NOT NULL,
+-- DRIVER: pgx cockroachdb
+CREATE TABLE persons (
 	id BIGSERIAL,
-	revision BIGINT NOT NULL DEFAULT 0,
-	example VARCHAR(256) NULL,
+	first_name VARCHAR(64) NOT NULL,
+	last_name VARCHAR(64) NOT NULL,
+	email VARCHAR(256) NOT NULL,
+	birthday TIMESTAMP(3) NULL,
 	created_at TIMESTAMP(3) NOT NULL,
 	updated_at TIMESTAMP(3) NOT NULL,
-	reserved_before TIMESTAMP(3) NOT NULL,
 
-	CONSTRAINT person_pk PRIMARY KEY (tenant_id, id)
+	CONSTRAINT persons_pk PRIMARY KEY (id)
 );
--- DRIVER: pgx
-CREATE UNIQUE INDEX person_idx_id ON person USING btree (id);
--- DRIVER: pgx
-CREATE INDEX person_idx_created_at ON person USING btree (tenant_id, created_at);
+-- DRIVER: pgx cockroachdb
+CREATE UNIQUE INDEX persons_idx_email ON persons (email);
 
 -- DRIVER: mssql
-CREATE TABLE person (
-	tenant_id INT NOT NULL,
+CREATE TABLE persons (
 	id BIGINT IDENTITY(1, 1),
-	revision BIGINT NOT NULL DEFAULT 0,
-	example NVARCHAR(256) NULL,
+	first_name NVARCHAR(64) NOT NULL,
+	last_name NVARCHAR(64) NOT NULL,
+	email NVARCHAR(256) NOT NULL,
+	birthday DATETIME2(3) NULL,
 	created_at DATETIME2(3) NOT NULL,
 	updated_at DATETIME2(3) NOT NULL,
-	reserved_before DATETIME2(3) NOT NULL,
 
-	CONSTRAINT person_pk PRIMARY KEY NONCLUSTERED (id),
-	CONSTRAINT person_idx_id UNIQUE CLUSTERED (tenant_id, id),
-	INDEX person_idx_created_at (tenant_id, created_at)
+	CONSTRAINT persons_pk PRIMARY KEY (id),
+	CONSTRAINT persons_idx_email UNIQUE (email)
 );
 
 -- DRIVER: sqlite
-CREATE TABLE person (
-	tenant_id INTEGER NOT NULL,
+CREATE TABLE persons (
 	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-	revision INTEGER NOT NULL DEFAULT 0,
-	example TEXT,
+	first_name TEXT NOT NULL,
+	last_name TEXT NOT NULL,
+	email TEXT NOT NULL,
+	birthday DATETIME,
 	created_at DATETIME NOT NULL,
-	updated_at DATETIME NOT NULL,
-	reserved_before DATETIME NOT NULL
+	updated_at DATETIME NOT NULL
 );
 -- DRIVER: sqlite
-CREATE UNIQUE INDEX person_idx_tenant_id ON person (tenant_id, id);
--- DRIVER: sqlite
-CREATE UNIQUE INDEX person_idx_id ON person (id);
--- DRIVER: sqlite
-CREATE INDEX person_idx_created_at ON person (tenant_id, created_at);
+CREATE UNIQUE INDEX persons_idx_email ON persons (email);

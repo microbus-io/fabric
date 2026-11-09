@@ -151,7 +151,7 @@ When the user picks an item, go to its subsection below, present it, and offer t
 4.  Messaging      - Unicast, multicast, and direct addressing, plus the distributed cache.
 5.  Browser        - Outbound HTTP requests through the egress proxy.
 6.  Petstore       - A third-party REST API delegated one-for-one from its OpenAPI document.
-7.  Yellow Pages   - A SQL CRUD microservice with CRUD, bulk, and REST endpoints and a web UI.
+7.  Yellow Pages   - A SQL-backed microservice with JSON and REST endpoints and a web UI.
 8.  Login          - JWT authentication and role-based access control.
 9.  Credit Flow    - Agentic workflows: fan-out/in, forEach, goto loops, subgraphs, reducers.
 10. Chatbox        - LLM tool-calling, with a simulated provider and optional real providers.
@@ -253,7 +253,7 @@ Return to the Example Menu.
 
 ##### 7. Yellow Pages
 
-The `yellowpages.example` microservice demonstrates a SQL CRUD microservice scaffolded using the `sequel` skills. It persists `Person` records with fields for first name, last name, email, and birthday. It includes a full set of CRUD, bulk, and REST endpoints, as well as a web UI for testing. If a SQL database is not configured, it falls back to an in-memory store.
+The `yellowpages.example` microservice demonstrates a SQL-backed microservice built on the sequel package. It persists `Person` records with fields for first name, last name, email, and birthday, and exposes the same create, load, store, delete and list operations twice: as JSON endpoints for other microservices and as REST endpoints on `/persons`, with a web UI for trying the REST API. If a SQL database is not configured, it falls back to a local SQLite file.
 
 Explain the microservice to the user and present the following links for them to experiment with in their browser:
 

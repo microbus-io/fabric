@@ -34,10 +34,10 @@
 
     <div class="examples">
         <a href="/yellowpages.example/demo?method=GET&path=/persons">GET /persons</a>
-        <a href="/yellowpages.example/demo?method=GET&path=/persons?q.Email={email}">GET by email</a>
+        <a href="/yellowpages.example/demo?method=GET&path=/persons?q.email={email}">GET by email</a>
         <a href="/yellowpages.example/demo?method=GET&path=/persons/{key}">GET by key</a>
-        <a href="/yellowpages.example/demo?method=POST&path=/persons&body=%7B%22firstName%22:%22%22,%22lastName%22:%22%22,%22email%22:%22%22,%22birthday%22:%22%22%7D">POST</a>
-        <a href="/yellowpages.example/demo?method=PUT&path=/persons/{key}&body=%7B%22firstName%22:%22%22,%22lastName%22:%22%22,%22email%22:%22%22,%22birthday%22:%22%22%7D">PUT</a>
+        <a href="/yellowpages.example/demo?method=POST&path=/persons&body=%7B%22firstName%22:%22%22,%22lastName%22:%22%22,%22email%22:%22%22,%22birthday%22:%221980-07-31T00:00:00Z%22%7D">POST</a>
+        <a href="/yellowpages.example/demo?method=PUT&path=/persons/{key}&body=%7B%22firstName%22:%22%22,%22lastName%22:%22%22,%22email%22:%22%22,%22birthday%22:%221980-07-31T00:00:00Z%22%7D">PUT</a>
         <a href="/yellowpages.example/demo?method=DELETE&path=/persons/{key}">DELETE</a>
     </div>
 
@@ -63,7 +63,7 @@
     {{ end }}
 
     <div class="info">
-        The Yellow Pages example demonstrates a SQL CRUD microservice with REST endpoints for Person records.
+        The Yellow Pages example demonstrates a SQL-backed microservice with REST endpoints for Person records.
     </div>
 </body>
 </html>

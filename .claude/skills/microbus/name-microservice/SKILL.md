@@ -1,6 +1,6 @@
 ---
 name: name-microservice
-description: How to choose the hostname of a new Microbus microservice. Referenced by the add-microservice and add-sql-microservice scaffolding skills (and, through their delegation to add-microservice, by add-python-microservice and import-openapi-microservice). Consult it whenever a microservice's hostname is being chosen.
+description: How to choose the hostname of a new Microbus microservice. Referenced by the add-microservice scaffolding skill (and, through their delegation to it, by add-python-microservice and import-openapi-microservice). Consult it whenever a microservice's hostname is being chosen.
 ---
 
 A microservice's hostname is its unique address on the bus. It expresses where the microservice sits in the

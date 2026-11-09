@@ -1,25 +1,28 @@
 # Prompts
 
-## sequel/add-microservice
+## Initial scaffold
 
-Create a SQL CRUD microservice named "yellowpages" in the `exampleservices/yellowpages/` directory with hostname `yellowpages.example` to persist the noun "Person". Use the `sequel/add-microservice` skill to scaffold the microservice from the busstop template.
+Create a SQL-backed microservice named "yellowpages" in `exampleservices/yellowpages/` with hostname
+`yellowpages.example` that persists `Person` records in a SQL database using the sequel package, following
+`.claude/rules/sequel.txt`.
 
-## sequel/add-fields
+A `Person` has a key assigned by the database, a first name and a last name (required, at most 64 characters,
+trimmed), an email (required, at most 256 characters, trimmed, unique), an optional birthday that must be in the
+past, and created and updated times set by the database.
 
-Add fields to the Person object: FirstName (string, required, max 64 runes), LastName (string, required, max 64 runes), Email (string, required, max 256 runes, unique), and Birthday (time.Time, must be in the past). All string fields are trimmed and searchable. Query supports filtering by FirstName, LastName, and Email. An index was added on the email column.
+Add a secret `SQLDataSourceName` config, and open, migrate and close the database in `OnStartup` and `OnShutdown`.
+Support MySQL, MariaDB, PostgreSQL, CockroachDB, SQL Server and SQLite in the migration, in a `persons` table.
 
-## microbus/add-web
+Add JSON endpoints `Create`, `Load` (returning `found`), `Store` (returning `stored`), `Delete` (returning `deleted`)
+and `List`, which filters by first name, last name and email, orders by key, and pages with a limit (100 by
+default, at most 1000) and an offset.
 
-Add a web endpoint `WebUI` at route `/web-ui` using method `ANY`.
+Add REST endpoints that wrap them: `POST /persons`, `GET /persons/{key}`, `PUT /persons/{key}`,
+`DELETE /persons/{key}` and `GET /persons`, returning 201, 200, 204 and 404 as appropriate.
 
-## Implement WebUI
+## Demo web page
 
-Implement the `WebUI` handler and `webui.html` template as a self-contained REST API explorer for the Person microservice.
-
-**Handler (`service.go`):** On POST, the handler reads form values `method`, `path`, and `body`, then makes an internal `svc.Request` to `https://{Hostname}/{path}` using the selected HTTP method. For POST/PUT methods, the body form value is sent as `application/json`; for GET/DELETE it is omitted. The response status code and body (or error with `%+v` formatting) are captured. The handler renders `webui.html` with a data struct containing `Method`, `Path`, `Body` (to repopulate the form), `StatusCode`, and `Response`.
-
-**Template (`resources/webui.html`):** A single-page HTML form with:
-- A reference list of the REST API routes (GET/POST/PUT/DELETE `/persons` and `/persons/{key}`, plus GET `/persons?q.Email={email}`)
-- A form (method POST) containing: a `<select>` for HTTP method (GET/POST/PUT/DELETE) with the previous selection preserved via `{{ if eq .Method "..." }}selected{{ end }}`; a text input for the path (placeholder `/persons/...`); a `<textarea>` for the JSON body; and a submit button
-- JavaScript that toggles the body textarea visibility based on the selected method (hidden for GET/DELETE, visible for POST/PUT), running on page load and on method change
-- Below the form: the response status code and a `<pre>` block with the response body
+Add a web endpoint `Demo` at `/demo` that serves a REST API explorer from `resources/demo.html`. On POST it reads
+the form values `method`, `path` and `body`, makes the request to `https://yellowpages.example/{path}` with that
+method (sending the body as JSON for POST and PUT), and renders the response status and body under the form. The
+page lists example links for each REST call, prefilled through the `method`, `path` and `body` query arguments.

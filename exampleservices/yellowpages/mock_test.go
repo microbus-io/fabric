@@ -22,7 +22,6 @@ import (
 	"context"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/exampleservices/yellowpages/yellowpagesapi"
@@ -52,216 +51,62 @@ func TestYellowpages_Mock(t *testing.T) {
 	t.Run("create", func(t *testing.T) { // MARKER: Create
 		assert := testarossa.For(t)
 
-		mock.MockCreate(func(ctx context.Context, obj *yellowpagesapi.Person) (objKey yellowpagesapi.PersonKey, err error) {
+		mock.MockCreate(func(ctx context.Context, person *yellowpagesapi.Person) (key int, err error) {
 			return
 		})
-		var obj *yellowpagesapi.Person
-		_, err := mock.Create(ctx, obj)
-		assert.NoError(err)
-	})
-
-	t.Run("store", func(t *testing.T) { // MARKER: Store
-		assert := testarossa.For(t)
-
-		mock.MockStore(func(ctx context.Context, obj *yellowpagesapi.Person) (stored bool, err error) {
-			return
-		})
-		var obj *yellowpagesapi.Person
-		_, err := mock.Store(ctx, obj)
-		assert.NoError(err)
-	})
-
-	t.Run("must_store", func(t *testing.T) { // MARKER: MustStore
-		assert := testarossa.For(t)
-
-		mock.MockMustStore(func(ctx context.Context, obj *yellowpagesapi.Person) (err error) {
-			return
-		})
-		var obj *yellowpagesapi.Person
-		err := mock.MustStore(ctx, obj)
-		assert.NoError(err)
-	})
-
-	t.Run("revise", func(t *testing.T) { // MARKER: Revise
-		assert := testarossa.For(t)
-
-		mock.MockRevise(func(ctx context.Context, obj *yellowpagesapi.Person) (revised bool, err error) {
-			return
-		})
-		var obj *yellowpagesapi.Person
-		_, err := mock.Revise(ctx, obj)
-		assert.NoError(err)
-	})
-
-	t.Run("must_revise", func(t *testing.T) { // MARKER: MustRevise
-		assert := testarossa.For(t)
-
-		mock.MockMustRevise(func(ctx context.Context, obj *yellowpagesapi.Person) (err error) {
-			return
-		})
-		var obj *yellowpagesapi.Person
-		err := mock.MustRevise(ctx, obj)
-		assert.NoError(err)
-	})
-
-	t.Run("delete", func(t *testing.T) { // MARKER: Delete
-		assert := testarossa.For(t)
-
-		mock.MockDelete(func(ctx context.Context, objKey yellowpagesapi.PersonKey) (deleted bool, err error) {
-			return
-		})
-		var objKey yellowpagesapi.PersonKey
-		_, err := mock.Delete(ctx, objKey)
-		assert.NoError(err)
-	})
-
-	t.Run("must_delete", func(t *testing.T) { // MARKER: MustDelete
-		assert := testarossa.For(t)
-
-		mock.MockMustDelete(func(ctx context.Context, objKey yellowpagesapi.PersonKey) (err error) {
-			return
-		})
-		var objKey yellowpagesapi.PersonKey
-		err := mock.MustDelete(ctx, objKey)
-		assert.NoError(err)
-	})
-
-	t.Run("list", func(t *testing.T) { // MARKER: List
-		assert := testarossa.For(t)
-
-		mock.MockList(func(ctx context.Context, query yellowpagesapi.Query) (objs []*yellowpagesapi.Person, totalCount int, err error) {
-			return
-		})
-		var query yellowpagesapi.Query
-		_, _, err := mock.List(ctx, query)
-		assert.NoError(err)
-	})
-
-	t.Run("lookup", func(t *testing.T) { // MARKER: Lookup
-		assert := testarossa.For(t)
-
-		mock.MockLookup(func(ctx context.Context, query yellowpagesapi.Query) (obj *yellowpagesapi.Person, found bool, err error) {
-			return
-		})
-		var query yellowpagesapi.Query
-		_, _, err := mock.Lookup(ctx, query)
-		assert.NoError(err)
-	})
-
-	t.Run("must_lookup", func(t *testing.T) { // MARKER: MustLookup
-		assert := testarossa.For(t)
-
-		mock.MockMustLookup(func(ctx context.Context, query yellowpagesapi.Query) (obj *yellowpagesapi.Person, err error) {
-			return
-		})
-		var query yellowpagesapi.Query
-		_, err := mock.MustLookup(ctx, query)
+		var person *yellowpagesapi.Person
+		_, err := mock.Create(ctx, person)
 		assert.NoError(err)
 	})
 
 	t.Run("load", func(t *testing.T) { // MARKER: Load
 		assert := testarossa.For(t)
 
-		mock.MockLoad(func(ctx context.Context, objKey yellowpagesapi.PersonKey) (obj *yellowpagesapi.Person, found bool, err error) {
+		mock.MockLoad(func(ctx context.Context, key int) (person *yellowpagesapi.Person, found bool, err error) {
 			return
 		})
-		var objKey yellowpagesapi.PersonKey
-		_, _, err := mock.Load(ctx, objKey)
+		var key int
+		_, _, err := mock.Load(ctx, key)
 		assert.NoError(err)
 	})
 
-	t.Run("must_load", func(t *testing.T) { // MARKER: MustLoad
+	t.Run("store", func(t *testing.T) { // MARKER: Store
 		assert := testarossa.For(t)
 
-		mock.MockMustLoad(func(ctx context.Context, objKey yellowpagesapi.PersonKey) (obj *yellowpagesapi.Person, err error) {
+		mock.MockStore(func(ctx context.Context, person *yellowpagesapi.Person) (stored bool, err error) {
 			return
 		})
-		var objKey yellowpagesapi.PersonKey
-		_, err := mock.MustLoad(ctx, objKey)
+		var person *yellowpagesapi.Person
+		_, err := mock.Store(ctx, person)
 		assert.NoError(err)
 	})
 
-	t.Run("bulk_load", func(t *testing.T) { // MARKER: BulkLoad
+	t.Run("delete", func(t *testing.T) { // MARKER: Delete
 		assert := testarossa.For(t)
 
-		mock.MockBulkLoad(func(ctx context.Context, objKeys []yellowpagesapi.PersonKey) (objs []*yellowpagesapi.Person, err error) {
+		mock.MockDelete(func(ctx context.Context, key int) (deleted bool, err error) {
 			return
 		})
-		var objKeys []yellowpagesapi.PersonKey
-		_, err := mock.BulkLoad(ctx, objKeys)
+		var key int
+		_, err := mock.Delete(ctx, key)
 		assert.NoError(err)
 	})
 
-	t.Run("bulk_delete", func(t *testing.T) { // MARKER: BulkDelete
+	t.Run("list", func(t *testing.T) { // MARKER: List
 		assert := testarossa.For(t)
 
-		mock.MockBulkDelete(func(ctx context.Context, objKeys []yellowpagesapi.PersonKey) (deletedKeys []yellowpagesapi.PersonKey, err error) {
-			return
-		})
-		var objKeys []yellowpagesapi.PersonKey
-		_, err := mock.BulkDelete(ctx, objKeys)
-		assert.NoError(err)
-	})
-
-	t.Run("bulk_create", func(t *testing.T) { // MARKER: BulkCreate
-		assert := testarossa.For(t)
-
-		mock.MockBulkCreate(func(ctx context.Context, objs []*yellowpagesapi.Person) (objKeys []yellowpagesapi.PersonKey, err error) {
-			return
-		})
-		var objs []*yellowpagesapi.Person
-		_, err := mock.BulkCreate(ctx, objs)
-		assert.NoError(err)
-	})
-
-	t.Run("bulk_store", func(t *testing.T) { // MARKER: BulkStore
-		assert := testarossa.For(t)
-
-		mock.MockBulkStore(func(ctx context.Context, objs []*yellowpagesapi.Person) (storedKeys []yellowpagesapi.PersonKey, err error) {
-			return
-		})
-		var objs []*yellowpagesapi.Person
-		_, err := mock.BulkStore(ctx, objs)
-		assert.NoError(err)
-	})
-
-	t.Run("bulk_revise", func(t *testing.T) { // MARKER: BulkRevise
-		assert := testarossa.For(t)
-
-		mock.MockBulkRevise(func(ctx context.Context, objs []*yellowpagesapi.Person) (revisedKeys []yellowpagesapi.PersonKey, err error) {
-			return
-		})
-		var objs []*yellowpagesapi.Person
-		_, err := mock.BulkRevise(ctx, objs)
-		assert.NoError(err)
-	})
-
-	t.Run("purge", func(t *testing.T) { // MARKER: Purge
-		assert := testarossa.For(t)
-
-		mock.MockPurge(func(ctx context.Context, query yellowpagesapi.Query) (deletedKeys []yellowpagesapi.PersonKey, err error) {
+		mock.MockList(func(ctx context.Context, query yellowpagesapi.Query) (persons []*yellowpagesapi.Person, err error) {
 			return
 		})
 		var query yellowpagesapi.Query
-		_, err := mock.Purge(ctx, query)
-		assert.NoError(err)
-	})
-
-	t.Run("count", func(t *testing.T) { // MARKER: Count
-		assert := testarossa.For(t)
-
-		mock.MockCount(func(ctx context.Context, query yellowpagesapi.Query) (count int, err error) {
-			return
-		})
-		var query yellowpagesapi.Query
-		_, err := mock.Count(ctx, query)
+		_, err := mock.List(ctx, query)
 		assert.NoError(err)
 	})
 
 	t.Run("create_r_e_s_t", func(t *testing.T) { // MARKER: CreateREST
 		assert := testarossa.For(t)
 
-		mock.MockCreateREST(func(ctx context.Context, httpRequestBody *yellowpagesapi.Person) (objKey yellowpagesapi.PersonKey, httpStatusCode int, err error) {
+		mock.MockCreateREST(func(ctx context.Context, httpRequestBody *yellowpagesapi.Person) (key int, httpStatusCode int, err error) {
 			return
 		})
 		var httpRequestBody *yellowpagesapi.Person
@@ -269,13 +114,24 @@ func TestYellowpages_Mock(t *testing.T) {
 		assert.NoError(err)
 	})
 
+	t.Run("load_r_e_s_t", func(t *testing.T) { // MARKER: LoadREST
+		assert := testarossa.For(t)
+
+		mock.MockLoadREST(func(ctx context.Context, key int) (httpResponseBody *yellowpagesapi.Person, httpStatusCode int, err error) {
+			return
+		})
+		var key int
+		_, _, err := mock.LoadREST(ctx, key)
+		assert.NoError(err)
+	})
+
 	t.Run("store_r_e_s_t", func(t *testing.T) { // MARKER: StoreREST
 		assert := testarossa.For(t)
 
-		mock.MockStoreREST(func(ctx context.Context, key yellowpagesapi.PersonKey, httpRequestBody *yellowpagesapi.Person) (httpStatusCode int, err error) {
+		mock.MockStoreREST(func(ctx context.Context, key int, httpRequestBody *yellowpagesapi.Person) (httpStatusCode int, err error) {
 			return
 		})
-		var key yellowpagesapi.PersonKey
+		var key int
 		var httpRequestBody *yellowpagesapi.Person
 		_, err := mock.StoreREST(ctx, key, httpRequestBody)
 		assert.NoError(err)
@@ -284,22 +140,11 @@ func TestYellowpages_Mock(t *testing.T) {
 	t.Run("delete_r_e_s_t", func(t *testing.T) { // MARKER: DeleteREST
 		assert := testarossa.For(t)
 
-		mock.MockDeleteREST(func(ctx context.Context, key yellowpagesapi.PersonKey) (httpStatusCode int, err error) {
+		mock.MockDeleteREST(func(ctx context.Context, key int) (httpStatusCode int, err error) {
 			return
 		})
-		var key yellowpagesapi.PersonKey
+		var key int
 		_, err := mock.DeleteREST(ctx, key)
-		assert.NoError(err)
-	})
-
-	t.Run("load_r_e_s_t", func(t *testing.T) { // MARKER: LoadREST
-		assert := testarossa.For(t)
-
-		mock.MockLoadREST(func(ctx context.Context, key yellowpagesapi.PersonKey) (httpResponseBody *yellowpagesapi.Person, httpStatusCode int, err error) {
-			return
-		})
-		var key yellowpagesapi.PersonKey
-		_, _, err := mock.LoadREST(ctx, key)
 		assert.NoError(err)
 	})
 
@@ -311,54 +156,6 @@ func TestYellowpages_Mock(t *testing.T) {
 		})
 		var q yellowpagesapi.Query
 		_, _, err := mock.ListREST(ctx, q)
-		assert.NoError(err)
-	})
-
-	t.Run("try_reserve", func(t *testing.T) { // MARKER: TryReserve
-		assert := testarossa.For(t)
-
-		mock.MockTryReserve(func(ctx context.Context, objKey yellowpagesapi.PersonKey, dur time.Duration) (reserved bool, err error) {
-			return
-		})
-		var objKey yellowpagesapi.PersonKey
-		var dur time.Duration
-		_, err := mock.TryReserve(ctx, objKey, dur)
-		assert.NoError(err)
-	})
-
-	t.Run("try_bulk_reserve", func(t *testing.T) { // MARKER: TryBulkReserve
-		assert := testarossa.For(t)
-
-		mock.MockTryBulkReserve(func(ctx context.Context, objKeys []yellowpagesapi.PersonKey, dur time.Duration) (reservedKeys []yellowpagesapi.PersonKey, err error) {
-			return
-		})
-		var objKeys []yellowpagesapi.PersonKey
-		var dur time.Duration
-		_, err := mock.TryBulkReserve(ctx, objKeys, dur)
-		assert.NoError(err)
-	})
-
-	t.Run("reserve", func(t *testing.T) { // MARKER: Reserve
-		assert := testarossa.For(t)
-
-		mock.MockReserve(func(ctx context.Context, objKey yellowpagesapi.PersonKey, dur time.Duration) (reserved bool, err error) {
-			return
-		})
-		var objKey yellowpagesapi.PersonKey
-		var dur time.Duration
-		_, err := mock.Reserve(ctx, objKey, dur)
-		assert.NoError(err)
-	})
-
-	t.Run("bulk_reserve", func(t *testing.T) { // MARKER: BulkReserve
-		assert := testarossa.For(t)
-
-		mock.MockBulkReserve(func(ctx context.Context, objKeys []yellowpagesapi.PersonKey, dur time.Duration) (reservedKeys []yellowpagesapi.PersonKey, err error) {
-			return
-		})
-		var objKeys []yellowpagesapi.PersonKey
-		var dur time.Duration
-		_, err := mock.BulkReserve(ctx, objKeys, dur)
 		assert.NoError(err)
 	})
 

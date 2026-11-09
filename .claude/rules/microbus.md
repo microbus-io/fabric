@@ -109,11 +109,11 @@ Default to closed. An empty `requiredClaims` means anyone who can reach the endp
 
 Issuer verification is enforced at the framework layer: the connector pins JWKS lookup to the framework's token services, and the `iss` claim of every verified token is guaranteed to match a pinned hostname. Adding an `iss=~"access.token.core"` predicate to `requiredClaims` is therefore redundant and should be omitted. The original identity provider is available in the `idp` claim.
 
-### SQL CRUD Microservices
+### SQL-Backed Microservices
 
-SQL CRUD microservices are Microbus microservices that expose a CRUD API to persist and retrieve objects in and out of a SQL database. They follow a standardized pattern for multi-tenant isolation, schema migration, column mapping, query filtering, and optimistic concurrency control via revisions.
+A microservice that keeps its data in a SQL database uses the [`github.com/microbus-io/sequel`](https://github.com/microbus-io/sequel) package, which gives MySQL, MariaDB, PostgreSQL, CockroachDB, SQL Server and SQLite one API, with migrations, testing databases and telemetry. The microservice opens and migrates the database in `OnStartup` and closes it in `OnShutdown`, and its endpoints run their SQL directly, with no further persistence layer.
 
-**IMPORTANT**: If the microservice uses SQL (imports `database/sql` or `github.com/microbus-io/sequel`), read `.claude/rules/sequel.txt` before proceeding.
+**IMPORTANT**: Before adding a SQL database to a microservice, or if the microservice uses SQL (imports `database/sql` or `github.com/microbus-io/sequel`), read `.claude/rules/sequel.txt`.
 
 ### Agentic Workflows
 

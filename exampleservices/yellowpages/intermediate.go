@@ -21,7 +21,6 @@ package yellowpages
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/errors"
@@ -44,35 +43,17 @@ const (
 type ToDo interface {
 	OnStartup(ctx context.Context) (err error)
 	OnShutdown(ctx context.Context) (err error)
-	Create(ctx context.Context, obj *yellowpagesapi.Person) (objKey yellowpagesapi.PersonKey, err error)                                            // MARKER: Create
-	Store(ctx context.Context, obj *yellowpagesapi.Person) (stored bool, err error)                                                                 // MARKER: Store
-	MustStore(ctx context.Context, obj *yellowpagesapi.Person) (err error)                                                                          // MARKER: MustStore
-	Revise(ctx context.Context, obj *yellowpagesapi.Person) (revised bool, err error)                                                               // MARKER: Revise
-	MustRevise(ctx context.Context, obj *yellowpagesapi.Person) (err error)                                                                         // MARKER: MustRevise
-	Delete(ctx context.Context, objKey yellowpagesapi.PersonKey) (deleted bool, err error)                                                          // MARKER: Delete
-	MustDelete(ctx context.Context, objKey yellowpagesapi.PersonKey) (err error)                                                                    // MARKER: MustDelete
-	List(ctx context.Context, query yellowpagesapi.Query) (objs []*yellowpagesapi.Person, totalCount int, err error)                                // MARKER: List
-	Lookup(ctx context.Context, query yellowpagesapi.Query) (obj *yellowpagesapi.Person, found bool, err error)                                     // MARKER: Lookup
-	MustLookup(ctx context.Context, query yellowpagesapi.Query) (obj *yellowpagesapi.Person, err error)                                             // MARKER: MustLookup
-	Load(ctx context.Context, objKey yellowpagesapi.PersonKey) (obj *yellowpagesapi.Person, found bool, err error)                                  // MARKER: Load
-	MustLoad(ctx context.Context, objKey yellowpagesapi.PersonKey) (obj *yellowpagesapi.Person, err error)                                          // MARKER: MustLoad
-	BulkLoad(ctx context.Context, objKeys []yellowpagesapi.PersonKey) (objs []*yellowpagesapi.Person, err error)                                    // MARKER: BulkLoad
-	BulkDelete(ctx context.Context, objKeys []yellowpagesapi.PersonKey) (deletedKeys []yellowpagesapi.PersonKey, err error)                         // MARKER: BulkDelete
-	BulkCreate(ctx context.Context, objs []*yellowpagesapi.Person) (objKeys []yellowpagesapi.PersonKey, err error)                                  // MARKER: BulkCreate
-	BulkStore(ctx context.Context, objs []*yellowpagesapi.Person) (storedKeys []yellowpagesapi.PersonKey, err error)                                // MARKER: BulkStore
-	BulkRevise(ctx context.Context, objs []*yellowpagesapi.Person) (revisedKeys []yellowpagesapi.PersonKey, err error)                              // MARKER: BulkRevise
-	Purge(ctx context.Context, query yellowpagesapi.Query) (deletedKeys []yellowpagesapi.PersonKey, err error)                                      // MARKER: Purge
-	Count(ctx context.Context, query yellowpagesapi.Query) (count int, err error)                                                                   // MARKER: Count
-	CreateREST(ctx context.Context, httpRequestBody *yellowpagesapi.Person) (objKey yellowpagesapi.PersonKey, httpStatusCode int, err error)        // MARKER: CreateREST
-	StoreREST(ctx context.Context, key yellowpagesapi.PersonKey, httpRequestBody *yellowpagesapi.Person) (httpStatusCode int, err error)            // MARKER: StoreREST
-	DeleteREST(ctx context.Context, key yellowpagesapi.PersonKey) (httpStatusCode int, err error)                                                   // MARKER: DeleteREST
-	LoadREST(ctx context.Context, key yellowpagesapi.PersonKey) (httpResponseBody *yellowpagesapi.Person, httpStatusCode int, err error)            // MARKER: LoadREST
-	ListREST(ctx context.Context, q yellowpagesapi.Query) (httpResponseBody []*yellowpagesapi.Person, httpStatusCode int, err error)                // MARKER: ListREST
-	TryReserve(ctx context.Context, objKey yellowpagesapi.PersonKey, dur time.Duration) (reserved bool, err error)                                  // MARKER: TryReserve
-	TryBulkReserve(ctx context.Context, objKeys []yellowpagesapi.PersonKey, dur time.Duration) (reservedKeys []yellowpagesapi.PersonKey, err error) // MARKER: TryBulkReserve
-	Reserve(ctx context.Context, objKey yellowpagesapi.PersonKey, dur time.Duration) (reserved bool, err error)                                     // MARKER: Reserve
-	BulkReserve(ctx context.Context, objKeys []yellowpagesapi.PersonKey, dur time.Duration) (reservedKeys []yellowpagesapi.PersonKey, err error)    // MARKER: BulkReserve
-	Demo(w http.ResponseWriter, r *http.Request) (err error)                                                                                        // MARKER: Demo
+	Create(ctx context.Context, person *yellowpagesapi.Person) (key int, err error)                                                  // MARKER: Create
+	Load(ctx context.Context, key int) (person *yellowpagesapi.Person, found bool, err error)                                        // MARKER: Load
+	Store(ctx context.Context, person *yellowpagesapi.Person) (stored bool, err error)                                               // MARKER: Store
+	Delete(ctx context.Context, key int) (deleted bool, err error)                                                                   // MARKER: Delete
+	List(ctx context.Context, query yellowpagesapi.Query) (persons []*yellowpagesapi.Person, err error)                              // MARKER: List
+	CreateREST(ctx context.Context, httpRequestBody *yellowpagesapi.Person) (key int, httpStatusCode int, err error)                 // MARKER: CreateREST
+	LoadREST(ctx context.Context, key int) (httpResponseBody *yellowpagesapi.Person, httpStatusCode int, err error)                  // MARKER: LoadREST
+	StoreREST(ctx context.Context, key int, httpRequestBody *yellowpagesapi.Person) (httpStatusCode int, err error)                  // MARKER: StoreREST
+	DeleteREST(ctx context.Context, key int) (httpStatusCode int, err error)                                                         // MARKER: DeleteREST
+	ListREST(ctx context.Context, q yellowpagesapi.Query) (httpResponseBody []*yellowpagesapi.Person, httpStatusCode int, err error) // MARKER: ListREST
+	Demo(w http.ResponseWriter, r *http.Request) (err error)                                                                         // MARKER: Demo
 }
 
 // NewService creates a new instance of the microservice.
@@ -113,157 +94,60 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Connector.Init(func(_ *connector.Connector) (err error) {
 		// Fail startup on a malformed validation directive in an endpoint input type
 		return dv8.Compile(
-			yellowpagesapi.CreateIn{},         // MARKER: Create
-			yellowpagesapi.StoreIn{},          // MARKER: Store
-			yellowpagesapi.MustStoreIn{},      // MARKER: MustStore
-			yellowpagesapi.ReviseIn{},         // MARKER: Revise
-			yellowpagesapi.MustReviseIn{},     // MARKER: MustRevise
-			yellowpagesapi.DeleteIn{},         // MARKER: Delete
-			yellowpagesapi.MustDeleteIn{},     // MARKER: MustDelete
-			yellowpagesapi.ListIn{},           // MARKER: List
-			yellowpagesapi.LookupIn{},         // MARKER: Lookup
-			yellowpagesapi.MustLookupIn{},     // MARKER: MustLookup
-			yellowpagesapi.LoadIn{},           // MARKER: Load
-			yellowpagesapi.MustLoadIn{},       // MARKER: MustLoad
-			yellowpagesapi.BulkLoadIn{},       // MARKER: BulkLoad
-			yellowpagesapi.BulkDeleteIn{},     // MARKER: BulkDelete
-			yellowpagesapi.BulkCreateIn{},     // MARKER: BulkCreate
-			yellowpagesapi.BulkStoreIn{},      // MARKER: BulkStore
-			yellowpagesapi.BulkReviseIn{},     // MARKER: BulkRevise
-			yellowpagesapi.PurgeIn{},          // MARKER: Purge
-			yellowpagesapi.CountIn{},          // MARKER: Count
-			yellowpagesapi.CreateRESTIn{},     // MARKER: CreateREST
-			yellowpagesapi.StoreRESTIn{},      // MARKER: StoreREST
-			yellowpagesapi.DeleteRESTIn{},     // MARKER: DeleteREST
-			yellowpagesapi.LoadRESTIn{},       // MARKER: LoadREST
-			yellowpagesapi.ListRESTIn{},       // MARKER: ListREST
-			yellowpagesapi.TryReserveIn{},     // MARKER: TryReserve
-			yellowpagesapi.TryBulkReserveIn{}, // MARKER: TryBulkReserve
-			yellowpagesapi.ReserveIn{},        // MARKER: Reserve
-			yellowpagesapi.BulkReserveIn{},    // MARKER: BulkReserve
+			yellowpagesapi.CreateIn{},     // MARKER: Create
+			yellowpagesapi.LoadIn{},       // MARKER: Load
+			yellowpagesapi.StoreIn{},      // MARKER: Store
+			yellowpagesapi.DeleteIn{},     // MARKER: Delete
+			yellowpagesapi.ListIn{},       // MARKER: List
+			yellowpagesapi.CreateRESTIn{}, // MARKER: CreateREST
+			yellowpagesapi.LoadRESTIn{},   // MARKER: LoadREST
+			yellowpagesapi.StoreRESTIn{},  // MARKER: StoreREST
+			yellowpagesapi.DeleteRESTIn{}, // MARKER: DeleteREST
+			yellowpagesapi.ListRESTIn{},   // MARKER: ListREST
 		)
 	})
 
 	svc.Subscribe( // MARKER: Create
 		"Create", svc.doCreate,
 		sub.At(yellowpagesapi.Create.Method, yellowpagesapi.Create.Route),
-		sub.Description(`Create creates a new object, returning its key.`),
+		sub.Description(`Create creates a new person, returning its key.`),
 		sub.Function(yellowpagesapi.CreateIn{}, yellowpagesapi.CreateOut{}),
-	)
-	svc.Subscribe( // MARKER: Store
-		"Store", svc.doStore,
-		sub.At(yellowpagesapi.Store.Method, yellowpagesapi.Store.Route),
-		sub.Description(`Store updates the object.`),
-		sub.Function(yellowpagesapi.StoreIn{}, yellowpagesapi.StoreOut{}),
-	)
-	svc.Subscribe( // MARKER: MustStore
-		"MustStore", svc.doMustStore,
-		sub.At(yellowpagesapi.MustStore.Method, yellowpagesapi.MustStore.Route),
-		sub.Description(`MustStore updates the object.`),
-		sub.Function(yellowpagesapi.MustStoreIn{}, yellowpagesapi.MustStoreOut{}),
-	)
-	svc.Subscribe( // MARKER: Revise
-		"Revise", svc.doRevise,
-		sub.At(yellowpagesapi.Revise.Method, yellowpagesapi.Revise.Route),
-		sub.Description(`Revise updates the object only if the revision matches.`),
-		sub.Function(yellowpagesapi.ReviseIn{}, yellowpagesapi.ReviseOut{}),
-	)
-	svc.Subscribe( // MARKER: MustRevise
-		"MustRevise", svc.doMustRevise,
-		sub.At(yellowpagesapi.MustRevise.Method, yellowpagesapi.MustRevise.Route),
-		sub.Description(`MustRevise updates the object only if the revision matches.`),
-		sub.Function(yellowpagesapi.MustReviseIn{}, yellowpagesapi.MustReviseOut{}),
-	)
-	svc.Subscribe( // MARKER: Delete
-		"Delete", svc.doDelete,
-		sub.At(yellowpagesapi.Delete.Method, yellowpagesapi.Delete.Route),
-		sub.Description(`Delete deletes the object.`),
-		sub.Function(yellowpagesapi.DeleteIn{}, yellowpagesapi.DeleteOut{}),
-	)
-	svc.Subscribe( // MARKER: MustDelete
-		"MustDelete", svc.doMustDelete,
-		sub.At(yellowpagesapi.MustDelete.Method, yellowpagesapi.MustDelete.Route),
-		sub.Description(`MustDelete deletes the object.`),
-		sub.Function(yellowpagesapi.MustDeleteIn{}, yellowpagesapi.MustDeleteOut{}),
-	)
-	svc.Subscribe( // MARKER: List
-		"List", svc.doList,
-		sub.At(yellowpagesapi.List.Method, yellowpagesapi.List.Route),
-		sub.Description(`List returns the objects matching the query, and the total count of matches regardless of the limit.`),
-		sub.Function(yellowpagesapi.ListIn{}, yellowpagesapi.ListOut{}),
-	)
-	svc.Subscribe( // MARKER: Lookup
-		"Lookup", svc.doLookup,
-		sub.At(yellowpagesapi.Lookup.Method, yellowpagesapi.Lookup.Route),
-		sub.Description(`Lookup returns the single object matching the query. It errors if more than one object matches the query.`),
-		sub.Function(yellowpagesapi.LookupIn{}, yellowpagesapi.LookupOut{}),
-	)
-	svc.Subscribe( // MARKER: MustLookup
-		"MustLookup", svc.doMustLookup,
-		sub.At(yellowpagesapi.MustLookup.Method, yellowpagesapi.MustLookup.Route),
-		sub.Description(`MustLookup returns the single object matching the query. It errors unless exactly one object matches the query.`),
-		sub.Function(yellowpagesapi.MustLookupIn{}, yellowpagesapi.MustLookupOut{}),
 	)
 	svc.Subscribe( // MARKER: Load
 		"Load", svc.doLoad,
 		sub.At(yellowpagesapi.Load.Method, yellowpagesapi.Load.Route),
-		sub.Description(`Load returns the object associated with the key.`),
+		sub.Description(`Load returns the person with the given key, and whether it was found.`),
 		sub.Function(yellowpagesapi.LoadIn{}, yellowpagesapi.LoadOut{}),
 	)
-	svc.Subscribe( // MARKER: MustLoad
-		"MustLoad", svc.doMustLoad,
-		sub.At(yellowpagesapi.MustLoad.Method, yellowpagesapi.MustLoad.Route),
-		sub.Description(`MustLoad returns the object associated with the key. It errors if the object is not found.`),
-		sub.Function(yellowpagesapi.MustLoadIn{}, yellowpagesapi.MustLoadOut{}),
+	svc.Subscribe( // MARKER: Store
+		"Store", svc.doStore,
+		sub.At(yellowpagesapi.Store.Method, yellowpagesapi.Store.Route),
+		sub.Description(`Store updates an existing person, identified by its key, and reports whether it was found.`),
+		sub.Function(yellowpagesapi.StoreIn{}, yellowpagesapi.StoreOut{}),
 	)
-	svc.Subscribe( // MARKER: BulkLoad
-		"BulkLoad", svc.doBulkLoad,
-		sub.At(yellowpagesapi.BulkLoad.Method, yellowpagesapi.BulkLoad.Route),
-		sub.Description(`BulkLoad returns the objects matching the keys.`),
-		sub.Function(yellowpagesapi.BulkLoadIn{}, yellowpagesapi.BulkLoadOut{}),
+	svc.Subscribe( // MARKER: Delete
+		"Delete", svc.doDelete,
+		sub.At(yellowpagesapi.Delete.Method, yellowpagesapi.Delete.Route),
+		sub.Description(`Delete deletes the person with the given key, and reports whether it was found.`),
+		sub.Function(yellowpagesapi.DeleteIn{}, yellowpagesapi.DeleteOut{}),
 	)
-	svc.Subscribe( // MARKER: BulkDelete
-		"BulkDelete", svc.doBulkDelete,
-		sub.At(yellowpagesapi.BulkDelete.Method, yellowpagesapi.BulkDelete.Route),
-		sub.Description(`BulkDelete deletes the objects matching the keys, returning the keys of the deleted objects.`),
-		sub.Function(yellowpagesapi.BulkDeleteIn{}, yellowpagesapi.BulkDeleteOut{}),
-	)
-	svc.Subscribe( // MARKER: BulkCreate
-		"BulkCreate", svc.doBulkCreate,
-		sub.At(yellowpagesapi.BulkCreate.Method, yellowpagesapi.BulkCreate.Route),
-		sub.Description(`BulkCreate creates multiple objects, returning their keys.`),
-		sub.Function(yellowpagesapi.BulkCreateIn{}, yellowpagesapi.BulkCreateOut{}),
-	)
-	svc.Subscribe( // MARKER: BulkStore
-		"BulkStore", svc.doBulkStore,
-		sub.At(yellowpagesapi.BulkStore.Method, yellowpagesapi.BulkStore.Route),
-		sub.Description(`BulkStore updates multiple objects, returning the keys of the stored objects.`),
-		sub.Function(yellowpagesapi.BulkStoreIn{}, yellowpagesapi.BulkStoreOut{}),
-	)
-	svc.Subscribe( // MARKER: BulkRevise
-		"BulkRevise", svc.doBulkRevise,
-		sub.At(yellowpagesapi.BulkRevise.Method, yellowpagesapi.BulkRevise.Route),
-		sub.Description(`BulkRevise updates multiple objects, returning the number of rows affected.
-Only rows with matching revisions are updated.`),
-		sub.Function(yellowpagesapi.BulkReviseIn{}, yellowpagesapi.BulkReviseOut{}),
-	)
-	svc.Subscribe( // MARKER: Purge
-		"Purge", svc.doPurge,
-		sub.At(yellowpagesapi.Purge.Method, yellowpagesapi.Purge.Route),
-		sub.Description(`Purge deletes all objects matching the query, returning the keys of the deleted objects.`),
-		sub.Function(yellowpagesapi.PurgeIn{}, yellowpagesapi.PurgeOut{}),
-	)
-	svc.Subscribe( // MARKER: Count
-		"Count", svc.doCount,
-		sub.At(yellowpagesapi.Count.Method, yellowpagesapi.Count.Route),
-		sub.Description(`Count returns the number of objects matching the query, disregarding pagination.`),
-		sub.Function(yellowpagesapi.CountIn{}, yellowpagesapi.CountOut{}),
+	svc.Subscribe( // MARKER: List
+		"List", svc.doList,
+		sub.At(yellowpagesapi.List.Method, yellowpagesapi.List.Route),
+		sub.Description(`List returns the persons matching the query, ordered by key.`),
+		sub.Function(yellowpagesapi.ListIn{}, yellowpagesapi.ListOut{}),
 	)
 	svc.Subscribe( // MARKER: CreateREST
 		"CreateREST", svc.doCreateREST,
 		sub.At(yellowpagesapi.CreateREST.Method, yellowpagesapi.CreateREST.Route),
 		sub.Description(`CreateREST creates a new person via REST, returning its key.`),
 		sub.Function(yellowpagesapi.CreateRESTIn{}, yellowpagesapi.CreateRESTOut{}),
+	)
+	svc.Subscribe( // MARKER: LoadREST
+		"LoadREST", svc.doLoadREST,
+		sub.At(yellowpagesapi.LoadREST.Method, yellowpagesapi.LoadREST.Route),
+		sub.Description(`LoadREST loads a person by key via REST.`),
+		sub.Function(yellowpagesapi.LoadRESTIn{}, yellowpagesapi.LoadRESTOut{}),
 	)
 	svc.Subscribe( // MARKER: StoreREST
 		"StoreREST", svc.doStoreREST,
@@ -277,47 +161,16 @@ Only rows with matching revisions are updated.`),
 		sub.Description(`DeleteREST deletes an existing person via REST.`),
 		sub.Function(yellowpagesapi.DeleteRESTIn{}, yellowpagesapi.DeleteRESTOut{}),
 	)
-	svc.Subscribe( // MARKER: LoadREST
-		"LoadREST", svc.doLoadREST,
-		sub.At(yellowpagesapi.LoadREST.Method, yellowpagesapi.LoadREST.Route),
-		sub.Description(`LoadREST loads a person by key via REST.`),
-		sub.Function(yellowpagesapi.LoadRESTIn{}, yellowpagesapi.LoadRESTOut{}),
-	)
 	svc.Subscribe( // MARKER: ListREST
 		"ListREST", svc.doListREST,
 		sub.At(yellowpagesapi.ListREST.Method, yellowpagesapi.ListREST.Route),
 		sub.Description(`ListREST lists persons matching the query via REST.`),
 		sub.Function(yellowpagesapi.ListRESTIn{}, yellowpagesapi.ListRESTOut{}),
 	)
-	svc.Subscribe( // MARKER: TryReserve
-		"TryReserve", svc.doTryReserve,
-		sub.At(yellowpagesapi.TryReserve.Method, yellowpagesapi.TryReserve.Route),
-		sub.Description(`TryReserve attempts to reserve a person for the given duration, returning true if successful.`),
-		sub.Function(yellowpagesapi.TryReserveIn{}, yellowpagesapi.TryReserveOut{}),
-	)
-	svc.Subscribe( // MARKER: TryBulkReserve
-		"TryBulkReserve", svc.doTryBulkReserve,
-		sub.At(yellowpagesapi.TryBulkReserve.Method, yellowpagesapi.TryBulkReserve.Route),
-		sub.Description(`TryBulkReserve attempts to reserve persons for the given duration, returning the keys of those successfully reserved.
-Only persons whose reservation has expired (reserved_before < NOW) are reserved.`),
-		sub.Function(yellowpagesapi.TryBulkReserveIn{}, yellowpagesapi.TryBulkReserveOut{}),
-	)
-	svc.Subscribe( // MARKER: Reserve
-		"Reserve", svc.doReserve,
-		sub.At(yellowpagesapi.Reserve.Method, yellowpagesapi.Reserve.Route),
-		sub.Description(`Reserve unconditionally reserves a person for the given duration, returning true if the person exists.`),
-		sub.Function(yellowpagesapi.ReserveIn{}, yellowpagesapi.ReserveOut{}),
-	)
-	svc.Subscribe( // MARKER: BulkReserve
-		"BulkReserve", svc.doBulkReserve,
-		sub.At(yellowpagesapi.BulkReserve.Method, yellowpagesapi.BulkReserve.Route),
-		sub.Description(`BulkReserve unconditionally reserves persons for the given duration, returning the keys of those that exist.`),
-		sub.Function(yellowpagesapi.BulkReserveIn{}, yellowpagesapi.BulkReserveOut{}),
-	)
 	svc.Subscribe( // MARKER: Demo
 		"Demo", svc.Demo,
 		sub.At(yellowpagesapi.Demo.Method, yellowpagesapi.Demo.Route),
-		sub.Description(`Demo serves the web user interface for managing persons.`),
+		sub.Description(`Demo serves a web page for trying out the REST API.`),
 		sub.Web(),
 	)
 	svc.DefineConfig( // MARKER: SQLDataSourceName
@@ -367,106 +220,7 @@ func (svc *Intermediate) doCreate(w http.ResponseWriter, r *http.Request) (err e
 	var in yellowpagesapi.CreateIn
 	var out yellowpagesapi.CreateOut
 	err = marshalFunction(w, r, yellowpagesapi.Create.Route, &in, &out, func(_ any, _ any) error {
-		out.ObjKey, err = svc.Create(r.Context(), in.Obj)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doStore handles marshaling for Store.
-func (svc *Intermediate) doStore(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Store
-	var in yellowpagesapi.StoreIn
-	var out yellowpagesapi.StoreOut
-	err = marshalFunction(w, r, yellowpagesapi.Store.Route, &in, &out, func(_ any, _ any) error {
-		out.Stored, err = svc.Store(r.Context(), in.Obj)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doMustStore handles marshaling for MustStore.
-func (svc *Intermediate) doMustStore(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: MustStore
-	var in yellowpagesapi.MustStoreIn
-	var out yellowpagesapi.MustStoreOut
-	err = marshalFunction(w, r, yellowpagesapi.MustStore.Route, &in, &out, func(_ any, _ any) error {
-		err = svc.MustStore(r.Context(), in.Obj)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doRevise handles marshaling for Revise.
-func (svc *Intermediate) doRevise(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Revise
-	var in yellowpagesapi.ReviseIn
-	var out yellowpagesapi.ReviseOut
-	err = marshalFunction(w, r, yellowpagesapi.Revise.Route, &in, &out, func(_ any, _ any) error {
-		out.Revised, err = svc.Revise(r.Context(), in.Obj)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doMustRevise handles marshaling for MustRevise.
-func (svc *Intermediate) doMustRevise(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: MustRevise
-	var in yellowpagesapi.MustReviseIn
-	var out yellowpagesapi.MustReviseOut
-	err = marshalFunction(w, r, yellowpagesapi.MustRevise.Route, &in, &out, func(_ any, _ any) error {
-		err = svc.MustRevise(r.Context(), in.Obj)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doDelete handles marshaling for Delete.
-func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Delete
-	var in yellowpagesapi.DeleteIn
-	var out yellowpagesapi.DeleteOut
-	err = marshalFunction(w, r, yellowpagesapi.Delete.Route, &in, &out, func(_ any, _ any) error {
-		out.Deleted, err = svc.Delete(r.Context(), in.ObjKey)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doMustDelete handles marshaling for MustDelete.
-func (svc *Intermediate) doMustDelete(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: MustDelete
-	var in yellowpagesapi.MustDeleteIn
-	var out yellowpagesapi.MustDeleteOut
-	err = marshalFunction(w, r, yellowpagesapi.MustDelete.Route, &in, &out, func(_ any, _ any) error {
-		err = svc.MustDelete(r.Context(), in.ObjKey)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doList handles marshaling for List.
-func (svc *Intermediate) doList(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: List
-	var in yellowpagesapi.ListIn
-	var out yellowpagesapi.ListOut
-	err = marshalFunction(w, r, yellowpagesapi.List.Route, &in, &out, func(_ any, _ any) error {
-		out.Objs, out.TotalCount, err = svc.List(r.Context(), in.Query)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doLookup handles marshaling for Lookup.
-func (svc *Intermediate) doLookup(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Lookup
-	var in yellowpagesapi.LookupIn
-	var out yellowpagesapi.LookupOut
-	err = marshalFunction(w, r, yellowpagesapi.Lookup.Route, &in, &out, func(_ any, _ any) error {
-		out.Obj, out.Found, err = svc.Lookup(r.Context(), in.Query)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doMustLookup handles marshaling for MustLookup.
-func (svc *Intermediate) doMustLookup(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: MustLookup
-	var in yellowpagesapi.MustLookupIn
-	var out yellowpagesapi.MustLookupOut
-	err = marshalFunction(w, r, yellowpagesapi.MustLookup.Route, &in, &out, func(_ any, _ any) error {
-		out.Obj, err = svc.MustLookup(r.Context(), in.Query)
+		out.Key, err = svc.Create(r.Context(), in.Person)
 		return err // No trace
 	})
 	return err // No trace
@@ -477,95 +231,40 @@ func (svc *Intermediate) doLoad(w http.ResponseWriter, r *http.Request) (err err
 	var in yellowpagesapi.LoadIn
 	var out yellowpagesapi.LoadOut
 	err = marshalFunction(w, r, yellowpagesapi.Load.Route, &in, &out, func(_ any, _ any) error {
-		out.Obj, out.Found, err = svc.Load(r.Context(), in.ObjKey)
+		out.Person, out.Found, err = svc.Load(r.Context(), in.Key)
 		return err // No trace
 	})
 	return err // No trace
 }
 
-// doMustLoad handles marshaling for MustLoad.
-func (svc *Intermediate) doMustLoad(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: MustLoad
-	var in yellowpagesapi.MustLoadIn
-	var out yellowpagesapi.MustLoadOut
-	err = marshalFunction(w, r, yellowpagesapi.MustLoad.Route, &in, &out, func(_ any, _ any) error {
-		out.Obj, err = svc.MustLoad(r.Context(), in.ObjKey)
+// doStore handles marshaling for Store.
+func (svc *Intermediate) doStore(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Store
+	var in yellowpagesapi.StoreIn
+	var out yellowpagesapi.StoreOut
+	err = marshalFunction(w, r, yellowpagesapi.Store.Route, &in, &out, func(_ any, _ any) error {
+		out.Stored, err = svc.Store(r.Context(), in.Person)
 		return err // No trace
 	})
 	return err // No trace
 }
 
-// doBulkLoad handles marshaling for BulkLoad.
-func (svc *Intermediate) doBulkLoad(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: BulkLoad
-	var in yellowpagesapi.BulkLoadIn
-	var out yellowpagesapi.BulkLoadOut
-	err = marshalFunction(w, r, yellowpagesapi.BulkLoad.Route, &in, &out, func(_ any, _ any) error {
-		out.Objs, err = svc.BulkLoad(r.Context(), in.ObjKeys)
+// doDelete handles marshaling for Delete.
+func (svc *Intermediate) doDelete(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Delete
+	var in yellowpagesapi.DeleteIn
+	var out yellowpagesapi.DeleteOut
+	err = marshalFunction(w, r, yellowpagesapi.Delete.Route, &in, &out, func(_ any, _ any) error {
+		out.Deleted, err = svc.Delete(r.Context(), in.Key)
 		return err // No trace
 	})
 	return err // No trace
 }
 
-// doBulkDelete handles marshaling for BulkDelete.
-func (svc *Intermediate) doBulkDelete(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: BulkDelete
-	var in yellowpagesapi.BulkDeleteIn
-	var out yellowpagesapi.BulkDeleteOut
-	err = marshalFunction(w, r, yellowpagesapi.BulkDelete.Route, &in, &out, func(_ any, _ any) error {
-		out.DeletedKeys, err = svc.BulkDelete(r.Context(), in.ObjKeys)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doBulkCreate handles marshaling for BulkCreate.
-func (svc *Intermediate) doBulkCreate(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: BulkCreate
-	var in yellowpagesapi.BulkCreateIn
-	var out yellowpagesapi.BulkCreateOut
-	err = marshalFunction(w, r, yellowpagesapi.BulkCreate.Route, &in, &out, func(_ any, _ any) error {
-		out.ObjKeys, err = svc.BulkCreate(r.Context(), in.Objs)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doBulkStore handles marshaling for BulkStore.
-func (svc *Intermediate) doBulkStore(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: BulkStore
-	var in yellowpagesapi.BulkStoreIn
-	var out yellowpagesapi.BulkStoreOut
-	err = marshalFunction(w, r, yellowpagesapi.BulkStore.Route, &in, &out, func(_ any, _ any) error {
-		out.StoredKeys, err = svc.BulkStore(r.Context(), in.Objs)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doBulkRevise handles marshaling for BulkRevise.
-func (svc *Intermediate) doBulkRevise(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: BulkRevise
-	var in yellowpagesapi.BulkReviseIn
-	var out yellowpagesapi.BulkReviseOut
-	err = marshalFunction(w, r, yellowpagesapi.BulkRevise.Route, &in, &out, func(_ any, _ any) error {
-		out.RevisedKeys, err = svc.BulkRevise(r.Context(), in.Objs)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doPurge handles marshaling for Purge.
-func (svc *Intermediate) doPurge(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Purge
-	var in yellowpagesapi.PurgeIn
-	var out yellowpagesapi.PurgeOut
-	err = marshalFunction(w, r, yellowpagesapi.Purge.Route, &in, &out, func(_ any, _ any) error {
-		out.DeletedKeys, err = svc.Purge(r.Context(), in.Query)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doCount handles marshaling for Count.
-func (svc *Intermediate) doCount(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Count
-	var in yellowpagesapi.CountIn
-	var out yellowpagesapi.CountOut
-	err = marshalFunction(w, r, yellowpagesapi.Count.Route, &in, &out, func(_ any, _ any) error {
-		out.Count, err = svc.Count(r.Context(), in.Query)
+// doList handles marshaling for List.
+func (svc *Intermediate) doList(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: List
+	var in yellowpagesapi.ListIn
+	var out yellowpagesapi.ListOut
+	err = marshalFunction(w, r, yellowpagesapi.List.Route, &in, &out, func(_ any, _ any) error {
+		out.Persons, err = svc.List(r.Context(), in.Query)
 		return err // No trace
 	})
 	return err // No trace
@@ -576,7 +275,18 @@ func (svc *Intermediate) doCreateREST(w http.ResponseWriter, r *http.Request) (e
 	var in yellowpagesapi.CreateRESTIn
 	var out yellowpagesapi.CreateRESTOut
 	err = marshalFunction(w, r, yellowpagesapi.CreateREST.Route, &in, &out, func(_ any, _ any) error {
-		out.ObjKey, out.HTTPStatusCode, err = svc.CreateREST(r.Context(), in.HTTPRequestBody)
+		out.Key, out.HTTPStatusCode, err = svc.CreateREST(r.Context(), in.HTTPRequestBody)
+		return err // No trace
+	})
+	return err // No trace
+}
+
+// doLoadREST handles marshaling for LoadREST.
+func (svc *Intermediate) doLoadREST(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: LoadREST
+	var in yellowpagesapi.LoadRESTIn
+	var out yellowpagesapi.LoadRESTOut
+	err = marshalFunction(w, r, yellowpagesapi.LoadREST.Route, &in, &out, func(_ any, _ any) error {
+		out.HTTPResponseBody, out.HTTPStatusCode, err = svc.LoadREST(r.Context(), in.Key)
 		return err // No trace
 	})
 	return err // No trace
@@ -604,67 +314,12 @@ func (svc *Intermediate) doDeleteREST(w http.ResponseWriter, r *http.Request) (e
 	return err // No trace
 }
 
-// doLoadREST handles marshaling for LoadREST.
-func (svc *Intermediate) doLoadREST(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: LoadREST
-	var in yellowpagesapi.LoadRESTIn
-	var out yellowpagesapi.LoadRESTOut
-	err = marshalFunction(w, r, yellowpagesapi.LoadREST.Route, &in, &out, func(_ any, _ any) error {
-		out.HTTPResponseBody, out.HTTPStatusCode, err = svc.LoadREST(r.Context(), in.Key)
-		return err // No trace
-	})
-	return err // No trace
-}
-
 // doListREST handles marshaling for ListREST.
 func (svc *Intermediate) doListREST(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ListREST
 	var in yellowpagesapi.ListRESTIn
 	var out yellowpagesapi.ListRESTOut
 	err = marshalFunction(w, r, yellowpagesapi.ListREST.Route, &in, &out, func(_ any, _ any) error {
 		out.HTTPResponseBody, out.HTTPStatusCode, err = svc.ListREST(r.Context(), in.Q)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doTryReserve handles marshaling for TryReserve.
-func (svc *Intermediate) doTryReserve(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: TryReserve
-	var in yellowpagesapi.TryReserveIn
-	var out yellowpagesapi.TryReserveOut
-	err = marshalFunction(w, r, yellowpagesapi.TryReserve.Route, &in, &out, func(_ any, _ any) error {
-		out.Reserved, err = svc.TryReserve(r.Context(), in.ObjKey, in.Dur)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doTryBulkReserve handles marshaling for TryBulkReserve.
-func (svc *Intermediate) doTryBulkReserve(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: TryBulkReserve
-	var in yellowpagesapi.TryBulkReserveIn
-	var out yellowpagesapi.TryBulkReserveOut
-	err = marshalFunction(w, r, yellowpagesapi.TryBulkReserve.Route, &in, &out, func(_ any, _ any) error {
-		out.ReservedKeys, err = svc.TryBulkReserve(r.Context(), in.ObjKeys, in.Dur)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doReserve handles marshaling for Reserve.
-func (svc *Intermediate) doReserve(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Reserve
-	var in yellowpagesapi.ReserveIn
-	var out yellowpagesapi.ReserveOut
-	err = marshalFunction(w, r, yellowpagesapi.Reserve.Route, &in, &out, func(_ any, _ any) error {
-		out.Reserved, err = svc.Reserve(r.Context(), in.ObjKey, in.Dur)
-		return err // No trace
-	})
-	return err // No trace
-}
-
-// doBulkReserve handles marshaling for BulkReserve.
-func (svc *Intermediate) doBulkReserve(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: BulkReserve
-	var in yellowpagesapi.BulkReserveIn
-	var out yellowpagesapi.BulkReserveOut
-	err = marshalFunction(w, r, yellowpagesapi.BulkReserve.Route, &in, &out, func(_ any, _ any) error {
-		out.ReservedKeys, err = svc.BulkReserve(r.Context(), in.ObjKeys, in.Dur)
 		return err // No trace
 	})
 	return err // No trace

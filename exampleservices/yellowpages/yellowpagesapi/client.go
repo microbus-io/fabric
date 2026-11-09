@@ -23,14 +23,11 @@ import (
 	"iter"
 	"net/http"
 	"reflect"
-	"time"
 
-	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/httpx"
 	"github.com/microbus-io/fabric/pub"
 	"github.com/microbus-io/fabric/service"
-	"github.com/microbus-io/fabric/sub"
 )
 
 // multicastResponse packs the response of a functional multicast.
@@ -82,50 +79,6 @@ func (_c MulticastClient) ForHost(host string) MulticastClient {
 // WithOptions returns a copy of the client with options to be applied to requests.
 func (_c MulticastClient) WithOptions(opts ...pub.Option) MulticastClient {
 	return MulticastClient{svc: _c.svc, host: _c.host, opts: append(_c.opts, opts...)}
-}
-
-// MulticastTrigger is a lightweight proxy for triggering the events of the microservice.
-type MulticastTrigger struct {
-	svc  service.Publisher
-	host string
-	opts []pub.Option
-}
-
-// NewMulticastTrigger creates a new multicast trigger of events of the microservice.
-func NewMulticastTrigger(caller service.Publisher) MulticastTrigger {
-	return MulticastTrigger{svc: caller, host: Hostname}
-}
-
-// ForHost returns a copy of the trigger with a different hostname to be applied to requests.
-func (_c MulticastTrigger) ForHost(host string) MulticastTrigger {
-	return MulticastTrigger{svc: _c.svc, host: host, opts: _c.opts}
-}
-
-// WithOptions returns a copy of the trigger with options to be applied to requests.
-func (_c MulticastTrigger) WithOptions(opts ...pub.Option) MulticastTrigger {
-	return MulticastTrigger{svc: _c.svc, host: _c.host, opts: append(_c.opts, opts...)}
-}
-
-// Hook assists in the subscription to the events of the microservice.
-type Hook struct {
-	svc  service.Subscriber
-	host string
-	opts []sub.Option
-}
-
-// NewHook creates a new hook to the events of the microservice.
-func NewHook(listener service.Subscriber) Hook {
-	return Hook{svc: listener, host: Hostname}
-}
-
-// ForHost returns a copy of the hook with a different hostname to be applied to the subscription.
-func (c Hook) ForHost(host string) Hook {
-	return Hook{svc: c.svc, host: host, opts: c.opts}
-}
-
-// WithOptions returns a copy of the hook with options to be applied to subscriptions.
-func (c Hook) WithOptions(opts ...sub.Option) Hook {
-	return Hook{svc: c.svc, host: c.host, opts: append(c.opts, opts...)}
 }
 
 // marshalRequest supports functional endpoints.
@@ -193,49 +146,26 @@ func marshalPublish(ctx context.Context, svc service.Publisher, opts []pub.Optio
 	}
 }
 
-// marshalFunction handles marshaling for functional endpoints.
-func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
-	err := httpx.ReadInputPayload(r, route, in)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	// The body is fully decoded into the input, so release it for the duration of the handler
-	r.Body = http.NoBody
-	err = dv8.Validate(r.Context(), in)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	err = execute(in, out)
-	if err != nil {
-		return err // No trace
-	}
-	err = httpx.WriteOutputPayload(w, out)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
-}
-
-// Create creates a new object, returning its key.
-func (_c Client) Create(ctx context.Context, obj *Person) (objKey PersonKey, err error) { // MARKER: Create
-	_in := CreateIn{Obj: obj}
+// Create creates a new person, returning its key.
+func (_c Client) Create(ctx context.Context, person *Person) (key int, err error) { // MARKER: Create
+	_in := CreateIn{Person: person}
 	_out := CreateOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Create.Method, Create.Route, &_in, &_out)
-	return _out.ObjKey, err // No trace
+	return _out.Key, err // No trace
 }
 
 // CreateResponse packs the response of Create.
 type CreateResponse multicastResponse // MARKER: Create
 
 // Get unpacks the return arguments of Create.
-func (_res *CreateResponse) Get() (objKey PersonKey, err error) { // MARKER: Create
+func (_res *CreateResponse) Get() (key int, err error) { // MARKER: Create
 	_d := _res.data.(*CreateOut)
-	return _d.ObjKey, _res.err
+	return _d.Key, _res.err
 }
 
-// Create creates a new object, returning its key.
-func (_c MulticastClient) Create(ctx context.Context, obj *Person) iter.Seq[*CreateResponse] { // MARKER: Create
-	_in := CreateIn{Obj: obj}
+// Create creates a new person, returning its key.
+func (_c MulticastClient) Create(ctx context.Context, person *Person) iter.Seq[*CreateResponse] { // MARKER: Create
+	_in := CreateIn{Person: person}
 	_out := CreateOut{}
 	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Create.Method, Create.Route, &_in, &_out)
 	return func(yield func(*CreateResponse) bool) {
@@ -249,9 +179,42 @@ func (_c MulticastClient) Create(ctx context.Context, obj *Person) iter.Seq[*Cre
 	}
 }
 
-// Store updates the object.
-func (_c Client) Store(ctx context.Context, obj *Person) (stored bool, err error) { // MARKER: Store
-	_in := StoreIn{Obj: obj}
+// Load returns the person with the given key, and whether it was found.
+func (_c Client) Load(ctx context.Context, key int) (person *Person, found bool, err error) { // MARKER: Load
+	_in := LoadIn{Key: key}
+	_out := LoadOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Load.Method, Load.Route, &_in, &_out)
+	return _out.Person, _out.Found, err // No trace
+}
+
+// LoadResponse packs the response of Load.
+type LoadResponse multicastResponse // MARKER: Load
+
+// Get unpacks the return arguments of Load.
+func (_res *LoadResponse) Get() (person *Person, found bool, err error) { // MARKER: Load
+	_d := _res.data.(*LoadOut)
+	return _d.Person, _d.Found, _res.err
+}
+
+// Load returns the person with the given key, and whether it was found.
+func (_c MulticastClient) Load(ctx context.Context, key int) iter.Seq[*LoadResponse] { // MARKER: Load
+	_in := LoadIn{Key: key}
+	_out := LoadOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Load.Method, Load.Route, &_in, &_out)
+	return func(yield func(*LoadResponse) bool) {
+		for _r := range _queue {
+			_clone := _out
+			_r.data = &_clone
+			if !yield((*LoadResponse)(_r)) {
+				return
+			}
+		}
+	}
+}
+
+// Store updates an existing person, identified by its key, and reports whether it was found.
+func (_c Client) Store(ctx context.Context, person *Person) (stored bool, err error) { // MARKER: Store
+	_in := StoreIn{Person: person}
 	_out := StoreOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Store.Method, Store.Route, &_in, &_out)
 	return _out.Stored, err // No trace
@@ -266,9 +229,9 @@ func (_res *StoreResponse) Get() (stored bool, err error) { // MARKER: Store
 	return _d.Stored, _res.err
 }
 
-// Store updates the object.
-func (_c MulticastClient) Store(ctx context.Context, obj *Person) iter.Seq[*StoreResponse] { // MARKER: Store
-	_in := StoreIn{Obj: obj}
+// Store updates an existing person, identified by its key, and reports whether it was found.
+func (_c MulticastClient) Store(ctx context.Context, person *Person) iter.Seq[*StoreResponse] { // MARKER: Store
+	_in := StoreIn{Person: person}
 	_out := StoreOut{}
 	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Store.Method, Store.Route, &_in, &_out)
 	return func(yield func(*StoreResponse) bool) {
@@ -282,106 +245,9 @@ func (_c MulticastClient) Store(ctx context.Context, obj *Person) iter.Seq[*Stor
 	}
 }
 
-// MustStore updates the object.
-func (_c Client) MustStore(ctx context.Context, obj *Person) (err error) { // MARKER: MustStore
-	_in := MustStoreIn{Obj: obj}
-	_out := MustStoreOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, MustStore.Method, MustStore.Route, &_in, &_out)
-	return err // No trace
-}
-
-// MustStoreResponse packs the response of MustStore.
-type MustStoreResponse multicastResponse // MARKER: MustStore
-
-// Get unpacks the return arguments of MustStore.
-func (_res *MustStoreResponse) Get() (err error) { // MARKER: MustStore
-	return _res.err
-}
-
-// MustStore updates the object.
-func (_c MulticastClient) MustStore(ctx context.Context, obj *Person) iter.Seq[*MustStoreResponse] { // MARKER: MustStore
-	_in := MustStoreIn{Obj: obj}
-	_out := MustStoreOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, MustStore.Method, MustStore.Route, &_in, &_out)
-	return func(yield func(*MustStoreResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*MustStoreResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// Revise updates the object only if the revision matches.
-func (_c Client) Revise(ctx context.Context, obj *Person) (revised bool, err error) { // MARKER: Revise
-	_in := ReviseIn{Obj: obj}
-	_out := ReviseOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Revise.Method, Revise.Route, &_in, &_out)
-	return _out.Revised, err // No trace
-}
-
-// ReviseResponse packs the response of Revise.
-type ReviseResponse multicastResponse // MARKER: Revise
-
-// Get unpacks the return arguments of Revise.
-func (_res *ReviseResponse) Get() (revised bool, err error) { // MARKER: Revise
-	_d := _res.data.(*ReviseOut)
-	return _d.Revised, _res.err
-}
-
-// Revise updates the object only if the revision matches.
-func (_c MulticastClient) Revise(ctx context.Context, obj *Person) iter.Seq[*ReviseResponse] { // MARKER: Revise
-	_in := ReviseIn{Obj: obj}
-	_out := ReviseOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Revise.Method, Revise.Route, &_in, &_out)
-	return func(yield func(*ReviseResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*ReviseResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// MustRevise updates the object only if the revision matches.
-func (_c Client) MustRevise(ctx context.Context, obj *Person) (err error) { // MARKER: MustRevise
-	_in := MustReviseIn{Obj: obj}
-	_out := MustReviseOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, MustRevise.Method, MustRevise.Route, &_in, &_out)
-	return err // No trace
-}
-
-// MustReviseResponse packs the response of MustRevise.
-type MustReviseResponse multicastResponse // MARKER: MustRevise
-
-// Get unpacks the return arguments of MustRevise.
-func (_res *MustReviseResponse) Get() (err error) { // MARKER: MustRevise
-	return _res.err
-}
-
-// MustRevise updates the object only if the revision matches.
-func (_c MulticastClient) MustRevise(ctx context.Context, obj *Person) iter.Seq[*MustReviseResponse] { // MARKER: MustRevise
-	_in := MustReviseIn{Obj: obj}
-	_out := MustReviseOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, MustRevise.Method, MustRevise.Route, &_in, &_out)
-	return func(yield func(*MustReviseResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*MustReviseResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// Delete deletes the object.
-func (_c Client) Delete(ctx context.Context, objKey PersonKey) (deleted bool, err error) { // MARKER: Delete
-	_in := DeleteIn{ObjKey: objKey}
+// Delete deletes the person with the given key, and reports whether it was found.
+func (_c Client) Delete(ctx context.Context, key int) (deleted bool, err error) { // MARKER: Delete
+	_in := DeleteIn{Key: key}
 	_out := DeleteOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Delete.Method, Delete.Route, &_in, &_out)
 	return _out.Deleted, err // No trace
@@ -396,9 +262,9 @@ func (_res *DeleteResponse) Get() (deleted bool, err error) { // MARKER: Delete
 	return _d.Deleted, _res.err
 }
 
-// Delete deletes the object.
-func (_c MulticastClient) Delete(ctx context.Context, objKey PersonKey) iter.Seq[*DeleteResponse] { // MARKER: Delete
-	_in := DeleteIn{ObjKey: objKey}
+// Delete deletes the person with the given key, and reports whether it was found.
+func (_c MulticastClient) Delete(ctx context.Context, key int) iter.Seq[*DeleteResponse] { // MARKER: Delete
+	_in := DeleteIn{Key: key}
 	_out := DeleteOut{}
 	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Delete.Method, Delete.Route, &_in, &_out)
 	return func(yield func(*DeleteResponse) bool) {
@@ -412,56 +278,24 @@ func (_c MulticastClient) Delete(ctx context.Context, objKey PersonKey) iter.Seq
 	}
 }
 
-// MustDelete deletes the object.
-func (_c Client) MustDelete(ctx context.Context, objKey PersonKey) (err error) { // MARKER: MustDelete
-	_in := MustDeleteIn{ObjKey: objKey}
-	_out := MustDeleteOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, MustDelete.Method, MustDelete.Route, &_in, &_out)
-	return err // No trace
-}
-
-// MustDeleteResponse packs the response of MustDelete.
-type MustDeleteResponse multicastResponse // MARKER: MustDelete
-
-// Get unpacks the return arguments of MustDelete.
-func (_res *MustDeleteResponse) Get() (err error) { // MARKER: MustDelete
-	return _res.err
-}
-
-// MustDelete deletes the object.
-func (_c MulticastClient) MustDelete(ctx context.Context, objKey PersonKey) iter.Seq[*MustDeleteResponse] { // MARKER: MustDelete
-	_in := MustDeleteIn{ObjKey: objKey}
-	_out := MustDeleteOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, MustDelete.Method, MustDelete.Route, &_in, &_out)
-	return func(yield func(*MustDeleteResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*MustDeleteResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// List returns the objects matching the query, and the total count of matches regardless of the limit.
-func (_c Client) List(ctx context.Context, query Query) (objs []*Person, totalCount int, err error) { // MARKER: List
+// List returns the persons matching the query, ordered by key.
+func (_c Client) List(ctx context.Context, query Query) (persons []*Person, err error) { // MARKER: List
 	_in := ListIn{Query: query}
 	_out := ListOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, List.Method, List.Route, &_in, &_out)
-	return _out.Objs, _out.TotalCount, err // No trace
+	return _out.Persons, err // No trace
 }
 
 // ListResponse packs the response of List.
 type ListResponse multicastResponse // MARKER: List
 
 // Get unpacks the return arguments of List.
-func (_res *ListResponse) Get() (objs []*Person, totalCount int, err error) { // MARKER: List
+func (_res *ListResponse) Get() (persons []*Person, err error) { // MARKER: List
 	_d := _res.data.(*ListOut)
-	return _d.Objs, _d.TotalCount, _res.err
+	return _d.Persons, _res.err
 }
 
-// List returns the objects matching the query, and the total count of matches regardless of the limit.
+// List returns the persons matching the query, ordered by key.
 func (_c MulticastClient) List(ctx context.Context, query Query) iter.Seq[*ListResponse] { // MARKER: List
 	_in := ListIn{Query: query}
 	_out := ListOut{}
@@ -477,386 +311,21 @@ func (_c MulticastClient) List(ctx context.Context, query Query) iter.Seq[*ListR
 	}
 }
 
-// Lookup returns the single object matching the query. It errors if more than one object matches the query.
-func (_c Client) Lookup(ctx context.Context, query Query) (obj *Person, found bool, err error) { // MARKER: Lookup
-	_in := LookupIn{Query: query}
-	_out := LookupOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Lookup.Method, Lookup.Route, &_in, &_out)
-	return _out.Obj, _out.Found, err // No trace
-}
-
-// LookupResponse packs the response of Lookup.
-type LookupResponse multicastResponse // MARKER: Lookup
-
-// Get unpacks the return arguments of Lookup.
-func (_res *LookupResponse) Get() (obj *Person, found bool, err error) { // MARKER: Lookup
-	_d := _res.data.(*LookupOut)
-	return _d.Obj, _d.Found, _res.err
-}
-
-// Lookup returns the single object matching the query. It errors if more than one object matches the query.
-func (_c MulticastClient) Lookup(ctx context.Context, query Query) iter.Seq[*LookupResponse] { // MARKER: Lookup
-	_in := LookupIn{Query: query}
-	_out := LookupOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Lookup.Method, Lookup.Route, &_in, &_out)
-	return func(yield func(*LookupResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*LookupResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// MustLookup returns the single object matching the query. It errors unless exactly one object matches the query.
-func (_c Client) MustLookup(ctx context.Context, query Query) (obj *Person, err error) { // MARKER: MustLookup
-	_in := MustLookupIn{Query: query}
-	_out := MustLookupOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, MustLookup.Method, MustLookup.Route, &_in, &_out)
-	return _out.Obj, err // No trace
-}
-
-// MustLookupResponse packs the response of MustLookup.
-type MustLookupResponse multicastResponse // MARKER: MustLookup
-
-// Get unpacks the return arguments of MustLookup.
-func (_res *MustLookupResponse) Get() (obj *Person, err error) { // MARKER: MustLookup
-	_d := _res.data.(*MustLookupOut)
-	return _d.Obj, _res.err
-}
-
-// MustLookup returns the single object matching the query. It errors unless exactly one object matches the query.
-func (_c MulticastClient) MustLookup(ctx context.Context, query Query) iter.Seq[*MustLookupResponse] { // MARKER: MustLookup
-	_in := MustLookupIn{Query: query}
-	_out := MustLookupOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, MustLookup.Method, MustLookup.Route, &_in, &_out)
-	return func(yield func(*MustLookupResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*MustLookupResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// Load returns the object associated with the key.
-func (_c Client) Load(ctx context.Context, objKey PersonKey) (obj *Person, found bool, err error) { // MARKER: Load
-	_in := LoadIn{ObjKey: objKey}
-	_out := LoadOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Load.Method, Load.Route, &_in, &_out)
-	return _out.Obj, _out.Found, err // No trace
-}
-
-// LoadResponse packs the response of Load.
-type LoadResponse multicastResponse // MARKER: Load
-
-// Get unpacks the return arguments of Load.
-func (_res *LoadResponse) Get() (obj *Person, found bool, err error) { // MARKER: Load
-	_d := _res.data.(*LoadOut)
-	return _d.Obj, _d.Found, _res.err
-}
-
-// Load returns the object associated with the key.
-func (_c MulticastClient) Load(ctx context.Context, objKey PersonKey) iter.Seq[*LoadResponse] { // MARKER: Load
-	_in := LoadIn{ObjKey: objKey}
-	_out := LoadOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Load.Method, Load.Route, &_in, &_out)
-	return func(yield func(*LoadResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*LoadResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// MustLoad returns the object associated with the key. It errors if the object is not found.
-func (_c Client) MustLoad(ctx context.Context, objKey PersonKey) (obj *Person, err error) { // MARKER: MustLoad
-	_in := MustLoadIn{ObjKey: objKey}
-	_out := MustLoadOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, MustLoad.Method, MustLoad.Route, &_in, &_out)
-	return _out.Obj, err // No trace
-}
-
-// MustLoadResponse packs the response of MustLoad.
-type MustLoadResponse multicastResponse // MARKER: MustLoad
-
-// Get unpacks the return arguments of MustLoad.
-func (_res *MustLoadResponse) Get() (obj *Person, err error) { // MARKER: MustLoad
-	_d := _res.data.(*MustLoadOut)
-	return _d.Obj, _res.err
-}
-
-// MustLoad returns the object associated with the key. It errors if the object is not found.
-func (_c MulticastClient) MustLoad(ctx context.Context, objKey PersonKey) iter.Seq[*MustLoadResponse] { // MARKER: MustLoad
-	_in := MustLoadIn{ObjKey: objKey}
-	_out := MustLoadOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, MustLoad.Method, MustLoad.Route, &_in, &_out)
-	return func(yield func(*MustLoadResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*MustLoadResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// BulkLoad returns the objects matching the keys.
-func (_c Client) BulkLoad(ctx context.Context, objKeys []PersonKey) (objs []*Person, err error) { // MARKER: BulkLoad
-	_in := BulkLoadIn{ObjKeys: objKeys}
-	_out := BulkLoadOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, BulkLoad.Method, BulkLoad.Route, &_in, &_out)
-	return _out.Objs, err // No trace
-}
-
-// BulkLoadResponse packs the response of BulkLoad.
-type BulkLoadResponse multicastResponse // MARKER: BulkLoad
-
-// Get unpacks the return arguments of BulkLoad.
-func (_res *BulkLoadResponse) Get() (objs []*Person, err error) { // MARKER: BulkLoad
-	_d := _res.data.(*BulkLoadOut)
-	return _d.Objs, _res.err
-}
-
-// BulkLoad returns the objects matching the keys.
-func (_c MulticastClient) BulkLoad(ctx context.Context, objKeys []PersonKey) iter.Seq[*BulkLoadResponse] { // MARKER: BulkLoad
-	_in := BulkLoadIn{ObjKeys: objKeys}
-	_out := BulkLoadOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, BulkLoad.Method, BulkLoad.Route, &_in, &_out)
-	return func(yield func(*BulkLoadResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*BulkLoadResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// BulkDelete deletes the objects matching the keys, returning the keys of the deleted objects.
-func (_c Client) BulkDelete(ctx context.Context, objKeys []PersonKey) (deletedKeys []PersonKey, err error) { // MARKER: BulkDelete
-	_in := BulkDeleteIn{ObjKeys: objKeys}
-	_out := BulkDeleteOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, BulkDelete.Method, BulkDelete.Route, &_in, &_out)
-	return _out.DeletedKeys, err // No trace
-}
-
-// BulkDeleteResponse packs the response of BulkDelete.
-type BulkDeleteResponse multicastResponse // MARKER: BulkDelete
-
-// Get unpacks the return arguments of BulkDelete.
-func (_res *BulkDeleteResponse) Get() (deletedKeys []PersonKey, err error) { // MARKER: BulkDelete
-	_d := _res.data.(*BulkDeleteOut)
-	return _d.DeletedKeys, _res.err
-}
-
-// BulkDelete deletes the objects matching the keys, returning the keys of the deleted objects.
-func (_c MulticastClient) BulkDelete(ctx context.Context, objKeys []PersonKey) iter.Seq[*BulkDeleteResponse] { // MARKER: BulkDelete
-	_in := BulkDeleteIn{ObjKeys: objKeys}
-	_out := BulkDeleteOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, BulkDelete.Method, BulkDelete.Route, &_in, &_out)
-	return func(yield func(*BulkDeleteResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*BulkDeleteResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// BulkCreate creates multiple objects, returning their keys.
-func (_c Client) BulkCreate(ctx context.Context, objs []*Person) (objKeys []PersonKey, err error) { // MARKER: BulkCreate
-	_in := BulkCreateIn{Objs: objs}
-	_out := BulkCreateOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, BulkCreate.Method, BulkCreate.Route, &_in, &_out)
-	return _out.ObjKeys, err // No trace
-}
-
-// BulkCreateResponse packs the response of BulkCreate.
-type BulkCreateResponse multicastResponse // MARKER: BulkCreate
-
-// Get unpacks the return arguments of BulkCreate.
-func (_res *BulkCreateResponse) Get() (objKeys []PersonKey, err error) { // MARKER: BulkCreate
-	_d := _res.data.(*BulkCreateOut)
-	return _d.ObjKeys, _res.err
-}
-
-// BulkCreate creates multiple objects, returning their keys.
-func (_c MulticastClient) BulkCreate(ctx context.Context, objs []*Person) iter.Seq[*BulkCreateResponse] { // MARKER: BulkCreate
-	_in := BulkCreateIn{Objs: objs}
-	_out := BulkCreateOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, BulkCreate.Method, BulkCreate.Route, &_in, &_out)
-	return func(yield func(*BulkCreateResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*BulkCreateResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// BulkStore updates multiple objects, returning the keys of the stored objects.
-func (_c Client) BulkStore(ctx context.Context, objs []*Person) (storedKeys []PersonKey, err error) { // MARKER: BulkStore
-	_in := BulkStoreIn{Objs: objs}
-	_out := BulkStoreOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, BulkStore.Method, BulkStore.Route, &_in, &_out)
-	return _out.StoredKeys, err // No trace
-}
-
-// BulkStoreResponse packs the response of BulkStore.
-type BulkStoreResponse multicastResponse // MARKER: BulkStore
-
-// Get unpacks the return arguments of BulkStore.
-func (_res *BulkStoreResponse) Get() (storedKeys []PersonKey, err error) { // MARKER: BulkStore
-	_d := _res.data.(*BulkStoreOut)
-	return _d.StoredKeys, _res.err
-}
-
-// BulkStore updates multiple objects, returning the keys of the stored objects.
-func (_c MulticastClient) BulkStore(ctx context.Context, objs []*Person) iter.Seq[*BulkStoreResponse] { // MARKER: BulkStore
-	_in := BulkStoreIn{Objs: objs}
-	_out := BulkStoreOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, BulkStore.Method, BulkStore.Route, &_in, &_out)
-	return func(yield func(*BulkStoreResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*BulkStoreResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// BulkRevise updates multiple objects, returning the number of rows affected.
-// Only rows with matching revisions are updated.
-func (_c Client) BulkRevise(ctx context.Context, objs []*Person) (revisedKeys []PersonKey, err error) { // MARKER: BulkRevise
-	_in := BulkReviseIn{Objs: objs}
-	_out := BulkReviseOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, BulkRevise.Method, BulkRevise.Route, &_in, &_out)
-	return _out.RevisedKeys, err // No trace
-}
-
-// BulkReviseResponse packs the response of BulkRevise.
-type BulkReviseResponse multicastResponse // MARKER: BulkRevise
-
-// Get unpacks the return arguments of BulkRevise.
-func (_res *BulkReviseResponse) Get() (revisedKeys []PersonKey, err error) { // MARKER: BulkRevise
-	_d := _res.data.(*BulkReviseOut)
-	return _d.RevisedKeys, _res.err
-}
-
-// BulkRevise updates multiple objects, returning the number of rows affected.
-// Only rows with matching revisions are updated.
-func (_c MulticastClient) BulkRevise(ctx context.Context, objs []*Person) iter.Seq[*BulkReviseResponse] { // MARKER: BulkRevise
-	_in := BulkReviseIn{Objs: objs}
-	_out := BulkReviseOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, BulkRevise.Method, BulkRevise.Route, &_in, &_out)
-	return func(yield func(*BulkReviseResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*BulkReviseResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// Purge deletes all objects matching the query, returning the keys of the deleted objects.
-func (_c Client) Purge(ctx context.Context, query Query) (deletedKeys []PersonKey, err error) { // MARKER: Purge
-	_in := PurgeIn{Query: query}
-	_out := PurgeOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Purge.Method, Purge.Route, &_in, &_out)
-	return _out.DeletedKeys, err // No trace
-}
-
-// PurgeResponse packs the response of Purge.
-type PurgeResponse multicastResponse // MARKER: Purge
-
-// Get unpacks the return arguments of Purge.
-func (_res *PurgeResponse) Get() (deletedKeys []PersonKey, err error) { // MARKER: Purge
-	_d := _res.data.(*PurgeOut)
-	return _d.DeletedKeys, _res.err
-}
-
-// Purge deletes all objects matching the query, returning the keys of the deleted objects.
-func (_c MulticastClient) Purge(ctx context.Context, query Query) iter.Seq[*PurgeResponse] { // MARKER: Purge
-	_in := PurgeIn{Query: query}
-	_out := PurgeOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Purge.Method, Purge.Route, &_in, &_out)
-	return func(yield func(*PurgeResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*PurgeResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// Count returns the number of objects matching the query, disregarding pagination.
-func (_c Client) Count(ctx context.Context, query Query) (count int, err error) { // MARKER: Count
-	_in := CountIn{Query: query}
-	_out := CountOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Count.Method, Count.Route, &_in, &_out)
-	return _out.Count, err // No trace
-}
-
-// CountResponse packs the response of Count.
-type CountResponse multicastResponse // MARKER: Count
-
-// Get unpacks the return arguments of Count.
-func (_res *CountResponse) Get() (count int, err error) { // MARKER: Count
-	_d := _res.data.(*CountOut)
-	return _d.Count, _res.err
-}
-
-// Count returns the number of objects matching the query, disregarding pagination.
-func (_c MulticastClient) Count(ctx context.Context, query Query) iter.Seq[*CountResponse] { // MARKER: Count
-	_in := CountIn{Query: query}
-	_out := CountOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Count.Method, Count.Route, &_in, &_out)
-	return func(yield func(*CountResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*CountResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
 // CreateREST creates a new person via REST, returning its key.
-func (_c Client) CreateREST(ctx context.Context, httpRequestBody *Person) (objKey PersonKey, httpStatusCode int, err error) { // MARKER: CreateREST
+func (_c Client) CreateREST(ctx context.Context, httpRequestBody *Person) (key int, httpStatusCode int, err error) { // MARKER: CreateREST
 	_in := CreateRESTIn{HTTPRequestBody: httpRequestBody}
 	_out := CreateRESTOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, CreateREST.Method, CreateREST.Route, &_in, &_out)
-	return _out.ObjKey, _out.HTTPStatusCode, err // No trace
+	return _out.Key, _out.HTTPStatusCode, err // No trace
 }
 
 // CreateRESTResponse packs the response of CreateREST.
 type CreateRESTResponse multicastResponse // MARKER: CreateREST
 
 // Get unpacks the return arguments of CreateREST.
-func (_res *CreateRESTResponse) Get() (objKey PersonKey, httpStatusCode int, err error) { // MARKER: CreateREST
+func (_res *CreateRESTResponse) Get() (key int, httpStatusCode int, err error) { // MARKER: CreateREST
 	_d := _res.data.(*CreateRESTOut)
-	return _d.ObjKey, _d.HTTPStatusCode, _res.err
+	return _d.Key, _d.HTTPStatusCode, _res.err
 }
 
 // CreateREST creates a new person via REST, returning its key.
@@ -875,74 +344,8 @@ func (_c MulticastClient) CreateREST(ctx context.Context, httpRequestBody *Perso
 	}
 }
 
-// StoreREST updates an existing person via REST.
-func (_c Client) StoreREST(ctx context.Context, key PersonKey, httpRequestBody *Person) (httpStatusCode int, err error) { // MARKER: StoreREST
-	_in := StoreRESTIn{Key: key, HTTPRequestBody: httpRequestBody}
-	_out := StoreRESTOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, StoreREST.Method, StoreREST.Route, &_in, &_out)
-	return _out.HTTPStatusCode, err // No trace
-}
-
-// StoreRESTResponse packs the response of StoreREST.
-type StoreRESTResponse multicastResponse // MARKER: StoreREST
-
-// Get unpacks the return arguments of StoreREST.
-func (_res *StoreRESTResponse) Get() (httpStatusCode int, err error) { // MARKER: StoreREST
-	_d := _res.data.(*StoreRESTOut)
-	return _d.HTTPStatusCode, _res.err
-}
-
-// StoreREST updates an existing person via REST.
-func (_c MulticastClient) StoreREST(ctx context.Context, key PersonKey, httpRequestBody *Person) iter.Seq[*StoreRESTResponse] { // MARKER: StoreREST
-	_in := StoreRESTIn{Key: key, HTTPRequestBody: httpRequestBody}
-	_out := StoreRESTOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, StoreREST.Method, StoreREST.Route, &_in, &_out)
-	return func(yield func(*StoreRESTResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*StoreRESTResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// DeleteREST deletes an existing person via REST.
-func (_c Client) DeleteREST(ctx context.Context, key PersonKey) (httpStatusCode int, err error) { // MARKER: DeleteREST
-	_in := DeleteRESTIn{Key: key}
-	_out := DeleteRESTOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, DeleteREST.Method, DeleteREST.Route, &_in, &_out)
-	return _out.HTTPStatusCode, err // No trace
-}
-
-// DeleteRESTResponse packs the response of DeleteREST.
-type DeleteRESTResponse multicastResponse // MARKER: DeleteREST
-
-// Get unpacks the return arguments of DeleteREST.
-func (_res *DeleteRESTResponse) Get() (httpStatusCode int, err error) { // MARKER: DeleteREST
-	_d := _res.data.(*DeleteRESTOut)
-	return _d.HTTPStatusCode, _res.err
-}
-
-// DeleteREST deletes an existing person via REST.
-func (_c MulticastClient) DeleteREST(ctx context.Context, key PersonKey) iter.Seq[*DeleteRESTResponse] { // MARKER: DeleteREST
-	_in := DeleteRESTIn{Key: key}
-	_out := DeleteRESTOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, DeleteREST.Method, DeleteREST.Route, &_in, &_out)
-	return func(yield func(*DeleteRESTResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*DeleteRESTResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
 // LoadREST loads a person by key via REST.
-func (_c Client) LoadREST(ctx context.Context, key PersonKey) (httpResponseBody *Person, httpStatusCode int, err error) { // MARKER: LoadREST
+func (_c Client) LoadREST(ctx context.Context, key int) (httpResponseBody *Person, httpStatusCode int, err error) { // MARKER: LoadREST
 	_in := LoadRESTIn{Key: key}
 	_out := LoadRESTOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, LoadREST.Method, LoadREST.Route, &_in, &_out)
@@ -959,7 +362,7 @@ func (_res *LoadRESTResponse) Get() (httpResponseBody *Person, httpStatusCode in
 }
 
 // LoadREST loads a person by key via REST.
-func (_c MulticastClient) LoadREST(ctx context.Context, key PersonKey) iter.Seq[*LoadRESTResponse] { // MARKER: LoadREST
+func (_c MulticastClient) LoadREST(ctx context.Context, key int) iter.Seq[*LoadRESTResponse] { // MARKER: LoadREST
 	_in := LoadRESTIn{Key: key}
 	_out := LoadRESTOut{}
 	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, LoadREST.Method, LoadREST.Route, &_in, &_out)
@@ -968,6 +371,72 @@ func (_c MulticastClient) LoadREST(ctx context.Context, key PersonKey) iter.Seq[
 			_clone := _out
 			_r.data = &_clone
 			if !yield((*LoadRESTResponse)(_r)) {
+				return
+			}
+		}
+	}
+}
+
+// StoreREST updates an existing person via REST.
+func (_c Client) StoreREST(ctx context.Context, key int, httpRequestBody *Person) (httpStatusCode int, err error) { // MARKER: StoreREST
+	_in := StoreRESTIn{Key: key, HTTPRequestBody: httpRequestBody}
+	_out := StoreRESTOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, StoreREST.Method, StoreREST.Route, &_in, &_out)
+	return _out.HTTPStatusCode, err // No trace
+}
+
+// StoreRESTResponse packs the response of StoreREST.
+type StoreRESTResponse multicastResponse // MARKER: StoreREST
+
+// Get unpacks the return arguments of StoreREST.
+func (_res *StoreRESTResponse) Get() (httpStatusCode int, err error) { // MARKER: StoreREST
+	_d := _res.data.(*StoreRESTOut)
+	return _d.HTTPStatusCode, _res.err
+}
+
+// StoreREST updates an existing person via REST.
+func (_c MulticastClient) StoreREST(ctx context.Context, key int, httpRequestBody *Person) iter.Seq[*StoreRESTResponse] { // MARKER: StoreREST
+	_in := StoreRESTIn{Key: key, HTTPRequestBody: httpRequestBody}
+	_out := StoreRESTOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, StoreREST.Method, StoreREST.Route, &_in, &_out)
+	return func(yield func(*StoreRESTResponse) bool) {
+		for _r := range _queue {
+			_clone := _out
+			_r.data = &_clone
+			if !yield((*StoreRESTResponse)(_r)) {
+				return
+			}
+		}
+	}
+}
+
+// DeleteREST deletes an existing person via REST.
+func (_c Client) DeleteREST(ctx context.Context, key int) (httpStatusCode int, err error) { // MARKER: DeleteREST
+	_in := DeleteRESTIn{Key: key}
+	_out := DeleteRESTOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, DeleteREST.Method, DeleteREST.Route, &_in, &_out)
+	return _out.HTTPStatusCode, err // No trace
+}
+
+// DeleteRESTResponse packs the response of DeleteREST.
+type DeleteRESTResponse multicastResponse // MARKER: DeleteREST
+
+// Get unpacks the return arguments of DeleteREST.
+func (_res *DeleteRESTResponse) Get() (httpStatusCode int, err error) { // MARKER: DeleteREST
+	_d := _res.data.(*DeleteRESTOut)
+	return _d.HTTPStatusCode, _res.err
+}
+
+// DeleteREST deletes an existing person via REST.
+func (_c MulticastClient) DeleteREST(ctx context.Context, key int) iter.Seq[*DeleteRESTResponse] { // MARKER: DeleteREST
+	_in := DeleteRESTIn{Key: key}
+	_out := DeleteRESTOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, DeleteREST.Method, DeleteREST.Route, &_in, &_out)
+	return func(yield func(*DeleteRESTResponse) bool) {
+		for _r := range _queue {
+			_clone := _out
+			_r.data = &_clone
+			if !yield((*DeleteRESTResponse)(_r)) {
 				return
 			}
 		}
@@ -1007,141 +476,7 @@ func (_c MulticastClient) ListREST(ctx context.Context, q Query) iter.Seq[*ListR
 	}
 }
 
-// TryReserve attempts to reserve a person for the given duration, returning true if successful.
-func (_c Client) TryReserve(ctx context.Context, objKey PersonKey, dur time.Duration) (reserved bool, err error) { // MARKER: TryReserve
-	_in := TryReserveIn{ObjKey: objKey, Dur: dur}
-	_out := TryReserveOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, TryReserve.Method, TryReserve.Route, &_in, &_out)
-	return _out.Reserved, err // No trace
-}
-
-// TryReserveResponse packs the response of TryReserve.
-type TryReserveResponse multicastResponse // MARKER: TryReserve
-
-// Get unpacks the return arguments of TryReserve.
-func (_res *TryReserveResponse) Get() (reserved bool, err error) { // MARKER: TryReserve
-	_d := _res.data.(*TryReserveOut)
-	return _d.Reserved, _res.err
-}
-
-// TryReserve attempts to reserve a person for the given duration, returning true if successful.
-func (_c MulticastClient) TryReserve(ctx context.Context, objKey PersonKey, dur time.Duration) iter.Seq[*TryReserveResponse] { // MARKER: TryReserve
-	_in := TryReserveIn{ObjKey: objKey, Dur: dur}
-	_out := TryReserveOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, TryReserve.Method, TryReserve.Route, &_in, &_out)
-	return func(yield func(*TryReserveResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*TryReserveResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// TryBulkReserve attempts to reserve persons for the given duration, returning the keys of those successfully reserved.
-// Only persons whose reservation has expired (reserved_before < NOW) are reserved.
-func (_c Client) TryBulkReserve(ctx context.Context, objKeys []PersonKey, dur time.Duration) (reservedKeys []PersonKey, err error) { // MARKER: TryBulkReserve
-	_in := TryBulkReserveIn{ObjKeys: objKeys, Dur: dur}
-	_out := TryBulkReserveOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, TryBulkReserve.Method, TryBulkReserve.Route, &_in, &_out)
-	return _out.ReservedKeys, err // No trace
-}
-
-// TryBulkReserveResponse packs the response of TryBulkReserve.
-type TryBulkReserveResponse multicastResponse // MARKER: TryBulkReserve
-
-// Get unpacks the return arguments of TryBulkReserve.
-func (_res *TryBulkReserveResponse) Get() (reservedKeys []PersonKey, err error) { // MARKER: TryBulkReserve
-	_d := _res.data.(*TryBulkReserveOut)
-	return _d.ReservedKeys, _res.err
-}
-
-// TryBulkReserve attempts to reserve persons for the given duration, returning the keys of those successfully reserved.
-// Only persons whose reservation has expired (reserved_before < NOW) are reserved.
-func (_c MulticastClient) TryBulkReserve(ctx context.Context, objKeys []PersonKey, dur time.Duration) iter.Seq[*TryBulkReserveResponse] { // MARKER: TryBulkReserve
-	_in := TryBulkReserveIn{ObjKeys: objKeys, Dur: dur}
-	_out := TryBulkReserveOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, TryBulkReserve.Method, TryBulkReserve.Route, &_in, &_out)
-	return func(yield func(*TryBulkReserveResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*TryBulkReserveResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// Reserve unconditionally reserves a person for the given duration, returning true if the person exists.
-func (_c Client) Reserve(ctx context.Context, objKey PersonKey, dur time.Duration) (reserved bool, err error) { // MARKER: Reserve
-	_in := ReserveIn{ObjKey: objKey, Dur: dur}
-	_out := ReserveOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Reserve.Method, Reserve.Route, &_in, &_out)
-	return _out.Reserved, err // No trace
-}
-
-// ReserveResponse packs the response of Reserve.
-type ReserveResponse multicastResponse // MARKER: Reserve
-
-// Get unpacks the return arguments of Reserve.
-func (_res *ReserveResponse) Get() (reserved bool, err error) { // MARKER: Reserve
-	_d := _res.data.(*ReserveOut)
-	return _d.Reserved, _res.err
-}
-
-// Reserve unconditionally reserves a person for the given duration, returning true if the person exists.
-func (_c MulticastClient) Reserve(ctx context.Context, objKey PersonKey, dur time.Duration) iter.Seq[*ReserveResponse] { // MARKER: Reserve
-	_in := ReserveIn{ObjKey: objKey, Dur: dur}
-	_out := ReserveOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Reserve.Method, Reserve.Route, &_in, &_out)
-	return func(yield func(*ReserveResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*ReserveResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// BulkReserve unconditionally reserves persons for the given duration, returning the keys of those that exist.
-func (_c Client) BulkReserve(ctx context.Context, objKeys []PersonKey, dur time.Duration) (reservedKeys []PersonKey, err error) { // MARKER: BulkReserve
-	_in := BulkReserveIn{ObjKeys: objKeys, Dur: dur}
-	_out := BulkReserveOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, BulkReserve.Method, BulkReserve.Route, &_in, &_out)
-	return _out.ReservedKeys, err // No trace
-}
-
-// BulkReserveResponse packs the response of BulkReserve.
-type BulkReserveResponse multicastResponse // MARKER: BulkReserve
-
-// Get unpacks the return arguments of BulkReserve.
-func (_res *BulkReserveResponse) Get() (reservedKeys []PersonKey, err error) { // MARKER: BulkReserve
-	_d := _res.data.(*BulkReserveOut)
-	return _d.ReservedKeys, _res.err
-}
-
-// BulkReserve unconditionally reserves persons for the given duration, returning the keys of those that exist.
-func (_c MulticastClient) BulkReserve(ctx context.Context, objKeys []PersonKey, dur time.Duration) iter.Seq[*BulkReserveResponse] { // MARKER: BulkReserve
-	_in := BulkReserveIn{ObjKeys: objKeys, Dur: dur}
-	_out := BulkReserveOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, BulkReserve.Method, BulkReserve.Route, &_in, &_out)
-	return func(yield func(*BulkReserveResponse) bool) {
-		for _r := range _queue {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*BulkReserveResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// Demo serves the web user interface for managing persons.
+// Demo serves a web page for trying out the REST API.
 func (_c Client) Demo(ctx context.Context, method string, relativeURL string, body any) (res *http.Response, err error) { // MARKER: Demo
 	if method == "" {
 		method = Demo.Method
@@ -1159,7 +494,7 @@ func (_c Client) Demo(ctx context.Context, method string, relativeURL string, bo
 	)
 }
 
-// Demo serves the web user interface for managing persons.
+// Demo serves a web page for trying out the REST API.
 func (_c MulticastClient) Demo(ctx context.Context, method string, relativeURL string, body any) iter.Seq[*pub.Response] { // MARKER: Demo
 	if method == "" {
 		method = Demo.Method
@@ -1175,145 +510,4 @@ func (_c MulticastClient) Demo(ctx context.Context, method string, relativeURL s
 		pub.Body(body),
 		pub.Options(_c.opts...),
 	)
-}
-
-// OnPersonCreatedResponse packs the response of OnPersonCreated.
-type OnPersonCreatedResponse multicastResponse // MARKER: OnPersonCreated
-
-// Get unpacks the return arguments of OnPersonCreated.
-func (_res *OnPersonCreatedResponse) Get() (err error) { // MARKER: OnPersonCreated
-	return _res.err
-}
-
-// OnPersonCreated is triggered when persons are created.
-func (_c MulticastTrigger) OnPersonCreated(ctx context.Context, objKeys []PersonKey) iter.Seq[*OnPersonCreatedResponse] { // MARKER: OnPersonCreated
-	_in := OnPersonCreatedIn{ObjKeys: objKeys}
-	_out := OnPersonCreatedOut{}
-	_inner := marshalPublish(ctx, _c.svc, _c.opts, _c.host, OnPersonCreated.Method, OnPersonCreated.Route, &_in, &_out)
-	return func(yield func(*OnPersonCreatedResponse) bool) {
-		for _r := range _inner {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*OnPersonCreatedResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// OnPersonCreated is triggered when persons are created.
-func (c Hook) OnPersonCreated(handler func(ctx context.Context, objKeys []PersonKey) (err error)) (unsub func() error, err error) { // MARKER: OnPersonCreated
-	doOnPersonCreated := func(w http.ResponseWriter, r *http.Request) error {
-		var in OnPersonCreatedIn
-		var out OnPersonCreatedOut
-		err = marshalFunction(w, r, OnPersonCreated.Route, &in, &out, func(_ any, _ any) error {
-			err = handler(r.Context(), in.ObjKeys)
-			return err
-		})
-		return err // No trace
-	}
-	const name = "OnPersonCreated"
-	path := httpx.JoinHostAndPath(c.host, OnPersonCreated.Route)
-	subOpts := append([]sub.Option{
-		sub.At(OnPersonCreated.Method, path),
-		sub.InboundEvent(OnPersonCreatedIn{}, OnPersonCreatedOut{}),
-	}, c.opts...)
-	if err := c.svc.Subscribe(name, doOnPersonCreated, subOpts...); err != nil {
-		return nil, errors.Trace(err)
-	}
-	return func() error { return c.svc.Unsubscribe(name) }, nil
-}
-
-// OnPersonDeletedResponse packs the response of OnPersonDeleted.
-type OnPersonDeletedResponse multicastResponse // MARKER: OnPersonDeleted
-
-// Get unpacks the return arguments of OnPersonDeleted.
-func (_res *OnPersonDeletedResponse) Get() (err error) { // MARKER: OnPersonDeleted
-	return _res.err
-}
-
-// OnPersonDeleted is triggered when persons are deleted.
-func (_c MulticastTrigger) OnPersonDeleted(ctx context.Context, objKeys []PersonKey) iter.Seq[*OnPersonDeletedResponse] { // MARKER: OnPersonDeleted
-	_in := OnPersonDeletedIn{ObjKeys: objKeys}
-	_out := OnPersonDeletedOut{}
-	_inner := marshalPublish(ctx, _c.svc, _c.opts, _c.host, OnPersonDeleted.Method, OnPersonDeleted.Route, &_in, &_out)
-	return func(yield func(*OnPersonDeletedResponse) bool) {
-		for _r := range _inner {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*OnPersonDeletedResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// OnPersonDeleted is triggered when persons are deleted.
-func (c Hook) OnPersonDeleted(handler func(ctx context.Context, objKeys []PersonKey) (err error)) (unsub func() error, err error) { // MARKER: OnPersonDeleted
-	doOnPersonDeleted := func(w http.ResponseWriter, r *http.Request) error {
-		var in OnPersonDeletedIn
-		var out OnPersonDeletedOut
-		err = marshalFunction(w, r, OnPersonDeleted.Route, &in, &out, func(_ any, _ any) error {
-			err = handler(r.Context(), in.ObjKeys)
-			return err
-		})
-		return err // No trace
-	}
-	const name = "OnPersonDeleted"
-	path := httpx.JoinHostAndPath(c.host, OnPersonDeleted.Route)
-	subOpts := append([]sub.Option{
-		sub.At(OnPersonDeleted.Method, path),
-		sub.InboundEvent(OnPersonDeletedIn{}, OnPersonDeletedOut{}),
-	}, c.opts...)
-	if err := c.svc.Subscribe(name, doOnPersonDeleted, subOpts...); err != nil {
-		return nil, errors.Trace(err)
-	}
-	return func() error { return c.svc.Unsubscribe(name) }, nil
-}
-
-// OnPersonStoredResponse packs the response of OnPersonStored.
-type OnPersonStoredResponse multicastResponse // MARKER: OnPersonStored
-
-// Get unpacks the return arguments of OnPersonStored.
-func (_res *OnPersonStoredResponse) Get() (err error) { // MARKER: OnPersonStored
-	return _res.err
-}
-
-// OnPersonStored is triggered when persons are stored.
-func (_c MulticastTrigger) OnPersonStored(ctx context.Context, objKeys []PersonKey) iter.Seq[*OnPersonStoredResponse] { // MARKER: OnPersonStored
-	_in := OnPersonStoredIn{ObjKeys: objKeys}
-	_out := OnPersonStoredOut{}
-	_inner := marshalPublish(ctx, _c.svc, _c.opts, _c.host, OnPersonStored.Method, OnPersonStored.Route, &_in, &_out)
-	return func(yield func(*OnPersonStoredResponse) bool) {
-		for _r := range _inner {
-			_clone := _out
-			_r.data = &_clone
-			if !yield((*OnPersonStoredResponse)(_r)) {
-				return
-			}
-		}
-	}
-}
-
-// OnPersonStored is triggered when persons are stored.
-func (c Hook) OnPersonStored(handler func(ctx context.Context, objKeys []PersonKey) (err error)) (unsub func() error, err error) { // MARKER: OnPersonStored
-	doOnPersonStored := func(w http.ResponseWriter, r *http.Request) error {
-		var in OnPersonStoredIn
-		var out OnPersonStoredOut
-		err = marshalFunction(w, r, OnPersonStored.Route, &in, &out, func(_ any, _ any) error {
-			err = handler(r.Context(), in.ObjKeys)
-			return err
-		})
-		return err // No trace
-	}
-	const name = "OnPersonStored"
-	path := httpx.JoinHostAndPath(c.host, OnPersonStored.Route)
-	subOpts := append([]sub.Option{
-		sub.At(OnPersonStored.Method, path),
-		sub.InboundEvent(OnPersonStoredIn{}, OnPersonStoredOut{}),
-	}, c.opts...)
-	if err := c.svc.Subscribe(name, doOnPersonStored, subOpts...); err != nil {
-		return nil, errors.Trace(err)
-	}
-	return func() error { return c.svc.Unsubscribe(name) }, nil
 }
