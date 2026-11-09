@@ -52,7 +52,9 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// MyFunc handles the MyFunc endpoint and exercises every call pattern.
+/*
+MyFunc handles the MyFunc endpoint and exercises every call pattern.
+*/
 func (svc *Service) MyFunc(ctx context.Context, input string) (output string, err error) { // MARKER: MyFunc
 	// Pattern 1: Direct chain - typed Client.
 	_, _ = weirdapi.NewClient(svc).Plain(ctx)
@@ -121,31 +123,41 @@ func (svc *Service) callViaParam(ctx context.Context, client weirdapi.Client) {
 	_ = client.InternalPort(ctx)
 }
 
-// SelfPing handles the SelfPing peer-to-peer endpoint (also serves as the
-// service's own subscribed handler so the manifest declares the surface).
+/*
+SelfPing handles peer-to-peer self-pings.
+*/
 func (svc *Service) SelfPing(ctx context.Context) (err error) { // MARKER: SelfPing
 	return nil
 }
 
-// AltHostFn handles requests on the alt.kitchen alt-host (Route is
-// "//alt.kitchen:0/alt-fn"). The connector subscribes on alt.kitchen
-// rather than kitchen.fixture; the ACL must include a SUB rule for that
-// alt-host or the broker rejects the subscription.
+/*
+AltHostFn registers on a non-own host via the //host form.
+*/
 func (svc *Service) AltHostFn(ctx context.Context) (err error) { // MARKER: AltHostFn
 	return nil
 }
 
-// OnSomething is the hook handler for weirdapi.OnSomething inbound events.
+/*
+OnSomething is the hook handler for weirdapi.OnSomething inbound events.
+*/
 func (svc *Service) OnSomething(ctx context.Context, detail string) (ok bool, err error) {
 	return true, nil
 }
 
-// OnObserveQueueDepth records the gauge just-in-time.
+/*
+OnObserveQueueDepth emits the observed value of the QueueDepth metric.
+
+QueueDepth records the current depth of the kitchen queue.
+*/
 func (svc *Service) OnObserveQueueDepth(ctx context.Context) (err error) { // MARKER: QueueDepth
 	return svc.RecordQueueDepth(ctx, 0)
 }
 
-// OnChangedThreshold is the callback fired when the Threshold config changes.
+/*
+OnChangedThreshold is called when the Threshold config property changes.
+
+Threshold caps the kitchen fixture's in-flight requests.
+*/
 func (svc *Service) OnChangedThreshold(ctx context.Context) (err error) { // MARKER: Threshold
 	return nil
 }

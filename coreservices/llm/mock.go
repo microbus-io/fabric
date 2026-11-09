@@ -172,7 +172,7 @@ func (svc *Mock) MockChatLoop(handler func(ctx context.Context, flow *workflow.F
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
 		var f workflow.Flow
-		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&f)); err != nil {
 			return errors.Trace(err)
 		}
 		var in llmapi.ChatLoopIn
@@ -190,7 +190,7 @@ func (svc *Mock) MockChatLoop(handler func(ctx context.Context, flow *workflow.F
 			return errors.Trace(err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		return json.NewEncoder(w).Encode(&f)
+		return json.NewEncoder(w).Encode(workflow.ResultCarrier(&f))
 	},
 		sub.At("POST", mockRoute),
 		sub.Task(llmapi.ChatLoopIn{}, llmapi.ChatLoopOut{}),

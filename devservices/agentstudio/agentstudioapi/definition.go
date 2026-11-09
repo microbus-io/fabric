@@ -15,12 +15,12 @@ const Hostname = "agentstudio.dev"
 const Name = "AgentStudio"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 10
+const Version = 11
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `AgentStudio is a developer console for inspecting flows running under the Foreman.`
 
-// ListFlows renders an HTML page with a paginated, sortable table of flows.
+// ListFlows renders an HTML page with two tabs of flows: the open flows, and the closed flows archived within a window.
 var ListFlows = define.Web{ // MARKER: ListFlows
 	Host: Hostname, Method: "ANY", Route: "/flows",
 }
@@ -50,7 +50,7 @@ var RunWorkflow = define.Web{ // MARKER: RunWorkflow
 	Host: Hostname, Method: "ANY", Route: "/run-workflow",
 }
 
-// ContinueFlow renders a form to continue a completed flow's thread with additional state.
+// ContinueFlow renders a form to continue a completed flow with additional state.
 var ContinueFlow = define.Web{ // MARKER: ContinueFlow
 	Host: Hostname, Method: "ANY", Route: "/continue-flow",
 }

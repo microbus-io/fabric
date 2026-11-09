@@ -216,7 +216,7 @@ func (svc *Intermediate) doDemoStatus(w http.ResponseWriter, r *http.Request) (e
 // doRunSupport handles marshaling for RunSupport.
 func (svc *Intermediate) doRunSupport(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: RunSupport
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -246,7 +246,7 @@ func (svc *Intermediate) doRunSupport(w http.ResponseWriter, r *http.Request) (e
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}

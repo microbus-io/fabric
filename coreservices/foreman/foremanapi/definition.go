@@ -17,7 +17,7 @@ const Hostname = "foreman.core"
 const Name = "Foreman"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 57
+const Version = 58
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `Foreman orchestrates agentic workflow execution.`
@@ -60,7 +60,21 @@ var MaxPriority = define.Config{ // MARKER: MaxPriority
 	Validation: "int [1,100]",
 }
 
-// Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step. Set Opts.ThreadKey to join an existing thread; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
+// Retention is the number of days the archive keeps closed flows. A flow moves to the archive about a minute after it closes, and is dropped with its archive day once the retention has passed. 0 keeps no archive: a closed flow is deleted instead. Set the same value on every replica; it takes effect on restart.
+var Retention = define.Config{ // MARKER: Retention
+	Value:      int(0),
+	Default:    "30",
+	Validation: "int [0,]",
+}
+
+// FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.
+var FlowExpiration = define.Config{ // MARKER: FlowExpiration
+	Value:      time.Duration(0),
+	Default:    "0",
+	Validation: "dur [0s,]",
+}
+
+// Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
 var Create = define.Function{ // MARKER: Create
 	Host: Hostname, Method: "ANY", Route: ":444/create",
 	In: CreateIn{}, Out: CreateOut{},
@@ -208,26 +222,39 @@ type StepOut struct { // MARKER: Step
 	Step *FlowStep `json:"step,omitzero"`
 }
 
-// List queries flows by status or workflow URL. Set Query.Cursor to the previous call's NextCursor to paginate.
-var List = define.Function{ // MARKER: List
-	Host: Hostname, Method: "GET", Route: ":444/list",
-	In: ListIn{}, Out: ListOut{},
+// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
+var ListOpen = define.Function{ // MARKER: ListOpen
+	Host: Hostname, Method: "GET", Route: ":444/list-open",
+	In: ListOpenIn{}, Out: ListOpenOut{},
 }
 
-// ListIn are the input arguments of List.
-type ListIn struct { // MARKER: List
+// ListOpenIn are the input arguments of ListOpen.
+type ListOpenIn struct { // MARKER: ListOpen
 	Query Query `json:"query,omitzero"`
 }
 
-// ListOut are the output arguments of List.
-type ListOut struct { // MARKER: List
+// ListOpenOut are the output arguments of ListOpen.
+type ListOpenOut struct { // MARKER: ListOpen
 	Flows []FlowSummary `json:"flows,omitzero"`
-	// NextCursor is the opaque pagination cursor for the next page; pass it back as Query.Cursor.
-	// Empty when every shard has been drained.
-	NextCursor string `json:"nextCursor,omitzero"`
 }
 
-// Delete removes a flow and its steps from the database. The flow must not be running. Subgraph and thread lineage references become dangling.
+// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+var ListClosed = define.Function{ // MARKER: ListClosed
+	Host: Hostname, Method: "GET", Route: ":444/list-closed",
+	In: ListClosedIn{}, Out: ListClosedOut{},
+}
+
+// ListClosedIn are the input arguments of ListClosed.
+type ListClosedIn struct { // MARKER: ListClosed
+	Query Query `json:"query,omitzero"`
+}
+
+// ListClosedOut are the output arguments of ListClosed.
+type ListClosedOut struct { // MARKER: ListClosed
+	Flows []FlowSummary `json:"flows,omitzero"`
+}
+
+// Delete removes a closed flow and its subgraphs. An open flow is a 409: Terminate it first.
 var Delete = define.Function{ // MARKER: Delete
 	Host: Hostname, Method: "POST", Route: ":444/delete",
 	In: DeleteIn{}, Out: DeleteOut{},
@@ -242,7 +269,7 @@ type DeleteIn struct { // MARKER: Delete
 type DeleteOut struct { // MARKER: Delete
 }
 
-// Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
+// Purge removes the closed flows that ListClosed lists for the query, and their subgraphs, oldest archived first. Query.Limit, Query.FromTime and Query.ToTime are required, and Limit caps the flows removed per call. Call it until done is true. Open flows are never touched.
 var Purge = define.Function{ // MARKER: Purge
 	Host: Hostname, Method: "POST", Route: ":444/purge",
 	In: PurgeIn{}, Out: PurgeOut{},
@@ -255,8 +282,23 @@ type PurgeIn struct { // MARKER: Purge
 
 // PurgeOut are the output arguments of Purge.
 type PurgeOut struct { // MARKER: Purge
-	// Deleted is the count of flows actually deleted (excluding running flows skipped by the guard).
-	Deleted int `json:"deleted,omitzero"`
+	Removed int  `json:"removed,omitzero"`
+	Done    bool `json:"done,omitzero"`
+}
+
+// PurgeBefore drops the archive's records of every UTC day before the one containing the given time, on every shard, whatever the retention. A time after today is a 400.
+var PurgeBefore = define.Function{ // MARKER: PurgeBefore
+	Host: Hostname, Method: "POST", Route: ":444/purge-before",
+	In: PurgeBeforeIn{}, Out: PurgeBeforeOut{},
+}
+
+// PurgeBeforeIn are the input arguments of PurgeBefore.
+type PurgeBeforeIn struct { // MARKER: PurgeBefore
+	Before time.Time `json:"before,omitzero"`
+}
+
+// PurgeBeforeOut are the output arguments of PurgeBefore.
+type PurgeBeforeOut struct { // MARKER: PurgeBefore
 }
 
 // ShardInfo returns per-shard health (latency, error) for every database shard.
@@ -328,7 +370,7 @@ type RunOut struct { // MARKER: Run
 	Outcome *workflow.FlowOutcome `json:"outcome,omitzero"`
 }
 
-// Continue creates a new running flow from the latest completed flow in a thread, merged with additional state using the graph's reducers. The threadKey can be any flowKey belonging to the thread. The new flow belongs to the same thread and inherits its policy (priority/fairness/budget/baggage); use Create with Opts.ThreadKey to set policy explicitly instead.
+// Continue creates a new running flow from the completed root flow that flowKey names, starting from its final state with additional state folded in through the graph's reducers. The new flow inherits its policy (priority/fairness/budget/baggage); use Create with the final state from Snapshot to set policy explicitly instead. Continuing one flow twice makes two flows, so a caller keeping a chain continues the key the last Continue returned. A flow that is not completed is a 409.
 var Continue = define.Function{ // MARKER: Continue
 	Host: Hostname, Method: "POST", Route: ":444/continue",
 	In: ContinueIn{}, Out: ContinueOut{},
@@ -336,7 +378,7 @@ var Continue = define.Function{ // MARKER: Continue
 
 // ContinueIn are the input arguments of Continue.
 type ContinueIn struct { // MARKER: Continue
-	ThreadKey       string `json:"threadKey,omitzero"`
+	FlowKey         string `json:"flowKey,omitzero"`
 	AdditionalState any    `json:"additionalState,omitzero"`
 }
 

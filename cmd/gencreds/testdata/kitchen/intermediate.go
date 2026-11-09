@@ -22,6 +22,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cfg"
 	"github.com/microbus-io/fabric/cmd/gencreds/testdata/kitchen/kitchenapi"
@@ -86,6 +87,16 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
 
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			kitchenapi.MyFuncIn{},    // MARKER: MyFunc
+			kitchenapi.SelfPingIn{},  // MARKER: SelfPing
+			kitchenapi.AltHostFnIn{}, // MARKER: AltHostFn
+			weirdapi.OnSomethingIn{}, // MARKER: OnSomething
+		)
+	})
+
 	svc.Subscribe( // MARKER: MyFunc
 		"MyFunc", svc.doMyFunc,
 		sub.At(kitchenapi.MyFunc.Method, kitchenapi.MyFunc.Route),
@@ -143,6 +154,12 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	// The body is fully decoded into the input, so release it for the duration of the handler
+	r.Body = http.NoBody
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}

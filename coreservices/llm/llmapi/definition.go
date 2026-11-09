@@ -31,7 +31,7 @@ const Hostname = "llm.core"
 const Name = "LLM"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 16
+const Version = 17
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `The LLM microservice bridges LLM tool-calling protocols with Microbus endpoint invocations.`

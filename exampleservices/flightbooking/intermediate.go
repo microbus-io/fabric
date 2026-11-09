@@ -170,7 +170,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // doSearchFlights handles marshaling for SearchFlights.
 func (svc *Intermediate) doSearchFlights(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: SearchFlights
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -196,7 +196,7 @@ func (svc *Intermediate) doSearchFlights(w http.ResponseWriter, r *http.Request)
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -206,7 +206,7 @@ func (svc *Intermediate) doSearchFlights(w http.ResponseWriter, r *http.Request)
 // doProposeFlight handles marshaling for ProposeFlight.
 func (svc *Intermediate) doProposeFlight(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ProposeFlight
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -232,7 +232,7 @@ func (svc *Intermediate) doProposeFlight(w http.ResponseWriter, r *http.Request)
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -242,7 +242,7 @@ func (svc *Intermediate) doProposeFlight(w http.ResponseWriter, r *http.Request)
 // doAwaitDecision handles marshaling for AwaitDecision.
 func (svc *Intermediate) doAwaitDecision(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: AwaitDecision
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -268,7 +268,7 @@ func (svc *Intermediate) doAwaitDecision(w http.ResponseWriter, r *http.Request)
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -278,7 +278,7 @@ func (svc *Intermediate) doAwaitDecision(w http.ResponseWriter, r *http.Request)
 // doChooseSeat handles marshaling for ChooseSeat.
 func (svc *Intermediate) doChooseSeat(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ChooseSeat
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -300,7 +300,7 @@ func (svc *Intermediate) doChooseSeat(w http.ResponseWriter, r *http.Request) (e
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -310,7 +310,7 @@ func (svc *Intermediate) doChooseSeat(w http.ResponseWriter, r *http.Request) (e
 // doConfirmBooking handles marshaling for ConfirmBooking.
 func (svc *Intermediate) doConfirmBooking(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ConfirmBooking
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -340,7 +340,7 @@ func (svc *Intermediate) doConfirmBooking(w http.ResponseWriter, r *http.Request
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -350,7 +350,7 @@ func (svc *Intermediate) doConfirmBooking(w http.ResponseWriter, r *http.Request
 // doNoFlights handles marshaling for NoFlights.
 func (svc *Intermediate) doNoFlights(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: NoFlights
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -372,7 +372,7 @@ func (svc *Intermediate) doNoFlights(w http.ResponseWriter, r *http.Request) (er
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -382,7 +382,7 @@ func (svc *Intermediate) doNoFlights(w http.ResponseWriter, r *http.Request) (er
 // doPickSeat handles marshaling for PickSeat.
 func (svc *Intermediate) doPickSeat(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: PickSeat
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -404,7 +404,7 @@ func (svc *Intermediate) doPickSeat(w http.ResponseWriter, r *http.Request) (err
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}

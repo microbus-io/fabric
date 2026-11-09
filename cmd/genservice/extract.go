@@ -29,6 +29,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/microbus-io/dwarf/workflow"
 )
 
 // service is the model extracted from a microservice's api package definition.go (+ sibling files).
@@ -220,8 +222,8 @@ func validateStateFields(svc *service, ft feature) error {
 			if x.jsonName == "" {
 				return fmt.Errorf("%s %s of %s does not marshal to JSON (it is unexported or tagged json:\"-\"), so it cannot be carried in the state; remove it", side.kind, x.goName, ft.name)
 			}
-			if strings.HasSuffix(x.jsonName, "!") || strings.HasSuffix(x.jsonName, "+") {
-				return fmt.Errorf("%s %s of %s maps to state field %q: a state field name must not end with ! or +", side.kind, x.goName, ft.name, x.jsonName)
+			if !workflow.IsValidFieldName(x.jsonName) {
+				return fmt.Errorf("%s %s of %s maps to state field %q: a state field name is an ASCII letter or underscore followed by ASCII letters, digits, underscores or hyphens", side.kind, x.goName, ft.name, x.jsonName)
 			}
 			if x.asString {
 				return fmt.Errorf("%s %s of %s must not use the json ,string option: the state holds the field as its bare value; remove it", side.kind, x.goName, ft.name)

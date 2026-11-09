@@ -165,6 +165,13 @@ In struct out of the state, and writes each output back with its own `flow.Set(j
 mock's synthetic task does the same with the handler's results, and the Executor's `marshalTask` applies the In
 struct to the carrier with `state.Apply(workflow.ChangesOf(...), nil)`.
 
+The task handlers and the workflow mock decode the request through `workflow.RequestCarrier` and encode the reply
+through `workflow.ResultCarrier`, so the reply carries only the task's changes and control signals, not the state
+the foreman already holds. The Executor's `marshalTask` plays the foreman's part in tests: it sends the request
+carrier, reads the result carrier, and applies the returned changes to the state it sent, so the `out` it parses
+and the `WithOutputFlow` flow hold the task's outputs. It applies them with no reducers, because the Executor runs
+a task outside any graph.
+
 The outputs are written field by field rather than by marshaling the Out struct whole, because the struct's fields
 are `omitzero`: a whole-struct marshal drops every zero output, and a returned zero must reach the state like any
 other value (it resets a field with no reducer). A pointer is passed so that a `MarshalJSON` with a pointer receiver
@@ -175,7 +182,8 @@ Because each field is read and written on its own, a struct-level encoding rule 
 rejects what would silently misbehave: a field that does not marshal to JSON (unexported or `json:"-"`), which the
 state can never carry; an embedded struct, whose fields are not flattened; the `,string` option, which only an
 enclosing struct's marshal honors, so the state would hold a bare value that the In struct then fails to parse; and
-a JSON name ending in `!` or `+`, which the engine refuses to write.
+a JSON name that is not a valid state field name (`workflow.IsValidFieldName`: an ASCII letter or underscore, then
+ASCII letters, digits, underscores or hyphens), which the engine refuses to write.
 
 ## The request body is released before the handler runs
 

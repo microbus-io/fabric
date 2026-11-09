@@ -66,6 +66,8 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 	eng.SetEngineID(engineID(svc.ID()))
 	eng.SetTimeBudget(svc.TimeBudget())
 	eng.SetMaxPriority(svc.MaxPriority())
+	eng.SetRetention(svc.Retention())
+	eng.SetFlowExpiration(svc.FlowExpiration())
 	eng.SetHost(svc)
 	eng.SetLogger(svc.Logger())
 	eng.SetMeterProvider(svc.MeterProvider())
@@ -81,7 +83,7 @@ func (svc *Service) OnStartup(ctx context.Context) (err error) {
 func (svc *Service) resolveShards() []foremanapi.ShardSpec {
 	shards := svc.Shards()
 	if len(shards) == 0 && svc.Deployment() == connector.LOCAL {
-		shards = []foremanapi.ShardSpec{{Index: 1, DSN: "file:shard_1.local.sqlite"}}
+		shards = []foremanapi.ShardSpec{{Index: 1, DSN: "file:shard_1.local.sqlite?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=auto_vacuum(FULL)"}}
 	}
 	return shards
 }
@@ -132,7 +134,7 @@ func (svc *Service) resolveOptions(ctx context.Context, opts *workflow.FlowOptio
 }
 
 /*
-Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step. Set Opts.ThreadKey to join an existing thread; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
+Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
 */
 func (svc *Service) Create(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (flowKey string, err error) { // MARKER: Create
 	ro, err := svc.resolveOptions(ctx, opts)
@@ -194,24 +196,38 @@ func (svc *Service) Step(ctx context.Context, stepKey string) (step *foremanapi.
 }
 
 /*
-List queries flows by status or workflow URL. Set Query.Cursor to the previous call's NextCursor to paginate.
+ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
 */
-func (svc *Service) List(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, nextCursor string, err error) { // MARKER: List
-	return svc.engine.List(ctx, query)
+func (svc *Service) ListOpen(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListOpen
+	return svc.engine.ListOpen(ctx, query)
 }
 
 /*
-Delete removes a flow and its steps from the database. The flow must not be running. Subgraph and thread lineage references become dangling.
+ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+*/
+func (svc *Service) ListClosed(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListClosed
+	return svc.engine.ListClosed(ctx, query)
+}
+
+/*
+Delete removes a closed flow and its subgraphs. An open flow is a 409: Terminate it first.
 */
 func (svc *Service) Delete(ctx context.Context, flowKey string) (err error) { // MARKER: Delete
 	return svc.engine.Delete(ctx, flowKey)
 }
 
 /*
-Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
+Purge removes the closed flows that ListClosed lists for the query, and their subgraphs, oldest archived first. Query.Limit, Query.FromTime and Query.ToTime are required, and Limit caps the flows removed per call. Call it until done is true. Open flows are never touched.
 */
-func (svc *Service) Purge(ctx context.Context, query foremanapi.Query) (deleted int, err error) { // MARKER: Purge
+func (svc *Service) Purge(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error) { // MARKER: Purge
 	return svc.engine.Purge(ctx, query)
+}
+
+/*
+PurgeBefore drops the archive's records of every UTC day before the one containing the given time, on every shard, whatever the retention. A time after today is a 400.
+*/
+func (svc *Service) PurgeBefore(ctx context.Context, before time.Time) (err error) { // MARKER: PurgeBefore
+	return svc.engine.PurgeBefore(ctx, before)
 }
 
 /*
@@ -264,10 +280,10 @@ func (svc *Service) Run(ctx context.Context, workflowURL string, initialState an
 }
 
 /*
-Continue creates a new running flow from the latest completed flow in a thread, merged with additional state using the graph's reducers. The threadKey can be any flowKey belonging to the thread. The new flow belongs to the same thread and inherits its policy (priority/fairness/budget/baggage); use Create with Opts.ThreadKey to set policy explicitly instead.
+Continue creates a new running flow from the completed root flow that flowKey names, starting from its final state with additional state folded in through the graph's reducers. The new flow inherits its policy (priority/fairness/budget/baggage); use Create with the final state from Snapshot to set policy explicitly instead. Continuing one flow twice makes two flows, so a caller keeping a chain continues the key the last Continue returned. A flow that is not completed is a 409.
 */
-func (svc *Service) Continue(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error) { // MARKER: Continue
-	return svc.engine.Continue(ctx, threadKey, additionalState)
+func (svc *Service) Continue(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error) { // MARKER: Continue
+	return svc.engine.Continue(ctx, flowKey, additionalState)
 }
 
 /*

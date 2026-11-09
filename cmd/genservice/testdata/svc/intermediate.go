@@ -278,7 +278,7 @@ func (svc *Intermediate) doPing(w http.ResponseWriter, r *http.Request) (err err
 // doProcessStep handles marshaling for ProcessStep.
 func (svc *Intermediate) doProcessStep(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ProcessStep
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -300,7 +300,7 @@ func (svc *Intermediate) doProcessStep(w http.ResponseWriter, r *http.Request) (
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -310,7 +310,7 @@ func (svc *Intermediate) doProcessStep(w http.ResponseWriter, r *http.Request) (
 // doReviewStep handles marshaling for ReviewStep.
 func (svc *Intermediate) doReviewStep(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ReviewStep
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -332,7 +332,7 @@ func (svc *Intermediate) doReviewStep(w http.ResponseWriter, r *http.Request) (e
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}

@@ -47,62 +47,86 @@ func (svc *Service) OnShutdown(ctx context.Context) (err error) {
 	return nil
 }
 
-// Plain handles the Plain endpoint.
+/*
+Plain is a baseline function on the safe trust segment.
+*/
 func (svc *Service) Plain(ctx context.Context) (result string, err error) { // MARKER: Plain
 	return "", nil
 }
 
-// PathArg handles the PathArg endpoint.
+/*
+PathArg accepts a path argument.
+*/
 func (svc *Service) PathArg(ctx context.Context, id string) (err error) { // MARKER: PathArg
 	return nil
 }
 
-// GreedyArg handles the GreedyArg endpoint.
+/*
+GreedyArg accepts a greedy tail path argument.
+*/
 func (svc *Service) GreedyArg(ctx context.Context, tail string) (err error) { // MARKER: GreedyArg
 	return nil
 }
 
-// PeriodInPath handles the PeriodInPath endpoint.
+/*
+PeriodInPath has a period inside its path segment.
+*/
 func (svc *Service) PeriodInPath(ctx context.Context) (err error) { // MARKER: PeriodInPath
 	return nil
 }
 
-// AnyMethod handles the AnyMethod endpoint.
+/*
+AnyMethod accepts any HTTP method.
+*/
 func (svc *Service) AnyMethod(ctx context.Context) (err error) { // MARKER: AnyMethod
 	return nil
 }
 
-// InternalPort handles the InternalPort endpoint.
+/*
+InternalPort is on the :444 internal port.
+*/
 func (svc *Service) InternalPort(ctx context.Context) (err error) { // MARKER: InternalPort
 	return nil
 }
 
-// TrustRoot handles the trust-root :666 endpoint.
+/*
+TrustRoot is the trust-root :666 endpoint.
+*/
 func (svc *Service) TrustRoot(ctx context.Context, cmd string) (err error) { // MARKER: TrustRoot
 	return nil
 }
 
-// SlashHostRoot handles the //root endpoint.
+/*
+SlashHostRoot has route "//root".
+*/
 func (svc *Service) SlashHostRoot(ctx context.Context) (err error) { // MARKER: SlashHostRoot
 	return nil
 }
 
-// SlashHostPort handles the //alt.host:0/alt-path endpoint.
+/*
+SlashHostPort has route "//alt.host:0/alt-path".
+*/
 func (svc *Service) SlashHostPort(ctx context.Context) (err error) { // MARKER: SlashHostPort
 	return nil
 }
 
-// SlashHostPathArg handles the //alt.host/items/{id} endpoint.
+/*
+SlashHostPathArg has route "//alt.host/items/{id}".
+*/
 func (svc *Service) SlashHostPathArg(ctx context.Context, id string) (err error) { // MARKER: SlashHostPathArg
 	return nil
 }
 
-// SpecialHostRoute handles the //my$.xml/lookup endpoint - exercises hostname encoding for URL specials.
+/*
+SpecialHostRoute has route "//my$.xml/lookup" - URL-special character in the hostname segment.
+*/
 func (svc *Service) SpecialHostRoute(ctx context.Context) (err error) { // MARKER: SpecialHostRoute
 	return nil
 }
 
-// UpperCasePath handles the :443/UPPERCASE.xml endpoint - exercises case-preserving path encoding.
+/*
+UpperCasePath has route ":443/UPPERCASE.xml" - uppercase path segment with a period.
+*/
 func (svc *Service) UpperCasePath(ctx context.Context) (err error) { // MARKER: UpperCasePath
 	return nil
 }

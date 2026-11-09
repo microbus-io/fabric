@@ -5,7 +5,7 @@ general:
   hostname: foreman.core
   description: Foreman orchestrates agentic workflow execution.
   package: github.com/microbus-io/fabric/coreservices/foreman
-  modifiedAt: "2026-10-24T04:31:43Z"
+  modifiedAt: "2026-11-09T01:40:49Z"
 
 configs:
   Shards:
@@ -37,6 +37,16 @@ configs:
     description: MaxPriority is the number of priority levels flows may use. Priorities run from 1 (served first) to MaxPriority, and a flow that sets none gets the midpoint. Set the same value on every replica; it takes effect on restart.
     validation: int [1,100]
     default: 5
+  Retention:
+    signature: Retention() (value int)
+    description: "Retention is the number of days the archive keeps closed flows. A flow moves to the archive about a minute after it closes, and is dropped with its archive day once the retention has passed. 0 keeps no archive: a closed flow is deleted instead. Set the same value on every replica; it takes effect on restart."
+    validation: int [0,]
+    default: 30
+  FlowExpiration:
+    signature: FlowExpiration() (value time.Duration)
+    description: FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.
+    validation: dur [0s,]
+    default: 0
 
 metrics:
   AckTimeouts:
@@ -48,7 +58,7 @@ metrics:
 functions:
   Create:
     signature: Create(workflowURL string, initialState any, opts *workflow.FlowOptions) (flowKey string)
-    description: Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step. Set Opts.ThreadKey to join an existing thread; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
+    description: Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
     method: ANY
     route: :444/create
   Snapshot:
@@ -91,21 +101,31 @@ functions:
     description: Step returns the full detail of one execution step, including the state, changes and interrupt payload that History omits.
     method: GET
     route: :444/step
-  List:
-    signature: List(query Query) (flows []FlowSummary, nextCursor string)
-    description: List queries flows by status or workflow URL. Set Query.Cursor to the previous call's NextCursor to paginate.
+  ListOpen:
+    signature: ListOpen(query Query) (flows []FlowSummary)
+    description: ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
     method: GET
-    route: :444/list
+    route: :444/list-open
+  ListClosed:
+    signature: ListClosed(query Query) (flows []FlowSummary)
+    description: ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+    method: GET
+    route: :444/list-closed
   Delete:
     signature: Delete(flowKey string)
-    description: Delete removes a flow and its steps from the database. The flow must not be running. Subgraph and thread lineage references become dangling.
+    description: "Delete removes a closed flow and its subgraphs. An open flow is a 409: Terminate it first."
     method: POST
     route: :444/delete
   Purge:
-    signature: Purge(query Query) (deleted int)
-    description: Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
+    signature: Purge(query Query) (removed int, done bool)
+    description: Purge removes the closed flows that ListClosed lists for the query, and their subgraphs, oldest archived first. Query.Limit, Query.FromTime and Query.ToTime are required, and Limit caps the flows removed per call. Call it until done is true. Open flows are never touched.
     method: POST
     route: :444/purge
+  PurgeBefore:
+    signature: PurgeBefore(before time.Time)
+    description: PurgeBefore drops the archive's records of every UTC day before the one containing the given time, on every shard, whatever the retention. A time after today is a 400.
+    method: POST
+    route: :444/purge-before
   ShardInfo:
     signature: ShardInfo() (shards []ShardSummary)
     description: ShardInfo returns per-shard health (latency, error) for every database shard.
@@ -130,8 +150,8 @@ functions:
     method: POST
     route: :444/run
   Continue:
-    signature: Continue(threadKey string, additionalState any) (newFlowKey string)
-    description: Continue creates a new running flow from the latest completed flow in a thread, merged with additional state using the graph's reducers. The threadKey can be any flowKey belonging to the thread. The new flow belongs to the same thread and inherits its policy (priority/fairness/budget/baggage); use Create with Opts.ThreadKey to set policy explicitly instead.
+    signature: Continue(flowKey string, additionalState any) (newFlowKey string)
+    description: Continue creates a new running flow from the completed root flow that flowKey names, starting from its final state with additional state folded in through the graph's reducers. The new flow inherits its policy (priority/fairness/budget/baggage); use Create with the final state from Snapshot to set policy explicitly instead. Continuing one flow twice makes two flows, so a caller keeping a chain continues the key the last Continue returned. A flow that is not completed is a 409.
     method: POST
     route: :444/continue
 

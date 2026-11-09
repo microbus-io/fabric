@@ -233,7 +233,7 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // doSubmitCreditApplication handles marshaling for SubmitCreditApplication.
 func (svc *Intermediate) doSubmitCreditApplication(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: SubmitCreditApplication
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -275,7 +275,7 @@ func (svc *Intermediate) doSubmitCreditApplication(w http.ResponseWriter, r *htt
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -285,7 +285,7 @@ func (svc *Intermediate) doSubmitCreditApplication(w http.ResponseWriter, r *htt
 // doVerifyCredit handles marshaling for VerifyCredit.
 func (svc *Intermediate) doVerifyCredit(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: VerifyCredit
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -307,7 +307,7 @@ func (svc *Intermediate) doVerifyCredit(w http.ResponseWriter, r *http.Request) 
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -317,7 +317,7 @@ func (svc *Intermediate) doVerifyCredit(w http.ResponseWriter, r *http.Request) 
 // doVerifyEmployment handles marshaling for VerifyEmployment.
 func (svc *Intermediate) doVerifyEmployment(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: VerifyEmployment
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -339,7 +339,7 @@ func (svc *Intermediate) doVerifyEmployment(w http.ResponseWriter, r *http.Reque
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -349,7 +349,7 @@ func (svc *Intermediate) doVerifyEmployment(w http.ResponseWriter, r *http.Reque
 // doInitIdentityVerification handles marshaling for InitIdentityVerification.
 func (svc *Intermediate) doInitIdentityVerification(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: InitIdentityVerification
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -366,7 +366,7 @@ func (svc *Intermediate) doInitIdentityVerification(w http.ResponseWriter, r *ht
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -376,7 +376,7 @@ func (svc *Intermediate) doInitIdentityVerification(w http.ResponseWriter, r *ht
 // doVerifySSN handles marshaling for VerifySSN.
 func (svc *Intermediate) doVerifySSN(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: VerifySSN
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -398,7 +398,7 @@ func (svc *Intermediate) doVerifySSN(w http.ResponseWriter, r *http.Request) (er
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -408,7 +408,7 @@ func (svc *Intermediate) doVerifySSN(w http.ResponseWriter, r *http.Request) (er
 // doVerifyAddress handles marshaling for VerifyAddress.
 func (svc *Intermediate) doVerifyAddress(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: VerifyAddress
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -430,7 +430,7 @@ func (svc *Intermediate) doVerifyAddress(w http.ResponseWriter, r *http.Request)
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -440,7 +440,7 @@ func (svc *Intermediate) doVerifyAddress(w http.ResponseWriter, r *http.Request)
 // doVerifyPhoneNumber handles marshaling for VerifyPhoneNumber.
 func (svc *Intermediate) doVerifyPhoneNumber(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: VerifyPhoneNumber
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -462,7 +462,7 @@ func (svc *Intermediate) doVerifyPhoneNumber(w http.ResponseWriter, r *http.Requ
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -472,7 +472,7 @@ func (svc *Intermediate) doVerifyPhoneNumber(w http.ResponseWriter, r *http.Requ
 // doIdentityDecision handles marshaling for IdentityDecision.
 func (svc *Intermediate) doIdentityDecision(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: IdentityDecision
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -494,7 +494,7 @@ func (svc *Intermediate) doIdentityDecision(w http.ResponseWriter, r *http.Reque
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -504,7 +504,7 @@ func (svc *Intermediate) doIdentityDecision(w http.ResponseWriter, r *http.Reque
 // doRunIdentityVerification handles marshaling for RunIdentityVerification.
 func (svc *Intermediate) doRunIdentityVerification(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: RunIdentityVerification
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -526,7 +526,7 @@ func (svc *Intermediate) doRunIdentityVerification(w http.ResponseWriter, r *htt
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -536,7 +536,7 @@ func (svc *Intermediate) doRunIdentityVerification(w http.ResponseWriter, r *htt
 // doRequestMoreInfo handles marshaling for RequestMoreInfo.
 func (svc *Intermediate) doRequestMoreInfo(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: RequestMoreInfo
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -558,7 +558,7 @@ func (svc *Intermediate) doRequestMoreInfo(w http.ResponseWriter, r *http.Reques
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -568,7 +568,7 @@ func (svc *Intermediate) doRequestMoreInfo(w http.ResponseWriter, r *http.Reques
 // doReviewCredit handles marshaling for ReviewCredit.
 func (svc *Intermediate) doReviewCredit(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ReviewCredit
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -590,7 +590,7 @@ func (svc *Intermediate) doReviewCredit(w http.ResponseWriter, r *http.Request) 
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -600,7 +600,7 @@ func (svc *Intermediate) doReviewCredit(w http.ResponseWriter, r *http.Request) 
 // doHandleCreditError handles marshaling for HandleCreditError.
 func (svc *Intermediate) doHandleCreditError(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: HandleCreditError
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -622,7 +622,7 @@ func (svc *Intermediate) doHandleCreditError(w http.ResponseWriter, r *http.Requ
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -632,7 +632,7 @@ func (svc *Intermediate) doHandleCreditError(w http.ResponseWriter, r *http.Requ
 // doDecision handles marshaling for Decision.
 func (svc *Intermediate) doDecision(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Decision
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -654,7 +654,7 @@ func (svc *Intermediate) doDecision(w http.ResponseWriter, r *http.Request) (err
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}

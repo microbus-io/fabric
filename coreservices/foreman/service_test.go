@@ -349,44 +349,6 @@ func TestForeman_Step(t *testing.T) { // MARKER: Step
 	*/
 }
 
-func TestForeman_List(t *testing.T) { // MARKER: List
-	t.Parallel()
-	ctx := t.Context()
-	_ = ctx
-
-	// Initialize the microservice under test
-	svc := NewService()
-
-	// Initialize the tester client
-	tester := connector.New("tester.client")
-	client := foremanapi.NewClient(tester)
-	_ = client
-
-	// Run the testing app
-	app := application.New()
-	app.Add(
-		// HINT: Add microservices or mocks required for this test
-		svc,
-		tester,
-	)
-	app.RunInTest(t)
-
-	/*
-		HINT: Fill in test cases using the following pattern
-
-		t.Run("test_case_name", func(t *testing.T) {
-			assert := testarossa.For(t)
-
-			flows, nextCursor, err := client.List(ctx, query)
-			assert.Expect(
-				flows, expectedFlows,
-				nextCursor, expectedNextCursor,
-				err, nil,
-			)
-		})
-	*/
-}
-
 func TestForeman_Delete(t *testing.T) { // MARKER: Delete
 	t.Parallel()
 	ctx := t.Context()
@@ -449,9 +411,10 @@ func TestForeman_Purge(t *testing.T) { // MARKER: Purge
 		t.Run("test_case_name", func(t *testing.T) {
 			assert := testarossa.For(t)
 
-			deleted, err := client.Purge(ctx, query)
+			removed, done, err := client.Purge(ctx, query)
 			assert.Expect(
-				deleted, expectedDeleted,
+				removed, expectedRemoved,
+				done, expectedDone,
 				err, nil,
 			)
 		})
@@ -634,7 +597,7 @@ func TestForeman_Continue(t *testing.T) { // MARKER: Continue
 		t.Run("test_case_name", func(t *testing.T) {
 			assert := testarossa.For(t)
 
-			newFlowKey, err := client.Continue(ctx, threadKey, additionalState)
+			newFlowKey, err := client.Continue(ctx, flowKey, additionalState)
 			assert.Expect(
 				newFlowKey, expectedNewFlowKey,
 				err, nil,
@@ -708,6 +671,114 @@ func TestForeman_Terminate(t *testing.T) { // MARKER: Terminate
 			assert := testarossa.For(t)
 
 			err := client.Terminate(ctx, flowKey, reason)
+			assert.NoError(err)
+		})
+	*/
+}
+
+func TestForeman_ListOpen(t *testing.T) { // MARKER: ListOpen
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := foremanapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			flows, err := client.ListOpen(ctx, query)
+			assert.Expect(
+				flows, expectedFlows,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestForeman_ListClosed(t *testing.T) { // MARKER: ListClosed
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := foremanapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			flows, err := client.ListClosed(ctx, query)
+			assert.Expect(
+				flows, expectedFlows,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestForeman_PurgeBefore(t *testing.T) { // MARKER: PurgeBefore
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := foremanapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			err := client.PurgeBefore(ctx, before)
 			assert.NoError(err)
 		})
 	*/

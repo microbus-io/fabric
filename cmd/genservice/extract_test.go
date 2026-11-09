@@ -155,16 +155,16 @@ func TestParseServiceRejectsEmbeddedArguments(t *testing.T) {
 }
 
 // TestParseServiceRejectsReservedStateNames pins that a task or workflow argument may not map to a state field
-// whose name ends with "!" or "+", which the engine refuses to write.
+// whose name the engine refuses to write.
 func TestParseServiceRejectsReservedStateNames(t *testing.T) {
 	assert := testarossa.For(t)
-	for _, tag := range []string{"items+", "summary!"} {
+	for _, tag := range []string{"items+", "summary!", "order.items", "2nd", "-,"} {
 		dir := writeDefinition(t, "var Flow = define.Workflow{Host: Hostname, Method: \"GET\", Route: \":428/flow\", In: FlowIn{}, Out: FlowOut{}}\n"+
 			"type FlowIn struct{}\n"+
 			"type FlowOut struct {\n\tValue string `json:\""+tag+"\"`\n}\n")
 		_, err := parseService(dir)
 		if assert.Error(err, tag) {
-			assert.Contains(err.Error(), tag)
+			assert.Contains(err.Error(), "state field")
 		}
 	}
 }

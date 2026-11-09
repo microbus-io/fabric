@@ -93,3 +93,16 @@ on a particular state key is not emitted on a redraw triggered by that key, and 
 stays in place. The mermaid widget therefore only repaints on `flowrefresh` changes; appbar
 buttons only swap on `flowrefresh` changes; the progress bar only swaps on `flowstopped`
 changes.
+
+## Flows list
+
+**Open and closed flows are separate tabs, never one merged list.** The foreman lists open flows (`ListOpen`,
+running or interrupted, by when each last changed) and closed flows (`ListClosed`, by when each was archived)
+separately, and a flow that closed in the last minute is in neither until the engine archives it. A merged list
+would hide that gap and mix two orderings, so the page keeps two tabs. The Closed tab needs a window because
+`ListClosed` requires both bounds and accepts at most 31 days; its dropdown tops out at 30 days, the default
+retention. The tab switcher is dynamic, so only the active tab's list is fetched. The dashboard does merge the two
+lists, since it buckets flows by creation time and the order of the lists does not matter there.
+
+**Continue is enabled only on a completed flow.** `Continue` builds on exactly the flow it is given, so the button
+is gated on the flow's own status; continuing the same flow twice makes two successors.

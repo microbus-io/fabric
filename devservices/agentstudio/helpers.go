@@ -281,17 +281,3 @@ func parseStateRaw(raw string) (any, error) {
 	}
 	return nil, errors.New("state is neither valid JSON (%s) nor YAML (%s)", jsonErr.Error(), yamlErr.Error())
 }
-
-// threadIsContinuable reports whether the latest flow in flowKey's thread is
-// completed and therefore a valid foreman.Continue target. Failures are
-// swallowed (the button just renders disabled) since this is best-effort UI gating.
-func (svc *Service) threadIsContinuable(r *http.Request, flowKey string) bool {
-	flows, _, err := svc.foreman.List(r.Context(), foremanapi.Query{
-		ThreadKey: flowKey,
-		Limit:     1,
-	})
-	if err != nil || len(flows) == 0 {
-		return false
-	}
-	return flows[0].Status == workflow.StatusCompleted
-}

@@ -29,7 +29,8 @@ import (
 const ackTimeoutRetryProbes = 8
 
 // LoadGraph fetches a workflow graph by issuing a GET to its URL over the bus and decoding the
-// {"graph": ...} wrapper the workflow endpoint serves. Implements engine.Host.
+// {"graph": ...} wrapper the workflow endpoint serves. An ack-timeout (no microservice answers the URL) is a 503,
+// and a 404 returned by the endpoint means no such graph. Implements engine.Host.
 func (svc *Service) LoadGraph(ctx context.Context, workflowURL string) (*workflow.Graph, error) {
 	u := workflowURL
 	if !strings.Contains(u, "://") {
@@ -37,6 +38,12 @@ func (svc *Service) LoadGraph(ctx context.Context, workflowURL string) (*workflo
 	}
 	httpRes, err := svc.Request(ctx, pub.Method("GET"), pub.URL(u))
 	if err != nil {
+		if isAckTimeout(err) {
+			return nil, errors.Trace(err, http.StatusServiceUnavailable)
+		}
+		if errors.StatusCode(err) == http.StatusNotFound {
+			return nil, nil
+		}
 		return nil, errors.Trace(err)
 	}
 	var wrapper struct {
@@ -54,12 +61,12 @@ func (svc *Service) LoadGraph(ctx context.Context, workflowURL string) (*workflo
 }
 
 // ExecuteTask dispatches one task over the bus: it mints an actor token from the flow's baggage, POSTs
-// the flow carrier to the task URL, and applies the task's returned flow back onto the carrier so the
+// the flow's request carrier to the task URL, and reads the task's result carrier back onto the flow so the
 // engine sees the changes and any control signals (goto/retry/sleep/interrupt/subgraph) the task armed.
 // A transport error is returned undecorated, with one exception: a 404 ack-timeout (no microservice
-// hosting the task) arms flow.Retry on the carrier and returns nil, so the engine re-probes until the
-// step's time budget is spent. Every other backoff (rate-limit, availability) is owned by the task, which
-// reads its own signal and arms flow.Retry. Implements engine.Host.
+// hosting the task) arms flow.Retry on the carrier and returns nil, so the engine re-probes a fixed number
+// of times across the step's time budget, then fails the step with a 503. Every other backoff (rate-limit,
+// availability) is owned by the task, which reads its own signal and arms flow.Retry. Implements engine.Host.
 func (svc *Service) ExecuteTask(ctx context.Context, taskURL string, flow *workflow.Flow) error {
 	// The step's time budget is the ack-timeout retry horizon. The engine bounded ctx with it (the dispatch
 	// deadline); read it here, before any work consumes the dispatch, as the full budget. (Not frame.TimeBudget:
@@ -72,7 +79,7 @@ func (svc *Service) ExecuteTask(ctx context.Context, taskURL string, flow *workf
 	if err != nil {
 		return errors.Trace(err)
 	}
-	body, err := json.Marshal(flow)
+	body, err := json.Marshal(workflow.RequestCarrier(flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -93,17 +100,18 @@ func (svc *Service) ExecuteTask(ctx context.Context, taskURL string, flow *workf
 	httpRes, err := svc.Request(ctx, opts...)
 	if err != nil {
 		// The task body never ran on an ack-timeout, so it cannot arm its own retry; the foreman arms it on the
-		// carrier (which holds the step's creation time) and returns nil, re-probing at a fixed budget/N interval
-		// until the budget horizon is spent. flow.Retry returns false once the next probe would overshoot the
-		// horizon, so a permanently-missing microservice fails the step instead of looping. The ack-timeout is
-		// recorded either way: "retry" while re-probing, "giveup" when the horizon is spent (the alertable
-		// "a microservice is missing" signal). The engine cannot emit this - it never sees the ack-timeout.
+		// carrier and returns nil, re-probing at a fixed budget/N interval. flow.Retry returns false once the
+		// probe delays would add up to more than the budget, so a permanently-missing microservice fails the step
+		// with a 503 after N probes instead of looping. The ack-timeout is recorded either way: "retry" while
+		// re-probing, "giveup" when the horizon is spent (the alertable "a microservice is missing" signal). The
+		// engine cannot emit this - it never sees the ack-timeout.
 		if isAckTimeout(err) {
 			if retryHorizon > 0 && flow.Retry(retryHorizon/ackTimeoutRetryProbes, 1.0, 0, retryHorizon) {
 				svc.IncrementAckTimeouts(ctx, 1, taskURL, "retry")
 				return nil
 			}
 			svc.IncrementAckTimeouts(ctx, 1, taskURL, "giveup")
+			return errors.Trace(err, http.StatusServiceUnavailable)
 		}
 		return errors.Trace(err)
 	}
@@ -111,9 +119,7 @@ func (svc *Service) ExecuteTask(ctx context.Context, taskURL string, flow *workf
 	if err != nil {
 		return errors.Trace(err)
 	}
-	// Unmarshal directly onto the carrier: Flow.UnmarshalJSON replaces its state, changes, and control
-	// signals from the task's returned flow, in place, which is exactly what the engine reads back.
-	err = json.Unmarshal(respBody, flow)
+	err = json.Unmarshal(respBody, workflow.ResultCarrier(flow))
 	if err != nil {
 		return errors.Trace(err)
 	}

@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/microbus-io/dv8"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/cmd/gencreds/testdata/weird/resources"
 	"github.com/microbus-io/fabric/cmd/gencreds/testdata/weird/weirdapi"
@@ -90,6 +91,24 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.SetResFS(resources.FS)
 	svc.SetOnObserveMetrics(svc.doOnObserveMetrics)
 	svc.SetOnConfigChanged(svc.doOnConfigChanged)
+
+	svc.Connector.Init(func(_ *connector.Connector) (err error) {
+		// Fail startup on a malformed validation directive in an endpoint input type
+		return dv8.Compile(
+			weirdapi.PlainIn{},            // MARKER: Plain
+			weirdapi.PathArgIn{},          // MARKER: PathArg
+			weirdapi.GreedyArgIn{},        // MARKER: GreedyArg
+			weirdapi.PeriodInPathIn{},     // MARKER: PeriodInPath
+			weirdapi.AnyMethodIn{},        // MARKER: AnyMethod
+			weirdapi.InternalPortIn{},     // MARKER: InternalPort
+			weirdapi.TrustRootIn{},        // MARKER: TrustRoot
+			weirdapi.SlashHostRootIn{},    // MARKER: SlashHostRoot
+			weirdapi.SlashHostPortIn{},    // MARKER: SlashHostPort
+			weirdapi.SlashHostPathArgIn{}, // MARKER: SlashHostPathArg
+			weirdapi.SpecialHostRouteIn{}, // MARKER: SpecialHostRoute
+			weirdapi.UpperCasePathIn{},    // MARKER: UpperCasePath
+		)
+	})
 
 	svc.Subscribe( // MARKER: Plain
 		"Plain", svc.doPlain,
@@ -181,6 +200,12 @@ func (svc *Intermediate) doOnConfigChanged(ctx context.Context, changed func(str
 // marshalFunction handles marshaling for functional endpoints.
 func marshalFunction(w http.ResponseWriter, r *http.Request, route string, in any, out any, execute func(in any, out any) error) error {
 	err := httpx.ReadInputPayload(r, route, in)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	// The body is fully decoded into the input, so release it for the duration of the handler
+	r.Body = http.NoBody
+	err = dv8.Validate(r.Context(), in)
 	if err != nil {
 		return errors.Trace(err)
 	}

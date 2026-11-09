@@ -37,9 +37,9 @@ import (
 // This integration test exercises the foreman end-to-end over the Microbus bus against a real downstream
 // microservice that serves workflow graphs and task endpoints. Unlike the engine's in-process fixtures
 // (which inject a hosts.Mux Host), this drives the actual adapter seam: host.go's LoadGraph GETs a graph
-// over the bus and decodes the {"graph": …} envelope, and ExecuteTask marshals the *workflow.Flow to JSON,
-// POSTs it to the task, and unmarshals the returned flow - so the downstream endpoints below do their own
-// (un)marshaling, mirroring what a generated workflow microservice's intermediate.go does.
+// over the bus and decodes the {"graph": …} envelope, and ExecuteTask POSTs the flow's request carrier to the
+// task and reads back its result carrier - so the downstream endpoints below do their own (un)marshaling,
+// mirroring what a generated workflow microservice's intermediate.go does.
 
 // graphHandler turns a graph builder into a bus endpoint that serves the {"graph": …} envelope the
 // foreman's LoadGraph expects.
@@ -61,14 +61,14 @@ func graphHandler(build func() *workflow.Graph) sub.HTTPHandler {
 func taskHandler(body func(f *workflow.Flow) error) sub.HTTPHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var flow workflow.Flow
-		if err := json.NewDecoder(r.Body).Decode(&flow); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow)); err != nil {
 			return errors.Trace(err)
 		}
 		if err := body(&flow); err != nil {
 			return err // no trace: preserve the status code so the foreman can classify it
 		}
 		w.Header().Set("Content-Type", "application/json")
-		return errors.Trace(json.NewEncoder(w).Encode(&flow))
+		return errors.Trace(json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow)))
 	}
 }
 
@@ -240,6 +240,23 @@ func TestForemanIntegration(t *testing.T) {
 			g.SetURL("Gone", "absent.host:428/gone")
 			g.AddTransition("Gone", workflow.End)
 			return g
+		})
+
+		// Spawn failure: SF subgraphs a workflow on a host no microservice serves, so the child cannot start and
+		// flow.Subgraph hands the error back to the task, which records its status code.
+		subscribeGraph(c, "SpawnFailGraph", ":428/spawn-fail", func() *workflow.Graph {
+			g := workflow.NewGraph("SpawnFail")
+			g.SetURL("SF", host+":428/sf")
+			g.AddTransition("SF", workflow.End)
+			return g
+		})
+		subscribeTask(c, "SF", ":428/sf", func(f *workflow.Flow) error {
+			yield, err := f.Subgraph("absent.host:428/flow", nil, nil)
+			if yield {
+				return nil
+			}
+			f.SetInt("status", errors.StatusCode(err))
+			return nil
 		})
 		return nil
 	})
@@ -420,6 +437,69 @@ func TestForemanIntegration(t *testing.T) {
 			}
 		}
 		assert.True(maxAttempt >= 1, "expected at least one ack-timeout retry, got max attempt %d", maxAttempt)
+	})
+
+	t.Run("continue_builds_on_the_given_flow", func(t *testing.T) {
+		assert := testarossa.For(t)
+		flowKey, err := client.Create(ctx, host+":428/linear", map[string]any{"n": 1}, nil)
+		if !assert.NoError(err) {
+			return
+		}
+		out, err := client.Await(ctx, flowKey)
+		if !assert.NoError(err) || !assert.Equal(workflow.StatusCompleted, out.Status) {
+			return
+		}
+		// Each Continue of the same completed flow starts a new flow from its final state
+		for range 2 {
+			nextKey, err := client.Continue(ctx, flowKey, map[string]any{"n": 2})
+			if !assert.NoError(err) {
+				return
+			}
+			assert.NotEqual(flowKey, nextKey)
+			next, err := client.Await(ctx, nextKey)
+			if assert.NoError(err) {
+				assert.Equal(workflow.StatusCompleted, next.Status)
+				assert.Equal(35, next.State.GetInt("n")) // ((2+1)*10)+5
+			}
+		}
+	})
+
+	t.Run("open_flows_are_listed_and_not_deletable", func(t *testing.T) {
+		assert := testarossa.For(t)
+		flowKey, err := client.Create(ctx, host+":428/interrupt", nil, nil)
+		if !assert.NoError(err) {
+			return
+		}
+		out, err := client.Await(ctx, flowKey)
+		if !assert.NoError(err) || !assert.Equal(workflow.StatusInterrupted, out.Status) {
+			return
+		}
+		flows, err := client.ListOpen(ctx, foremanapi.Query{Status: workflow.StatusInterrupted, Limit: 1000})
+		if assert.NoError(err) {
+			found := false
+			for _, f := range flows {
+				found = found || f.FlowKey == flowKey
+			}
+			assert.True(found)
+		}
+		// Continue and Delete both refuse an open flow
+		_, err = client.Continue(ctx, flowKey, nil)
+		assert.Equal(http.StatusConflict, errors.StatusCode(err))
+		err = client.Delete(ctx, flowKey)
+		assert.Equal(http.StatusConflict, errors.StatusCode(err))
+		if assert.NoError(client.Terminate(ctx, flowKey, "cleanup")) {
+			assert.NoError(client.Delete(ctx, flowKey))
+		}
+	})
+
+	t.Run("subgraph_of_missing_workflow_is_unavailable", func(t *testing.T) {
+		assert := testarossa.For(t)
+		out, err := client.Run(ctx, host+":428/spawn-fail", nil, nil)
+		if !assert.NoError(err) {
+			return
+		}
+		assert.Equal(workflow.StatusCompleted, out.Status)
+		assert.Equal(http.StatusServiceUnavailable, out.State.GetInt("status"))
 	})
 }
 

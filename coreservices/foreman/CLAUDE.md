@@ -20,7 +20,7 @@ schema, metrics, and tracing. This service owns only the Microbus seam:
 - **Identity**: actor claims + tenant are read from `frame.Of(ctx)` at `Create`/`Run` and passed to the
   engine as opaque `FlowOptions.Baggage`; the engine never interprets them.
 - **Config / lifecycle**: `OnStartup` builds the engine from the config (`Shards`, `Workers`, `TimeBudget`,
-  `MaxPriority`), injects the connector's meter/tracer/slog providers, and starts it.
+  `MaxPriority`, `Retention`, `FlowExpiration`), injects the connector's meter/tracer/slog providers, and starts it.
 
 The engine's internal design rationale lives in dwarf's own `CLAUDE.md`; this file covers only the adapter
 and the decisions that are non-obvious *because* the foreman is now a delegating shell.
@@ -43,25 +43,28 @@ message) and returns `nil`. The engine then re-dispatches exactly as if a task h
 is the step's own time budget** - not a config. The engine bounds the dispatch ctx
 with the step's `TimeBudget` (foreman config, default 2m, capped 15m, or a task's shorter `sub.TimeBudget`);
 `ExecuteTask` reads it from `ctx.Deadline()` (not `frame.TimeBudget` - the engine sets a ctx deadline, not a
-frame header) and passes it as `flow.Retry`'s `giveUpAfter`, measured from the step's creation. So "how long to
+frame header) and passes it as `flow.Retry`'s `giveUpAfter`, which bounds the total of the probe delays. So "how long to
 keep probing a missing host" rides on the same knob that says "how long is this task worth running," with **zero
 new configs** - and a task that declares a short `sub.TimeBudget` automatically gets a short ack-timeout horizon.
 The re-probe *cadence* is fixed: a missing host is absent, not overloaded (a probe is a cheap ack-timeout that
 runs no handler), so there is nothing to back off from - we want fast, uniform recovery detection. The interval
-is `budget / ackTimeoutRetryProbes` (const, 8), so ~8 evenly-spaced probes across the budget regardless of its
-length; `flow.Retry`'s next-delay give-up stops one probe short of overshooting. This is the **only**
+is `budget / ackTimeoutRetryProbes` (const, 8), so exactly 8 re-probes whatever the budget's length: `flow.Retry`
+gives up once the delays would add up to more than the budget, and time the step spends queued or in a probe does
+not count. This is the **only**
 adapter/engine-level retry; every other backoff is task-owned. It replaces the deleted breaker's missing-host
-handling, and the give-up is an ordinary step failure, so a recovery query/alert can find it by the failed status
-and ack-timeout error text. For longer-than-budget tolerance, the *caller* owns the retry (re-run with a longer
+handling, and the give-up is an ordinary step failure with status 503 (what dwarf's `Host` contract asks of a host
+that waited for a worker), so an `onError` handler or a recovery query/alert can find it by the failed status and
+ack-timeout error text. For longer-than-budget tolerance, the *caller* owns the retry (re-run with a longer
 budget or its own loop) - the framework deliberately does not park work past the task's stated worth.
 
 The retry horizon is the task's **time budget**, not a config and not a flow-wide deadline. A config was rejected
 because the real bound is *staleness* ("is this work still worth finishing?"), which the time budget already
 expresses, so reusing it means zero new knobs, per-task granularity (a short `sub.TimeBudget` yields a short
 horizon), and one unified rule for the 404 and 429 paths. A flow-wide deadline (a `FlowOption` "fail the whole flow
-after T") was rejected because under a wall-clock-since-created clock a HITL flow parked on an interrupt for days, or
-a legitimate long `flow.Sleep`, is indistinguishable from one stuck retrying - the engine cannot tell "still
-waiting" from "still failing." Splitting ownership sidesteps that: the engine owns the **short-term** retry (bounded
+after T") was rejected because a HITL flow parked on an interrupt for days, or a legitimate long `flow.Sleep`, is
+indistinguishable by its age from one stuck retrying - the age cannot tell "still waiting" from "still failing."
+(`FlowExpiration` is not that deadline: it is an operator's backstop that bounds what abandoned flows leave in the
+live tables, off by default.) Splitting ownership sidesteps that: the engine owns the **short-term** retry (bounded
 by the per-task budget, which only counts a task that is actively trying), and the **caller** owns the long-term,
 staleness-aware retry (it alone knows whether the work is still relevant). The 429 path in `coreservices/llm`
 `CallLLM` resolves identically - same budget-as-horizon, caller-owned long retry via `Chat` returning its partial
@@ -118,8 +121,10 @@ throwaway databases. No shard is registered on that path: with none declared the
 shard, so the `Shards` config is not consulted under TESTING at all.
 
 **Shard resolution is per deployment.** `LOCAL` with no configured `Shards` falls back to a single
-`file:shard_1.local.sqlite` shard; PROD/LAB use the `Shards` secret verbatim. Each shard carries its own DSN -
-the engine never templates one - so a multi-shard deployment names every database explicitly.
+`file:shard_1.local.sqlite` shard in the process's working directory, with the pragmas dwarf recommends for a durable
+SQLite file (`journal_mode(WAL)`, `synchronous(NORMAL)`, and `auto_vacuum(FULL)` so the file shrinks as the archive
+drops its days); PROD/LAB use the `Shards` secret verbatim. Each shard carries its own DSN - the engine never
+templates one - so a multi-shard deployment names every database explicitly.
 
 **Actor token is minted per `ExecuteTask` from baggage (`mintActorToken`).** The original caller's actor
 claims are captured into `FlowOptions.Baggage` at `Create`/`Run` and ride the dispatch ctx for the flow's
@@ -131,11 +136,11 @@ unauthenticated dispatch.
 **Only the genesis endpoints route through `resolveOptions`.** Policy (`FlowOptions`) is authored once at
 genesis - `Create` and `Run` - so only those two inject the caller's actor claims and tenant fairness key
 into baggage. The derived operations take no options and inherit their source's policy:
-`Continue` inherits the thread's, `Fork` inherits the origin's. Their foreman handlers therefore delegate
-straight to the engine with no `resolveOptions` call - re-injecting the *current* caller's identity would
-be wrong, since a derived flow runs as the original actor (the inherited baggage already carries those
-claims). A new caller who wants their own identity/policy on a thread uses `Create` with
-`Opts.ThreadKey`, which is the explicit-policy path and does run through `resolveOptions`.
+`Continue` inherits the policy of the flow it continues, `Fork` the origin's. Their foreman handlers therefore
+delegate straight to the engine with no `resolveOptions` call - re-injecting the *current* caller's identity would
+be wrong, since a derived flow runs as the original actor (the inherited baggage already carries those claims). A
+new caller who wants their own identity/policy uses `Create` with the previous flow's final state (from
+`Snapshot`), which is the explicit-policy path and does run through `resolveOptions`.
 
 **There is no `Start` endpoint; `Create` auto-runs.** The engine folds create-and-run into one
 transaction (dwarf v0.8.0), so the foreman exposes no `Start` and `Create`/`Continue`/`Fork` all return a
@@ -144,8 +149,9 @@ workflow itself - an entry task that calls `flow.Interrupt`, released by `Resume
 
 **Terminal flows are immutable; the bus surface offers no in-place re-run.** A `completed`/`failed`/`terminated`/
 `cancelled` flow is frozen - the only operations on it are read (`Snapshot`/`History`) and removal
-(`Delete`/`Purge`). The old mutate-in-place endpoints (`Restart`/`RestartFrom`/`Recover`) and the
-breakpoint endpoints (`BreakBefore`/`ResumeBreak`) are gone with no replacement; recovery is `Fork`, which
+(`Delete`/`Purge`/`PurgeBefore`, and the archive's retention). The old mutate-in-place endpoints
+(`Restart`/`RestartFrom`/`Recover`) and the breakpoint endpoints (`BreakBefore`/`ResumeBreak`) are gone with no
+replacement; recovery is `Fork`, which
 clones the chosen prefix into a *new* flow and never touches the original. The invariant itself is the
 engine's (its rationale lives in dwarf's `CLAUDE.md`); the adapter consequence is simply that no foreman
 endpoint can move a terminal flow off its frozen outcome.
@@ -208,3 +214,26 @@ cache. In a bundle, the foreman's share is of the whole process's limit.
 **Tracing needs the provider before `Startup`.** The engine binds its tracer at `Startup` and never picks up a
 provider installed later. The connector initializes its tracer before `OnStartup`, and `OnStartup` passes
 `svc.TracerProvider()` to the engine before calling `eng.Startup`, so the order holds.
+
+**Closed flows are archived, and the archive keeps them `Retention` days.** The engine moves each closed flow to a
+per-day archive about a minute after it closes and drops a whole day once the retention has passed, so the live
+tables hold the open flows and little else. `Retention` (default 30, the engine's) and `FlowExpiration` (default
+off) are configs read once before `Startup`, and must match across replicas: any replica may drop an expired day
+or expire a flow, so the smallest value in the fleet wins. The bus surface follows the engine's split by state:
+`ListOpen` and `ListClosed` (neither paginates; a closed list needs a window of at most 31
+days), `Delete`/`Purge` remove only closed flows (`Terminate` an open one first), and `PurgeBefore` drops whole
+archive days, which is the cheap bulk removal; `Purge` deletes row by row and is for erasing specific records. A
+flow that closed in the last minute is in neither list until it is archived, and reads by its key meanwhile.
+
+**`LoadGraph` tells a missing worker from a missing graph.** An ack-timeout on the graph's URL means no
+microservice answered, which the engine hands back to a calling task's `flow.Subgraph` as a 503 it may wait out
+with `flow.Retry`. A `404` returned by a responding endpoint means there is no such graph, reported to the engine
+as `(nil, nil)`, which it turns into its own 404. An unknown route on a live host also ack-times out on the bus, so
+in practice the generated workflow endpoints yield the 503.
+
+**Both carrier directions are trimmed.** `ExecuteTask` sends `workflow.RequestCarrier(flow)` and reads the reply
+through `workflow.ResultCarrier(flow)`, and the generated task handlers mirror it, so the state crosses the wire
+once per step rather than twice; the engine reads back only the task's changes and control signals either way.
+The carrier is versioned (`"v": 1`), so a foreman and a microservice built against different dwarf releases fail
+the step loudly rather than misreading each other: roll the foreman and every task-bearing microservice out
+together on a dwarf bump.

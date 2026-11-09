@@ -56,7 +56,7 @@ func (_c MulticastClient) WithOptions(opts ...pub.Option) MulticastClient {
 	return MulticastClient{svc: _c.svc, host: _c.host, opts: append(_c.opts, opts...)}
 }
 
-// ListFlows renders an HTML page with a paginated, sortable table of flows.
+// ListFlows renders an HTML page with two tabs of flows: the open flows, and the closed flows archived within a window.
 func (_c Client) ListFlows(ctx context.Context, method string, relativeURL string, body any) (res *http.Response, err error) { // MARKER: ListFlows
 	if method == "" {
 		method = ListFlows.Method
@@ -74,7 +74,7 @@ func (_c Client) ListFlows(ctx context.Context, method string, relativeURL strin
 	)
 }
 
-// ListFlows renders an HTML page with a paginated, sortable table of flows.
+// ListFlows renders an HTML page with two tabs of flows: the open flows, and the closed flows archived within a window.
 func (_c MulticastClient) ListFlows(ctx context.Context, method string, relativeURL string, body any) iter.Seq[*pub.Response] { // MARKER: ListFlows
 	if method == "" {
 		method = ListFlows.Method
@@ -272,7 +272,7 @@ func (_c MulticastClient) RunWorkflow(ctx context.Context, method string, relati
 	)
 }
 
-// ContinueFlow renders a form to continue a completed flow's thread with additional state.
+// ContinueFlow renders a form to continue a completed flow with additional state.
 func (_c Client) ContinueFlow(ctx context.Context, method string, relativeURL string, body any) (res *http.Response, err error) { // MARKER: ContinueFlow
 	if method == "" {
 		method = ContinueFlow.Method
@@ -290,7 +290,7 @@ func (_c Client) ContinueFlow(ctx context.Context, method string, relativeURL st
 	)
 }
 
-// ContinueFlow renders a form to continue a completed flow's thread with additional state.
+// ContinueFlow renders a form to continue a completed flow with additional state.
 func (_c MulticastClient) ContinueFlow(ctx context.Context, method string, relativeURL string, body any) iter.Seq[*pub.Response] { // MARKER: ContinueFlow
 	if method == "" {
 		method = ContinueFlow.Method

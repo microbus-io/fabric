@@ -5,6 +5,7 @@ package foreman
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
@@ -24,14 +25,16 @@ type Mock struct {
 	mockFork           func(ctx context.Context, stepKey string, stateOverrides any) (newFlowKey string, err error)                                           // MARKER: Fork
 	mockHistory        func(ctx context.Context, flowKey string) (steps []foremanapi.FlowStep, err error)                                                     // MARKER: History
 	mockStep           func(ctx context.Context, stepKey string) (step *foremanapi.FlowStep, err error)                                                       // MARKER: Step
-	mockList           func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, nextCursor string, err error)                       // MARKER: List
+	mockListOpen       func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                          // MARKER: ListOpen
+	mockListClosed     func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                          // MARKER: ListClosed
 	mockDelete         func(ctx context.Context, flowKey string) (err error)                                                                                  // MARKER: Delete
-	mockPurge          func(ctx context.Context, query foremanapi.Query) (deleted int, err error)                                                             // MARKER: Purge
+	mockPurge          func(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error)                                                  // MARKER: Purge
+	mockPurgeBefore    func(ctx context.Context, before time.Time) (err error)                                                                                // MARKER: PurgeBefore
 	mockShardInfo      func(ctx context.Context) (shards []foremanapi.ShardSummary, err error)                                                                // MARKER: ShardInfo
 	mockAwait          func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Await
 	mockPoll           func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Poll
 	mockRun            func(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (outcome *workflow.FlowOutcome, err error) // MARKER: Run
-	mockContinue       func(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error)                                        // MARKER: Continue
+	mockContinue       func(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error)                                          // MARKER: Continue
 	mockHistoryMermaid func(w http.ResponseWriter, r *http.Request) (err error)                                                                               // MARKER: HistoryMermaid
 }
 
@@ -182,18 +185,32 @@ func (svc *Mock) Step(ctx context.Context, stepKey string) (step *foremanapi.Flo
 	return step, errors.Trace(err)
 }
 
-// MockList sets up a mock handler for List.
-func (svc *Mock) MockList(handler func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, nextCursor string, err error)) *Mock { // MARKER: List
-	svc.mockList = handler
+// MockListOpen sets up a mock handler for ListOpen.
+func (svc *Mock) MockListOpen(handler func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)) *Mock { // MARKER: ListOpen
+	svc.mockListOpen = handler
 	return svc
 }
 
-// List executes the mock handler.
-func (svc *Mock) List(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, nextCursor string, err error) { // MARKER: List
-	if svc.mockList != nil {
-		flows, nextCursor, err = svc.mockList(ctx, query)
+// ListOpen executes the mock handler.
+func (svc *Mock) ListOpen(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListOpen
+	if svc.mockListOpen != nil {
+		flows, err = svc.mockListOpen(ctx, query)
 	}
-	return flows, nextCursor, errors.Trace(err)
+	return flows, errors.Trace(err)
+}
+
+// MockListClosed sets up a mock handler for ListClosed.
+func (svc *Mock) MockListClosed(handler func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)) *Mock { // MARKER: ListClosed
+	svc.mockListClosed = handler
+	return svc
+}
+
+// ListClosed executes the mock handler.
+func (svc *Mock) ListClosed(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListClosed
+	if svc.mockListClosed != nil {
+		flows, err = svc.mockListClosed(ctx, query)
+	}
+	return flows, errors.Trace(err)
 }
 
 // MockDelete sets up a mock handler for Delete.
@@ -211,17 +228,31 @@ func (svc *Mock) Delete(ctx context.Context, flowKey string) (err error) { // MA
 }
 
 // MockPurge sets up a mock handler for Purge.
-func (svc *Mock) MockPurge(handler func(ctx context.Context, query foremanapi.Query) (deleted int, err error)) *Mock { // MARKER: Purge
+func (svc *Mock) MockPurge(handler func(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error)) *Mock { // MARKER: Purge
 	svc.mockPurge = handler
 	return svc
 }
 
 // Purge executes the mock handler.
-func (svc *Mock) Purge(ctx context.Context, query foremanapi.Query) (deleted int, err error) { // MARKER: Purge
+func (svc *Mock) Purge(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error) { // MARKER: Purge
 	if svc.mockPurge != nil {
-		deleted, err = svc.mockPurge(ctx, query)
+		removed, done, err = svc.mockPurge(ctx, query)
 	}
-	return deleted, errors.Trace(err)
+	return removed, done, errors.Trace(err)
+}
+
+// MockPurgeBefore sets up a mock handler for PurgeBefore.
+func (svc *Mock) MockPurgeBefore(handler func(ctx context.Context, before time.Time) (err error)) *Mock { // MARKER: PurgeBefore
+	svc.mockPurgeBefore = handler
+	return svc
+}
+
+// PurgeBefore executes the mock handler.
+func (svc *Mock) PurgeBefore(ctx context.Context, before time.Time) (err error) { // MARKER: PurgeBefore
+	if svc.mockPurgeBefore != nil {
+		err = svc.mockPurgeBefore(ctx, before)
+	}
+	return errors.Trace(err)
 }
 
 // MockShardInfo sets up a mock handler for ShardInfo.
@@ -281,15 +312,15 @@ func (svc *Mock) Run(ctx context.Context, workflowURL string, initialState any, 
 }
 
 // MockContinue sets up a mock handler for Continue.
-func (svc *Mock) MockContinue(handler func(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error)) *Mock { // MARKER: Continue
+func (svc *Mock) MockContinue(handler func(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error)) *Mock { // MARKER: Continue
 	svc.mockContinue = handler
 	return svc
 }
 
 // Continue executes the mock handler.
-func (svc *Mock) Continue(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error) { // MARKER: Continue
+func (svc *Mock) Continue(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error) { // MARKER: Continue
 	if svc.mockContinue != nil {
-		newFlowKey, err = svc.mockContinue(ctx, threadKey, additionalState)
+		newFlowKey, err = svc.mockContinue(ctx, flowKey, additionalState)
 	}
 	return newFlowKey, errors.Trace(err)
 }

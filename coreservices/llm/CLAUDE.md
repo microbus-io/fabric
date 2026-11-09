@@ -121,7 +121,7 @@ folded tool results and the new turn to `items`. Reading `items` returns the who
 each item once rather than the full list at every step. Because a write to a reduced field is a contribution,
 no other task may write `items`: a full-list write would add the history to itself. The rate-limit retry path in
 `CallLLM` returns nil `items` (no contribution), leaving `toolResults` in place to be re-folded on re-dispatch.
-A `Continue` of a `ChatLoop` thread likewise appends the `items` it is given to the conversation.
+A `Continue` of a completed `ChatLoop` flow likewise appends the `items` it is given to the conversation.
 
 `FirstLLM` and `NextLLM` are two graph positions sharing one task URL (`CallLLM`). `FirstLLM` is the initial sequential call after `InitChat`; `NextLLM` is the fan-in nexus that closes each per-round tool cohort. The split is forced by the lineage validator: a fan-in target requires a stack frame to pop, so the initial entry (which has no frame) cannot also be the fan-in. Both nodes dispatch to the same task; the foreman runs `CallLLM` once at each visit. See `exampleservices/creditflow` for the same pattern (the `ReviewJoin` / `ReviewCredit` split).
 
@@ -186,9 +186,10 @@ and is not retried.
 `retryAfter` error, `CallLLM` arms `flow.Retry` with the wait carried in the initial delay (multiplier
 1.0, no cap - a rate limit is a known-reset condition, not something to exponentially back off). The
 horizon is `frame.Of(ctx).TimeBudget()` - the task's own time budget, read from the inbound frame, *not*
-a config. So a rate-limited turn rides out only as long as the step is worth running; `flow.Retry`'s
-next-delay give-up fails fast the moment a wait would overshoot the budget (e.g. a `retryAfter` longer
-than the remaining budget never parks). There is **no** rate-limit retry config - the budget is the one
+a config. `flow.Retry`'s `giveUpAfter` bounds the total of the waits it has asked for, not the time since the
+step was created, so the turn retries while the waits add up to at most one budget and gives up the moment the
+next wait would overshoot it (a `retryAfter` longer than the budget never parks). Time the step spends queued or
+running does not count. There is **no** rate-limit retry config - the budget is the one
 knob, and it is the same one that already says "how long is this task worth."
 
 **Long-term retry is the caller's.** A patient, no-HITL workload (e.g. async document extraction) that

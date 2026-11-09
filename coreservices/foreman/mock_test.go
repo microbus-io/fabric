@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/fabric/connector"
@@ -138,14 +139,25 @@ func TestForeman_Mock(t *testing.T) {
 		assert.NoError(err)
 	})
 
-	t.Run("list", func(t *testing.T) { // MARKER: List
+	t.Run("list_open", func(t *testing.T) { // MARKER: ListOpen
 		assert := testarossa.For(t)
 
-		mock.MockList(func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, nextCursor string, err error) {
+		mock.MockListOpen(func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) {
 			return
 		})
 		var query foremanapi.Query
-		_, _, err := mock.List(ctx, query)
+		_, err := mock.ListOpen(ctx, query)
+		assert.NoError(err)
+	})
+
+	t.Run("list_closed", func(t *testing.T) { // MARKER: ListClosed
+		assert := testarossa.For(t)
+
+		mock.MockListClosed(func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) {
+			return
+		})
+		var query foremanapi.Query
+		_, err := mock.ListClosed(ctx, query)
 		assert.NoError(err)
 	})
 
@@ -163,11 +175,22 @@ func TestForeman_Mock(t *testing.T) {
 	t.Run("purge", func(t *testing.T) { // MARKER: Purge
 		assert := testarossa.For(t)
 
-		mock.MockPurge(func(ctx context.Context, query foremanapi.Query) (deleted int, err error) {
+		mock.MockPurge(func(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error) {
 			return
 		})
 		var query foremanapi.Query
-		_, err := mock.Purge(ctx, query)
+		_, _, err := mock.Purge(ctx, query)
+		assert.NoError(err)
+	})
+
+	t.Run("purge_before", func(t *testing.T) { // MARKER: PurgeBefore
+		assert := testarossa.For(t)
+
+		mock.MockPurgeBefore(func(ctx context.Context, before time.Time) (err error) {
+			return
+		})
+		var before time.Time
+		err := mock.PurgeBefore(ctx, before)
 		assert.NoError(err)
 	})
 
@@ -219,12 +242,12 @@ func TestForeman_Mock(t *testing.T) {
 	t.Run("continue", func(t *testing.T) { // MARKER: Continue
 		assert := testarossa.For(t)
 
-		mock.MockContinue(func(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error) {
+		mock.MockContinue(func(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error) {
 			return
 		})
-		var threadKey string
+		var flowKey string
 		var additionalState any
-		_, err := mock.Continue(ctx, threadKey, additionalState)
+		_, err := mock.Continue(ctx, flowKey, additionalState)
 		assert.NoError(err)
 	})
 

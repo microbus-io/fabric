@@ -294,7 +294,7 @@ func (svc *Mock) MockIdentityVerification(handler func(ctx context.Context, flow
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
 		var f workflow.Flow
-		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&f)); err != nil {
 			return errors.Trace(err)
 		}
 		var in creditflowapi.IdentityVerificationIn
@@ -308,7 +308,7 @@ func (svc *Mock) MockIdentityVerification(handler func(ctx context.Context, flow
 			return errors.Trace(err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		return json.NewEncoder(w).Encode(&f)
+		return json.NewEncoder(w).Encode(workflow.ResultCarrier(&f))
 	},
 		sub.At("POST", mockRoute),
 		sub.Task(creditflowapi.IdentityVerificationIn{}, creditflowapi.IdentityVerificationOut{}),
@@ -349,7 +349,7 @@ func (svc *Mock) MockCreditApproval(handler func(ctx context.Context, flow *work
 	}
 	err := svc.Subscribe(mockName, func(w http.ResponseWriter, r *http.Request) error {
 		var f workflow.Flow
-		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&f)); err != nil {
 			return errors.Trace(err)
 		}
 		var in creditflowapi.CreditApprovalIn
@@ -375,7 +375,7 @@ func (svc *Mock) MockCreditApproval(handler func(ctx context.Context, flow *work
 			return errors.Trace(err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		return json.NewEncoder(w).Encode(&f)
+		return json.NewEncoder(w).Encode(workflow.ResultCarrier(&f))
 	},
 		sub.At("POST", mockRoute),
 		sub.Task(creditflowapi.CreditApprovalIn{}, creditflowapi.CreditApprovalOut{}),

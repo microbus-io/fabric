@@ -363,10 +363,10 @@ func (svc *Service) CallLLM(ctx context.Context, flow *workflow.Flow, provider s
 		// status code. Re-dispatch this step after exactly that wait. The wait goes in Retry's initialDelay with
 		// multiplier 1.0 and no per-interval cap, so every attempt waits exactly retryAfter with no exponential
 		// growth on top (rate limits are a known-reset condition). Any error without a retryAfter is permanent and
-		// fails the step. The horizon is the task's own time budget (read from the inbound frame): keep retrying
-		// only as long as this CallLLM step is worth running, so a misclassified-permanent or poison 429 cannot
-		// loop forever. A caller needing longer-than-budget patience owns the retry itself (see Chat, which returns
-		// its accumulated items on error so the caller can resume rather than restart).
+		// fails the step. The horizon is the task's own time budget (read from the inbound frame): the waits may add
+		// up to at most that budget, so a misclassified-permanent or poison 429 cannot loop forever. A caller needing
+		// longer-than-budget patience owns the retry itself (see Chat, which returns its accumulated items on error
+		// so the caller can resume rather than restart).
 		if wait, retryable := llmapi.RetryAfter(err); retryable {
 			if wait <= 0 {
 				wait = time.Minute // provider marked it retryable but sent a malformed or non-positive retryAfter
@@ -424,7 +424,7 @@ func (svc *Service) ProcessResponse(ctx context.Context, flow *workflow.Flow, pe
 	done := len(pendingToolCalls) == 0 || toolRounds >= maxToolRounds
 	if done {
 		toolsRequested = false
-		// Strip in-loop scratch so the flow's final_state contains only the
+		// Strip in-loop scratch so the flow's final state contains only the
 		// declared ChatLoopOut surface (`items`, `usage`). This matters when
 		// ChatLoop runs as a subgraph or feeds Continue: state crosses the
 		// boundary unfiltered, and these fields would otherwise pollute the
@@ -481,7 +481,7 @@ func (svc *Service) ExecuteTool(ctx context.Context, flow *workflow.Flow, curren
 	}
 
 	// Workflow tools are executed as dynamic subgraphs. flow.Subgraph parks the step on the first
-	// call (yield) and returns the child's final_state on re-entry.
+	// call (yield) and returns the child's final state on re-entry.
 	if def.Type == "workflow" {
 		inputState := make(map[string]any)
 		if currentTool.Arguments != nil {
@@ -497,7 +497,7 @@ func (svc *Service) ExecuteTool(ctx context.Context, flow *workflow.Flow, curren
 			return nil, nil // parked, child workflow running; counted on re-entry
 		}
 		svc.IncrementToolCalls(ctx, 1, def.URL, def.Type, "ok")
-		// Re-entry: the child's final_state is the tool result. Return a single-element delta that the
+		// Re-entry: the child's final state is the tool result. Return a single-element delta that the
 		// fan-in appends into the `toolResults` state key (Append-reduced).
 		childOutput := out
 		if len(childOutput) == 0 {

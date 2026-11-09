@@ -7,6 +7,7 @@ import (
 	"iter"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/microbus-io/dwarf/workflow"
 	"github.com/microbus-io/errors"
@@ -131,7 +132,7 @@ func marshalPublish(ctx context.Context, svc service.Publisher, opts []pub.Optio
 	}
 }
 
-// Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step. Set Opts.ThreadKey to join an existing thread; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
+// Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
 func (_c Client) Create(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (flowKey string, err error) { // MARKER: Create
 	_in := CreateIn{WorkflowURL: workflowURL, InitialState: initialState, Opts: opts}
 	_out := CreateOut{}
@@ -148,7 +149,7 @@ func (_res *CreateResponse) Get() (flowKey string, err error) { // MARKER: Creat
 	return _d.FlowKey, _res.err
 }
 
-// Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step. Set Opts.ThreadKey to join an existing thread; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
+// Create creates a flow for a workflow and immediately runs it, returning the running flow's key. There is no separate start step; for a deferred start, have the entry task call flow.Interrupt and Resume it when ready.
 func (_c MulticastClient) Create(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) iter.Seq[*CreateResponse] { // MARKER: Create
 	_in := CreateIn{WorkflowURL: workflowURL, InitialState: initialState, Opts: opts}
 	_out := CreateOut{}
@@ -425,40 +426,73 @@ func (_c MulticastClient) Step(ctx context.Context, stepKey string) iter.Seq[*St
 	}
 }
 
-// List queries flows by status or workflow URL. Set Query.Cursor to the previous call's NextCursor to paginate.
-func (_c Client) List(ctx context.Context, query Query) (flows []FlowSummary, nextCursor string, err error) { // MARKER: List
-	_in := ListIn{Query: query}
-	_out := ListOut{}
-	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, List.Method, List.Route, &_in, &_out)
-	return _out.Flows, _out.NextCursor, err // No trace
+// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
+func (_c Client) ListOpen(ctx context.Context, query Query) (flows []FlowSummary, err error) { // MARKER: ListOpen
+	_in := ListOpenIn{Query: query}
+	_out := ListOpenOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, ListOpen.Method, ListOpen.Route, &_in, &_out)
+	return _out.Flows, err // No trace
 }
 
-// ListResponse packs the response of List.
-type ListResponse multicastResponse // MARKER: List
+// ListOpenResponse packs the response of ListOpen.
+type ListOpenResponse multicastResponse // MARKER: ListOpen
 
-// Get unpacks the return arguments of List.
-func (_res *ListResponse) Get() (flows []FlowSummary, nextCursor string, err error) { // MARKER: List
-	_d := _res.data.(*ListOut)
-	return _d.Flows, _d.NextCursor, _res.err
+// Get unpacks the return arguments of ListOpen.
+func (_res *ListOpenResponse) Get() (flows []FlowSummary, err error) { // MARKER: ListOpen
+	_d := _res.data.(*ListOpenOut)
+	return _d.Flows, _res.err
 }
 
-// List queries flows by status or workflow URL. Set Query.Cursor to the previous call's NextCursor to paginate.
-func (_c MulticastClient) List(ctx context.Context, query Query) iter.Seq[*ListResponse] { // MARKER: List
-	_in := ListIn{Query: query}
-	_out := ListOut{}
-	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, List.Method, List.Route, &_in, &_out)
-	return func(yield func(*ListResponse) bool) {
+// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
+func (_c MulticastClient) ListOpen(ctx context.Context, query Query) iter.Seq[*ListOpenResponse] { // MARKER: ListOpen
+	_in := ListOpenIn{Query: query}
+	_out := ListOpenOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, ListOpen.Method, ListOpen.Route, &_in, &_out)
+	return func(yield func(*ListOpenResponse) bool) {
 		for _r := range _queue {
 			_clone := _out
 			_r.data = &_clone
-			if !yield((*ListResponse)(_r)) {
+			if !yield((*ListOpenResponse)(_r)) {
 				return
 			}
 		}
 	}
 }
 
-// Delete removes a flow and its steps from the database. The flow must not be running. Subgraph and thread lineage references become dangling.
+// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+func (_c Client) ListClosed(ctx context.Context, query Query) (flows []FlowSummary, err error) { // MARKER: ListClosed
+	_in := ListClosedIn{Query: query}
+	_out := ListClosedOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, ListClosed.Method, ListClosed.Route, &_in, &_out)
+	return _out.Flows, err // No trace
+}
+
+// ListClosedResponse packs the response of ListClosed.
+type ListClosedResponse multicastResponse // MARKER: ListClosed
+
+// Get unpacks the return arguments of ListClosed.
+func (_res *ListClosedResponse) Get() (flows []FlowSummary, err error) { // MARKER: ListClosed
+	_d := _res.data.(*ListClosedOut)
+	return _d.Flows, _res.err
+}
+
+// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+func (_c MulticastClient) ListClosed(ctx context.Context, query Query) iter.Seq[*ListClosedResponse] { // MARKER: ListClosed
+	_in := ListClosedIn{Query: query}
+	_out := ListClosedOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, ListClosed.Method, ListClosed.Route, &_in, &_out)
+	return func(yield func(*ListClosedResponse) bool) {
+		for _r := range _queue {
+			_clone := _out
+			_r.data = &_clone
+			if !yield((*ListClosedResponse)(_r)) {
+				return
+			}
+		}
+	}
+}
+
+// Delete removes a closed flow and its subgraphs. An open flow is a 409: Terminate it first.
 func (_c Client) Delete(ctx context.Context, flowKey string) (err error) { // MARKER: Delete
 	_in := DeleteIn{FlowKey: flowKey}
 	_out := DeleteOut{}
@@ -474,7 +508,7 @@ func (_res *DeleteResponse) Get() (err error) { // MARKER: Delete
 	return _res.err
 }
 
-// Delete removes a flow and its steps from the database. The flow must not be running. Subgraph and thread lineage references become dangling.
+// Delete removes a closed flow and its subgraphs. An open flow is a 409: Terminate it first.
 func (_c MulticastClient) Delete(ctx context.Context, flowKey string) iter.Seq[*DeleteResponse] { // MARKER: Delete
 	_in := DeleteIn{FlowKey: flowKey}
 	_out := DeleteOut{}
@@ -490,24 +524,24 @@ func (_c MulticastClient) Delete(ctx context.Context, flowKey string) iter.Seq[*
 	}
 }
 
-// Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
-func (_c Client) Purge(ctx context.Context, query Query) (deleted int, err error) { // MARKER: Purge
+// Purge removes the closed flows that ListClosed lists for the query, and their subgraphs, oldest archived first. Query.Limit, Query.FromTime and Query.ToTime are required, and Limit caps the flows removed per call. Call it until done is true. Open flows are never touched.
+func (_c Client) Purge(ctx context.Context, query Query) (removed int, done bool, err error) { // MARKER: Purge
 	_in := PurgeIn{Query: query}
 	_out := PurgeOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Purge.Method, Purge.Route, &_in, &_out)
-	return _out.Deleted, err // No trace
+	return _out.Removed, _out.Done, err // No trace
 }
 
 // PurgeResponse packs the response of Purge.
 type PurgeResponse multicastResponse // MARKER: Purge
 
 // Get unpacks the return arguments of Purge.
-func (_res *PurgeResponse) Get() (deleted int, err error) { // MARKER: Purge
+func (_res *PurgeResponse) Get() (removed int, done bool, err error) { // MARKER: Purge
 	_d := _res.data.(*PurgeOut)
-	return _d.Deleted, _res.err
+	return _d.Removed, _d.Done, _res.err
 }
 
-// Purge deletes flows matching the query, except those currently running. The query must set at least one filter. Capped at 4096 flows per call.
+// Purge removes the closed flows that ListClosed lists for the query, and their subgraphs, oldest archived first. Query.Limit, Query.FromTime and Query.ToTime are required, and Limit caps the flows removed per call. Call it until done is true. Open flows are never touched.
 func (_c MulticastClient) Purge(ctx context.Context, query Query) iter.Seq[*PurgeResponse] { // MARKER: Purge
 	_in := PurgeIn{Query: query}
 	_out := PurgeOut{}
@@ -517,6 +551,38 @@ func (_c MulticastClient) Purge(ctx context.Context, query Query) iter.Seq[*Purg
 			_clone := _out
 			_r.data = &_clone
 			if !yield((*PurgeResponse)(_r)) {
+				return
+			}
+		}
+	}
+}
+
+// PurgeBefore drops the archive's records of every UTC day before the one containing the given time, on every shard, whatever the retention. A time after today is a 400.
+func (_c Client) PurgeBefore(ctx context.Context, before time.Time) (err error) { // MARKER: PurgeBefore
+	_in := PurgeBeforeIn{Before: before}
+	_out := PurgeBeforeOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, PurgeBefore.Method, PurgeBefore.Route, &_in, &_out)
+	return err // No trace
+}
+
+// PurgeBeforeResponse packs the response of PurgeBefore.
+type PurgeBeforeResponse multicastResponse // MARKER: PurgeBefore
+
+// Get unpacks the return arguments of PurgeBefore.
+func (_res *PurgeBeforeResponse) Get() (err error) { // MARKER: PurgeBefore
+	return _res.err
+}
+
+// PurgeBefore drops the archive's records of every UTC day before the one containing the given time, on every shard, whatever the retention. A time after today is a 400.
+func (_c MulticastClient) PurgeBefore(ctx context.Context, before time.Time) iter.Seq[*PurgeBeforeResponse] { // MARKER: PurgeBefore
+	_in := PurgeBeforeIn{Before: before}
+	_out := PurgeBeforeOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, PurgeBefore.Method, PurgeBefore.Route, &_in, &_out)
+	return func(yield func(*PurgeBeforeResponse) bool) {
+		for _r := range _queue {
+			_clone := _out
+			_r.data = &_clone
+			if !yield((*PurgeBeforeResponse)(_r)) {
 				return
 			}
 		}
@@ -659,9 +725,9 @@ func (_c MulticastClient) Run(ctx context.Context, workflowURL string, initialSt
 	}
 }
 
-// Continue creates a new running flow from the latest completed flow in a thread, merged with additional state using the graph's reducers. The threadKey can be any flowKey belonging to the thread. The new flow belongs to the same thread and inherits its policy (priority/fairness/budget/baggage); use Create with Opts.ThreadKey to set policy explicitly instead.
-func (_c Client) Continue(ctx context.Context, threadKey string, additionalState any) (newFlowKey string, err error) { // MARKER: Continue
-	_in := ContinueIn{ThreadKey: threadKey, AdditionalState: additionalState}
+// Continue creates a new running flow from the completed root flow that flowKey names, starting from its final state with additional state folded in through the graph's reducers. The new flow inherits its policy (priority/fairness/budget/baggage); use Create with the final state from Snapshot to set policy explicitly instead. Continuing one flow twice makes two flows, so a caller keeping a chain continues the key the last Continue returned. A flow that is not completed is a 409.
+func (_c Client) Continue(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error) { // MARKER: Continue
+	_in := ContinueIn{FlowKey: flowKey, AdditionalState: additionalState}
 	_out := ContinueOut{}
 	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Continue.Method, Continue.Route, &_in, &_out)
 	return _out.NewFlowKey, err // No trace
@@ -676,9 +742,9 @@ func (_res *ContinueResponse) Get() (newFlowKey string, err error) { // MARKER: 
 	return _d.NewFlowKey, _res.err
 }
 
-// Continue creates a new running flow from the latest completed flow in a thread, merged with additional state using the graph's reducers. The threadKey can be any flowKey belonging to the thread. The new flow belongs to the same thread and inherits its policy (priority/fairness/budget/baggage); use Create with Opts.ThreadKey to set policy explicitly instead.
-func (_c MulticastClient) Continue(ctx context.Context, threadKey string, additionalState any) iter.Seq[*ContinueResponse] { // MARKER: Continue
-	_in := ContinueIn{ThreadKey: threadKey, AdditionalState: additionalState}
+// Continue creates a new running flow from the completed root flow that flowKey names, starting from its final state with additional state folded in through the graph's reducers. The new flow inherits its policy (priority/fairness/budget/baggage); use Create with the final state from Snapshot to set policy explicitly instead. Continuing one flow twice makes two flows, so a caller keeping a chain continues the key the last Continue returned. A flow that is not completed is a 409.
+func (_c MulticastClient) Continue(ctx context.Context, flowKey string, additionalState any) iter.Seq[*ContinueResponse] { // MARKER: Continue
+	_in := ContinueIn{FlowKey: flowKey, AdditionalState: additionalState}
 	_out := ContinueOut{}
 	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Continue.Method, Continue.Route, &_in, &_out)
 	return func(yield func(*ContinueResponse) bool) {

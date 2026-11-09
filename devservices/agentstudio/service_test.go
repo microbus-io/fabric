@@ -19,6 +19,7 @@ import (
 	"github.com/microbus-io/fabric/sub"
 	"github.com/microbus-io/testarossa"
 
+	"github.com/microbus-io/fabric/coreservices/foreman"
 	"github.com/microbus-io/fabric/devservices/agentstudio/agentstudioapi"
 )
 
@@ -44,7 +45,6 @@ var (
 func TestAgentStudio_ListFlows(t *testing.T) { // MARKER: ListFlows
 	t.Parallel()
 	ctx := t.Context()
-	_ = ctx
 
 	// Initialize the microservice under test
 	svc := NewService()
@@ -52,29 +52,28 @@ func TestAgentStudio_ListFlows(t *testing.T) { // MARKER: ListFlows
 	// Initialize the tester client
 	tester := connector.New("tester.client")
 	client := agentstudioapi.NewClient(tester)
-	_ = client
 
 	// Run the testing app
 	app := application.New()
 	app.Add(
-		// HINT: Add microservices or mocks required for this test
 		svc,
+		foreman.NewService(),
 		tester,
 	)
 	app.RunInTest(t)
 
-	/*
-		HINT: Fill in test cases using the following pattern
-
-		t.Run("test_case_name", func(t *testing.T) {
+	for _, query := range []string{"", "?flows=open&status=interrupted", "?flows=closed", "?flows=closed&window=30d&status=failed"} {
+		t.Run("tab"+query, func(t *testing.T) {
 			assert := testarossa.For(t)
-
-			res, err := client.ListFlows(ctx, "GET", "", nil)
+			res, err := client.ListFlows(ctx, "GET", query, nil)
 			if assert.NoError(err) {
 				assert.Expect(res.StatusCode, http.StatusOK)
+				body, _ := io.ReadAll(res.Body)
+				assert.Contains(string(body), "Open")
+				assert.Contains(string(body), "Closed")
 			}
 		})
-	*/
+	}
 }
 
 func TestAgentStudio_FlowDetail(t *testing.T) { // MARKER: FlowDetail

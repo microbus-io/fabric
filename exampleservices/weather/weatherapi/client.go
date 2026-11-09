@@ -216,7 +216,7 @@ func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, 
 		return errors.Trace(err)
 	}
 	flow.SetRawState(state)
-	body, err := json.Marshal(flow)
+	body, err := json.Marshal(workflow.RequestCarrier(&flow.Flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -232,10 +232,16 @@ func marshalTask(ctx context.Context, svc service.Publisher, opts []pub.Option, 
 	if err != nil {
 		return err // No trace
 	}
-	err = json.NewDecoder(httpRes.Body).Decode(flow)
+	err = json.NewDecoder(httpRes.Body).Decode(workflow.ResultCarrier(&flow.Flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// The result carries the task's changes, not its state, so apply them to the state that was sent
+	err = state.Apply(flow.RawChanges(), nil)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	flow.SetRawState(state)
 	if outFlow != nil {
 		*outFlow = flow.Flow
 	}

@@ -220,7 +220,7 @@ func (svc *Intermediate) doTurn(w http.ResponseWriter, r *http.Request) (err err
 // doInitChat handles marshaling for InitChat.
 func (svc *Intermediate) doInitChat(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: InitChat
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -237,7 +237,7 @@ func (svc *Intermediate) doInitChat(w http.ResponseWriter, r *http.Request) (err
 		return err // No trace
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -247,7 +247,7 @@ func (svc *Intermediate) doInitChat(w http.ResponseWriter, r *http.Request) (err
 // doCallLLM handles marshaling for CallLLM.
 func (svc *Intermediate) doCallLLM(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: CallLLM
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -277,7 +277,7 @@ func (svc *Intermediate) doCallLLM(w http.ResponseWriter, r *http.Request) (err 
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -287,7 +287,7 @@ func (svc *Intermediate) doCallLLM(w http.ResponseWriter, r *http.Request) (err 
 // doProcessResponse handles marshaling for ProcessResponse.
 func (svc *Intermediate) doProcessResponse(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ProcessResponse
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -317,7 +317,7 @@ func (svc *Intermediate) doProcessResponse(w http.ResponseWriter, r *http.Reques
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -327,7 +327,7 @@ func (svc *Intermediate) doProcessResponse(w http.ResponseWriter, r *http.Reques
 // doExecuteTool handles marshaling for ExecuteTool.
 func (svc *Intermediate) doExecuteTool(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ExecuteTool
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -349,7 +349,7 @@ func (svc *Intermediate) doExecuteTool(w http.ResponseWriter, r *http.Request) (
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}

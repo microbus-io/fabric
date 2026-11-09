@@ -22,6 +22,7 @@ import (
 	bespa "github.com/microbus-io/bespa"
 	"github.com/microbus-io/bespa/chart"
 	"github.com/microbus-io/bespa/mermaid"
+	"github.com/microbus-io/bespa/table"
 	"github.com/microbus-io/bespa/widget"
 
 	"github.com/microbus-io/fabric/devservices/agentstudio/agentstudioapi"
@@ -349,13 +350,23 @@ Dashboard renders an HTML page with operator dashboards for flows and workflows.
 func (svc *Service) Dashboard(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Dashboard
 	window := dashboardWindow(wf.StateOf(r).Get("window"))
 
-	flows, _, err := svc.foreman.List(r.Context(), foremanapi.Query{
-		NewerThan: window,
-		Limit:     500,
+	now := time.Now()
+	flows, err := svc.foreman.ListOpen(r.Context(), foremanapi.Query{
+		FromTime: now.Add(-window),
+		Limit:    500,
 	})
 	if err != nil {
 		return errors.Trace(err)
 	}
+	closed, err := svc.foreman.ListClosed(r.Context(), foremanapi.Query{
+		FromTime: now.Add(-window),
+		ToTime:   now,
+		Limit:    500,
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+	flows = append(flows, closed...)
 
 	// Bound the History fan-out so a busy environment doesn't blow up the page.
 	histFlows := flows
@@ -402,41 +413,140 @@ func (svc *Service) Dashboard(w http.ResponseWriter, r *http.Request) (err error
 }
 
 /*
-ListFlows renders an HTML page with a paginated, sortable table of flows.
+ListFlows renders an HTML page with two tabs of flows: the open flows, and the closed flows archived within a window.
 */
 func (svc *Service) ListFlows(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ListFlows
-	tbl := wf.Table().
-		WithDefaultPageRows(r, 25).
-		Add(
-			wf.Col("wx", 14, "left").Add("Created"),
-			wf.Col("n", 8, "left").Add("Created"),
-			wf.Col("nwx", 28, "left").Add("Flow"),
-			wf.Col("wx", 22, "left").Add("Status"),
-			wf.Col("nwx", 10, "right").Add("Duration"),
-			wf.Col("x", 22, "left").Add("Error / stop reason"),
-		)
+	tab := wf.StateOf(r).Get("flows")
+	var openBody, closedBody any
+	if tab == "closed" {
+		closedBody, err = svc.closedFlowsBody(r)
+	} else {
+		openBody, err = svc.openFlowsBody(r)
+	}
+	if err != nil {
+		return errors.Trace(err)
+	}
+	tabs := wf.TabSwitcher().WithName("flows").WithDynamic(true).AddLeft(
+		wf.TabLabel("open").Add("Open"),
+		wf.TabLabel("closed").Add("Closed"),
+		wf.TabBody("open").Add(openBody),
+		wf.TabBody("closed").Add(closedBody),
+	)
+	page := wf.Page().Add(
+		wf.AppBar("Flows"),
+		svc.navBar(r),
+		tabs,
+	)
+	return page.Draw(w, r)
+}
 
+// openFlowsBody renders the Open tab of the flows page: the running and interrupted flows.
+func (svc *Service) openFlowsBody(r *http.Request) (any, error) {
 	statusFilter := wf.StateOf(r).Get("status")
+	if statusFilter != workflow.StatusRunning && statusFilter != workflow.StatusInterrupted {
+		statusFilter = ""
+	}
 	statusDropdown := wf.Dropdown("status", statusFilter).WithAutoSubmit(true).
 		AddOption("", "All statuses").
-		AddOption(workflow.StatusPending, workflow.StatusPending).
 		AddOption(workflow.StatusRunning, workflow.StatusRunning).
-		AddOption(workflow.StatusInterrupted, workflow.StatusInterrupted).
-		AddOption(workflow.StatusCompleted, workflow.StatusCompleted).
-		AddOption(workflow.StatusFailed, workflow.StatusFailed).
-		AddOption(workflow.StatusTerminated, workflow.StatusTerminated).
-		AddOption(workflow.StatusCancelled, workflow.StatusCancelled)
+		AddOption(workflow.StatusInterrupted, workflow.StatusInterrupted)
 
-	flows, _, err := svc.foreman.List(r.Context(), foremanapi.Query{
+	tbl := flowsTable(r, "Updated")
+	flows, err := svc.foreman.ListOpen(r.Context(), foremanapi.Query{
 		WorkflowURL: strings.TrimSpace(r.URL.Query().Get("workflow")),
 		Status:      statusFilter,
 		Search:      strings.TrimSpace(tbl.Query(r)),
 		Limit:       listLimit,
 	})
 	if err != nil {
-		return errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
+	svc.addFlowRows(r, tbl, flows, func(f foremanapi.FlowSummary) time.Time { return f.UpdatedAt })
+	return wf.Collection(
+		wf.Toolbar().
+			AddLeft(wf.QuickSearch(), statusDropdown).
+			AddRight(wf.Paginator()).
+			RedrawIfChanged(r, "status"),
+		tbl.RedrawIfChanged(r, "status"),
+		wf.Toolbar().AddLeft(wf.PageSizer()).RedrawIfChanged(r, "status"),
+	), nil
+}
 
+// closedFlowsBody renders the Closed tab of the flows page: the flows archived within the selected window.
+func (svc *Service) closedFlowsBody(r *http.Request) (any, error) {
+	statusFilter := wf.StateOf(r).Get("status")
+	if !workflow.IsTerminalStatus(statusFilter) {
+		statusFilter = ""
+	}
+	statusDropdown := wf.Dropdown("status", statusFilter).WithAutoSubmit(true).
+		AddOption("", "All statuses").
+		AddOption(workflow.StatusCompleted, workflow.StatusCompleted).
+		AddOption(workflow.StatusFailed, workflow.StatusFailed).
+		AddOption(workflow.StatusTerminated, workflow.StatusTerminated).
+		AddOption(workflow.StatusCancelled, workflow.StatusCancelled)
+
+	windowKey := wf.StateOf(r).Get("window")
+	window, ok := closedFlowsWindows[windowKey]
+	if !ok {
+		windowKey = "24h"
+		window = closedFlowsWindows[windowKey]
+	}
+	windowDropdown := wf.Dropdown("window", windowKey).WithAutoSubmit(true).WithRequired(true).
+		AddOption("8h", "Last 8 hours").
+		AddOption("24h", "Last 24 hours").
+		AddOption("7d", "Last 7 days").
+		AddOption("30d", "Last 30 days")
+
+	tbl := flowsTable(r, "Archived")
+	now := time.Now()
+	flows, err := svc.foreman.ListClosed(r.Context(), foremanapi.Query{
+		WorkflowURL: strings.TrimSpace(r.URL.Query().Get("workflow")),
+		Status:      statusFilter,
+		Search:      strings.TrimSpace(tbl.Query(r)),
+		FromTime:    now.Add(-window),
+		ToTime:      now,
+		Limit:       listLimit,
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	svc.addFlowRows(r, tbl, flows, func(f foremanapi.FlowSummary) time.Time { return f.ArchivedAt })
+	return wf.Collection(
+		wf.Toolbar().
+			AddLeft(wf.QuickSearch(), statusDropdown, windowDropdown).
+			AddRight(wf.Paginator()).
+			RedrawIfChanged(r, "status", "window"),
+		tbl.RedrawIfChanged(r, "status", "window"),
+		wf.Toolbar().AddLeft(wf.PageSizer()).RedrawIfChanged(r, "status", "window"),
+	), nil
+}
+
+// closedFlowsWindows are the windows the Closed tab of the flows page offers, keyed by their dropdown value.
+var closedFlowsWindows = map[string]time.Duration{
+	"8h":  8 * time.Hour,
+	"24h": 24 * time.Hour,
+	"7d":  7 * 24 * time.Hour,
+	"30d": 30 * 24 * time.Hour,
+}
+
+// flowsTable returns an empty table of flows whose first column shows the time labeled timeLabel.
+func flowsTable(r *http.Request, timeLabel string) *table.TableWidget {
+	return wf.Table().
+		WithDefaultPageRows(r, 25).
+		Add(
+			wf.Col("wx", 14, "left").Add(timeLabel),
+			wf.Col("n", 8, "left").Add(timeLabel),
+			wf.Col("nwx", 28, "left").Add("Flow"),
+			wf.Col("wx", 22, "left").Add("Status"),
+			wf.Col("nwx", 10, "right").Add("Duration"),
+			wf.Col("x", 22, "left").Add("Error / stop reason"),
+		)
+}
+
+// addFlowRows adds the displayed page of flows to tbl, showing the time that at returns in the first column.
+func (svc *Service) addFlowRows(
+	r *http.Request, tbl *table.TableWidget, flows []foremanapi.FlowSummary, at func(foremanapi.FlowSummary) time.Time,
+) {
 	tbl.WithTotalRows(r, len(flows))
 	from, to := tbl.DisplayRange(r)
 	for _, f := range flows[from:to] {
@@ -453,8 +563,8 @@ func (svc *Service) ListFlows(w http.ResponseWriter, r *http.Request) (err error
 			statusCell.Add(" at ", wf.QuickSearchUnderliner(f.StoppedTaskName))
 		}
 		tbl.Add(wf.Row().Add(
-			wf.DateTime(f.CreatedAt),
-			wf.DateOrTime(f.CreatedAt),
+			wf.DateTime(at(f)),
+			wf.DateOrTime(at(f)),
 			wf.Collection(
 				wf.Link(href).Add(wf.QuickSearchUnderliner(f.FlowKey)),
 				wf.HTMLUnsafe("<br>"),
@@ -465,18 +575,6 @@ func (svc *Service) ListFlows(w http.ResponseWriter, r *http.Request) (err error
 			wf.QuickSearchUnderliner(truncate(errCell, 80)),
 		))
 	}
-
-	page := wf.Page().Add(
-		wf.AppBar("Flows"),
-		svc.navBar(r),
-		wf.Toolbar().
-			AddLeft(wf.QuickSearch(), statusDropdown).
-			AddRight(wf.Paginator()).
-			RedrawIfChanged(r, "status"),
-		tbl.RedrawIfChanged(r, "status"),
-		wf.Toolbar().AddLeft(wf.PageSizer()).RedrawIfChanged(r, "status"),
-	)
-	return page.Draw(w, r)
 }
 
 /*
@@ -747,7 +845,7 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 		RedrawIfChanged(r, "flowrefresh"))
 	appBar.AddRight(wf.ButtonText("continue").
 		WithHref("?continue=1").
-		WithDisabled(!svc.threadIsContinuable(r, flowKey)).
+		WithDisabled(currentStatus != workflow.StatusCompleted).
 		Add(wf.Icon("play_arrow"), "Continue").
 		HideIf(terminable(currentStatus)).
 		RedrawIfChanged(r, "flowrefresh"))
@@ -1005,12 +1103,12 @@ func (svc *Service) RunWorkflow(w http.ResponseWriter, r *http.Request) (err err
 }
 
 /*
-ContinueFlow renders a form to continue a completed flow's thread with additional state.
+ContinueFlow renders a form to continue a completed flow with additional state.
 */
 func (svc *Service) ContinueFlow(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ContinueFlow
 	state := wf.StateOf(r)
-	threadKey := strings.TrimSpace(state.Get("flow"))
-	if threadKey == "" {
+	flowKey := strings.TrimSpace(state.Get("flow"))
+	if flowKey == "" {
 		return errors.New("flow is required", http.StatusBadRequest)
 	}
 
@@ -1034,7 +1132,7 @@ func (svc *Service) ContinueFlow(w http.ResponseWriter, r *http.Request) (err er
 		if parseErr != nil {
 			errMsg = parseErr.Error()
 		} else {
-			newFlowKey, contErr := svc.foreman.Continue(r.Context(), threadKey, additionalState)
+			newFlowKey, contErr := svc.foreman.Continue(r.Context(), flowKey, additionalState)
 			if contErr == nil {
 				wf.Redirect(w, r, "~/"+Hostname+"/flows/"+url.PathEscape(newFlowKey))
 				return nil

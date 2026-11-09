@@ -185,7 +185,7 @@ func (svc *Intermediate) doAsk(w http.ResponseWriter, r *http.Request) (err erro
 // doAnswer handles marshaling for Answer.
 func (svc *Intermediate) doAnswer(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Answer
 	var flow workflow.Flow
-	err = json.NewDecoder(r.Body).Decode(&flow)
+	err = json.NewDecoder(r.Body).Decode(workflow.RequestCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -207,7 +207,7 @@ func (svc *Intermediate) doAnswer(w http.ResponseWriter, r *http.Request) (err e
 		return errors.Trace(err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&flow)
+	err = json.NewEncoder(w).Encode(workflow.ResultCarrier(&flow))
 	if err != nil {
 		return errors.Trace(err)
 	}

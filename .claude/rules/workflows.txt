@@ -261,9 +261,9 @@ if yield {
     return nil          // first pass: parked, child running
 }
 if err != nil {
-    // Child failed. The task may inspect err and retry, route, or propagate.
-    if errors.StatusCode(err) == http.StatusRequestTimeout && flow.Retry(time.Second, 2.0, 30*time.Second, 5*time.Minute) {
-        return nil      // re-arms a fresh child on re-dispatch
+    // The child failed, or could not start. The task may inspect err and retry, route, or propagate.
+    if errors.StatusCode(err) == http.StatusServiceUnavailable && flow.Retry(time.Second, 2.0, 30*time.Second, 5*time.Minute) {
+        return nil      // no microservice serves the graph yet: re-arms a fresh child on re-dispatch
     }
     return errors.Trace(err)
 }
@@ -292,7 +292,9 @@ if yield {
 | **Foreman** | Parks the step | Parks the step and launches the child |
 | **On completion** | `Resume(flowKey, data)` re-dispatches the step | The child's terminal outcome re-dispatches the step |
 | **Re-entry signal** | `yield=false`, the Resume payload in `&resume` | `yield=false`, the child's final state in `&out` (success) or its failure as `err` |
-| **Failure mode** | No child to fail; `err` only for a payload that does not marshal, resume data that does not unmarshal into `&resume`, or a second park in the step | Child failure delivered to parent as `err`; parent decides retry/route/propagate |
+| **Failure mode** | No child to fail; `err` only for a payload that does not marshal, resume data that does not unmarshal into `&resume`, or a second park in the step | A failed child, or one that could not start, delivered to parent as `err`; parent decides retry/route/propagate |
+
+**A child that cannot start comes back as `err`, like a failed one.** When no microservice answers the workflow's URL the error is a 503, a graph that does not exist is a 404, and an invalid graph is a 400; no child flow is created. Returning `err` takes the task's `onError` transition, or fails the step. To wait out a 503, arm `flow.Retry`: the next run's `Subgraph` call starts the child again. Either way the task runs again from the top, so code before its `Subgraph` call runs a second time.
 
 **Re-entry is signaled by the parker's `yield` bool, not by a state field.** Do not invent a `*Out`-suffix flag or a "have I run before" arg - the engine already tracks it and surfaces it as `yield`. The `if yield { return nil }` line is the **before-resume region** and runs on every dispatch (first pass, re-entry, every retry attempt); everything after it is the **after-resume region** and runs once per resolution. Exactly-once side effects (firing an event, charging a card) belong after the guard.
 
@@ -528,8 +530,8 @@ func (svc *Service) PollJobStatus(ctx context.Context, flow *workflow.Flow, jobI
     }
     switch status {
     case "running":
-        // Not done yet - schedule another poll. The give-up horizon bounds total wait.
-        if !flow.Retry(30*time.Second, 1.0, 0, time.Hour) { // poll every 30s, give up after 1h
+        // Not done yet - schedule another poll. The give-up horizon bounds the total backoff.
+        if !flow.Retry(30*time.Second, 1.0, 0, time.Hour) { // poll every 30s, give up after 1h of backoff
             return "", errors.New("job did not complete within poll budget")
         }
         return "", nil // Retry returned true; foreman will re-run this task after the delay.
@@ -541,7 +543,7 @@ func (svc *Service) PollJobStatus(ctx context.Context, flow *workflow.Flow, jobI
 }
 ```
 
-`flow.Retry(initialDelay, delayMultiplier, maxIntervalDelay, giveUpAfter)` is bounded by **wall-clock time, not a count**: it returns true while the next attempt would still land within `giveUpAfter` of the step's creation, and false once the horizon is reached, including when the next delay alone would overshoot it. The delay before attempt N is `min(initialDelay * delayMultiplier^N, maxIntervalDelay)`: a zero `initialDelay` retries immediately, a `delayMultiplier` of 1.0 gives a fixed interval, and a zero `maxIntervalDelay` leaves it uncapped. Pass `giveUpAfter <= 0` for no horizon, and to bound by count instead, pass `0` and gate on `flow.Attempt()`. `Retry` carries no condition of its own, so the task writes the retryable predicate in the surrounding `if`; timeout-only retry is `if errors.StatusCode(err) == http.StatusRequestTimeout && flow.Retry(...)`, since both foreman-side and handler-side timeouts surface as 408.
+`flow.Retry(initialDelay, delayMultiplier, maxIntervalDelay, giveUpAfter)` is bounded by **the total of its backoff delays, not a count and not the time since the step was created**: it returns true while the delays it has asked for, the next one included, add up to at most `giveUpAfter`, and false once they would exceed it. Time the step spends queued, running or sleeping does not count, so a task that wants its run time bounded keeps its own budget. A zero `initialDelay` never reaches the bound, so bound immediate retries by `flow.Attempt()`. The delay before attempt N is `min(initialDelay * delayMultiplier^N, maxIntervalDelay)`: a zero `initialDelay` retries immediately, a `delayMultiplier` of 1.0 gives a fixed interval, and a zero `maxIntervalDelay` leaves it uncapped. Pass `giveUpAfter <= 0` for no horizon, and to bound by count instead, pass `0` and gate on `flow.Attempt()`. `Retry` carries no condition of its own, so the task writes the retryable predicate in the surrounding `if`; timeout-only retry is `if errors.StatusCode(err) == http.StatusRequestTimeout && flow.Retry(...)`, since both foreman-side and handler-side timeouts surface as 408.
 
 A separate "kick off the job" task should run before the polling task in the graph, writing `jobID` into state for the poller to read. The two patterns can be combined: trigger work in one task, then either interrupt-and-resume or poll in a downstream task to await completion.
 
@@ -591,10 +593,11 @@ err = foremanapi.NewClient(svc).Terminate(ctx, flowID, "superseded")
 // Resume an interrupted flow with new data
 err = foremanapi.NewClient(svc).Resume(ctx, flowID, resumeData)
 
-// Continue a thread with new input (multi-turn pattern). Returns a running flow.
-// The threadKey can be any flowKey belonging to the thread; Continue finds the latest completed flow and
-// inherits the thread's policy. It takes no options - use Create with Opts.ThreadKey to set policy explicitly.
-newFlowID, err := foremanapi.NewClient(svc).Continue(ctx, threadKey, additionalState)
+// Continue a completed flow with new input (multi-turn pattern). Returns a new running flow that starts from
+// the completed flow's final state and inherits its policy. The caller keeps the chain: continue the key the
+// last Continue returned. Continuing one flow twice makes two flows, and a flow not completed is a 409.
+// It takes no options - use Create with the final state from Snapshot to set policy explicitly.
+nextFlowID, err := foremanapi.NewClient(svc).Continue(ctx, flowID, additionalState)
 ```
 
 For typed workflow invocation in tests, use the generated `Executor` with a `WorkflowRunner`:
@@ -616,13 +619,12 @@ opts := &workflow.FlowOptions{
     Priority:       1,        // 1 to the foreman MaxPriority config (5 by default), lower runs first; 0 = unset -> the midpoint
     FairnessKey:    "tenant-42", // "" -> derived from the tid/tenant actor claim, else the "" bucket
     FairnessWeight: 2.0,      // relative dispatch share of the fairness key; 0 -> 1
-    ThreadKey:      "",       // a flowKey in an existing thread to join; "" starts a fresh thread
 }
 outcome, err := foremanapi.NewClient(svc).Run(ctx, myworkflowapi.MyWorkflow.URL(), initialState, opts)
 flowID, err := foremanapi.NewClient(svc).Create(ctx, myworkflowapi.MyWorkflow.URL(), initialState, opts)
 ```
 
-`FlowOptions` authors a flow's policy **once at genesis** (`Create`/`Run`). Derived operations inherit it and take no options: `Continue` inherits the **thread's** policy, `Fork` inherits the **origin's**, and subgraphs inherit the **parent's** - choosing a derived operation *is* choosing "inherit." `Create` with `Opts.ThreadKey` is the explicit-policy escape hatch: join an existing thread while setting policy yourself. The foreman owns all defaulting; pass `nil` (or leave a field zero) to take the default. A flow that sets no priority gets the midpoint of the range (3 at the default `MaxPriority` of 5), and `Create`/`Run` reject a priority above `MaxPriority`.
+`FlowOptions` authors a flow's policy **once at genesis** (`Create`/`Run`). Derived operations inherit it and take no options: `Continue` inherits the policy of the flow it continues, `Fork` the **origin's**, and subgraphs the **parent's** - choosing a derived operation *is* choosing "inherit." `Create` with the previous flow's final state (from `Snapshot`) is the explicit-policy escape hatch. The foreman owns all defaulting; pass `nil` (or leave a field zero) to take the default. A flow that sets no priority gets the midpoint of the range (3 at the default `MaxPriority` of 5), and `Create`/`Run` reject a priority above `MaxPriority`.
 
 There is no time-delayed start option. For a deferred start, give the workflow an entry task that calls `flow.Interrupt`; the flow rests as `interrupted` until a `Resume` releases it (the event trigger). `flow.Sleep` inside a task is the in-flow wait.
 
@@ -723,6 +725,16 @@ about to wait, so it (or a step just ahead of it) reports "pending" first.
 
 - `foremanapi.NewClient(svc).History(ctx, flowID)` - step-by-step execution trace with state snapshots and nested subgraph history
 - `foremanapi.NewClient(svc).Fork(ctx, stepKey, stateOverrides)` - clone a terminal flow's prefix up to the chosen step into a new self-contained flow and re-run from there with modified state, inheriting the origin's scheduling/baggage. The original flow is immutable; Fork never mutates it. A terminal flow is recovered only by forking, not by an in-place restart.
+
+## Listing, Retaining and Removing Flows
+
+A flow is **open** while it is running or interrupted, and **closed** once it has completed, failed, been terminated or been cancelled. About a minute after it closes, the foreman archives it, and the archive keeps each day's closed flows for the foreman's `Retention` config (30 days by default) before dropping the day whole. An archived flow still reads by its key (`Snapshot`, `Await`, `History`, `Step`, `Continue`, `Fork`). The foreman's `FlowExpiration` config, off by default, terminates a flow still open that long after its creation.
+
+- `ListOpen(ctx, query)` - the open flows, most recently updated first. `Query.Limit` is required.
+- `ListClosed(ctx, query)` - the archived flows, most recently archived first. `Query.Limit`, `Query.FromTime` and `Query.ToTime` are required, and the window may reach at most 31 days.
+- Neither paginates: each returns the first `Limit` across all shards. A flow that closed in the last minute is in neither list; read it by its key.
+- `Delete(ctx, flowKey)` removes one closed flow; an open flow is a 409, so `Terminate` it first.
+- `Purge(ctx, query)` removes what `ListClosed` lists for the query, at most `Limit` flows a call; call it until `done`. It is for erasing specific records. `PurgeBefore(ctx, t)` drops whole archive days, the cheap way to remove in bulk.
 
 ## Mocking Workflows
 

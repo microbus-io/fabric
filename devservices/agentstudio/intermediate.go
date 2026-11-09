@@ -76,7 +76,7 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Subscribe( // MARKER: ListFlows
 		"ListFlows", svc.ListFlows,
 		sub.At(agentstudioapi.ListFlows.Method, agentstudioapi.ListFlows.Route),
-		sub.Description(`ListFlows renders an HTML page with a paginated, sortable table of flows.`),
+		sub.Description(`ListFlows renders an HTML page with two tabs of flows: the open flows, and the closed flows archived within a window.`),
 		sub.Web(),
 	)
 	svc.Subscribe( // MARKER: FlowDetail
@@ -112,7 +112,7 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Subscribe( // MARKER: ContinueFlow
 		"ContinueFlow", svc.ContinueFlow,
 		sub.At(agentstudioapi.ContinueFlow.Method, agentstudioapi.ContinueFlow.Route),
-		sub.Description(`ContinueFlow renders a form to continue a completed flow's thread with additional state.`),
+		sub.Description(`ContinueFlow renders a form to continue a completed flow with additional state.`),
 		sub.Web(),
 	)
 	svc.Subscribe( // MARKER: ResumeFlow
