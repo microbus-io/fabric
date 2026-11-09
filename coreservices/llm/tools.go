@@ -192,7 +192,7 @@ func operationToTool(toolURL, method string, op *openapi.Operation, doc *openapi
 	switch op.XFeatureType {
 	case openapi.FeatureFunction, openapi.FeatureWeb, openapi.FeatureWorkflow:
 	default:
-		return llmapi.Tool{}, errors.New("unsupported feature type", "type", op.XFeatureType)
+		return llmapi.Tool{}, errors.New("unsupported feature type", "type", op.XFeatureType, http.StatusBadRequest)
 	}
 	name := op.XName
 	if name == "" {

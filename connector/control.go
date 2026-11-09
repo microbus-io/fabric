@@ -82,8 +82,8 @@ func (c *Connector) subscribeControl() (err error) {
 }
 
 // handleOpenAPI renders the OpenAPI 3.1 document for the subscriptions registered with this
-// connector. Filters by subscription type (only function/web/graph appear) and by the caller's
-// actor claims - subscriptions the caller is not authorized to invoke are omitted. Ports are
+// connector. Filters by subscription type (only function, web, workflow and task appear) and by the
+// caller's actor claims - subscriptions the caller is not authorized to invoke are omitted. Ports are
 // preserved on each rendered endpoint; consumers (portal/MCP) apply any port-based filtering
 // at their own ingress boundary. The response is marked private/no-store because its content
 // varies by the caller's claims.
