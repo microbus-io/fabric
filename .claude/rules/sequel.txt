@@ -133,16 +133,16 @@ line. A `-- DRIVER:` line applies to the one statement that follows it.
 
 ```sql
 -- DRIVER: mysql mariadb
-ALTER TABLE person ADD nickname VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE persons ADD nickname VARCHAR(64) NOT NULL DEFAULT '';
 
 -- DRIVER: pgx cockroachdb
-ALTER TABLE person ADD COLUMN nickname VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE persons ADD COLUMN nickname VARCHAR(64) NOT NULL DEFAULT '';
 
 -- DRIVER: mssql
-ALTER TABLE person ADD nickname NVARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE persons ADD nickname NVARCHAR(64) NOT NULL DEFAULT '';
 
 -- DRIVER: sqlite
-ALTER TABLE person ADD COLUMN nickname TEXT NOT NULL DEFAULT '';
+ALTER TABLE persons ADD COLUMN nickname TEXT NOT NULL DEFAULT '';
 ```
 
 ## Writing Queries

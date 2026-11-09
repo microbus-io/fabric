@@ -90,7 +90,7 @@ func (svc *Service) fetchTools(ctx context.Context, toolURLs []string) ([]llmapi
 		doc := docs[info.hostPort]
 		ops, ok := doc.Paths[info.docKey]
 		if !ok {
-			return nil, errors.New("no openapi entry for tool URL", "url", info.raw)
+			return nil, errors.New("no openapi entry for tool URL", "url", info.raw, http.StatusBadRequest)
 		}
 		for method, op := range ops {
 			tool, err := operationToTool(info.raw, method, op, doc)
