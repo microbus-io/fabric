@@ -31,7 +31,7 @@ const Hostname = "llm.core"
 const Name = "LLM"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 17
+const Version = 18
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `The LLM microservice bridges LLM tool-calling protocols with Microbus endpoint invocations.`
@@ -84,7 +84,7 @@ type OnResolveProviderOut struct { // MARKER: OnResolveProvider
 	OK bool `json:"ok,omitzero"`
 }
 
-// Chat sends a conversation to an LLM with optional tools, looping through tool calls until the LLM returns a final answer. Provider is a provider microservice hostname (e.g. claude.llm.core); pass it empty or "any" to auto-select a configured provider. Model is a capability-tier alias (fast, default, smart), a provider family alias (e.g. opus), or a concrete model name; empty means default. Each toolURL is the canonical URL of a Microbus Function, Web, or Workflow endpoint exposed to the LLM; Chat fetches each host's OpenAPI document and resolves the URL to a callable tool. On error it still returns the items accumulated before the failure, so a caller running its own retry can resume from them (e.g. wait llmapi.RetryAfter(err) and re-call with the returned items) instead of restarting the conversation.
+// Chat sends a conversation to an LLM with optional tools, looping through tool calls until the LLM returns a final answer. Provider is a provider microservice hostname (e.g. claude.llm.core); pass it empty or "any" to auto-select a configured provider. Model is a capability-tier alias (fast, default, smart), a provider family alias (e.g. opus), or a concrete model name; empty means default. Each toolURL is the canonical URL of a Microbus Function or Web endpoint exposed to the LLM; Chat fetches each host's OpenAPI document and resolves the URL to a callable tool. A Workflow tool is rejected with a 400; run the ChatLoop workflow to use one. On error it still returns the items accumulated before the failure, so a caller running its own retry can resume from them (e.g. wait llmapi.RetryAfter(err) and re-call with the returned items) instead of restarting the conversation.
 var Chat = define.Function{ // MARKER: Chat
 	Host: Hostname, Method: "POST", Route: ":444/chat",
 	In: ChatIn{}, Out: ChatOut{},

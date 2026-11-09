@@ -244,7 +244,7 @@ This is a security boundary, not an oversight. Internal control headers (`Microb
 
 Control endpoints subscribe twice: once on the connector's own host, once mirrored on `//all<route>` (e.g. `//all:888/ping`) so they are reachable via the broadcast hostname `all`. The mirror preserves the port - only the hostname segment is replaced. The OpenAPI handler skips the `//all` mirror entries when rendering the document because they are not separate operations.
 
-The OpenAPI handler is *actor-aware*: operations whose `RequiredClaims` the caller cannot satisfy are omitted from the document. The response is `Cache-Control: private, no-store` because the rendered document varies per caller. Only `function`, `web`, and `workflow` subscription types are included; tasks, events, and infra/control subs are filtered out at this boundary, which is what allows `llm.core` to safely use the document for LLM tool resolution.
+The OpenAPI handler is *actor-aware*: operations whose `RequiredClaims` the caller cannot satisfy are omitted from the document. The response is `Cache-Control: private, no-store` because the rendered document varies per caller. Only `function`, `web`, `workflow`, and `task` subscription types are included; events and infra/control subs are filtered out at this boundary. Tasks are included so internal inspectors such as agentstudio can discover task signatures, so a consumer that turns the document into callable tools (`openapiportal`, `mcpportal`, `llm.core`) must whitelist the feature types it exposes.
 
 ### Trace sampling - `selectiveProcessor` is a tail sampler
 

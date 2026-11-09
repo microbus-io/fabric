@@ -29,6 +29,7 @@ import (
 
 	"github.com/microbus-io/fabric/coreservices/llm/llmapi"
 	"github.com/microbus-io/fabric/frame"
+	"github.com/microbus-io/fabric/openapi"
 )
 
 var (
@@ -186,7 +187,7 @@ func (svc *Service) Turn(ctx context.Context, model string, items []llmapi.Item,
 }
 
 /*
-Chat sends a conversation to an LLM with optional tools, looping through tool calls until the LLM returns a final answer. Provider is a provider microservice hostname (e.g. claude.llm.core); pass it empty or "any" to auto-select a configured provider. Model is a capability-tier alias (fast, default, smart), a provider family alias (e.g. opus), or a concrete model name; empty means default. Each toolURL is the canonical URL of a Microbus Function, Web, or Workflow endpoint exposed to the LLM; Chat fetches each host's OpenAPI document and resolves the URL to a callable tool. On error it still returns the items accumulated before the failure, so a caller running its own retry can resume from them (e.g. wait llmapi.RetryAfter(err) and re-call with the returned items) instead of restarting the conversation.
+Chat sends a conversation to an LLM with optional tools, looping through tool calls until the LLM returns a final answer. Provider is a provider microservice hostname (e.g. claude.llm.core); pass it empty or "any" to auto-select a configured provider. Model is a capability-tier alias (fast, default, smart), a provider family alias (e.g. opus), or a concrete model name; empty means default. Each toolURL is the canonical URL of a Microbus Function or Web endpoint exposed to the LLM; Chat fetches each host's OpenAPI document and resolves the URL to a callable tool. A Workflow tool is rejected with a 400; run the ChatLoop workflow to use one. On error it still returns the items accumulated before the failure, so a caller running its own retry can resume from them (e.g. wait llmapi.RetryAfter(err) and re-call with the returned items) instead of restarting the conversation.
 */
 func (svc *Service) Chat(ctx context.Context, provider string, model string, items []llmapi.Item, toolURLs []string, options *llmapi.ChatOptions) (itemsOut []llmapi.Item, usage llmapi.Usage, resolvedProvider string, err error) { // MARKER: Chat
 	// Resolve the provider once, up front, so the whole conversation runs against one provider. An empty or "any"
@@ -200,6 +201,14 @@ func (svc *Service) Chat(ctx context.Context, provider string, model string, ite
 	tools, err := svc.fetchTools(ctx, toolURLs)
 	if err != nil {
 		return nil, llmapi.Usage{}, resolvedProvider, errors.Trace(err)
+	}
+	for _, tool := range tools {
+		if tool.Type == openapi.FeatureWorkflow {
+			return nil, llmapi.Usage{}, resolvedProvider, errors.New("workflow tool requires ChatLoop",
+				"url", tool.URL,
+				http.StatusBadRequest,
+			)
+		}
 	}
 
 	maxRounds := svc.MaxToolRounds()

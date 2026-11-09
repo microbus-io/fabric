@@ -172,7 +172,7 @@ Explain the portal to the user and present the following links for them to exper
 - http://localhost:8080/openapi.json - the JSON aggregate document covering every running service, suitable for piping to other tools
 - http://localhost:8080/openapi.json?hostname=calculator.example - the JSON document for a single service
 
-Mention that the portal is generated automatically from each service's live subscriptions - there's no hand-maintained spec file to drift. Tasks, inbound events, and outbound events are filtered out at the source so the portal shows only what's externally callable (functions, web handlers, workflow graphs).
+Mention that the portal is generated automatically from each service's live subscriptions - there's no hand-maintained spec file to drift. The portal leaves out tasks, inbound events, and outbound events, so it shows only what's externally callable (functions, web handlers, workflow graphs).
 
 **Explore more** (offer, optional): walk the user through the structure of one service's entry (tags, paths, parameters, request/response schemas) and how the JSON output would feed an LLM tool-calling client.
 

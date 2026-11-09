@@ -19,7 +19,7 @@ general:
   hostname: llm.core
   description: The LLM microservice bridges LLM tool-calling protocols with Microbus endpoint invocations.
   package: github.com/microbus-io/fabric/coreservices/llm
-  modifiedAt: "2026-10-23T04:27:15Z"
+  modifiedAt: "2026-11-09T03:53:23Z"
 
 configs:
   MaxToolRounds:
@@ -50,7 +50,7 @@ outboundEvents:
 functions:
   Chat:
     signature: Chat(provider string, model string, items []Item, toolURLs []string, options *ChatOptions) (itemsOut []Item, usage Usage, resolvedProvider string)
-    description: Chat sends a conversation to an LLM with optional tools, looping through tool calls until the LLM returns a final answer. Provider is a provider microservice hostname (e.g. claude.llm.core); pass it empty or "any" to auto-select a configured provider. Model is a capability-tier alias (fast, default, smart), a provider family alias (e.g. opus), or a concrete model name; empty means default. Each toolURL is the canonical URL of a Microbus Function, Web, or Workflow endpoint exposed to the LLM; Chat fetches each host's OpenAPI document and resolves the URL to a callable tool. On error it still returns the items accumulated before the failure, so a caller running its own retry can resume from them (e.g. wait llmapi.RetryAfter(err) and re-call with the returned items) instead of restarting the conversation.
+    description: Chat sends a conversation to an LLM with optional tools, looping through tool calls until the LLM returns a final answer. Provider is a provider microservice hostname (e.g. claude.llm.core); pass it empty or "any" to auto-select a configured provider. Model is a capability-tier alias (fast, default, smart), a provider family alias (e.g. opus), or a concrete model name; empty means default. Each toolURL is the canonical URL of a Microbus Function or Web endpoint exposed to the LLM; Chat fetches each host's OpenAPI document and resolves the URL to a callable tool. A Workflow tool is rejected with a 400; run the ChatLoop workflow to use one. On error it still returns the items accumulated before the failure, so a caller running its own retry can resume from them (e.g. wait llmapi.RetryAfter(err) and re-call with the returned items) instead of restarting the conversation.
     method: POST
     route: :444/chat
   Turn:

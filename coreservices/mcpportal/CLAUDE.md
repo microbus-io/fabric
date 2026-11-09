@@ -16,6 +16,20 @@ Every supported method is request/response. We do not stream: no `notifications/
 
 Tool definitions come from the openapi portal's aggregate document, not by walking the bus directly. This piggybacks on the portal's per-claim and per-port filtering - the caller's authorization is enforced once at the source, not duplicated here. The MCP service forwards its request port to the portal via a `pub.URL` override (otherwise the portal's `r.URL.Port()` would be the wildcard `0` from the route, which would zero-out the port filter).
 
+### Functions and web handlers only
+
+`tools/list` exposes only function and web operations. Tasks are not independent call units, and workflows are
+asynchronous: a flow can run for longer than any request budget, or park on an interrupt waiting for a human. An MCP
+`tools/call` is a synchronous request/response that the agent waits on within its turn, so running a workflow behind
+it would silently turn an asynchronous unit into a synchronous one, bounded by the ingress time budget and leaving a
+running flow behind when the call times out. Posting the workflow URL directly does not run it either; it returns the
+graph. A workflow is therefore treated like any unknown name: absent from `tools/list`, and `[404] tool not found` on
+`tools/call`.
+
+The explicit way to reach workflows over MCP would be the MCP Tasks extension, where the server answers a long call
+with a task handle that the client polls. It maps onto the foreman directly (the flow key as the task ID, `Create` to
+start, `Poll` for `tasks/get`), but it needs both client and server to opt in and the portal does not implement it.
+
 ### `tools/call` re-fetches the aggregate
 
 The handler re-fetches the aggregate on every call rather than caching tool→URL mappings. The portal's `DistribCache` already absorbs the cost, and a stateless handler avoids cache-invalidation logic when services come or go.

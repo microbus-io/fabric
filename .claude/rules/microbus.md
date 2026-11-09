@@ -433,11 +433,11 @@ func (svc *Service) LoadObject(ctx context.Context, category int, name string) (
 
 ### Exposing Endpoints as LLM Tools
 
-To let an LLM invoke endpoints from other microservices, pass a `[]string` of canonical endpoint URLs (one per `Def`, e.g. `calculatorapi.Arithmetic.URL()`) as the third argument of `llmapi.NewClient(svc).Chat(ctx, messages, tools)`. Endpoints from multiple services can be combined. The LLM service fetches each host's OpenAPI document, finds the matching operation, and converts it into a callable tool. See the godoc on `llmapi.Client.Chat` for a full example.
+To let an LLM invoke endpoints from other microservices, pass a `[]string` of canonical endpoint URLs (one per `Def`, e.g. `calculatorapi.Arithmetic.URL()`) as the `toolURLs` argument of `llmapi.NewClient(svc).Chat(ctx, provider, model, items, toolURLs, options)`. Endpoints from multiple services can be combined. The LLM service fetches each host's OpenAPI document, finds the matching operation, and converts it into a callable tool. See the godoc on `llmapi.Client.Chat` for a full example.
 
-Only `FeatureFunction`, `FeatureWeb`, and `FeatureWorkflow` endpoints are exposed; tasks and outbound events are filtered out at the OpenAPI document level (in `connector/control.go`) so they never reach the tool builder. When two endpoints share the same name, the first keeps the bare name and subsequent ones get `_2`, `_3`, ... suffixes.
+Only `FeatureFunction` and `FeatureWeb` endpoints can be `Chat` tools; a tool URL that names any other feature type, or an endpoint the caller's claims do not satisfy, fails the `Chat` call. A `FeatureWorkflow` endpoint can be a tool only of the `ChatLoop` workflow, which runs it as a dynamic subgraph: `Chat` is synchronous and rejects workflow tools with a `400`. The MCP portal likewise exposes only functions and web handlers. When two endpoints share the same name, the first keeps the bare name and subsequent ones get `_2`, `_3`, ... suffixes.
 
-The `llm.core` service orchestrates the tool-calling loop and dispatches workflow tools as dynamic subgraphs. Do not `ForHost` the client to a provider (`claudellm`, `chatgptllm`, `geminillm`) directly - that bypasses the loop.
+The `llm.core` service orchestrates the tool-calling loop. Do not `ForHost` the client to a provider (`claudellm`, `chatgptllm`, `geminillm`) directly - that bypasses the loop.
 
 ### Connecting to Remote APIs
 

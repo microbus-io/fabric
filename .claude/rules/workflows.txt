@@ -439,12 +439,12 @@ Choose the endpoint type by what the tool needs to do:
   the failure" or "the tool itself orchestrates multiple steps."
 
 Only `FeatureFunction`, `FeatureWeb`, and `FeatureWorkflow` endpoints can be exposed as tools.
-Tasks and outbound events are filtered out at the OpenAPI document level, so a URL pointing at
-either is silently skipped during resolution.
+A URL pointing at a task or an outbound event fails `InitChat`, and with it the flow.
 
 Authorization for tool calls piggybacks on the calling actor: `InitChat` runs with the workflow's
-actor context, so the host's OpenAPI handler omits operations the actor cannot satisfy and a tool
-whose endpoint declares `requiredClaims` will simply disappear from the LLM's tool list.
+actor context, so the host's OpenAPI handler omits operations the actor cannot satisfy. A tool
+whose endpoint declares `requiredClaims` the actor does not satisfy fails `InitChat` the same way,
+rather than disappearing from the LLM's tool list.
 
 When two endpoints across the supplied URLs share the same operation name, the first keeps the
 bare name and subsequent ones get `_2`, `_3`, ... suffixes in argument order.
@@ -744,7 +744,7 @@ Workflows can be mocked at two levels of fidelity. Both require the **real forem
 
 ```go
 creditflowMock := creditflow.NewMock()
-creditflowMock.MockCreditApproval(func(ctx context.Context, flow *workflow.Flow, applicant creditflowapi.Applicant, faultInjection string) (approved bool, creditVerified bool, employmentFailures int, identityVerified bool, err error) {
+creditflowMock.MockCreditApproval(func(ctx context.Context, flow *workflow.Flow, applicant creditflowapi.Applicant) (approved bool, creditVerified bool, employmentFailures int, identityVerified bool, err error) {
 	return true, true, 0, true, nil
 })
 
@@ -759,7 +759,7 @@ Under the hood, `MockCreditApproval` overrides the graph endpoint to return a tr
 
 ```go
 creditflowMock := creditflow.NewMock()
-creditflowMock.MockVerifyCredit(func(ctx context.Context, flow *workflow.Flow, creditScore int, faultInjection string) (creditVerified bool, err error) {
+creditflowMock.MockVerifyCredit(func(ctx context.Context, flow *workflow.Flow, creditScore int) (creditVerified bool, err error) {
 	return true, nil
 })
 ```

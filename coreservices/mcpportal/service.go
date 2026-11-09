@@ -307,13 +307,11 @@ func (svc *Service) fetchAggregate(r *http.Request) (*openapi.Document, error) {
 	return &doc, nil
 }
 
-// exposedFeatureType is the whitelist of x-feature-type values mcpportal turns
-// into MCP tools. The connector's :888/openapi.json includes every type
-// (including task) so internal inspectors can discover them; this portal
-// expresses its own policy of what is safe to surface as a callable LLM tool.
+// exposedFeatureType is the whitelist of x-feature-type values mcpportal turns into MCP tools: functions and
+// web handlers. Tasks and workflows are not exposed.
 func exposedFeatureType(t string) bool {
 	switch t {
-	case openapi.FeatureFunction, openapi.FeatureWeb, openapi.FeatureWorkflow:
+	case openapi.FeatureFunction, openapi.FeatureWeb:
 		return true
 	}
 	return false

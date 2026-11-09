@@ -317,6 +317,27 @@ func TestLLM_ChatWithMockedProvider(t *testing.T) {
 			assert.Expect(usage.Turns, 2)
 		}
 	})
+
+	t.Run("workflow_tool_rejected", func(t *testing.T) {
+		assert := testarossa.For(t)
+		turned := false
+		providerMock.MockTurn(func(ctx context.Context, model string, items []llmapi.Item, tools []llmapi.Tool, options *llmapi.TurnOptions) (outItems []llmapi.Item, stopReason string, usage llmapi.Usage, err error) {
+			turned = true
+			return []llmapi.Item{llmapi.NewMessage("assistant", "unreachable").AsItem()}, llmapi.StopReasonEndTurn, llmapi.Usage{Model: model, Turns: 1}, nil
+		})
+		defer providerMock.MockTurn(nil)
+
+		items := []llmapi.Item{llmapi.NewMessage("user", "Hello").AsItem()}
+		tools := []string{calculatorapi.Arithmetic.URL(), llmapi.ChatLoop.URL()}
+		_, _, _, err := client.Chat(ctx, claudellmapi.Hostname, "claude-haiku-4-5", items, tools, nil)
+		if assert.Error(err) {
+			assert.Expect(
+				errors.StatusCode(err), http.StatusBadRequest,
+				turned, false,
+			)
+			assert.Contains(err.Error(), "ChatLoop")
+		}
+	})
 }
 
 func TestLLM_ChatLoop(t *testing.T) { // MARKER: ChatLoop

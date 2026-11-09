@@ -13,7 +13,7 @@ The `:0` wildcard means the MCP server accepts connections on any ingress port. 
 Read the entire request body, unmarshal as `jsonrpcRequest` (preserving `id` and `params` as `json.RawMessage` to echo IDs back unchanged and defer param decoding to each handler). Dispatch on `method`:
 
 - `initialize` - respond with `protocolVersion` (`"2024-11-05"`), `capabilities: {tools: {}}`, and `serverInfo: {name: "Microbus MCP Portal", version: <connector version>}`.
-- `tools/list` - fetch the OpenAPI portal aggregate and convert each operation to an MCP tool descriptor (name, description, inputSchema).
+- `tools/list` - fetch the OpenAPI portal aggregate and convert each function and web operation to an MCP tool descriptor (name, description, inputSchema). Tasks and workflows are not exposed: an MCP tool call is synchronous and a workflow is not.
 - `tools/call` - re-fetch the aggregate, locate the named tool, reconstruct its bus URL as `"https:/" + pathKey`, POST the arguments as JSON, return the response body as `content[0].text`.
 - `ping` - respond with `{}`.
 - Notifications (no `id`, method prefix `notifications/`) - respond with HTTP 200 and no body.

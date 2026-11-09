@@ -31,7 +31,7 @@ const Hostname = "mcp.core"
 const Name = "MCPPortal"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 1
+const Version = 2
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `The MCP portal exposes the bus's tools to LLM clients via the Model Context Protocol.

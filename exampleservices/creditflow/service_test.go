@@ -623,7 +623,6 @@ func TestCreditFlow_CreditApproval(t *testing.T) { // MARKER: CreditApproval
 
 	/*
 		HINT: Use the following pattern for each test case.
-		Use WithOutputState to also inspect the full state map if applicable.
 
 		t.Run("test_case_name", func(t *testing.T) {
 			assert := testarossa.For(t)

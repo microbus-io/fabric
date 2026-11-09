@@ -269,8 +269,8 @@ func TestMcpportal_Dispatch(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 
-	// Synthetic aggregate: one function tool plus a duplicate-named operation to exercise
-	// the dedup path.
+	// Synthetic aggregate: one function tool, a duplicate-named operation to exercise
+	// the dedup path, and a task and a workflow that must not be exposed.
 	doc := &openapi.Document{
 		OpenAPI: "3.1.0",
 		Info:    openapi.Info{Title: "Microbus", Version: "1"},
@@ -291,6 +291,20 @@ func TestMcpportal_Dispatch(t *testing.T) {
 					XName:        "Square", // collision; should be renamed to Square_2
 					XFeatureType: "function",
 					Description:  "Other square.",
+				},
+			},
+			"/calc.example:428/cube": {
+				"post": {
+					XName:        "Cube",
+					XFeatureType: "task",
+					Description:  "Cubes x.",
+				},
+			},
+			"/calc.example:428/power": {
+				"post": {
+					XName:        "Power",
+					XFeatureType: "workflow",
+					Description:  "Raises x to a power.",
 				},
 			},
 		},
@@ -360,6 +374,21 @@ func TestMcpportal_Dispatch(t *testing.T) {
 		assert.Equal(true, result["isError"])
 	})
 
+	t.Run("tools_call_workflow_not_found", func(t *testing.T) {
+		assert := testarossa.For(t)
+		resp, _, err := rpcCall(ctx, tester, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      "tcw",
+			"method":  "tools/call",
+			"params":  map[string]any{"name": "Power", "arguments": map[string]any{}},
+		})
+		assert.NoError(err)
+		result := resp["result"].(map[string]any)
+		assert.Equal(true, result["isError"])
+		content := result["content"].([]any)
+		assert.Contains(content[0].(map[string]any)["text"], "tool not found")
+	})
+
 	t.Run("method_not_found", func(t *testing.T) {
 		assert := testarossa.For(t)
 		resp, _, err := rpcCall(ctx, tester, map[string]any{
@@ -415,11 +444,9 @@ func TestMcpportal_Dispatch(t *testing.T) {
 		assert.Equal(float64(rpcParseError), errObj["code"])
 	})
 
-	t.Run("tools_list_excludes_task_features", func(t *testing.T) {
-		// Defensive regression: the framework filters tasks/events at the OpenAPI source
-		// (connector/control.go), so MCP relies on receiving only function/web/workflow ops.
-		// If a task ever leaked in (synthesized here), it would appear in tools/list -
-		// this test documents that current behavior so any future change is explicit.
+	t.Run("tools_list_excludes_task_and_workflow_features", func(t *testing.T) {
+		// The connector's OpenAPI document includes tasks and workflows, so MCP must
+		// whitelist the function/web ops it exposes.
 		assert := testarossa.For(t)
 		resp, _, err := rpcCall(ctx, tester, map[string]any{
 			"jsonrpc": "2.0",
@@ -429,8 +456,7 @@ func TestMcpportal_Dispatch(t *testing.T) {
 		assert.NoError(err)
 		result := resp["result"].(map[string]any)
 		tools := result["tools"].([]any)
-		// The synthetic doc in TestMcpportal_Dispatch declares only `Square` ops; no task.
-		// Verifying no surprise tool names appear catches accidental task leakage.
+		// The synthetic doc declares the `Cube` task and `Power` workflow alongside the `Square` functions
 		for _, raw := range tools {
 			tool := raw.(map[string]any)
 			name := tool["name"].(string)
