@@ -1,0 +1,33 @@
+name: Vulnerabilities
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vulncheck-${{ github.ref }}
+  cancel-in-progress: true
+
+# govulncheck fails the job on a known vulnerability the module's code can reach, in a dependency or in the standard
+# library; one in a required module that no code reaches is listed and does not fail it. A dependency finding is the
+# module's to fix, by moving to the fixed version. The scan runs on the latest Go release, not go.mod's version: the
+# `go` line is the minimum a project builds with, not the toolchain it ships, so a standard-library fix is the
+# project's Go upgrade, and a scan on the minimum would fail on each security patch Go releases. The tool version is
+# pinned; the vulnerability database is read live, so a newly published finding fails the next run without a code
+# change.
+jobs:
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          check-latest: true
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
