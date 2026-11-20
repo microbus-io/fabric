@@ -78,9 +78,109 @@ Otherwise the project is exactly one version behind this release. Migrate it:
 
 *Invoked by Step 2. This is `DEST`'s migration; a release author replaces it when cutting the next release (see "Authoring framework upgrade skills" in the repo-root `CLAUDE.md`). Confine it to source edits - Step 2 owns the per-increment `genservice` + `go vet`, and Step 4 owns the final `go test`.*
 
-v1.51.0 has no breaking change, so no source edit is required. `llm.core`'s `Chat` now fails with a 400 rather than
-a 500 when a tool URL names a task, the same status as a tool URL that is unknown or that the caller is not
-authorized for. Such a call already failed, so only its status changes.
+v1.51.0 moves the foreman to dwarf v0.16.0 (by way of v0.15.0) and sequel v1.20.2, which Step 2's `go get` and
+`go mod tidy` already pull in. The foreman gains `ListRecentlyClosed`, the closed flows not archived yet, and
+`Summary`, one flow's summary by its key; every `FlowSummary` now names its `RootFlowKey` and `ParentStepKey`. The
+release also changes how the short-circuit transport delivers to overlapping subscriptions, and the status `Chat`
+returns for a task tool (3f).
+
+#### 3a. Tell the User That the Foreman's Databases Need a Schema Change
+
+This is not a source edit, but the foreman fails without it, so tell the user before going on. dwarf v0.15.0 and
+v0.16.0 edited their migrations in place, so a database v1.50.0's foreman created does not pick the changes up, and
+nothing detects it: the foreman starts, then fails on its first write of a flow or step. Each environment's foreman
+shards need one of:
+
+- **New, empty databases.** Flows in the old databases do not carry over.
+- **The statements by hand**, with every foreman replica stopped: first those in the Breaking section of dwarf's
+  [v0.15.0 release notes](https://github.com/microbus-io/dwarf/releases/tag/v0.15.0), then those of
+  [v0.16.0](https://github.com/microbus-io/dwarf/releases/tag/v0.16.0), on the live tables and on every archive day.
+  The v0.16.0 statements rewrite their tables, so plan the window by the size of `dwarf_steps`.
+
+Which one each environment takes is the user's choice: ask. Tests need nothing, since the foreman runs on
+throwaway databases under `TESTING`. In a LOCAL deployment with no `Shards` config, the foreman keeps its flows in a
+SQLite file in the working directory of the process that runs it, typically `main/`, where a new file is the simple
+path. Find the old files:
+
+```bash
+find . -path ./vendor -prune -o -name 'shard_*.local.sqlite*' -print
+```
+
+Ask the user before deleting them; the foreman creates fresh ones on its next start.
+
+#### 3b. Tell the User What Else Changed in the Foreman
+
+- **Roll out together.** A task's carrier now holds a subgraph's error as a JSON object rather than a string. Code
+  that uses the generated clients needs no change, but a foreman and a task-bearing microservice built on different
+  releases misread a subgraph's error: deploy them together, as for every dwarf bump.
+- **Text PostgreSQL cannot store is refused on every database.** A NUL in a string, or invalid UTF-8 in JSON passed
+  through as given, fails the step that writes it, and is a 400 at `Create`, `Run`, `Resume`, `Continue` and `Fork`.
+  It used to pass on SQLite. An LLM's or a tool's output is the likely way in; carry binary data base64-encoded.
+- **An expired flow is deleted, not archived.** A flow the foreman's `FlowExpiration` ends is terminated as before
+  and deleted within minutes, so `ListClosed` never lists it. The check runs hourly, or every half of the expiration
+  when that is shorter.
+
+#### 3c. Rename the Duration Fields in Hand-Written JSON (Grep-Guided)
+
+A duration crossing the foreman's API as JSON is now an integer number of milliseconds:
+`FlowOptions.TimeBudget` is `timeBudgetMillis` (was `timeBudget`, in nanoseconds), and `ShardSummary.Latency` is
+`latencyMillis`. Go code picks the new names up with the bump. A body written by hand that still sends `timeBudget` is
+ignored, and the flow runs on the default budget. Find candidates outside Go code, and in Go raw strings:
+
+```bash
+grep -rnIE --exclude-dir=.git --exclude-dir=vendor --exclude-dir=.claude '"(timeBudget|latency)"' .
+```
+
+A match in a `manifest.yaml`, or a `timeBudget` key that is not a foreman `FlowOptions` body, is unrelated: leave it.
+Rewrite each foreman body to `"timeBudgetMillis": <milliseconds>`, and each reader of a shard's `latency` to
+`latencyMillis`.
+
+#### 3d. Update Dashboards and Alerts on the dwarf Metrics (Grep-Guided)
+
+`dwarf_operation_seconds` is now `dwarf_shard_operation_seconds`:
+
+```bash
+grep -rlI --exclude-dir=.git --exclude-dir=vendor --exclude-dir=.claude 'dwarf_operation_seconds' . \
+  | xargs -r perl -pi -e 's/\bdwarf_operation_seconds/dwarf_shard_operation_seconds/g'
+```
+
+Then find the metrics that are gone or changed shape:
+
+```bash
+grep -rnIE --exclude-dir=.git --exclude-dir=vendor --exclude-dir=.claude \
+  'dwarf_(archive_days|reap_pass_seconds|archive_lag_seconds|archive_failing_seconds)' .
+```
+
+- `dwarf_archive_days` is removed. `dwarf_archive_oldest_day_age_seconds` shows the retention being kept: about the
+  retention plus a day.
+- `dwarf_reap_pass_seconds` is removed. The background work is timed per job by `dwarf_janitor_batch_seconds`
+  (labels `job` and `part`), and whether each job keeps moving is `dwarf_janitor_progress_age_seconds`.
+- `dwarf_archive_lag_seconds` and `dwarf_archive_failing_seconds` gain a `job` label, so a shard reports several
+  series of each: a query that reads one series per shard must aggregate with `max`.
+
+Rewrite the queries that read a removed metric; which replacement a panel or an alert wants is the user's choice
+when it is not clear. The dashboard Fabric ships, `setup/grafana/dashboards/workflow-overview.json` in the framework,
+already reads the new metrics, and a project that copied it can copy it again.
+
+#### 3e. Optionally List the Recently Closed Flows (Ask First)
+
+A flow that closes leaves `ListOpen` at once but reaches `ListClosed` only when it is archived, about a minute
+later, so for that minute it was in neither list. `ListRecentlyClosed` lists it. Find the callers of the closed list:
+
+```bash
+grep -rlE --include='*.go' --exclude-dir=vendor 'foremanapi' . | xargs -r grep -HnE '\.ListClosed\('
+```
+
+A caller that should see every closed flow calls `ListRecentlyClosed` and then `ListClosed`, in that order, and
+drops duplicates by `FlowKey`. Whether a caller wants that is a design choice, so ask. Separately, `Resume`,
+`Cancel`, `Terminate`, `Delete` and `Continue` take a root flow's key and refuse a subgraph child's: code that holds
+a child's key can read its `RootFlowKey` with `Summary`.
+
+#### 3f. Tell the User About the Other Changes
+
+`llm.core`'s `Chat` now fails with a 400 rather than a 500 when a tool URL names a task, the same status as a tool
+URL that is unknown or that the caller is not authorized for. Such a call already failed, so only its status
+changes.
 
 A request that several subscriptions in one queue match, such as `/{p...}` and `/orders/{p...}` in a
 microservice's default queue, now runs one of their handlers when the caller is in the same process, as it already

@@ -196,14 +196,14 @@ func (svc *Service) Step(ctx context.Context, stepKey string) (step *foremanapi.
 }
 
 /*
-ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
+ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closes leaves this list at once for ListRecentlyClosed.
 */
 func (svc *Service) ListOpen(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListOpen
 	return svc.engine.ListOpen(ctx, query)
 }
 
 /*
-ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes, and is in ListRecentlyClosed until then. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
 */
 func (svc *Service) ListClosed(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListClosed
 	return svc.engine.ListClosed(ctx, query)
@@ -335,4 +335,18 @@ Terminate forcefully and unconditionally stops a running or interrupted flow and
 */
 func (svc *Service) Terminate(ctx context.Context, flowKey string, reason string) (err error) { // MARKER: Terminate
 	return svc.engine.Terminate(ctx, flowKey, reason)
+}
+
+/*
+ListRecentlyClosed lists the closed (completed, failed, terminated or cancelled) flows not archived yet matching the query, most recently closed first. A flow is listed here from when it closes until it is archived, about a minute later, and then in ListClosed. To list every closed flow, call ListRecentlyClosed and then ListClosed, and drop duplicates by FlowKey. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow closed.
+*/
+func (svc *Service) ListRecentlyClosed(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListRecentlyClosed
+	return svc.engine.ListRecentlyClosed(ctx, query)
+}
+
+/*
+Summary returns the summary of one flow by its key, as the lists return it, whether open or closed, archived or not. An unknown key is a 404.
+*/
+func (svc *Service) Summary(ctx context.Context, flowKey string) (summary *foremanapi.FlowSummary, err error) { // MARKER: Summary
+	return svc.engine.Summary(ctx, flowKey)
 }

@@ -16,26 +16,28 @@ import (
 // Mock is a mockable version of the microservice, allowing functions, event sinks and web handlers to be mocked.
 type Mock struct {
 	*Intermediate
-	mockCreate         func(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (flowKey string, err error)                // MARKER: Create
-	mockSnapshot       func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Snapshot
-	mockFingerprint    func(ctx context.Context, flowKey string) (fingerprint string, status string, err error)                                               // MARKER: Fingerprint
-	mockResume         func(ctx context.Context, flowKey string, resumeData any) (err error)                                                                  // MARKER: Resume
-	mockCancel         func(ctx context.Context, flowKey string, reason string) (err error)                                                                   // MARKER: Cancel
-	mockTerminate      func(ctx context.Context, flowKey string, reason string) (err error)                                                                   // MARKER: Terminate
-	mockFork           func(ctx context.Context, stepKey string, stateOverrides any) (newFlowKey string, err error)                                           // MARKER: Fork
-	mockHistory        func(ctx context.Context, flowKey string) (steps []foremanapi.FlowStep, err error)                                                     // MARKER: History
-	mockStep           func(ctx context.Context, stepKey string) (step *foremanapi.FlowStep, err error)                                                       // MARKER: Step
-	mockListOpen       func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                          // MARKER: ListOpen
-	mockListClosed     func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                          // MARKER: ListClosed
-	mockDelete         func(ctx context.Context, flowKey string) (err error)                                                                                  // MARKER: Delete
-	mockPurge          func(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error)                                                  // MARKER: Purge
-	mockPurgeBefore    func(ctx context.Context, before time.Time) (err error)                                                                                // MARKER: PurgeBefore
-	mockShardInfo      func(ctx context.Context) (shards []foremanapi.ShardSummary, err error)                                                                // MARKER: ShardInfo
-	mockAwait          func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Await
-	mockPoll           func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Poll
-	mockRun            func(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (outcome *workflow.FlowOutcome, err error) // MARKER: Run
-	mockContinue       func(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error)                                          // MARKER: Continue
-	mockHistoryMermaid func(w http.ResponseWriter, r *http.Request) (err error)                                                                               // MARKER: HistoryMermaid
+	mockCreate             func(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (flowKey string, err error)                // MARKER: Create
+	mockSnapshot           func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Snapshot
+	mockFingerprint        func(ctx context.Context, flowKey string) (fingerprint string, status string, err error)                                               // MARKER: Fingerprint
+	mockResume             func(ctx context.Context, flowKey string, resumeData any) (err error)                                                                  // MARKER: Resume
+	mockCancel             func(ctx context.Context, flowKey string, reason string) (err error)                                                                   // MARKER: Cancel
+	mockTerminate          func(ctx context.Context, flowKey string, reason string) (err error)                                                                   // MARKER: Terminate
+	mockFork               func(ctx context.Context, stepKey string, stateOverrides any) (newFlowKey string, err error)                                           // MARKER: Fork
+	mockHistory            func(ctx context.Context, flowKey string) (steps []foremanapi.FlowStep, err error)                                                     // MARKER: History
+	mockStep               func(ctx context.Context, stepKey string) (step *foremanapi.FlowStep, err error)                                                       // MARKER: Step
+	mockListOpen           func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                          // MARKER: ListOpen
+	mockListClosed         func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                          // MARKER: ListClosed
+	mockListRecentlyClosed func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                          // MARKER: ListRecentlyClosed
+	mockSummary            func(ctx context.Context, flowKey string) (summary *foremanapi.FlowSummary, err error)                                                 // MARKER: Summary
+	mockDelete             func(ctx context.Context, flowKey string) (err error)                                                                                  // MARKER: Delete
+	mockPurge              func(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error)                                                  // MARKER: Purge
+	mockPurgeBefore        func(ctx context.Context, before time.Time) (err error)                                                                                // MARKER: PurgeBefore
+	mockShardInfo          func(ctx context.Context) (shards []foremanapi.ShardSummary, err error)                                                                // MARKER: ShardInfo
+	mockAwait              func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Await
+	mockPoll               func(ctx context.Context, flowKey string) (outcome *workflow.FlowOutcome, err error)                                                   // MARKER: Poll
+	mockRun                func(ctx context.Context, workflowURL string, initialState any, opts *workflow.FlowOptions) (outcome *workflow.FlowOutcome, err error) // MARKER: Run
+	mockContinue           func(ctx context.Context, flowKey string, additionalState any) (newFlowKey string, err error)                                          // MARKER: Continue
+	mockHistoryMermaid     func(w http.ResponseWriter, r *http.Request) (err error)                                                                               // MARKER: HistoryMermaid
 }
 
 // NewMock creates a new mockable version of the microservice.
@@ -211,6 +213,34 @@ func (svc *Mock) ListClosed(ctx context.Context, query foremanapi.Query) (flows 
 		flows, err = svc.mockListClosed(ctx, query)
 	}
 	return flows, errors.Trace(err)
+}
+
+// MockListRecentlyClosed sets up a mock handler for ListRecentlyClosed.
+func (svc *Mock) MockListRecentlyClosed(handler func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)) *Mock { // MARKER: ListRecentlyClosed
+	svc.mockListRecentlyClosed = handler
+	return svc
+}
+
+// ListRecentlyClosed executes the mock handler.
+func (svc *Mock) ListRecentlyClosed(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) { // MARKER: ListRecentlyClosed
+	if svc.mockListRecentlyClosed != nil {
+		flows, err = svc.mockListRecentlyClosed(ctx, query)
+	}
+	return flows, errors.Trace(err)
+}
+
+// MockSummary sets up a mock handler for Summary.
+func (svc *Mock) MockSummary(handler func(ctx context.Context, flowKey string) (summary *foremanapi.FlowSummary, err error)) *Mock { // MARKER: Summary
+	svc.mockSummary = handler
+	return svc
+}
+
+// Summary executes the mock handler.
+func (svc *Mock) Summary(ctx context.Context, flowKey string) (summary *foremanapi.FlowSummary, err error) { // MARKER: Summary
+	if svc.mockSummary != nil {
+		summary, err = svc.mockSummary(ctx, flowKey)
+	}
+	return summary, errors.Trace(err)
 }
 
 // MockDelete sets up a mock handler for Delete.

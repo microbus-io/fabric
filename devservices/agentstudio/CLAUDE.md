@@ -97,12 +97,17 @@ changes.
 ## Flows list
 
 **Open and closed flows are separate tabs, never one merged list.** The foreman lists open flows (`ListOpen`,
-running or interrupted, by when each last changed) and closed flows (`ListClosed`, by when each was archived)
-separately, and a flow that closed in the last minute is in neither until the engine archives it. A merged list
-would hide that gap and mix two orderings, so the page keeps two tabs. The Closed tab needs a window because
-`ListClosed` requires both bounds and accepts at most 31 days; its dropdown tops out at 30 days, the default
-retention. The tab switcher is dynamic, so only the active tab's list is fetched. The dashboard does merge the two
-lists, since it buckets flows by creation time and the order of the lists does not matter there.
+running or interrupted, by when each last changed) and closed flows separately, so the page keeps two tabs rather
+than mixing the two orderings. The Closed tab merges the foreman's two closed lists: `ListRecentlyClosed`, the flows
+closed in the last minute or so that the engine has not archived yet, then `ListClosed`, the archived ones, with
+duplicates dropped by key. It calls them in that order because a flow archived between the two calls is then in
+both rather than in neither. The time column is when each flow closed. The tab needs a window because `ListClosed`
+requires both bounds and accepts at most 31 days; its dropdown tops out at 30 days, the default retention. The tab
+switcher is dynamic, so only the active tab's lists are fetched. The dashboard merges all three lists, since it
+buckets flows by creation time and the order of the lists does not matter there.
 
-**Continue is enabled only on a completed flow.** `Continue` builds on exactly the flow it is given, so the button
-is gated on the flow's own status; continuing the same flow twice makes two successors.
+**Continue is enabled only on a completed root flow.** `Continue` builds on exactly the flow it is given, so the
+button is gated on the flow's own status; continuing the same flow twice makes two successors. `Resume`, `Cancel`,
+`Terminate` and `Continue` all take a root's key and refuse a subgraph child's, so the flow page reads the flow's
+`Summary`: on a subgraph child it hides Resume, Cancel and Terminate, disables Continue, and links to the root
+flow, where those actions apply.

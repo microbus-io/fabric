@@ -42,6 +42,8 @@ type ToDo interface {
 	Step(ctx context.Context, stepKey string) (step *foremanapi.FlowStep, err error)                                                      // MARKER: Step
 	ListOpen(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                     // MARKER: ListOpen
 	ListClosed(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                                   // MARKER: ListClosed
+	ListRecentlyClosed(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error)                           // MARKER: ListRecentlyClosed
+	Summary(ctx context.Context, flowKey string) (summary *foremanapi.FlowSummary, err error)                                             // MARKER: Summary
 	Delete(ctx context.Context, flowKey string) (err error)                                                                               // MARKER: Delete
 	Purge(ctx context.Context, query foremanapi.Query) (removed int, done bool, err error)                                                // MARKER: Purge
 	PurgeBefore(ctx context.Context, before time.Time) (err error)                                                                        // MARKER: PurgeBefore
@@ -91,25 +93,27 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Connector.Init(func(_ *connector.Connector) (err error) {
 		// Fail startup on a malformed validation directive in an endpoint input type
 		return dv8.Compile(
-			foremanapi.CreateIn{},      // MARKER: Create
-			foremanapi.SnapshotIn{},    // MARKER: Snapshot
-			foremanapi.FingerprintIn{}, // MARKER: Fingerprint
-			foremanapi.ResumeIn{},      // MARKER: Resume
-			foremanapi.CancelIn{},      // MARKER: Cancel
-			foremanapi.TerminateIn{},   // MARKER: Terminate
-			foremanapi.ForkIn{},        // MARKER: Fork
-			foremanapi.HistoryIn{},     // MARKER: History
-			foremanapi.StepIn{},        // MARKER: Step
-			foremanapi.ListOpenIn{},    // MARKER: ListOpen
-			foremanapi.ListClosedIn{},  // MARKER: ListClosed
-			foremanapi.DeleteIn{},      // MARKER: Delete
-			foremanapi.PurgeIn{},       // MARKER: Purge
-			foremanapi.PurgeBeforeIn{}, // MARKER: PurgeBefore
-			foremanapi.ShardInfoIn{},   // MARKER: ShardInfo
-			foremanapi.AwaitIn{},       // MARKER: Await
-			foremanapi.PollIn{},        // MARKER: Poll
-			foremanapi.RunIn{},         // MARKER: Run
-			foremanapi.ContinueIn{},    // MARKER: Continue
+			foremanapi.CreateIn{},             // MARKER: Create
+			foremanapi.SnapshotIn{},           // MARKER: Snapshot
+			foremanapi.FingerprintIn{},        // MARKER: Fingerprint
+			foremanapi.ResumeIn{},             // MARKER: Resume
+			foremanapi.CancelIn{},             // MARKER: Cancel
+			foremanapi.TerminateIn{},          // MARKER: Terminate
+			foremanapi.ForkIn{},               // MARKER: Fork
+			foremanapi.HistoryIn{},            // MARKER: History
+			foremanapi.StepIn{},               // MARKER: Step
+			foremanapi.ListOpenIn{},           // MARKER: ListOpen
+			foremanapi.ListClosedIn{},         // MARKER: ListClosed
+			foremanapi.ListRecentlyClosedIn{}, // MARKER: ListRecentlyClosed
+			foremanapi.SummaryIn{},            // MARKER: Summary
+			foremanapi.DeleteIn{},             // MARKER: Delete
+			foremanapi.PurgeIn{},              // MARKER: Purge
+			foremanapi.PurgeBeforeIn{},        // MARKER: PurgeBefore
+			foremanapi.ShardInfoIn{},          // MARKER: ShardInfo
+			foremanapi.AwaitIn{},              // MARKER: Await
+			foremanapi.PollIn{},               // MARKER: Poll
+			foremanapi.RunIn{},                // MARKER: Run
+			foremanapi.ContinueIn{},           // MARKER: Continue
 		)
 	})
 
@@ -170,14 +174,26 @@ func NewIntermediate(impl ToDo) *Intermediate {
 	svc.Subscribe( // MARKER: ListOpen
 		"ListOpen", svc.doListOpen,
 		sub.At(foremanapi.ListOpen.Method, foremanapi.ListOpen.Route),
-		sub.Description(`ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.`),
+		sub.Description(`ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closes leaves this list at once for ListRecentlyClosed.`),
 		sub.Function(foremanapi.ListOpenIn{}, foremanapi.ListOpenOut{}),
 	)
 	svc.Subscribe( // MARKER: ListClosed
 		"ListClosed", svc.doListClosed,
 		sub.At(foremanapi.ListClosed.Method, foremanapi.ListClosed.Route),
-		sub.Description(`ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.`),
+		sub.Description(`ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes, and is in ListRecentlyClosed until then. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.`),
 		sub.Function(foremanapi.ListClosedIn{}, foremanapi.ListClosedOut{}),
+	)
+	svc.Subscribe( // MARKER: ListRecentlyClosed
+		"ListRecentlyClosed", svc.doListRecentlyClosed,
+		sub.At(foremanapi.ListRecentlyClosed.Method, foremanapi.ListRecentlyClosed.Route),
+		sub.Description(`ListRecentlyClosed lists the closed (completed, failed, terminated or cancelled) flows not archived yet matching the query, most recently closed first. A flow is listed here from when it closes until it is archived, about a minute later, and then in ListClosed. To list every closed flow, call ListRecentlyClosed and then ListClosed, and drop duplicates by FlowKey. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow closed.`),
+		sub.Function(foremanapi.ListRecentlyClosedIn{}, foremanapi.ListRecentlyClosedOut{}),
+	)
+	svc.Subscribe( // MARKER: Summary
+		"Summary", svc.doSummary,
+		sub.At(foremanapi.Summary.Method, foremanapi.Summary.Route),
+		sub.Description(`Summary returns the summary of one flow by its key, as the lists return it, whether open or closed, archived or not. An unknown key is a 404.`),
+		sub.Function(foremanapi.SummaryIn{}, foremanapi.SummaryOut{}),
 	)
 	svc.Subscribe( // MARKER: Delete
 		"Delete", svc.doDelete,
@@ -284,7 +300,7 @@ file shard.`),
 	)
 	svc.DefineConfig( // MARKER: FlowExpiration
 		"FlowExpiration",
-		cfg.Description(`FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.`),
+		cfg.Description(`FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs, and deletes it without archiving. The check runs hourly, or every half of the expiration when that is shorter, so a flow is terminated up to that long after it expires. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.`),
 		cfg.DefaultValue(`0`),
 		cfg.Validation(`dur [0s,]`),
 	)
@@ -441,6 +457,28 @@ func (svc *Intermediate) doListClosed(w http.ResponseWriter, r *http.Request) (e
 	var out foremanapi.ListClosedOut
 	err = marshalFunction(w, r, foremanapi.ListClosed.Route, &in, &out, func(_ any, _ any) error {
 		out.Flows, err = svc.ListClosed(r.Context(), in.Query)
+		return err // No trace
+	})
+	return err // No trace
+}
+
+// doListRecentlyClosed handles marshaling for ListRecentlyClosed.
+func (svc *Intermediate) doListRecentlyClosed(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: ListRecentlyClosed
+	var in foremanapi.ListRecentlyClosedIn
+	var out foremanapi.ListRecentlyClosedOut
+	err = marshalFunction(w, r, foremanapi.ListRecentlyClosed.Route, &in, &out, func(_ any, _ any) error {
+		out.Flows, err = svc.ListRecentlyClosed(r.Context(), in.Query)
+		return err // No trace
+	})
+	return err // No trace
+}
+
+// doSummary handles marshaling for Summary.
+func (svc *Intermediate) doSummary(w http.ResponseWriter, r *http.Request) (err error) { // MARKER: Summary
+	var in foremanapi.SummaryIn
+	var out foremanapi.SummaryOut
+	err = marshalFunction(w, r, foremanapi.Summary.Route, &in, &out, func(_ any, _ any) error {
+		out.Summary, err = svc.Summary(r.Context(), in.FlowKey)
 		return err // No trace
 	})
 	return err // No trace
@@ -614,7 +652,7 @@ func (svc *Intermediate) SetRetention(value int) (err error) { // MARKER: Retent
 	return svc.SetConfig("Retention", strconv.Itoa(value))
 }
 
-// FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.
+// FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs, and deletes it without archiving. The check runs hourly, or every half of the expiration when that is shorter, so a flow is terminated up to that long after it expires. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.
 func (svc *Intermediate) FlowExpiration() (value time.Duration) { // MARKER: FlowExpiration
 	_val := svc.Config("FlowExpiration")
 	_dur, _ := time.ParseDuration(_val)

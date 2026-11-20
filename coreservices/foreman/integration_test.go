@@ -294,6 +294,70 @@ func TestForemanIntegration(t *testing.T) {
 		assert.Equal(6, out.State.GetInt("result")) // child computed w = v*2 = 6, parent adopted it
 	})
 
+	t.Run("recently_closed_flows_are_listed_and_summarized", func(t *testing.T) {
+		assert := testarossa.For(t)
+		flowKey, err := client.Create(ctx, host+":428/parent", map[string]any{"x": 3}, nil)
+		if !assert.NoError(err) {
+			return
+		}
+		out, err := client.Await(ctx, flowKey)
+		if !assert.NoError(err) || !assert.Equal(workflow.StatusCompleted, out.Status) {
+			return
+		}
+
+		// The closed flow is not archived yet, so it is listed by ListRecentlyClosed, not by ListOpen
+		var child *foremanapi.FlowSummary
+		flows, err := client.ListRecentlyClosed(ctx, foremanapi.Query{Limit: 1000, IncludeSubgraphs: true})
+		if assert.NoError(err) {
+			found := false
+			for i := range flows {
+				found = found || flows[i].FlowKey == flowKey
+				if flows[i].RootFlowKey == flowKey && flows[i].FlowKey != flowKey {
+					child = &flows[i]
+				}
+			}
+			assert.True(found)
+		}
+		flows, err = client.ListOpen(ctx, foremanapi.Query{Limit: 1000})
+		if assert.NoError(err) {
+			for _, f := range flows {
+				assert.NotEqual(flowKey, f.FlowKey)
+			}
+		}
+		_, err = client.ListRecentlyClosed(ctx, foremanapi.Query{Status: workflow.StatusRunning, Limit: 10})
+		assert.Equal(http.StatusBadRequest, errors.StatusCode(err))
+
+		// Summary reads the root by its key
+		summary, err := client.Summary(ctx, flowKey)
+		if assert.NoError(err) && assert.NotNil(summary) {
+			assert.Expect(
+				summary.FlowKey, flowKey,
+				summary.Status, workflow.StatusCompleted,
+				summary.Subgraph, false,
+				summary.RootFlowKey, flowKey,
+				summary.ParentStepKey, "",
+			)
+		}
+
+		// Summary of the subgraph child names its root and the step that called it
+		if assert.NotNil(child) {
+			summary, err := client.Summary(ctx, child.FlowKey)
+			if assert.NoError(err) && assert.NotNil(summary) {
+				assert.Expect(
+					summary.Subgraph, true,
+					summary.RootFlowKey, flowKey,
+				)
+				assert.NotEqual("", summary.ParentStepKey)
+			}
+		}
+
+		// An unknown key is a 404
+		if assert.NoError(client.Delete(ctx, flowKey)) {
+			_, err = client.Summary(ctx, flowKey)
+			assert.Equal(http.StatusNotFound, errors.StatusCode(err))
+		}
+	})
+
 	t.Run("interrupt_then_resume", func(t *testing.T) {
 		assert := testarossa.For(t)
 		// foreman.Run does not return the flow key; use Create (which auto-runs) + Await so we have the key

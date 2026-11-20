@@ -728,11 +728,13 @@ about to wait, so it (or a step just ahead of it) reports "pending" first.
 
 ## Listing, Retaining and Removing Flows
 
-A flow is **open** while it is running or interrupted, and **closed** once it has completed, failed, been terminated or been cancelled. About a minute after it closes, the foreman archives it, and the archive keeps each day's closed flows for the foreman's `Retention` config (30 days by default) before dropping the day whole. An archived flow still reads by its key (`Snapshot`, `Await`, `History`, `Step`, `Continue`, `Fork`). The foreman's `FlowExpiration` config, off by default, terminates a flow still open that long after its creation.
+A flow is **open** while it is running or interrupted, and **closed** once it has completed, failed, been terminated or been cancelled. About a minute after it closes, the foreman archives it, and the archive keeps each day's closed flows for the foreman's `Retention` config (30 days by default) before dropping the day whole. An archived flow still reads by its key (`Snapshot`, `Await`, `History`, `Step`, `Continue`, `Fork`). The foreman's `FlowExpiration` config, off by default, terminates a flow still open that long after its creation and deletes it without archiving.
 
 - `ListOpen(ctx, query)` - the open flows, most recently updated first. `Query.Limit` is required.
+- `ListRecentlyClosed(ctx, query)` - the closed flows not archived yet, most recently closed first. `Query.Limit` is required.
 - `ListClosed(ctx, query)` - the archived flows, most recently archived first. `Query.Limit`, `Query.FromTime` and `Query.ToTime` are required, and the window may reach at most 31 days.
-- Neither paginates: each returns the first `Limit` across all shards. A flow that closed in the last minute is in neither list; read it by its key.
+- None paginates: each returns the first `Limit` across all shards. A flow that closes leaves `ListOpen` at once and is in `ListRecentlyClosed` until it is archived, then in `ListClosed`. To list every closed flow, call `ListRecentlyClosed` and then `ListClosed`, and drop duplicates by `FlowKey`.
+- `Summary(ctx, flowKey)` - one flow's summary by its key, open or closed, archived or not. `Subgraph`, `RootFlowKey` and `ParentStepKey` tell a subgraph child from a root: `Resume`, `Cancel`, `Terminate`, `Delete` and `Continue` take the root's key.
 - `Delete(ctx, flowKey)` removes one closed flow; an open flow is a 409, so `Terminate` it first.
 - `Purge(ctx, query)` removes what `ListClosed` lists for the query, at most `Limit` flows a call; call it until `done`. It is for erasing specific records. `PurgeBefore(ctx, t)` drops whole archive days, the cheap way to remove in bulk.
 

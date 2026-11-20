@@ -220,10 +220,14 @@ per-day archive about a minute after it closes and drops a whole day once the re
 tables hold the open flows and little else. `Retention` (default 30, the engine's) and `FlowExpiration` (default
 off) are configs read once before `Startup`, and must match across replicas: any replica may drop an expired day
 or expire a flow, so the smallest value in the fleet wins. The bus surface follows the engine's split by state:
-`ListOpen` and `ListClosed` (neither paginates; a closed list needs a window of at most 31
+`ListOpen`, `ListRecentlyClosed` and `ListClosed` (none paginates; `ListClosed` needs a window of at most 31
 days), `Delete`/`Purge` remove only closed flows (`Terminate` an open one first), and `PurgeBefore` drops whole
 archive days, which is the cheap bulk removal; `Purge` deletes row by row and is for erasing specific records. A
-flow that closed in the last minute is in neither list until it is archived, and reads by its key meanwhile.
+flow that closes leaves `ListOpen` at once but reaches `ListClosed` only when it is archived, about a minute later,
+so `ListRecentlyClosed` covers the gap: a caller wanting every closed flow calls it, then `ListClosed`, and drops
+duplicates by key (in that order, since a flow archived between the calls is then in both rather than neither).
+`Summary` reads one flow's summary by its key in any state, and its `Subgraph`, `RootFlowKey` and `ParentStepKey`
+tell a subgraph child from a root.
 
 **`LoadGraph` tells a missing worker from a missing graph.** An ack-timeout on the graph's URL means no
 microservice answered, which the engine hands back to a calling task's `flow.Subgraph` as a 503 it may wait out

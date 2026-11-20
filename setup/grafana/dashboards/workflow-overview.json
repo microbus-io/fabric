@@ -2482,16 +2482,214 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum by (le, shard) (rate(dwarf_operation_seconds_bucket{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, shard) (rate(dwarf_shard_operation_seconds_bucket{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
           "instant": false,
           "legendFormat": "shard {{shard}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "API Operation 99%ile by Shard",
+      "title": "Shard Operation 99%ile by Shard",
       "type": "timeseries",
       "description": "Time an API operation (create, snapshot, list, ...) spent on a shard, its wait for a turn included. Compare one shard against the others to find a slow one; a shard that refuses connections fails fast and reads as fast."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 81
+      },
+      "id": 83,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "round(sum by (status_code) (increase(dwarf_ingress_operations_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "instant": false,
+          "legendFormat": "{{status_code}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "API Calls by Status",
+      "type": "timeseries",
+      "description": "Calls to the engine API, one count per call, by how each ended: 200 for success, else the status code of the error the caller got, 499 for a caller that cancelled and 408 for one whose deadline passed. Await and Run return a 408 when their wait runs out, which is normal for a long flow."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 81
+      },
+      "id": 84,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "round(sum by (op, status_code) (increase(dwarf_ingress_operations_total{deployment=~\"$deployment\", service=~\"$service\", status_code=~\"5..\"}[$interval])))",
+          "instant": false,
+          "legendFormat": "{{op}} {{status_code}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "API Errors by Operation",
+      "type": "timeseries",
+      "description": "Calls to the engine API that ended in a 5xx, by operation. Server-side failures only: a 4xx is the caller's request, and an Await or Run that waited out its time is a 408."
     },
     {
       "collapsed": false,
@@ -2499,7 +2697,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 81
+        "y": 89
       },
       "id": 29,
       "panels": [],
@@ -2533,7 +2731,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 82
+        "y": 90
       },
       "id": 30,
       "options": {
@@ -2599,7 +2797,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 82
+        "y": 90
       },
       "id": 31,
       "options": {
@@ -2665,7 +2863,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 82
+        "y": 90
       },
       "id": 32,
       "options": {
@@ -2731,7 +2929,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 82
+        "y": 90
       },
       "id": 33,
       "options": {
@@ -2830,7 +3028,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 86
+        "y": 94
       },
       "id": 34,
       "options": {
@@ -2927,7 +3125,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 86
+        "y": 94
       },
       "id": 35,
       "options": {
@@ -3048,7 +3246,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 94
+        "y": 102
       },
       "id": 36,
       "options": {
@@ -3169,7 +3367,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 94
+        "y": 102
       },
       "id": 37,
       "options": {
@@ -3212,7 +3410,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 102
+        "y": 110
       },
       "id": 47,
       "panels": [],
@@ -3281,7 +3479,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 103
+        "y": 111
       },
       "id": 48,
       "options": {
@@ -3384,7 +3582,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 103
+        "y": 111
       },
       "id": 49,
       "options": {
@@ -3487,7 +3685,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 103
+        "y": 111
       },
       "id": 50,
       "options": {
@@ -3585,7 +3783,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 111
+        "y": 119
       },
       "id": 51,
       "options": {
@@ -3687,7 +3885,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 111
+        "y": 119
       },
       "id": 52,
       "options": {
@@ -3785,7 +3983,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 119
+        "y": 127
       },
       "id": 72,
       "options": {
@@ -3823,12 +4021,111 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 127
+      },
+      "id": 85,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "round(sum by (shard) (increase(dwarf_placement_skipped_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "instant": false,
+          "legendFormat": "shard {{shard}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Flows Placed Around a Shard",
+      "type": "timeseries",
+      "description": "New flows placed on another shard because a replica could not read this one, by the shard left out. Zero in a healthy fleet; it rises steadily while a shard is down or hung, and short frequent bursts mean a shard whose reads run late."
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 127
+        "y": 135
       },
       "id": 53,
       "panels": [],
@@ -3897,7 +4194,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 128
+        "y": 136
       },
       "id": 54,
       "options": {
@@ -3996,7 +4293,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 128
+        "y": 136
       },
       "id": 55,
       "options": {
@@ -4095,7 +4392,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 128
+        "y": 136
       },
       "id": 56,
       "options": {
@@ -4194,7 +4491,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 136
+        "y": 144
       },
       "id": 57,
       "options": {
@@ -4305,7 +4602,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 136
+        "y": 144
       },
       "id": 58,
       "options": {
@@ -4360,7 +4657,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 144
+        "y": 152
       },
       "id": 59,
       "panels": [],
@@ -4396,7 +4693,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 145
+        "y": 153
       },
       "id": 60,
       "options": {
@@ -4463,7 +4760,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 145
+        "y": 153
       },
       "id": 61,
       "options": {
@@ -4564,7 +4861,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 145
+        "y": 153
       },
       "id": 62,
       "options": {
@@ -4686,7 +4983,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 149
+        "y": 157
       },
       "id": 63,
       "options": {
@@ -4785,7 +5082,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 153
+        "y": 161
       },
       "id": 64,
       "options": {
@@ -4828,7 +5125,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 161
+        "y": 169
       },
       "id": 65,
       "panels": [],
@@ -4897,7 +5194,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 162
+        "y": 170
       },
       "id": 66,
       "options": {
@@ -5008,7 +5305,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 162
+        "y": 170
       },
       "id": 67,
       "options": {
@@ -5107,7 +5404,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 170
+        "y": 178
       },
       "id": 68,
       "options": {
@@ -5206,7 +5503,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 170
+        "y": 178
       },
       "id": 69,
       "options": {
@@ -5305,7 +5602,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 178
+        "y": 186
       },
       "id": 73,
       "options": {
@@ -5360,7 +5657,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 186
+        "y": 194
       },
       "id": 74,
       "panels": [],
@@ -5398,7 +5695,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 187
+        "y": 195
       },
       "id": 75,
       "options": {
@@ -5436,7 +5733,7 @@
       ],
       "title": "Archive Records Lost",
       "type": "stat",
-      "description": "Closed flows deleted without archiving because archiving kept failing. Records lost from the archive; must stay zero."
+      "description": "Closed flows given up and deleted without archiving because archiving never took them before their retention passed. Records lost from the archive; must stay zero."
     },
     {
       "datasource": {
@@ -5469,7 +5766,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 187
+        "y": 195
       },
       "id": 76,
       "options": {
@@ -5507,7 +5804,7 @@
       ],
       "title": "Archive Lag",
       "type": "stat",
-      "description": "How long past the one-minute archive grace the oldest closed flow has waited to be archived, on the worst shard. Rises to about 75s in the last minute of each UTC day."
+      "description": "How long past the one-minute archive grace the oldest closed flow has waited to be archived, on the worst shard and job. It includes a large tree being copied in stages, for as long as the copy takes."
     },
     {
       "datasource": {
@@ -5536,7 +5833,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 187
+        "y": 195
       },
       "id": 77,
       "options": {
@@ -5595,7 +5892,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "s"
         },
         "overrides": []
       },
@@ -5603,7 +5900,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 187
+        "y": 195
       },
       "id": 78,
       "options": {
@@ -5632,238 +5929,16 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "max(dwarf_archive_days{deployment=~\"$deployment\", service=~\"$service\"})",
+          "expr": "max(dwarf_archive_oldest_day_age_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Archive Days Kept",
+      "title": "Oldest Archive Day",
       "type": "stat",
-      "description": "Archive days whose tables exist on the worst shard: the retained days, today, and two days ahead. More than the retention plus 3 means expired days are not being dropped."
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 15,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 191
-      },
-      "id": 79,
-      "options": {
-        "legend": {
-          "calcs": [
-            "mean",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.0.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "round(sum(increase(dwarf_flows_archived_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
-          "instant": false,
-          "legendFormat": "archived",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "round(sum by (reason) (increase(dwarf_flows_reaped_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
-          "instant": false,
-          "legendFormat": "reaped: {{reason}}",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Flows Archived and Reaped",
-      "type": "timeseries",
-      "description": "Flows the reaper moved into the archive, and flows it deleted without archiving, by reason. Together they track dwarf_flows_closed a minute later."
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 15,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 191
-      },
-      "id": 80,
-      "options": {
-        "legend": {
-          "calcs": [
-            "mean",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.0.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "max by (shard) (dwarf_archive_lag_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
-          "instant": false,
-          "legendFormat": "lag, shard {{shard}}",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "max by (shard) (dwarf_archive_failing_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
-          "instant": false,
-          "legendFormat": "failing, shard {{shard}}",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Archive Lag and Failing Time by Shard",
-      "type": "timeseries",
-      "description": "Archive lag per shard, and how long archiving has been failing there. Past a minute of failing, closed flows are deleted without archiving."
+      "description": "How long ago the oldest archive day began, on the worst shard. About the retention plus a day, and up to two hours more between the hourly passes; beyond that, expired days are not being dropped."
     },
     {
       "datasource": {
@@ -5927,6 +6002,240 @@
         "w": 12,
         "x": 0,
         "y": 199
+      },
+      "id": 79,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "round(sum(increase(dwarf_flows_archived_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "instant": false,
+          "legendFormat": "archived",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "round(sum by (reason) (increase(dwarf_flows_reaped_total{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "instant": false,
+          "legendFormat": "reaped: {{reason}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Flows Archived and Deleted",
+      "type": "timeseries",
+      "description": "Flows moved into the archive, and flows deleted from the live tables without archiving, by reason. A flow given up at its retention counts under archive_failed and again under deleted when it is removed."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 199
+      },
+      "id": 80,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (shard) (dwarf_archive_lag_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "lag, shard {{shard}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (shard) (dwarf_archive_failing_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "failing, shard {{shard}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (shard) (dwarf_archive_oldest_attempt_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "staging, shard {{shard}}",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Archive Lag and Failing Time by Shard",
+      "type": "timeseries",
+      "description": "Archive lag per shard, how long archiving has been failing there, and the age of the oldest large tree still being copied into the archive in stages. A tree whose archiving fails stays in the live tables and is retried; it is not deleted before its retention."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 207
       },
       "id": 81,
       "options": {
@@ -6025,7 +6334,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 199
+        "y": 207
       },
       "id": 82,
       "options": {
@@ -6052,16 +6361,226 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum by (le, shard) (rate(dwarf_reap_pass_seconds_bucket{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, job, part) (rate(dwarf_janitor_batch_seconds_bucket{deployment=~\"$deployment\", service=~\"$service\"}[$interval])))",
           "instant": false,
-          "legendFormat": "shard {{shard}}",
+          "legendFormat": "{{job}} {{part}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Reaper Pass 99%ile by Shard",
+      "title": "Janitor Batch 99%ile by Job",
       "type": "timeseries",
-      "description": "Time one reaper pass spends on a shard. Passes run every 15 seconds; passes approaching that interval mean the reaper is falling behind."
+      "description": "Time one batch of a background job takes, split into turn, the wait for a turn on the shard's connections, and work, its statements. A job falling behind with most of its time in turn is held back by the shard's load; with most in work, by its statements and the pool."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 215
+      },
+      "id": 86,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (job) (dwarf_janitor_progress_age_seconds{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "{{job}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Janitor Progress Age by Job",
+      "type": "timeseries",
+      "description": "How long since each background job last made progress, on the worst shard. Near zero while a job has work and growing while it has none; growing while its work waits means the job is blocked or failing, and the logs say why."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 215
+      },
+      "id": 87,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (shard, kind) (sum by (shard, kind, id) (dwarf_archive_held_roots{deployment=~\"$deployment\", service=~\"$service\"}))",
+          "instant": false,
+          "legendFormat": "held: {{kind}}, shard {{shard}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (shard) (dwarf_archive_deletions_pending{deployment=~\"$deployment\", service=~\"$service\"})",
+          "instant": false,
+          "legendFormat": "deletions pending, shard {{shard}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Archive Roots Held and Deletions Pending",
+      "type": "timeseries",
+      "description": "Roots a sweep failed on and holds for its next pass, by kind, and archived trees marked for deletion that the archive deletion sweep could not delete yet. Both are above zero for a moment after a burst; a value that stays above zero across sweeps is the one to investigate."
     }
   ],
   "preload": false,

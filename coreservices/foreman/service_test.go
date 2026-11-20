@@ -783,3 +783,77 @@ func TestForeman_PurgeBefore(t *testing.T) { // MARKER: PurgeBefore
 		})
 	*/
 }
+
+func TestForeman_ListRecentlyClosed(t *testing.T) { // MARKER: ListRecentlyClosed
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := foremanapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			flows, err := client.ListRecentlyClosed(ctx, query)
+			assert.Expect(
+				flows, expectedFlows,
+				err, nil,
+			)
+		})
+	*/
+}
+
+func TestForeman_Summary(t *testing.T) { // MARKER: Summary
+	t.Parallel()
+	ctx := t.Context()
+	_ = ctx
+
+	// Initialize the microservice under test
+	svc := NewService()
+
+	// Initialize the tester client
+	tester := connector.New("tester.client")
+	client := foremanapi.NewClient(tester)
+	_ = client
+
+	// Run the testing app
+	app := application.New()
+	app.Add(
+		// HINT: Add microservices or mocks required for this test
+		svc,
+		tester,
+	)
+	app.RunInTest(t)
+
+	/*
+		HINT: Fill in test cases using the following pattern
+
+		t.Run("test_case_name", func(t *testing.T) {
+			assert := testarossa.For(t)
+
+			summary, err := client.Summary(ctx, flowKey)
+			assert.Expect(
+				summary, expectedSummary,
+				err, nil,
+			)
+		})
+	*/
+}

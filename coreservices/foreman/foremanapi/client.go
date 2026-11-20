@@ -426,7 +426,7 @@ func (_c MulticastClient) Step(ctx context.Context, stepKey string) iter.Seq[*St
 	}
 }
 
-// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
+// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closes leaves this list at once for ListRecentlyClosed.
 func (_c Client) ListOpen(ctx context.Context, query Query) (flows []FlowSummary, err error) { // MARKER: ListOpen
 	_in := ListOpenIn{Query: query}
 	_out := ListOpenOut{}
@@ -443,7 +443,7 @@ func (_res *ListOpenResponse) Get() (flows []FlowSummary, err error) { // MARKER
 	return _d.Flows, _res.err
 }
 
-// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
+// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closes leaves this list at once for ListRecentlyClosed.
 func (_c MulticastClient) ListOpen(ctx context.Context, query Query) iter.Seq[*ListOpenResponse] { // MARKER: ListOpen
 	_in := ListOpenIn{Query: query}
 	_out := ListOpenOut{}
@@ -459,7 +459,7 @@ func (_c MulticastClient) ListOpen(ctx context.Context, query Query) iter.Seq[*L
 	}
 }
 
-// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes, and is in ListRecentlyClosed until then. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
 func (_c Client) ListClosed(ctx context.Context, query Query) (flows []FlowSummary, err error) { // MARKER: ListClosed
 	_in := ListClosedIn{Query: query}
 	_out := ListClosedOut{}
@@ -476,7 +476,7 @@ func (_res *ListClosedResponse) Get() (flows []FlowSummary, err error) { // MARK
 	return _d.Flows, _res.err
 }
 
-// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes, and is in ListRecentlyClosed until then. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
 func (_c MulticastClient) ListClosed(ctx context.Context, query Query) iter.Seq[*ListClosedResponse] { // MARKER: ListClosed
 	_in := ListClosedIn{Query: query}
 	_out := ListClosedOut{}
@@ -486,6 +486,72 @@ func (_c MulticastClient) ListClosed(ctx context.Context, query Query) iter.Seq[
 			_clone := _out
 			_r.data = &_clone
 			if !yield((*ListClosedResponse)(_r)) {
+				return
+			}
+		}
+	}
+}
+
+// ListRecentlyClosed lists the closed (completed, failed, terminated or cancelled) flows not archived yet matching the query, most recently closed first. A flow is listed here from when it closes until it is archived, about a minute later, and then in ListClosed. To list every closed flow, call ListRecentlyClosed and then ListClosed, and drop duplicates by FlowKey. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow closed.
+func (_c Client) ListRecentlyClosed(ctx context.Context, query Query) (flows []FlowSummary, err error) { // MARKER: ListRecentlyClosed
+	_in := ListRecentlyClosedIn{Query: query}
+	_out := ListRecentlyClosedOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, ListRecentlyClosed.Method, ListRecentlyClosed.Route, &_in, &_out)
+	return _out.Flows, err // No trace
+}
+
+// ListRecentlyClosedResponse packs the response of ListRecentlyClosed.
+type ListRecentlyClosedResponse multicastResponse // MARKER: ListRecentlyClosed
+
+// Get unpacks the return arguments of ListRecentlyClosed.
+func (_res *ListRecentlyClosedResponse) Get() (flows []FlowSummary, err error) { // MARKER: ListRecentlyClosed
+	_d := _res.data.(*ListRecentlyClosedOut)
+	return _d.Flows, _res.err
+}
+
+// ListRecentlyClosed lists the closed (completed, failed, terminated or cancelled) flows not archived yet matching the query, most recently closed first. A flow is listed here from when it closes until it is archived, about a minute later, and then in ListClosed. To list every closed flow, call ListRecentlyClosed and then ListClosed, and drop duplicates by FlowKey. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow closed.
+func (_c MulticastClient) ListRecentlyClosed(ctx context.Context, query Query) iter.Seq[*ListRecentlyClosedResponse] { // MARKER: ListRecentlyClosed
+	_in := ListRecentlyClosedIn{Query: query}
+	_out := ListRecentlyClosedOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, ListRecentlyClosed.Method, ListRecentlyClosed.Route, &_in, &_out)
+	return func(yield func(*ListRecentlyClosedResponse) bool) {
+		for _r := range _queue {
+			_clone := _out
+			_r.data = &_clone
+			if !yield((*ListRecentlyClosedResponse)(_r)) {
+				return
+			}
+		}
+	}
+}
+
+// Summary returns the summary of one flow by its key, as the lists return it, whether open or closed, archived or not. An unknown key is a 404.
+func (_c Client) Summary(ctx context.Context, flowKey string) (summary *FlowSummary, err error) { // MARKER: Summary
+	_in := SummaryIn{FlowKey: flowKey}
+	_out := SummaryOut{}
+	err = marshalRequest(ctx, _c.svc, _c.opts, _c.host, Summary.Method, Summary.Route, &_in, &_out)
+	return _out.Summary, err // No trace
+}
+
+// SummaryResponse packs the response of Summary.
+type SummaryResponse multicastResponse // MARKER: Summary
+
+// Get unpacks the return arguments of Summary.
+func (_res *SummaryResponse) Get() (summary *FlowSummary, err error) { // MARKER: Summary
+	_d := _res.data.(*SummaryOut)
+	return _d.Summary, _res.err
+}
+
+// Summary returns the summary of one flow by its key, as the lists return it, whether open or closed, archived or not. An unknown key is a 404.
+func (_c MulticastClient) Summary(ctx context.Context, flowKey string) iter.Seq[*SummaryResponse] { // MARKER: Summary
+	_in := SummaryIn{FlowKey: flowKey}
+	_out := SummaryOut{}
+	_queue := marshalPublish(ctx, _c.svc, _c.opts, _c.host, Summary.Method, Summary.Route, &_in, &_out)
+	return func(yield func(*SummaryResponse) bool) {
+		for _r := range _queue {
+			_clone := _out
+			_r.data = &_clone
+			if !yield((*SummaryResponse)(_r)) {
 				return
 			}
 		}

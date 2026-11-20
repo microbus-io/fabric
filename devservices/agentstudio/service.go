@@ -358,7 +358,7 @@ func (svc *Service) Dashboard(w http.ResponseWriter, r *http.Request) (err error
 	if err != nil {
 		return errors.Trace(err)
 	}
-	closed, err := svc.foreman.ListClosed(r.Context(), foremanapi.Query{
+	closed, err := svc.listClosedFlows(r.Context(), foremanapi.Query{
 		FromTime: now.Add(-window),
 		ToTime:   now,
 		Limit:    500,
@@ -472,7 +472,7 @@ func (svc *Service) openFlowsBody(r *http.Request) (any, error) {
 	), nil
 }
 
-// closedFlowsBody renders the Closed tab of the flows page: the flows archived within the selected window.
+// closedFlowsBody renders the Closed tab of the flows page: the flows closed within the selected window.
 func (svc *Service) closedFlowsBody(r *http.Request) (any, error) {
 	statusFilter := wf.StateOf(r).Get("status")
 	if !workflow.IsTerminalStatus(statusFilter) {
@@ -497,9 +497,9 @@ func (svc *Service) closedFlowsBody(r *http.Request) (any, error) {
 		AddOption("7d", "Last 7 days").
 		AddOption("30d", "Last 30 days")
 
-	tbl := flowsTable(r, "Archived")
+	tbl := flowsTable(r, "Closed")
 	now := time.Now()
-	flows, err := svc.foreman.ListClosed(r.Context(), foremanapi.Query{
+	flows, err := svc.listClosedFlows(r.Context(), foremanapi.Query{
 		WorkflowURL: strings.TrimSpace(r.URL.Query().Get("workflow")),
 		Status:      statusFilter,
 		Search:      strings.TrimSpace(tbl.Query(r)),
@@ -510,7 +510,7 @@ func (svc *Service) closedFlowsBody(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	svc.addFlowRows(r, tbl, flows, func(f foremanapi.FlowSummary) time.Time { return f.ArchivedAt })
+	svc.addFlowRows(r, tbl, flows, func(f foremanapi.FlowSummary) time.Time { return f.UpdatedAt })
 	return wf.Collection(
 		wf.Toolbar().
 			AddLeft(wf.QuickSearch(), statusDropdown, windowDropdown).
@@ -519,6 +519,34 @@ func (svc *Service) closedFlowsBody(r *http.Request) (any, error) {
 		tbl.RedrawIfChanged(r, "status", "window"),
 		wf.Toolbar().AddLeft(wf.PageSizer()).RedrawIfChanged(r, "status", "window"),
 	), nil
+}
+
+// listClosedFlows lists the closed flows matching the query, those not archived yet first and then the archived ones,
+// at most query.Limit of them. The window bounds when a recently closed flow closed and when an archived one was
+// archived.
+func (svc *Service) listClosedFlows(ctx context.Context, query foremanapi.Query) ([]foremanapi.FlowSummary, error) {
+	// Recently closed first, so that a flow archived between the two calls is in both rather than in neither
+	flows, err := svc.foreman.ListRecentlyClosed(ctx, query)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	archived, err := svc.foreman.ListClosed(ctx, query)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	seen := make(map[string]bool, len(flows))
+	for _, f := range flows {
+		seen[f.FlowKey] = true
+	}
+	for _, f := range archived {
+		if !seen[f.FlowKey] {
+			flows = append(flows, f)
+		}
+	}
+	if len(flows) > query.Limit {
+		flows = flows[:query.Limit]
+	}
+	return flows, nil
 }
 
 // closedFlowsWindows are the windows the Closed tab of the flows page offers, keyed by their dropdown value.
@@ -613,6 +641,16 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 	if err != nil {
 		return errors.Trace(err)
 	}
+	// Resume, Cancel, Terminate and Continue take the root's key and refuse a subgraph child's
+	var rootFlowKey string
+	summary, err := svc.foreman.Summary(r.Context(), flowKey)
+	if err != nil && errors.StatusCode(err) != http.StatusNotFound {
+		return errors.Trace(err)
+	}
+	if err == nil && summary != nil && summary.Subgraph {
+		rootFlowKey = summary.RootFlowKey
+	}
+	subgraph := rootFlowKey != ""
 
 	var createdAt, startedAt, updatedAt time.Time
 	if len(steps) > 0 {
@@ -632,6 +670,10 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 		wf.Field().AddLeft("Flow key").AddRight(wf.Text(flowKey)),
 		wf.Field().AddLeft("Status").AddRight(statusChip(statusOf(outcome))),
 	)
+	if subgraph {
+		rootHref := svc.ExternalizeURL(r.Context(), "/flows/"+url.PathEscape(rootFlowKey))
+		overview.Add(wf.Field().AddLeft("Root flow").AddRight(wf.Link(rootHref).Add(rootFlowKey)))
+	}
 	if errStr := errorOf(outcome); errStr != "" {
 		overview.Add(wf.Field().AddLeft("Error").AddRight(wf.Text(errStr)))
 	}
@@ -831,21 +873,21 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 	appBar.AddRight(wf.ButtonText("resume").
 		WithHref("?resume=1").
 		Add(wf.Icon("play_arrow"), "Resume").
-		HideIf(currentStatus != workflow.StatusInterrupted).
+		HideIf(subgraph || currentStatus != workflow.StatusInterrupted).
 		RedrawIfChanged(r, "flowrefresh"))
 	appBar.AddRight(wf.ButtonText("cancel").
 		WithHref("?cancel=1").
 		Add(wf.Icon("cancel"), "Cancel").
-		HideIf(!cancellable(currentStatus)).
+		HideIf(subgraph || !cancellable(currentStatus)).
 		RedrawIfChanged(r, "flowrefresh"))
 	appBar.AddRight(wf.ButtonText("terminate").
 		WithHref("?terminate=1").
 		Add(wf.Icon("stop_circle"), "Terminate").
-		HideIf(!terminable(currentStatus)).
+		HideIf(subgraph || !terminable(currentStatus)).
 		RedrawIfChanged(r, "flowrefresh"))
 	appBar.AddRight(wf.ButtonText("continue").
 		WithHref("?continue=1").
-		WithDisabled(currentStatus != workflow.StatusCompleted).
+		WithDisabled(subgraph || currentStatus != workflow.StatusCompleted).
 		Add(wf.Icon("play_arrow"), "Continue").
 		HideIf(terminable(currentStatus)).
 		RedrawIfChanged(r, "flowrefresh"))

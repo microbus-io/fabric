@@ -161,6 +161,28 @@ func TestForeman_Mock(t *testing.T) {
 		assert.NoError(err)
 	})
 
+	t.Run("list_recently_closed", func(t *testing.T) { // MARKER: ListRecentlyClosed
+		assert := testarossa.For(t)
+
+		mock.MockListRecentlyClosed(func(ctx context.Context, query foremanapi.Query) (flows []foremanapi.FlowSummary, err error) {
+			return
+		})
+		var query foremanapi.Query
+		_, err := mock.ListRecentlyClosed(ctx, query)
+		assert.NoError(err)
+	})
+
+	t.Run("summary", func(t *testing.T) { // MARKER: Summary
+		assert := testarossa.For(t)
+
+		mock.MockSummary(func(ctx context.Context, flowKey string) (summary *foremanapi.FlowSummary, err error) {
+			return
+		})
+		var flowKey string
+		_, err := mock.Summary(ctx, flowKey)
+		assert.NoError(err)
+	})
+
 	t.Run("delete", func(t *testing.T) { // MARKER: Delete
 		assert := testarossa.For(t)
 

@@ -17,7 +17,7 @@ const Hostname = "foreman.core"
 const Name = "Foreman"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 58
+const Version = 59
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `Foreman orchestrates agentic workflow execution.`
@@ -67,7 +67,7 @@ var Retention = define.Config{ // MARKER: Retention
 	Validation: "int [0,]",
 }
 
-// FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.
+// FlowExpiration terminates a flow that is still running or interrupted this long after its creation, with its subgraphs, and deletes it without archiving. The check runs hourly, or every half of the expiration when that is shorter, so a flow is terminated up to that long after it expires. 0 never expires a flow. Set the same value on every replica; it takes effect on restart.
 var FlowExpiration = define.Config{ // MARKER: FlowExpiration
 	Value:      time.Duration(0),
 	Default:    "0",
@@ -222,7 +222,7 @@ type StepOut struct { // MARKER: Step
 	Step *FlowStep `json:"step,omitzero"`
 }
 
-// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closed in the last minute is in neither ListOpen nor ListClosed; read it by its key.
+// ListOpen lists the open (running or interrupted) flows matching the query, most recently updated first. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow was last updated. A flow that closes leaves this list at once for ListRecentlyClosed.
 var ListOpen = define.Function{ // MARKER: ListOpen
 	Host: Hostname, Method: "GET", Route: ":444/list-open",
 	In: ListOpenIn{}, Out: ListOpenOut{},
@@ -238,7 +238,7 @@ type ListOpenOut struct { // MARKER: ListOpen
 	Flows []FlowSummary `json:"flows,omitzero"`
 }
 
-// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
+// ListClosed lists the closed (completed, failed, terminated or cancelled) flows matching the query, most recently archived first. A flow is archived about a minute after it closes, and is in ListRecentlyClosed until then. Query.Limit, Query.FromTime and Query.ToTime are required, and the window may reach at most 31 days of the archive.
 var ListClosed = define.Function{ // MARKER: ListClosed
 	Host: Hostname, Method: "GET", Route: ":444/list-closed",
 	In: ListClosedIn{}, Out: ListClosedOut{},
@@ -252,6 +252,38 @@ type ListClosedIn struct { // MARKER: ListClosed
 // ListClosedOut are the output arguments of ListClosed.
 type ListClosedOut struct { // MARKER: ListClosed
 	Flows []FlowSummary `json:"flows,omitzero"`
+}
+
+// ListRecentlyClosed lists the closed (completed, failed, terminated or cancelled) flows not archived yet matching the query, most recently closed first. A flow is listed here from when it closes until it is archived, about a minute later, and then in ListClosed. To list every closed flow, call ListRecentlyClosed and then ListClosed, and drop duplicates by FlowKey. Query.Limit is required. Query.FromTime and Query.ToTime optionally bound when a flow closed.
+var ListRecentlyClosed = define.Function{ // MARKER: ListRecentlyClosed
+	Host: Hostname, Method: "GET", Route: ":444/list-recently-closed",
+	In: ListRecentlyClosedIn{}, Out: ListRecentlyClosedOut{},
+}
+
+// ListRecentlyClosedIn are the input arguments of ListRecentlyClosed.
+type ListRecentlyClosedIn struct { // MARKER: ListRecentlyClosed
+	Query Query `json:"query,omitzero"`
+}
+
+// ListRecentlyClosedOut are the output arguments of ListRecentlyClosed.
+type ListRecentlyClosedOut struct { // MARKER: ListRecentlyClosed
+	Flows []FlowSummary `json:"flows,omitzero"`
+}
+
+// Summary returns the summary of one flow by its key, as the lists return it, whether open or closed, archived or not. An unknown key is a 404.
+var Summary = define.Function{ // MARKER: Summary
+	Host: Hostname, Method: "GET", Route: ":444/summary",
+	In: SummaryIn{}, Out: SummaryOut{},
+}
+
+// SummaryIn are the input arguments of Summary.
+type SummaryIn struct { // MARKER: Summary
+	FlowKey string `json:"flowKey,omitzero"`
+}
+
+// SummaryOut are the output arguments of Summary.
+type SummaryOut struct { // MARKER: Summary
+	Summary *FlowSummary `json:"summary,omitzero"`
 }
 
 // Delete removes a closed flow and its subgraphs. An open flow is a 409: Terminate it first.

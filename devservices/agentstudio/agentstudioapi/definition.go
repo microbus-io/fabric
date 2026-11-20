@@ -15,7 +15,7 @@ const Hostname = "agentstudio.dev"
 const Name = "AgentStudio"
 
 // Version is a generation counter bumped on each regeneration, not a semantic version.
-const Version = 11
+const Version = 12
 
 // Description is the human-readable summary of the microservice, surfaced in OpenAPI and discovery.
 const Description = `AgentStudio is a developer console for inspecting flows running under the Foreman.`
