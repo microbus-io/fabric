@@ -121,6 +121,11 @@ line. A `-- DRIVER:` line applies to the one statement that follows it.
 
 - **Never edit a migration that has shipped.** Add the next number instead, even to undo a change: find the largest
   number in `resources/sql` and add one.
+- **A file of two or more statements runs in one transaction** on PostgreSQL, SQL Server and SQLite, and applies
+  whole or not at all. Put a statement that cannot run in a transaction (`CREATE INDEX CONCURRENTLY`, `VACUUM`,
+  `PRAGMA journal_mode`, `ALTER DATABASE`) in a file of its own, never begin or commit a transaction in a file, and
+  give a long backfill or index build a file of its own, since the transaction holds its locks until the file
+  commits. MySQL, MariaDB and CockroachDB run a file a statement at a time.
 - **Support the databases the project deploys to**, plus SQLite if it uses the LOCAL and TESTING fallbacks. Mark a
   statement that differs between databases with a `-- DRIVER:` line naming the drivers it applies to: `mysql`,
   `mariadb`, `pgx` (PostgreSQL), `cockroachdb`, `mssql` (SQL Server) or `sqlite`. A statement that suits several

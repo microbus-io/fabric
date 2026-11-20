@@ -80,9 +80,10 @@ Otherwise the project is exactly one version behind this release. Migrate it:
 
 v1.51.0 moves the foreman to dwarf v0.16.0 (by way of v0.15.0) and sequel v1.20.2, which Step 2's `go get` and
 `go mod tidy` already pull in. The foreman gains `ListRecentlyClosed`, the closed flows not archived yet, and
-`Summary`, one flow's summary by its key; every `FlowSummary` now names its `RootFlowKey` and `ParentStepKey`. The
-release also changes how the short-circuit transport delivers to overlapping subscriptions, and the status `Chat`
-returns for a task tool (3g).
+`Summary`, one flow's summary by its key; every `FlowSummary` now names its `RootFlowKey` and `ParentStepKey`.
+sequel's changes reach a project's own SQL-backed microservices (3f). Email parsing moves to a renamed package (3g).
+The release also changes how the short-circuit transport delivers to overlapping subscriptions, and the status `Chat`
+returns for a task tool (3h).
 
 #### 3a. Tell the User That the Foreman's Databases Need a Schema Change
 
@@ -176,7 +177,60 @@ drops duplicates by `FlowKey`. Whether a caller wants that is a design choice, s
 `Cancel`, `Terminate`, `Delete` and `Continue` take a root flow's key and refuse a subgraph child's: code that holds
 a child's key can read its `RootFlowKey` with `Summary`.
 
-#### 3f. Rename the Email Parsing Package
+#### 3f. Check SQL-Backed Microservices for sequel's Changes (Grep-Guided)
+
+Skip this step if no microservice of the project imports sequel:
+
+```bash
+grep -rlF --include='*.go' --exclude-dir=vendor '"github.com/microbus-io/sequel"' . | xargs -r -n1 dirname | sort -u
+```
+
+**`db.Conn` returns a `*sequel.Conn`** (sequel v1.19.0), which runs its statements with sequel's handling
+(placeholders, virtual functions, tracing), where the `*sql.Conn` it returned before bypassed sequel. Code that only
+calls `ExecContext`, `QueryContext`, `QueryRowContext`, `PrepareContext`, `PingContext` or `Close` on it keeps
+compiling. Code that stores it, or its rows, under the `database/sql` types, or calls `BeginTx` or `Raw` on it, fails
+Step 2's `go vet`. Find the calls:
+
+```bash
+grep -rnE --include='*.go' --exclude-dir=vendor '\.Conn\(ctx' .
+```
+
+At each site in a microservice that uses sequel, take the `*sequel.Conn` and use `conn.Transact` for a transaction,
+or call `db.DB.Conn(ctx)` where the code needs the raw `*sql.Conn`.
+
+**A migration file of two or more statements runs in one transaction** on PostgreSQL, SQL Server and SQLite (sequel
+v1.20.0), and is marked complete in it, so a failure applies nothing and the file runs again from the start. Files
+already applied do not run again and need nothing; never edit them. A file not applied yet in some environment fails
+if it holds a statement that cannot run in a transaction, or begins, commits or rolls back a transaction itself.
+Find the candidates:
+
+```bash
+grep -rnliE --include='*.sql' --exclude-dir=vendor \
+  'CONCURRENTLY|^[[:space:]]*(VACUUM|BEGIN|COMMIT|ROLLBACK)\b|journal_mode|ALTER DATABASE|ALTER TYPE .* ADD VALUE|FULLTEXT' .
+```
+
+Ask the user which of the files found have not been applied in every environment. In each of those, move the
+statement that refuses a transaction (`CREATE` or `DROP INDEX CONCURRENTLY`, `VACUUM`, `PRAGMA journal_mode`,
+`ALTER DATABASE`, full-text statements) to a file of its own, and drop a `BEGIN`, `COMMIT` or `ROLLBACK` the file
+holds. Its transaction also holds the locks it takes until the file commits, so give a long backfill or index build
+a file of its own.
+
+**Tell the user** about the changes that need no edit:
+
+- On MySQL and MariaDB, sequel no longer cuts a statement off after 8 seconds (v1.20.1): the driver's timeouts apply,
+  none by default, and those in the data source name. Bound a statement with its context's deadline, or set
+  `readTimeout` in the data source name.
+- On PostgreSQL, a statement outside a transaction whose connection fails after it was sent now returns an error
+  rather than being run again on another connection (pgx v5.13.0). A caller that retries on
+  `sequel.IsConnectionError` should expect that the failed statement may have run.
+- The foreman registers a sequel virtual function, `SEEK_FROM`. sequel's virtual functions are shared by everything
+  in the process, so a microservice bundled with the foreman must not register one under that name. Check:
+
+  ```bash
+  grep -rnF --include='*.go' --exclude-dir=vendor 'RegisterVirtualFunc("SEEK_FROM"' .
+  ```
+
+#### 3g. Rename the Email Parsing Package
 
 `smtpingressapi.Email` is an alias of the `Email` type of `github.com/go-letters/letters`, the successor to the
 deprecated `github.com/mnako/letters`, with the same API. A project that imports the old package itself, for example
@@ -187,9 +241,14 @@ grep -rlF --include='*.go' --exclude-dir=vendor '"github.com/mnako/letters"' . \
   | xargs -r perl -pi -e 's#"github.com/mnako/letters"#"github.com/go-letters/letters"#'
 ```
 
-Step 2's `go mod tidy` then drops the old module, and `gofmt -w` on the edited files restores the import order.
+The new path can sort to a different place among the imports, so restore their order, and Step 2's `go mod tidy`
+then drops the old module:
 
-#### 3g. Tell the User About the Other Changes
+```bash
+grep -rlF --include='*.go' --exclude-dir=vendor '"github.com/go-letters/letters"' . | xargs -r gofmt -w
+```
+
+#### 3h. Tell the User About the Other Changes
 
 `llm.core`'s `Chat` now fails with a 400 rather than a 500 when a tool URL names a task, the same status as a tool
 URL that is unknown or that the caller is not authorized for. Such a call already failed, so only its status
