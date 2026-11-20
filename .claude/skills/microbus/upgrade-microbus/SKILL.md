@@ -82,6 +82,11 @@ v1.51.0 has no breaking change, so no source edit is required. `llm.core`'s `Cha
 a 500 when a tool URL names a task, the same status as a tool URL that is unknown or that the caller is not
 authorized for. Such a call already failed, so only its status changes.
 
+A request that several subscriptions in one queue match, such as `/{p...}` and `/orders/{p...}` in a
+microservice's default queue, now runs one of their handlers when the caller is in the same process, as it already
+did over NATS. It used to run every one of them. Code that relied on each overlapping handler running needs no edit
+to compile, so tell the user about the change.
+
 ### Step 4: Phase 2 - Chain to the Next Release, or Finish
 
 Find the next release to apply: from `go list -m -versions github.com/microbus-io/fabric`, the smallest published version `NEXT` in the range `DEST < NEXT <= TARGET` (semver). The upper bound `<= TARGET` is what stops the chain from overshooting a user-supplied `TARGET`.

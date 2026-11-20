@@ -164,7 +164,7 @@ func TestTransport_Wildcards(t *testing.T) {
 	trie.Sub("gamma.*.com.example.|.*.foo", "gamma", h3)
 	trie.Sub("gamma.888.com.example.|.*.foo", "gamma", h3)
 	assert.Len(trie.Handlers("gamma.456.com.example.|.PATCH.foo"), 1)
-	assert.Len(trie.Handlers("gamma.888.com.example.|.PATCH.foo"), 2)
+	assert.Len(trie.Handlers("gamma.888.com.example.|.PATCH.foo"), 1) // One per queue across both subjects
 	assert.Len(trie.Handlers("gamma.456.edu.example.|.PATCH.foo"), 0)
 	trie.Handlers("gamma.456.com.example.|.PATCH.foo")[0](msg)
 	assert.Equal(3, id)
@@ -316,6 +316,221 @@ func TestTransport_RandomSubUnsub(t *testing.T) {
 		f()
 	}
 	assert.True(trie.IsEmpty())
+}
+
+func TestTransport_QueueAcrossOverlappingSubjects(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	h1 := func(*Msg) {}
+	h2 := func(*Msg) {}
+
+	// Greedy prefixes
+	var tr1 trie
+	tr1.Sub("a.b.c.>", "q", h1)
+	tr1.Sub("a.b.>", "q", h2)
+	assert.Len(tr1.Handlers("a.b.c.d"), 1)
+	assert.Len(tr1.Handlers("a.b.x"), 1)
+
+	// '*' and a literal at the same depth
+	var tr2 trie
+	tr2.Sub("a.b.*", "q", h1)
+	tr2.Sub("a.b.c", "q", h2)
+	assert.Len(tr2.Handlers("a.b.c"), 1)
+	assert.Len(tr2.Handlers("a.b.x"), 1)
+
+	// Literal and greedy
+	var tr3 trie
+	tr3.Sub("a.b.c", "q", h1)
+	tr3.Sub("a.>", "q", h2)
+	assert.Len(tr3.Handlers("a.b.c"), 1)
+
+	// One subject twice
+	var tr4 trie
+	tr4.Sub("a.b.c.>", "q", h1)
+	tr4.Sub("a.b.c.>", "q", h2)
+	assert.Len(tr4.Handlers("a.b.c.d"), 1)
+
+	// Different queue names get one each
+	var tr5 trie
+	tr5.Sub("a.b.c.>", "q1", h1)
+	tr5.Sub("a.b.>", "q2", h2)
+	tr5.Sub("a.>", "q1", h2)
+	assert.Len(tr5.Handlers("a.b.c.d"), 2)
+}
+
+func TestTransport_UnnamedAcrossOverlappingSubjects(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	var tr trie
+	var calls [5]int
+	tr.Sub("a.b.c.>", "", func(*Msg) { calls[0]++ })
+	tr.Sub("a.b.>", "", func(*Msg) { calls[1]++ })
+	tr.Sub("a.b.*.d", "", func(*Msg) { calls[2]++ })
+	tr.Sub("a.b.c.>", "q", func(*Msg) { calls[3]++ })
+	tr.Sub("a.b.>", "q", func(*Msg) { calls[4]++ })
+
+	handlers := tr.Handlers("a.b.c.d")
+	assert.Len(handlers, 4)
+	for _, h := range handlers {
+		h(nil)
+	}
+	assert.Expect(
+		calls[0], 1,
+		calls[1], 1,
+		calls[2], 1,
+		calls[3]+calls[4], 1,
+	)
+}
+
+func TestTransport_QueueDistributionAcrossSubjects(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	var tr trie
+	var calls [4]int
+	tr.Sub("a.b.>", "q", func(*Msg) { calls[0]++ })
+	for i := 1; i < 4; i++ {
+		tr.Sub("a.b.c.>", "q", func(*Msg) { calls[i]++ })
+	}
+
+	n := 8000
+	for range n {
+		handlers := tr.Handlers("a.b.c.d")
+		if !assert.Len(handlers, 1) {
+			return
+		}
+		handlers[0](nil)
+	}
+	// Each member is equally likely, so each gets about a quarter
+	for i := range calls {
+		assert.True(calls[i] > n/4*8/10 && calls[i] < n/4*12/10, "handler %d got %d of %d", i, calls[i], n)
+	}
+}
+
+func TestTransport_UnsubAcrossOverlappingSubjects(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	var tr trie
+	var calls [3]int
+	unsub0 := tr.Sub("a.b.>", "q", func(*Msg) { calls[0]++ })
+	unsub1 := tr.Sub("a.b.c.>", "q", func(*Msg) { calls[1]++ })
+	unsub2 := tr.Sub("a.b.c.>", "q", func(*Msg) { calls[2]++ })
+
+	// Removing the broad prefix leaves the narrow one serving the queue
+	unsub0()
+	for range 100 {
+		handlers := tr.Handlers("a.b.c.d")
+		if !assert.Len(handlers, 1) {
+			return
+		}
+		handlers[0](nil)
+	}
+	assert.Expect(
+		calls[0], 0,
+		calls[1], 50,
+		calls[2], 50,
+	)
+	assert.Len(tr.Handlers("a.b.x"), 0)
+
+	// Removing the narrow prefix's members leaves nothing
+	unsub1()
+	unsub2()
+	assert.Len(tr.Handlers("a.b.c.d"), 0)
+	assert.True(tr.IsEmpty())
+}
+
+func TestTransport_UnsubWhileOverlapping(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	var tr trie
+	var calls [4]int
+	tr.Sub("a.b.>", "q", func(*Msg) { calls[0]++ })
+	var unsubs [4]func()
+	for i := 1; i < 4; i++ {
+		unsubs[i] = tr.Sub("a.b.c.>", "q", func(*Msg) { calls[i]++ })
+	}
+
+	// Removing one narrow member while the broad one remains leaves three members, each equally likely
+	unsubs[2]()
+	unsubs[2]() // Removing twice is a no-op
+	n := 6000
+	for range n {
+		handlers := tr.Handlers("a.b.c.d")
+		if !assert.Len(handlers, 1) {
+			return
+		}
+		handlers[0](nil)
+	}
+	assert.Zero(calls[2])
+	for _, i := range []int{0, 1, 3} {
+		assert.True(calls[i] > n/3*8/10 && calls[i] < n/3*12/10, "handler %d got %d of %d", i, calls[i], n)
+	}
+}
+
+func TestTransport_InteriorNodeMatch(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	// a.b is an interior node of a.b.c that holds no subscriptions
+	var tr trie
+	var calls [2]int
+	tr.Sub("a.>", "q", func(*Msg) { calls[0]++ })
+	tr.Sub("a.b.c", "q", func(*Msg) { calls[1]++ })
+	for range 10 {
+		handlers := tr.Handlers("a.b")
+		if !assert.Len(handlers, 1) {
+			return
+		}
+		handlers[0](nil)
+	}
+	assert.Expect(
+		calls[0], 10,
+		calls[1], 0,
+	)
+}
+
+// BenchmarkTrie_HandlersOverlapping measures a match across overlapping subscriptions in one queue.
+func BenchmarkTrie_HandlersOverlapping(b *testing.B) {
+	tr, _ := buildBenchTrie(50, 20)
+	handler := func(*Msg) {}
+	tr.Sub("microbus.safe.443.*.gateway_core._.POST.>", "gateway_core", handler)
+	tr.Sub("microbus.safe.443.*.gateway_core._.POST.orders.>", "gateway_core", handler)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		if len(tr.Handlers("microbus.safe.443.caller_core.gateway_core._.POST.orders.1")) != 1 {
+			b.Fatal("expected one handler")
+		}
+	}
+}
+
+// BenchmarkTrie_HandlersManyQueues measures a match across two overlapping subjects holding many distinct queues,
+// as when every microservice in a large bundle subscribes to the same subject in its own queue.
+func BenchmarkTrie_HandlersManyQueues(b *testing.B) {
+	for _, queues := range []int{16, 256, 1024} {
+		b.Run(fmt.Sprintf("%d", queues), func(b *testing.B) {
+			tr := &trie{}
+			handler := func(*Msg) {}
+			for q := range queues {
+				if q%2 == 0 {
+					tr.Sub("a.b.*", fmt.Sprintf("q%d", q), handler)
+				} else {
+					tr.Sub("a.b.c", fmt.Sprintf("q%d", q), handler)
+				}
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				if len(tr.Handlers("a.b.c")) != queues {
+					b.Fatal("expected one handler per queue")
+				}
+			}
+		})
+	}
 }
 
 // buildBenchTrie populates a trie mimicking a multi-service bundle: `services` hostnames, each exposing

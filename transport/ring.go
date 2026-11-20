@@ -40,11 +40,13 @@ func (stone *stone) clear() {
 type ringList struct {
 	head  *stone
 	index int
+	count int
 }
 
 // Insert adds a message handler to the ring and returns the stone that holds the handler.
 func (r *ringList) Insert(handler MsgHandler) (gem *stone) {
 	r.index++
+	r.count++
 	gem = &stone{
 		Handler: handler,
 		Index:   r.index,
@@ -68,6 +70,7 @@ func (r *ringList) Remove(gem *stone) bool {
 	if gem.Next == nil {
 		return false
 	}
+	r.count--
 	if gem.Next == gem {
 		r.head = nil
 		gem.clear()
@@ -97,6 +100,11 @@ func (r *ringList) Rotate() (gem *stone) {
 	head := r.head
 	r.head = r.head.Next
 	return head
+}
+
+// Len returns the number of stones in the ring.
+func (r *ringList) Len() int {
+	return r.count
 }
 
 // IsEmpty indicates if the ring holds no stones.

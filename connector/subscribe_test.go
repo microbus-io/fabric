@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -233,6 +234,57 @@ func TestConnector_MixedAsteriskSubscription(t *testing.T) {
 	assert.Error(err)
 	_, err = con.GET(ctx, "https://mixed.asterisk.subscription.connector/obj/x*x/gamma")
 	assert.NoError(err)
+}
+
+func TestConnector_OverlappingGreedySubscriptions(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	ctx := t.Context()
+
+	// Create the microservice with two greedy routes in its default queue
+	var broad, narrow atomic.Int32
+	con := New("overlapping.greedy.subscriptions.connector")
+	con.Subscribe("Broad",
+		func(w http.ResponseWriter, r *http.Request) error {
+			broad.Add(1)
+			return nil
+		},
+		sub.At("GET", "/{p...}"),
+		sub.Web(),
+	)
+	con.Subscribe("Narrow",
+		func(w http.ResponseWriter, r *http.Request) error {
+			narrow.Add(1)
+			return nil
+		},
+		sub.At("GET", "/orders/{p...}"),
+		sub.Web(),
+	)
+
+	// Startup the microservice
+	err := con.Startup(ctx)
+	assert.NoError(err)
+	defer con.Shutdown(ctx)
+
+	// Each request runs exactly one of the handlers
+	n := 32
+	for range n {
+		_, err = con.GET(ctx, "https://overlapping.greedy.subscriptions.connector/orders/1")
+		assert.NoError(err)
+	}
+	time.Sleep(100 * time.Millisecond) // Let any duplicate delivery finish running
+	assert.Equal(int32(n), broad.Load()+narrow.Load())
+
+	// Only the broad route matches outside the narrow prefix
+	broad.Store(0)
+	narrow.Store(0)
+	_, err = con.GET(ctx, "https://overlapping.greedy.subscriptions.connector/customers/1")
+	assert.NoError(err)
+	assert.Expect(
+		broad.Load(), int32(1),
+		narrow.Load(), int32(0),
+	)
 }
 
 func TestConnector_ErrorAndPanic(t *testing.T) {

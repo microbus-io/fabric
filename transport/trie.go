@@ -19,6 +19,8 @@ package transport
 import (
 	"fmt"
 	"io"
+	"math/rand/v2"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -126,19 +128,82 @@ func (pt *trie) appendNodeHandlers(appendTo []MsgHandler) []MsgHandler {
 	}
 	unnamedRing, ok := pt.queues[""]
 	if ok {
-		head := unnamedRing.Rotate()
-		if head != nil {
-			appendTo = append(appendTo, head.Handler)
-			for {
-				h := unnamedRing.Rotate()
-				if h == head {
-					break
-				}
-				appendTo = append(appendTo, h.Handler)
+		appendTo = appendAllHandlers(appendTo, unnamedRing)
+	}
+	return appendTo
+}
+
+// appendAllHandlers appends every handler in the ring, rotating it a full turn.
+func appendAllHandlers(appendTo []MsgHandler, ring *ringList) []MsgHandler {
+	head := ring.Rotate()
+	if head == nil {
+		return appendTo
+	}
+	appendTo = append(appendTo, head.Handler)
+	for {
+		h := ring.Rotate()
+		if h == head {
+			break
+		}
+		appendTo = append(appendTo, h.Handler)
+	}
+	return appendTo
+}
+
+// appendMergedHandlers selects handlers from the queues of several matching trie nodes.
+// One handler is selected from each named queue across all the nodes, every member being equally likely.
+// All handlers are selected from the unnamed queues.
+// This method must be called under a lock.
+func appendMergedHandlers(appendTo []MsgHandler, nodes []*trie) []MsgHandler {
+	queues := 0
+	for _, j := range nodes {
+		queues += len(j.queues)
+	}
+	appendTo = slices.Grow(appendTo, queues)
+	for i, j := range nodes {
+		for q, ring := range j.queues {
+			if q == "" {
+				appendTo = appendAllHandlers(appendTo, ring)
+				continue
 			}
+			if ring.IsEmpty() || queueInAny(nodes[:i], q) {
+				continue // Selected from with an earlier node
+			}
+			// Gather the queue's members at the later nodes
+			total := ring.Len()
+			for _, later := range nodes[i+1:] {
+				if r := later.queues[q]; r != nil {
+					total += r.Len()
+				}
+			}
+			// Pick a ring in proportion to its members, then rotate it
+			chosen := ring
+			if total > ring.Len() {
+				pick := rand.IntN(total) - ring.Len()
+				for _, later := range nodes[i+1:] {
+					if pick < 0 {
+						break
+					}
+					if r := later.queues[q]; r != nil && !r.IsEmpty() {
+						chosen = r
+						pick -= r.Len()
+					}
+				}
+			}
+			appendTo = append(appendTo, chosen.Rotate().Handler)
 		}
 	}
 	return appendTo
+}
+
+// queueInAny indicates if any of the nodes has members in the named queue.
+func queueInAny(nodes []*trie, queue string) bool {
+	for _, j := range nodes {
+		if r := j.queues[queue]; r != nil && !r.IsEmpty() {
+			return true
+		}
+	}
+	return false
 }
 
 // Handlers returns the message handlers matching the indicated subject, considering wildcards.
@@ -180,11 +245,13 @@ func (pt *trie) Handlers(subject string) (handlers []MsgHandler) {
 			}
 		}
 	}
-	for _, j := range queue {
-		handlers = j.appendNodeHandlers(handlers)
-	}
-	for _, j := range suffix {
-		handlers = j.appendNodeHandlers(handlers)
+	switch {
+	case len(queue) == 1 && len(suffix) == 0:
+		handlers = queue[0].appendNodeHandlers(handlers)
+	case len(queue) == 0 && len(suffix) == 1:
+		handlers = suffix[0].appendNodeHandlers(handlers)
+	case len(queue)+len(suffix) > 1:
+		handlers = appendMergedHandlers(handlers, append(queue, suffix...))
 	}
 	pt.mux.Unlock()
 	return handlers

@@ -103,6 +103,7 @@ func TestTransport_Remove(t *testing.T) {
 
 	assert.Equal(gem1, ring.Head())
 	assert.Equal("{1,2,3,4}", ring.String())
+	assert.Equal(4, ring.Len())
 	assert.Equal(gem1, ring.Head())
 
 	// Delete non-head gem
@@ -117,9 +118,16 @@ func TestTransport_Remove(t *testing.T) {
 	assert.Equal("{2,4}", ring.String())
 	assert.Equal(gem2, ring.Head())
 
+	assert.Equal(2, ring.Len())
+
+	// Deleting a deleted gem is a no-op
+	assert.False(ring.Remove(gem1))
+	assert.Equal(2, ring.Len())
+
 	// Delete all nodes
 	ring.Remove(gem2)
 	ring.Remove(gem4)
+	assert.Zero(ring.Len())
 	assert.Equal("{}", ring.String())
 	assert.Nil(ring.Head())
 	ring.Rotate()

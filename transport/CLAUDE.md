@@ -61,16 +61,18 @@ The short-circuit's subscription matcher is a custom prefix trie that supports `
 
 `Handlers(subject)` walks segments left-to-right BFS-style, expanding into literal/`*`/`>` children at each step. Greedy `>` matches are collected separately and processed last. The traversal queue is reused via `sync.Pool` so high-volume publishers don't churn allocations.
 
-### Queue group semantics: named = round-robin, unnamed = broadcast
+### Queue group semantics: named = one member, unnamed = broadcast
 
-Each trie leaf node has a `map[string]*ringList` keyed by queue name. The empty queue name `""` is the broadcast bucket. `appendNodeHandlers` selects:
+Each trie node has a `map[string]*ringList` keyed by queue name. The empty queue name `""` is the broadcast bucket. `Handlers` selects:
 
-- **One handler from each named queue** (round-robin via `ringList.Rotate()`).
-- **All handlers from the unnamed queue** (every subscriber receives a copy).
+- **One handler from each named queue**, across every node that matches the subject.
+- **All handlers from the unnamed queue** of every matching node (every subscriber receives a copy).
 
-So a fan-out subscription with no queue gets every message; named queues load-balance via simple ring rotation. NATS uses the same model - the local trie reproduces it so co-located behavior matches what would happen over the wire.
+A queue group is the set of subscriptions with one queue name whose subjects match the message, wherever they sit in the trie. `a.b.>` and `a.b.c.>` under queue `q` form one group for `a.b.c.d`, as do `a.b.*` and `a.b.c` for `a.b.c`. This is how NATS groups queue subscribers (`addNodeToResults` in nats-server's `sublist.go`), and the trie has to match it, or a request to overlapping routes in one queue runs every one of them when delivered over the short-circuit and only one over NATS. Neither transport picks the most specific subscription: among overlapping members of one queue the pick is uniform.
 
-`Rotate()` is deterministic round-robin (advance head pointer), not random selection. Same as NATS - load balancing is fair across replicas under steady load, and surprises (e.g., locality skew) are predictable.
+The common case is one matching node, and `appendNodeHandlers` rotates each named queue's ring, a deterministic round-robin. When several nodes match, `appendMergedHandlers` walks each node's queues and, for a queue it has not met at an earlier node, looks the same queue name up in the later nodes' maps. It picks one of the rings it finds with probability `len(ring) / members`, then rotates that ring, so every member is equally likely and the members at one node keep their round-robin. The cost is linear in the number of queues, times the number of matching nodes, which is small. Grouping by comparing queue names pairwise instead would be quadratic, and it runs under the process-wide trie lock, while a subject can carry hundreds of queues in a large bundle (every microservice subscribes to the `//all:888` control routes in its own queue).
+
+NATS starts its pick from a random index rather than rotating, so the two transports agree on who is eligible and on the distribution, not on the sequence.
 
 ### Trie self-trims on unsubscribe
 
