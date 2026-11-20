@@ -27,6 +27,7 @@ Cancel (`foreman.Cancel`) while running; a forceful Terminate (`foreman.Terminat
 Fork once the flow is terminal (`completed`, `failed`, `terminated`, or `cancelled`), and Continue
 (`foreman.Continue` of this flow's key) once it is `completed`. Resume, Cancel, Terminate and Continue take a root
 flow's key, so read the flow's `Summary`: on a subgraph child, hide Resume, Cancel and Terminate, disable Continue,
-and show a link to the root flow among the global properties. Cancel is not
+and show a link to the root flow among the global properties. Fork needs the root closed, so offer it on a flow
+page, and on a step's page, only once the root's status (read through `Summary`) is terminal. Cancel is not
 offered while interrupted because a graceful cancel leaves an interrupted flow parked. Show `terminated` alongside
 the other statuses in the list filter, status chips, and dashboard charts.

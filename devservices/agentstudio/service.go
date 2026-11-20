@@ -549,6 +549,22 @@ func (svc *Service) listClosedFlows(ctx context.Context, query foremanapi.Query)
 	return flows, nil
 }
 
+// rootStatus returns the status of the root of the tree the flow belongs to, given the flow's summary, or fallback
+// if the root cannot be read. Fork takes a step anywhere in a tree, but only once its root is closed.
+func (svc *Service) rootStatus(ctx context.Context, summary *foremanapi.FlowSummary, fallback string) string {
+	if summary == nil {
+		return fallback
+	}
+	if !summary.Subgraph || summary.RootFlowKey == "" || summary.RootFlowKey == summary.FlowKey {
+		return summary.Status
+	}
+	root, err := svc.foreman.Summary(ctx, summary.RootFlowKey)
+	if err != nil || root == nil {
+		return fallback
+	}
+	return root.Status
+}
+
 // closedFlowsWindows are the windows the Closed tab of the flows page offers, keyed by their dropdown value.
 var closedFlowsWindows = map[string]time.Duration{
 	"8h":  8 * time.Hour,
@@ -647,7 +663,10 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 	if err != nil && errors.StatusCode(err) != http.StatusNotFound {
 		return errors.Trace(err)
 	}
-	if err == nil && summary != nil && summary.Subgraph {
+	if err != nil {
+		summary = nil
+	}
+	if summary != nil && summary.Subgraph {
 		rootFlowKey = summary.RootFlowKey
 	}
 	subgraph := rootFlowKey != ""
@@ -869,6 +888,11 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 		return cancellable(status) || status == workflow.StatusInterrupted
 	}
 	currentStatus := statusOf(outcome)
+	// Fork needs the root closed, which a subgraph child's own status does not tell
+	forkable := isForkableStatus(currentStatus)
+	if subgraph {
+		forkable = isForkableStatus(svc.rootStatus(r.Context(), summary, ""))
+	}
 	appBar := wf.AppBar("Flow " + flowKey).AddBottom(tabLabels)
 	appBar.AddRight(wf.ButtonText("resume").
 		WithHref("?resume=1").
@@ -894,7 +918,7 @@ func (svc *Service) FlowDetail(w http.ResponseWriter, r *http.Request) (err erro
 	appBar.AddRight(wf.ButtonText("fork").
 		WithHref("?fork=1").
 		Add(wf.Icon("fork_right"), "Fork").
-		HideIf(!isForkableStatus(currentStatus)).
+		HideIf(!forkable).
 		RedrawIfChanged(r, "flowrefresh"))
 
 	page := wf.Page().Add(
@@ -1054,14 +1078,22 @@ func (svc *Service) StepDetail(w http.ResponseWriter, r *http.Request) (err erro
 		tabBodies.AddLeft(wf.TabBody("subgraph").Add(subgraphForm))
 	}
 
+	// Fork takes any step of a tree, but only once the tree's root is closed: a step's own status does not tell
+	parentFlowKey := strings.TrimSpace(r.URL.Query().Get("flow"))
+	forkable := false
+	if parentFlowKey != "" && isForkableStatus(step.Status) {
+		summary, err := svc.foreman.Summary(r.Context(), parentFlowKey)
+		if err == nil {
+			forkable = isForkableStatus(svc.rootStatus(r.Context(), summary, ""))
+		}
+	}
 	appBar := wf.AppBar(step.TaskName).AddBottom(tabLabels)
-	if isForkableStatus(step.Status) {
+	if forkable {
 		appBar.AddRight(wf.ButtonText("fork").
 			WithHref("?fork=1").
 			Add(wf.Icon("fork_right"), "Fork"))
 	}
 
-	parentFlowKey := strings.TrimSpace(r.URL.Query().Get("flow"))
 	forkEmbedURL := ""
 	if wf.StateOf(r).Get("fork") != "" {
 		q := url.Values{

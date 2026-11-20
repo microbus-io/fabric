@@ -111,3 +111,10 @@ button is gated on the flow's own status; continuing the same flow twice makes t
 `Terminate` and `Continue` all take a root's key and refuse a subgraph child's, so the flow page reads the flow's
 `Summary`: on a subgraph child it hides Resume, Cancel and Terminate, disables Continue, and links to the root
 flow, where those actions apply.
+
+**Fork is offered only once the tree's root is closed.** `Fork` takes a step anywhere in a tree, a subgraph child's
+included, but refuses with a 409 while the root is open. Neither a subgraph child's own status nor a step's tells
+that: a child or a step can complete while its root still runs or waits on an interrupt. So the flow page and the
+step page read the root's status (`rootStatus`, through `Summary` and the summary's `RootFlowKey`). The step page
+learns its flow from the `flow` query argument the flow page puts on its link, since a step carries no flow key, and
+offers no Fork when it is opened without one.
