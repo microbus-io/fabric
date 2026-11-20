@@ -16,7 +16,7 @@ limitations under the License.
 
 package smtpingressapi
 
-import "github.com/mnako/letters"
+import "github.com/go-letters/letters"
 
 // Email is a message received by the email server, then parsed.
 type Email = letters.Email

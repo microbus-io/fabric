@@ -25,11 +25,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-letters/letters"
 	"github.com/microbus-io/errors"
 	"github.com/microbus-io/fabric/connector"
 	"github.com/microbus-io/fabric/coreservices/smtpingress/smtpingressapi"
 	"github.com/microbus-io/fabric/trc"
-	"github.com/mnako/letters"
 	"github.com/phires/go-guerrilla"
 	"github.com/phires/go-guerrilla/backends"
 	glog "github.com/phires/go-guerrilla/log"

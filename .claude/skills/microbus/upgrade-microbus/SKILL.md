@@ -82,7 +82,7 @@ v1.51.0 moves the foreman to dwarf v0.16.0 (by way of v0.15.0) and sequel v1.20.
 `go mod tidy` already pull in. The foreman gains `ListRecentlyClosed`, the closed flows not archived yet, and
 `Summary`, one flow's summary by its key; every `FlowSummary` now names its `RootFlowKey` and `ParentStepKey`. The
 release also changes how the short-circuit transport delivers to overlapping subscriptions, and the status `Chat`
-returns for a task tool (3f).
+returns for a task tool (3g).
 
 #### 3a. Tell the User That the Foreman's Databases Need a Schema Change
 
@@ -176,7 +176,20 @@ drops duplicates by `FlowKey`. Whether a caller wants that is a design choice, s
 `Cancel`, `Terminate`, `Delete` and `Continue` take a root flow's key and refuse a subgraph child's: code that holds
 a child's key can read its `RootFlowKey` with `Summary`.
 
-#### 3f. Tell the User About the Other Changes
+#### 3f. Rename the Email Parsing Package
+
+`smtpingressapi.Email` is an alias of the `Email` type of `github.com/go-letters/letters`, the successor to the
+deprecated `github.com/mnako/letters`, with the same API. A project that imports the old package itself, for example
+to name the type of an attachment, now holds a type that does not match. Rename the import:
+
+```bash
+grep -rlF --include='*.go' --exclude-dir=vendor '"github.com/mnako/letters"' . \
+  | xargs -r perl -pi -e 's#"github.com/mnako/letters"#"github.com/go-letters/letters"#'
+```
+
+Step 2's `go mod tidy` then drops the old module, and `gofmt -w` on the edited files restores the import order.
+
+#### 3g. Tell the User About the Other Changes
 
 `llm.core`'s `Chat` now fails with a 400 rather than a 500 when a tool URL names a task, the same status as a tool
 URL that is unknown or that the caller is not authorized for. Such a call already failed, so only its status
