@@ -104,10 +104,20 @@ func (pt *trie) unsub(node *trie, queue string, gem *stone) {
 	pt.mux.Unlock()
 }
 
-var queuePool = sync.Pool{
+// walkBuffers are the scratch slices of a trie walk.
+type walkBuffers struct {
+	cur    []*trie
+	next   []*trie
+	suffix []*trie
+}
+
+var walkPool = sync.Pool{
 	New: func() any {
-		b := make([]*trie, 0, 32)
-		return &b
+		return &walkBuffers{
+			cur:    make([]*trie, 0, 16),
+			next:   make([]*trie, 0, 16),
+			suffix: make([]*trie, 0, 8),
+		}
 	},
 }
 
@@ -208,52 +218,48 @@ func queueInAny(nodes []*trie, queue string) bool {
 
 // Handlers returns the message handlers matching the indicated subject, considering wildcards.
 func (pt *trie) Handlers(subject string) (handlers []MsgHandler) {
-	ptrQueue := queuePool.Get().(*[]*trie)
-	defer queuePool.Put(ptrQueue)
-	queue := *ptrQueue
-
-	var suffix []*trie
-	queue = append(queue, pt)
+	buf := walkPool.Get().(*walkBuffers)
+	cur := append(buf.cur[:0], pt)
+	next := buf.next[:0]
+	suffix := buf.suffix[:0]
 	pt.mux.Lock()
 	for seg := range strings.SplitSeq(subject, ".") {
-		if len(queue) == 0 {
+		if len(cur) == 0 {
 			break
 		}
 		if seg == "" {
 			continue
 		}
-		n := len(queue)
-		for range n {
-			// Pop from the queue
-			j := queue[0]
-			queue = queue[1:]
-			if len(queue) == 0 {
-				queue = *ptrQueue
+		// A wildcard in the subject matches only through the wildcard children, as in NATS
+		wildcard := seg == "*" || seg == ">"
+		for _, j := range cur {
+			if !wildcard {
+				if segChild := j.children[seg]; segChild != nil {
+					next = append(next, segChild)
+				}
 			}
-
-			segChild := j.children[seg]
-			starChild := j.children["*"]
-			suffixChild := j.children[">"]
-			if segChild != nil {
-				queue = append(queue, segChild)
+			if starChild := j.children["*"]; starChild != nil {
+				next = append(next, starChild)
 			}
-			if starChild != nil {
-				queue = append(queue, starChild)
-			}
-			if suffixChild != nil {
+			if suffixChild := j.children[">"]; suffixChild != nil {
 				suffix = append(suffix, suffixChild)
 			}
 		}
+		cur, next = next, cur[:0]
 	}
 	switch {
-	case len(queue) == 1 && len(suffix) == 0:
-		handlers = queue[0].appendNodeHandlers(handlers)
-	case len(queue) == 0 && len(suffix) == 1:
+	case len(cur) == 1 && len(suffix) == 0:
+		handlers = cur[0].appendNodeHandlers(handlers)
+	case len(cur) == 0 && len(suffix) == 1:
 		handlers = suffix[0].appendNodeHandlers(handlers)
-	case len(queue)+len(suffix) > 1:
-		handlers = appendMergedHandlers(handlers, append(queue, suffix...))
+	case len(cur)+len(suffix) > 1:
+		cur = append(cur, suffix...)
+		handlers = appendMergedHandlers(handlers, cur)
 	}
 	pt.mux.Unlock()
+	// Keep any array that grew for the next walk
+	buf.cur, buf.next, buf.suffix = cur[:0], next[:0], suffix[:0]
+	walkPool.Put(buf)
 	return handlers
 }
 

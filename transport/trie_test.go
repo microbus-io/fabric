@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -493,6 +494,24 @@ func TestTransport_InteriorNodeMatch(t *testing.T) {
 	)
 }
 
+func TestTransport_WildcardInSubject(t *testing.T) {
+	t.Parallel()
+	assert := testarossa.For(t)
+
+	h := func(*Msg) {}
+	var tr trie
+	tr.Sub("a.*", "", h)
+	tr.Sub("a.*", "q", h)
+	tr.Sub("a.>", "", h)
+	tr.Sub("a.>", "q", h)
+
+	// Each subscription matches once, not once as a wildcard and again as a literal
+	assert.Len(tr.Handlers("a.*"), 3)
+	assert.Len(tr.Handlers("a.>"), 3)
+	assert.Len(tr.Handlers("a.x"), 3)
+	assert.Len(tr.Handlers("a.>.x"), 2)
+}
+
 // BenchmarkTrie_HandlersOverlapping measures a match across overlapping subscriptions in one queue.
 func BenchmarkTrie_HandlersOverlapping(b *testing.B) {
 	tr, _ := buildBenchTrie(50, 20)
@@ -505,6 +524,27 @@ func BenchmarkTrie_HandlersOverlapping(b *testing.B) {
 		if len(tr.Handlers("microbus.safe.443.caller_core.gateway_core._.POST.orders.1")) != 1 {
 			b.Fatal("expected one handler")
 		}
+	}
+}
+
+// BenchmarkTrie_HandlersDeep measures a match on a long subject where two subscriptions overlap at every segment,
+// keeping two nodes in the walk at every depth.
+func BenchmarkTrie_HandlersDeep(b *testing.B) {
+	for _, depth := range []int{8, 24, 40} {
+		b.Run(fmt.Sprintf("%d", depth), func(b *testing.B) {
+			tr := &trie{}
+			handler := func(*Msg) {}
+			subject := strings.Repeat("x.", depth-1) + "x"
+			tr.Sub(subject, "q", handler)
+			tr.Sub(strings.Repeat("*.", depth-1)+"x", "q", handler)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				if len(tr.Handlers(subject)) != 1 {
+					b.Fatal("expected one handler")
+				}
+			}
+		})
 	}
 }
 
